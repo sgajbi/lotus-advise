@@ -5,6 +5,14 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
+
+_IDEMPOTENCY_HEADER_DESCRIPTION = (
+    "Idempotency keys are replay-safe client request identifiers. They are trimmed before replay "
+    f"lookup and must be at most {MAX_IDEMPOTENCY_KEY_LENGTH} visible characters without control "
+    "characters."
+)
+
 _EXAMPLE_BY_KEY = {
     "portfolio_id": "DEMO_DPM_EUR_001",
     "proposal_id": "pp_001",
@@ -155,6 +163,24 @@ def _ensure_operation_documentation(schema: dict[str, Any], service_name: str) -
                 )
                 if not has_error:
                     responses["default"] = {"description": "Unexpected error response."}
+            _ensure_operation_parameter_documentation(operation)
+
+
+def _ensure_operation_parameter_documentation(operation: dict[str, Any]) -> None:
+    parameters = operation.get("parameters")
+    if not isinstance(parameters, list):
+        return
+    for parameter in parameters:
+        if not isinstance(parameter, dict):
+            continue
+        if parameter.get("name") != "Idempotency-Key" or parameter.get("in") != "header":
+            continue
+        schema = parameter.setdefault("schema", {})
+        if isinstance(schema, dict):
+            schema["maxLength"] = MAX_IDEMPOTENCY_KEY_LENGTH
+        description = parameter.get("description") or ""
+        if _IDEMPOTENCY_HEADER_DESCRIPTION not in description:
+            parameter["description"] = f"{description} {_IDEMPOTENCY_HEADER_DESCRIPTION}".strip()
 
 
 def _ensure_schema_documentation(schema: dict[str, Any]) -> None:

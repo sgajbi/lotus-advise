@@ -8,11 +8,18 @@ from typing import Any
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 import src.api.proposals.router as proposals_router
 import src.api.proposals.routes_advisory_copilot as copilot_routes
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.advisory_copilot.api_models import (
+    AdvisoryCopilotEvidencePacketCreateRequest,
+    AdvisoryCopilotRunPage,
+    AdvisoryCopilotSupportabilityResponse,
+)
+from src.core.advisory_copilot.records import AdvisoryCopilotRunRecord
 from src.core.policy_packs.models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
@@ -557,6 +564,89 @@ def test_advisory_copilot_openapi_is_action_specific() -> None:
     assert "/advisory/copilot/supportability" in paths
     assert "/advisory/copilot/prompt" not in paths
     assert "Advisory Copilot" in {tag["name"] for tag in schema["tags"]}
+
+
+def test_advisory_copilot_http_edge_bounds_identifiers_and_headers(
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    _ = copilot_repository
+    oversized_id = "x" * 161
+
+    with TestClient(app) as client:
+        evidence_read = client.get(f"/advisory/copilot/evidence-packets/{oversized_id}")
+        run_read = client.get(f"/advisory/copilot/actions/{oversized_id}")
+        run_review = client.post(
+            "/advisory/copilot/actions/copilot_run_001/reviews",
+            json={
+                "action": "APPROVE_FOR_INTERNAL_USE",
+                "actor_id": "supervisor_123",
+                "reason": {"decision": "Reviewed against cited source evidence."},
+            },
+            headers={"Idempotency-Key": "x" * 129},
+        )
+        long_cursor = client.get(
+            "/advisory/proposals/proposal_sg_structured_note_001/versions/"
+            "version_sg_001/copilot-runs",
+            params={"cursor": "x" * 513},
+        )
+        long_correlation = client.post(
+            "/advisory/copilot/evidence-packets",
+            json=_evidence_packet_payload(),
+            headers={"X-Correlation-ID": "x" * 129},
+        )
+
+    assert evidence_read.status_code == 422
+    assert run_read.status_code == 422
+    assert run_review.status_code == 422
+    assert long_cursor.status_code == 422
+    assert long_correlation.status_code == 422
+
+
+def test_advisory_copilot_response_models_bound_pages_and_supportability() -> None:
+    run = AdvisoryCopilotRunRecord.model_construct(run_id="copilot_run_001")
+    AdvisoryCopilotRunPage(items=tuple([run] * 100), next_cursor="x" * 512)
+    AdvisoryCopilotSupportabilityResponse(
+        support_status="ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
+        client_ready_publication="BLOCKED",
+        supported_action_families=("PROPOSAL_EXPLANATION",),
+        boundaries=("Policy approval is not delegated to copilot.",),
+    )
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunPage(items=tuple([run] * 101))
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunPage(items=(), next_cursor="x" * 513)
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotSupportabilityResponse(
+            support_status="x" * 161,
+            client_ready_publication="BLOCKED",
+            supported_action_families=("PROPOSAL_EXPLANATION",),
+            boundaries=("Policy approval is not delegated to copilot.",),
+        )
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotSupportabilityResponse(
+            support_status="ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
+            client_ready_publication="BLOCKED",
+            supported_action_families=("PROPOSAL_EXPLANATION",),
+            boundaries=tuple(f"Boundary {index}" for index in range(13)),
+        )
+
+
+def test_advisory_copilot_evidence_packet_request_bounds_source_sections() -> None:
+    payload = _evidence_packet_payload()
+    AdvisoryCopilotEvidencePacketCreateRequest.model_validate(payload)
+
+    oversized_payload = {
+        **payload,
+        "source_sections": payload["source_sections"] * 13,
+    }
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotEvidencePacketCreateRequest.model_validate(oversized_payload)
+
+    AdvisoryCopilotEvidencePacketCreateRequest.model_validate({**payload, "source_sections": []})
 
 
 def test_advisory_copilot_repository_dependency_maps_startup_failure(

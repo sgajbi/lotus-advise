@@ -133,6 +133,48 @@ def test_bank_demo_proof_pack_endpoint_rejects_sensitive_artifact_refs_as_reques
     assert "should-not-leak" not in detail
 
 
+def test_bank_demo_proof_pack_endpoint_bounds_metadata_and_correlation_header() -> None:
+    request = {
+        "live_runtime_payload": _live_runtime_payload(),
+        "runtime_posture": _runtime_posture().model_dump(mode="json"),
+        "repository_sha": "x" * 161,
+        "service_version": "0.1.0",
+        "environment": "test",
+    }
+    sensitive_environment = {
+        **request,
+        "repository_sha": "api-sha-123",
+        "environment": "prod-token",
+    }
+    oversized_payload = {
+        **request,
+        "repository_sha": "api-sha-123",
+        "live_runtime_payload": {f"top_level_{index}": {} for index in range(17)},
+    }
+
+    with TestClient(app) as client:
+        long_sha = client.post("/advisory/bank-demo-proof/proof-packs", json=request)
+        sensitive_metadata = client.post(
+            "/advisory/bank-demo-proof/proof-packs",
+            json=sensitive_environment,
+        )
+        long_correlation = client.post(
+            "/advisory/bank-demo-proof/proof-packs",
+            json={**request, "repository_sha": "api-sha-123"},
+            headers={"X-Correlation-Id": "x" * 129},
+        )
+        long_live_payload = client.post(
+            "/advisory/bank-demo-proof/proof-packs",
+            json=oversized_payload,
+        )
+
+    assert long_sha.status_code == 422
+    assert sensitive_metadata.status_code == 422
+    assert "environment cannot contain sensitive material" in repr(sensitive_metadata.json())
+    assert long_correlation.status_code == 422
+    assert long_live_payload.status_code == 422
+
+
 def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() -> None:
     operation = app.openapi()["paths"]["/advisory/bank-demo-proof/proof-packs"]["post"]
 
@@ -142,5 +184,10 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert "422" in operation["responses"]
     runtime_endpoint_schema = app.openapi()["components"]["schemas"]["RuntimeEndpointEvidence"]
     assert "latency_ms" in runtime_endpoint_schema["properties"]
+    assert runtime_endpoint_schema["properties"]["endpoint"]["maxLength"] == 160
+    runtime_posture_schema = app.openapi()["components"]["schemas"]["BackendRuntimePosture"]
+    assert runtime_posture_schema["properties"]["base_url"]["maxLength"] == 512
+    assert runtime_posture_schema["properties"]["endpoints"]["maxItems"] == 32
     request_schema = app.openapi()["components"]["schemas"]["BankDemoProofCaptureRequest"]
     assert "query strings" in request_schema["properties"]["output_ref_prefix"]["description"]
+    assert request_schema["properties"]["live_runtime_payload"]["maxProperties"] == 16

@@ -10,6 +10,11 @@ from src.core.workspace.models import (
     WorkspaceResolvedContext,
 )
 from src.integrations.lotus_ai.rationale import (
+    _MAX_ASSISTANT_OUTPUT_LENGTH,
+    _MAX_FINDING_SUMMARY_LENGTH,
+    _MAX_FINDINGS,
+    _MAX_REVIEW_SUMMARY_ITEMS,
+    _MAX_REVIEW_SUMMARY_LENGTH,
     LotusAIRationaleUnavailableError,
     _build_source_refs,
     _build_workflow_pack_request,
@@ -243,6 +248,39 @@ def test_generate_workspace_rationale_rejects_blank_output(
     assert str(exc.value) == "LOTUS_AI_RATIONALE_UNAVAILABLE"
 
 
+def test_generate_workspace_rationale_rejects_oversized_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.rationale.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {"message": "x" * (_MAX_ASSISTANT_OUTPUT_LENGTH + 1)},
+                        }
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIRationaleUnavailableError) as exc:
+        generate_workspace_rationale_with_lotus_ai(
+            request=_build_request(),
+            evidence=_build_evidence(),
+        )
+
+    assert str(exc.value) == "LOTUS_AI_RATIONALE_UNAVAILABLE"
+
+
 def test_generate_workspace_rationale_propagates_non_server_detail(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -434,6 +472,51 @@ def test_review_action_returns_trimmed_summary_and_replacement_lineage(
     assert response.workflow_pack_run.superseded is True
 
 
+def test_review_action_bounds_returned_summary(monkeypatch: pytest.MonkeyPatch) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    review_url = (
+        f"{base_url}/platform/workflow-packs/runs/"
+        "packrun_workspace_rationale_req_001/review-actions"
+    )
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.rationale.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                review_url: _FakeResponse(
+                    200,
+                    {
+                        "run": {
+                            "run_id": "packrun_workspace_rationale_req_001",
+                            "runtime_state": "COMPLETED",
+                            "review_state": "ACCEPTED",
+                            "supportability_status": "READY",
+                            "workflow_authority_owner": "lotus-advise",
+                        },
+                        "summary": [
+                            "  Summary accepted.  ",
+                            "",
+                            "x" * (_MAX_REVIEW_SUMMARY_LENGTH + 1),
+                            *[
+                                f"Additional note {index}."
+                                for index in range(_MAX_REVIEW_SUMMARY_ITEMS + 2)
+                            ],
+                        ],
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = apply_workspace_rationale_review_action_with_lotus_ai(_build_review_request())
+
+    assert response.summary[0] == "Summary accepted."
+    assert len(response.summary) == _MAX_REVIEW_SUMMARY_ITEMS
+    assert all(len(item) <= _MAX_REVIEW_SUMMARY_LENGTH for item in response.summary)
+
+
 def test_map_workflow_pack_run_sets_summary_notes_for_key_states() -> None:
     awaiting_review = _map_workflow_pack_run(
         {
@@ -479,6 +562,46 @@ def test_map_workflow_pack_run_sets_summary_notes_for_key_states() -> None:
     assert historical is not None
     assert historical.current_summary_note == "Run is historical due to replacement lineage."
     assert historical.replacement_run_id == "packrun_workspace_rationale_req_004"
+
+
+def test_map_workflow_pack_run_bounds_actions_findings_and_identifiers() -> None:
+    run = _map_workflow_pack_run(
+        {
+            "run_id": "  packrun_workspace_rationale_req_001  ",
+            "runtime_state": " COMPLETED ",
+            "review_state": " ACCEPTED ",
+            "supportability_status": " READY ",
+            "workflow_authority_owner": " lotus-advise ",
+            "replacement_run_id": "x" * 161,
+            "allowed_review_actions": [
+                "REVISE",
+                "APPROVE_ORDER",
+                "REVISE",
+                "ACCEPT",
+                "",
+            ],
+            "findings": [
+                {
+                    "finding_id": f"finding_{index}",
+                    "severity": "INFO",
+                    "summary": "x" * (_MAX_FINDING_SUMMARY_LENGTH + 1)
+                    if index == 0
+                    else f"Finding {index}.",
+                }
+                for index in range(_MAX_FINDINGS + 3)
+            ],
+        }
+    )
+
+    assert run is not None
+    assert run.run_id == "packrun_workspace_rationale_req_001"
+    assert run.runtime_state == "COMPLETED"
+    assert run.workflow_authority_owner == "lotus-advise"
+    assert run.allowed_review_actions == ["REVISE", "ACCEPT"]
+    assert run.replacement_run_id is None
+    assert len(run.findings) == _MAX_FINDINGS
+    assert run.findings[0].finding_id == "finding_1"
+    assert all(len(finding.summary) <= _MAX_FINDING_SUMMARY_LENGTH for finding in run.findings)
 
 
 def test_workflow_pack_request_includes_resolved_context_and_portfolio_source_ref(

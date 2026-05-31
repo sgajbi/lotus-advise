@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PORTFOLIO_ID,
@@ -12,6 +12,23 @@ from src.core.bank_demo_proof.models import (
 
 DocumentProofFamily = Literal["PROPOSAL_MEMO", "POLICY_SIGN_OFF"]
 DocumentProofClaimPosture = Literal["ADVISOR_USE_SUPPORTED", "CLIENT_READY_BLOCKED"]
+_RFC28_DOCUMENT_STATUS_MAX_LENGTH = 120
+_RFC28_DOCUMENT_DEGRADED_REASON_MAX_LENGTH = 512
+_RFC28_DOCUMENT_FORMAT_MAX_ITEMS = 8
+_RFC28_SUPPORTED_DOCUMENT_FORMATS = {"pdf", "docx", "html"}
+_RFC28_SENSITIVE_DOCUMENT_TERMS = (
+    "authorization",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "api key",
+    "apikey",
+    "raw prompt",
+    "raw payload",
+    "provider response",
+)
 
 
 class AdvisoryDocumentProof(BaseModel):
@@ -24,7 +41,9 @@ class AdvisoryDocumentProof(BaseModel):
     report_status: str = Field(description="Observed report status.")
     report_package_status: str = Field(description="Observed report package status.")
     requested_output_formats: list[str] = Field(
-        description="Requested deterministic report output formats."
+        min_length=1,
+        max_length=_RFC28_DOCUMENT_FORMAT_MAX_ITEMS,
+        description="Requested deterministic report output formats.",
     )
     render_ref_status: str = Field(description="Bounded render reference status.")
     archive_ref_status: str = Field(description="Bounded archive reference status.")
@@ -36,8 +55,54 @@ class AdvisoryDocumentProof(BaseModel):
     client_ready_document_status: str = Field(description="Client-ready document request posture.")
     degraded_reason: str | None = Field(
         default=None,
+        max_length=_RFC28_DOCUMENT_DEGRADED_REASON_MAX_LENGTH,
         description="Bounded degraded reason when report/render/archive is unavailable.",
     )
+
+    @field_validator(
+        "report_status",
+        "report_package_status",
+        "render_ref_status",
+        "archive_ref_status",
+        "archive_retention_posture",
+        "archive_legal_hold_posture",
+        "archive_access_audit_ref_status",
+        "client_ready_document_status",
+    )
+    @classmethod
+    def _status_fields_must_be_bounded(cls, value: str) -> str:
+        normalized = _normalize_required_text(value, field_name="document proof status")
+        if len(normalized) > _RFC28_DOCUMENT_STATUS_MAX_LENGTH:
+            raise ValueError("document proof status is too long")
+        if _contains_sensitive_document_term(normalized):
+            raise ValueError("document proof status cannot contain sensitive technical detail")
+        return normalized
+
+    @field_validator("requested_output_formats")
+    @classmethod
+    def _requested_formats_must_be_supported(cls, value: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for item in value:
+            output_format = _normalize_required_text(
+                str(item),
+                field_name="requested output format",
+            ).lower()
+            if output_format not in _RFC28_SUPPORTED_DOCUMENT_FORMATS:
+                raise ValueError("requested output format is not supported")
+            normalized.append(output_format)
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("requested output formats must be unique")
+        return normalized
+
+    @field_validator("degraded_reason")
+    @classmethod
+    def _degraded_reason_must_be_business_safe(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = _normalize_required_text(value, field_name="document degraded reason")
+        if _contains_sensitive_document_term(normalized):
+            raise ValueError("document degraded reason cannot contain sensitive technical detail")
+        return normalized
 
     @model_validator(mode="after")
     def _client_ready_and_archive_posture_must_be_truthful(self) -> AdvisoryDocumentProof:
@@ -72,8 +137,24 @@ class AdvisoryDocumentProofSummary(BaseModel):
     client_ready_publication: Literal["BLOCKED"] = Field(default="BLOCKED")
     documents: list[AdvisoryDocumentProof] = Field(
         min_length=1,
+        max_length=_RFC28_DOCUMENT_FORMAT_MAX_ITEMS,
         description="Document proof rows included in the RFC-0028 proof pack.",
     )
+
+    @field_validator("scenario_id", "primary_portfolio_id", "proof_marker")
+    @classmethod
+    def _summary_identifiers_must_be_bounded(cls, value: str) -> str:
+        normalized = _normalize_required_text(value, field_name="document proof summary field")
+        if len(normalized) > _RFC28_DOCUMENT_STATUS_MAX_LENGTH:
+            raise ValueError("document proof summary field is too long")
+        return normalized
+
+    @model_validator(mode="after")
+    def _document_families_must_be_unique(self) -> AdvisoryDocumentProofSummary:
+        families = [document.document_family for document in self.documents]
+        if len(set(families)) != len(families):
+            raise ValueError("document proof families must be unique")
+        return self
 
 
 def build_document_proof_summary(
@@ -105,20 +186,20 @@ def _document_from_snapshot(
     document_family: DocumentProofFamily,
     client_ready_key: str,
 ) -> AdvisoryDocumentProof:
-    client_ready_status = str(snapshot[client_ready_key])
+    client_ready_status = str(_required_value_at(snapshot, client_ready_key))
     return AdvisoryDocumentProof(
         document_family=document_family,
         claim_posture="CLIENT_READY_BLOCKED",
-        report_status=str(snapshot["report_status"]),
-        report_package_status=str(snapshot["report_package_status"]),
-        requested_output_formats=[
-            str(item) for item in snapshot.get("requested_output_formats", [])
-        ],
-        render_ref_status=str(snapshot["render_ref_status"]),
-        archive_ref_status=str(snapshot["archive_ref_status"]),
-        archive_retention_posture=str(snapshot["archive_retention_posture"]),
-        archive_legal_hold_posture=str(snapshot["archive_legal_hold_posture"]),
-        archive_access_audit_ref_status=str(snapshot["archive_access_audit_ref_status"]),
+        report_status=str(_required_value_at(snapshot, "report_status")),
+        report_package_status=str(_required_value_at(snapshot, "report_package_status")),
+        requested_output_formats=_requested_output_formats_from_snapshot(snapshot),
+        render_ref_status=str(_required_value_at(snapshot, "render_ref_status")),
+        archive_ref_status=str(_required_value_at(snapshot, "archive_ref_status")),
+        archive_retention_posture=str(_required_value_at(snapshot, "archive_retention_posture")),
+        archive_legal_hold_posture=str(_required_value_at(snapshot, "archive_legal_hold_posture")),
+        archive_access_audit_ref_status=str(
+            _required_value_at(snapshot, "archive_access_audit_ref_status")
+        ),
         client_ready_document_status=client_ready_status,
         degraded_reason=snapshot.get("report_degraded_reason"),
     )
@@ -129,3 +210,28 @@ def _dict_at(payload: dict[str, Any], key: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"RFC0028_DOCUMENT_PROOF_FIELD_MISSING: {key}")
     return value
+
+
+def _required_value_at(payload: dict[str, Any], key: str) -> Any:
+    if key not in payload:
+        raise ValueError(f"RFC0028_DOCUMENT_PROOF_FIELD_MISSING: {key}")
+    return payload[key]
+
+
+def _requested_output_formats_from_snapshot(snapshot: dict[str, Any]) -> list[str]:
+    value = _required_value_at(snapshot, "requested_output_formats")
+    if not isinstance(value, list):
+        raise ValueError("RFC0028_DOCUMENT_PROOF_FIELD_INVALID: requested_output_formats")
+    return [str(item) for item in value]
+
+
+def _normalize_required_text(value: str, *, field_name: str) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ValueError(f"{field_name} is required")
+    return normalized
+
+
+def _contains_sensitive_document_term(value: str) -> bool:
+    lowered = value.lower().replace("-", " ")
+    return any(term in lowered for term in _RFC28_SENSITIVE_DOCUMENT_TERMS)

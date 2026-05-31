@@ -96,6 +96,36 @@ def test_policy_review_action_preserves_policy_boundary_and_client_ready_block()
     assert action.correlation_id == "corr-rfc26-canonical"
 
 
+def test_policy_review_action_bounds_oversized_source_projection_references() -> None:
+    oversized_policy_evaluation_id = f"policy_eval_{'sg_' * 80}"
+    oversized_summary = "Source-backed policy evidence requires review. " * 40
+
+    action = build_policy_review_required_action(
+        PolicyReviewActionSource(
+            policy_evaluation_id=oversized_policy_evaluation_id,
+            portfolio_id=f"PB_SG_GLOBAL_BAL_{'001_' * 40}",
+            proposal_id=f"proposal_{'sg_' * 80}",
+            policy_result="PENDING_REVIEW",
+            summary=oversized_summary,
+            lineage_id=f"lineage_policy_eval_{'sg_' * 80}",
+            content_hash=f"sha256:{'policy-evaluation' * 20}",
+            correlation_id=f"corr_{'projection_' * 40}",
+        )
+    )
+
+    assert len(action.action_item_id) <= 160
+    assert len(action.policy_evaluation_id or "") <= 160
+    assert len(action.proposal_id or "") <= 160
+    assert len(action.portfolio_id or "") <= 160
+    assert len(action.evidence_refs[0].evidence_id) <= 160
+    assert len(action.evidence_refs[0].summary) <= 512
+    assert len(action.lineage_refs[0].lineage_id) <= 160
+    assert len(action.lineage_refs[0].content_hash or "") <= 160
+    assert (action.lineage_refs[0].content_hash or "").startswith("sha256:")
+    assert len(action.correlation_id or "") <= 160
+    assert action.evidence_refs[0].summary.endswith("...")
+
+
 def test_memo_package_blocked_action_keeps_memo_evidence_source_backed() -> None:
     action = build_memo_package_blocked_action(
         MemoPackageBlockedActionSource(

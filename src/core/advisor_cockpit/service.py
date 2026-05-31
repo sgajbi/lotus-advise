@@ -30,12 +30,18 @@ from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
 )
+from src.core.advisor_cockpit.projection_bounds import (
+    bounded_optional_reference,
+    bounded_reference,
+    bounded_summary,
+)
 from src.core.advisor_cockpit.repository import AdvisorCockpitRepository
 from src.core.advisor_cockpit.rules import (
     apply_cockpit_acknowledgement_state,
     with_cockpit_sla_age_band,
 )
 from src.core.advisor_cockpit.source_read_model import (
+    COCKPIT_SOURCE_BATCH_MAX_ITEMS,
     AdvisorCockpitSourceBatch,
     AdvisorCockpitSourceReadModel,
     build_advisor_cockpit_source_read_model,
@@ -53,7 +59,7 @@ from src.core.tactical_house_view import (
     list_tactical_house_view_affected_cohorts,
 )
 
-COCKPIT_SOURCE_LIMIT = 100
+COCKPIT_SOURCE_LIMIT = COCKPIT_SOURCE_BATCH_MAX_ITEMS
 COCKPIT_CONTRACT_VERSION = "rfc0026.advisor-cockpit-api.v1"
 
 
@@ -141,7 +147,9 @@ class AdvisorCockpitService:
         counts = _action_counts(actions)
         supportability = _supportability(actions=actions, source_limit=COCKPIT_SOURCE_LIMIT)
         snapshot = AdvisorCockpitOperatingSnapshot(
-            snapshot_id=f"cockpit_snapshot_{portfolio_id or caller_context.advisor_id or 'all'}",
+            snapshot_id=bounded_reference(
+                f"cockpit_snapshot_{portfolio_id or caller_context.advisor_id or 'all'}"
+            ),
             caller_context=caller_context,
             as_of=self._now_fn().isoformat(),
             action_counts=counts,
@@ -265,7 +273,7 @@ class AdvisorCockpitService:
 
         acknowledged_at = self._now_fn()
         record = CockpitAcknowledgementRecord(
-            acknowledgement_id=f"ack_{action_item_id}",
+            acknowledgement_id=bounded_reference(f"ack_{action_item_id}"),
             action_item_id=action_item_id,
             action_item_version=payload.action_item_version,
             acknowledged_by=payload.acknowledged_by,
@@ -485,33 +493,40 @@ def _supportability(*, actions: list[AdvisoryActionItem], source_limit: int) -> 
 def _preparation_packets(
     read_model: AdvisorCockpitSourceReadModel,
 ) -> list[MeetingPreparationPacket]:
-    return [
-        MeetingPreparationPacket(
-            packet_id=source.preparation_id,
-            context_type=source.context_type,
-            context_ref=source.context_ref,
-            status="READY",
-            evidence_refs=source.evidence_refs
-            or [
-                CockpitEvidenceRef(
-                    evidence_id=source.preparation_id,
-                    evidence_type="MEETING_PREPARATION_PACKET",
-                    source_system="lotus-advise",
-                    access_class="CUSTOMER_CONSUMABLE_SUMMARY",
-                    summary=source.summary,
-                )
-            ],
-            sections=[
-                {
-                    "section_id": "advisor_meeting_context",
-                    "title": "Advisor meeting context",
-                    "summary": source.summary,
-                    "source_ref": source.proposal_id or source.portfolio_id or source.context_ref,
-                }
-            ],
+    packets: list[MeetingPreparationPacket] = []
+    for source in read_model.meeting_preparations:
+        packet_id = bounded_reference(source.preparation_id)
+        summary = bounded_summary(source.summary)
+        source_ref = bounded_optional_reference(
+            source.proposal_id or source.portfolio_id or source.context_ref
         )
-        for source in read_model.meeting_preparations
-    ]
+        packets.append(
+            MeetingPreparationPacket(
+                packet_id=packet_id,
+                context_type=source.context_type,
+                context_ref=bounded_reference(source.context_ref),
+                status="READY",
+                evidence_refs=source.evidence_refs
+                or [
+                    CockpitEvidenceRef(
+                        evidence_id=packet_id,
+                        evidence_type="MEETING_PREPARATION_PACKET",
+                        source_system="lotus-advise",
+                        access_class="CUSTOMER_CONSUMABLE_SUMMARY",
+                        summary=summary,
+                    )
+                ],
+                sections=[
+                    {
+                        "section_id": "advisor_meeting_context",
+                        "title": "Advisor meeting context",
+                        "summary": summary,
+                        "source_ref": source_ref,
+                    }
+                ],
+            )
+        )
+    return packets
 
 
 def _acknowledgement_response(

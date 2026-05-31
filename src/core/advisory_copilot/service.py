@@ -48,6 +48,9 @@ DEFAULT_TENANT_ID = "tenant-sg-001"
 DEFAULT_PROMPT_TEMPLATE_VERSION = "advisory-copilot-prompt-template.v1"
 DEFAULT_OUTPUT_SCHEMA_VERSION = "advisory-copilot-output-schema.v1"
 DEFAULT_EVALUATION_PACK_REF = "advisory-copilot-eval-pack.v1"
+MAX_SAFE_STRUCTURED_PAYLOAD_DEPTH = 8
+MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS = 64
+MAX_SAFE_STRUCTURED_PAYLOAD_TEXT_LENGTH = 4000
 
 
 class AdvisoryCopilotRunPersistenceResult(BaseModel):
@@ -410,15 +413,23 @@ def can_attempt_advisory_copilot_run_refresh(existing_run: AdvisoryCopilotRunRec
     )
 
 
-def _assert_safe_structured_payload(value: Any) -> None:
+def _assert_safe_structured_payload(value: Any, *, depth: int = 0) -> None:
+    if depth > MAX_SAFE_STRUCTURED_PAYLOAD_DEPTH:
+        raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
     if isinstance(value, dict):
+        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS:
+            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
         for key, nested in value.items():
             if str(key).strip().lower() in RAW_AI_STORAGE_KEYS:
                 raise ValueError("COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED")
-            _assert_safe_structured_payload(nested)
+            _assert_safe_structured_payload(nested, depth=depth + 1)
     elif isinstance(value, list | tuple):
+        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS:
+            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
         for item in value:
-            _assert_safe_structured_payload(item)
+            _assert_safe_structured_payload(item, depth=depth + 1)
+    elif isinstance(value, str) and len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_TEXT_LENGTH:
+        raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
 
 
 def _optional_str(value: Any) -> str | None:

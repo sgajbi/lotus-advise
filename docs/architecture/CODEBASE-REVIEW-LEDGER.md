@@ -6084,3 +6084,1247 @@
     documented advisory AI tenant posture.
 - Follow-Up:
   - None.
+
+## LA-REV-231
+
+- Scope: Lotus Report returned artifact URL boundary
+- Pattern: output sanitization, downstream URL trust boundary, and client-safe metadata
+- Status: Hardened
+- Finding Class: untrusted downstream status URL echo
+- Summary: After constraining report status polling to `/reports/jobs/...`, Advise still returned
+  the raw downstream `status_url` as report `artifact_url` and explanation metadata. A malformed
+  downstream value would not be fetched, but it could still leak into caller-visible report
+  metadata.
+- Evidence:
+  - `src/integrations/lotus_report/adapter.py` now derives returned report status URLs from the
+    same constrained report-job path helper used for polling.
+  - Lotus Report adapter tests prove valid report-job paths are returned and untrusted absolute
+    status URLs are omitted from `artifact_url` and explanation metadata.
+- Consequence:
+  - Advise callers only receive clean Lotus Report job paths for report artifacts and do not see
+    malformed downstream status URLs.
+- Documentation:
+  - No wiki source change is required. This is integration output hardening for the existing report
+    package path.
+- Follow-Up:
+  - None.
+
+## LA-REV-232
+
+- Scope: Cross-service idempotency key header boundary
+- Pattern: input normalization, outbound header safety, replay-key governance
+- Status: Hardened
+- Finding Class: malformed idempotency key propagation
+- Summary: The shared idempotency key normalizer trimmed whitespace and rejected blanks, but it did
+  not reject control characters or oversized values. Downstream Core simulation could therefore
+  receive a caller-provided malformed idempotency key in an outbound HTTP header if invoked below
+  the route layer.
+- Evidence:
+  - `src/core/common/idempotency.py` now bounds idempotency keys to 128 characters and rejects
+    control characters.
+  - `src/integrations/lotus_core/simulation.py` normalizes the outbound idempotency key before
+    adding the `Idempotency-Key` header.
+  - Unit tests cover shared normalizer rejection and prove malformed Core simulation idempotency
+    keys are omitted from outbound headers.
+- Consequence:
+  - Advisory write paths now share a safer replay-key boundary, and cross-service simulation calls
+    cannot propagate malformed caller keys as HTTP metadata.
+- Documentation:
+  - No wiki source change is required. This is defensive header and replay-key hardening for
+    existing contracts.
+- Follow-Up:
+  - None.
+
+## LA-REV-233
+
+- Scope: OpenAPI idempotency header contract
+- Pattern: API documentation consistency, shared header governance, Swagger accuracy
+- Status: Hardened
+- Finding Class: API documentation drift
+- Summary: Idempotency key handling is now bounded in shared runtime normalization, but OpenAPI
+  parameter documentation still described replay keys only generically. That left Swagger weaker
+  than the implemented API boundary and forced each route family to remember the same wording.
+- Evidence:
+  - `src/api/openapi_enrichment.py` centrally enriches every `Idempotency-Key` header with the
+    shared 128-character boundary and business-clear replay-key wording.
+  - OpenAPI contract tests assert every documented `Idempotency-Key` header carries the bounded
+    schema and non-technical replay-key description.
+- Consequence:
+  - Swagger consumers see one consistent idempotency-key contract across RFC 23-28 proposal,
+    memo, policy, cockpit, and copilot write paths.
+- Documentation:
+  - No wiki source change is required. This updates generated API contract truth for existing
+    endpoints.
+- Follow-Up:
+  - None.
+
+## LA-REV-234
+
+- Scope: Governed advisory copilot AI output boundary
+- Pattern: fail-closed AI output mapping, bounded advisor-facing content, RFC-0027 supportability
+- Status: Hardened
+- Finding Class: unbounded or empty AI draft output
+- Summary: The RFC-0027 Lotus AI copilot adapter treated a completed workflow-pack execution as
+  review-required output even when every returned section was invalid. It also accepted unbounded
+  section and review-guidance counts and string lengths from downstream AI output.
+- Evidence:
+  - `src/integrations/lotus_ai/advisory_copilot.py` now fails closed with
+    `LOTUS_AI_ADVISORY_COPILOT_INVALID_OUTPUT` when no valid bounded section remains.
+  - The adapter bounds advisor-facing section count, section identifiers, titles, text, and review
+    guidance before returning draft content.
+  - Unit tests prove invalid/oversized output is not surfaced and valid output is bounded
+    deterministically.
+- Consequence:
+  - RFC-0027 copilot output remains advisor-review only and cannot surface empty, malformed, or
+    oversized downstream AI text as a usable advisory draft.
+- Documentation:
+  - No wiki source change is required. This hardens existing RFC-0027 runtime semantics without
+    changing user-facing capability scope.
+- Follow-Up:
+  - None.
+
+## LA-REV-235
+
+- Scope: Proposal memo AI commentary output boundary
+- Pattern: bounded advisor-use AI commentary, fail-closed output mapping, RFC-0024/RFC-0027 reuse
+- Status: Hardened
+- Finding Class: unbounded downstream AI commentary
+- Summary: The memo commentary adapter already failed closed when no valid section remained, but it
+  accepted unbounded downstream AI section counts, text sizes, and review-guidance payloads before
+  returning advisor-use commentary.
+- Evidence:
+  - `src/integrations/lotus_ai/proposal_memo.py` now bounds memo AI section count, section
+    identifiers, titles, text, and review guidance.
+  - Unit tests prove oversized memo commentary is unavailable and valid multi-section output is
+    capped deterministically.
+- Consequence:
+  - Memo commentary stays review-gated, advisor-use only, and safe for downstream API/UI consumers
+    without accepting unbounded AI text.
+- Documentation:
+  - No wiki source change is required. This hardens existing memo AI commentary semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-236
+
+- Scope: Proposal narrative AI draft output boundary
+- Pattern: bounded advisor-review AI narrative, fail-closed output mapping, RFC-0023 supportability
+- Status: Hardened
+- Finding Class: unbounded downstream AI narrative draft
+- Summary: The proposal narrative AI adapter validated section keys and failed closed when no valid
+  sections remained, but it still accepted unbounded downstream section counts and text sizes.
+- Evidence:
+  - `src/integrations/lotus_ai/proposal_narrative.py` now bounds narrative AI section count,
+    section titles, and section text before returning advisor-review draft sections.
+  - Unit tests prove oversized narrative output is unavailable and repeated valid sections are
+    capped deterministically.
+- Consequence:
+  - RFC-0023 AI-assisted narrative remains advisor-review only and safe for downstream artifact,
+    report, API, and UI surfaces without accepting unbounded AI text.
+- Documentation:
+  - No wiki source change is required. This hardens existing proposal narrative AI draft semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-237
+
+- Scope: Lotus AI output-safety reuse and policy evidence hardening
+- Pattern: duplicate adapter parsing removal, bounded AI output mapping, policy-evidence safety
+- Status: Hardened
+- Finding Class: duplicated unbounded AI output handling
+- Summary: Copilot, memo commentary, and narrative adapters duplicated bounded section parsing
+  after recent hardening, while the policy-evidence adapter still used its older unbounded
+  section and review-guidance mapping.
+- Evidence:
+  - `src/integrations/lotus_ai/output_safety.py` now owns reusable bounded review-section and
+    guidance mapping.
+  - Copilot, memo commentary, proposal narrative, and policy-evidence adapters consume the shared
+    helper while preserving their domain-specific fail-closed behavior.
+  - Policy-evidence tests now prove oversized AI evidence sections are rejected and valid output is
+    capped deterministically; helper tests cover invalid item filtering and guidance bounds.
+- Consequence:
+  - Lotus AI adapters share one bounded output policy, reducing drift and making future RFC AI
+    surfaces easier to harden consistently.
+- Documentation:
+  - No wiki source change is required. This is internal adapter modularity and safety hardening.
+- Follow-Up:
+  - None.
+
+## LA-REV-238
+
+- Scope: Workspace rationale Lotus AI output boundary
+- Pattern: bounded AI assistant output, bounded workflow-pack run metadata, governed review actions
+- Status: Hardened
+- Finding Class: unbounded downstream AI output handling
+- Summary: The workspace rationale adapter failed closed on missing AI output, but it accepted
+  unbounded assistant text, review-action summaries, allowed-action strings, and workflow-pack
+  supportability findings from lotus-ai.
+- Evidence:
+  - `src/integrations/lotus_ai/rationale.py` now bounds assistant output, review summaries,
+    workflow-pack identifiers, run state fields, owner fields, and supportability findings.
+  - Allowed review actions are constrained to the governed workspace rationale action set and
+    de-duplicated before being returned to API consumers.
+  - Unit tests prove oversized assistant output fails closed, review summaries are capped, and
+    workflow-pack run metadata is bounded and filtered.
+- Consequence:
+  - RFC-0026/RFC-0027 workspace assistance remains evidence-grounded and review-gated without
+    surfacing malformed, oversized, or non-governed lotus-ai metadata as trusted API output.
+- Documentation:
+  - No wiki source change is required. This hardens an existing internal AI adapter contract.
+- Follow-Up:
+  - None.
+
+## LA-REV-239
+
+- Scope: Workspace assistant request-boundary validation
+- Pattern: API input bounds, advisor instruction normalization, review-action lineage validation
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: Workspace assistant output was bounded, but inbound advisor instructions and
+  workflow-pack review-action text were not consistently normalized or length-bounded before
+  reaching the Lotus AI integration seam.
+- Evidence:
+  - `src/core/workspace/models.py` now trims and bounds assistant requester ids, advisor
+    instructions, workflow-pack run ids, reviewer ids, review reasons, and replacement run ids.
+  - Workspace assistant schema exposes max-length bounds for request bodies.
+  - Contract tests prove normalization, empty-value rejection, oversize rejection, and replacement
+    lineage requirements.
+- Consequence:
+  - RFC-0026/RFC-0027 workspace assistance has a stronger API boundary before AI execution or
+    review-action forwarding.
+- Documentation:
+  - No wiki source change is required. This is API contract hardening aligned with existing
+    endpoint semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-240
+
+- Scope: Workspace rationale review-action lineage forwarding
+- Pattern: cross-service lineage, review-action correlation, workspace-scoped AI handoff
+- Status: Hardened
+- Finding Class: auditability gap
+- Summary: The workspace rationale review-action route was workspace-scoped in Advise, but the
+  forwarded Lotus AI review-action request did not carry workspace context, source refs, or an
+  Advise correlation id.
+- Evidence:
+  - `src/api/services/workspace_ai_service.py` passes the path workspace id into the Lotus AI
+    review-action adapter.
+  - `src/integrations/lotus_ai/rationale.py` forwards workflow-pack identity, workflow surface,
+    workspace review context, workspace source refs, and a deterministic Advise correlation id.
+  - API tests prove the workspace-scoped review action forwards the context and preserves
+    replacement lineage.
+- Consequence:
+  - RFC-0026/RFC-0027 workspace AI review actions now retain clearer cross-service audit and
+    lineage context at the Lotus AI boundary.
+- Documentation:
+  - No wiki source change is required. This strengthens existing internal review-action handoff
+    evidence without changing the user-facing capability.
+- Follow-Up:
+  - None.
+
+## LA-REV-241
+
+- Scope: Advisory copilot action request-boundary validation
+- Pattern: API input bounds, advisor instruction normalization, guardrail input hygiene
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: RFC-0027 copilot action requests described requested outputs, requested intents, and
+  advisor instructions as bounded, but the API model did not enforce item counts, item lengths, or
+  whitespace normalization before guardrail evaluation and Lotus AI execution.
+- Evidence:
+  - `src/core/advisory_copilot/api_models.py` now bounds requested outputs, requested intents,
+    actor ids, and optional user instructions.
+  - Action request validators trim and de-duplicate output and intent keys before request hashing
+    and guardrail evaluation.
+  - Application tests prove normalization plus empty, oversized-output, oversized-instruction, and
+    oversized-review-actor rejection.
+- Consequence:
+  - RFC-0027 copilot execution receives cleaner bounded advisor input and preserves deterministic
+    idempotency hashing without storing raw prompt text.
+- Documentation:
+  - No wiki source change is required. This is API model hardening aligned with existing copilot
+    semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-242
+
+- Scope: Advisory copilot evidence-packet request identifiers
+- Pattern: API identifier bounds, source-projection input hygiene, persistence key normalization
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: RFC-0027 copilot evidence-packet request models accepted unbounded packet, portfolio,
+  and proposal identifiers before source projection and persistence.
+- Evidence:
+  - `src/core/advisory_copilot/api_models.py` now trims and bounds evidence-packet ids,
+    portfolio ids, and proposal ids across direct packet creation, proposal-version source
+    projection, and action execution requests.
+  - Application tests prove identifier normalization and oversized or blank identifier rejection.
+- Consequence:
+  - Copilot evidence-packet persistence and source-projection requests have consistent bounded
+    identifier hygiene before hashing, storage, and downstream action execution.
+- Documentation:
+  - No wiki source change is required. This is API model hardening aligned with existing copilot
+    semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-243
+
+- Scope: Advisory copilot structured payload safety
+- Pattern: persistence payload bounds, recursive guardrail hardening, direct service-call safety
+- Status: Hardened
+- Finding Class: validation and performance risk
+- Summary: The RFC-0027 copilot service rejected raw AI storage keys in structured reason,
+  lineage, and output payloads, but the recursive safety check did not bound depth, item count, or
+  string length.
+- Evidence:
+  - `src/core/advisory_copilot/service.py` now enforces maximum structured payload depth, item
+    count, and string length while preserving raw prompt key rejection.
+  - Persistence tests prove oversized strings and oversized nested collections are rejected before
+    run persistence.
+- Consequence:
+  - Direct service callers cannot bypass API model limits to persist arbitrarily large copilot
+    reason, lineage, or output-section structures.
+- Documentation:
+  - No wiki source change is required. This is internal persistence safety hardening.
+- Follow-Up:
+  - None.
+
+## LA-REV-244
+
+- Scope: Advisory copilot evidence-section model bounds
+- Pattern: source-evidence input hygiene, bounded evidence packet projection, API model safety
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: Direct RFC-0027 evidence-packet creation accepted source refs and source section
+  summary items without model-level bounds, leaving direct API callers able to submit oversized
+  evidence section payloads before packet hashing and persistence.
+- Evidence:
+  - `src/core/advisory_copilot/models.py` now trims and bounds source-ref identifiers, content
+    hashes, section keys, section titles, source-ref counts, and summary item counts/lengths.
+  - Evidence-section tests prove source evidence normalization plus empty source-ref, oversized
+    summary text, and oversized summary-list rejection.
+- Consequence:
+  - Copilot evidence packets now apply consistent source-evidence bounds before role projection,
+    hashing, persistence, and downstream AI action execution.
+- Documentation:
+  - No wiki source change is required. This is API/model hardening aligned with existing RFC-0027
+    evidence-packet semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-245
+
+- Scope: Advisory copilot proposal-version source projection
+- Pattern: source-projection hygiene, bounded generated evidence, repeatable RFC-0027 validation
+- Status: Hardened
+- Finding Class: validation and performance risk
+- Summary: RFC-0027 proposal-version source projection could assemble oversized packet ids,
+  lineage ids, source refs, hashes, and business summary strings from valid upstream proposal,
+  memo, policy, and report data before evidence-packet model validation.
+- Evidence:
+  - `src/core/advisory_copilot/source_projection.py` now compacts oversized generated packet,
+    source, lineage, and content-hash references deterministically and bounds generated business
+    summary items before packet construction.
+  - Application tests seed oversized proposal, memo, policy, report, and archive evidence and
+    prove packet creation remains bounded without relying on full live validation to catch the
+    issue.
+- Consequence:
+  - Canonical and expanded RFC-0027 validation can tolerate unusually verbose source evidence
+    while preserving bounded audit references, deterministic packet identifiers, and downstream
+    AI action safety.
+- Documentation:
+  - No wiki source change is required. This is internal source-projection hardening aligned with
+    existing copilot evidence-packet semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-246
+
+- Scope: Advisory copilot evidence-packet domain model audit fields
+- Pattern: domain-model boundary enforcement, audit reference bounds, direct service-call safety
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: RFC-0027 API request models bounded copilot evidence-packet identifiers, but the
+  core evidence-packet model still accepted oversized packet ids, hashes, portfolio/proposal ids,
+  lineage refs, unsupported-evidence messages, and oversized audit collections from direct
+  service callers.
+- Evidence:
+  - `src/core/advisory_copilot/models.py` now trims and bounds packet identifiers, packet hashes,
+    portfolio/proposal ids, lineage refs, unsupported-evidence advisor messages, and lineage or
+    unsupported-evidence collection sizes.
+  - Foundation tests prove normalization and rejection for oversized packet ids, hashes, lineage
+    ids, unsupported-evidence messages, and oversized audit collections.
+- Consequence:
+  - RFC-0027 evidence packets now enforce bounded audit and persistence fields in the domain model
+    itself, not only through API request DTOs or source-projection callers.
+- Documentation:
+  - No wiki source change is required. This is internal model hardening aligned with existing
+    copilot packet semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-247
+
+- Scope: Advisory copilot persistence record audit fields
+- Pattern: persistence DTO bounds, correlation fallback safety, direct record validation
+- Status: Hardened
+- Finding Class: validation and observability risk
+- Summary: RFC-0027 persistence records had descriptive audit fields but did not enforce the
+  same bounded identifier, hash, idempotency-key, correlation-id, actor, tenant, and workflow
+  reference contracts that API and domain models now enforce.
+- Evidence:
+  - `src/core/advisory_copilot/records.py` now trims and bounds copilot run, evidence-packet,
+    idempotency, and review record audit fields.
+  - `src/core/advisory_copilot/application.py` now compacts generated correlation fallbacks when
+    long packet or run identifiers would exceed the governed correlation-id limit.
+  - Persistence and application tests prove record normalization, oversized audit-field rejection,
+    and bounded generated correlation ids for maximum-length packet ids.
+- Consequence:
+  - Copilot persistence, replay, and review audit records now enforce bounded diagnostics and
+    idempotency contracts even for direct service or repository-adjacent callers.
+- Documentation:
+  - No wiki source change is required. This is internal persistence-record hardening aligned with
+    existing RFC-0027 copilot audit semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-248
+
+- Scope: Advisory copilot HTTP edge parameter bounds
+- Pattern: API contract hardening, OpenAPI validation metadata, fail-fast request validation
+- Status: Hardened
+- Finding Class: validation and API quality gap
+- Summary: RFC-0027 route path, header, and cursor parameters described governed identifiers
+  but did not consistently expose or enforce the same length bounds already present in API
+  request bodies, domain models, and persistence records.
+- Evidence:
+  - `src/api/proposals/routes_advisory_copilot.py` now applies explicit bounds to copilot
+    evidence-packet ids, run ids, proposal/version path ids, idempotency headers, correlation
+    headers, and pagination cursors.
+  - API tests prove oversized path identifiers, review idempotency keys, correlation headers, and
+    cursors fail with HTTP 422 before service/repository execution.
+- Consequence:
+  - Gateway and Workbench callers receive clearer RFC-0027 HTTP contract behavior, and generated
+    OpenAPI documents now carry the same bounded-identifier posture as the backend models.
+- Documentation:
+  - No wiki source change is required. This is API contract metadata and validation hardening for
+    existing copilot endpoints.
+- Follow-Up:
+  - None.
+
+## LA-REV-249
+
+- Scope: Advisory copilot lotus-ai adapter outbound context
+- Pattern: integration boundary hardening, prompt-leak prevention, bounded downstream payloads
+- Status: Hardened
+- Finding Class: validation and security risk
+- Summary: RFC-0027 service and API paths bounded copilot inputs, but direct lotus-ai adapter
+  calls could still forward overlong generated correlation ids, duplicate/oversized requested
+  output keys, overlong actor text, or raw prompt-like reason fields in the workflow-pack request.
+- Evidence:
+  - `src/integrations/lotus_ai/advisory_copilot.py` now compacts generated caller correlation
+    ids, bounds outbound requested outputs and actor text, filters raw prompt/provider keys from
+    reason payloads, bounds reason text/list values, caps source refs, and bounds workflow/model
+    lineage values extracted from lotus-ai responses.
+  - Adapter tests prove maximum-length packet ids, duplicated/oversized requested outputs,
+    overlong actor text, overlong reason values, and raw prompt-like reason keys are handled
+    before an outbound workflow-pack request is built.
+- Consequence:
+  - RFC-0027 copilot execution no longer relies solely on API/service callers for outbound safety;
+    the lotus-ai adapter enforces bounded, business-safe payloads at the integration boundary.
+- Documentation:
+  - No wiki source change is required. This is integration-boundary hardening aligned with the
+    existing governed copilot semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-250
+
+- Scope: Advisory copilot evidence-packet business-safe unsupported evidence
+- Pattern: domain-model business-language guardrails, packet-size bounds, direct model safety
+- Status: Hardened
+- Finding Class: validation and documentation-quality risk
+- Summary: RFC-0027 evidence-packet section text was checked for technical-copy leakage, but
+  direct unsupported-evidence advisor messages and direct packet section collections were not
+  explicitly bounded at the packet model boundary.
+- Evidence:
+  - `src/core/advisory_copilot/models.py` now rejects technical terms in unsupported-evidence
+    advisor messages and caps direct evidence-packet section collections.
+  - Foundation tests prove technical unsupported-evidence messages and oversized packet section
+    collections are rejected before persistence or API serialization.
+- Consequence:
+  - Advisor-facing unsupported-evidence posture stays business-facing, and direct packet creation
+    cannot create oversized evidence packets that bypass source-projection limits.
+- Documentation:
+  - No wiki source change is required. This is domain-model hardening for existing RFC-0027 packet
+    semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-251
+
+- Scope: RFC-0028 bank-demo proof capture API metadata
+- Pattern: proof-pack API contract hardening, metadata hygiene, correlation-id bounds
+- Status: Hardened
+- Finding Class: validation and security risk
+- Summary: RFC-0028 proof-pack capture sanitized local artifact refs, but optional runtime
+  metadata and the proof-pack correlation header were not explicitly bounded or screened for
+  sensitive fragments before proof metadata construction.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now bounds repository SHA, service version, environment,
+    and correlation-id metadata, normalizes blank optional metadata to fallback behavior, and
+    rejects sensitive metadata fragments.
+  - API tests prove oversized repository metadata, sensitive environment metadata, and oversized
+    correlation headers fail with HTTP 422 before proof-pack construction.
+- Consequence:
+  - RFC-0028 proof bundles remain sanitized not only for artifact paths, but also for the metadata
+    that Gateway, Workbench, wiki, and commercial proof materials consume.
+- Documentation:
+  - No wiki source change is required. This is API request-contract hardening for existing
+    RFC-0028 proof-pack semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-252
+
+- Scope: RFC-0028 supported-claim wording model
+- Pattern: business-facing documentation governance, claim-copy bounds, sensitive-term rejection
+- Status: Hardened
+- Finding Class: documentation-quality and security risk
+- Summary: RFC-0028 supported-claim copy feeds README, wiki, demo, RFP, and commercial material,
+  but the model did not enforce bounded claim identifiers or reject technical/sensitive terms in
+  business-facing claim wording.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now bounds supported-claim ids, proof requirement refs,
+    titles, and claim text, normalizes claim copy, and rejects sensitive technical terms such as
+    raw prompts, provider responses, credentials, secrets, and tokens.
+  - Model tests prove unsafe claim wording and oversized claim identifiers are rejected before
+    supported-claim registers can be used by documentation or proof-pack generation.
+- Consequence:
+  - RFC-0028 commercial and documentation outputs have stronger source-level controls over what
+    can be promoted into business, sales, pre-sales, RFP, and client-demo material.
+- Documentation:
+  - No wiki source change is required. This is model-level governance for existing supported-claim
+    semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-253
+
+- Scope: RFC-0028 proof-pack asset index model
+- Pattern: proof asset sanitization, canonical hash validation, proof-pack metadata bounds
+- Status: Hardened
+- Finding Class: validation and security risk
+- Summary: RFC-0028 proof-pack capture sanitized API request artifact references, but direct
+  proof-pack and proof-asset model construction still accepted unsafe artifact paths, non-canonical
+  content hashes, unbounded proof asset collections, and sensitive repository metadata.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now bounds proof-pack identifiers, repository evidence,
+    evidence/source-product reference lists, proof asset indexes, asset URIs, evidence refs, and
+    content hashes at the domain model boundary.
+  - Model tests prove URL/query artifact references, invalid content hashes, and sensitive
+    repository SHA metadata are rejected before proof packs can be serialized for Gateway,
+    Workbench, wiki, RFP, or commercial-material use.
+- Consequence:
+  - RFC-0028 proof-pack material now has a second line of defense below the API request model, so
+    automation and future internal callers cannot bypass artifact and metadata hygiene controls.
+- Documentation:
+  - No wiki source change is required. This is source-level hardening for the existing RFC-0028
+    proof-pack contract.
+- Follow-Up:
+  - None.
+
+## LA-REV-254
+
+- Scope: RFC-0028 commercial material model
+- Pattern: business-facing material governance, source-ref hygiene, audience typing
+- Status: Hardened
+- Finding Class: documentation-quality and security risk
+- Summary: RFC-0028 commercial material records drive sales, pre-sales, RFP, demo, architecture,
+  and operations material, but the model still accepted loose string audiences, unsafe repository
+  source references, unbounded material fields, and duplicate material identifiers.
+- Evidence:
+  - `src/core/bank_demo_proof/commercial_materials.py` now types material audiences with the
+    supported-claim audience vocabulary, bounds identifiers/titles/source refs/lists, rejects
+    sensitive technical copy, normalizes repository-local source references, and enforces unique
+    material ids.
+  - Commercial material tests prove the generated pack remains business usable while unsafe source
+    refs, raw-prompt wording, unsupported audiences, and duplicate material ids are rejected.
+- Consequence:
+  - RFC-0028 commercial, RFP, demo, and wiki-facing material inventory has domain-model controls
+    that match its client-facing use rather than relying only on generated docs remaining clean.
+- Documentation:
+  - No wiki source change is required. This hardens the source model behind existing RFC-0028
+    commercial documentation and proof-pack output.
+- Follow-Up:
+  - None.
+
+## LA-REV-255
+
+- Scope: RFC-0028 document proof model
+- Pattern: document-proof status bounds, output-format validation, duplicate-proof prevention
+- Status: Hardened
+- Finding Class: validation and documentation-quality risk
+- Summary: RFC-0028 document proof rows demonstrate advisor-use memo and policy report posture,
+  archive controls, and blocked client-ready publication, but the row model still accepted loose
+  status strings, unsafe output-format values, sensitive degraded reasons, and duplicate document
+  family rows.
+- Evidence:
+  - `src/core/bank_demo_proof/document_proof.py` now bounds document statuses, validates
+    deterministic output formats, rejects sensitive degraded reason text, and requires unique
+    document proof families in the summary.
+  - Document proof tests prove unsafe output formats, raw-prompt degraded reasons, and duplicate
+    document-family rows are rejected while the canonical proof summary remains valid.
+- Consequence:
+  - RFC-0028 document evidence is safer to promote into proof packs, commercial material, wiki
+    content, and demo scripts without implying unsupported client-ready document release.
+- Documentation:
+  - No wiki source change is required. This is source-level validation for existing RFC-0028
+    document-proof semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-256
+
+- Scope: RFC-0028 journey integration proof model
+- Pattern: AI/policy proof status bounds, panel uniqueness, rule-count consistency
+- Status: Hardened
+- Finding Class: validation and overclaim risk
+- Summary: RFC-0028 journey integration proof rows establish that AI, policy, and cockpit evidence
+  remain advisor-assistive and source-owned, but several status fields, required-panel lists, and
+  policy rule counts were still loosely validated at direct model construction.
+- Evidence:
+  - `src/core/bank_demo_proof/integration_proof.py` now bounds AI, policy, and summary status
+    fields, rejects sensitive technical status text, caps panel/AI-row/unsupported-claim lists,
+    requires unique Workbench panel ids, and prevents pending policy rule counts from exceeding
+    material policy rule counts.
+  - Integration proof tests prove canonical evidence still builds while provider-response status
+    leakage, impossible rule counts, and duplicate panel requirements are rejected at model level.
+- Consequence:
+  - RFC-0028 proof material can rely on stronger source-level controls before journey evidence is
+    used by Gateway, Workbench, commercial material, or wiki/demo proof packs.
+- Documentation:
+  - No wiki source change is required. This is source-level hardening for existing RFC-0028
+    integration-proof semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-257
+
+- Scope: RFC-0028 material field review model
+- Pattern: live-proof review sanitization, scalar observed-value validation, claim-ref bounds
+- Status: Hardened
+- Finding Class: validation and proof-quality risk
+- Summary: RFC-0028 material field reviews are the lowest-level bridge from live runtime payloads
+  to supported-claim promotion, but direct review construction still accepted structured observed
+  payloads, sensitive observed text, and loose claim reference lists.
+- Evidence:
+  - `src/core/bank_demo_proof/capture.py` now bounds material review identifiers/source paths,
+    expected posture text, observed scalar values, and claim refs while rejecting sensitive runtime
+    fragments and structured observed payloads.
+  - Capture tests prove raw-prompt observed values and structured observed payloads are rejected at
+    the material-review boundary, while the canonical review path still passes.
+- Consequence:
+  - RFC-0028 proof automation has stronger lower-level protection before live evidence can be used
+    to promote claims into proof packs, commercial material, or documentation.
+- Documentation:
+  - No wiki source change is required. This is source-level hardening for existing RFC-0028 proof
+    capture semantics.
+- Follow-Up:
+  - None.
+
+## LA-REV-258
+
+- Scope: RFC-0026 advisor cockpit domain models
+- Pattern: cockpit evidence bounds, business-safe copy validation, acknowledgement-state integrity
+- Status: Hardened
+- Finding Class: validation and supportability risk
+- Summary: RFC-0026 cockpit models are source-owned and reused by Advise APIs, Gateway, Workbench,
+  trust telemetry, and demo material, but direct model construction still accepted unbounded
+  source/evidence text, sensitive technical copy, inconsistent unacknowledged acknowledgement
+  details, and invalid negative action-count values.
+- Evidence:
+  - `src/core/advisor_cockpit/models.py` now bounds caller/action/evidence/lineage/dependency/
+    readiness/snapshot identifiers and lists, rejects sensitive technical terms in support-safe
+    copy, normalizes optional blank references to absent values, prevents unacknowledged states
+    from carrying acknowledgement detail, and rejects negative snapshot action counts.
+  - `src/core/advisor_cockpit/action_factory.py` now projects oversized upstream source
+    identifiers, evidence references, lineage references, source refs, and summaries into bounded
+    cockpit-safe references before constructing UI/API-facing action items.
+  - Advisor cockpit model tests prove sensitive evidence summaries, oversized action ids,
+    inconsistent acknowledgement state, and negative action counts are rejected at the core model
+    boundary.
+  - Advisor cockpit action-factory tests prove oversized policy source projections remain
+    traceable and bounded before the broader copilot evidence-packet service consumes them.
+- Consequence:
+  - RFC-0026 cockpit output is safer for Gateway, Workbench, OpenAPI, wiki, and demo usage without
+    relying on UI or route-layer filtering to keep advisor-facing source evidence business-safe.
+- Documentation:
+  - No wiki source change is required. This is source-level model hardening for existing RFC-0026
+    cockpit semantics.
+- Follow-Up:
+  - Continue auditing cockpit construction input DTOs and source-read-model projections for the
+    same direct-boundary guarantees.
+
+## LA-REV-259
+
+- Scope: RFC-0026 advisor cockpit preparation packet projection
+- Pattern: shared cockpit projection bounds and preparation packet safety
+- Status: Hardened
+- Finding Class: API stability and source-projection risk
+- Summary: Advisor cockpit action items now bounded oversized upstream identifiers through the
+  action factory, but meeting-preparation packets were built separately in the service layer. A long
+  proposal-derived preparation id or context ref could still fail the bounded packet model after
+  the read model had already accepted the source projection.
+- Evidence:
+  - `src/core/advisor_cockpit/projection_bounds.py` centralizes stable bounded reference,
+    optional-reference, content-hash, and business-summary projection helpers for cockpit outputs.
+  - `src/core/advisor_cockpit/action_factory.py` now uses the shared projection-bound helpers
+    instead of local helper copies.
+  - `src/core/advisor_cockpit/service.py` now applies the same bounded reference and summary
+    projection to meeting-preparation packet ids, context refs, evidence refs, and section
+    source refs.
+  - Advisor cockpit service tests prove preparation packets remain valid and traceable when
+    source proposals carry oversized identifiers.
+- Consequence:
+  - RFC-0026 preparation packet APIs have the same source-projection safety posture as cockpit
+    action APIs, reducing Gateway and Workbench failure risk from upstream identifier drift.
+- Documentation:
+  - No wiki source change is required. This is implementation-backed API stability hardening for
+    existing RFC-0026 semantics.
+- Follow-Up:
+  - Continue auditing source read-model collection bounds and supportability metadata for runaway
+    source batches.
+
+## LA-REV-260
+
+- Scope: RFC-0026 advisor cockpit source read-model batch boundary
+- Pattern: governed source batch limit alignment
+- Status: Hardened
+- Finding Class: performance and direct-boundary risk
+- Summary: `AdvisorCockpitService` loaded source records with a 100-record governed limit, but
+  direct `AdvisorCockpitSourceBatch` construction did not encode that same boundary. Tests and
+  internal callers could bypass the service limit and build runaway read-model batches.
+- Evidence:
+  - `src/core/advisor_cockpit/source_read_model.py` now owns
+    `COCKPIT_SOURCE_BATCH_MAX_ITEMS` and applies it to every preloaded source collection in
+    `AdvisorCockpitSourceBatch`.
+  - `src/core/advisor_cockpit/service.py` now derives `COCKPIT_SOURCE_LIMIT` from the read-model
+    batch contract rather than duplicating the numeric limit.
+  - Source read-model tests prove oversized source batches are rejected at construction time and
+    the exported limit remains the governed 100-record boundary.
+- Consequence:
+  - RFC-0026 cockpit read-model construction is consistent across service and direct usage,
+    reducing runaway memory, latency, and unbounded-source risk before Gateway or Workbench reads.
+- Documentation:
+  - No wiki source change is required. This is a source-level operational hardening of existing
+    RFC-0026 behavior.
+- Follow-Up:
+  - Continue auditing cockpit supportability metadata for bounded, business-facing output.
+
+## LA-REV-261
+
+- Scope: RFC-0026 advisor cockpit snapshot identity projection
+- Pattern: bounded snapshot identifiers
+- Status: Hardened
+- Finding Class: API stability risk
+- Summary: Cockpit action items and preparation packets were protected against oversized source
+  references, but snapshot ids were still assembled directly from caller scope. A long portfolio or
+  advisor scope could exceed the bounded snapshot model and fail an otherwise valid empty snapshot.
+- Evidence:
+  - `src/core/advisor_cockpit/service.py` now applies shared cockpit projection bounds when
+    constructing `AdvisorCockpitOperatingSnapshot.snapshot_id`.
+  - Advisor cockpit service tests prove oversized portfolio scopes produce stable bounded snapshot
+    identifiers instead of failing model validation.
+- Consequence:
+  - RFC-0026 snapshot APIs remain stable for Gateway and Workbench even when upstream route or
+    caller scope identifiers are unusually long.
+- Documentation:
+  - No wiki source change is required. This is source-level API stability hardening for existing
+    RFC-0026 behavior.
+- Follow-Up:
+  - Continue auditing supportability and acknowledgement metadata for bounded business-facing
+    output.
+
+## LA-REV-262
+
+- Scope: RFC-0026 advisor cockpit API response DTOs
+- Pattern: bounded page and supportability response models
+- Status: Hardened
+- Finding Class: API contract and supportability risk
+- Summary: The service enforced bounded cockpit pagination and supportability shapes, but the
+  preparation-packet and supportability response DTOs did not encode those constraints directly.
+  Direct model construction could accept oversized pages, invalid counts, oversized posture text,
+  or unbounded supportability context.
+- Evidence:
+  - `src/core/advisor_cockpit/api_models.py` now bounds preparation packet pages, cursors,
+    page sizes, counts, supportability dictionaries, acknowledgement audit dictionaries, posture
+    identifiers, and unsupported capability lists.
+  - Advisor cockpit API model tests prove oversized preparation pages, invalid page/count values,
+    oversized supportability posture text, oversized supportability context, and oversized
+    unsupported capability lists are rejected at the DTO boundary.
+- Consequence:
+  - RFC-0026 API responses now carry service-level pagination and supportability guarantees in
+    the OpenAPI-backed DTOs themselves, improving Gateway, Workbench, and generated-client safety.
+- Documentation:
+  - No wiki source change is required. This is DTO-level contract hardening for existing
+    RFC-0026 API semantics.
+- Follow-Up:
+  - Continue auditing acknowledgement persistence metadata and idempotency records for bounded
+    support-safe fields.
+
+## LA-REV-263
+
+- Scope: RFC-0026 advisor cockpit acknowledgement persistence
+- Pattern: bounded acknowledgement and idempotency metadata
+- Status: Hardened
+- Finding Class: persistence and API stability risk
+- Summary: Cockpit action ids are bounded, but acknowledgement ids were derived as `ack_` plus the
+  action id. Boundary-length action ids could therefore create acknowledgement ids that later fail
+  API-facing acknowledgement-state validation. Persistence records also lacked direct bounds for
+  acknowledgement, idempotency, correlation, and support-note metadata.
+- Evidence:
+  - `src/core/advisor_cockpit/persistence.py` now bounds acknowledgement records, idempotency
+    records, request hashes, correlation ids, reason metadata, actor ids, and support-safe notes.
+  - `src/core/advisor_cockpit/service.py` now derives acknowledgement ids through the shared
+    cockpit projection-bound helper.
+  - Advisor cockpit service tests prove direct persistence records bound oversized metadata and
+    service acknowledgements remain valid when action ids are already at the model boundary.
+- Consequence:
+  - RFC-0026 acknowledgement replay and audit paths remain stable for Gateway and Workbench without
+    relying on shorter canonical action ids.
+- Documentation:
+  - No wiki source change is required. This is persistence/API stability hardening for existing
+    RFC-0026 acknowledgement semantics.
+- Follow-Up:
+  - Continue auditing route-level path/query inputs for bounded, support-safe service entry.
+
+## LA-REV-264
+
+- Scope: RFC-0026 advisor cockpit route input contract
+- Pattern: route-level bounded path, query, and header inputs
+- Status: Hardened
+- Finding Class: API contract and validation risk
+- Summary: Core models, service projections, and persistence records were bounded, but the FastAPI
+  cockpit routes still accepted oversized portfolio, advisor, cursor, action id, idempotency, and
+  correlation values before handing them to the service. Some oversized inputs could be rejected
+  downstream or projected later, but the OpenAPI contract did not advertise the route boundary.
+- Evidence:
+  - `src/api/proposals/routes_advisor_cockpit.py` now applies max-length constraints to cockpit
+    route path parameters, query parameters, and headers, and uses the shared cockpit page-size
+    maximum for route-level pagination.
+  - Advisor cockpit API tests prove oversized query, cursor, path, and idempotency-header values
+    fail with HTTP 422 at the route boundary.
+  - OpenAPI tests prove advisor id, preparation cursor, limit, and 128-character idempotency
+    header constraints are published in the schema.
+- Consequence:
+  - RFC-0026 route contracts now fail invalid inputs consistently before service execution and are
+    clearer for Gateway, Workbench, generated clients, and operational runbooks.
+- Documentation:
+  - No wiki source change is required. This is OpenAPI-backed route contract hardening for existing
+    RFC-0026 API behavior.
+- Follow-Up:
+  - Continue auditing RFC-0027/RFC-0028 route contracts for the same boundary consistency where
+    implementation-backed APIs already exist.
+
+## LA-REV-265
+
+- Scope: RFC-0027 governed advisory copilot response DTOs
+- Pattern: bounded run-page and supportability response contracts
+- Status: Hardened
+- Finding Class: API contract and generated-client safety risk
+- Summary: The copilot list route bounded page size to 100 and supportability was static, but the
+  response DTOs did not encode the same bounds directly. Direct model construction and generated
+  client schemas could therefore miss page-size, cursor, support-status, and unsupported-boundary
+  limits already expected by the service contract.
+- Evidence:
+  - `src/core/advisory_copilot/api_models.py` now bounds copilot run pages, cursors,
+    supportability status text, client-ready publication posture, action-family lists, and
+    unsupported-boundary messages.
+  - Advisory copilot API tests prove boundary-size run pages and cursors are accepted while
+    oversized pages, oversized cursors, oversized support statuses, and oversized boundary lists
+    are rejected at the DTO boundary.
+- Consequence:
+  - RFC-0027 response contracts now publish service-level limits through OpenAPI-backed models,
+    improving Gateway, Workbench, and generated-client safety without changing supported
+    business behavior.
+- Documentation:
+  - No wiki source change is required. This is DTO-level contract hardening for existing
+    RFC-0027 API semantics.
+- Follow-Up:
+  - Continue auditing RFC-0027 persistence and source-projection boundaries before moving to
+    RFC-0028 route and report-proof contracts.
+
+## LA-REV-266
+
+- Scope: RFC-0027 governed advisory copilot evidence source inputs
+- Pattern: bounded source-section and audience projection contracts
+- Status: Hardened
+- Finding Class: API validation, performance, and projection safety risk
+- Summary: Evidence-packet output models bounded projected packet sections, but the create-request
+  DTO did not directly bound inbound source sections and source-section audience lists were not
+  normalized or deduplicated at the domain boundary. Oversized source projections could therefore
+  be accepted before being narrowed by the packet builder.
+- Evidence:
+  - `src/core/advisory_copilot/models.py` now publishes the packet-section limit, bounds supported
+    and allowed audience lists, and normalizes source-section audiences with duplicate removal.
+  - `src/core/advisory_copilot/api_models.py` now bounds inbound evidence-packet source sections
+    to the same domain packet-section limit.
+  - Advisory copilot API and domain tests prove valid boundary inputs pass while oversized source
+    sections, empty audiences, and oversized/invalid audience lists fail at the correct boundary.
+- Consequence:
+  - RFC-0027 evidence packet creation now fails invalid or excessive source projections before
+    service execution, reducing avoidable runtime work and keeping Gateway/Workbench contracts
+    aligned with the domain projection model.
+- Documentation:
+  - No wiki source change is required. This is input-boundary hardening for existing RFC-0027
+    evidence-packet semantics.
+- Follow-Up:
+  - Continue auditing RFC-0027 persistence JSON payload sizing and source-projection reference
+    helpers for any remaining duplicated or weak boundary rules.
+
+## LA-REV-267
+
+- Scope: RFC-0027 governed advisory copilot persistence records
+- Pattern: bounded persisted JSON/list payload contracts
+- Status: Hardened
+- Finding Class: persistence, auditability, and generated-schema safety risk
+- Summary: The copilot service rejects oversized nested structured payloads before persistence,
+  but durable record DTOs did not encode top-level JSON/list bounds for packet, request, output,
+  guidance, guardrail, lineage, or review reason fields. Direct record construction could therefore
+  bypass limits that the service relies on for safe audit replay and generated schemas.
+- Evidence:
+  - `src/core/advisory_copilot/records.py` now bounds top-level JSON dictionaries, output section
+    lists, review guidance lists, and guardrail result lists on copilot run, packet, and review
+    records.
+  - Persistence tests prove review guidance and guardrail reason lists are normalized and that
+    oversized output sections, lineage dictionaries, packet reasons, review reasons, guidance
+    lists, and guardrail reason text are rejected at the record boundary.
+- Consequence:
+  - RFC-0027 durable audit records now reflect the service's bounded-payload contract more
+    directly, reducing replay, storage, and generated-client drift risk.
+- Documentation:
+  - No wiki source change is required. This is persistence contract hardening for existing
+    RFC-0027 copilot audit semantics.
+- Follow-Up:
+  - Continue auditing RFC-0027 source-projection helpers and then move to RFC-0028 route/report
+    proof contracts.
+
+## LA-REV-268
+
+- Scope: RFC-0028 bank-demo proof runtime posture contract
+- Pattern: bounded runtime endpoint and base-url evidence
+- Status: Hardened
+- Finding Class: API contract, proof-pack safety, and generated-schema risk
+- Summary: Runtime posture evidence sanitized endpoint summaries, but the model did not publish
+  explicit endpoint path, base URL, or endpoint-inventory bounds. Gateway, Workbench, and generated
+  clients therefore could not rely on the schema to reject oversized runtime-proof metadata before
+  proof-pack construction.
+- Evidence:
+  - `src/core/bank_demo_proof/runtime_posture.py` now bounds endpoint paths, runtime base URLs,
+    and endpoint inventories while preserving existing summary redaction/truncation behavior.
+  - RFC-0028 backend proof tests prove sensitive runtime summary fields are redacted and oversized
+    endpoint paths, base URLs, and endpoint inventories are rejected.
+  - Bank-demo proof API OpenAPI tests prove the new runtime posture bounds are published in the
+    schema used by Gateway and Workbench.
+- Consequence:
+  - RFC-0028 proof-pack capture now has a clearer machine-readable runtime evidence envelope and
+    fails malformed runtime posture before material-field review or proof-pack assembly.
+- Documentation:
+  - No wiki source change is required. This is schema-level hardening for existing RFC-0028
+    runtime-proof semantics.
+- Follow-Up:
+  - Continue auditing RFC-0028 proof-capture request payload bounds, metadata normalization, and
+    proof bundle list/dictionary limits.
+
+## LA-REV-269
+
+- Scope: RFC-0028 bank-demo proof capture envelope
+- Pattern: bounded proof metadata, live payload, and material-review projections
+- Status: Hardened
+- Finding Class: API contract, auditability, and proof-pack safety risk
+- Summary: The proof-pack route sanitized runtime content before material assembly, but request
+  payloads and capture metadata did not publish complete size and sensitivity constraints at every
+  boundary. Oversized live-runtime dictionaries, non-UTC metadata timestamps, or sensitive
+  metadata labels could therefore reach proof-pack construction before being rejected or obscured.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now bounds live runtime payload top-level keys in the
+    request schema used by Gateway and generated clients.
+  - `src/core/bank_demo_proof/capture.py` now bounds proof metadata identifiers and labels,
+    enforces timezone-aware UTC capture timestamps, and limits proof-bundle runtime summaries and
+    material field review rows.
+  - RFC-0028 API and engine tests prove oversized request payloads, sensitive metadata, overlong
+    metadata labels, and non-UTC timestamps fail at the correct boundary while normal proof
+    capture still succeeds.
+- Consequence:
+  - RFC-0028 proof-pack generation now has a tighter repeatable evidence envelope, reducing
+    storage, replay, and client-contract drift risk without changing supported bank-demo claims.
+- Documentation:
+  - No wiki source change is required. This is envelope hardening for existing RFC-0028 proof
+    capture semantics.
+- Follow-Up:
+  - Continue auditing RFC-0028 report/export contracts and any remaining canonical automation
+    evidence gaps before claiming RFC closure.
+
+## LA-REV-270
+
+- Scope: RFC-0028 commercial material governance
+- Pattern: exact blocked-claim coverage and duplicate-proof prevention
+- Status: Hardened
+- Finding Class: client-facing material governance and wording-drift risk
+- Summary: The commercial material pack declared blocked claims that must remain excluded from
+  every product, demo, RFP, security, architecture, ROI, and operator asset, but validation only
+  checked for a loose client-ready substring. A material could therefore omit other blocked claims
+  or pass a misleading substring while still appearing governed.
+- Evidence:
+  - `src/core/bank_demo_proof/commercial_materials.py` now requires every material to exclude the
+    exact blocked-claim set declared by the pack and rejects duplicate claim references and
+    audiences.
+  - Commercial material tests prove the generated pack excludes all blocked claims in every
+    material, rejects duplicate references/audiences, and fails substring-only or incomplete
+    blocked-claim coverage.
+- Consequence:
+  - RFC-0028 commercial/RFP material governance now prevents accidental overclaiming across
+    client-ready publication, external communication, approval/sign-off, legal advice, bank-specific
+    attestation, and OMS/order/fill/settlement boundaries.
+- Documentation:
+  - No wiki source change is required. This tightens validation for the existing RFC-0028
+    commercial material contract without changing supported feature truth.
+- Follow-Up:
+  - Continue auditing proof-pack writer artifacts, manifest shape, and local output references for
+    any remaining repeatability or disclosure gaps.
+
+## LA-REV-271
+
+- Scope: RFC-0028 backend proof writer manifest
+- Pattern: portable bundle-local artifact references
+- Status: Hardened
+- Finding Class: evidence portability and local-path disclosure risk
+- Summary: `manifest.json` recorded artifact paths using the concrete output directory. When
+  operators wrote proof evidence to an absolute temporary or workstation path, the manifest could
+  leak machine-specific filesystem locations into otherwise sanitized proof evidence.
+- Evidence:
+  - `scripts/capture_rfc0028_backend_proof.py` now writes manifest artifact references relative to
+    the proof bundle root.
+  - The proof-capture writer test now uses an absolute pytest temp directory and proves manifest
+    artifact references stay bundle-local and do not include the temp path.
+- Consequence:
+  - RFC-0028 proof bundles are more portable for review, archive, and client-demo preparation while
+    preserving the generated proof asset content and supported-claim posture.
+- Documentation:
+  - No wiki source change is required. This is evidence-manifest hardening for the existing
+    proof-capture script behavior.
+- Follow-Up:
+  - Continue auditing runtime probe configuration, CLI validation, and proof-pack summary copy for
+    remaining operator-experience or disclosure issues.
+
+## LA-REV-272
+
+- Scope: RFC-0028 runtime probe configuration
+- Pattern: pre-probe base URL validation
+- Status: Hardened
+- Finding Class: runtime configuration and sensitive URL disclosure risk
+- Summary: Runtime posture models rejected base URLs containing credentials, query strings, or
+  fragments, but the proof-capture script normalized that posture after probe calls were assembled.
+  An unsafe operator-provided URL could therefore be used in an HTTP request before the final
+  posture model rejected it.
+- Evidence:
+  - `src/core/bank_demo_proof/runtime_posture.py` now exposes a reusable
+    `normalize_runtime_base_url(...)` helper used by the model validator and proof-capture script.
+  - `scripts/capture_rfc0028_backend_proof.py` validates the base URL before probed and
+    not-probed runtime posture construction.
+  - Proof-capture script tests prove credential/query/fragment URLs fail before capture and that
+    safe runtime paths are normalized consistently.
+- Consequence:
+  - RFC-0028 runtime proof capture fails unsafe runtime configuration before any HTTP probe,
+    strengthening operator safety and keeping proof evidence free of sensitive URL material.
+- Documentation:
+  - No wiki source change is required. This is runtime-capture validation hardening for the
+    existing RFC-0028 proof workflow.
+- Follow-Up:
+  - Continue auditing proof-pack summary copy and script source-path handling before RFC-0028
+    closure review.
+
+## LA-REV-273
+
+- Scope: RFC-0028 demo scenario contract
+- Pattern: bounded scenario steps and source/evidence references
+- Status: Hardened
+- Finding Class: contract drift, generated-schema, and proof-governance risk
+- Summary: RFC-0028 proof packs were tightly bounded, but the upstream scenario contract still
+  allowed weakly bounded scenario step fields, duplicated step evidence references, duplicated
+  step ids, and sensitive technical wording in scenario titles or unsupported-boundary text.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now bounds scenario step identifiers, titles, owner
+    repositories, evidence references, Workbench panel references, source products, evidence
+    markers, unsupported boundaries, and step inventories.
+  - Scenario contract validation now rejects duplicate step ids, duplicate step reference lists,
+    and sensitive technical wording before proof-pack construction.
+  - RFC-0028 proof model tests cover sensitive titles, duplicate refs, duplicate step ids, and
+    unsafe unsupported-boundary wording.
+- Consequence:
+  - RFC-0028 scenario contracts now provide a stronger source-of-truth envelope for Advise,
+    Gateway, Workbench, and platform canonical automation without allowing duplicated or unsafe
+    scenario evidence to pass into proof packs.
+- Documentation:
+  - No wiki source change is required. This strengthens the existing scenario contract rather than
+    changing the documented RFC-0028 feature posture.
+- Follow-Up:
+  - Continue auditing supported-claim register list bounds and wording rules before RFC-0028
+    closure review.
+
+## LA-REV-274
+
+- Scope: RFC-0028 supported-claim register
+- Pattern: bounded claim taxonomy, wording, and artifact policy lists
+- Status: Hardened
+- Finding Class: supported-claim governance and generated-schema risk
+- Summary: The supported-claim register enforced classification/evidence rules, but claim
+  audience/material/reference lists, wording guardrails, claim inventories, and artifact policy
+  access-class lists did not consistently encode size and uniqueness constraints. This left room
+  for duplicated or oversized claim governance data to flow into demo, RFP, and proof material.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now bounds claim audiences, allowed materials,
+    evidence refs, proof requirements, wording rules, claim inventories, artifact policy classes,
+    sensitive-material rules, and register identifiers.
+  - Claim and artifact policy validators now reject duplicated taxonomy lists, duplicated wording
+    rules, duplicated access classes, duplicated sensitive-material rules, and sensitive claim refs.
+  - RFC-0028 proof model tests cover duplicate audiences, duplicate wording, duplicate access
+    classes, and duplicate sensitive-material policy rules.
+- Consequence:
+  - RFC-0028 supported claims now have a tighter machine-readable governance envelope for
+    commercial material generation and front-office canonical proof, reducing wording drift and
+    generated-client ambiguity.
+- Documentation:
+  - No wiki source change is required. This strengthens the existing supported-claim contract
+    without changing documented supported-feature truth.
+- Follow-Up:
+  - Continue auditing proof-pack asset uniqueness and repository-SHA metadata before RFC-0028
+    closure review.
+
+## LA-REV-275
+
+- Scope: RFC-0028 proof-pack audit record
+- Pattern: UTC proof timestamps, unique assets, and normalized repository evidence
+- Status: Hardened
+- Finding Class: audit replay, lineage, and proof-pack integrity risk
+- Summary: The proof-pack model required canonical markers and blocked client-ready approval, but
+  direct proof-pack construction did not enforce UTC generation timestamps, duplicate proof-asset
+  ids, sensitive repository names, or repository-name collisions after normalization.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now requires timezone-aware UTC proof-pack timestamps,
+    rejects sensitive or oversized repository names, detects repository-name collisions after
+    normalization, and rejects duplicate proof-pack asset ids.
+  - RFC-0028 proof model tests cover non-UTC timestamps, sensitive repository names,
+    normalization collisions, and duplicate asset ids.
+- Consequence:
+  - RFC-0028 proof packs are safer to replay, compare, archive, and present because their core
+    audit identity cannot silently contain ambiguous repository evidence or duplicate assets.
+- Documentation:
+  - No wiki source change is required. This is proof-pack integrity hardening for existing
+    RFC-0028 output.
+- Follow-Up:
+  - Continue auditing document and integration proof source-payload validation before RFC-0028
+    closure review.
+
+## LA-REV-276
+
+- Scope: RFC-0028 document proof source projection
+- Pattern: governed missing/invalid source-field failures
+- Status: Hardened
+- Finding Class: live-validation diagnosability and source-payload safety risk
+- Summary: Document proof projection relied on direct dictionary indexing for required report,
+  render, archive, and client-ready fields, and treated `requested_output_formats` as iterable
+  without first proving it was a list. Malformed live-runtime payloads could therefore surface raw
+  `KeyError` failures or character-by-character format validation instead of governed RFC-0028
+  source-field errors.
+- Evidence:
+  - `src/core/bank_demo_proof/document_proof.py` now validates required source fields through
+    governed `RFC0028_DOCUMENT_PROOF_FIELD_MISSING` errors and rejects non-list output format
+    payloads through `RFC0028_DOCUMENT_PROOF_FIELD_INVALID`.
+  - Document proof tests cover missing render-reference source fields and invalid scalar output
+    format payloads while preserving normal proof-capture behavior.
+- Consequence:
+  - RFC-0028 live validation and proof capture now fail malformed document source payloads at the
+    document-proof boundary with repeatable, test-covered diagnostics.
+- Documentation:
+  - No wiki source change is required. This is source-payload validation hardening for existing
+    document proof semantics.
+- Follow-Up:
+  - Continue auditing integration proof source-field validation before RFC-0028 closure review.
+
+## LA-REV-277
+
+- Scope: RFC-0028 journey integration proof source projection
+- Pattern: governed missing/invalid AI and policy source-field failures
+- Status: Hardened
+- Finding Class: source-payload coercion and live-validation diagnosability risk
+- Summary: Journey integration proof projection used direct dictionary indexing and Python truthy
+  coercion for AI, policy, and copilot source fields. Malformed live-runtime payloads could surface
+  raw `KeyError` failures, treat string booleans as true, or accept boolean rule counts before the
+  proof model had enough context to reject the source shape.
+- Evidence:
+  - `src/core/bank_demo_proof/integration_proof.py` now uses governed required-value, boolean, and
+    integer source helpers that emit `RFC0028_INTEGRATION_PROOF_FIELD_MISSING` and
+    `RFC0028_INTEGRATION_PROOF_FIELD_INVALID` diagnostics.
+  - Integration proof tests cover missing policy-pack ids, invalid string boolean fields, invalid
+    boolean rule counts, and normal proof-capture behavior.
+- Consequence:
+  - RFC-0028 integration proof capture now rejects malformed AI/policy/cockpit source payloads at
+    the projection boundary with repeatable diagnostics instead of relying on Python coercion or
+    ungoverned exceptions.
+- Documentation:
+  - No wiki source change is required. This is source-payload validation hardening for existing
+    integration proof semantics.
+- Follow-Up:
+  - Continue auditing script CLI/output handling and then run RFC-0028 closure reconciliation.
+
+## LA-REV-278
+
+- Scope: RFC-0028 proof-capture CLI artifact references
+- Pattern: separate filesystem output from proof asset references
+- Status: Hardened
+- Finding Class: operator experience, portability, and local-path disclosure risk
+- Summary: The proof-capture CLI used `--output-dir` as both the filesystem write location and
+  proof-pack asset reference prefix. Relative output directories worked, but absolute operator
+  paths could either fail proof-asset validation or risk coupling proof references to local
+  workstation paths.
+- Evidence:
+  - `scripts/capture_rfc0028_backend_proof.py` now supports an explicit `--artifact-ref-prefix`
+    and derives a safe relative default when `--output-dir` is absolute.
+  - Script tests prove absolute output directories fall back to the governed default artifact ref
+    prefix, custom relative prefixes are preserved, and sensitive prefixes are rejected.
+- Consequence:
+  - RFC-0028 proof capture can write evidence to operator-selected filesystem locations while
+    preserving portable, sanitized proof-pack asset references for review and archive.
+- Documentation:
+  - No wiki source change is required. The CLI behavior is backward compatible for the governed
+    default output path and strengthens absolute-output handling.
+- Follow-Up:
+  - Run RFC-0028 closure reconciliation and decide whether this branch is ready for the next PR
+    checkpoint.
+
+## LA-REV-279
+
+- Scope: RFC-0028 proof-capture operator documentation
+- Pattern: implementation-backed CLI/runbook alignment
+- Status: Hardened
+- Finding Class: documentation drift and operator misuse risk
+- Summary: The proof-capture CLI gained `--artifact-ref-prefix` so operators can write evidence to
+  absolute filesystem locations while keeping proof-pack asset references portable, but README,
+  RFC, and wiki runbook text still described only `--output-dir`.
+- Evidence:
+  - `README.md`, `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md`, and
+    `wiki/Operations-Runbook.md` now explain when to use `--artifact-ref-prefix` and why proof-pack
+    references must remain local-relative and sanitized.
+- Consequence:
+  - Operators, reviewers, and demo-prep users have implementation-backed instructions that prevent
+    local path leakage and artifact-reference drift in RFC-0028 proof packs.
+- Documentation:
+  - Wiki source changed in this slice; run `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise`
+    before merge and publish after merge to `main`.
+- Follow-Up:
+  - Run RFC-0028 closure reconciliation and repo wiki check before PR handoff.

@@ -332,6 +332,8 @@ def test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive(monkey
 
     assert response.status == "ARCHIVED"
     assert response.report_reference_id == "rjob_memo_001"
+    assert response.artifact_url == "/reports/jobs/rjob_memo_001"
+    assert response.explanation["report_job_status_url"] == "/reports/jobs/rjob_memo_001"
     assert response.explanation["render"]["render_job_id"] == "rdr_memo_001"
     assert response.explanation["archive"]["document_id"] == "doc_memo_001"
     [post] = fake_client.posts
@@ -399,6 +401,8 @@ def test_lotus_report_adapter_ignores_untrusted_status_url(monkeypatch) -> None:
     response = request_proposal_memo_report_package_with_lotus_report(request=request)
 
     assert response.status == "ACCEPTED"
+    assert response.artifact_url is None
+    assert response.explanation["report_job_status_url"] is None
     assert response.explanation["render"] == {}
     assert response.explanation["archive"] == {}
     assert fake_client.gets == []

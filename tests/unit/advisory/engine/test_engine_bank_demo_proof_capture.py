@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from pydantic import ValidationError
@@ -9,6 +9,7 @@ from src.core.bank_demo_proof import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
     BackendRuntimePosture,
+    MaterialFieldReview,
     RuntimeEndpointEvidence,
     build_backend_proof_capture,
     build_default_scenario_contract,
@@ -286,6 +287,28 @@ def test_material_field_review_blocks_claim_drift_at_lowest_layer() -> None:
         )
 
 
+def test_material_field_review_rejects_sensitive_or_structured_observed_values() -> None:
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        MaterialFieldReview(
+            review_id="unsafe_observed_value",
+            source_path="parity.proposal_policy.evaluation_status",
+            observed_value="raw prompt was retained",
+            expected_posture="PENDING_REVIEW",
+            review_posture="BLOCKED",
+            claim_refs=["advisor_journey_backend_evidence_available"],
+        )
+
+    with pytest.raises(ValidationError, match="bounded scalar"):
+        MaterialFieldReview(
+            review_id="structured_observed_value",
+            source_path="parity.proposal_policy.evaluation_status",
+            observed_value={"status": "PENDING_REVIEW"},
+            expected_posture="PENDING_REVIEW",
+            review_posture="BLOCKED",
+            claim_refs=["advisor_journey_backend_evidence_available"],
+        )
+
+
 def test_journey_integration_proof_blocks_ai_policy_and_cockpit_overclaims() -> None:
     summary = build_journey_integration_proof_summary(_live_runtime_payload())
 
@@ -410,6 +433,33 @@ def test_backend_proof_capture_rejects_sensitive_artifact_reference_prefixes() -
         )
 
 
+def test_runtime_posture_bounds_endpoint_inventory_and_urls() -> None:
+    endpoint = RuntimeEndpointEvidence(
+        endpoint="/health/ready",
+        http_status=200,
+        posture="READY",
+        summary={"status": "ready", "token": "should-not-leak"},
+    )
+    assert endpoint.summary["token"] == "[REDACTED]"
+
+    with pytest.raises(ValidationError):
+        RuntimeEndpointEvidence(endpoint=f"/{'x' * 161}", posture="READY")
+
+    with pytest.raises(ValidationError):
+        BackendRuntimePosture(
+            base_url=f"http://advise.dev.lotus/{'x' * 520}",
+            environment="local",
+            endpoints=[endpoint],
+        )
+
+    with pytest.raises(ValidationError):
+        BackendRuntimePosture(
+            base_url="http://advise.dev.lotus",
+            environment="local",
+            endpoints=[endpoint for _ in range(33)],
+        )
+
+
 def test_backend_proof_metadata_rejects_sensitive_live_suite_references() -> None:
     with pytest.raises(ValidationError, match="live_suite_result_ref must not include URL"):
         default_capture_metadata(
@@ -419,4 +469,31 @@ def test_backend_proof_metadata_rejects_sensitive_live_suite_references() -> Non
             correlation_id="corr-rfc0028-sensitive-ref",
             generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=UTC),
             live_suite_result_ref="output/rfc0028/result.json?token=should-not-leak",
+        )
+
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        default_capture_metadata(
+            repository_sha="secret-sha",
+            service_version="0.1.0",
+            environment="local",
+            correlation_id="corr-rfc0028-sensitive-metadata",
+            generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=UTC),
+        )
+
+    with pytest.raises(ValidationError):
+        default_capture_metadata(
+            repository_sha="abc123",
+            service_version="x" * 65,
+            environment="local",
+            correlation_id="corr-rfc0028-long-service-version",
+            generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=UTC),
+        )
+
+    with pytest.raises(ValidationError, match="timezone-aware UTC"):
+        default_capture_metadata(
+            repository_sha="abc123",
+            service_version="0.1.0",
+            environment="local",
+            correlation_id="corr-rfc0028-non-utc",
+            generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=timezone(timedelta(hours=1))),
         )

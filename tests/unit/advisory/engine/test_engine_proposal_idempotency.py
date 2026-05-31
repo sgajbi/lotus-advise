@@ -90,6 +90,16 @@ def test_normalize_required_idempotency_key_trims_and_rejects_blank_values():
         normalize_required_idempotency_key("   ")
 
 
+def test_normalize_idempotency_key_rejects_control_characters_and_oversized_values():
+    assert normalize_optional_idempotency_key("idem-target\x7f") is None
+    assert normalize_optional_idempotency_key("i" * 129) is None
+
+    with pytest.raises(ValueError, match="IDEMPOTENCY_KEY_REQUIRED"):
+        normalize_required_idempotency_key("idem-target\x7f")
+    with pytest.raises(ValueError, match="IDEMPOTENCY_KEY_REQUIRED"):
+        normalize_required_idempotency_key("i" * 129)
+
+
 def test_find_replayed_event_raises_on_hash_conflict():
     event = _event(event_id="pwe_conflict", idempotency_key="idem_target", request_hash="sha256:a")
 

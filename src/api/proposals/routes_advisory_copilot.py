@@ -40,6 +40,11 @@ ADVISORY_COPILOT_RESPONSES = {
     },
 }
 
+_COPILOT_CORRELATION_ID_MAX_LENGTH = 128
+_COPILOT_IDENTIFIER_MAX_LENGTH = 160
+_COPILOT_IDEMPOTENCY_KEY_MAX_LENGTH = 128
+_COPILOT_CURSOR_MAX_LENGTH = 512
+
 _COPILOT_REPOSITORY: AdvisoryCopilotRepository | None = None
 
 
@@ -92,7 +97,11 @@ def create_advisory_copilot_evidence_packet(
     payload: AdvisoryCopilotEvidencePacketCreateRequest,
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Correlation id for packet creation."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Correlation id for packet creation.",
+            max_length=_COPILOT_CORRELATION_ID_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
@@ -124,7 +133,11 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
     payload: AdvisoryCopilotProposalVersionEvidenceRequest,
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Correlation id for packet creation."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Correlation id for packet creation.",
+            max_length=_COPILOT_CORRELATION_ID_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
     proposal_repository: ProposalRepository = Depends(get_proposal_repository),
@@ -149,7 +162,14 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
     responses=ADVISORY_COPILOT_RESPONSES,
 )
 def get_advisory_copilot_evidence_packet(
-    evidence_packet_id: Annotated[str, Path(description="Copilot evidence-packet identifier.")],
+    evidence_packet_id: Annotated[
+        str,
+        Path(
+            description="Copilot evidence-packet identifier.",
+            min_length=1,
+            max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        ),
+    ],
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
     try:
@@ -175,11 +195,19 @@ def run_advisory_copilot_action(
     payload: AdvisoryCopilotActionRequest,
     idempotency_key: Annotated[
         str | None,
-        Header(alias="Idempotency-Key", description="Replay-safe copilot action key."),
+        Header(
+            alias="Idempotency-Key",
+            description="Replay-safe copilot action key.",
+            max_length=_COPILOT_IDEMPOTENCY_KEY_MAX_LENGTH,
+        ),
     ] = None,
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Correlation id for the copilot action."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Correlation id for the copilot action.",
+            max_length=_COPILOT_CORRELATION_ID_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
@@ -203,7 +231,14 @@ def run_advisory_copilot_action(
     responses=ADVISORY_COPILOT_RESPONSES,
 )
 def get_advisory_copilot_run(
-    run_id: Annotated[str, Path(description="Advisory copilot run identifier.")],
+    run_id: Annotated[
+        str,
+        Path(
+            description="Advisory copilot run identifier.",
+            min_length=1,
+            max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        ),
+    ],
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
     try:
@@ -226,15 +261,31 @@ def get_advisory_copilot_run(
     responses=ADVISORY_COPILOT_RESPONSES,
 )
 def review_advisory_copilot_run(
-    run_id: Annotated[str, Path(description="Advisory copilot run identifier.")],
+    run_id: Annotated[
+        str,
+        Path(
+            description="Advisory copilot run identifier.",
+            min_length=1,
+            max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        ),
+    ],
     payload: AdvisoryCopilotReviewRequest,
     idempotency_key: Annotated[
         str,
-        Header(alias="Idempotency-Key", description="Replay-safe review idempotency key."),
+        Header(
+            alias="Idempotency-Key",
+            description="Replay-safe review idempotency key.",
+            min_length=1,
+            max_length=_COPILOT_IDEMPOTENCY_KEY_MAX_LENGTH,
+        ),
     ],
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Correlation id for the review action."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Correlation id for the review action.",
+            max_length=_COPILOT_CORRELATION_ID_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotReviewResponse:
@@ -278,15 +329,32 @@ def get_advisory_copilot_supportability() -> AdvisoryCopilotSupportabilityRespon
     responses=ADVISORY_COPILOT_RESPONSES,
 )
 def list_proposal_version_copilot_runs(
-    proposal_id: Annotated[str, Path(description="Proposal identifier.")],
-    version_id: Annotated[str, Path(description="Proposal version identifier.")],
+    proposal_id: Annotated[
+        str,
+        Path(
+            description="Proposal identifier.",
+            min_length=1,
+            max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        ),
+    ],
+    version_id: Annotated[
+        str,
+        Path(
+            description="Proposal version identifier.",
+            min_length=1,
+            max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        ),
+    ],
     limit: Annotated[
         int,
         Query(description="Bounded page size. Default is 25; maximum is 100.", ge=1, le=100),
     ] = 25,
     cursor: Annotated[
         str | None,
-        Query(description="Opaque cursor from a previous copilot run page."),
+        Query(
+            description="Opaque cursor from a previous copilot run page.",
+            max_length=_COPILOT_CURSOR_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunPage:

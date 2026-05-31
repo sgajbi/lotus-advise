@@ -42,6 +42,9 @@ def apply_workspace_rationale_review_action(
     get_workspace_session(workspace_id)
 
     try:
-        return apply_workspace_rationale_review_action_with_lotus_ai(request)
+        return apply_workspace_rationale_review_action_with_lotus_ai(
+            request,
+            workspace_id=workspace_id,
+        )
     except LotusAIRationaleUnavailableError as exc:
         raise WorkspaceAssistantUnavailableError(str(exc)) from exc

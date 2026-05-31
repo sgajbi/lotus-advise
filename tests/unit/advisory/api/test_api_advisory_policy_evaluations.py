@@ -668,10 +668,12 @@ def test_policy_evaluation_openapi_registers_certified_advise_routes() -> None:
         "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations"
     )
     assert paths[create_path]["post"]["tags"] == ["Advisory Policy Evaluation"]
-    assert (
-        paths[create_path]["post"]["parameters"][2]["description"]
-        == "Required idempotency key for replay-safe policy evaluation finalization."
+    idempotency_header = paths[create_path]["post"]["parameters"][2]
+    assert idempotency_header["description"].startswith(
+        "Required idempotency key for replay-safe policy evaluation finalization."
     )
+    assert "at most 128 visible characters" in idempotency_header["description"]
+    assert idempotency_header["schema"]["maxLength"] == 128
     assert "/advisory/policy-evaluations/review-queue" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/events" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/lineage" in paths

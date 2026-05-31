@@ -8,6 +8,8 @@ import src.core.advisor_cockpit.service as cockpit_service
 from src.core.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitService,
+    CockpitAcknowledgementIdempotencyRecord,
+    CockpitAcknowledgementRecord,
     CockpitCallerContext,
 )
 from src.core.policy_packs.models import PolicyEvaluationRecord
@@ -95,9 +97,9 @@ def _memo() -> ProposalMemoRecord:
     )
 
 
-def _policy() -> PolicyEvaluationRecord:
+def _policy(evaluation_id: str = "policy_eval_sg_001") -> PolicyEvaluationRecord:
     return PolicyEvaluationRecord(
-        evaluation_id="policy_eval_sg_001",
+        evaluation_id=evaluation_id,
         proposal_id="proposal_sg_001",
         proposal_version_id="ppv_sg_001",
         portfolio_id="PB_SG_GLOBAL_BAL_001",
@@ -108,7 +110,7 @@ def _policy() -> PolicyEvaluationRecord:
         evaluation_status="PENDING_REVIEW",
         policy_content_hash="sha256:policy-content",
         source_evidence_hash="sha256:source-evidence",
-        evaluation_hash="sha256:policy-evaluation",
+        evaluation_hash=f"sha256:{evaluation_id}",
         evaluation_json={"evaluation_status": "PENDING_REVIEW"},
     )
 
@@ -331,6 +333,30 @@ def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
     assert supportability.posture == "ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
 
 
+def test_cockpit_service_bounds_snapshot_identity_from_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = InMemoryProposalRepository()
+    oversized_portfolio_id = f"PB_SG_GLOBAL_BAL_{'001_' * 80}"
+    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+
+    snapshot = service.get_snapshot(
+        caller_context=_caller(),
+        portfolio_id=oversized_portfolio_id,
+        correlation_id="corr-snapshot-bounds",
+    )
+
+    assert len(snapshot.snapshot_id) <= 160
+    assert snapshot.snapshot_id.startswith("cockpit_snapshot_PB_SG_GLOBAL_BAL_")
+    assert snapshot.snapshot_id != f"cockpit_snapshot_{oversized_portfolio_id}"
+
+
 def test_cockpit_service_lists_preparation_packets_with_cursor_and_supportability(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -380,6 +406,43 @@ def test_cockpit_service_lists_preparation_packets_with_cursor_and_supportabilit
             cursor="missing-preparation-packet",
             correlation_id=None,
         )
+
+
+def test_cockpit_service_bounds_preparation_packets_from_oversized_source_refs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    oversized_proposal_id = f"proposal_{'sg_' * 90}"
+    repository = InMemoryProposalRepository()
+    repository.create_proposal(
+        _proposal(
+            proposal_id=oversized_proposal_id,
+            current_state="EXECUTION_READY",
+        )
+    )
+    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+
+    page = service.list_preparation_packets(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id="corr-prep-bounds",
+    )
+
+    assert page.total_count == 1
+    packet = page.items[0]
+    assert len(packet.packet_id) <= 160
+    assert len(packet.context_ref) <= 160
+    assert len(packet.evidence_refs[0].evidence_id) <= 160
+    assert len(packet.sections[0]["source_ref"]) <= 160
+    assert packet.packet_id.startswith("prep_proposal_sg_")
+    assert packet.packet_id != f"prep_{oversized_proposal_id}_v1"
 
 
 def test_portfolio_scoped_cockpit_includes_preparation_created_by_automation_actor(
@@ -459,6 +522,78 @@ def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_postu
     assert replay.action_item.correlation_id == "corr-ack-retry-002"
     assert replay.action_item.status == "PENDING_REVIEW"
     assert replay.action_item.acknowledgement_state.acknowledged is True
+
+
+def test_cockpit_acknowledgement_records_bound_persistence_metadata() -> None:
+    oversized_action_id = f"aci_policy_review_required_{'sg_' * 90}"
+    record = CockpitAcknowledgementRecord(
+        acknowledgement_id=f"ack_{oversized_action_id}",
+        action_item_id=oversized_action_id,
+        action_item_version=1,
+        acknowledged_by="  advisor_sg_001  ",
+        acknowledged_at=NOW,
+        acknowledgement_note="  Reviewed pending\npolicy action.  ",
+        correlation_id=f"corr_{'ack_' * 60}",
+    )
+    idempotency = CockpitAcknowledgementIdempotencyRecord(
+        idempotency_key=f"ack_key_{'retry_' * 60}",
+        request_hash=f"sha256:{'request' * 40}",
+        acknowledgement_id=record.acknowledgement_id,
+        action_item_id=record.action_item_id,
+        created_at=NOW,
+    )
+
+    assert len(record.acknowledgement_id) <= 160
+    assert len(record.action_item_id) <= 160
+    assert len(record.correlation_id or "") <= 160
+    assert record.acknowledged_by == "advisor_sg_001"
+    assert record.acknowledgement_note == "Reviewed pending policy action."
+    assert len(idempotency.idempotency_key) <= 160
+    assert len(idempotency.request_hash) <= 160
+    assert len(idempotency.acknowledgement_id) <= 160
+    assert len(idempotency.action_item_id) <= 160
+
+
+def test_cockpit_acknowledgement_bounds_ack_id_for_boundary_length_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = InMemoryProposalRepository()
+    repository.create_proposal(_proposal())
+    oversized_policy_id = f"policy_eval_{'sg_' * 90}"
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_policy_evaluation_records",
+        lambda **_: [_policy(oversized_policy_id)],
+    )
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+    action = service.list_actions(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id=None,
+    ).items[0]
+
+    response = service.acknowledge_action(
+        action_item_id=action.action_item_id,
+        payload=AdvisorCockpitAcknowledgeRequest(
+            action_item_version=action.action_item_version,
+            acknowledged_by="advisor_sg_001",
+        ),
+        idempotency_key="ack-boundary-action-001",
+        correlation_id="corr-ack-boundary",
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+    )
+
+    assert len(action.action_item_id) <= 160
+    assert len(response.acknowledgement.acknowledgement_id or "") <= 160
+    assert response.acknowledgement.acknowledgement_id != f"ack_{action.action_item_id}"
 
 
 def test_cockpit_acknowledgement_rejects_conflict_and_stale_version(

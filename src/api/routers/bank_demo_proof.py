@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
@@ -27,6 +27,22 @@ router = APIRouter(prefix="/advisory/bank-demo-proof", tags=["Bank Demo Proof"])
 
 _SERVICE_VERSION = "0.1.0"
 _DEFAULT_ENVIRONMENT = "local"
+_RFC28_CORRELATION_ID_MAX_LENGTH = 128
+_RFC28_ENVIRONMENT_MAX_LENGTH = 64
+_RFC28_LIVE_PAYLOAD_TOP_LEVEL_MAX_KEYS = 16
+_RFC28_REPOSITORY_SHA_MAX_LENGTH = 160
+_RFC28_SERVICE_VERSION_MAX_LENGTH = 64
+_SENSITIVE_METADATA_FRAGMENTS = (
+    "authorization",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "prompt",
+)
 
 
 class BankDemoProofCaptureRequest(BaseModel):
@@ -34,7 +50,8 @@ class BankDemoProofCaptureRequest(BaseModel):
         description=(
             "Governed live runtime suite result used as source evidence for RFC-0028 proof "
             "capture. The API returns sanitized proof output and does not persist raw payloads."
-        )
+        ),
+        max_length=_RFC28_LIVE_PAYLOAD_TOP_LEVEL_MAX_KEYS,
     )
     runtime_posture: BackendRuntimePosture = Field(
         description="Sanitized health, readiness, and capability posture observed for lotus-advise."
@@ -46,16 +63,19 @@ class BankDemoProofCaptureRequest(BaseModel):
             "metadata and falls back to runtime-unknown."
         ),
         examples=["8e7409d51975d4c72a8bc822d9551104e410476a"],
+        max_length=_RFC28_REPOSITORY_SHA_MAX_LENGTH,
     )
     service_version: str | None = Field(
         default=None,
         description="Optional service version recorded in proof metadata.",
         examples=["0.1.0"],
+        max_length=_RFC28_SERVICE_VERSION_MAX_LENGTH,
     )
     environment: str | None = Field(
         default=None,
         description="Runtime environment label recorded in proof metadata.",
         examples=["local"],
+        max_length=_RFC28_ENVIRONMENT_MAX_LENGTH,
     )
     live_suite_result_ref: str | None = Field(
         default=None,
@@ -92,12 +112,24 @@ class BankDemoProofCaptureRequest(BaseModel):
         value: str | None,
         info: ValidationInfo,
     ) -> str | None:
-        return normalize_optional_local_artifact_ref(value, field_name=info.field_name)
+        return cast(
+            str | None,
+            normalize_optional_local_artifact_ref(value, field_name=info.field_name),
+        )
 
     @field_validator("output_ref_prefix")
     @classmethod
     def _output_ref_prefix_must_be_local(cls, value: str) -> str:
-        return normalize_output_ref_prefix(value)
+        return cast(str, normalize_output_ref_prefix(value))
+
+    @field_validator("repository_sha", "service_version", "environment")
+    @classmethod
+    def _metadata_must_be_bounded_and_non_sensitive(
+        cls,
+        value: str | None,
+        info: ValidationInfo,
+    ) -> str | None:
+        return _normalize_optional_metadata(value, field_name=info.field_name)
 
 
 @router.get(
@@ -155,10 +187,11 @@ def build_bank_demo_proof_pack(
         Header(
             alias="X-Correlation-Id",
             description="Optional caller correlation id propagated into proof metadata.",
+            max_length=_RFC28_CORRELATION_ID_MAX_LENGTH,
         ),
     ] = None,
 ) -> BackendProofCaptureBundle:
-    correlation_id = x_correlation_id or correlation_id_var.get() or "rfc0028-bank-demo-proof-api"
+    correlation_id = _runtime_correlation_id(x_correlation_id)
     metadata = default_capture_metadata(
         repository_sha=_runtime_repository_sha(request.repository_sha),
         service_version=_runtime_service_version(request.service_version),
@@ -182,17 +215,67 @@ def build_bank_demo_proof_pack(
 
 
 def _runtime_repository_sha(request_value: str | None) -> str:
-    return (
+    return _normalize_runtime_metadata(
         (request_value or "").strip()
         or os.getenv("LOTUS_ADVISE_COMMIT_SHA", "").strip()
         or os.getenv("GITHUB_SHA", "").strip()
-        or "runtime-unknown"
+        or "runtime-unknown",
+        field_name="repository_sha",
+        max_length=_RFC28_REPOSITORY_SHA_MAX_LENGTH,
     )
 
 
 def _runtime_service_version(request_value: str | None) -> str:
-    return (request_value or "").strip() or os.getenv("SERVICE_VERSION", _SERVICE_VERSION)
+    return _normalize_runtime_metadata(
+        (request_value or "").strip() or os.getenv("SERVICE_VERSION", _SERVICE_VERSION),
+        field_name="service_version",
+        max_length=_RFC28_SERVICE_VERSION_MAX_LENGTH,
+    )
 
 
 def _runtime_environment(request_value: str | None) -> str:
-    return (request_value or "").strip() or os.getenv("ENVIRONMENT", _DEFAULT_ENVIRONMENT)
+    return _normalize_runtime_metadata(
+        (request_value or "").strip() or os.getenv("ENVIRONMENT", _DEFAULT_ENVIRONMENT),
+        field_name="environment",
+        max_length=_RFC28_ENVIRONMENT_MAX_LENGTH,
+    )
+
+
+def _runtime_correlation_id(request_value: str | None) -> str:
+    return _normalize_runtime_metadata(
+        (request_value or "").strip() or correlation_id_var.get() or "rfc0028-bank-demo-proof-api",
+        field_name="correlation_id",
+        max_length=_RFC28_CORRELATION_ID_MAX_LENGTH,
+    )
+
+
+def _normalize_optional_metadata(value: str | None, *, field_name: str | None) -> str | None:
+    if value is None:
+        return None
+    if not value.strip():
+        return None
+    return _normalize_runtime_metadata(
+        value,
+        field_name=field_name or "metadata",
+        max_length=_metadata_max_length(field_name),
+    )
+
+
+def _normalize_runtime_metadata(value: str, *, field_name: str, max_length: int) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ValueError(f"{field_name} is required")
+    if len(normalized) > max_length:
+        raise ValueError(f"{field_name} is too long")
+    lowered = normalized.lower().replace("-", "_")
+    if any(fragment in lowered for fragment in _SENSITIVE_METADATA_FRAGMENTS):
+        raise ValueError(f"{field_name} cannot contain sensitive material")
+    return normalized
+
+
+def _metadata_max_length(field_name: str | None) -> int:
+    if field_name == "service_version":
+        return _RFC28_SERVICE_VERSION_MAX_LENGTH
+    if field_name == "environment":
+        return _RFC28_ENVIRONMENT_MAX_LENGTH
+    return _RFC28_REPOSITORY_SHA_MAX_LENGTH

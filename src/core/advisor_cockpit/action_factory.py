@@ -18,6 +18,12 @@ from src.core.advisor_cockpit.models import (
     CockpitLineageRef,
     CockpitSourceReadinessGap,
 )
+from src.core.advisor_cockpit.projection_bounds import (
+    bounded_content_hash,
+    bounded_optional_reference,
+    bounded_reference,
+    bounded_summary,
+)
 from src.core.advisor_cockpit.vocabulary import sort_cockpit_action_items
 
 LOTUS_ADVISE_SOURCE_SYSTEM = "lotus-advise"
@@ -285,6 +291,7 @@ def build_source_backed_action(source: CockpitActionConstructionInput) -> Adviso
         )
 
     action_item_id = _build_action_item_id(source.action_family, source.source_action_id)
+    source_refs = _bounded_source_refs(source.source_refs)
     return AdvisoryActionItem(
         action_item_id=action_item_id,
         action_item_version=1,
@@ -296,26 +303,26 @@ def build_source_backed_action(source: CockpitActionConstructionInput) -> Adviso
         title=source.title,
         next_required_action=source.next_required_action,
         reason_codes=_unique_ordered(source.reason_codes),
-        client_ref=source.source_refs.client_ref,
-        household_ref=source.source_refs.household_ref,
-        portfolio_id=source.source_refs.portfolio_id,
-        proposal_id=source.source_refs.proposal_id,
-        workspace_id=source.source_refs.workspace_id,
-        memo_id=source.source_refs.memo_id,
-        policy_evaluation_id=source.source_refs.policy_evaluation_id,
-        report_ref=source.source_refs.report_ref,
-        execution_ref=source.source_refs.execution_ref,
-        due_at=source.due_at,
+        client_ref=source_refs.client_ref,
+        household_ref=source_refs.household_ref,
+        portfolio_id=source_refs.portfolio_id,
+        proposal_id=source_refs.proposal_id,
+        workspace_id=source_refs.workspace_id,
+        memo_id=source_refs.memo_id,
+        policy_evaluation_id=source_refs.policy_evaluation_id,
+        report_ref=source_refs.report_ref,
+        execution_ref=source_refs.execution_ref,
+        due_at=bounded_optional_reference(source.due_at),
         sla_age_band=source.sla_age_band,
         materiality_rank=source.materiality_rank,
-        source_timestamp=source.source_timestamp,
+        source_timestamp=bounded_optional_reference(source.source_timestamp),
         evidence_refs=source.evidence_refs,
         source_readiness_gaps=source.source_readiness_gaps,
         dependency_readiness=source.dependency_readiness,
         lineage_refs=source.lineage_refs
         or _lineage_refs(f"{source.action_family.lower()}:{source.source_action_id}", None),
         unsupported_capabilities=_unique_ordered(source.unsupported_capabilities),
-        correlation_id=source.correlation_id,
+        correlation_id=bounded_optional_reference(source.correlation_id),
     )
 
 
@@ -359,7 +366,7 @@ def build_policy_review_required_action(
                 )
             ],
             source_readiness_gaps=[
-                CockpitSourceReadinessGap(
+                _source_readiness_gap(
                     source_family="policy",
                     gap_code=reason_codes[0],
                     owner_role="COMPLIANCE_REVIEWER",
@@ -411,7 +418,7 @@ def build_memo_package_blocked_action(
                 )
             ],
             source_readiness_gaps=[
-                CockpitSourceReadinessGap(
+                _source_readiness_gap(
                     source_family="proposal_memo",
                     gap_code=source.blockage_code,
                     owner_role=source.owner_role,
@@ -496,7 +503,7 @@ def build_client_follow_up_action(
                 )
             ],
             source_readiness_gaps=[
-                CockpitSourceReadinessGap(
+                _source_readiness_gap(
                     source_family="proposal_lifecycle",
                     gap_code=source.follow_up_code,
                     owner_role="ADVISOR",
@@ -561,7 +568,7 @@ def build_approval_dependency_action(
                 )
             ],
             source_readiness_gaps=[
-                CockpitSourceReadinessGap(
+                _source_readiness_gap(
                     source_family="proposal_lifecycle",
                     gap_code=reason_codes[0],
                     owner_role=owner_role,
@@ -608,7 +615,7 @@ def build_report_render_archive_action(
                 )
             ],
             source_readiness_gaps=[
-                CockpitSourceReadinessGap(
+                _source_readiness_gap(
                     source_family="report_render_archive",
                     gap_code=source.readiness_code,
                     owner_role=source.owner_role,
@@ -757,7 +764,7 @@ def build_supportability_degraded_action(
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             dependency_readiness=[
-                CockpitDependencyReadiness(
+                _dependency_readiness(
                     dependency=source.dependency,
                     state=source.state,
                     reason_code=source.reason_code,
@@ -821,7 +828,9 @@ def build_source_backed_cockpit_actions(
 
 
 def _build_action_item_id(action_family: str, source_action_id: str) -> str:
-    return f"aci_{_normalize_identifier(action_family)}_{_normalize_identifier(source_action_id)}"
+    return bounded_reference(
+        f"aci_{_normalize_identifier(action_family)}_{_normalize_identifier(source_action_id)}"
+    )
 
 
 def _normalize_identifier(value: str) -> str:
@@ -842,11 +851,11 @@ def _evidence_ref(
     ],
 ) -> CockpitEvidenceRef:
     return CockpitEvidenceRef(
-        evidence_id=evidence_id,
-        evidence_type=evidence_type,
+        evidence_id=bounded_reference(evidence_id),
+        evidence_type=bounded_reference(evidence_type),
         source_system=LOTUS_ADVISE_SOURCE_SYSTEM,
         access_class=access_class,
-        summary=summary,
+        summary=bounded_summary(summary),
     )
 
 
@@ -855,11 +864,55 @@ def _lineage_refs(lineage_id: str | None, content_hash: str | None) -> list[Cock
         return []
     return [
         CockpitLineageRef(
-            lineage_id=lineage_id,
+            lineage_id=bounded_reference(lineage_id),
             source_system=LOTUS_ADVISE_SOURCE_SYSTEM,
-            content_hash=content_hash,
+            content_hash=bounded_content_hash(content_hash),
         )
     ]
+
+
+def _source_readiness_gap(
+    *,
+    source_family: str,
+    gap_code: str,
+    owner_role: AdvisorCockpitOwnerRole,
+    message: str,
+) -> CockpitSourceReadinessGap:
+    return CockpitSourceReadinessGap(
+        source_family=bounded_reference(source_family),
+        gap_code=bounded_reference(gap_code),
+        owner_role=owner_role,
+        message=bounded_summary(message),
+    )
+
+
+def _dependency_readiness(
+    *,
+    dependency: str,
+    state: Literal["READY", "DEGRADED", "UNAVAILABLE", "NOT_CONFIGURED", "UNSUPPORTED"],
+    reason_code: str,
+    summary: str,
+) -> CockpitDependencyReadiness:
+    return CockpitDependencyReadiness(
+        dependency=bounded_reference(dependency),
+        state=state,
+        reason_code=bounded_reference(reason_code),
+        summary=bounded_summary(summary),
+    )
+
+
+def _bounded_source_refs(source_refs: CockpitActionSourceRefs) -> CockpitActionSourceRefs:
+    return CockpitActionSourceRefs(
+        client_ref=bounded_optional_reference(source_refs.client_ref),
+        household_ref=bounded_optional_reference(source_refs.household_ref),
+        portfolio_id=bounded_optional_reference(source_refs.portfolio_id),
+        proposal_id=bounded_optional_reference(source_refs.proposal_id),
+        workspace_id=bounded_optional_reference(source_refs.workspace_id),
+        memo_id=bounded_optional_reference(source_refs.memo_id),
+        policy_evaluation_id=bounded_optional_reference(source_refs.policy_evaluation_id),
+        report_ref=bounded_optional_reference(source_refs.report_ref),
+        execution_ref=bounded_optional_reference(source_refs.execution_ref),
+    )
 
 
 def _approval_owner_role(

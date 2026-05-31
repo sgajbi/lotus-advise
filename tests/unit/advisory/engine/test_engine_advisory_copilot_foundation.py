@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from src.core.advisory_copilot import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,
@@ -197,6 +200,228 @@ def test_copilot_evidence_packet_shape_preserves_review_and_lineage_boundaries()
     assert packet.sections[0].source_refs[0].content_hash == "sha256:policy-evaluation"
     assert packet.unsupported_evidence[0].reason_code == "CLIENT_READY_PUBLICATION_BLOCKED"
     assert packet.lineage_refs[0].source_system == "lotus-advise"
+
+
+def test_copilot_evidence_packet_model_normalizes_and_bounds_audit_fields() -> None:
+    packet = CopilotEvidencePacket(
+        evidence_packet_id=" copilot_packet_pb_sg_001 ",
+        evidence_packet_hash=" sha256:copilot-packet ",
+        action_family="COMPLIANCE_REVIEW_SUMMARY",
+        portfolio_id=" PB_SG_GLOBAL_BAL_001 ",
+        proposal_id=" proposal_sg_structured_note_001 ",
+        sections=(),
+        unsupported_evidence=(
+            CopilotUnsupportedEvidence(
+                reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+                source_dependency="RFC0025_POLICY_EVALUATION",
+                advisor_message=" Client-ready publication is blocked for this review. ",
+            ),
+        ),
+        lineage_refs=(
+            CopilotLineageRef(
+                lineage_type=" EVIDENCE_PACKET ",
+                lineage_id=" copilot_packet_pb_sg_001 ",
+                source_system=" lotus-advise ",
+            ),
+        ),
+        retention_class="ADVISORY_REVIEW_RECORD",
+    )
+
+    assert packet.evidence_packet_id == "copilot_packet_pb_sg_001"
+    assert packet.evidence_packet_hash == "sha256:copilot-packet"
+    assert packet.portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert packet.proposal_id == "proposal_sg_structured_note_001"
+    assert packet.unsupported_evidence[0].advisor_message == (
+        "Client-ready publication is blocked for this review."
+    )
+    assert packet.lineage_refs[0].lineage_type == "EVIDENCE_PACKET"
+    assert packet.lineage_refs[0].lineage_id == "copilot_packet_pb_sg_001"
+    assert packet.lineage_refs[0].source_system == "lotus-advise"
+
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="x" * 161,
+            evidence_packet_hash="sha256:copilot-packet",
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=(),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            evidence_packet_hash="x" * 129,
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=(),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotLineageRef(
+            lineage_type="EVIDENCE_PACKET",
+            lineage_id="x" * 161,
+            source_system="lotus-advise",
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotUnsupportedEvidence(
+            reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+            source_dependency="RFC0025_POLICY_EVALUATION",
+            advisor_message="x" * 501,
+        )
+    with pytest.raises(ValidationError):
+        CopilotUnsupportedEvidence(
+            reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+            source_dependency="RFC0025_POLICY_EVALUATION",
+            advisor_message="Raw prompt is missing from the review evidence.",
+        )
+
+    unsupported = CopilotUnsupportedEvidence(
+        reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+        source_dependency="RFC0025_POLICY_EVALUATION",
+        advisor_message="Client-ready publication is blocked for this review.",
+    )
+    lineage_ref = CopilotLineageRef(
+        lineage_type="EVIDENCE_PACKET",
+        lineage_id="copilot_packet_pb_sg_001",
+        source_system="lotus-advise",
+    )
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            evidence_packet_hash="sha256:copilot-packet",
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=(),
+            unsupported_evidence=tuple(unsupported for _ in range(13)),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            evidence_packet_hash="sha256:copilot-packet",
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=(),
+            lineage_refs=tuple(lineage_ref for _ in range(17)),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+    source_ref = CopilotSourceRef(
+        source_system="lotus-advise",
+        source_type="POLICY_EVALUATION",
+        source_id="policy_eval_sg_001",
+        content_hash="sha256:policy-evaluation",
+        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+    )
+    section = CopilotEvidencePacketSection(
+        section_key="POLICY_POSTURE",
+        title="Policy posture",
+        evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+        source_refs=(source_ref,),
+        summary_items=("Policy evaluation requires compliance review.",),
+    )
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            evidence_packet_hash="sha256:copilot-packet",
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=tuple(section for _ in range(13)),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+
+def test_copilot_evidence_section_input_normalizes_and_bounds_source_evidence() -> None:
+    source_ref = CopilotSourceRef(
+        source_system=" lotus-advise ",
+        source_type=" POLICY_EVALUATION ",
+        source_id=" policy_eval_sg_001 ",
+        content_hash=" sha256:policy-evaluation ",
+        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+    )
+    section = CopilotEvidenceSectionInput(
+        section_key=" POLICY_POSTURE ",
+        title=" Policy\nposture ",
+        evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+        source_refs=(source_ref,),
+        summary_items=(" Policy evaluation\nrequires compliance review. ",),
+        allowed_audiences=(" ADVISOR ", "ADVISOR", "COMPLIANCE_REVIEWER"),
+    )
+
+    assert source_ref.source_system == "lotus-advise"
+    assert source_ref.source_type == "POLICY_EVALUATION"
+    assert source_ref.source_id == "policy_eval_sg_001"
+    assert source_ref.content_hash == "sha256:policy-evaluation"
+    assert section.section_key == "POLICY_POSTURE"
+    assert section.title == "Policy posture"
+    assert section.summary_items == ("Policy evaluation requires compliance review.",)
+    assert section.allowed_audiences == ("ADVISOR", "COMPLIANCE_REVIEWER")
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(),
+            summary_items=("Policy evaluation requires compliance review.",),
+            allowed_audiences=("ADVISOR",),
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=("x" * 1001,),
+            allowed_audiences=("ADVISOR",),
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=tuple(f"Summary {index}." for index in range(9)),
+            allowed_audiences=("ADVISOR",),
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=("Policy evaluation requires compliance review.",),
+            allowed_audiences=(),
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=("Policy evaluation requires compliance review.",),
+            allowed_audiences=(
+                "ADVISOR",
+                "DESK_HEAD",
+                "COMPLIANCE_REVIEWER",
+                "OPERATIONS_SUPPORT",
+                "MODEL_RISK_OPERATOR",
+                "UNKNOWN_ROLE",
+            ),
+        )
 
 
 def test_copilot_evidence_packet_builder_projects_allowed_sections_and_hashes() -> None:

@@ -10,6 +10,7 @@ from src.core.advisory.narrative_models import (
     ProposalNarrativeSourceRef,
 )
 from src.integrations.lotus_ai.proposal_narrative import (
+    MAX_NARRATIVE_AI_OUTPUT_SECTIONS,
     LotusAIProposalNarrativeUnavailableError,
     _build_workflow_pack_request,
     build_ai_fallback_lineage,
@@ -173,6 +174,93 @@ def test_generate_proposal_narrative_draft_returns_sections_and_ai_lineage(
     assert response.lineage.workflow_run_id == "packrun_proposal_narrative_001"
     assert response.lineage.model_version == "lotus-ai-governed-model.v1"
     assert response.lineage.fallback_reason is None
+
+
+def test_generate_proposal_narrative_draft_rejects_oversized_sections(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_narrative.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "sections": [
+                                    {
+                                        "section_key": "EXECUTIVE_SUMMARY",
+                                        "title": "Executive Summary",
+                                        "text": "x" * 4001,
+                                    }
+                                ],
+                            },
+                        }
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIProposalNarrativeUnavailableError) as exc:
+        generate_proposal_narrative_draft_with_lotus_ai(
+            grounding_packet=_grounding_packet(),
+            narrative_policy=_narrative_policy(),
+            requested_sections=["EXECUTIVE_SUMMARY"],
+            requested_by="advisor_123",
+        )
+
+    assert str(exc.value) == "LOTUS_AI_NARRATIVE_UNAVAILABLE"
+
+
+def test_generate_proposal_narrative_draft_bounds_section_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_narrative.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "sections": [
+                                    {
+                                        "section_key": "EXECUTIVE_SUMMARY",
+                                        "title": f"Executive Summary {index}",
+                                        "text": "Advisor-review AI draft.",
+                                    }
+                                    for index in range(MAX_NARRATIVE_AI_OUTPUT_SECTIONS + 2)
+                                ],
+                            },
+                        }
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_proposal_narrative_draft_with_lotus_ai(
+        grounding_packet=_grounding_packet(),
+        narrative_policy=_narrative_policy(),
+        requested_sections=["EXECUTIVE_SUMMARY"],
+        requested_by="advisor_123",
+    )
+
+    assert len(response.sections) == MAX_NARRATIVE_AI_OUTPUT_SECTIONS
+    assert response.sections[-1].title == "Executive Summary 7"
 
 
 def test_generate_proposal_narrative_draft_masks_timeout_and_transport_failure(

@@ -4,9 +4,14 @@ import json
 from datetime import UTC, datetime
 
 import httpx
+import pytest
 
 from scripts.capture_rfc0028_backend_proof import (
+    _DEFAULT_OUTPUT_DIR,
+    _artifact_ref_prefix_for,
+    _not_probed_runtime_posture,
     _probe_endpoint,
+    _probe_runtime_posture,
     write_backend_proof_capture_bundle,
 )
 from src.core.bank_demo_proof import (
@@ -113,6 +118,11 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
     assert commercial_pack["publication_posture"] == "CUSTOMER_CONSUMABLE_WITH_BOUNDARIES"
     assert "commercial_rfp_security_material_available" in commercial_pack["required_claim_ids"]
     assert manifest["artifact_family"] == "rfc0028.backend-proof-capture.v1"
+    assert manifest["artifacts"]["metadata"] == "metadata.json"
+    assert manifest["artifacts"]["proof_pack"] == "proof-pack.json"
+    assert all(
+        str(tmp_path).replace("\\", "/") not in ref for ref in manifest["artifacts"].values()
+    )
     assert "BANK_DEMO_PROOF_PACK_CREATED" in markdown_summary
     assert "AI, Policy, And Cockpit Integration Proof" in markdown_summary
     assert "Commercial, RFP, Security, Architecture, ROI, And Demo Material" in markdown_summary
@@ -153,3 +163,26 @@ def test_runtime_probe_redacts_sensitive_material_and_records_latency() -> None:
     assert "token" not in evidence.summary["degraded_reasons"][0]
     assert "authorization" not in evidence.summary
     assert "trace_id" not in evidence.summary
+
+
+def test_runtime_probe_rejects_unsafe_base_url_before_capture() -> None:
+    with pytest.raises(ValueError, match="credentials, query, or fragment"):
+        _probe_runtime_posture("https://user:secret@advise.dev.lotus?token=abc", "local")
+
+    with pytest.raises(ValueError, match="credentials, query, or fragment"):
+        _not_probed_runtime_posture("https://advise.dev.lotus#token=abc", "local")
+
+    posture = _not_probed_runtime_posture("https://advise.dev.lotus/runtime/", "local")
+
+    assert posture.base_url == "https://advise.dev.lotus/runtime"
+
+
+def test_artifact_ref_prefix_remains_relative_for_absolute_output_dir(tmp_path) -> None:
+    assert _artifact_ref_prefix_for(tmp_path, None) == _DEFAULT_OUTPUT_DIR
+    assert (
+        _artifact_ref_prefix_for(tmp_path, "output/rfc0028/custom-proof")
+        == "output/rfc0028/custom-proof"
+    )
+
+    with pytest.raises(ValueError, match="sensitive material"):
+        _artifact_ref_prefix_for(tmp_path, "output/rfc0028/token-proof")

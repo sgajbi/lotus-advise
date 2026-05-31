@@ -59,6 +59,7 @@ from src.core.bank_demo_proof.models import (
 from src.core.bank_demo_proof.runtime_posture import (
     BackendRuntimePosture,
     RuntimeEndpointEvidence,
+    normalize_runtime_base_url,
 )
 
 __all__ = [
@@ -108,6 +109,7 @@ __all__ = [
     "normalize_local_artifact_ref",
     "normalize_optional_local_artifact_ref",
     "normalize_output_ref_prefix",
+    "normalize_runtime_base_url",
     "review_material_fields",
     "sanitize_live_runtime_summary",
 ]

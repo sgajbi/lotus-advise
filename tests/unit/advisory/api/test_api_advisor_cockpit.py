@@ -4,11 +4,17 @@ from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 import src.api.proposals.router as proposals_router
 import src.core.advisor_cockpit.service as cockpit_service
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.advisor_cockpit import (
+    AdvisorCockpitPreparationPacketPage,
+    AdvisorCockpitSupportabilityResponse,
+    MeetingPreparationPacket,
+)
 from src.core.policy_packs.models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
 from src.core.tactical_house_view import clear_tactical_house_view_affected_cohorts_for_tests
@@ -20,6 +26,77 @@ NOW = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
 def setup_function() -> None:
     reset_proposal_workflow_service_for_tests()
     clear_tactical_house_view_affected_cohorts_for_tests()
+
+
+def _preparation_packet(packet_id: str = "prep_proposal_sg_001_v1") -> MeetingPreparationPacket:
+    return MeetingPreparationPacket(
+        packet_id=packet_id,
+        context_type="PROPOSAL",
+        context_ref="proposal_sg_001",
+        status="READY",
+        sections=[
+            {
+                "section_id": "advisor_meeting_context",
+                "title": "Advisor meeting context",
+                "summary": "Active advisory proposal is available for meeting preparation.",
+            }
+        ],
+    )
+
+
+def test_advisor_cockpit_api_models_reject_unbounded_preparation_pages() -> None:
+    packet = _preparation_packet()
+
+    with pytest.raises(ValidationError, match="List should have at most 64 items"):
+        AdvisorCockpitPreparationPacketPage(
+            items=[packet for _ in range(65)],
+            page_size=25,
+            total_count=65,
+        )
+
+    with pytest.raises(ValidationError, match="greater than or equal to 1"):
+        AdvisorCockpitPreparationPacketPage(
+            items=[packet],
+            page_size=0,
+            total_count=1,
+        )
+
+    with pytest.raises(ValidationError, match="less than or equal to 100"):
+        AdvisorCockpitPreparationPacketPage(
+            items=[packet],
+            page_size=101,
+            total_count=1,
+        )
+
+    with pytest.raises(ValidationError, match="greater than or equal to 0"):
+        AdvisorCockpitPreparationPacketPage(
+            items=[packet],
+            page_size=25,
+            total_count=-1,
+        )
+
+
+def test_advisor_cockpit_api_models_reject_unbounded_supportability_context() -> None:
+    with pytest.raises(ValidationError, match="String should have at most 160 characters"):
+        AdvisorCockpitSupportabilityResponse(
+            posture="X" * 161,
+            supportability={},
+            unsupported_capabilities=[],
+        )
+
+    with pytest.raises(ValidationError, match="Dictionary should have at most 64 items"):
+        AdvisorCockpitSupportabilityResponse(
+            posture="ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
+            supportability={f"key_{index}": "SUPPORTED" for index in range(65)},
+            unsupported_capabilities=[],
+        )
+
+    with pytest.raises(ValidationError, match="List should have at most 64 items"):
+        AdvisorCockpitSupportabilityResponse(
+            posture="ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
+            supportability={},
+            unsupported_capabilities=[f"UNSUPPORTED_{index}" for index in range(65)],
+        )
 
 
 @pytest.fixture()
@@ -209,6 +286,39 @@ def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
     assert blank_actor.status_code == 422
 
 
+def test_advisor_cockpit_api_rejects_oversized_route_inputs(
+    cockpit_repository: InMemoryProposalRepository,
+) -> None:
+    _ = cockpit_repository
+    oversized_ref = "x" * 161
+    with TestClient(app) as client:
+        actions = client.get(
+            "/advisory/cockpit/actions",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+        ).json()
+        action_id = actions["items"][0]["action_item_id"]
+        oversized_query = client.get(
+            "/advisory/cockpit/actions",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": oversized_ref},
+        )
+        oversized_cursor = client.get(
+            "/advisory/cockpit/preparation-packets",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "cursor": oversized_ref},
+        )
+        oversized_path = client.get(f"/advisory/cockpit/actions/{oversized_ref}")
+        oversized_header = client.post(
+            f"/advisory/cockpit/actions/{action_id}/acknowledgements",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            headers={"Idempotency-Key": oversized_ref},
+            json={"action_item_version": 1, "acknowledged_by": "advisor_sg_001"},
+        )
+
+    assert oversized_query.status_code == 422
+    assert oversized_cursor.status_code == 422
+    assert oversized_path.status_code == 422
+    assert oversized_header.status_code == 422
+
+
 def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
     with TestClient(app) as client:
         schema = client.get("/openapi.json").json()
@@ -240,7 +350,20 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
         parameter["name"] == "cursor"
         and parameter["in"] == "query"
         and "preparation-packet cursor" in parameter["description"]
+        and _max_length(parameter["schema"]) == 160
         for parameter in preparation_operation["parameters"]
+    )
+    assert any(
+        parameter["name"] == "advisor_id"
+        and parameter["in"] == "query"
+        and _max_length(parameter["schema"]) == 160
+        for parameter in action_operation["parameters"]
+    )
+    assert any(
+        parameter["name"] == "limit"
+        and parameter["in"] == "query"
+        and parameter["schema"]["maximum"] == 100
+        for parameter in action_operation["parameters"]
     )
     assert "Gateway publication" in supportability_operation["description"]
     assert "active data-product posture" in supportability_operation["description"]
@@ -252,8 +375,18 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
         parameter["name"] == "Idempotency-Key"
         and parameter["in"] == "header"
         and parameter["required"] is True
+        and _max_length(parameter["schema"]) == 128
         for parameter in acknowledgement_operation["parameters"]
     )
+
+
+def _max_length(parameter_schema: dict) -> int | None:
+    if "maxLength" in parameter_schema:
+        return parameter_schema["maxLength"]
+    for option in parameter_schema.get("anyOf", []):
+        if isinstance(option, dict) and "maxLength" in option:
+            return option["maxLength"]
+    return None
 
 
 def _house_view_payload() -> dict:

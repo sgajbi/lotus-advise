@@ -328,8 +328,10 @@ generation, or downstream execution truth.
   `proof-pack.json`, `runtime-posture.json`, `sanitized-runtime-summary.json`, and
   `commercial-material-pack.json` before using demo or RFP material
 - keep `live_suite_result_ref`, `live_suite_bundle_ref`, and `output_ref_prefix` as local relative
-  proof-artifact references; URL, query, fragment, traversal, and sensitive-token material is
-  rejected before proof capture can proceed
+  proof-artifact references; use `--artifact-ref-prefix` when writing proof artifacts to an
+  absolute `--output-dir` so proof-pack asset references remain portable and sanitized
+- URL, query, fragment, traversal, and sensitive-token material is rejected before proof capture can
+  proceed
 - treat `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED` and HTTP 409 proof-pack responses as
   material-drift defects that require code, seed, or documentation correction before demo evidence
   is reused

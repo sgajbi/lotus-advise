@@ -26,6 +26,9 @@ _SENSITIVE_KEY_FRAGMENTS = (
 _MAX_SUMMARY_KEYS = 32
 _MAX_SUMMARY_LIST_ITEMS = 50
 _MAX_SUMMARY_STRING_LENGTH = 512
+_MAX_BASE_URL_LENGTH = 512
+_MAX_ENDPOINT_PATH_LENGTH = 160
+_MAX_RUNTIME_ENDPOINTS = 32
 _URL_PATTERN = re.compile(r"https?://[^\s]+")
 
 
@@ -33,6 +36,8 @@ class RuntimeEndpointEvidence(BaseModel):
     endpoint: str = Field(
         description="Runtime endpoint that was probed.",
         examples=["/health/ready"],
+        min_length=1,
+        max_length=_MAX_ENDPOINT_PATH_LENGTH,
     )
     http_status: int | None = Field(
         default=None,
@@ -80,26 +85,20 @@ class BackendRuntimePosture(BaseModel):
     base_url: str = Field(
         description="Runtime base URL used for endpoint probes.",
         examples=["https://advise.dev.lotus"],
+        min_length=1,
+        max_length=_MAX_BASE_URL_LENGTH,
     )
     environment: str = Field(description="Runtime environment label.", examples=["local"])
     endpoints: list[RuntimeEndpointEvidence] = Field(
         min_length=1,
+        max_length=_MAX_RUNTIME_ENDPOINTS,
         description="Sanitized health, readiness, capability, and runtime evidence.",
     )
 
     @field_validator("base_url")
     @classmethod
     def _base_url_must_not_carry_secrets(cls, value: str) -> str:
-        parsed = urlsplit(value.strip())
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-            raise ValueError("runtime base_url must be an http(s) URL with a host")
-        if parsed.username or parsed.password or parsed.query or parsed.fragment:
-            raise ValueError("runtime base_url cannot include credentials, query, or fragment")
-        netloc = parsed.hostname
-        if parsed.port is not None:
-            netloc = f"{netloc}:{parsed.port}"
-        path = parsed.path.rstrip("/")
-        return urlunsplit((parsed.scheme, netloc, path, "", ""))
+        return normalize_runtime_base_url(value)
 
     @field_validator("environment")
     @classmethod
@@ -124,6 +123,22 @@ def _sanitize_summary_dict(payload: dict[str, Any]) -> dict[str, Any]:
             continue
         sanitized[normalized_key] = _sanitize_summary_value(value)
     return sanitized
+
+
+def normalize_runtime_base_url(value: str) -> str:
+    normalized = value.strip()
+    if not normalized or len(normalized) > _MAX_BASE_URL_LENGTH:
+        raise ValueError("runtime base_url must be present and bounded")
+    parsed = urlsplit(normalized)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("runtime base_url must be an http(s) URL with a host")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("runtime base_url cannot include credentials, query, or fragment")
+    netloc = parsed.hostname
+    if parsed.port is not None:
+        netloc = f"{netloc}:{parsed.port}"
+    path = parsed.path.rstrip("/")
+    return urlunsplit((parsed.scheme, netloc, path, "", ""))
 
 
 def _sanitize_summary_value(value: Any) -> Any:

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import os
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -12,6 +14,12 @@ from src.core.workspace.models import (
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionResponse,
 )
+from src.integrations.lotus_ai.output_safety import (
+    DEFAULT_AI_REVIEW_GUIDANCE_LENGTH,
+    DEFAULT_AI_REVIEW_GUIDANCE_LIMIT,
+    map_bounded_string_list,
+    map_bounded_text,
+)
 from src.integrations.lotus_ai.runtime_config import (
     resolve_lotus_ai_base_url,
     resolve_lotus_ai_tenant_id,
@@ -21,6 +29,17 @@ from src.integrations.lotus_core.runtime_config import env_positive_float
 _WORKFLOW_PACK_ID = "workspace_rationale.pack"
 _WORKFLOW_PACK_VERSION = "v1"
 _WORKFLOW_SURFACE = "advisory-workspace-assistant"
+_MAX_ASSISTANT_OUTPUT_LENGTH = 4000
+_MAX_RUN_ID_LENGTH = 160
+_MAX_RUN_STATE_LENGTH = 80
+_MAX_OWNER_LENGTH = 120
+_MAX_FINDINGS = DEFAULT_AI_REVIEW_GUIDANCE_LIMIT
+_MAX_FINDING_ID_LENGTH = 120
+_MAX_FINDING_SEVERITY_LENGTH = 80
+_MAX_FINDING_SUMMARY_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
+_MAX_REVIEW_SUMMARY_ITEMS = DEFAULT_AI_REVIEW_GUIDANCE_LIMIT
+_MAX_REVIEW_SUMMARY_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
+_ALLOWED_REVIEW_ACTIONS = frozenset({"ACCEPT", "REJECT", "REVISE", "SUPERSEDE", "ABANDON"})
 
 
 class LotusAIRationaleUnavailableError(Exception):
@@ -46,13 +65,16 @@ def generate_workspace_rationale_with_lotus_ai(
     if response.status_code == 200:
         execution = _safe_dict(payload.get("execution"))
         result = _safe_dict(execution.get("result"))
-        assistant_output = result.get("message")
+        assistant_output = map_bounded_text(
+            result.get("message"),
+            max_length=_MAX_ASSISTANT_OUTPUT_LENGTH,
+        )
         if execution.get("status") != "COMPLETED":
             raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
-        if not isinstance(assistant_output, str) or not assistant_output.strip():
+        if assistant_output is None:
             raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
         return WorkspaceAssistantResponse(
-            assistant_output=assistant_output.strip(),
+            assistant_output=assistant_output,
             generated_by="lotus-ai",
             evidence=evidence.model_copy(deep=True),
             workflow_pack_run=_map_workflow_pack_run(_safe_dict(payload.get("workflow_pack_run"))),
@@ -66,13 +88,15 @@ def generate_workspace_rationale_with_lotus_ai(
 
 def apply_workspace_rationale_review_action_with_lotus_ai(
     request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    *,
+    workspace_id: str | None = None,
 ) -> WorkspaceAssistantWorkflowPackRunReviewActionResponse:
     base_url = _resolve_base_url()
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
             response = client.post(
                 f"{base_url}/platform/workflow-packs/runs/{request.run_id}/review-actions",
-                json=_build_review_action_request(request),
+                json=_build_review_action_request(request, workspace_id=workspace_id),
             )
             payload = response.json()
     except (httpx.HTTPError, ValueError) as exc:
@@ -84,11 +108,13 @@ def apply_workspace_rationale_review_action_with_lotus_ai(
             raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
         return WorkspaceAssistantWorkflowPackRunReviewActionResponse(
             workflow_pack_run=workflow_pack_run,
-            summary=[
-                item.strip()
-                for item in payload.get("summary", [])
-                if isinstance(item, str) and item.strip()
-            ],
+            summary=list(
+                map_bounded_string_list(
+                    payload.get("summary"),
+                    max_items=_MAX_REVIEW_SUMMARY_ITEMS,
+                    max_item_length=_MAX_REVIEW_SUMMARY_LENGTH,
+                )
+            ),
         )
 
     detail = _extract_detail(payload)
@@ -98,9 +124,12 @@ def apply_workspace_rationale_review_action_with_lotus_ai(
 
 
 def _resolve_base_url() -> str:
-    return resolve_lotus_ai_base_url(
-        unavailable_error_type=LotusAIRationaleUnavailableError,
-        unavailable_message="LOTUS_AI_RATIONALE_UNAVAILABLE",
+    return cast(
+        str,
+        resolve_lotus_ai_base_url(
+            unavailable_error_type=LotusAIRationaleUnavailableError,
+            unavailable_message="LOTUS_AI_RATIONALE_UNAVAILABLE",
+        ),
     )
 
 
@@ -163,15 +192,27 @@ def _build_task_payload(
 
 def _build_review_action_request(
     request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    *,
+    workspace_id: str | None = None,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
         "action_type": request.action_type,
         "caller_app": "lotus-advise",
+        "workflow_surface": _WORKFLOW_SURFACE,
+        "pack_id": _WORKFLOW_PACK_ID,
+        "version": _WORKFLOW_PACK_VERSION,
         "reviewed_by": request.reviewed_by,
         "reason": request.reason,
     }
     if request.replacement_run_id is not None:
         payload["replacement_run_id"] = request.replacement_run_id
+    normalized_workspace_id = _normalize_optional_text(workspace_id)
+    if normalized_workspace_id is not None:
+        payload["correlation_id"] = f"workspace-rationale-review-{normalized_workspace_id}"
+        payload["review_context"] = {
+            "workspace_id": normalized_workspace_id,
+            "source_refs": [f"lotus-advise:workspace:{normalized_workspace_id}"],
+        }
     return payload
 
 
@@ -197,6 +238,13 @@ def _safe_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _normalize_optional_text(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
 def _normalize_input_mode(value: Any) -> str:
     if isinstance(value, str):
         return value
@@ -209,19 +257,28 @@ def _normalize_input_mode(value: Any) -> str:
 def _map_workflow_pack_run(
     payload: dict[str, Any],
 ) -> WorkspaceAssistantWorkflowPackRun | None:
-    run_id = payload.get("run_id")
-    if not isinstance(run_id, str) or not run_id.strip():
+    run_id = map_bounded_text(payload.get("run_id"), max_length=_MAX_RUN_ID_LENGTH)
+    if run_id is None:
         return None
-    findings = []
+    findings: list[WorkspaceAssistantWorkflowPackRunFinding] = []
     for item in payload.get("findings", []):
+        if len(findings) >= _MAX_FINDINGS:
+            break
         if not isinstance(item, dict):
             continue
-        finding_id = item.get("finding_id")
-        severity = item.get("severity")
-        summary = item.get("summary")
-        if not all(
-            isinstance(value, str) and value.strip() for value in (finding_id, severity, summary)
-        ):
+        finding_id = map_bounded_text(
+            item.get("finding_id"),
+            max_length=_MAX_FINDING_ID_LENGTH,
+        )
+        severity = map_bounded_text(
+            item.get("severity"),
+            max_length=_MAX_FINDING_SEVERITY_LENGTH,
+        )
+        summary = map_bounded_text(
+            item.get("summary"),
+            max_length=_MAX_FINDING_SUMMARY_LENGTH,
+        )
+        if finding_id is None or severity is None or summary is None:
             continue
         findings.append(
             WorkspaceAssistantWorkflowPackRunFinding(
@@ -232,23 +289,37 @@ def _map_workflow_pack_run(
         )
     return WorkspaceAssistantWorkflowPackRun(
         run_id=run_id,
-        runtime_state=str(payload.get("runtime_state", "")),
-        review_state=str(payload.get("review_state", "")),
-        allowed_review_actions=[
-            item for item in payload.get("allowed_review_actions", []) if isinstance(item, str)
-        ],
-        supportability_status=str(payload.get("supportability_status", "")),
+        runtime_state=_map_run_text(payload.get("runtime_state")),
+        review_state=_map_run_text(payload.get("review_state")),
+        allowed_review_actions=_map_allowed_review_actions(payload.get("allowed_review_actions")),
+        supportability_status=_map_run_text(payload.get("supportability_status")),
         review_pending=bool(payload.get("review_state") == "AWAITING_REVIEW"),
         superseded=bool(payload.get("supportability_status") == "HISTORICAL"),
-        workflow_authority_owner=str(payload.get("workflow_authority_owner", "")),
+        workflow_authority_owner=(
+            map_bounded_text(payload.get("workflow_authority_owner"), max_length=_MAX_OWNER_LENGTH)
+            or ""
+        ),
         current_summary_note=_build_summary_note(payload),
         replacement_run_id=(
-            str(payload.get("replacement_run_id"))
-            if isinstance(payload.get("replacement_run_id"), str)
-            else None
+            map_bounded_text(payload.get("replacement_run_id"), max_length=_MAX_RUN_ID_LENGTH)
         ),
         findings=findings,
     )
+
+
+def _map_run_text(value: Any) -> str:
+    return map_bounded_text(value, max_length=_MAX_RUN_STATE_LENGTH) or ""
+
+
+def _map_allowed_review_actions(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    actions: list[str] = []
+    for item in value:
+        action = map_bounded_text(item, max_length=_MAX_RUN_STATE_LENGTH)
+        if action is not None and action in _ALLOWED_REVIEW_ACTIONS and action not in actions:
+            actions.append(action)
+    return actions
 
 
 def _build_summary_note(payload: dict[str, Any]) -> str:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from typing import Any, Protocol, Sequence, cast
 
 from src.core.advisory_copilot.api_models import (
@@ -288,7 +289,14 @@ class AdvisoryCopilotApplicationService:
 
 
 def _resolve_copilot_correlation_id(correlation_id: str | None, *, fallback: str) -> str:
-    return normalize_optional_correlation_id(correlation_id) or fallback
+    normalized = normalize_optional_correlation_id(correlation_id)
+    if normalized is not None:
+        return cast(str, normalized)
+    fallback_id = normalize_optional_correlation_id(fallback)
+    if fallback_id is not None:
+        return cast(str, fallback_id)
+    digest = hashlib.sha256(fallback.encode("utf-8")).hexdigest()[:24]
+    return f"corr-{digest}"
 
 
 def build_advisory_copilot_supportability_response() -> AdvisoryCopilotSupportabilityResponse:
