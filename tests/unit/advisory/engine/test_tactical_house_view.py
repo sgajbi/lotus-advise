@@ -110,6 +110,22 @@ def test_tactical_house_view_cohort_preserves_source_backed_inclusions_and_exclu
     }
 
 
+def test_tactical_house_view_normalizes_legacy_portfolio_type_alias() -> None:
+    payload = _request().model_dump(mode="json")
+    payload["candidate_portfolios"][0]["portfolio_type"] = "DPM"
+    payload.pop("eligible_portfolio_types")
+    request = TacticalHouseViewCohortRequest.model_validate(payload)
+
+    assert request.eligible_portfolio_types == ["DISCRETIONARY", "MANAGED"]
+
+    cohort = build_tactical_house_view_affected_cohort(
+        request,
+        generated_at=datetime(2026, 5, 14, 8, 0, tzinfo=timezone.utc),
+    )
+
+    assert cohort.affected_portfolios[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
+
+
 def test_tactical_house_view_cohort_is_empty_when_no_candidate_is_eligible() -> None:
     request = _request().model_copy(update={"eligible_portfolio_types": ["PRIVATE_ADVISORY"]})
 

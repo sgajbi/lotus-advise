@@ -8435,3 +8435,29 @@
 - Follow-Up:
   - Gateway and Workbench can migrate display logic to `owner_role_label` while continuing to pass
     legacy role values until a coordinated public-contract migration removes them.
+
+## LA-REV-318
+
+- Scope: Tactical house-view portfolio-type compatibility
+- Pattern: Canonical defaults with explicit legacy alias normalization
+- Status: Hardened
+- Finding Class: Domain modeling and API compatibility
+- Summary: The tactical house-view request default still included the legacy `DPM` source code even
+  after the public API descriptions and tests moved to discretionary portfolio-management
+  vocabulary. This kept the live source model tied to an internal abbreviation. The default now
+  uses canonical `DISCRETIONARY` and `MANAGED` values while normalizing legacy `DPM` input to
+  `DISCRETIONARY` for backward-compatible repeatability.
+- Evidence:
+  - Replaced the default eligible portfolio types with `DISCRETIONARY` and `MANAGED`.
+  - Added bounded portfolio-type alias normalization in the cohort builder.
+  - Added a regression test proving a legacy `DPM` candidate remains eligible under the canonical
+    defaults.
+- Consequence:
+  - Tactical house-view defaults now use private-banking portfolio-management language without
+    breaking existing seeded or integration payloads that still carry the legacy source code.
+- Documentation:
+  - No README/wiki update was required because this is a source-model compatibility hardening
+    change covered by generated API vocabulary and tests.
+- Follow-Up:
+  - Remove the legacy alias only through a coordinated public-contract migration after downstream
+    consumers have moved to canonical portfolio-type values.

@@ -13,6 +13,9 @@ from src.core.common.canonical import hash_canonical_payload, strip_keys
 TacticalHouseViewAction = Literal["INCREASE", "REDUCE", "REVIEW", "EXCLUDE"]
 TacticalHouseViewAlignment = Literal["OVERWEIGHT", "UNDERWEIGHT", "ALIGNED", "UNKNOWN"]
 TacticalHouseViewSupportabilityState = Literal["READY", "EMPTY", "BLOCKED"]
+_PORTFOLIO_TYPE_ALIASES = {
+    "DPM": "DISCRETIONARY",
+}
 
 
 class TacticalHouseViewSourceRef(BaseModel):
@@ -121,7 +124,7 @@ class TacticalHouseViewCohortRequest(BaseModel):
         )
     )
     eligible_portfolio_types: list[str] = Field(
-        default_factory=lambda: ["DPM", "DISCRETIONARY"],
+        default_factory=lambda: ["DISCRETIONARY", "MANAGED"],
         description="Portfolio types eligible for downstream portfolio-management consumption.",
     )
     min_exposure_weight: Decimal | None = Field(
@@ -205,7 +208,9 @@ def build_tactical_house_view_affected_cohort(
     """Build a deterministic tactical house-view cohort without source-fact recalculation."""
 
     generated_at = generated_at or datetime.now(timezone.utc)
-    eligible_types = {value.upper() for value in request.eligible_portfolio_types}
+    eligible_types = {
+        _normalize_portfolio_type(value) for value in request.eligible_portfolio_types
+    }
     affected: list[TacticalHouseViewAffectedPortfolio] = []
     excluded: list[TacticalHouseViewExcludedPortfolio] = []
 
@@ -306,7 +311,7 @@ def _candidate_exclusion_reasons(
     min_exposure_weight: Decimal | None,
 ) -> list[str]:
     reasons: list[str] = []
-    if candidate.portfolio_type.upper() not in eligible_types:
+    if _normalize_portfolio_type(candidate.portfolio_type) not in eligible_types:
         reasons.append("TACTICAL_HOUSE_VIEW_PORTFOLIO_TYPE_NOT_ELIGIBLE")
     if not candidate.discretionary_mandate:
         reasons.append("TACTICAL_HOUSE_VIEW_NON_DISCRETIONARY_MANDATE")
@@ -334,6 +339,11 @@ def _candidate_inclusion_reason_codes(
         *candidate.reason_codes,
     }
     return sorted(reasons)
+
+
+def _normalize_portfolio_type(portfolio_type: str) -> str:
+    normalized = portfolio_type.strip().upper()
+    return _PORTFOLIO_TYPE_ALIASES.get(normalized, normalized)
 
 
 def _supportability(
