@@ -8,8 +8,11 @@ from types import SimpleNamespace
 import pytest
 
 from src.core.advisory_copilot.pagination import (
+    COPILOT_RUN_DEFAULT_PAGE_SIZE,
+    COPILOT_RUN_MAX_PAGE_SIZE,
     decode_copilot_run_cursor,
     encode_copilot_run_cursor,
+    normalize_copilot_run_page_size,
     run_is_after_cursor,
 )
 
@@ -84,3 +87,13 @@ def test_run_is_after_cursor_uses_stable_descending_keyset_order() -> None:
 
     assert run_is_after_cursor(older_run, cursor) is True
     assert run_is_after_cursor(newer_run, cursor) is False
+
+
+def test_copilot_run_page_size_normalization_bounds_service_callers() -> None:
+    assert normalize_copilot_run_page_size(None) == COPILOT_RUN_DEFAULT_PAGE_SIZE
+    assert normalize_copilot_run_page_size(10) == 10
+    assert normalize_copilot_run_page_size(COPILOT_RUN_MAX_PAGE_SIZE + 1) == (
+        COPILOT_RUN_MAX_PAGE_SIZE
+    )
+    with pytest.raises(ValueError, match="COPILOT_RUN_PAGE_SIZE_INVALID"):
+        normalize_copilot_run_page_size(0)

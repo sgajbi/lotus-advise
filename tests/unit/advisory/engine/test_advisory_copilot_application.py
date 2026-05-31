@@ -287,6 +287,22 @@ def test_application_service_uses_deterministic_correlation_fallback_for_blank_v
     assert run.run.correlation_id == "corr-copilot_packet_pb_sg_001"
 
 
+def test_application_service_rejects_invalid_copilot_run_page_size() -> None:
+    service = AdvisoryCopilotApplicationService(
+        repository=InMemoryAdvisoryCopilotRepository(),
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+
+    with pytest.raises(ValueError, match="COPILOT_RUN_PAGE_SIZE_INVALID"):
+        service.list_proposal_version_runs(
+            proposal_id="proposal_sg_structured_note_001",
+            version_id="version_sg_001",
+            limit=0,
+            cursor=None,
+        )
+
+
 def test_application_service_refreshes_retryable_unavailable_copilot_run() -> None:
     copilot_repository = InMemoryAdvisoryCopilotRepository()
     draft_calls: list[dict[str, Any]] = []

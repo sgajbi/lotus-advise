@@ -9,6 +9,9 @@ from datetime import datetime
 from src.core.advisory_copilot.records import AdvisoryCopilotRunRecord
 
 _INVALID_CURSOR = "COPILOT_RUN_CURSOR_INVALID"
+COPILOT_RUN_DEFAULT_PAGE_SIZE = 25
+COPILOT_RUN_MAX_PAGE_SIZE = 100
+_INVALID_PAGE_SIZE = "COPILOT_RUN_PAGE_SIZE_INVALID"
 
 
 @dataclass(frozen=True)
@@ -56,6 +59,14 @@ def decode_copilot_run_cursor(cursor: str | None) -> AdvisoryCopilotRunCursor | 
     if not run_id:
         raise ValueError(_INVALID_CURSOR)
     return AdvisoryCopilotRunCursor(created_at=created_at, run_id=run_id)
+
+
+def normalize_copilot_run_page_size(limit: int | None) -> int:
+    if limit is None:
+        return COPILOT_RUN_DEFAULT_PAGE_SIZE
+    if limit < 1:
+        raise ValueError(_INVALID_PAGE_SIZE)
+    return min(limit, COPILOT_RUN_MAX_PAGE_SIZE)
 
 
 def run_is_after_cursor(

@@ -5632,3 +5632,29 @@
     with no product posture or operator workflow change.
 - Follow-Up:
   - None.
+
+## LA-REV-213
+
+- Scope: Advisory copilot run-list page-size normalization
+- Pattern: pagination hardening and service-boundary consistency
+- Status: Hardened
+- Finding Class: API/service boundary validation gap
+- Summary: The RFC-0027 copilot run-list route bounded `limit` through FastAPI query validation,
+  but direct application-service callers could still pass invalid or oversized page sizes to the
+  repositories. That left repository behavior dependent on Python slicing or database `LIMIT`
+  semantics rather than a shared domain pagination rule.
+- Evidence:
+  - `src/core/advisory_copilot/pagination.py` now defines default and maximum run-list page sizes
+    and rejects non-positive service-level page sizes.
+  - `src/core/advisory_copilot/application.py` now normalizes run-list page sizes before calling
+    the repository.
+  - Copilot pagination and application-service tests now pin page-size normalization and invalid
+    service-call rejection.
+- Consequence:
+  - RFC-0027 run history pagination is consistently bounded for API and non-API callers, reducing
+    avoidable performance risk and eliminating ambiguous repository behavior for invalid limits.
+- Documentation:
+  - No wiki source change is required. This preserves the existing API contract and strengthens
+    service-boundary enforcement.
+- Follow-Up:
+  - None.

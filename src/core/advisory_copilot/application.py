@@ -16,6 +16,7 @@ from src.core.advisory_copilot.api_models import (
 from src.core.advisory_copilot.catalog import list_copilot_action_definitions
 from src.core.advisory_copilot.evidence_packets import build_copilot_evidence_packet
 from src.core.advisory_copilot.models import CopilotAudience, CopilotEvidencePacket
+from src.core.advisory_copilot.pagination import normalize_copilot_run_page_size
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.advisory_copilot.service import (
@@ -269,14 +270,15 @@ class AdvisoryCopilotApplicationService:
         *,
         proposal_id: str,
         version_id: str,
-        limit: int,
+        limit: int | None,
         cursor: str | None,
     ) -> AdvisoryCopilotRunPage:
+        page_size = normalize_copilot_run_page_size(limit)
         runs, next_cursor = self._repository.list_runs_for_proposal_version(
             proposal_id=proposal_id,
             proposal_version_id=version_id,
             proposal_version_no=None,
-            limit=limit,
+            limit=page_size,
             cursor=cursor,
         )
         return AdvisoryCopilotRunPage(
