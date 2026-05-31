@@ -122,7 +122,7 @@ def build_conflict_disclosure_enrichment(
     }
     missing_docs = sorted(set(proposed_instruments) - documented_instruments)
     missing = ["conflict_evidence"]
-    reasons = ["MEMO_CONFLICT_POLICY_PACK_NOT_IMPLEMENTED"]
+    reasons = ["MEMO_CONFLICT_POLICY_EVIDENCE_REVIEW_REQUIRED"]
     if missing_docs:
         missing.append("product_document_evidence")
         reasons.append("PRODUCT_DOCUMENTATION_INCOMPLETE_FOR_PROPOSED_TRADES")
@@ -155,7 +155,8 @@ def build_conflict_disclosure_enrichment(
 
     summary = (
         "Disclosure evidence is captured from the proposal artifact; conflict-of-interest "
-        "evidence remains review-required until policy packs are implemented."
+        "evidence remains review-required until active policy evaluation and review evidence "
+        "clears the conflict posture."
     )
     return MemoSectionEnrichment(
         summary=summary,

@@ -101,7 +101,7 @@ as:
 
 1. `CLIENT_READY_DISCLOSURE_POLICY_UNAVAILABLE`,
 2. `CLIENT_READY_DISCLOSURES_NOT_SELECTED`,
-3. `CLIENT_READY_REVIEW_WORKFLOW_NOT_IMPLEMENTED`.
+3. `CLIENT_READY_NARRATIVE_RELEASE_NOT_SUPPORTED`.
 
 The narrative status becomes `BLOCKED_POLICY_INCOMPLETE` when client-ready policy blockers are
 present. This is blocked evidence, not client-ready support.

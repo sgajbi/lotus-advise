@@ -59,7 +59,7 @@ The builder does not duplicate source methodology. It projects:
 | Required memo sections exist | Pass | Unit tests assert all 17 RFC-required sections in stable order. |
 | Source-backed material claims | Pass | Unit tests prove every material claim has evidence refs and source-authority refs. |
 | Missing evidence remains explicit | Pass | Unit tests prove missing positions flow into `BLOCKED` section posture and reason codes. |
-| Report/archive not over-promoted | Pass | Report/archive section remains `BLOCKED` with `MEMO_REPORT_RENDER_ARCHIVE_NOT_IMPLEMENTED`. |
+| Report/archive not over-promoted | Pass | Report/archive section remains `BLOCKED` with `MEMO_REPORT_PACKAGE_NOT_REQUESTED`. |
 | Public product claim not promoted | Pass | No API routes, persistence, Gateway/Workbench support, or supported-feature promotion is added. |
 
 ## Local Validation

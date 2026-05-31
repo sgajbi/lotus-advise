@@ -1166,6 +1166,11 @@ def test_advisory_proposal_artifact_can_include_deterministic_advisor_narrative(
         "review_workflow",
         "report_archive_lineage",
     }
+    limitation_messages = " ".join(item["message"] for item in narrative["limitations"])
+    assert "not implemented" not in limitation_messages.lower()
+    assert "deferred" not in limitation_messages.lower()
+    assert "completed mandate-policy approval/sign-off" in limitation_messages
+    assert "client-ready narrative publication remains blocked" in limitation_messages
 
 
 def test_advisory_proposal_narrative_leads_blocked_proposal_with_remediation(client):
@@ -1350,7 +1355,7 @@ def test_advisory_proposal_artifact_blocks_client_ready_when_disclosure_policy_m
     assert policy["client_ready_blockers"] == [
         "CLIENT_READY_DISCLOSURE_POLICY_UNAVAILABLE",
         "CLIENT_READY_DISCLOSURES_NOT_SELECTED",
-        "CLIENT_READY_REVIEW_WORKFLOW_NOT_IMPLEMENTED",
+        "CLIENT_READY_NARRATIVE_RELEASE_NOT_SUPPORTED",
     ]
     assert {item["evidence_key"] for item in narrative["limitations"]} >= {
         "disclosure_policy",

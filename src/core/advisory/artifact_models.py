@@ -404,7 +404,7 @@ class ProposalArtifact(BaseModel):
         default=None,
         description=(
             "Optional advisor-review narrative generated from artifact evidence when explicitly "
-            "requested. Supports deterministic template mode and Slice 7 opt-in "
+            "requested. Supports deterministic template mode and opt-in "
             "`AI_ASSISTED_DRAFT`; client-ready narrative remains gated."
         ),
     )

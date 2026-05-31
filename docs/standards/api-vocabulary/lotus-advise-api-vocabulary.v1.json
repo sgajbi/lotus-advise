@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-28T12:01:31.461497+00:00",
+  "generatedAt": "2026-05-31T05:40:58.585889+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -1875,7 +1875,7 @@
       "semanticId": "lotus.client_ready_document_requested",
       "canonicalTerm": "client_ready_document_requested",
       "preferredName": "client_ready_document_requested",
-      "description": "Whether the caller is requesting client-ready document release. This remains blocked until later RFC-0024 client-ready gates are implemented.",
+      "description": "Whether the caller is requesting client-ready document release. This remains blocked until explicit client-ready document publication authority is supported.",
       "example": true,
       "type": "boolean",
       "locations": [
@@ -7576,7 +7576,7 @@
       "semanticId": "lotus.proposal_narrative",
       "canonicalTerm": "proposal_narrative",
       "preferredName": "proposal_narrative",
-      "description": "Optional advisor-review narrative generated from artifact evidence when explicitly requested. Supports deterministic template mode and Slice 7 opt-in `AI_ASSISTED_DRAFT`; client-ready narrative remains gated.",
+      "description": "Optional advisor-review narrative generated from artifact evidence when explicitly requested. Supports deterministic template mode and opt-in `AI_ASSISTED_DRAFT`; client-ready narrative remains gated.",
       "example": "proposal_narrative_example",
       "type": "object",
       "locations": [
@@ -9139,7 +9139,7 @@
       "semanticId": "lotus.review_state",
       "canonicalTerm": "review_state",
       "preferredName": "review_state",
-      "description": "Review state. Slice 5 creates advisor-review draft only.",
+      "description": "Review state for the advisor-review narrative projection.",
       "example": "example_review_state",
       "type": "string",
       "locations": [

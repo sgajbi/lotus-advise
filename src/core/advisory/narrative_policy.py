@@ -203,7 +203,7 @@ def resolve_proposal_narrative_policy(
             client_ready_blockers.append("CLIENT_READY_DISCLOSURE_POLICY_UNAVAILABLE")
         if not disclosures:
             client_ready_blockers.append("CLIENT_READY_DISCLOSURES_NOT_SELECTED")
-        client_ready_blockers.append("CLIENT_READY_REVIEW_WORKFLOW_NOT_IMPLEMENTED")
+        client_ready_blockers.append("CLIENT_READY_NARRATIVE_RELEASE_NOT_SUPPORTED")
 
     return ProposalNarrativePolicy(
         policy_version=NARRATIVE_POLICY_VERSION,

@@ -497,7 +497,7 @@ class ProposalMemoReviewRequest(BaseModel):
         default=False,
         description=(
             "Whether the review attempts to release the memo for client-ready use. This remains "
-            "unsupported in Slice 7."
+            "unsupported in the current advisor-use memo contract."
         ),
         examples=[False],
     )
@@ -570,7 +570,7 @@ class ProposalMemoReportPackageRequest(BaseModel):
         default=False,
         description=(
             "Whether the caller is requesting client-ready document release. This remains blocked "
-            "until later RFC-0024 client-ready gates are implemented."
+            "until explicit client-ready document publication authority is supported."
         ),
         examples=[False],
     )

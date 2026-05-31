@@ -210,6 +210,9 @@ def test_memo_builder_blocks_report_archive_and_preserves_missing_source_evidenc
     report_readiness = _section(pack, "REPORT_ARCHIVE_AND_DELIVERY_READINESS")
     assert report_readiness.status == "BLOCKED"
     assert "memo_report_package" in report_readiness.missing_evidence
+    assert report_readiness.reason_codes == ["MEMO_REPORT_PACKAGE_NOT_REQUESTED"]
+    assert "approved advisor-use memo report package" in report_readiness.summary
+    assert "later slices" not in report_readiness.summary
     assert report_readiness.material_claims == []
 
 
@@ -239,7 +242,9 @@ def test_memo_builder_enriches_policy_fee_conflict_sections_without_positive_cla
     conflicts = _section(pack, "CONFLICTS_AND_DISCLOSURES")
     assert conflicts.status == "PENDING_REVIEW"
     assert "conflict_evidence" in conflicts.missing_evidence
-    assert "MEMO_CONFLICT_POLICY_PACK_NOT_IMPLEMENTED" in conflicts.reason_codes
+    assert "MEMO_CONFLICT_POLICY_EVIDENCE_REVIEW_REQUIRED" in conflicts.reason_codes
+    assert "policy packs are implemented" not in conflicts.summary
+    assert "active policy evaluation and review evidence" in conflicts.summary
     assert any("Risk disclosure captured" in claim.text for claim in conflicts.material_claims)
     assert any(
         "Product-document references are available" in claim.text
