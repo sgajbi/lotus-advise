@@ -5887,3 +5887,27 @@
     supported feature posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-223
+
+- Scope: Correlation and request ID boundary hardening
+- Pattern: response-header safety, log hygiene, and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: reflected diagnostic identifier validation gap
+- Summary: Inbound correlation and request identifiers were trimmed but otherwise trusted before
+  being reflected into response headers and structured logs. Oversized or control-character-bearing
+  identifiers could therefore degrade log quality or produce unsafe diagnostic headers.
+- Evidence:
+  - `src/core/proposals/correlation.py` now rejects oversized and control-character-bearing
+    correlation IDs before preserving caller values.
+  - `src/api/observability.py` now applies the same boundary to request IDs and response-provided
+    correlation IDs before reflecting them.
+  - Unit and API tests prove oversized inbound IDs are replaced by generated Lotus IDs.
+- Consequence:
+  - Diagnostic identifiers remain bounded and safe for response headers, logs, and cross-service
+    tracing while preserving valid caller-supplied IDs.
+- Documentation:
+  - No wiki source change is required. This is operational boundary hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.

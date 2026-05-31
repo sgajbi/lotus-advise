@@ -71,3 +71,18 @@ def test_observability_headers_generate_ids_for_blank_inbound_ids():
     assert re.fullmatch(r"corr_[0-9a-f]{12}", response.headers["X-Correlation-Id"])
     assert re.fullmatch(r"req_[0-9a-f]{12}", response.headers["X-Request-Id"])
     assert re.fullmatch(r"[0-9a-f]{32}", response.headers["X-Trace-Id"])
+
+
+def test_observability_headers_generate_ids_for_oversized_inbound_ids():
+    with TestClient(app) as client:
+        response = client.get(
+            "/health",
+            headers={
+                "X-Correlation-Id": "c" * 129,
+                "X-Request-Id": "r" * 129,
+            },
+        )
+
+    assert response.status_code == 200
+    assert re.fullmatch(r"corr_[0-9a-f]{12}", response.headers["X-Correlation-Id"])
+    assert re.fullmatch(r"req_[0-9a-f]{12}", response.headers["X-Request-Id"])
