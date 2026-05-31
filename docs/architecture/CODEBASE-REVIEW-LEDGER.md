@@ -8679,6 +8679,31 @@
   - Once Gateway and Workbench migrate their query examples and validators, remove the inbound
     legacy caller alias in a coordinated contract-cleanup slice.
 
+## LA-REV-328
+
+- Scope: RFC-0026 cockpit caller-role OpenAPI regression coverage
+- Pattern: Compatibility exceptions need API-contract tests that prove both allowed input and clean
+  output
+- Status: Hardened
+- Finding Class: Test quality and API governance
+- Summary: The legacy caller-role compatibility fix had runtime API and service tests, but the
+  OpenAPI contract also needed an explicit assertion that `DPM_OWNER` remains input-only and does
+  not return to emitted action owner roles.
+- Evidence:
+  - Added OpenAPI assertions that action payload owner-role enums include `PORTFOLIO_MANAGER` and
+    exclude `DPM_OWNER`.
+  - Added OpenAPI assertions that the action-list query-role parameter documents the legacy alias
+    and accepts both `DPM_OWNER` and `PORTFOLIO_MANAGER`.
+- Consequence:
+  - Generated clients and cross-repo validators get a pinned compatibility contract while response
+    payloads stay on clean private-banking vocabulary.
+- Documentation:
+  - No wiki source change is required. This is test coverage for a documented API compatibility
+    exception.
+- Follow-Up:
+  - Remove both the alias and this compatibility assertion once Gateway and Workbench no longer
+    send the legacy caller role.
+
 ## LA-REV-326
 
 - Scope: OpenAPI enrichment portfolio-id example vocabulary

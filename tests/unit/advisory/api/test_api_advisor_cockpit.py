@@ -360,6 +360,16 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
     assert action_operation["responses"]["422"]["description"] == (
         "Advisor cockpit request failed validation, including invalid cursors."
     )
+    action_schema = schema["components"]["schemas"]["AdvisoryActionItem"]
+    emitted_owner_values = action_schema["properties"]["owner_role"]["enum"]
+    assert "PORTFOLIO_MANAGER" in emitted_owner_values
+    assert "DPM_OWNER" not in emitted_owner_values
+    role_parameter = next(
+        parameter for parameter in action_operation["parameters"] if parameter["name"] == "role"
+    )
+    assert "legacy caller alias" in role_parameter["description"]
+    assert "DPM_OWNER" in role_parameter["schema"]["enum"]
+    assert "PORTFOLIO_MANAGER" in role_parameter["schema"]["enum"]
     assert preparation_operation["summary"] == "List Advisor Cockpit Preparation Packets"
     assert "Gateway and Workbench must render these packets" in preparation_operation["description"]
     assert "calendar" in preparation_operation["description"]
