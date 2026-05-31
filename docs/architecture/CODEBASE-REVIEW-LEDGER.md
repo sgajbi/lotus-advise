@@ -8846,6 +8846,32 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-367
+
+- Scope: RFC-0026 policy-review cockpit action mapping
+- Pattern: Policy-review action construction should live beside policy-specific suitability and
+  client-ready blocking semantics, not inside a broad orchestration factory
+- Status: Hardened
+- Finding Class: Modularity and policy-boundary clarity
+- Summary: Policy review action construction was the last large source-specific branch in the
+  cockpit factory with direct suitability/client-ready language. Moving it to a focused module
+  makes the policy boundary easier to audit and keeps factory responsibility closer to aggregation.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_policy.py` for policy-review action construction.
+  - Preserved source refs, policy evidence access class, policy source-readiness gaps, lineage,
+    completed approval/sign-off blocking, and public imports.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    16 tests.
+- Consequence:
+  - RFC-0026 cockpit action construction is now organized by action source family, making future
+    policy-pack and client-ready posture reviews less error-prone.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep client-ready and completed-approval authority blocked unless policy workflow ownership
+    changes are separately implemented and proved.
+
 ## LA-REV-366
 
 - Scope: RFC-0026 memo/report cockpit action mapping
