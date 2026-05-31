@@ -286,8 +286,10 @@ def review_proposal_memo(
     tags=["Advisory Proposal Memo"],
     summary="Record Proposal Memo Report-Package Event",
     description=(
-        "Records append-only report-package posture for the persisted memo. Slice 7 records "
-        "report-package lineage only; actual report/render/archive realization remains later scope."
+        "Records append-only report-package posture for the persisted memo, including report, "
+        "render, and archive status received from the reporting owner. This endpoint records "
+        "external lineage; use the report-package request endpoint when Advise must request "
+        "Lotus Report materialization. Client-ready document release remains blocked."
     ),
     responses={
         status.HTTP_404_NOT_FOUND: {

@@ -8846,6 +8846,31 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-339
+
+- Scope: Proposal memo report-package OpenAPI description
+- Pattern: Public API descriptions must reflect implemented report handoff behavior and not carry
+  stale slice-history language into business-facing contracts
+- Status: Hardened
+- Finding Class: API documentation quality and implementation truth
+- Summary: The memo report-package event endpoint still described report/render/archive realization
+  as later scope. That was stale now that the adjacent memo report-package request endpoint requests
+  Lotus Report materialization and records returned report, render, and archive references.
+- Evidence:
+  - Updated the report-package event endpoint description to distinguish lineage event recording
+    from the Lotus Report materialization request endpoint.
+  - Added an OpenAPI contract assertion that the endpoint references the reporting owner, points to
+    the report-package request endpoint, and does not reintroduce `later scope` language.
+  - Focused `ruff`, format check, and OpenAPI lifecycle contract test passed.
+- Consequence:
+  - Swagger/OpenAPI now presents current memo reporting behavior without leaking implementation-slice
+    history or underclaiming the supported report-package flow.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the durable user-facing
+    API contract text is the changed truth.
+- Follow-Up:
+  - Keep stale implementation-phase phrases out of OpenAPI descriptions when RFC slices are promoted.
+
 ## LA-REV-338
 
 - Scope: Lotus Report integration API error boundaries

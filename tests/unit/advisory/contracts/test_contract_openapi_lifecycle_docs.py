@@ -790,6 +790,14 @@ def test_rfc0024_memo_route_family_is_canonical_and_error_documented():
         in memo_report_package["responses"]["503"]["description"]
     )
 
+    memo_report_package_event = paths[
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-package-events"
+    ]["post"]
+    assert memo_report_package_event["summary"] == "Record Proposal Memo Report-Package Event"
+    assert "reporting owner" in memo_report_package_event["description"]
+    assert "use the report-package request endpoint" in memo_report_package_event["description"]
+    assert "later scope" not in memo_report_package_event["description"].lower()
+
     memo_ai = paths["/advisory/proposals/{proposal_id}/versions/{version_no}/memo/ai-commentary"][
         "post"
     ]
