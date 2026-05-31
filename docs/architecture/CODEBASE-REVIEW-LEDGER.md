@@ -6108,3 +6108,29 @@
     package path.
 - Follow-Up:
   - None.
+
+## LA-REV-232
+
+- Scope: Cross-service idempotency key header boundary
+- Pattern: input normalization, outbound header safety, replay-key governance
+- Status: Hardened
+- Finding Class: malformed idempotency key propagation
+- Summary: The shared idempotency key normalizer trimmed whitespace and rejected blanks, but it did
+  not reject control characters or oversized values. Downstream Core simulation could therefore
+  receive a caller-provided malformed idempotency key in an outbound HTTP header if invoked below
+  the route layer.
+- Evidence:
+  - `src/core/common/idempotency.py` now bounds idempotency keys to 128 characters and rejects
+    control characters.
+  - `src/integrations/lotus_core/simulation.py` normalizes the outbound idempotency key before
+    adding the `Idempotency-Key` header.
+  - Unit tests cover shared normalizer rejection and prove malformed Core simulation idempotency
+    keys are omitted from outbound headers.
+- Consequence:
+  - Advisory write paths now share a safer replay-key boundary, and cross-service simulation calls
+    cannot propagate malformed caller keys as HTTP metadata.
+- Documentation:
+  - No wiki source change is required. This is defensive header and replay-key hardening for
+    existing contracts.
+- Follow-Up:
+  - None.

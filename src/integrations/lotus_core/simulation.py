@@ -3,6 +3,7 @@ from typing import Any, cast
 
 import httpx
 
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.correlation import resolve_correlation_id
 from src.integrations.base import sanitized_http_base_url
@@ -73,8 +74,9 @@ def simulate_with_lotus_core(
         "X-Request-Hash": request_hash,
         ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION,
     }
-    if idempotency_key is not None:
-        headers["Idempotency-Key"] = idempotency_key
+    outbound_idempotency_key = normalize_optional_idempotency_key(idempotency_key)
+    if outbound_idempotency_key is not None:
+        headers["Idempotency-Key"] = outbound_idempotency_key
 
     url = f"{_resolve_base_url()}{_EXECUTION_PATH}"
     try:

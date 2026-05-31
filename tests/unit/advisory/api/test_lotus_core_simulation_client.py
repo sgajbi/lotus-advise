@@ -239,6 +239,31 @@ def test_simulate_with_lotus_core_normalizes_invalid_outbound_correlation_id(mon
     assert outbound_correlation_id != "corr-1\x7f"
 
 
+def test_simulate_with_lotus_core_omits_malformed_outbound_idempotency_key(monkeypatch):
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=200,
+            payload=_result_payload(),
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    simulate_with_lotus_core(
+        request=_request(),
+        request_hash="sha256:test-hash",
+        idempotency_key="idem-1\x7f",
+        correlation_id="corr-1",
+    )
+
+    assert "Idempotency-Key" not in fake_client.calls[0]["headers"]
+
+
 def test_simulate_with_lotus_core_sanitizes_configured_base_url(monkeypatch):
     fake_client = _FakeClient(
         _FakeResponse(
