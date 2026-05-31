@@ -228,6 +228,26 @@ def test_emit_audit_event_normalizes_correlation_id(caplog: pytest.LogCaptureFix
     assert caplog.records[-1].audit["correlation_id"] == "corr-001"
 
 
+def test_emit_audit_event_normalizes_actor_tenant_and_role(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="enterprise_readiness")
+
+    emit_audit_event(
+        action="POST /advisory/proposals",
+        actor_id="  advisor-sg-001  ",
+        tenant_id="tenant-sg-001\x7f",
+        role="  ADVISOR  ",
+        correlation_id="corr-001",
+        metadata={},
+    )
+
+    audit = caplog.records[-1].audit
+    assert audit["actor_id"] == "advisor-sg-001"
+    assert audit["tenant_id"] == "default"
+    assert audit["role"] == "ADVISOR"
+
+
 def test_json_formatter_emits_enterprise_audit_payload(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

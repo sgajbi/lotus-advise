@@ -7,7 +7,10 @@ from typing import Any, Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
-from src.core.proposals.correlation import normalize_optional_correlation_id
+from src.core.proposals.correlation import (
+    MAX_CORRELATION_ID_LENGTH,
+    normalize_optional_correlation_id,
+)
 
 logger = logging.getLogger("enterprise_readiness")
 MiddlewareNext = Callable[[Request], Awaitable[Response]]
@@ -221,6 +224,17 @@ def _is_sensitive_field_name(key: Any) -> bool:
     )
 
 
+def _normalize_audit_identity(value: str, *, default: str) -> str:
+    normalized = value.strip()
+    if (
+        not normalized
+        or len(normalized) > MAX_CORRELATION_ID_LENGTH
+        or any(ord(char) < 32 or ord(char) == 127 for char in normalized)
+    ):
+        return default
+    return normalized
+
+
 def emit_audit_event(
     *,
     action: str,
@@ -237,9 +251,9 @@ def emit_audit_event(
             "audit": {
                 "service": _SERVICE_NAME,
                 "action": action,
-                "actor_id": actor_id,
-                "tenant_id": tenant_id,
-                "role": role,
+                "actor_id": _normalize_audit_identity(actor_id, default="unknown"),
+                "tenant_id": _normalize_audit_identity(tenant_id, default="default"),
+                "role": _normalize_audit_identity(role, default="unknown"),
                 "correlation_id": normalized_correlation_id or "",
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "policy_version": enterprise_policy_version(),

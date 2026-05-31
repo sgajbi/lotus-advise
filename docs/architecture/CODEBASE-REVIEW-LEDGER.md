@@ -5911,3 +5911,26 @@
     feature posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-224
+
+- Scope: Enterprise audit identity normalization
+- Pattern: auditability, response-header safety, and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: audit identity hygiene gap
+- Summary: Enterprise audit events normalized correlation IDs but emitted actor, tenant, and role
+  values directly from caller headers. Padded, blank, oversized, or control-character-bearing audit
+  identity fields could therefore degrade machine-readable audit records.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now normalizes audit actor, tenant, and role values before
+    structured audit emission, with bounded fallbacks for invalid values.
+  - Enterprise readiness tests prove trimmed actor/role values are preserved and invalid tenant
+    identity falls back to `default`.
+- Consequence:
+  - Authorization and write-path audit records use bounded, clean identity fields suitable for
+    production log indexing and review.
+- Documentation:
+  - No wiki source change is required. This is audit serialization hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
