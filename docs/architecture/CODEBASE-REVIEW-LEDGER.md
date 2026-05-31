@@ -8861,6 +8861,7 @@
   - Controlled readiness failures still return their existing detail.
   - Sensitive runtime failures now return `READINESS_CHECK_FAILED`.
   - Focused `ruff`, format check, health tests, and internal guard tests passed with 9 tests.
+  - Full repository `make check` passed with 1,571 unit tests.
 - Consequence:
   - `/health/ready` remains useful for operations while failing closed on sensitive runtime
     initialization errors.
