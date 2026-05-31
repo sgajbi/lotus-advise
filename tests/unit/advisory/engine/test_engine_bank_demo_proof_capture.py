@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from pydantic import ValidationError
@@ -469,4 +469,31 @@ def test_backend_proof_metadata_rejects_sensitive_live_suite_references() -> Non
             correlation_id="corr-rfc0028-sensitive-ref",
             generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=UTC),
             live_suite_result_ref="output/rfc0028/result.json?token=should-not-leak",
+        )
+
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        default_capture_metadata(
+            repository_sha="secret-sha",
+            service_version="0.1.0",
+            environment="local",
+            correlation_id="corr-rfc0028-sensitive-metadata",
+            generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=UTC),
+        )
+
+    with pytest.raises(ValidationError):
+        default_capture_metadata(
+            repository_sha="abc123",
+            service_version="x" * 65,
+            environment="local",
+            correlation_id="corr-rfc0028-long-service-version",
+            generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=UTC),
+        )
+
+    with pytest.raises(ValidationError, match="timezone-aware UTC"):
+        default_capture_metadata(
+            repository_sha="abc123",
+            service_version="0.1.0",
+            environment="local",
+            correlation_id="corr-rfc0028-non-utc",
+            generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=timezone(timedelta(hours=1))),
         )

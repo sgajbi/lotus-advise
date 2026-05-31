@@ -146,6 +146,11 @@ def test_bank_demo_proof_pack_endpoint_bounds_metadata_and_correlation_header() 
         "repository_sha": "api-sha-123",
         "environment": "prod-token",
     }
+    oversized_payload = {
+        **request,
+        "repository_sha": "api-sha-123",
+        "live_runtime_payload": {f"top_level_{index}": {} for index in range(17)},
+    }
 
     with TestClient(app) as client:
         long_sha = client.post("/advisory/bank-demo-proof/proof-packs", json=request)
@@ -158,11 +163,16 @@ def test_bank_demo_proof_pack_endpoint_bounds_metadata_and_correlation_header() 
             json={**request, "repository_sha": "api-sha-123"},
             headers={"X-Correlation-Id": "x" * 129},
         )
+        long_live_payload = client.post(
+            "/advisory/bank-demo-proof/proof-packs",
+            json=oversized_payload,
+        )
 
     assert long_sha.status_code == 422
     assert sensitive_metadata.status_code == 422
     assert "environment cannot contain sensitive material" in repr(sensitive_metadata.json())
     assert long_correlation.status_code == 422
+    assert long_live_payload.status_code == 422
 
 
 def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() -> None:
@@ -180,3 +190,4 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert runtime_posture_schema["properties"]["endpoints"]["maxItems"] == 32
     request_schema = app.openapi()["components"]["schemas"]["BankDemoProofCaptureRequest"]
     assert "query strings" in request_schema["properties"]["output_ref_prefix"]["description"]
+    assert request_schema["properties"]["live_runtime_payload"]["maxProperties"] == 16

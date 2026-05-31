@@ -7039,3 +7039,32 @@
 - Follow-Up:
   - Continue auditing RFC-0028 proof-capture request payload bounds, metadata normalization, and
     proof bundle list/dictionary limits.
+
+## LA-REV-269
+
+- Scope: RFC-0028 bank-demo proof capture envelope
+- Pattern: bounded proof metadata, live payload, and material-review projections
+- Status: Hardened
+- Finding Class: API contract, auditability, and proof-pack safety risk
+- Summary: The proof-pack route sanitized runtime content before material assembly, but request
+  payloads and capture metadata did not publish complete size and sensitivity constraints at every
+  boundary. Oversized live-runtime dictionaries, non-UTC metadata timestamps, or sensitive
+  metadata labels could therefore reach proof-pack construction before being rejected or obscured.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now bounds live runtime payload top-level keys in the
+    request schema used by Gateway and generated clients.
+  - `src/core/bank_demo_proof/capture.py` now bounds proof metadata identifiers and labels,
+    enforces timezone-aware UTC capture timestamps, and limits proof-bundle runtime summaries and
+    material field review rows.
+  - RFC-0028 API and engine tests prove oversized request payloads, sensitive metadata, overlong
+    metadata labels, and non-UTC timestamps fail at the correct boundary while normal proof
+    capture still succeeds.
+- Consequence:
+  - RFC-0028 proof-pack generation now has a tighter repeatable evidence envelope, reducing
+    storage, replay, and client-contract drift risk without changing supported bank-demo claims.
+- Documentation:
+  - No wiki source change is required. This is envelope hardening for existing RFC-0028 proof
+    capture semantics.
+- Follow-Up:
+  - Continue auditing RFC-0028 report/export contracts and any remaining canonical automation
+    evidence gaps before claiming RFC closure.

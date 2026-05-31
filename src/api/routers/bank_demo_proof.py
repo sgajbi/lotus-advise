@@ -29,6 +29,7 @@ _SERVICE_VERSION = "0.1.0"
 _DEFAULT_ENVIRONMENT = "local"
 _RFC28_CORRELATION_ID_MAX_LENGTH = 128
 _RFC28_ENVIRONMENT_MAX_LENGTH = 64
+_RFC28_LIVE_PAYLOAD_TOP_LEVEL_MAX_KEYS = 16
 _RFC28_REPOSITORY_SHA_MAX_LENGTH = 160
 _RFC28_SERVICE_VERSION_MAX_LENGTH = 64
 _SENSITIVE_METADATA_FRAGMENTS = (
@@ -49,7 +50,8 @@ class BankDemoProofCaptureRequest(BaseModel):
         description=(
             "Governed live runtime suite result used as source evidence for RFC-0028 proof "
             "capture. The API returns sanitized proof output and does not persist raw payloads."
-        )
+        ),
+        max_length=_RFC28_LIVE_PAYLOAD_TOP_LEVEL_MAX_KEYS,
     )
     runtime_posture: BackendRuntimePosture = Field(
         description="Sanitized health, readiness, and capability posture observed for lotus-advise."

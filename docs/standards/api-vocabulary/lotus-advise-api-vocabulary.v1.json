@@ -5935,7 +5935,7 @@
       "semanticId": "lotus.material_field_reviews",
       "canonicalTerm": "material_field_reviews",
       "preferredName": "material_field_reviews",
-      "description": "backend proof capture bundle field: material field reviews.",
+      "description": "Material field review rows used for supported-claim gating.",
       "example": [
         "material_field_reviews_item_example"
       ],
@@ -9412,7 +9412,7 @@
       "semanticId": "lotus.sanitized_runtime_summary",
       "canonicalTerm": "sanitized_runtime_summary",
       "preferredName": "sanitized_runtime_summary",
-      "description": "Timestamp for sanitized runtime summary.",
+      "description": "Sanitized runtime evidence summary used by proof-pack assets.",
       "example": {
         "key": "sample_text"
       },

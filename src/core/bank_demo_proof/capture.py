@@ -60,9 +60,12 @@ RFC28_UNSUPPORTED_BOUNDARIES: tuple[str, ...] = (
     "supported-claim register and implementation evidence.",
 )
 _RFC28_CAPTURE_IDENTIFIER_MAX_LENGTH = 160
+_RFC28_CAPTURE_METADATA_LABEL_MAX_LENGTH = 64
+_RFC28_CAPTURE_TOP_LEVEL_JSON_MAX_KEYS = 64
 _RFC28_CAPTURE_SOURCE_PATH_MAX_LENGTH = 240
 _RFC28_CAPTURE_OBSERVED_VALUE_MAX_LENGTH = 512
 _RFC28_CAPTURE_CLAIM_REFS_MAX_ITEMS = 64
+_RFC28_CAPTURE_MATERIAL_REVIEWS_MAX_ITEMS = 64
 _RFC28_CAPTURE_SENSITIVE_TERMS = (
     "authorization",
     "cookie",
@@ -80,10 +83,26 @@ _RFC28_CAPTURE_SENSITIVE_TERMS = (
 
 class BackendProofCaptureMetadata(BaseModel):
     generated_at: datetime = Field(description="UTC backend proof generation timestamp.")
-    repository_sha: str = Field(description="lotus-advise commit SHA used for proof generation.")
-    service_version: str = Field(description="lotus-advise service version.")
-    environment: str = Field(description="Runtime environment label for the proof capture.")
-    correlation_id: str = Field(description="Correlation id for the proof-capture run.")
+    repository_sha: str = Field(
+        description="lotus-advise commit SHA used for proof generation.",
+        min_length=1,
+        max_length=_RFC28_CAPTURE_IDENTIFIER_MAX_LENGTH,
+    )
+    service_version: str = Field(
+        description="lotus-advise service version.",
+        min_length=1,
+        max_length=_RFC28_CAPTURE_METADATA_LABEL_MAX_LENGTH,
+    )
+    environment: str = Field(
+        description="Runtime environment label for the proof capture.",
+        min_length=1,
+        max_length=_RFC28_CAPTURE_METADATA_LABEL_MAX_LENGTH,
+    )
+    correlation_id: str = Field(
+        description="Correlation id for the proof-capture run.",
+        min_length=1,
+        max_length=_RFC28_CAPTURE_IDENTIFIER_MAX_LENGTH,
+    )
     live_suite_result_ref: str | None = Field(
         default=None,
         description="Optional local path to the source live runtime suite result.",
@@ -95,7 +114,7 @@ class BackendProofCaptureMetadata(BaseModel):
 
     @model_validator(mode="after")
     def _generated_at_must_be_timezone_aware(self) -> BackendProofCaptureMetadata:
-        if self.generated_at.tzinfo is None:
+        if self.generated_at.tzinfo is None or self.generated_at.utcoffset() != UTC.utcoffset(None):
             raise ValueError("generated_at must be timezone-aware UTC")
         self.live_suite_result_ref = normalize_optional_local_artifact_ref(
             self.live_suite_result_ref,
@@ -106,6 +125,20 @@ class BackendProofCaptureMetadata(BaseModel):
             field_name="live_suite_bundle_ref",
         )
         return self
+
+    @field_validator("repository_sha", "correlation_id")
+    @classmethod
+    def _metadata_identifiers_must_be_bounded(cls, value: str) -> str:
+        return _normalize_capture_text(value, field_name="proof metadata identifier")
+
+    @field_validator("service_version", "environment")
+    @classmethod
+    def _metadata_labels_must_be_bounded(cls, value: str) -> str:
+        return _normalize_capture_text(
+            value,
+            field_name="proof metadata label",
+            max_length=_RFC28_CAPTURE_METADATA_LABEL_MAX_LENGTH,
+        )
 
 
 class MaterialFieldReview(BaseModel):
@@ -167,8 +200,14 @@ class BackendProofCaptureBundle(BaseModel):
     journey_integration_proof_summary: AdvisoryJourneyIntegrationProofSummary
     commercial_material_pack: CommercialMaterialPack
     runtime_posture: BackendRuntimePosture
-    sanitized_runtime_summary: dict[str, Any]
-    material_field_reviews: list[MaterialFieldReview]
+    sanitized_runtime_summary: dict[str, Any] = Field(
+        max_length=_RFC28_CAPTURE_TOP_LEVEL_JSON_MAX_KEYS,
+        description="Sanitized runtime evidence summary used by proof-pack assets.",
+    )
+    material_field_reviews: list[MaterialFieldReview] = Field(
+        max_length=_RFC28_CAPTURE_MATERIAL_REVIEWS_MAX_ITEMS,
+        description="Material field review rows used for supported-claim gating.",
+    )
 
 
 _MATERIAL_FIELD_SPECS: tuple[tuple[str, str, Any, str], ...] = (
