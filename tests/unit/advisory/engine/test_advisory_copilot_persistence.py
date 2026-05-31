@@ -5,11 +5,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from src.core.advisory_copilot import (
     AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
     AdvisoryCopilotRunIdempotencyRecord,
+    AdvisoryCopilotRunRecord,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotLineageRef,
@@ -358,6 +360,84 @@ def test_persisted_copilot_run_is_replayable_and_excludes_raw_prompt() -> None:
     )
     assert [run.run_id for run in runs] == [result.run.run_id]
     assert next_cursor is None
+
+
+def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    result = _persist_run(repository)
+
+    normalized_run = AdvisoryCopilotRunRecord(
+        **{
+            **result.run.model_dump(),
+            "run_id": "  copilot_run_trimmed  ",
+            "idempotency_key": "  copilot-action-idem-trimmed  ",
+        }
+    )
+    assert normalized_run.run_id == "copilot_run_trimmed"
+    assert normalized_run.idempotency_key == "copilot-action-idem-trimmed"
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunRecord(**{**result.run.model_dump(), "correlation_id": "x" * 129})
+
+    packet_record = save_advisory_copilot_evidence_packet(
+        repository=repository,
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        created_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+        correlation_id="corr_rfc0027_packet_001",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
+    )
+    normalized_packet = AdvisoryCopilotEvidencePacketRecord(
+        **{
+            **packet_record.model_dump(),
+            "evidence_packet_id": "  copilot_packet_trimmed  ",
+            "proposal_id": "  proposal_trimmed  ",
+        }
+    )
+    assert normalized_packet.evidence_packet_id == "copilot_packet_trimmed"
+    assert normalized_packet.proposal_id == "proposal_trimmed"
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotEvidencePacketRecord(
+            **{**packet_record.model_dump(), "evidence_packet_id": "x" * 161}
+        )
+
+    idempotency = AdvisoryCopilotRunIdempotencyRecord(
+        idempotency_key="  copilot-action-idem-trimmed  ",
+        request_hash=result.run.request_hash,
+        run_id=result.run.run_id,
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
+    )
+    assert idempotency.idempotency_key == "copilot-action-idem-trimmed"
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunIdempotencyRecord(
+            idempotency_key="x" * 129,
+            request_hash=result.run.request_hash,
+            run_id=result.run.run_id,
+            created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
+        )
+
+    review = record_advisory_copilot_review(
+        repository=repository,
+        run_id=result.run.run_id,
+        action="APPROVE_FOR_INTERNAL_USE",
+        actor_id="supervisor_123",
+        reason={"decision": "Reviewed against source evidence."},
+        correlation_id="corr_rfc0027_review_001",
+        idempotency_key="copilot-review-idem-001",
+        occurred_at=datetime(2026, 5, 28, 9, 10, tzinfo=timezone.utc),
+    ).review
+    normalized_review = AdvisoryCopilotReviewRecord(
+        **{
+            **review.model_dump(),
+            "review_id": "  copilot_review_trimmed  ",
+            "idempotency_key": "  copilot-review-idem-trimmed  ",
+        }
+    )
+    assert normalized_review.review_id == "copilot_review_trimmed"
+    assert normalized_review.idempotency_key == "copilot-review-idem-trimmed"
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotReviewRecord(**{**review.model_dump(), "actor_id": "x" * 129})
 
 
 def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:

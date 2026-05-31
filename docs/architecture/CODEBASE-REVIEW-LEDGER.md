@@ -6465,3 +6465,28 @@
     copilot packet semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-247
+
+- Scope: Advisory copilot persistence record audit fields
+- Pattern: persistence DTO bounds, correlation fallback safety, direct record validation
+- Status: Hardened
+- Finding Class: validation and observability risk
+- Summary: RFC-0027 persistence records had descriptive audit fields but did not enforce the
+  same bounded identifier, hash, idempotency-key, correlation-id, actor, tenant, and workflow
+  reference contracts that API and domain models now enforce.
+- Evidence:
+  - `src/core/advisory_copilot/records.py` now trims and bounds copilot run, evidence-packet,
+    idempotency, and review record audit fields.
+  - `src/core/advisory_copilot/application.py` now compacts generated correlation fallbacks when
+    long packet or run identifiers would exceed the governed correlation-id limit.
+  - Persistence and application tests prove record normalization, oversized audit-field rejection,
+    and bounded generated correlation ids for maximum-length packet ids.
+- Consequence:
+  - Copilot persistence, replay, and review audit records now enforce bounded diagnostics and
+    idempotency contracts even for direct service or repository-adjacent callers.
+- Documentation:
+  - No wiki source change is required. This is internal persistence-record hardening aligned with
+    existing RFC-0027 copilot audit semantics.
+- Follow-Up:
+  - None.

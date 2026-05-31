@@ -509,6 +509,33 @@ def test_application_service_uses_deterministic_correlation_fallback_for_blank_v
     assert run.run.correlation_id == "corr-copilot_packet_pb_sg_001"
 
 
+def test_application_service_bounds_generated_correlation_fallback() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    packet_id = f"copilot_packet_{'x' * 145}"
+
+    response = service.create_evidence_packet(
+        payload=AdvisoryCopilotEvidencePacketCreateRequest(
+            evidence_packet_id=packet_id,
+            action_family="PROPOSAL_EXPLANATION",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            audience="ADVISOR",
+            source_sections=(),
+            created_by="advisor_123",
+            reason={"business_reason": "Prepare advisor review."},
+        ),
+        correlation_id="   ",
+    )
+
+    assert response.record.correlation_id.startswith("corr-")
+    assert len(response.record.correlation_id) <= 128
+
+
 def test_application_service_rejects_invalid_copilot_run_page_size() -> None:
     service = AdvisoryCopilotApplicationService(
         repository=InMemoryAdvisoryCopilotRepository(),
