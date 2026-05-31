@@ -8846,6 +8846,31 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-337
+
+- Scope: Advisory copilot repository startup boundary
+- Pattern: Copilot route startup failures should preserve controlled repository posture while
+  sharing the platform API sensitive-detail detector
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: The copilot route module had its own sensitive-fragment list and returned raw
+  repository startup `RuntimeError` text through a 503 response. Controlled repository failures
+  should remain visible, but DSN, password, token, or driver detail should fail closed.
+- Evidence:
+  - Copilot route validation now uses the shared API sensitive-detail detector.
+  - Copilot repository startup failures redact sensitive detail to
+    `ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE`.
+  - Added a repository dependency test for sensitive startup failures.
+  - Focused `ruff`, format check, and copilot API tests passed with 17 tests.
+- Consequence:
+  - Copilot API diagnostics remain stable for controlled Lotus error codes while reducing the risk
+    of configuration or credential detail leaking during startup failure.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    boundary hardening for existing copilot behavior.
+- Follow-Up:
+  - Continue converging route-local error mappings onto shared bounded-detail helpers.
+
 ## LA-REV-336
 
 - Scope: Advisory proposal simulation API validation boundaries

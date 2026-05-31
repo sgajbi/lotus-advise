@@ -8,6 +8,7 @@ from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals import router as shared
 from src.api.proposals.router import get_proposal_repository
 from src.api.proposals.runtime import proposal_postgres_dsn
+from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -44,22 +45,8 @@ _COPILOT_CORRELATION_ID_MAX_LENGTH = 128
 _COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_IDEMPOTENCY_KEY_MAX_LENGTH = 128
 _COPILOT_CURSOR_MAX_LENGTH = 512
+_COPILOT_REPOSITORY_UNAVAILABLE = "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
 _COPILOT_VALIDATION_FAILED = "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
-_COPILOT_SENSITIVE_ERROR_FRAGMENTS = (
-    "authorization",
-    "bearer ",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "raw prompt",
-    "raw payload",
-    "raw source",
-    "provider response",
-)
 
 _COPILOT_REPOSITORY: AdvisoryCopilotRepository | None = None
 
@@ -73,7 +60,7 @@ def get_advisory_copilot_repository() -> AdvisoryCopilotRepository:
         except RuntimeError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=str(exc),
+                detail=_safe_copilot_repository_error_detail(str(exc)),
             ) from exc
     return _COPILOT_REPOSITORY
 
@@ -407,8 +394,10 @@ def _safe_copilot_error_detail(error_detail: str) -> str:
 
 
 def _contains_sensitive_copilot_error_detail(error_detail: str) -> bool:
-    normalized = error_detail.lower().replace("-", " ").replace("_", " ")
-    return any(
-        fragment.replace("-", " ").replace("_", " ") in normalized
-        for fragment in _COPILOT_SENSITIVE_ERROR_FRAGMENTS
-    )
+    return contains_sensitive_error_detail(error_detail)
+
+
+def _safe_copilot_repository_error_detail(error_detail: str) -> str:
+    if contains_sensitive_error_detail(error_detail):
+        return _COPILOT_REPOSITORY_UNAVAILABLE
+    return error_detail

@@ -670,6 +670,31 @@ def test_advisory_copilot_repository_dependency_maps_startup_failure(
     copilot_routes.reset_advisory_copilot_repository_for_tests()
 
 
+def test_advisory_copilot_repository_dependency_redacts_sensitive_startup_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    copilot_routes.reset_advisory_copilot_repository_for_tests()
+    monkeypatch.setattr(copilot_routes, "proposal_postgres_dsn", lambda: "postgres://advise")
+
+    class _SensitiveUnavailableRepository:
+        def __init__(self, *, dsn: str) -> None:
+            assert dsn == "postgres://advise"
+            raise RuntimeError("postgres password secret leaked from driver")
+
+    monkeypatch.setattr(
+        copilot_routes,
+        "PostgresAdvisoryCopilotRepository",
+        _SensitiveUnavailableRepository,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        copilot_routes.get_advisory_copilot_repository()
+
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
+    copilot_routes.reset_advisory_copilot_repository_for_tests()
+
+
 def test_advisory_copilot_application_dependency_wires_policy_loader(
     copilot_repository: InMemoryAdvisoryCopilotRepository,
 ) -> None:
