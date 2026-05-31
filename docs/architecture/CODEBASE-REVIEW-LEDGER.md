@@ -7328,3 +7328,35 @@
     before merge and publish after merge to `main`.
 - Follow-Up:
   - Run RFC-0028 closure reconciliation and repo wiki check before PR handoff.
+
+## LA-REV-280
+
+- Scope: Lotus Report integration request mapping
+- Pattern: adapter boundary separation and safe report-status follow-up URLs
+- Status: Hardened
+- Finding Class: service-boundary modularity, sensitive-data handling, and test gap
+- Summary: The Lotus Report adapter mixed HTTP transport with Advise-to-Report request/header
+  projection, output-format normalization, status-path filtering, and fail-closed source-field
+  validation. The same adapter also accepted same-path report status URLs with query material,
+  which could allow token-like data to appear in follow-up requests or response evidence.
+- Evidence:
+  - `src/integrations/lotus_report/request_mapping.py` now owns report request/header mapping,
+    source date/currency extraction, output-format normalization, bounded actor/tenant identity,
+    status-path filtering, and response-status normalization.
+  - `src/integrations/lotus_report/adapter.py` now keeps the HTTP transport and dependency
+    handling while translating mapping failures into the existing
+    `LOTUS_REPORT_REQUEST_UNAVAILABLE` fail-closed posture.
+  - `tests/unit/advisory/api/test_lotus_report_request_mapping.py` covers direct mapping,
+    boundary preservation for memo and policy packages, bounded headers, output formats, trusted
+    status paths, and missing source identity failures.
+  - `tests/unit/advisory/api/test_lotus_report_adapter.py` now proves status URLs with query
+    material are not followed and are not returned as artifact URLs.
+- Consequence:
+  - Lotus Report handoff mapping is reusable and testable outside the HTTP adapter, while
+    follow-up status evidence remains local-path-only and sanitized.
+- Documentation:
+  - No README or wiki source change is required. This is an internal service-boundary hardening
+    slice with unchanged public API semantics.
+- Follow-Up:
+  - Continue separating response projection from transport if future report-package changes add
+    more explanation or lineage mapping complexity.

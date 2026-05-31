@@ -8,6 +8,7 @@ WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_evaluations.py")
 REPORTING_SOURCE_PATH = Path("src/core/policy_packs/reporting.py")
 REPORT_ADAPTER_SOURCE_PATH = Path("src/integrations/lotus_report/adapter.py")
+REPORT_MAPPING_SOURCE_PATH = Path("src/integrations/lotus_report/request_mapping.py")
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
 DECLARATION_PATH = Path("contracts/domain-data-products/lotus-advise-products.v1.json")
 TELEMETRY_PATH = Path(
@@ -51,6 +52,7 @@ def test_rfc0025_slice10_records_report_refs_without_product_surface_promotion()
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     reporting_source = REPORTING_SOURCE_PATH.read_text(encoding="utf-8")
     adapter_source = REPORT_ADAPTER_SOURCE_PATH.read_text(encoding="utf-8")
+    mapping_source = REPORT_MAPPING_SOURCE_PATH.read_text(encoding="utf-8")
     models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     declaration_source = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry_source = TELEMETRY_PATH.read_text(encoding="utf-8")
@@ -62,7 +64,7 @@ def test_rfc0025_slice10_records_report_refs_without_product_surface_promotion()
     assert "rfc0025.policy-report-package-realization.v1" in reporting_source
     assert "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED" in reporting_source
     assert "POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED" in reporting_source
-    assert "ADVISORY_POLICY_SIGN_OFF_PACKAGE" in adapter_source
+    assert "ADVISORY_POLICY_SIGN_OFF_PACKAGE" in mapping_source
     assert "request_policy_sign_off_report_package_with_lotus_report" in adapter_source
     assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in declaration_source
     assert "RFC-0025-slice-10-report-render-archive-realization.md" in telemetry_source

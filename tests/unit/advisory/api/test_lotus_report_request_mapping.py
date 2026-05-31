@@ -1,0 +1,125 @@
+import pytest
+
+from src.integrations.lotus_report.request_mapping import (
+    LotusReportRequestMappingError,
+    build_memo_report_package_job_request,
+    build_policy_sign_off_package_job_request,
+    build_portfolio_review_job_request,
+    build_report_headers,
+    normalized_output_formats,
+    report_status_path,
+)
+
+
+def _proposal_request() -> dict:
+    return {
+        "report_request_id": "prr_live_001",
+        "proposal": {
+            "proposal_id": "pp_live_001",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "jurisdiction": "SG",
+        },
+        "proposal_version": {
+            "proposal_result": {
+                "before": {"total_value": {"amount": "100.00", "currency": "USD"}},
+                "analytics": {"metadata": {"as_of_date": "2026-04-10"}},
+            }
+        },
+        "report_type": "PORTFOLIO_REVIEW",
+        "requested_by": "advisor_1",
+        "related_version_no": 1,
+        "include_execution_summary": True,
+        "include_reviewed_narrative": True,
+    }
+
+
+def test_portfolio_review_mapping_preserves_advisory_report_context() -> None:
+    request = _proposal_request()
+    request["proposal_narrative_package"] = {
+        "package_status": "INCLUDED_REVIEWED_NARRATIVE",
+        "narrative_id": "pnar_live_001",
+    }
+
+    payload = build_portfolio_review_job_request(request)
+
+    assert payload["portfolio_scope"] == {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]}
+    assert payload["as_of_date"] == "2026-04-10"
+    assert payload["requested_output_formats"] == ["json"]
+    assert payload["reporting_currency"] == "USD"
+    assert payload["options"] == {
+        "source_system": "lotus-advise",
+        "source_proposal_id": "pp_live_001",
+        "source_report_type": "PORTFOLIO_REVIEW",
+        "requested_by": "advisor_1",
+        "related_version_no": 1,
+        "include_execution_summary": True,
+        "include_reviewed_narrative": True,
+    }
+    assert payload["proposal_narrative_package"]["narrative_id"] == "pnar_live_001"
+
+
+def test_memo_and_policy_mappings_keep_report_package_boundaries() -> None:
+    memo_request = _proposal_request()
+    memo_request.update(
+        {
+            "requested_output_formats": ["PDF", "xlsx", "json"],
+            "reason": {"retention_policy_id": "advisor-use-retention"},
+            "proposal_memo_package": {
+                "memo_id": "memo_001",
+                "client_ready_publication": "BLOCKED",
+            },
+        }
+    )
+    policy_request = _proposal_request()
+    policy_request.update(
+        {
+            "requested_output_formats": ["docx"],
+            "related_policy_evaluation_id": "pev_policy_001",
+            "policy_sign_off_package": {
+                "evaluation": {"evaluation_id": "pev_policy_001"},
+                "client_ready_publication": "BLOCKED",
+            },
+        }
+    )
+
+    memo_payload = build_memo_report_package_job_request(memo_request)
+    policy_payload = build_policy_sign_off_package_job_request(policy_request)
+
+    assert memo_payload["requested_output_formats"] == ["pdf", "json"]
+    assert memo_payload["options"]["source_report_type"] == "ADVISORY_PROPOSAL_MEMO"
+    assert memo_payload["options"]["retention_policy_id"] == "advisor-use-retention"
+    assert memo_payload["proposal_memo_package"]["client_ready_publication"] == "BLOCKED"
+    assert policy_payload["requested_output_formats"] == ["pdf"]
+    assert policy_payload["options"]["source_report_type"] == ("ADVISORY_POLICY_SIGN_OFF_PACKAGE")
+    assert policy_payload["options"]["related_policy_evaluation_id"] == "pev_policy_001"
+    assert policy_payload["policy_sign_off_package"]["client_ready_publication"] == "BLOCKED"
+
+
+def test_mapping_bounds_headers_output_formats_and_status_paths() -> None:
+    request = _proposal_request()
+    request["requested_by"] = "advisor_1\x7f"
+
+    headers = build_report_headers(
+        request=request,
+        request_id="prr_live_001",
+        tenant_id="tenant-private-bank-001\x7f",
+    )
+
+    assert headers["X-Actor-Id"] == "lotus-advise"
+    assert headers["X-Tenant-Id"] == "tenant-sg-001"
+    assert normalized_output_formats(["xlsx", "", "JSON"]) == ["json"]
+    assert normalized_output_formats("pdf") == ["pdf"]
+    assert report_status_path("/reports/jobs/rjob_001") == "/reports/jobs/rjob_001"
+    assert report_status_path("https://example.invalid/reports/jobs/rjob_001") is None
+    assert report_status_path("/reports/jobs/rjob_001?token=secret") is None
+
+
+def test_mapping_fails_closed_when_required_advisory_source_identity_is_missing() -> None:
+    request = _proposal_request()
+    request["proposal"].pop("portfolio_id")
+
+    with pytest.raises(
+        LotusReportRequestMappingError,
+        match="LOTUS_REPORT_REQUEST_UNAVAILABLE",
+    ):
+        build_portfolio_review_job_request(request)
