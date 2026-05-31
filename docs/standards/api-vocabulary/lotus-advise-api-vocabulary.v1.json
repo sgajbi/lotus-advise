@@ -7871,7 +7871,7 @@
       "semanticId": "lotus.readiness_basis",
       "canonicalTerm": "readiness_basis",
       "preferredName": "readiness_basis",
-      "description": "Bounded evidence basis for the readiness decision: missing configuration, configuration-only non-production posture, successful runtime probe, or failed runtime probe.",
+      "description": "Bounded evidence basis for the readiness decision: missing configuration, configuration-only non-production posture, successful runtime probe, or failed runtime probe. Invalid configuration is reported separately when a dependency URL is present but unusable.",
       "example": "not_configured",
       "type": "string",
       "locations": [

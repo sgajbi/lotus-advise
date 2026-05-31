@@ -5836,3 +5836,29 @@
     feature posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-221
+
+- Scope: Dependency readiness invalid-configuration posture
+- Pattern: API truthfulness, operational diagnostics, and configuration validation
+- Status: Hardened
+- Finding Class: readiness overclaim and API semantics gap
+- Summary: Dependency readiness treated any non-empty base URL configuration as
+  `configuration_only` ready when runtime probes were disabled, even when the configured value was
+  not a usable HTTP(S) base URL. This could overstate `/platform/capabilities` readiness for
+  malformed service configuration.
+- Evidence:
+  - `src/integrations/base.py` now marks configured but invalid dependency URLs as
+    `invalid_configuration`, keeps `operational_ready=false`, and avoids runtime probing.
+  - Dependency readiness probes now receive sanitized base URLs instead of raw configured values.
+  - `src/api/capabilities/models.py` documents the new readiness basis in the response contract.
+  - Integration and `/platform/capabilities` tests prove invalid configured URLs remain configured
+    but fail closed without making dependent features or workflows ready.
+- Consequence:
+  - Operator and API readiness output no longer overclaims bank-runtime readiness when dependency
+    URLs are malformed.
+- Documentation:
+  - No wiki source change is required. This is API readiness-contract hardening; the OpenAPI
+    response model carries the implementation-backed contract truth.
+- Follow-Up:
+  - None.

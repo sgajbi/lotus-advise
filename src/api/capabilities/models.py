@@ -9,6 +9,7 @@ from src.integrations.lotus_core import CONTROLLED_LOCAL_SIMULATION_FALLBACK
 ConsumerSystem = Literal["lotus-gateway", "lotus-performance", "UI", "UNKNOWN"]
 ReadinessBasis = Literal[
     "not_configured",
+    "invalid_configuration",
     "configuration_only",
     "probe_succeeded",
     "probe_failed",
@@ -126,7 +127,8 @@ class DependencyReadiness(BaseModel):
         description=(
             "Bounded evidence basis for the readiness decision: missing configuration, "
             "configuration-only non-production posture, successful runtime probe, or failed "
-            "runtime probe."
+            "runtime probe. Invalid configuration is reported separately when a dependency URL "
+            "is present but unusable."
         ),
         examples=["probe_succeeded"],
     )

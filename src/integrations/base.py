@@ -72,15 +72,7 @@ def sanitized_http_base_url(base_url: str | None) -> str | None:
 
 
 def public_dependency_base_url(base_url: str | None) -> str | None:
-    if base_url is None:
-        return None
-    trimmed = base_url.strip().rstrip("/")
-    if not trimmed:
-        return None
-    split = urlsplit(trimmed)
-    if not split.scheme or not split.netloc:
-        return trimmed
-    return sanitized_http_base_url(trimmed)
+    return sanitized_http_base_url(base_url)
 
 
 def build_dependency_state(
@@ -93,20 +85,24 @@ def build_dependency_state(
     configured_base_url = os.getenv(base_url_env, "").strip() or None
     public_base_url = public_dependency_base_url(configured_base_url)
     configured = bool(configured_base_url)
-    probe_enabled = configured and runtime_dependency_probing_enabled()
+    valid_configuration = public_base_url is not None
+    probe_enabled = configured and valid_configuration and runtime_dependency_probing_enabled()
     reason_key = key.upper().replace("-", "_")
     degraded_reason: str | None = f"{reason_key}_DEPENDENCY_UNAVAILABLE"
 
     if not configured:
         operational_ready = False
         readiness_basis = "not_configured"
+    elif not valid_configuration:
+        operational_ready = False
+        readiness_basis = "invalid_configuration"
     elif not probe_enabled:
         operational_ready = True
         readiness_basis = "configuration_only"
         degraded_reason = None
     else:
-        assert configured_base_url is not None
-        operational_ready = probe_dependency_health(configured_base_url)
+        assert public_base_url is not None
+        operational_ready = probe_dependency_health(public_base_url)
         readiness_basis = "probe_succeeded" if operational_ready else "probe_failed"
         if operational_ready:
             degraded_reason = None
