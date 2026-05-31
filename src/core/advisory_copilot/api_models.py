@@ -174,7 +174,7 @@ class AdvisoryCopilotSupportabilityResponse(BaseModel):
         examples=["ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"],
     )
     client_ready_publication: str = Field(
-        description="Client-ready publication posture for first-wave copilot output.",
+        description="Client-ready publication posture for supported copilot output.",
         examples=["BLOCKED"],
     )
     supported_action_families: tuple[CopilotActionFamily, ...] = Field(

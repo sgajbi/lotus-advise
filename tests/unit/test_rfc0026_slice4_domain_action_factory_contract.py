@@ -60,7 +60,7 @@ def test_rfc0026_slice4_contract_is_backed_by_code_and_behavior_tests() -> None:
         "build_meeting_preparation_action",
         "build_supportability_degraded_action",
         "build_unsupported_capability_action",
-        "build_first_wave_cockpit_actions",
+        "build_source_backed_cockpit_actions",
     )
     for builder in required_builders:
         assert f"def {builder}" in action_factory

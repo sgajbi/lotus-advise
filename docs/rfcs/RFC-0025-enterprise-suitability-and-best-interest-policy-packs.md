@@ -794,7 +794,7 @@ Unit tests:
 2. policy activation immutability,
 3. applicability selection by jurisdiction, booking center, legal entity, client segment, mandate,
    product family, and proposal objective,
-4. named evaluator behavior for each first-wave policy family,
+4. named evaluator behavior for each supported policy family,
 5. missing/degraded source evidence behavior,
 6. approval dependency mapping,
 7. disclosure and consent requirement mapping,
@@ -1017,7 +1017,7 @@ Implementation evidence:
 
 Outcome:
 
-1. implement applicability selection and rule evaluation across first-wave policy families.
+1. implement applicability selection and rule evaluation across supported policy families.
 
 Acceptance gate:
 
@@ -1072,7 +1072,7 @@ Current boundary:
 1. certified Advise evaluation APIs, review queue projection, lineage, replay, append-only
    review/sign-off/report-reference events, and sign-off source package are implemented,
 2. Gateway, Workbench, report/render/archive realization, active data-product promotion, and
-   client-ready publication remain gated later slices.
+   client-ready publication remain gated to the RFC client-publication controls.
 
 ### Slice 9 - Approval, Consent, Disclosure, Conflict, and Sign-Off Pack Realization
 
@@ -1132,7 +1132,7 @@ Current boundary:
 4. client-ready document requests fail closed,
 5. AI policy-evidence consumption remains gated to Slice 11; Gateway/Workbench policy support,
    live canonical proof, active data-product promotion, and client-ready publication remain gated
-   later slices.
+   the remaining RFC-0025 implementation scope.
 
 ### Slice 11 - AI Policy-Evidence Consumption Boundary
 
@@ -1167,7 +1167,7 @@ Current boundary:
 6. Gateway and Workbench product realization is complete in Slice 12, and policy-pack-specific
    commercial material is complete in Slice 13, but canonical live proof,
    active data-product promotion, final hardening, final closure, and
-   client-ready publication remain gated later slices.
+   client-ready publication remain gated to the RFC client-publication controls.
 
 ### Slice 12 - Gateway and Workbench Product Realization
 
@@ -1197,7 +1197,7 @@ Current boundary:
 3. Workbench does not calculate suitability, approve or waive findings, record completed policy
    sign-off approval, or publish client-ready material,
 4. canonical live proof, active data-product promotion, final hardening, final closure, and
-   client-ready publication remain gated later slices.
+   client-ready publication remain gated to the RFC client-publication controls.
 
 ### Slice 13 - Commercial, Demo, and RFP-Support Material
 
@@ -1227,7 +1227,7 @@ Current boundary:
    RFP/security packs, architecture decks, ROI material, and supported-claim proof packs remain
    RFC-0028 scope,
 4. canonical live proof, active data-product promotion, final hardening, final closure, and
-   client-ready publication remain gated later slices.
+   client-ready publication remain gated to the RFC client-publication controls.
 
 ### Slice 14 - Implementation Proof
 
@@ -1263,7 +1263,8 @@ Current boundary:
    backend live-suite proof consumed by PR evidence,
 4. active data-product promotion, mesh-certified supportability promotion, final hardening, final
    closure, completed approval/waiver authority, completed sign-off authority, client-ready policy
-   document generation, and external client communication remain gated later slices.
+   document generation, and external client communication remain gated to explicit client-publication
+   controls.
 
 ### Slice 15 - Second-Last Hardening and Review
 
@@ -1429,7 +1430,7 @@ RFC-0025 is implemented only when:
     implementation-backed,
 12. the wiki is published,
 13. the LinkedIn post-completion draft and ledger update are complete or deliberately waived,
-14. no required follow-up RFC, second wave, WTBD dependency, unmerged branch, or stranded durable
+14. no required follow-up RFC, WTBD dependency, unmerged branch, or stranded durable
     truth remains.
 
 ## 23.1 Gold-Pass Assessment
@@ -1510,20 +1511,20 @@ approval/sign-off/client-ready authority is not part of the supported RFC-0025 c
 
 ## 25. Slice 0 Pre-Implementation Decisions
 
-The questions below are resolved before product implementation begins. Later slices may tighten
+The questions below are resolved before product implementation begins. Implementation slices may tighten
 details with evidence, but they must not reopen the supported-claim boundary without updating this
 RFC, tests, wiki truth, and affected owner-repo plans.
 
 | Decision area | Slice 0 decision | Implementation consequence |
 | --- | --- | --- |
-| First supported reference packs | First supported proof targets `GLOBAL_PRIVATE_BANKING_BASELINE` and `SG_PRIVATE_BANKING_REFERENCE` because the governed front-office portfolio is `PB_SG_GLOBAL_BAL_001`. MAS/HK/MiFID/Reg BI-style packs may appear only as schema examples or planned families until source-backed and reviewed. | Slice 5 must implement and validate the two first-wave packs. Wider reference packs remain non-claiming examples unless separately implemented and proved. |
+| Supported reference packs | Supported proof targets `GLOBAL_PRIVATE_BANKING_BASELINE` and `SG_PRIVATE_BANKING_REFERENCE` because the governed front-office portfolio is `PB_SG_GLOBAL_BAL_001`. MAS/HK/MiFID/Reg BI-style packs may appear only as schema examples or planned families until source-backed and reviewed. | Slice 5 must implement and validate the two supported packs. Wider reference packs remain non-claiming examples unless separately implemented and proved. |
 | Advisor-use versus client-ready posture | RFC-0025 may support advisor/compliance policy evaluation, review queues, sign-off evidence, and policy appendices. It does not by itself authorize external client communication or client-ready publication. | Client-ready publication stays blocked until policy evidence, memo/report/render/archive review, disclosure, consent, and RFC-0028 demo-claim governance are all implemented and proved. |
 | Mandatory advisor-use source fields | Advisor-use evaluation requires proposal version, policy version, applicability basis, source refs, rule results, status, source gaps, approval dependencies, disclosures, consent requirements, hashes, and replay metadata. | Missing mandatory advisor-use fields produce `PENDING_REVIEW` or `BLOCKED`; they cannot be defaulted to suitable, eligible, or best-interest. |
 | Mandatory client-ready source fields | Client-ready posture additionally requires complete product eligibility, target market, product complexity, fee/cost/tax/friction evidence where claimed, conflict and inducement posture, disclosure package refs, consent status, approval/sign-off events, report/render/archive refs, and final review posture. | If any client-ready field is missing, the implementation must return blocked posture and avoid client-ready wording in APIs, memo, report, Workbench, wiki, and sales material. |
-| Product-governance source owner | `lotus-core` is the first-wave source authority for product eligibility, target market, product complexity, private-asset classification, structured-product features, price, FX, holdings, cash, and source-readiness fields unless a later governed product-authority service is explicitly introduced. | Slice 4 must implement needed `lotus-core` changes or keep product-governance rules blocked with source gaps. `lotus-advise` must not invent these facts. |
+| Product-governance source owner | `lotus-core` is the source authority for product eligibility, target market, product complexity, private-asset classification, structured-product features, price, FX, holdings, cash, and source-readiness fields unless a governed product-authority service is explicitly introduced. | Slice 4 must implement needed `lotus-core` changes or keep product-governance rules blocked with source gaps. `lotus-advise` must not invent these facts. |
 | Risk source owner | `lotus-risk` is the source authority for stress, drawdown, VaR, concentration, issuer/country/sector, liquidity-risk, private-asset risk, climate/geopolitical risk, risk-budget, and degraded-risk evidence. | Slice 4 must implement needed `lotus-risk` changes or expose degraded/missing-risk policy outcomes. |
 | Fee, cost, tax, and friction evidence | RFC-0025 consumes only implementation-backed RFC-0016 or owner-repo evidence. If RFC-0016 depth is not implemented first, the policy record must mark cost reasonableness as unavailable, pending review, or blocked rather than positive. | Slice 6 and Slice 9 may include blocker logic before a full cost engine exists, but supported best-interest claims cannot rely on missing cost evidence. |
-| Tenant and legal-entity context | First-wave APIs must carry correlation, caller role/entitlement posture, and explicit legal-entity/booking-center applicability basis. Tenant isolation is enforced to the extent supported by current platform contracts and must be represented as explicit posture when not fully implemented. | API and Gateway contracts must expose this posture rather than hiding tenancy/legal-entity gaps. |
+| Tenant and legal-entity context | Supported APIs must carry correlation, caller role/entitlement posture, and explicit legal-entity/booking-center applicability basis. Tenant isolation is enforced to the extent supported by current platform contracts and must be represented as explicit posture when not fully implemented. | API and Gateway contracts must expose this posture rather than hiding tenancy/legal-entity gaps. |
 | First Workbench review queues | First supported Workbench surface covers advisor next action, compliance review, investment desk/product-governance review, supervisory maker-checker review, operations sign-off readiness, and blocked/degraded states. | Broader cockpit workload management remains RFC-0026, but policy-driven review queues required to understand and action a policy result are RFC-0025 scope. |
 | First sign-off/disclosure document | First supported document is an advisor/compliance-use policy evaluation appendix and sign-off package, rendered deterministically through `lotus-report` and `lotus-render` and archived through `lotus-archive` when supported. | Client-facing disclosure packs are gated unless the document package, review posture, disclosure text, consent, archive refs, and RFC-0028 claim controls are implemented and proved. |
 | Archive retention and legal hold | RFC-0025 consumes `lotus-archive` retention, legal-hold, retrieval, and access-audit posture as source-owned archive evidence. If archive support is incomplete, the policy package returns an explicit archive readiness gap. | Advise lineage may record archive refs only when returned by Archive; it must not fabricate retention or legal-hold claims. |

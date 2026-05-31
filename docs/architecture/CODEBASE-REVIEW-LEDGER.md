@@ -5469,3 +5469,33 @@
     artifact wording only.
 - Follow-Up:
   - None.
+
+## LA-REV-207
+
+- Scope: RFC 23-28 supported-scope public vocabulary and cockpit action builder naming
+- Pattern: public API copy, documentation truth, and domain-model vocabulary hardening
+- Status: Hardened
+- Finding Class: documentation/API vocabulary quality gap and stale internal naming
+- Summary: Active RFC/wiki/OpenAPI/model surfaces still used wave-based or later-slice wording in
+  current-state product copy, and the cockpit aggregate action builder was named
+  `build_first_wave_cockpit_actions`. That weakened enterprise product language and made supported
+  capability boundaries look like staged prototype scaffolding.
+- Evidence:
+  - Public RFC 23-28, wiki, OpenAPI tag descriptions, policy route descriptions, cockpit source
+    model descriptions, and copilot model descriptions now use supported-scope and governed-gate
+    language.
+  - `src/core/advisor_cockpit/action_factory.py` now exposes
+    `build_source_backed_cockpit_actions`, and source-read-model/tests use the source-backed name.
+  - `tests/unit/test_rfc0023_0028_public_vocabulary_contract.py` now pins active public surfaces
+    against stale wave/later-slice phrases.
+  - Targeted RFC vocabulary, cockpit, copilot, advisor-cockpit API, advisory-copilot API, and
+    OpenAPI contract tests passed with `66 passed`.
+- Consequence:
+  - RFC 23-28 current-state surfaces read as implementation-backed private-banking capabilities
+    with explicit client-ready gates, without implying deferred waves or overclaiming external
+    client publication.
+- Documentation:
+  - Wiki source changed and requires the repo wiki check with unpublished source changes allowed
+    before merge, followed by wiki publication after merge to `main`.
+- Follow-Up:
+  - None.

@@ -817,7 +817,7 @@ Slice 3 implementation decision and evidence:
 
 1. RFC-0028 proof-pack and supported-claim records remain internal/proposed at this point because
    the Advise-owned proof API, proof-pack model, scenario contract, and supported-claim API are
-   implemented in later RFC-0028 slices, not in Slice 3.
+   implemented in the bounded RFC-0028 implementation scope, not in Slice 3.
 2. No `AdvisoryBankDemoProofPack`, `AdvisorySupportedClaimRegister`, or
    `AdvisoryDemoScenarioContract` active data product declaration, trust-telemetry snapshot, or
    `/platform/capabilities` feature is allowed before those records are backed by real contracts,

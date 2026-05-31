@@ -54,7 +54,7 @@ from src.integrations.lotus_report import LotusReportUnavailableError
         "Creates or replays a finalized RFC-0025 policy evaluation record from source-backed "
         "proposal evidence. The record is hash-backed, idempotent, and bounded to Advise APIs; "
         "Gateway/Workbench consumption and signed-off report-package handoff are supported by "
-        "later RFC-0025 slices, while client-ready publication remains gated."
+        "the current RFC-0025 implementation, while client-ready publication remains gated."
     ),
     responses={
         status.HTTP_404_NOT_FOUND: {"description": "Policy-pack version was not found."},

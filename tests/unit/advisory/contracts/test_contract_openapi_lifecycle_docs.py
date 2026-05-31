@@ -640,7 +640,7 @@ def test_openapi_tag_groups_are_documented_for_self_service_discovery():
     ) in tags["Advisory Proposal Lifecycle"]
     assert "Advisory Proposal Memo" in tags
     assert "persisted memo evidence packs" in tags["Advisory Proposal Memo"]
-    assert "client-ready memo publication remain gated" in tags["Advisory Proposal Memo"]
+    assert "client-ready memo publication gated" in tags["Advisory Proposal Memo"]
     assert "Advisory Operations & Support" in tags
     assert (
         "async status, workflow history, lineage, approval history, idempotency tracing"

@@ -85,8 +85,8 @@ app = FastAPI(
             "description": (
                 "RFC-0024 advisor proposal memo endpoints for persisted memo evidence packs, "
                 "projection posture, review events, report-package lineage, memo lineage, and "
-                "replay evidence. Gateway, Workbench, render/archive, and client-ready memo "
-                "publication remain gated until later implementation slices."
+                "replay evidence. Gateway, Workbench, and advisor-use report/render/archive "
+                "support are available with client-ready memo publication gated."
             ),
         },
         {
@@ -94,8 +94,8 @@ app = FastAPI(
             "description": (
                 "RFC-0025 certified Advise API endpoints for policy evaluation records, replay, "
                 "review queues, lineage, append-only review/sign-off/report reference events, and "
-                "sign-off source packages. Gateway, Workbench, report realization, and "
-                "client-ready publication remain gated until later implementation slices."
+                "sign-off source packages. Gateway, Workbench, and advisor/compliance report "
+                "realization are available with client-ready publication gated."
             ),
         },
         {
@@ -113,9 +113,9 @@ app = FastAPI(
             "description": (
                 "RFC-0027 Advise-owned governed advisory copilot APIs for bounded evidence "
                 "packets, workflow-pack-backed actions, run retrieval, review audit, proposal "
-                "version run lookup, and supportability posture. Gateway, Workbench, "
-                "data-product promotion, canonical proof, and client-ready publication remain "
-                "gated until subsequent RFC-0027 slices prove them."
+                "version run lookup, Gateway/Workbench consumption, data-product support, "
+                "canonical proof, and supportability posture. Client-ready publication remains "
+                "gated."
             ),
         },
         {

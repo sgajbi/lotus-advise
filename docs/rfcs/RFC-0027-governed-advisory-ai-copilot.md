@@ -334,7 +334,7 @@ Architecture rules:
 
 ## 10. Target Copilot Capability
 
-First-wave copilot action families:
+Supported copilot action families:
 
 1. **Proposal explanation**
    explain a proposal version, drivers, trade-offs, blockers, and source refs.
@@ -1243,7 +1243,7 @@ Affected repositories must use their repo-native gates and GitHub lanes.
 
 These decisions replace the earlier open-question list and are closure gates for implementation:
 
-1. First-wave action families are all six listed in Section 10: proposal explanation, evidence
+1. Supported action families are all six listed in Section 10: proposal explanation, evidence
    Q&A, advisor meeting preparation, compliance review summary, operations/report handoff summary,
    and client follow-up draft. An action family is not supported until its Advise API, Gateway
    route, Workbench surface, tests, live proof, and documentation are complete.
@@ -1255,7 +1255,7 @@ These decisions replace the earlier open-question list and are closure gates for
 3. `lotus-ai` integration uses governed workflow-pack execution and run/review posture only. Any
    missing `lotus-ai` workflow-pack registry, schema, model-risk, disabled-pack, or unavailable
    behavior required by the copilot is implemented inside RFC-0027 before promotion.
-4. First-wave audiences are advisor, desk head, compliance reviewer, operations support, and model
+4. Supported audiences are advisor, desk head, compliance reviewer, operations support, and model
    risk/operator. Sales/pre-sales receives implementation-backed explanatory material only after
    proof; it is not a runtime caller context.
 5. Evidence packet metadata, hashes, source refs, allowed evidence sections, missing evidence,
@@ -1266,11 +1266,11 @@ These decisions replace the earlier open-question list and are closure gates for
    reviewed, source-backed copilot runs. Evidence packets and rejected/unsupported runs are
    auditable internal records until implementation proves they meet data-product promotion
    criteria.
-7. First-wave jurisdiction and booking-center behavior is bounded to source evidence already
+7. Supported jurisdiction and booking-center behavior is bounded to source evidence already
    present in RFC-0024 and RFC-0025 records, including Singapore private-banking policy evidence
    for the canonical scenario. Missing jurisdiction, fee/conflict, disclosure, eligibility, or
    client-ready evidence returns unsupported-evidence posture rather than positive claims.
-8. First-wave performance posture must include bounded request timeouts, deterministic disabled or
+8. Supported performance posture must include bounded request timeouts, deterministic disabled or
    unavailable pack behavior, idempotent replay, no high-cardinality metric labels, and local plus
    GitHub gate evidence. Load or latency evidence is required before final support promotion.
 9. Gateway must expose `/api/v1/advisory-copilot/*` without calling `lotus-ai` directly. Workbench

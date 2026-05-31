@@ -288,7 +288,7 @@ promotion, and client-ready publication remain unimplemented and unpromoted.
 RFC-0025 Slice 2 is implemented as current-boundary cleanup and structure review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-2-cleanup-and-structure-review.md`. The slice centralizes advisory
 policy-context status vocabulary/accessors, removes duplicate suitability scanner baseline-pack
-wiring, and records that dedicated policy-pack modules must be introduced only when later slices
+wiring, and records that dedicated policy-pack modules must be introduced only when RFC-0025 slices
 add real catalog, validation, evaluation, persistence, replay, review, sign-off, report, AI,
 Gateway, Workbench, or supportability behavior. No runtime policy-pack capability is promoted.
 
@@ -417,7 +417,7 @@ publication.
 
 RFC-0024 Slice 1 is implemented as a platform automation and scaffolding review. It records that
 existing Lotus platform and repo-native controls are sufficient before memo domain work, rejects
-one-off local memo scaffolding, and pins the controls later RFC-0024 slices must satisfy for API
+one-off local memo scaffolding, and pins the controls RFC-0024 implementation slices must satisfy for API
 quality, observability, test pyramid, data-product promotion, trust telemetry, live proof, and
 documentation truth.
 
@@ -455,7 +455,7 @@ RFC-0024 Slice 7 is implemented as certified Advise memo APIs and OpenAPI work. 
 canonical memo create/read/projection/review/report-package-event/lineage/replay endpoints under
 the `Advisory Proposal Memo` tag, backed by persisted memo records and append-only audit events.
 Gateway/Workbench product support, report/render/archive realization, active data-product support,
-and client-ready memo publication remain planned later slices.
+and client-ready memo publication remain gated at this slice.
 
 RFC-0024 Slice 8 is implemented as memo-critical policy, fees, costs, conflicts, and disclosure
 enrichment. It projects suitability issue counts, product eligibility and complexity coverage,
@@ -469,15 +469,15 @@ memo package from `lotus-report`; `lotus-report` preserves the package in the re
 render package; `lotus-archive` stores support-safe advisor proposal memo archive metadata; and
 Advise memo lineage records returned report, render, and archive refs. Gateway/Workbench product
 support, active data-product support, AI commentary, and client-ready memo publication remain
-planned later slices.
+gated at this slice.
 
 RFC-0024 Slice 10 is implemented as advisor-use AI narrative and review-gated commentary. Advise now
 requires memo hash continuity and `APPROVE_FOR_ADVISOR_USE` review before requesting bounded
 commentary from `lotus-ai`; `lotus-ai` registers `proposal_memo_commentary.pack@v1` as a
 review-gated workflow pack; and Advise records append-only AI lineage with deterministic
 unavailable posture when AI is not configured. Gateway/Workbench product support, active
-data-product support, commercial/demo claims, and client-ready memo publication remain planned
-later slices.
+data-product support, commercial/demo claims, and client-ready memo publication remain gated at
+this slice.
 
 RFC-0024 Slice 11 is implemented as Gateway and Workbench product realization. `lotus-gateway`
 routes proposal memo create/read/projection/review/report-package/AI-commentary, lineage, and
@@ -485,14 +485,14 @@ replay-evidence calls through canonical `lotus-advise` memo endpoints without re
 truth. `lotus-workbench` consumes Gateway/BFF only for memo posture, projection, report-package,
 archive-ref, AI-commentary, lineage, replay, degraded, and blocked states, and browser proof keeps
 client-ready release and send-to-client controls absent. Active data-product support,
-commercial/demo claims, and client-ready memo publication remain planned later slices.
+commercial/demo claims, and client-ready memo publication remain gated at this slice.
 
 RFC-0024 Slice 12 is implemented as memo-specific commercial, demo, and RFP-support material.
 Evidence lives in `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md`, with the
 claim-controlled guide at `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`.
 The guide covers implementation-backed one-pager language, demo notes, API examples, architecture
 flow, operator guidance, and RFP-safe wording. Active data-product support, full RFC-0028
-bank-demo/RFP package claims, and client-ready memo publication remain planned later slices.
+bank-demo/RFP package claims, and client-ready memo publication remain gated at this slice.
 
 RFC-0024 Slice 13 is implemented as memo implementation proof in the live runtime evidence bundle.
 Evidence lives in `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`. The live-suite
@@ -504,7 +504,7 @@ RFC-0024 Slice 14 is implemented as data-product promotion and supportability ha
 lives in `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md`.
 `AdvisoryProposalMemoEvidencePack:v1` is now an active advisor-use data product with current trust
 telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture. Full
-RFC-0028 bank-demo/RFP package claims and client-ready memo publication remain planned later slices.
+RFC-0028 bank-demo/RFP package claims and client-ready memo publication remain gated.
 
 RFC-0024 Slice 15 is implemented as final hardening and review. Evidence lives in
 `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md`. Canonical Workbench validation for
@@ -552,14 +552,14 @@ RFC-0023 Slice 5 is implemented as grounding-packet and deterministic-template b
 adds opt-in deterministic `ADVISOR_REVIEW` narrative in the proposal artifact path without AI
 dependency. Standalone narrative endpoints, persistence, replay, review approval, AI-assisted
 drafts, client-ready commentary, report/render/archive integration, data-product promotion, and
-`/platform/capabilities` narrative rows remain gated by later slices.
+`/platform/capabilities` narrative rows remain gated at this slice.
 
 RFC-0023 Slice 6 is implemented as narrative-policy, disclosure, and guardrail baseline work. It
 adds deterministic policy metadata, approved disclosure selection, unsupported-claim guardrails,
 and client-ready policy blockers to the artifact-path narrative response. Standalone narrative
 endpoints, persistence, replay, review approval, client-ready commentary,
 report/render/archive integration, data-product promotion, and `/platform/capabilities` narrative
-rows remain gated by later slices.
+rows remain gated at this slice.
 
 RFC-0023 Slice 7 is implemented as a narrow lotus-ai adapter and AI-assisted advisor-review draft
 baseline. It adds opt-in `AI_ASSISTED_DRAFT` narrative in the proposal artifact path, sends only
@@ -567,8 +567,8 @@ structured grounding packet, resolved policy, requested sections, approved instr
 refs to the workflow-pack adapter, records AI lineage or deterministic fallback reason, and runs AI
 text through the same unsupported-claim guardrails before returning the draft. Standalone narrative
 endpoints, persistence, replay, review approval, client-ready commentary, report/render/archive
-integration, data-product promotion, and `/platform/capabilities` narrative rows remain gated by
-later slices.
+integration, data-product promotion, and `/platform/capabilities` narrative rows remain gated at
+this slice.
 
 RFC-0023 Slice 8 is implemented as a proposal-version review, persistence, idempotency, and replay
 baseline. It persists narrative JSON with immutable proposal versions when lifecycle create/version
@@ -577,7 +577,7 @@ approve, reject, and regeneration-request decisions, supports idempotent review 
 drift conflicts, and returns exact persisted narrative plus latest review evidence from replay
 endpoints. Client-ready commentary, report/render/archive integration, Gateway and Workbench
 surfaces, data-product promotion, trust telemetry, and `/platform/capabilities` narrative rows
-remain gated by later slices.
+remain gated at this slice.
 
 RFC-0023 Slice 9 is implemented as alternatives, decision-summary, and policy-evidence integration
 work. It enriches advisor-review narrative sections with RFC-0021 decision-summary posture,

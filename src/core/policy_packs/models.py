@@ -806,7 +806,7 @@ class PolicyEvaluationReportPackageRequest(BaseModel):
         default=False,
         description=(
             "Whether the caller is requesting client-ready document release. This remains blocked "
-            "until later RFC-0025 and RFC-0028 client-ready gates are implemented."
+            "by the RFC-0025 and RFC-0028 client-ready publication controls."
         ),
         examples=[False],
     )

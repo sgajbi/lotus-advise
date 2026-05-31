@@ -67,7 +67,7 @@ class AdvisoryCopilotRunRecord(BaseModel):
     )
     client_ready_publication: CopilotClientReadyPosture = Field(
         default="BLOCKED",
-        description="Client-ready publication posture; first-wave copilot output is blocked.",
+        description="Client-ready publication posture; supported copilot output is blocked.",
         examples=["BLOCKED"],
     )
     retention_class: CopilotRetentionClass = Field(

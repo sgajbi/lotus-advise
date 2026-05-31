@@ -33,7 +33,8 @@ from src.core.proposals.exceptions import (
     description=(
         "Lists RFC-0025 policy-pack versions and activation posture. Policy evaluation, "
         "Gateway-routed Workbench consumption, signed-off report-package handoff, and bounded AI "
-        "evidence are supported by later RFC-0025 slices; client-ready publication remains gated."
+        "evidence are supported by the current RFC-0025 implementation; client-ready publication "
+        "remains gated."
     ),
     responses={200: {"description": "Policy-pack catalog metadata returned."}},
 )
