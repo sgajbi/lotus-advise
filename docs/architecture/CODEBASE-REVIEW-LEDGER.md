@@ -8772,6 +8772,9 @@
 - Evidence:
   - Updated current RFC-0023/RFC-0024/RFC-0025/RFC-0026 source pages, RFC index source, and wiki
     RFC index source to route broader bank-demo/RFP proof to RFC-0028 supported claims.
+  - Removed stale RFC-0025 wording that described client-ready policy publication and external
+    client communication as blocked only until final closure, because final closure is complete and
+    those controls remain blocked unless a later source-owned RFC proves them.
   - Preserved the stronger blocked wording for client-ready publication, external communication,
     policy approval authority, OMS/order lifecycle, and execution/settlement claims.
   - Updated RFC-0024/RFC-0025 final-closure contract tests and added a public-doc vocabulary

@@ -1297,7 +1297,8 @@ Current boundary:
    by completed slices,
 3. `AdvisoryPolicyEvaluationRecord:v1` active data-product promotion, completed approval/waiver
    authority, completed sign-off authority, client-ready policy document publication, and external
-   client communication remain blocked until final closure or a later implementation RFC.
+   client communication remain blocked unless a later source-owned RFC implements and proves those
+   controls.
 
 ### Slice 16 - Final Closure
 

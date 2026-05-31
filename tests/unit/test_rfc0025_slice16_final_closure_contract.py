@@ -94,6 +94,9 @@ def test_rfc0025_slice16_promotes_active_policy_data_product_truth() -> None:
     assert "full RFC-0028 bank-demo/RFP package claims remain gated" not in _read(
         "docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md"
     )
+    assert "remain blocked until final closure" not in _read(
+        "docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md"
+    )
 
     assert "advisory.proposals.policy_evaluation" in capabilities
     assert "advisory_policy_evaluation" in capabilities
