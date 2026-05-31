@@ -8846,6 +8846,35 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-357
+
+- Scope: RFC-0028 backend proof capture source artifact refs
+- Pattern: Repeatable proof automation should load absolute local evidence without recording
+  absolute paths in proof metadata
+- Status: Hardened
+- Finding Class: Automation repeatability and artifact hygiene
+- Summary: `scripts/capture_rfc0028_backend_proof.py` could load a live-suite result or bundle by
+  absolute path, but `load_or_run_live_suite` returned that absolute path as the metadata
+  reference. The RFC-0028 proof metadata correctly rejects absolute artifact refs, so absolute
+  source paths caused an avoidable capture failure instead of safely omitting local-only source
+  references.
+- Evidence:
+  - Added `local_artifact_ref_for_path` to record repo-relative live-suite source refs when the
+    source is under the current workspace.
+  - External absolute source paths are still loaded but return `None` for metadata refs, avoiding
+    local path leakage and satisfying proof-model validation.
+  - Added script tests for external absolute inputs and repo-relative source refs.
+  - Focused `ruff`, format, `mypy`, and RFC-0028 capture-script tests passed with 8 tests.
+- Consequence:
+  - RFC-0028 proof capture is more repeatable for local operators and CI jobs that provide
+    absolute source paths, without weakening artifact-reference hygiene.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the documented command
+    behavior is unchanged and safer.
+- Follow-Up:
+  - Keep proof metadata refs relative and sanitized; local absolute paths should remain loader-only
+    inputs, not proof-pack output.
+
 ## LA-REV-356
 
 - Scope: RFC-0028 proof-pack request validation redaction coverage

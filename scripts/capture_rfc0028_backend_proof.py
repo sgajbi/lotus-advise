@@ -6,6 +6,7 @@ import subprocess
 import sys
 import uuid
 from pathlib import Path
+from typing import cast
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -24,8 +25,8 @@ from scripts.rfc0028_runtime_probe import (  # noqa: E402
 from src.core.bank_demo_proof import (  # noqa: E402
     build_backend_proof_capture,
     default_capture_metadata,
-    normalize_output_ref_prefix,
 )
+from src.core.bank_demo_proof.artifact_refs import normalize_output_ref_prefix  # noqa: E402
 
 _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
 _DEFAULT_SERVICE_VERSION = "0.1.0"
@@ -145,10 +146,10 @@ def main() -> None:
 
 def _artifact_ref_prefix_for(output_dir: Path, configured_prefix: str | None) -> str:
     if configured_prefix is not None:
-        return normalize_output_ref_prefix(configured_prefix)
+        return cast(str, normalize_output_ref_prefix(configured_prefix))
     output_ref = display_path(output_dir)
     try:
-        return normalize_output_ref_prefix(output_ref)
+        return cast(str, normalize_output_ref_prefix(output_ref))
     except ValueError:
         return _DEFAULT_OUTPUT_DIR
 

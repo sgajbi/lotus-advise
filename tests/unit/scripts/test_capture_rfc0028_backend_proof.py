@@ -204,7 +204,7 @@ def test_live_suite_source_loads_existing_result_json(tmp_path) -> None:
     )
 
     assert payload == {"parity": {"status": "ready"}}
-    assert result_ref == result_path.as_posix()
+    assert result_ref is None
     assert bundle_ref is None
 
 
@@ -226,8 +226,27 @@ def test_live_suite_source_resolves_latest_existing_bundle(tmp_path) -> None:
     )
 
     assert payload == {"run": "newer"}
-    assert result_ref == (newer / "result.json").as_posix()
-    assert bundle_ref == newer.as_posix()
+    assert result_ref is None
+    assert bundle_ref is None
+
+
+def test_live_suite_source_records_repo_relative_artifact_refs(tmp_path, monkeypatch) -> None:
+    result_path = tmp_path / "output" / "live-runtime-suite" / "result.json"
+    result_path.parent.mkdir(parents=True)
+    result_path.write_text(json.dumps({"run": "repo-relative"}), encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    payload, result_ref, bundle_ref = load_or_run_live_suite(
+        live_suite_json="output/live-runtime-suite/result.json",
+        live_suite_bundle=None,
+        run_live_suite=False,
+        skip_degraded=False,
+        output_dir=tmp_path / "proof",
+    )
+
+    assert payload == {"run": "repo-relative"}
+    assert result_ref == "output/live-runtime-suite/result.json"
+    assert bundle_ref is None
 
 
 def test_live_suite_source_requires_repeatable_source(tmp_path) -> None:
