@@ -168,7 +168,7 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
             reason={"business_reason": "Prepare advisor copilot review."},
         ),
         proposal_repository=proposal_repository,
-        correlation_id="corr_projection_001",
+        correlation_id="  corr_projection_001  ",
     )
 
     assert loader_calls == [{"evaluation_status": None, "portfolio_id": "PB_SG_GLOBAL_BAL_001"}]
@@ -214,7 +214,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
             user_instruction="Summarize the advisory evidence for internal review.",
         ),
         idempotency_key="  copilot-action-idem-001  ",
-        correlation_id="corr_action_001",
+        correlation_id="  corr_action_001  ",
     )
     replay = service.run_action(
         payload=AdvisoryCopilotActionRequest(
@@ -258,6 +258,33 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
     assert first.run.request_summary_json["user_instruction_hash"].startswith("sha256:")
     assert "user_instruction" not in first.run.request_summary_json
     assert "Summarize the advisory evidence" not in str(first.run.model_dump(mode="json"))
+
+
+def test_application_service_uses_deterministic_correlation_fallback_for_blank_values() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    packet = service.create_evidence_packet(
+        payload=_evidence_packet_request(),
+        correlation_id="   ",
+    )
+    run = service.run_action(
+        payload=AdvisoryCopilotActionRequest(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            audience="ADVISOR",
+            requested_outputs=("advisor_review_summary",),
+            requested_by="advisor_123",
+            reason={"business_reason": "Prepare advisor review."},
+        ),
+        idempotency_key=None,
+        correlation_id="   ",
+    )
+
+    assert packet.record.correlation_id == "corr-copilot_packet_pb_sg_001"
+    assert run.run.correlation_id == "corr-copilot_packet_pb_sg_001"
 
 
 def test_application_service_refreshes_retryable_unavailable_copilot_run() -> None:

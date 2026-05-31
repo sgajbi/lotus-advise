@@ -146,7 +146,7 @@ def test_advisory_copilot_evidence_packet_create_and_read(
         created = client.post(
             "/advisory/copilot/evidence-packets",
             json=_evidence_packet_payload(),
-            headers={"X-Correlation-ID": "corr_packet_001"},
+            headers={"X-Correlation-ID": "  corr_packet_001  "},
         )
         read = client.get("/advisory/copilot/evidence-packets/copilot_packet_pb_sg_001")
 
@@ -345,7 +345,7 @@ def test_advisory_copilot_action_persists_review_gated_run(
             },
             headers={
                 "Idempotency-Key": "copilot-action-idem-001",
-                "X-Correlation-ID": "corr_action_001",
+                "X-Correlation-ID": "  corr_action_001  ",
             },
         )
         replay = client.post(
@@ -372,6 +372,7 @@ def test_advisory_copilot_action_persists_review_gated_run(
     assert replay.status_code == 200
     assert replay.json()["replayed"] is True
     assert read.json()["run"]["review_posture"] == "REVIEW_REQUIRED"
+    assert read.json()["run"]["correlation_id"] == "corr_action_001"
     assert read.json()["reviews"] == []
     assert version_runs.json()["items"][0]["run_id"] == run_id
     assert "Summarize the advisory evidence" not in str(read.json())
@@ -499,7 +500,10 @@ def test_advisory_copilot_review_api_is_idempotent(
                 "actor_id": "supervisor_123",
                 "reason": {"decision": "Reviewed against cited source evidence."},
             },
-            headers={"Idempotency-Key": "copilot-review-idem-001"},
+            headers={
+                "Idempotency-Key": "copilot-review-idem-001",
+                "X-Correlation-ID": "  corr_review_001  ",
+            },
         )
         replay = client.post(
             f"/advisory/copilot/actions/{run['run_id']}/reviews",
@@ -524,6 +528,7 @@ def test_advisory_copilot_review_api_is_idempotent(
     assert replay.status_code == 200
     assert replay.json()["replayed"] is True
     assert first.json()["review"]["actor_id"] == "supervisor_123"
+    assert first.json()["review"]["correlation_id"] == "corr_review_001"
     assert first.json()["run"]["review_posture"] == "APPROVED_FOR_INTERNAL_USE"
     assert blank_actor.status_code == 422
 

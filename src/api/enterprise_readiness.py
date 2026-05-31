@@ -7,6 +7,8 @@ from typing import Any, Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+from src.core.proposals.correlation import normalize_optional_correlation_id
+
 logger = logging.getLogger("enterprise_readiness")
 MiddlewareNext = Callable[[Request], Awaitable[Response]]
 MiddlewareCallable = Callable[[Request, MiddlewareNext], Awaitable[Response]]
@@ -228,6 +230,7 @@ def emit_audit_event(
     correlation_id: str | None,
     metadata: dict[str, Any],
 ) -> None:
+    normalized_correlation_id = normalize_optional_correlation_id(correlation_id)
     logger.info(
         "enterprise_audit_event",
         extra={
@@ -237,7 +240,7 @@ def emit_audit_event(
                 "actor_id": actor_id,
                 "tenant_id": tenant_id,
                 "role": role,
-                "correlation_id": correlation_id or "",
+                "correlation_id": normalized_correlation_id or "",
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "policy_version": enterprise_policy_version(),
                 "metadata": redact_sensitive(metadata),

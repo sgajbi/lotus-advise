@@ -5604,3 +5604,31 @@
     posture or operator workflow change.
 - Follow-Up:
   - None.
+
+## LA-REV-212
+
+- Scope: RFC-0027 correlation-id normalization across copilot and audit boundaries
+- Pattern: audit lineage, API boundary hygiene, and observability consistency
+- Status: Hardened
+- Finding Class: API validation and audit hygiene gap
+- Summary: Advisory copilot application methods and enterprise audit emission accepted raw
+  correlation ids even though request observability already normalized response headers. Padded
+  `X-Correlation-ID` values could therefore leak into persisted copilot lineage or enterprise
+  audit records, while blank values did not consistently fall back to the deterministic copilot
+  correlation identifiers used by replayable workflows.
+- Evidence:
+  - `src/core/proposals/correlation.py` now exposes reusable optional correlation-id
+    normalization while preserving generated fallback behavior for observability.
+  - `src/core/advisory_copilot/application.py` now normalizes optional correlation ids and keeps
+    deterministic fallback ids for packet, run, and review persistence.
+  - `src/api/enterprise_readiness.py` now normalizes correlation ids before audit emission.
+  - Focused correlation, copilot application/API, observability, and enterprise-readiness tests
+    passed with `32 passed`.
+- Consequence:
+  - Persisted copilot lineage and enterprise audit records no longer carry padded correlation
+    identifiers, and blank inbound values use governed fallbacks instead of dirty audit values.
+- Documentation:
+  - No wiki source change is required. This is audit-lineage and boundary normalization hardening
+    with no product posture or operator workflow change.
+- Follow-Up:
+  - None.

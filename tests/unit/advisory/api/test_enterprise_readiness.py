@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from src.api.enterprise_readiness import (
     authorize_write_request,
+    emit_audit_event,
     redact_sensitive,
     validate_enterprise_runtime_config,
 )
@@ -206,3 +209,18 @@ def test_redact_sensitive_does_not_mutate_original_metadata() -> None:
         "token": "token-value",
         "nested": {"client_email": "client@example.invalid"},
     }
+
+
+def test_emit_audit_event_normalizes_correlation_id(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="enterprise_readiness")
+
+    emit_audit_event(
+        action="POST /advisory/proposals",
+        actor_id="advisor-sg-001",
+        tenant_id="tenant-sg-001",
+        role="ADVISOR",
+        correlation_id="  corr-001  ",
+        metadata={"business_reason": "Prepare advisor review."},
+    )
+
+    assert caplog.records[-1].audit["correlation_id"] == "corr-001"
