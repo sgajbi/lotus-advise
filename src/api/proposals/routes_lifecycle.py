@@ -4,6 +4,7 @@ from typing import Annotated, Optional
 from fastapi import Depends, Header, Path, Query, status
 
 import src.api.proposals.router as shared
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.proposals import (
@@ -48,7 +49,7 @@ from src.core.proposals.models import (
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused with a different proposal-create payload."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "Proposal input failed validation or required stateful context could not be "
                 "resolved."
@@ -224,9 +225,7 @@ def get_proposal_version(
     responses={
         status.HTTP_404_NOT_FOUND: {"description": "Proposal was not found."},
         status.HTTP_409_CONFLICT: {"description": "Expected current version check failed."},
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
-            "description": "Proposal version input failed validation."
-        },
+        HTTP_422_UNPROCESSABLE: {"description": "Proposal version input failed validation."},
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": "Proposal runtime persistence is unavailable or misconfigured."
         },
@@ -360,7 +359,7 @@ def record_proposal_approval(
         status.HTTP_404_NOT_FOUND: {
             "description": "Proposal or immutable proposal version was not found."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": "The proposal version has no persisted `proposal_narrative`."
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
@@ -406,7 +405,7 @@ def regenerate_proposal_narrative(
         status.HTTP_404_NOT_FOUND: {
             "description": "Proposal or immutable proposal version was not found."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": "The proposal version has no persisted `proposal_narrative`."
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
@@ -450,7 +449,7 @@ def get_proposal_narrative(
         status.HTTP_409_CONFLICT: {
             "description": ("Idempotency key was reused with a different narrative review payload.")
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "The proposal version has no reviewable `proposal_narrative`, or the review "
                 "request is invalid."

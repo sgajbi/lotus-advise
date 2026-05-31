@@ -4,6 +4,7 @@ from typing import Annotated, cast
 
 from fastapi import Depends, Header, Path, Query, status
 
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals import router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.advisor_cockpit import (
@@ -29,7 +30,7 @@ ADVISOR_COCKPIT_READ_RESPONSES = {
     status.HTTP_404_NOT_FOUND: {
         "description": "Advisor cockpit action item was not found for the supplied scope."
     },
-    status.HTTP_422_UNPROCESSABLE_ENTITY: {
+    HTTP_422_UNPROCESSABLE: {
         "description": "Advisor cockpit request failed validation, including invalid cursors."
     },
 }

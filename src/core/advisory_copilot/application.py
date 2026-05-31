@@ -19,6 +19,7 @@ from src.core.advisory_copilot.models import CopilotAudience, CopilotEvidencePac
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.advisory_copilot.service import (
+    build_advisory_copilot_run_request_hash,
     list_advisory_copilot_reviews,
     load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
@@ -161,6 +162,26 @@ class AdvisoryCopilotApplicationService:
             repository=self._repository,
             evidence_packet_id=payload.evidence_packet_id,
         )
+        if idempotency_key:
+            request_hash = build_advisory_copilot_run_request_hash(
+                evidence_packet=evidence_packet,
+                audience=payload.audience,
+                requested_outputs=payload.requested_outputs,
+                requested_by=payload.requested_by,
+                reason=payload.reason,
+                requested_intents=payload.requested_intents,
+                user_instruction=payload.user_instruction,
+            )
+            existing_idempotency = self._repository.get_run_idempotency(
+                idempotency_key=idempotency_key
+            )
+            if existing_idempotency is not None:
+                if existing_idempotency.request_hash != request_hash:
+                    raise ValueError("COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT")
+                existing_run = self._repository.get_run(run_id=existing_idempotency.run_id)
+                if existing_run is None:
+                    raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
+                return AdvisoryCopilotRunResponse(run=existing_run, replayed=True)
         draft = self._draft_generator(
             evidence_packet=evidence_packet,
             audience=payload.audience,

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Header, Path, status
 
 import src.api.proposals.router as shared
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.policy_packs import (
     PolicyPackActivationRequest,
@@ -89,9 +90,7 @@ def get_advisory_policy_pack_version(
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused for a different validation request."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
-            "description": "Policy-pack validation failed with diagnostics."
-        },
+        HTTP_422_UNPROCESSABLE: {"description": "Policy-pack validation failed with diagnostics."},
     },
 )
 def validate_advisory_policy_pack_version(
@@ -146,7 +145,7 @@ def validate_advisory_policy_pack_version(
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused for a different activation request."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "Activation failed because validation is missing, hash mismatched, maker-checker "
                 "control failed, or the version is already active and immutable."

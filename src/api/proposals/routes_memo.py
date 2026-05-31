@@ -4,6 +4,7 @@ from typing import Annotated, Optional
 from fastapi import Depends, Header, HTTPException, Path, Query, status
 
 import src.api.proposals.router as shared
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.proposals import (
     ProposalMemoAiCommentaryRequest,
@@ -59,7 +60,7 @@ from src.integrations.lotus_report import LotusReportUnavailableError
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused with a different memo-create payload."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "Memo creation failed validation or finalization is blocked by "
                 "source-readiness posture."
@@ -225,7 +226,7 @@ def get_proposal_memo_projection(
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused with a different memo-review payload."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "Review request is invalid, stale, or attempts unsupported client-ready release."
             )
@@ -296,7 +297,7 @@ def review_proposal_memo(
                 "Idempotency key was reused with a different report-package event payload."
             )
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": "Report-package event is invalid or references a stale memo hash."
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
@@ -367,7 +368,7 @@ def record_proposal_memo_report_package_event(
                 "Idempotency key was reused with a different report-package request payload."
             )
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "Report-package request is invalid, references a stale memo hash, lacks "
                 "advisor-use review, or attempts client-ready document release."
@@ -445,7 +446,7 @@ def request_proposal_memo_report_package(
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused with a different AI commentary payload."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "AI commentary request is invalid, references a stale memo hash, or lacks "
                 "advisor-use review."

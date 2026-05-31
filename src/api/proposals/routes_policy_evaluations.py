@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Header, HTTPException, Path, Query, status
 
 import src.api.proposals.router as shared
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.policy_packs import (
     PolicyEvaluationAiEvidenceRequest,
@@ -60,7 +61,7 @@ from src.integrations.lotus_report import LotusReportUnavailableError
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused for a different evaluation request."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": "Policy pack is inactive, not applicable, or source evidence is invalid."
         },
     },
@@ -339,7 +340,7 @@ def read_policy_evaluation_workflow(
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused for a different sign-off decision."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "Sign-off is blocked by stale hash, maker-checker, unresolved requirement, "
                 "blocked evaluation, or unresolved conflict posture."
@@ -393,7 +394,7 @@ def record_policy_sign_off_decision(
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused with a different report-package request."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "Report package is blocked by stale hash, missing sign-off, unresolved "
                 "requirements, unsupported output formats, or client-ready document request."
@@ -457,7 +458,7 @@ def request_policy_report_package(
         status.HTTP_409_CONFLICT: {
             "description": "Idempotency key was reused with a different AI evidence request."
         },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        HTTP_422_UNPROCESSABLE: {
             "description": (
                 "AI evidence request is blocked by stale hash, missing action, forbidden action, "
                 "or unsupported claim request."
