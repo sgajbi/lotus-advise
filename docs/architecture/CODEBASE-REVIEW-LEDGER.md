@@ -8846,6 +8846,33 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-366
+
+- Scope: RFC-0026 memo/report cockpit action mapping
+- Pattern: Memo packaging and report/render/archive readiness actions should live in a
+  reporting-focused module because they carry downstream document-boundary semantics
+- Status: Hardened
+- Finding Class: Modularity and downstream integration clarity
+- Summary: Memo package blockage and report/render/archive readiness construction remained in the
+  broad cockpit action factory after advisor, approval, and execution actions were split. These
+  actions share the report-package/document-readiness boundary and should be audited together.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_reporting.py` for memo package and
+    report/render/archive action builders.
+  - Preserved source refs, lineage refs, source-readiness gaps, client-ready blocked posture, and
+    public imports.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    16 tests.
+- Consequence:
+  - RFC-0026 report-package action behavior is easier to extend without mixing document-readiness
+    rules into generic or unrelated source-family construction.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep report/render/archive readiness actions aligned with source-owned memo/report evidence and
+    do not promote client-ready publication from cockpit action state alone.
+
 ## LA-REV-365
 
 - Scope: RFC-0026 advisor cockpit initial SLA-band derivation
