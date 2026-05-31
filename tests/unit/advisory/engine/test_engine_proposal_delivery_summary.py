@@ -81,6 +81,28 @@ def test_delivery_summary_uses_latest_execution_status_with_handoff_context():
     }
 
 
+def test_delivery_summary_handles_execution_status_without_requested_event():
+    executed = _event(
+        "EXECUTED",
+        reason_json={"external_execution_id": "fill_direct_001"},
+        occurred_at=datetime(2026, 5, 20, 10, 30, tzinfo=timezone.utc),
+    )
+
+    summary = build_delivery_summary_from_events([executed])
+
+    assert summary["execution"] == {
+        "handoff_status": "EXECUTED",
+        "execution_request_id": None,
+        "execution_provider": None,
+        "related_version_no": 1,
+        "handoff_requested_at": None,
+        "executed_at": "2026-05-20T10:30:00+00:00",
+        "latest_event_type": "EXECUTED",
+        "external_execution_id": "fill_direct_001",
+        "execution_ownership": execution_ownership_boundary(),
+    }
+
+
 def test_delivery_summary_preserves_report_request_projection():
     report = _event(
         "REPORT_REQUESTED",

@@ -5148,3 +5148,28 @@
 - Follow-Up:
   - Keep async runner no-work, terminal, exhausted, retryable, and failed paths directly tested as
     lifecycle behavior evolves.
+
+## LA-REV-195
+
+- Scope: Proposal delivery execution projection guard
+- Pattern: delivery projection and optimized-runtime safety
+- Status: Hardened
+- Finding Class: validation and reliability gap
+- Summary: Delivery summary projection relied on an `assert` after selecting the latest execution
+  status event or execution-request event. While normal control flow made the assertion redundant,
+  optimized Python can remove it and the status-without-request behavior was not directly pinned.
+- Evidence:
+  - `src/core/proposals/delivery_summary.py` now guards the selected execution event explicitly
+    instead of relying on assertion behavior.
+  - `tests/unit/advisory/engine/test_engine_proposal_delivery_summary.py` covers projecting an
+    execution status event when no execution-request event is present.
+- Consequence:
+  - Delivery summary projection remains deterministic for partial event histories and no longer
+    depends on Python assertion settings.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal delivery projection behavior
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep delivery projection tests focused on partial histories because report, execution, and
+    archive events can arrive from independent downstream services.
