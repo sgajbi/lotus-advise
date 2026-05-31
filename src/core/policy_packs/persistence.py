@@ -34,10 +34,6 @@ from src.core.proposals.idempotency_validation import require_proposal_idempoten
 _PERSISTENCE_CONTRACT_VERSION = POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION
 
 
-def _required_idempotency_key(idempotency_key: str | None) -> str:
-    return require_proposal_idempotency_key(idempotency_key)
-
-
 def finalize_policy_evaluation_record(
     *,
     evidence_bundle: dict[str, Any],
@@ -49,7 +45,7 @@ def finalize_policy_evaluation_record(
     idempotency_key: str,
     reason: dict[str, Any] | None = None,
 ) -> PolicyEvaluationPersistenceResult:
-    idempotency_key = _required_idempotency_key(idempotency_key)
+    idempotency_key = require_proposal_idempotency_key(idempotency_key)
     return _STORE.finalize_policy_evaluation_record(
         evidence_bundle=evidence_bundle,
         policy_pack_id=policy_pack_id,

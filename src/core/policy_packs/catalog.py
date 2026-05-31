@@ -29,10 +29,6 @@ _CATALOG_CONTRACT_VERSION = POLICY_CATALOG_CONTRACT_VERSION
 _REFERENCE_POSTURE = REFERENCE_POLICY_PACK_POSTURE
 
 
-def _required_idempotency_key(idempotency_key: str | None) -> str:
-    return require_proposal_idempotency_key(idempotency_key)
-
-
 def list_policy_pack_versions() -> PolicyPackListResponse:
     return _STORE.list_policy_pack_versions()
 
@@ -54,7 +50,7 @@ def validate_policy_pack_version(
     idempotency_key: str,
     reason: dict[str, Any],
 ) -> PolicyPackValidationResponse:
-    idempotency_key = _required_idempotency_key(idempotency_key)
+    idempotency_key = require_proposal_idempotency_key(idempotency_key)
     return _STORE.validate_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
@@ -73,7 +69,7 @@ def activate_policy_pack_version(
     idempotency_key: str,
     reason: dict[str, Any],
 ) -> PolicyPackActivationResponse:
-    idempotency_key = _required_idempotency_key(idempotency_key)
+    idempotency_key = require_proposal_idempotency_key(idempotency_key)
     return _STORE.activate_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
