@@ -15,6 +15,7 @@ from src.core.advisory_copilot import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "advisory-copilot-lotus-ai-adapter.v1"
@@ -243,10 +244,10 @@ def _build_workflow_pack_request(
 
 
 def _resolve_base_url() -> str:
-    base_url = os.getenv("LOTUS_AI_BASE_URL", "").strip()
-    if not base_url:
-        raise LotusAIAdvisoryCopilotUnavailableError("LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE")
-    return base_url.rstrip("/")
+    return resolve_lotus_ai_base_url(
+        unavailable_error_type=LotusAIAdvisoryCopilotUnavailableError,
+        unavailable_message="LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+    )
 
 
 def _resolve_timeout() -> httpx.Timeout:
@@ -344,20 +345,24 @@ def _build_lineage(
 
 def _proposal_version_id(evidence_packet: CopilotEvidencePacket) -> str | None:
     for lineage_ref in evidence_packet.lineage_refs:
+        lineage_id = lineage_ref.lineage_id
         if (
             lineage_ref.source_system == "lotus-advise"
             and lineage_ref.lineage_type == "PROPOSAL_VERSION"
-            and lineage_ref.lineage_id
+            and isinstance(lineage_id, str)
+            and lineage_id
         ):
-            return lineage_ref.lineage_id
+            return lineage_id
     for section in evidence_packet.sections:
         for source_ref in section.source_refs:
+            source_id = source_ref.source_id
             if (
                 source_ref.source_system == "lotus-advise"
                 and source_ref.source_type == "PROPOSAL_VERSION"
-                and source_ref.source_id
+                and isinstance(source_id, str)
+                and source_id
             ):
-                return source_ref.source_id
+                return source_id
     return None
 
 
@@ -375,12 +380,18 @@ def _proposal_version_no(evidence_packet: CopilotEvidencePacket) -> int | None:
 def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:
     workflow_pack_run = _safe_dict(payload.get("workflow_pack_run"))
     run_id = workflow_pack_run.get("run_id")
-    return run_id.strip() if isinstance(run_id, str) and run_id.strip() else None
+    if not isinstance(run_id, str):
+        return None
+    stripped = run_id.strip()
+    return stripped or None
 
 
 def _extract_model_version(result: dict[str, Any]) -> str | None:
     value = result.get("model_version")
-    return value.strip() if isinstance(value, str) and value.strip() else None
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    return stripped or None
 
 
 def _extract_detail(payload: dict[str, Any]) -> str:

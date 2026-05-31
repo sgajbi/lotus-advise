@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "proposal-memo-commentary-lotus-ai-adapter.v1"
@@ -146,10 +147,10 @@ def _build_workflow_pack_request(
 
 
 def _resolve_base_url() -> str:
-    base_url = os.getenv("LOTUS_AI_BASE_URL", "").strip()
-    if not base_url:
-        raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
-    return base_url.rstrip("/")
+    return resolve_lotus_ai_base_url(
+        unavailable_error_type=LotusAIProposalMemoUnavailableError,
+        unavailable_message="LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE",
+    )
 
 
 def _resolve_timeout() -> httpx.Timeout:

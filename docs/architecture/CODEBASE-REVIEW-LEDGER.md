@@ -5757,3 +5757,32 @@
     feature posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-218
+
+- Scope: Lotus AI adapter base URL sanitization
+- Pattern: sensitive configuration handling, duplicate integration setup, and fail-closed adapter
+  configuration
+- Status: Hardened
+- Finding Class: security and maintainability gap
+- Summary: The Lotus AI adapters resolved `LOTUS_AI_BASE_URL` independently across proposal
+  narrative, proposal memo commentary, policy evidence, workspace rationale, and advisory copilot
+  paths. The duplicated parsing accepted raw configured URLs, which made it easier for
+  credential-bearing URLs, query tokens, fragments, or unsupported schemes to leak into workflow
+  pack calls.
+- Evidence:
+  - `src/integrations/lotus_ai/runtime_config.py` centralizes Lotus AI base URL resolution through
+    the shared sanitized HTTP URL helper.
+  - The five Lotus AI workflow-pack adapters now use the shared resolver instead of local
+    environment parsing.
+  - `tests/unit/advisory/api/test_lotus_ai_runtime_config.py` proves every adapter strips
+    credentials, query strings, and fragments while rejecting invalid schemes with the
+    adapter-specific unavailable error.
+- Consequence:
+  - AI-assisted advisory paths now fail closed on invalid runtime configuration and no longer
+    propagate embedded URL secrets through workflow-pack endpoints.
+- Documentation:
+  - No wiki source change is required. This is runtime configuration hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
