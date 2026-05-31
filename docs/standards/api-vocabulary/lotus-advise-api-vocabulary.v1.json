@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-31T11:32:09.025212+00:00",
+  "generatedAt": "2026-05-31T13:08:02.284041+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -11262,7 +11262,7 @@
       "semanticId": "lotus.uri",
       "canonicalTerm": "uri",
       "preferredName": "uri",
-      "description": "URI or local output path for the asset.",
+      "description": "Relative committed or local output path for the asset.",
       "example": "example_uri",
       "type": "string",
       "locations": [

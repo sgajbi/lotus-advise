@@ -21,6 +21,7 @@ from src.core.bank_demo_proof import (
     SupportedClaim,
     SupportedClaimProofRequirement,
 )
+from src.core.common.canonical import hash_canonical_payload
 
 
 def _proof_requirement() -> SupportedClaimProofRequirement:
@@ -218,7 +219,7 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
                 access_class="COMMIT_SAFE_SUMMARY",
                 retention_class="COMMIT_SOURCE",
                 evidence_refs=["advisor_journey_supported"],
-                content_hash="sha256:summary",
+                content_hash=hash_canonical_payload({"asset": "summary"}),
                 commit_allowed=True,
             )
         ],
@@ -242,6 +243,37 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
             access_class="LOCAL_ONLY_RUNTIME_EVIDENCE",
             retention_class="LOCAL_EVIDENCE_BUNDLE",
             commit_allowed=True,
+        )
+
+    with pytest.raises(ValidationError, match="must not include URL"):
+        ProofAsset(
+            asset_id="unsafe_uri",
+            asset_type="LOCAL_RUNTIME_BUNDLE",
+            source_repository="lotus-advise",
+            uri="output/rfc0028/raw-runtime.json?token=should-not-leak",
+            access_class="LOCAL_ONLY_RUNTIME_EVIDENCE",
+            retention_class="LOCAL_EVIDENCE_BUNDLE",
+            commit_allowed=False,
+        )
+
+    with pytest.raises(ValidationError, match="canonical sha256 digest"):
+        ProofAsset(
+            asset_id="bad_hash",
+            asset_type="API_RESPONSE_SUMMARY",
+            source_repository="lotus-advise",
+            uri="output/rfc0028/summary.json",
+            access_class="COMMIT_SAFE_SUMMARY",
+            retention_class="LOCAL_EVIDENCE_BUNDLE",
+            content_hash="sha256:not-real",
+            commit_allowed=False,
+        )
+
+    with pytest.raises(ValidationError, match="repository sha cannot contain sensitive"):
+        AdvisoryBankDemoProofPack(
+            **{
+                **proof_pack.model_dump(),
+                "repository_shas": {"lotus-advise": "token=should-not-leak"},
+            }
         )
 
     with pytest.raises(ValidationError, match="CLIENT_READY_APPROVED"):

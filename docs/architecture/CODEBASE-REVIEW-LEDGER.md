@@ -6611,3 +6611,28 @@
     semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-253
+
+- Scope: RFC-0028 proof-pack asset index model
+- Pattern: proof asset sanitization, canonical hash validation, proof-pack metadata bounds
+- Status: Hardened
+- Finding Class: validation and security risk
+- Summary: RFC-0028 proof-pack capture sanitized API request artifact references, but direct
+  proof-pack and proof-asset model construction still accepted unsafe artifact paths, non-canonical
+  content hashes, unbounded proof asset collections, and sensitive repository metadata.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now bounds proof-pack identifiers, repository evidence,
+    evidence/source-product reference lists, proof asset indexes, asset URIs, evidence refs, and
+    content hashes at the domain model boundary.
+  - Model tests prove URL/query artifact references, invalid content hashes, and sensitive
+    repository SHA metadata are rejected before proof packs can be serialized for Gateway,
+    Workbench, wiki, RFP, or commercial-material use.
+- Consequence:
+  - RFC-0028 proof-pack material now has a second line of defense below the API request model, so
+    automation and future internal callers cannot bypass artifact and metadata hygiene controls.
+- Documentation:
+  - No wiki source change is required. This is source-level hardening for the existing RFC-0028
+    proof-pack contract.
+- Follow-Up:
+  - None.
