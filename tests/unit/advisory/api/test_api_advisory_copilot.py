@@ -318,7 +318,7 @@ def test_advisory_copilot_action_persists_review_gated_run(
                 "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
                 "workflow_pack_version": "v1",
                 "workflow_run_id": "packrun_copilot_001",
-                "model_version": "stub-advisory-copilot-v1",
+                "model_version": "lotus-ai-governed-model.v1",
                 "prompt_template_version": "advisory-copilot-prompt-template.v1",
                 "output_schema_version": "advisory-copilot-output-schema.v1",
                 "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",

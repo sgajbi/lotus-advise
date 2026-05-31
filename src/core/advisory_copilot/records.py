@@ -121,7 +121,7 @@ class AdvisoryCopilotRunRecord(BaseModel):
     lotus_ai_model_version: str | None = Field(
         default=None,
         description="Model or provider version reported by lotus-ai when available.",
-        examples=["stub-advisory-copilot-v1"],
+        examples=["lotus-ai-governed-model.v1"],
     )
     workflow_pack_id: str = Field(
         description="Approved lotus-ai workflow-pack identifier used for the run.",

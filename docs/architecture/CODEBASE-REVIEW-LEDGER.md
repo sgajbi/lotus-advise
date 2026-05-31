@@ -5418,3 +5418,26 @@
     before merge and `-Publish` after merge to `main`.
 - Follow-Up:
   - None.
+
+## LA-REV-205
+
+- Scope: Advisory copilot model-version vocabulary
+- Pattern: private-banking API copy and model lineage hardening
+- Status: Hardened
+- Finding Class: documentation/API example quality gap
+- Summary: Advisory copilot model-version examples and tests used `stub-advisory-copilot-v1`.
+  That leaked test/prototype language into model lineage examples and weakened the business-facing
+  polish expected for governed AI evidence.
+- Evidence:
+  - `src/core/advisory_copilot/records.py` now uses `lotus-ai-governed-model.v1` as the model
+    lineage example.
+  - Advisory copilot API, application, and persistence tests now use the same governed model
+    vocabulary.
+  - Focused copilot API/application/persistence tests, ruff, and mypy passed.
+- Consequence:
+  - RFC 27 copilot API/model examples now read as governed product lineage instead of prototype
+    scaffolding, without changing runtime behavior or evidence semantics.
+- Documentation:
+  - No wiki source change is required. This slice improves API/model example vocabulary only.
+- Follow-Up:
+  - None.

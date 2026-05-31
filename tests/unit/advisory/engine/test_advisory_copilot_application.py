@@ -124,7 +124,7 @@ def _draft_generator(**kwargs: Any) -> AdvisoryCopilotAiDraft:
         "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
         "workflow_pack_version": "v1",
         "workflow_run_id": "packrun_copilot_001",
-        "model_version": "stub-advisory-copilot-v1",
+        "model_version": "lotus-ai-governed-model.v1",
         "proposal_version_id": "version_sg_001",
     }
     return AdvisoryCopilotAiDraft(
