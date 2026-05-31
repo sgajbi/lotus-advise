@@ -31,7 +31,7 @@ Caller-role projection is enforced in the Advise service before pagination:
 
 1. `ADVISOR` and `DESK_HEAD` views keep the full portfolio-scoped blocker set visible so advisors
    can see external-owner blockers without completing them locally.
-2. `COMPLIANCE_REVIEWER`, `INVESTMENT_DESK`, `OPERATIONS`, `DPM_OWNER`, and other non-advisor
+2. `COMPLIANCE_REVIEWER`, `INVESTMENT_DESK`, `OPERATIONS`, `PORTFOLIO_MANAGER`, and other non-advisor
    roles receive owner-role queues plus system posture items.
 3. A caller role cannot use the generic action list to retrieve another owner queue and then
    acknowledge the item as if it were advisor-owned.

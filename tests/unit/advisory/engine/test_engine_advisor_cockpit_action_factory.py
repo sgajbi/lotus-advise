@@ -308,7 +308,7 @@ def test_house_view_impact_action_requires_source_backed_cohort() -> None:
 
     assert action.action_family == "HOUSE_VIEW_IMPACT_REVIEW"
     assert action.status == "PENDING_REVIEW"
-    assert action.owner_role == "DPM_OWNER"
+    assert action.owner_role == "PORTFOLIO_MANAGER"
     assert action.next_required_action == (
         "Review the source-backed tactical house-view cohort before discretionary "
         "portfolio-management actioning."

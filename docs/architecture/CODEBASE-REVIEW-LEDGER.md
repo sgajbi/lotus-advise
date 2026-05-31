@@ -8433,8 +8433,8 @@
   - RFC-0026 Slice 16 proof language was updated from internal abbreviated wording to
     portfolio-manager / portfolio-management wording.
 - Follow-Up:
-  - Gateway and Workbench can migrate display logic to `owner_role_label` while continuing to pass
-    legacy role values until a coordinated public-contract migration removes them.
+  - Superseded by LA-REV-325, which removed the legacy owner-role value from the Advise source
+    contract after the surrounding RFC-0026/RFC-0028 proof boundary had stabilized.
 
 ## LA-REV-318
 
@@ -8625,3 +8625,29 @@
 - Follow-Up:
   - Keep baseline/audit sections in future RFCs clearly labeled once the RFC moves from planning to
     implemented closure.
+
+## LA-REV-325
+
+- Scope: RFC-0026 advisor cockpit owner-role vocabulary
+- Pattern: Product-facing cockpit contracts should use private-banking role language, not legacy
+  discretionary-portfolio-management abbreviations
+- Status: Hardened
+- Finding Class: Domain vocabulary and API quality
+- Summary: House-view impact actions used `DPM_OWNER` as the machine-readable owner role while
+  rendering "Portfolio manager" as the label. That leaked legacy/internal wording into the Advise
+  API contract and tests even though RFC-0026 current product language uses portfolio-management
+  boundaries.
+- Evidence:
+  - Replaced the house-view impact owner role with `PORTFOLIO_MANAGER`.
+  - Removed `DPM_OWNER` from the advisor-cockpit owner-role contract and entitlement projection.
+  - Updated API, service, action-factory, and RFC slice tests/docs to assert the private-banking
+    owner role.
+- Consequence:
+  - RFC-0026 cockpit contracts now use clean private-banking vocabulary for house-view impact
+    queues while preserving the `lotus-manage` source-of-record boundary.
+- Documentation:
+  - RFC-0026 slice docs changed. No wiki source change is required because current wiki pages
+    already use portfolio-management language rather than `DPM_OWNER`.
+- Follow-Up:
+  - Watch adjacent Gateway/Workbench refactors for any stale copied examples; Advise remains the
+    source-owned contract for the cleaned role.

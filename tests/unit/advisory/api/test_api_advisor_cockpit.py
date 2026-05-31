@@ -236,7 +236,7 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
     assert payload["total_count"] == 1
     action = payload["items"][0]
     assert action["action_family"] == "HOUSE_VIEW_IMPACT_REVIEW"
-    assert action["owner_role"] == "DPM_OWNER"
+    assert action["owner_role"] == "PORTFOLIO_MANAGER"
     assert action["owner_role_label"] == "Portfolio manager"
     assert action["evidence_refs"][0]["evidence_type"] == "TACTICAL_HOUSE_VIEW_COHORT"
     assert action["correlation_id"] == "corr-cockpit-house-view"

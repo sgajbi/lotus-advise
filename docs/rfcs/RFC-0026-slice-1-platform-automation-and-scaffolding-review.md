@@ -107,7 +107,7 @@ slices:
 
 1. creating first-class cockpit models instead of stretching proposal lifecycle responses,
 2. preserving source authority and source-readiness gaps without inventing missing client,
-   household, meeting, policy, memo, report, execution, or DPM facts,
+   household, meeting, policy, memo, report, execution, or discretionary portfolio-management facts,
 3. preventing premature cockpit data-product, Gateway, Workbench, demo, CRM, OMS, AI, and
    client-ready claims,
 4. keeping priority, SLA, and acknowledgement semantics backend-owned,

@@ -21,7 +21,7 @@ Implemented action families:
 | `REPORT_RENDER_ARCHIVE_BLOCKED` | Ready memo records missing report-package or archive refs | `REPORTING_OWNER` or `ARCHIVE_OWNER` | Does not claim completed report/render/archive or client-ready publication. |
 | `EXECUTION_HANDOFF_READY` | `EXECUTION_READY` proposals without execution request events | `EXECUTION_OWNER` | Does not claim OMS order lifecycle ownership. |
 | `EXECUTION_STATUS_ATTENTION` | Proposal execution workflow events | `EXECUTION_OWNER` | Renders downstream status without treating Advise as execution SOR. |
-| `HOUSE_VIEW_IMPACT_REVIEW` | Persisted `TacticalHouseViewAffectedCohort:v1` source-product evidence | `DPM_OWNER` | Does not infer house-view impacts without source cohort evidence. |
+| `HOUSE_VIEW_IMPACT_REVIEW` | Persisted `TacticalHouseViewAffectedCohort:v1` source-product evidence | `PORTFOLIO_MANAGER` | Does not infer house-view impacts without source cohort evidence. |
 
 ## Implementation Evidence
 
@@ -30,7 +30,7 @@ Implemented action families:
 | Report/archive readiness | `ReportRenderArchiveActionSource` and memo-derived `REPORT_PACKAGE_NOT_REQUESTED` / `ARCHIVE_REF_MISSING` projection. |
 | Execution handoff readiness | `ExecutionHandoffReadyActionSource` from `EXECUTION_READY` proposals without execution request events. |
 | Execution status attention | `ExecutionStatusAttentionActionSource` from batched proposal workflow events and `execution_status_for_event`. |
-| Tactical house-view impact | `HouseViewImpactActionSource` projects persisted `TacticalHouseViewAffectedCohort:v1` evidence into `DPM_OWNER` queue items. |
+| Tactical house-view impact | `HouseViewImpactActionSource` projects persisted `TacticalHouseViewAffectedCohort:v1` evidence into `PORTFOLIO_MANAGER` queue items. |
 | Source-product persistence | `record_tactical_house_view_affected_cohort` and `list_tactical_house_view_affected_cohorts` keep evaluated cohorts available for cockpit projection. |
 | Performance-safe source reads | `list_events_for_proposals` in cockpit/proposal repository protocols and in-memory/Postgres adapters. |
 | Boundary controls | Actions carry `CLIENT_READY_PUBLICATION` or `OMS_ORDER_LIFECYCLE` unsupported-capability boundaries where relevant. |
@@ -45,5 +45,5 @@ Validation:
 ## Claim Boundary
 
 This slice does not implement report rendering, archive storage, OMS orders, fills, settlement,
-portfolio rebalancing, DPM campaign creation, or unbacked house-view inference. It surfaces
+portfolio rebalancing, discretionary portfolio-management campaign creation, or unbacked house-view inference. It surfaces
 source-backed readiness and attention actions for Gateway/Workbench rendering.

@@ -481,7 +481,7 @@ def build_house_view_impact_action(source: HouseViewImpactActionSource) -> Advis
             action_family="HOUSE_VIEW_IMPACT_REVIEW",
             status="PENDING_REVIEW",
             priority="MEDIUM",
-            owner_role="DPM_OWNER",
+            owner_role="PORTFOLIO_MANAGER",
             title="Tactical house-view impact review",
             next_required_action=(
                 "Review the source-backed tactical house-view cohort before discretionary "

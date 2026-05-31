@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-31T20:19:22.730245+00:00",
+  "generatedAt": "2026-05-31T20:27:22.184326+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -13005,7 +13005,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -13102,7 +13101,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -13163,7 +13161,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -13224,7 +13221,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -13309,7 +13305,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -13382,7 +13377,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",

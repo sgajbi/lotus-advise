@@ -25,7 +25,6 @@ AdvisorCockpitOwnerRole = Literal[
     "REPORTING_OWNER",
     "ARCHIVE_OWNER",
     "EXECUTION_OWNER",
-    "DPM_OWNER",
     "SYSTEM",
 ]
 AdvisorCockpitSlaAgeBand = Literal[
@@ -100,7 +99,6 @@ _COCKPIT_OWNER_ROLE_LABELS = {
     "REPORTING_OWNER": "Reporting owner",
     "ARCHIVE_OWNER": "Archive owner",
     "EXECUTION_OWNER": "Execution owner",
-    "DPM_OWNER": "Portfolio manager",
     "SYSTEM": "System",
 }
 
