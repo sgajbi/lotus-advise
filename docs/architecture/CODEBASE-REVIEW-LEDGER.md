@@ -6985,3 +6985,30 @@
 - Follow-Up:
   - Continue auditing RFC-0027 persistence JSON payload sizing and source-projection reference
     helpers for any remaining duplicated or weak boundary rules.
+
+## LA-REV-267
+
+- Scope: RFC-0027 governed advisory copilot persistence records
+- Pattern: bounded persisted JSON/list payload contracts
+- Status: Hardened
+- Finding Class: persistence, auditability, and generated-schema safety risk
+- Summary: The copilot service rejects oversized nested structured payloads before persistence,
+  but durable record DTOs did not encode top-level JSON/list bounds for packet, request, output,
+  guidance, guardrail, lineage, or review reason fields. Direct record construction could therefore
+  bypass limits that the service relies on for safe audit replay and generated schemas.
+- Evidence:
+  - `src/core/advisory_copilot/records.py` now bounds top-level JSON dictionaries, output section
+    lists, review guidance lists, and guardrail result lists on copilot run, packet, and review
+    records.
+  - Persistence tests prove review guidance and guardrail reason lists are normalized and that
+    oversized output sections, lineage dictionaries, packet reasons, review reasons, guidance
+    lists, and guardrail reason text are rejected at the record boundary.
+- Consequence:
+  - RFC-0027 durable audit records now reflect the service's bounded-payload contract more
+    directly, reducing replay, storage, and generated-client drift risk.
+- Documentation:
+  - No wiki source change is required. This is persistence contract hardening for existing
+    RFC-0027 copilot audit semantics.
+- Follow-Up:
+  - Continue auditing RFC-0027 source-projection helpers and then move to RFC-0028 route/report
+    proof contracts.

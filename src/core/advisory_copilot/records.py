@@ -23,6 +23,12 @@ _COPILOT_ACTOR_ID_MAX_LENGTH = 128
 _COPILOT_APP_ID_MAX_LENGTH = 64
 _COPILOT_HASH_MAX_LENGTH = 128
 _COPILOT_IDENTIFIER_MAX_LENGTH = 160
+_COPILOT_JSON_FIELD_MAX_ITEMS = 64
+_COPILOT_OUTPUT_SECTION_LIMIT = 64
+_COPILOT_REVIEW_GUIDANCE_LIMIT = 16
+_COPILOT_REVIEW_GUIDANCE_MAX_LENGTH = 500
+_COPILOT_GUARDRAIL_REASON_LIMIT = 16
+_COPILOT_GUARDRAIL_REASON_MAX_LENGTH = 160
 _COPILOT_VERSION_REF_MAX_LENGTH = 160
 
 
@@ -191,21 +197,27 @@ class AdvisoryCopilotRunRecord(BaseModel):
     )
     evidence_packet_json: dict[str, Any] = Field(
         description="Bounded evidence packet JSON persisted for audit replay.",
+        max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )
     request_summary_json: dict[str, Any] = Field(
         description="Safe request summary with hashes and requested outputs; raw prompts omitted.",
+        max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )
     output_sections_json: list[dict[str, Any]] = Field(
         description="Review-gated business-facing output sections; unsafe raw output omitted.",
+        max_length=_COPILOT_OUTPUT_SECTION_LIMIT,
     )
     review_guidance_json: list[str] = Field(
         description="Business-facing reviewer guidance for this run.",
+        max_length=_COPILOT_REVIEW_GUIDANCE_LIMIT,
     )
     guardrail_results_json: list[str] = Field(
         description="Stable guardrail reason codes applied to this run.",
+        max_length=_COPILOT_GUARDRAIL_REASON_LIMIT,
     )
     lineage_json: dict[str, Any] = Field(
         description="Adapter, workflow-pack, evidence, and model-risk lineage.",
+        max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )
 
     @field_validator(
@@ -238,6 +250,26 @@ class AdvisoryCopilotRunRecord(BaseModel):
     @classmethod
     def _normalize_optional_run_text(cls, value: str | None) -> str | None:
         return _normalize_optional_text(value, error_code="COPILOT_RUN_RECORD_REQUIRED")
+
+    @field_validator("review_guidance_json", mode="before")
+    @classmethod
+    def _normalize_review_guidance(cls, value: Any) -> list[str]:
+        return _normalize_bounded_text_list(
+            value,
+            max_items=_COPILOT_REVIEW_GUIDANCE_LIMIT,
+            max_item_length=_COPILOT_REVIEW_GUIDANCE_MAX_LENGTH,
+            error_code="COPILOT_REVIEW_GUIDANCE_INVALID",
+        )
+
+    @field_validator("guardrail_results_json", mode="before")
+    @classmethod
+    def _normalize_guardrail_results(cls, value: Any) -> list[str]:
+        return _normalize_bounded_text_list(
+            value,
+            max_items=_COPILOT_GUARDRAIL_REASON_LIMIT,
+            max_item_length=_COPILOT_GUARDRAIL_REASON_MAX_LENGTH,
+            error_code="COPILOT_GUARDRAIL_RESULT_INVALID",
+        )
 
 
 class AdvisoryCopilotEvidencePacketRecord(BaseModel):
@@ -292,10 +324,12 @@ class AdvisoryCopilotEvidencePacketRecord(BaseModel):
     )
     packet_json: dict[str, Any] = Field(
         description="Bounded, redacted copilot evidence packet JSON.",
+        max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )
     reason_json: dict[str, Any] = Field(
         description="Business reason for creating or rebuilding the packet.",
         examples=[{"business_reason": "Prepare advisor review."}],
+        max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )
 
     @field_validator(
@@ -382,6 +416,7 @@ class AdvisoryCopilotReviewRecord(BaseModel):
     reason_json: dict[str, Any] = Field(
         description="Structured review reason; raw prompts or unsafe output are never stored.",
         examples=[{"comment": "Reviewed against source evidence."}],
+        max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )
     request_hash: str = Field(
         description="Canonical hash of the review request for idempotent replay.",
@@ -425,3 +460,25 @@ def _normalize_optional_text(value: str | None, *, error_code: str) -> str | Non
     if value is None:
         return None
     return _normalize_required_text(value, error_code=error_code)
+
+
+def _normalize_bounded_text_list(
+    value: Any,
+    *,
+    max_items: int,
+    max_item_length: int,
+    error_code: str,
+) -> list[str]:
+    if not isinstance(value, list):
+        raise ValueError(error_code)
+    normalized: list[str] = []
+    for item in value:
+        if len(normalized) >= max_items:
+            raise ValueError(error_code)
+        if not isinstance(item, str):
+            raise ValueError(error_code)
+        text = _normalize_required_text(item, error_code=error_code)
+        if len(text) > max_item_length:
+            raise ValueError(error_code)
+        normalized.append(text)
+    return normalized

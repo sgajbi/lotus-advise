@@ -378,6 +378,47 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
 
     with pytest.raises(ValidationError):
         AdvisoryCopilotRunRecord(**{**result.run.model_dump(), "correlation_id": "x" * 129})
+    normalized_guidance = AdvisoryCopilotRunRecord(
+        **{
+            **result.run.model_dump(),
+            "review_guidance_json": ["  Review source evidence before internal use.  "],
+            "guardrail_results_json": ["  CLIENT_READY_PUBLICATION_FORBIDDEN  "],
+        }
+    )
+    assert normalized_guidance.review_guidance_json == [
+        "Review source evidence before internal use."
+    ]
+    assert normalized_guidance.guardrail_results_json == ["CLIENT_READY_PUBLICATION_FORBIDDEN"]
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunRecord(
+            **{
+                **result.run.model_dump(),
+                "output_sections_json": [
+                    {"section_key": f"SECTION_{index}"} for index in range(65)
+                ],
+            }
+        )
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunRecord(
+            **{
+                **result.run.model_dump(),
+                "review_guidance_json": [f"Guidance {index}" for index in range(17)],
+            }
+        )
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunRecord(
+            **{
+                **result.run.model_dump(),
+                "guardrail_results_json": ["x" * 161],
+            }
+        )
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunRecord(
+            **{
+                **result.run.model_dump(),
+                "lineage_json": {f"key_{index}": index for index in range(65)},
+            }
+        )
 
     packet_record = save_advisory_copilot_evidence_packet(
         repository=repository,
@@ -400,6 +441,13 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
     with pytest.raises(ValidationError):
         AdvisoryCopilotEvidencePacketRecord(
             **{**packet_record.model_dump(), "evidence_packet_id": "x" * 161}
+        )
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotEvidencePacketRecord(
+            **{
+                **packet_record.model_dump(),
+                "reason_json": {f"key_{index}": index for index in range(65)},
+            }
         )
 
     idempotency = AdvisoryCopilotRunIdempotencyRecord(
@@ -438,6 +486,13 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
     assert normalized_review.idempotency_key == "copilot-review-idem-trimmed"
     with pytest.raises(ValidationError):
         AdvisoryCopilotReviewRecord(**{**review.model_dump(), "actor_id": "x" * 129})
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotReviewRecord(
+            **{
+                **review.model_dump(),
+                "reason_json": {f"key_{index}": index for index in range(65)},
+            }
+        )
 
 
 def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:
