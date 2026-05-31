@@ -7538,3 +7538,31 @@
 - Follow-Up:
   - Continue separating advisory copilot lineage helpers only if future slices need to extend
     proposal-version lineage behavior.
+
+## LA-REV-287
+
+- Scope: RFC-0028 backend proof runtime summary projection
+- Pattern: sanitized demo-evidence projection separated from proof-pack orchestration
+- Status: Hardened
+- Finding Class: module size, demo-proof contract clarity, and missing direct tests
+- Summary: `capture.py` owned both proof-pack orchestration and the sanitized live-runtime summary
+  projection. The summary projection is a durable RFC-0028 evidence contract used by proof-pack
+  assets, scripts, and demo material, so keeping it inside the orchestrator made it harder to test
+  missing-field behavior and safe-field selection independently.
+- Evidence:
+  - `src/core/bank_demo_proof/runtime_summary.py` now owns sanitized runtime summary projection,
+    dotted-path lookup, dictionary contract lookup, and fixed-shape field selection.
+  - `src/core/bank_demo_proof/capture.py` now composes the runtime summary instead of owning the
+    projection internals.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_runtime_summary.py` proves demo-safe field
+    projection, source-hash exclusion, fail-closed missing contract sections, dotted-path error
+    reporting, and fixed-shape selection.
+- Consequence:
+  - RFC-0028 proof capture is smaller and the sanitized runtime evidence contract is directly
+    testable without constructing a full proof pack.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-capture modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue separating proof asset construction from capture orchestration if later RFC-0028
+    slices need to add additional asset families.

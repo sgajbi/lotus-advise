@@ -12,7 +12,6 @@ from src.core.bank_demo_proof.capture import (
     build_default_supported_claim_register,
     default_capture_metadata,
     review_material_fields,
-    sanitize_live_runtime_summary,
 )
 from src.core.bank_demo_proof.commercial_materials import (
     CommercialMaterial,
@@ -61,6 +60,7 @@ from src.core.bank_demo_proof.runtime_posture import (
     RuntimeEndpointEvidence,
     normalize_runtime_base_url,
 )
+from src.core.bank_demo_proof.runtime_summary import sanitize_live_runtime_summary
 
 __all__ = [
     "AdvisoryBankDemoProofPack",
