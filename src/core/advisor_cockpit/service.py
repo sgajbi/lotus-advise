@@ -22,7 +22,10 @@ from src.core.advisor_cockpit.models import (
     CockpitEvidenceRef,
     MeetingPreparationPacket,
 )
-from src.core.advisor_cockpit.pagination import normalize_cockpit_page_size
+from src.core.advisor_cockpit.pagination import (
+    cockpit_cursor_start,
+    normalize_cockpit_page_size,
+)
 from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
@@ -79,7 +82,12 @@ class AdvisorCockpitService:
         )
         actions = _project_actions_for_caller(actions=actions, caller_context=caller_context)
         page_size = normalize_cockpit_page_size(limit)
-        start = _cursor_start(actions=actions, cursor=cursor)
+        start = cockpit_cursor_start(
+            items=actions,
+            cursor=cursor,
+            identity=lambda action: action.action_item_id,
+            invalid_code="ADVISOR_COCKPIT_CURSOR_INVALID",
+        )
         page_items = actions[start : start + page_size]
         next_cursor = None
         if start + page_size < len(actions):
@@ -164,7 +172,12 @@ class AdvisorCockpitService:
         )
         packets = _preparation_packets(read_model)
         page_size = normalize_cockpit_page_size(limit)
-        start = _packet_cursor_start(packets=packets, cursor=cursor)
+        start = cockpit_cursor_start(
+            items=packets,
+            cursor=cursor,
+            identity=lambda packet: packet.packet_id,
+            invalid_code="ADVISOR_COCKPIT_PREPARATION_CURSOR_INVALID",
+        )
         page_items = packets[start : start + page_size]
         next_cursor = None
         if start + page_size < len(packets):
@@ -367,15 +380,6 @@ class AdvisorCockpitService:
         return action
 
 
-def _cursor_start(*, actions: list[AdvisoryActionItem], cursor: str | None) -> int:
-    if cursor is None:
-        return 0
-    for index, action in enumerate(actions):
-        if action.action_item_id == cursor:
-            return index + 1
-    raise ProposalValidationError("ADVISOR_COCKPIT_CURSOR_INVALID")
-
-
 def _project_actions_for_caller(
     *,
     actions: list[AdvisoryActionItem],
@@ -445,15 +449,6 @@ def _house_view_impacts(
                 )
             )
     return impacts
-
-
-def _packet_cursor_start(*, packets: list[MeetingPreparationPacket], cursor: str | None) -> int:
-    if cursor is None:
-        return 0
-    for index, packet in enumerate(packets):
-        if packet.packet_id == cursor:
-            return index + 1
-    raise ProposalValidationError("ADVISOR_COCKPIT_PREPARATION_CURSOR_INVALID")
 
 
 def _action_counts(actions: list[AdvisoryActionItem]) -> dict[str, int]:

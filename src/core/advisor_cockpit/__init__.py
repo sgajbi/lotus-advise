@@ -56,6 +56,7 @@ from src.core.advisor_cockpit.models import (
 from src.core.advisor_cockpit.pagination import (
     COCKPIT_ACTION_DEFAULT_PAGE_SIZE,
     COCKPIT_ACTION_MAX_PAGE_SIZE,
+    cockpit_cursor_start,
     normalize_cockpit_page_size,
 )
 from src.core.advisor_cockpit.persistence import (
@@ -163,6 +164,7 @@ __all__ = [
     "build_supportability_degraded_action",
     "build_unsupported_capability_action",
     "cockpit_action_sort_key",
+    "cockpit_cursor_start",
     "derive_cockpit_sla_age_band",
     "is_cockpit_action_owner_blocking",
     "normalize_cockpit_page_size",

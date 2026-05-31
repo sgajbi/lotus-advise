@@ -4962,3 +4962,30 @@
 - Follow-Up:
   - Keep startup validation aligned with any future enterprise policy env vars before enabling
     production enforcement.
+
+## LA-REV-188
+
+- Scope: Advisor cockpit pagination boundary
+- Pattern: modularity and duplicate cursor handling
+- Status: Hardened
+- Finding Class: modularity and validation gap
+- Summary: Advisor cockpit page-size behavior lived in the pagination module while action and
+  preparation-packet cursor resolution lived as duplicate service-local loops. That kept validation
+  details inside the application service and made future cockpit paginated surfaces more likely to
+  reimplement cursor handling.
+- Evidence:
+  - `src/core/advisor_cockpit/pagination.py` now owns reusable cockpit cursor resolution alongside
+    page-size normalization.
+  - `src/core/advisor_cockpit/service.py` now delegates action and preparation-packet cursor
+    validation to the pagination module.
+  - `tests/unit/advisory/engine/test_engine_advisor_cockpit_models.py` covers reusable cursor
+    start, none-cursor behavior, valid cursor advancement, and invalid-cursor error code.
+- Consequence:
+  - The advisor cockpit service is narrower, cursor validation is centralized, and future RFC-0026
+    cockpit pagination can reuse the same validated boundary.
+- Documentation:
+  - No wiki source change is required. This slice refactors internal pagination structure without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Prefer extending `advisor_cockpit.pagination` for future cockpit page tokens instead of adding
+    service-local cursor loops.
