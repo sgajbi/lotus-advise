@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from typing import Any, cast
 
 import httpx
 
 from src.core.advisory_copilot import (
-    CopilotActionFamily,
     CopilotAudience,
     CopilotEvidencePacket,
     CopilotGuardrailReasonCode,
     evaluate_copilot_guardrails,
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
+)
+from src.integrations.lotus_ai.advisory_copilot_request import (
+    build_advisory_copilot_workflow_pack_request,
+    has_source_refs,
+    workflow_surface,
 )
 from src.integrations.lotus_ai.output_safety import (
     DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH,
@@ -26,7 +29,6 @@ from src.integrations.lotus_ai.output_safety import (
     map_review_required_sections,
 )
 from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
-from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
 from src.integrations.lotus_ai.workflow_response import (
     extract_error_detail,
     extract_model_version,
@@ -40,36 +42,13 @@ APPROVED_INSTRUCTION_SET = "advisory-copilot-instructions.v1"
 PROMPT_TEMPLATE_VERSION = "advisory-copilot-prompt-template.v1"
 OUTPUT_SCHEMA_VERSION = "advisory-copilot-output-schema.v1"
 EVALUATION_PACK_REF = "advisory-copilot-eval-pack.v1"
-WORKFLOW_SURFACE_PREFIX = "advisory-copilot"
 MAX_COPILOT_OUTPUT_SECTIONS = DEFAULT_AI_OUTPUT_SECTION_LIMIT
 MAX_COPILOT_SECTION_KEY_LENGTH = DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH
 MAX_COPILOT_SECTION_TITLE_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH
 MAX_COPILOT_SECTION_TEXT_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH
 MAX_COPILOT_REVIEW_GUIDANCE_ITEMS = DEFAULT_AI_REVIEW_GUIDANCE_LIMIT
 MAX_COPILOT_REVIEW_GUIDANCE_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
-MAX_COPILOT_CALLER_CORRELATION_ID_LENGTH = 128
-MAX_COPILOT_REQUESTED_OUTPUTS = 8
-MAX_COPILOT_REQUESTED_OUTPUT_LENGTH = 96
-MAX_COPILOT_REQUESTED_BY_LENGTH = 128
-MAX_COPILOT_REASON_KEYS = 16
-MAX_COPILOT_REASON_KEY_LENGTH = 64
-MAX_COPILOT_REASON_TEXT_LENGTH = 1000
-MAX_COPILOT_REASON_LIST_ITEMS = 8
-MAX_COPILOT_SOURCE_REFS = 32
-MAX_COPILOT_SOURCE_REF_LENGTH = 512
 MAX_COPILOT_LINEAGE_REF_LENGTH = 160
-_RAW_REASON_KEYS = frozenset(
-    {
-        "prompt",
-        "raw_prompt",
-        "raw_output",
-        "unsafe_output",
-        "provider_response",
-        "model_response",
-        "instruction",
-        "system_instruction",
-    }
-)
 
 
 @dataclass(frozen=True)
@@ -93,7 +72,7 @@ def generate_advisory_copilot_draft_with_lotus_ai(
 ) -> AdvisoryCopilotAiDraft:
     preflight_reasons = evaluate_copilot_guardrails(
         requested_intents=requested_intents,
-        source_refs_present=_has_source_refs(evidence_packet),
+        source_refs_present=has_source_refs(evidence_packet),
         user_instruction=user_instruction,
         output_text="",
     )
@@ -259,48 +238,17 @@ def _build_workflow_pack_request(
     requested_by: str,
     reason: dict[str, Any],
 ) -> dict[str, object]:
-    action_family = evidence_packet.action_family
-    bounded_requested_by = _bounded_text(
-        requested_by,
-        max_length=MAX_COPILOT_REQUESTED_BY_LENGTH,
-    )
-    return build_workflow_pack_execute_request(
-        pack_id=workflow_pack_id_for_action(action_family),
-        version=workflow_pack_version_for_action(action_family),
-        workflow_surface=_workflow_surface(action_family),
-        task_id="explain.v1",
-        correlation_id=_caller_correlation_id(evidence_packet),
-        requested_by=bounded_requested_by,
-        context_summary="Draft review-gated advisory copilot output from bounded evidence.",
-        context_payload={
-            "copilot_evidence_packet": evidence_packet.model_dump(mode="json"),
-            "copilot_request": {
-                "action_family": action_family,
-                "audience": audience,
-                "requested_outputs": _requested_outputs(requested_outputs),
-                "requested_by": bounded_requested_by,
-                "reason": _safe_reason(reason),
-            },
-            "model_risk_controls": {
-                "adapter_version": ADAPTER_VERSION,
-                "approved_instruction_set": APPROVED_INSTRUCTION_SET,
-                "prompt_template_version": PROMPT_TEMPLATE_VERSION,
-                "output_schema_version": OUTPUT_SCHEMA_VERSION,
-                "evaluation_pack_ref": EVALUATION_PACK_REF,
-            },
-            "supportability": {
-                "human_review_required": True,
-                "client_ready_publication": "BLOCKED",
-                "unsupported_claims": [
-                    "client_ready_publication",
-                    "policy_approval",
-                    "trade_or_order_action",
-                    "missing_evidence_inference",
-                ],
-            },
-        },
-        source_refs=_source_refs(evidence_packet),
-        expected_output_label="EXPLANATION_ONLY",
+    return build_advisory_copilot_workflow_pack_request(
+        evidence_packet=evidence_packet,
+        audience=audience,
+        requested_outputs=requested_outputs,
+        requested_by=requested_by,
+        reason=reason,
+        adapter_version=ADAPTER_VERSION,
+        approved_instruction_set=APPROVED_INSTRUCTION_SET,
+        prompt_template_version=PROMPT_TEMPLATE_VERSION,
+        output_schema_version=OUTPUT_SCHEMA_VERSION,
+        evaluation_pack_ref=EVALUATION_PACK_REF,
     )
 
 
@@ -316,36 +264,6 @@ def _resolve_base_url() -> str:
 
 def _resolve_timeout() -> httpx.Timeout:
     return httpx.Timeout(env_positive_float("LOTUS_AI_TIMEOUT_SECONDS", default=10.0))
-
-
-def _workflow_surface(action_family: CopilotActionFamily) -> str:
-    return f"{WORKFLOW_SURFACE_PREFIX}-{action_family.lower().replace('_', '-')}"
-
-
-def _source_refs(evidence_packet: CopilotEvidencePacket) -> list[str]:
-    refs = [
-        f"lotus-advise:copilot-evidence-packet:{evidence_packet.evidence_packet_id}",
-        f"lotus-advise:copilot-evidence-packet-hash:{evidence_packet.evidence_packet_hash}",
-    ]
-    for section in evidence_packet.sections:
-        for source_ref in section.source_refs:
-            refs.append(
-                ":".join(
-                    (
-                        source_ref.source_system,
-                        source_ref.source_type,
-                        source_ref.source_id,
-                        source_ref.content_hash or "no-content-hash",
-                    )
-                )
-            )
-    return [_bounded_text(ref, max_length=MAX_COPILOT_SOURCE_REF_LENGTH) for ref in refs][
-        :MAX_COPILOT_SOURCE_REFS
-    ]
-
-
-def _has_source_refs(evidence_packet: CopilotEvidencePacket) -> bool:
-    return any(section.source_refs for section in evidence_packet.sections)
 
 
 def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
@@ -383,7 +301,7 @@ def _build_lineage(
         "adapter_version": ADAPTER_VERSION,
         "workflow_pack_id": workflow_pack_id_for_action(evidence_packet.action_family),
         "workflow_pack_version": workflow_pack_version_for_action(evidence_packet.action_family),
-        "workflow_surface": _workflow_surface(evidence_packet.action_family),
+        "workflow_surface": workflow_surface(evidence_packet.action_family),
         "workflow_run_id": workflow_run_id,
         "model_version": model_version,
         "approved_instruction_set": APPROVED_INSTRUCTION_SET,
@@ -429,62 +347,3 @@ def _proposal_version_no(evidence_packet: CopilotEvidencePacket) -> int | None:
         ):
             return int(lineage_ref.lineage_id)
     return None
-
-
-def _caller_correlation_id(evidence_packet: CopilotEvidencePacket) -> str:
-    candidate = f"advisory-copilot-{evidence_packet.evidence_packet_id}"
-    if len(candidate) <= MAX_COPILOT_CALLER_CORRELATION_ID_LENGTH:
-        return candidate
-    digest = hashlib.sha256(candidate.encode("utf-8")).hexdigest()[:24]
-    return f"advisory-copilot-{digest}"
-
-
-def _requested_outputs(values: list[str]) -> list[str]:
-    bounded: list[str] = []
-    seen: set[str] = set()
-    for value in values:
-        output = _bounded_text(value, max_length=MAX_COPILOT_REQUESTED_OUTPUT_LENGTH)
-        if not output or output in seen:
-            continue
-        bounded.append(output)
-        seen.add(output)
-        if len(bounded) >= MAX_COPILOT_REQUESTED_OUTPUTS:
-            break
-    return bounded
-
-
-def _safe_reason(reason: dict[str, Any]) -> dict[str, Any]:
-    safe: dict[str, Any] = {}
-    for key, value in reason.items():
-        key_text = _bounded_text(str(key), max_length=MAX_COPILOT_REASON_KEY_LENGTH)
-        if not key_text or key_text.strip().lower() in _RAW_REASON_KEYS:
-            continue
-        safe_value = _safe_reason_value(value)
-        if safe_value is not None:
-            safe[key_text] = safe_value
-        if len(safe) >= MAX_COPILOT_REASON_KEYS:
-            break
-    return safe
-
-
-def _safe_reason_value(value: Any) -> str | int | bool | None | list[str]:
-    if value is None or isinstance(value, bool | int):
-        return value
-    if isinstance(value, str):
-        return _bounded_text(value, max_length=MAX_COPILOT_REASON_TEXT_LENGTH) or None
-    if isinstance(value, list | tuple):
-        items = [
-            _bounded_text(item, max_length=MAX_COPILOT_REASON_TEXT_LENGTH)
-            for item in value
-            if isinstance(item, str)
-        ]
-        return [item for item in items if item][:MAX_COPILOT_REASON_LIST_ITEMS] or None
-    return _bounded_text(str(value), max_length=MAX_COPILOT_REASON_TEXT_LENGTH) or None
-
-
-def _bounded_text(value: str, *, max_length: int) -> str:
-    normalized = " ".join(value.split())
-    if len(normalized) <= max_length:
-        return normalized
-    suffix = "..."
-    return normalized[: max_length - len(suffix)].rstrip() + suffix

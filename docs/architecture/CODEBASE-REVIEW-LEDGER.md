@@ -7507,3 +7507,34 @@
 - Follow-Up:
   - Continue auditing Lotus AI workflow-pack run review-action mapping separately because it uses a
     different endpoint contract than execute requests.
+
+## LA-REV-286
+
+- Scope: Advisory copilot Lotus AI request safety
+- Pattern: outbound request hygiene extracted from adapter orchestration
+- Status: Hardened
+- Finding Class: module size, sensitive-data handling, and request-boundary test gap
+- Summary: `advisory_copilot.py` still mixed transport orchestration and output guardrails with
+  outbound request hygiene: caller correlation id hashing, source-reference bounding, requested
+  output de-duplication, and raw-prompt/provider-response reason redaction. Those controls are
+  security and governance boundaries, so keeping them as private helpers inside the transport
+  adapter made them harder to test directly and easier to regress during future copilot changes.
+- Evidence:
+  - `src/integrations/lotus_ai/advisory_copilot_request.py` now owns advisory-copilot workflow-pack
+    request construction, workflow surface naming, caller correlation id bounding, source refs,
+    requested outputs, and safe reason projection.
+  - `src/integrations/lotus_ai/advisory_copilot.py` now keeps orchestration, guardrail decisions,
+    Lotus AI response handling, lineage projection, and fallback behavior.
+  - `tests/unit/advisory/api/test_lotus_ai_advisory_copilot_request.py` proves source-ref bounding,
+    oversized correlation-id hashing, requested-output de-duplication, and raw prompt/provider
+    material redaction before Advise calls lotus-ai.
+- Consequence:
+  - Advisory copilot request safety is now independently testable, the adapter is materially
+    smaller, and outbound Lotus AI calls remain bounded to governed evidence rather than raw prompt
+    or provider material.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue separating advisory copilot lineage helpers only if future slices need to extend
+    proposal-version lineage behavior.
