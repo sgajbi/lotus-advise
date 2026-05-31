@@ -5345,3 +5345,26 @@
     documentation.
 - Follow-Up:
   - None.
+
+## LA-REV-202
+
+- Scope: Proposal execution handoff idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: replay determinism and execution-boundary audit gap
+- Summary: Proposal execution handoff accepted optional caller idempotency keys without
+  normalization before replay lookup or workflow-event persistence. Padded keys could produce
+  duplicate execution handoff audit events for the same advisory handoff request.
+- Evidence:
+  - `src/core/proposals/execution_handoff_command.py` normalizes optional handoff idempotency keys
+    before replay lookup and event creation.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` now covers padded-key
+    execution handoff replay and confirms only one workflow event is recorded.
+- Consequence:
+  - RFC 26/RFC 28 execution handoff evidence remains deterministic without overclaiming OMS order,
+    fill, settlement, or external execution completion.
+- Documentation:
+  - No wiki source change is required. This is execution-boundary replay hardening with no change
+    to product feature posture or operator workflow.
+- Follow-Up:
+  - None.

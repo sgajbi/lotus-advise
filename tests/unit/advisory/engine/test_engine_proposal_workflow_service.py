@@ -13,6 +13,7 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalCreateRequest,
+    ProposalExecutionHandoffRequest,
     ProposalExecutionUpdateRequest,
     ProposalIdempotencyRecord,
     ProposalRecord,
@@ -1657,6 +1658,47 @@ def test_service_create_proposal_requires_workspace_reference_for_workspace_hand
         assert str(exc) == "WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED"
     else:
         raise AssertionError("Expected WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED")
+
+
+def test_service_execution_handoff_normalizes_idempotency_key_for_replay():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    occurred_at = datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc)
+    proposal = ProposalRecord(
+        proposal_id="pp_execution_handoff_replay",
+        portfolio_id="pf_execution_handoff_replay",
+        mandate_id="mandate_execution_handoff_replay",
+        jurisdiction="SG",
+        created_by="advisor_execution_handoff",
+        created_at=occurred_at,
+        last_event_at=occurred_at,
+        current_state="EXECUTION_READY",
+        current_version_no=3,
+        title="Execution handoff replay",
+    )
+    repo.create_proposal(proposal)
+    payload = ProposalExecutionHandoffRequest(
+        actor_id="advisor_execution_handoff",
+        execution_provider="lotus-manage",
+        expected_state="EXECUTION_READY",
+        correlation_id="corr-execution-handoff",
+        notes={"desk": "ADVISORY_EXECUTION"},
+    )
+
+    first = service.request_execution_handoff(
+        proposal_id=proposal.proposal_id,
+        payload=payload,
+        idempotency_key="  idem-execution-handoff  ",
+    )
+    replay = service.request_execution_handoff(
+        proposal_id=proposal.proposal_id,
+        payload=payload,
+        idempotency_key="idem-execution-handoff",
+    )
+
+    assert replay.latest_workflow_event.event_id == first.latest_workflow_event.event_id
+    assert replay.latest_workflow_event.reason["idempotency_key"] == "idem-execution-handoff"
+    assert len(repo.list_events(proposal_id=proposal.proposal_id)) == 1
 
 
 def test_execution_update_replay_uses_loaded_events_for_status_projection():

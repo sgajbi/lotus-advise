@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.proposals.command_read_model import load_proposal_command_read_model
 from src.core.proposals.command_validation import validate_proposal_expected_state
 from src.core.proposals.exceptions import (
@@ -38,6 +39,7 @@ def request_proposal_execution_handoff(
     require_expected_state: bool,
     occurred_at: datetime,
 ) -> ProposalExecutionHandoffResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     command_read_model = load_proposal_command_read_model(
         repository=repository,
         proposal_id=proposal_id,
