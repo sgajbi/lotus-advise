@@ -4,11 +4,13 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
     AdvisoryCopilotProposalVersionEvidenceRequest,
+    AdvisoryCopilotReviewRequest,
 )
 from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
 from src.core.policy_packs.models import PolicyEvaluationRecord
@@ -18,6 +20,65 @@ from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 from src.integrations.lotus_ai import AdvisoryCopilotAiDraft
 
 NOW = datetime(2026, 5, 28, 9, 0, tzinfo=UTC)
+
+
+def test_copilot_action_request_normalizes_and_bounds_advisor_input() -> None:
+    request = AdvisoryCopilotActionRequest(
+        evidence_packet_id="copilot_packet_pb_sg_001",
+        audience="ADVISOR",
+        requested_outputs=[" advisor_review_summary ", "advisor_review_summary"],
+        requested_by="  advisor_123  ",
+        reason={"business_reason": "Prepare advisor review."},
+        requested_intents=[" explain_policy_posture ", "explain_policy_posture"],
+        user_instruction="  Summarize\n\n  advisor-use evidence.  ",
+    )
+
+    assert request.requested_outputs == ("advisor_review_summary",)
+    assert request.requested_by == "advisor_123"
+    assert request.requested_intents == ("explain_policy_posture",)
+    assert request.user_instruction == "Summarize advisor-use evidence."
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotActionRequest(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            audience="ADVISOR",
+            requested_outputs=[],
+            requested_by="advisor_123",
+        )
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotActionRequest(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            audience="ADVISOR",
+            requested_outputs=["x" * 97],
+            requested_by="advisor_123",
+        )
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotActionRequest(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            audience="ADVISOR",
+            requested_outputs=["advisor_review_summary"],
+            requested_by="advisor_123",
+            user_instruction="x" * 1001,
+        )
+
+
+def test_copilot_review_request_bounds_actor_id() -> None:
+    request = AdvisoryCopilotReviewRequest(
+        action="APPROVE_FOR_INTERNAL_USE",
+        actor_id="  supervisor_123  ",
+        reason={"decision": "Reviewed against cited source evidence."},
+    )
+
+    assert request.actor_id == "supervisor_123"
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotReviewRequest(
+            action="APPROVE_FOR_INTERNAL_USE",
+            actor_id="x" * 129,
+            reason={"decision": "Reviewed against cited source evidence."},
+        )
 
 
 def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -17,6 +17,13 @@ from src.core.advisory_copilot.records import (
 )
 from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.common.actors import normalize_required_actor_id
+
+_COPILOT_ACTOR_ID_MAX_LENGTH = 128
+_COPILOT_REQUESTED_OUTPUT_LIMIT = 8
+_COPILOT_REQUESTED_OUTPUT_MAX_LENGTH = 96
+_COPILOT_REQUESTED_INTENT_LIMIT = 12
+_COPILOT_REQUESTED_INTENT_MAX_LENGTH = 96
+_COPILOT_USER_INSTRUCTION_MAX_LENGTH = 1000
 
 
 class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
@@ -57,7 +64,7 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     @field_validator("created_by")
     @classmethod
     def _normalize_created_by(cls, value: str) -> str:
-        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
+        return _normalize_copilot_actor_id(value)
 
 
 class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
@@ -99,7 +106,7 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
     @field_validator("created_by")
     @classmethod
     def _normalize_created_by(cls, value: str) -> str:
-        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
+        return _normalize_copilot_actor_id(value)
 
 
 class AdvisoryCopilotEvidencePacketResponse(BaseModel):
@@ -123,10 +130,13 @@ class AdvisoryCopilotActionRequest(BaseModel):
     requested_outputs: tuple[str, ...] = Field(
         description="Named business output sections requested from the governed action.",
         examples=[["advisor_review_summary"]],
+        min_length=1,
+        max_length=_COPILOT_REQUESTED_OUTPUT_LIMIT,
     )
     requested_by: str = Field(
         description="Actor requesting the copilot action.",
         examples=["advisor_123"],
+        max_length=_COPILOT_ACTOR_ID_MAX_LENGTH,
     )
     reason: dict[str, Any] = Field(
         default_factory=dict,
@@ -137,17 +147,49 @@ class AdvisoryCopilotActionRequest(BaseModel):
         default=(),
         description="Bounded requested intents used by guardrails before execution.",
         examples=[["explain_policy_posture"]],
+        max_length=_COPILOT_REQUESTED_INTENT_LIMIT,
     )
     user_instruction: str = Field(
         default="",
         description="Optional user instruction used only for guardrail evaluation and hashing.",
         examples=["Summarize advisor-use evidence."],
+        max_length=_COPILOT_USER_INSTRUCTION_MAX_LENGTH,
     )
+
+    @field_validator("requested_outputs", mode="before")
+    @classmethod
+    def _normalize_requested_outputs(cls, value: Any) -> tuple[str, ...]:
+        return _normalize_bounded_string_tuple(
+            value,
+            error_code="COPILOT_REQUESTED_OUTPUT_REQUIRED",
+            max_items=_COPILOT_REQUESTED_OUTPUT_LIMIT,
+            max_item_length=_COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
+            allow_empty=False,
+        )
 
     @field_validator("requested_by")
     @classmethod
     def _normalize_requested_by(cls, value: str) -> str:
-        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
+        return _normalize_copilot_actor_id(value)
+
+    @field_validator("requested_intents", mode="before")
+    @classmethod
+    def _normalize_requested_intents(cls, value: Any) -> tuple[str, ...]:
+        return _normalize_bounded_string_tuple(
+            value,
+            error_code="COPILOT_REQUESTED_INTENT_INVALID",
+            max_items=_COPILOT_REQUESTED_INTENT_LIMIT,
+            max_item_length=_COPILOT_REQUESTED_INTENT_MAX_LENGTH,
+            allow_empty=True,
+        )
+
+    @field_validator("user_instruction")
+    @classmethod
+    def _normalize_user_instruction(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if len(normalized) > _COPILOT_USER_INSTRUCTION_MAX_LENGTH:
+            raise ValueError("COPILOT_USER_INSTRUCTION_TOO_LONG")
+        return normalized
 
 
 class AdvisoryCopilotRunResponse(BaseModel):
@@ -180,7 +222,14 @@ class AdvisoryCopilotReviewRequest(BaseModel):
     @field_validator("actor_id")
     @classmethod
     def _normalize_actor_id(cls, value: str) -> str:
-        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
+        return _normalize_copilot_actor_id(value)
+
+
+def _normalize_copilot_actor_id(value: str) -> str:
+    normalized = normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
+    if len(normalized) > _COPILOT_ACTOR_ID_MAX_LENGTH:
+        raise ValueError("COPILOT_ACTOR_TOO_LONG")
+    return cast(str, normalized)
 
 
 class AdvisoryCopilotReviewResponse(BaseModel):
@@ -217,3 +266,37 @@ class AdvisoryCopilotRunPage(BaseModel):
         default=None,
         description="Opaque cursor to request the next page, or null when the page is complete.",
     )
+
+
+def _normalize_bounded_string_tuple(
+    value: Any,
+    *,
+    error_code: str,
+    max_items: int,
+    max_item_length: int,
+    allow_empty: bool,
+) -> tuple[str, ...]:
+    if value is None:
+        if allow_empty:
+            return ()
+        raise ValueError(error_code)
+    if not isinstance(value, (list, tuple)):
+        raise ValueError(error_code)
+
+    normalized: list[str] = []
+    for item in value:
+        if len(normalized) >= max_items:
+            raise ValueError(error_code)
+        if not isinstance(item, str):
+            raise ValueError(error_code)
+        candidate = item.strip()
+        if not candidate:
+            raise ValueError(error_code)
+        if len(candidate) > max_item_length:
+            raise ValueError(error_code)
+        if candidate not in normalized:
+            normalized.append(candidate)
+
+    if not normalized and not allow_empty:
+        raise ValueError(error_code)
+    return tuple(normalized)

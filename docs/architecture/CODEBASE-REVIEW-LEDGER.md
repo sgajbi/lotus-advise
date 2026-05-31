@@ -6322,3 +6322,28 @@
     evidence without changing the user-facing capability.
 - Follow-Up:
   - None.
+
+## LA-REV-241
+
+- Scope: Advisory copilot action request-boundary validation
+- Pattern: API input bounds, advisor instruction normalization, guardrail input hygiene
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: RFC-0027 copilot action requests described requested outputs, requested intents, and
+  advisor instructions as bounded, but the API model did not enforce item counts, item lengths, or
+  whitespace normalization before guardrail evaluation and Lotus AI execution.
+- Evidence:
+  - `src/core/advisory_copilot/api_models.py` now bounds requested outputs, requested intents,
+    actor ids, and optional user instructions.
+  - Action request validators trim and de-duplicate output and intent keys before request hashing
+    and guardrail evaluation.
+  - Application tests prove normalization plus empty, oversized-output, oversized-instruction, and
+    oversized-review-actor rejection.
+- Consequence:
+  - RFC-0027 copilot execution receives cleaner bounded advisor input and preserves deterministic
+    idempotency hashing without storing raw prompt text.
+- Documentation:
+  - No wiki source change is required. This is API model hardening aligned with existing copilot
+    semantics.
+- Follow-Up:
+  - None.
