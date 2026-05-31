@@ -3,12 +3,17 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from src.core.advisor_cockpit import (
     COCKPIT_ACTION_DEFAULT_PAGE_SIZE,
     COCKPIT_ACTION_MAX_PAGE_SIZE,
     AdvisorCockpitOperatingSnapshot,
     AdvisoryActionItem,
+    CockpitAcknowledgementState,
     CockpitCallerContext,
+    CockpitEvidenceRef,
     cockpit_cursor_start,
     normalize_cockpit_page_size,
     sort_cockpit_action_items,
@@ -176,3 +181,37 @@ def test_advisor_cockpit_snapshot_uses_server_side_caller_context() -> None:
     assert snapshot.caller_context.advisor_id == "advisor_sg_001"
     assert snapshot.top_priority_actions[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
     assert snapshot.unsupported_capabilities == ["CLIENT_READY_PUBLICATION"]
+
+
+def test_advisor_cockpit_models_reject_sensitive_or_oversized_business_copy() -> None:
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        CockpitEvidenceRef(
+            evidence_id="policy_eval_sg_001",
+            evidence_type="POLICY_EVALUATION",
+            source_system="lotus-advise",
+            access_class="RESTRICTED_CUSTOMER_EVIDENCE",
+            summary="Raw prompt material is available for advisor review.",
+        )
+
+    with pytest.raises(ValidationError):
+        _action("x" * 161)
+
+
+def test_advisor_cockpit_unacknowledged_state_cannot_carry_acknowledgement_detail() -> None:
+    with pytest.raises(ValidationError, match="unacknowledged cockpit state"):
+        CockpitAcknowledgementState(
+            acknowledged=False,
+            acknowledgement_id="ack_001",
+            acknowledged_by="advisor_sg_001",
+            acknowledged_at="2026-05-27T08:00:00+00:00",
+        )
+
+
+def test_advisor_cockpit_snapshot_rejects_invalid_action_counts() -> None:
+    with pytest.raises(ValidationError, match="action counts cannot be negative"):
+        AdvisorCockpitOperatingSnapshot(
+            snapshot_id="cockpit_snapshot_sg_001",
+            caller_context=CockpitCallerContext(role="ADVISOR"),
+            as_of="2026-05-27T08:00:00+00:00",
+            action_counts={"status.PENDING_REVIEW": -1},
+        )

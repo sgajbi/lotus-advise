@@ -6735,3 +6735,36 @@
     capture semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-258
+
+- Scope: RFC-0026 advisor cockpit domain models
+- Pattern: cockpit evidence bounds, business-safe copy validation, acknowledgement-state integrity
+- Status: Hardened
+- Finding Class: validation and supportability risk
+- Summary: RFC-0026 cockpit models are source-owned and reused by Advise APIs, Gateway, Workbench,
+  trust telemetry, and demo material, but direct model construction still accepted unbounded
+  source/evidence text, sensitive technical copy, inconsistent unacknowledged acknowledgement
+  details, and invalid negative action-count values.
+- Evidence:
+  - `src/core/advisor_cockpit/models.py` now bounds caller/action/evidence/lineage/dependency/
+    readiness/snapshot identifiers and lists, rejects sensitive technical terms in support-safe
+    copy, normalizes optional blank references to absent values, prevents unacknowledged states
+    from carrying acknowledgement detail, and rejects negative snapshot action counts.
+  - `src/core/advisor_cockpit/action_factory.py` now projects oversized upstream source
+    identifiers, evidence references, lineage references, source refs, and summaries into bounded
+    cockpit-safe references before constructing UI/API-facing action items.
+  - Advisor cockpit model tests prove sensitive evidence summaries, oversized action ids,
+    inconsistent acknowledgement state, and negative action counts are rejected at the core model
+    boundary.
+  - Advisor cockpit action-factory tests prove oversized policy source projections remain
+    traceable and bounded before the broader copilot evidence-packet service consumes them.
+- Consequence:
+  - RFC-0026 cockpit output is safer for Gateway, Workbench, OpenAPI, wiki, and demo usage without
+    relying on UI or route-layer filtering to keep advisor-facing source evidence business-safe.
+- Documentation:
+  - No wiki source change is required. This is source-level model hardening for existing RFC-0026
+    cockpit semantics.
+- Follow-Up:
+  - Continue auditing cockpit construction input DTOs and source-read-model projections for the
+    same direct-boundary guarantees.
