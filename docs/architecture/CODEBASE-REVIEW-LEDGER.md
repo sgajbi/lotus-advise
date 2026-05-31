@@ -5786,3 +5786,29 @@
     feature posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-219
+
+- Scope: Lotus Risk and Lotus Report adapter base URL sanitization
+- Pattern: sensitive configuration handling and upstream integration hardening
+- Status: Hardened
+- Finding Class: security and configuration hygiene gap
+- Summary: The direct lotus-risk enrichment and lotus-report package adapters still constructed
+  upstream request URLs from raw `LOTUS_RISK_BASE_URL` and `LOTUS_REPORT_BASE_URL`. This left two
+  RFC 23-28 integration paths able to propagate embedded URL credentials, query tokens, fragments,
+  or unsupported schemes into outbound service calls.
+- Evidence:
+  - `src/integrations/lotus_risk/enrichment.py` now sanitizes and validates the configured base URL
+    before opening an HTTP client and reuses the resolved URL across retry attempts.
+  - `src/integrations/lotus_report/adapter.py` now sanitizes and validates the configured base URL
+    before report-package requests.
+  - Risk and report adapter tests prove sanitized request URL construction and fail-closed behavior
+    for invalid configured schemes without opening an HTTP client.
+- Consequence:
+  - Advise integration calls to risk and report services no longer propagate embedded URL secrets,
+    and invalid schemes fail before network activity.
+- Documentation:
+  - No wiki source change is required. This is runtime configuration hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.

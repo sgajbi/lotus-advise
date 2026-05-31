@@ -185,6 +185,35 @@ def test_lotus_report_adapter_submits_portfolio_review_job_with_reviewed_narrati
     assert post["json"]["proposal_narrative_package"]["narrative_id"] == "pnar_live_001"
 
 
+def test_lotus_report_adapter_sanitizes_configured_base_url(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_report_001",
+                "status": "data_ready",
+                "idempotency_key": "prr_live_001",
+            },
+        )
+    )
+    monkeypatch.setenv(
+        "LOTUS_REPORT_BASE_URL",
+        "https://user:secret@report.dev.lotus:8300/api?token=should-not-leak#fragment",
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    request_proposal_report_with_lotus_report(request=_proposal_request())
+
+    [post] = fake_client.posts
+    assert post["url"] == "https://report.dev.lotus:8300/api/reports/portfolio-reviews"
+    assert "secret" not in post["url"]
+    assert "token" not in post["url"]
+
+
 def test_lotus_report_adapter_normalizes_pending_status_and_lineage_dates(monkeypatch) -> None:
     request = _proposal_request()
     request["proposal_version"] = {
@@ -354,6 +383,17 @@ def test_lotus_report_adapter_defaults_policy_outputs_when_formats_are_invalid(
 
 def test_lotus_report_adapter_fails_closed_when_report_base_url_is_missing(monkeypatch) -> None:
     monkeypatch.delenv("LOTUS_REPORT_BASE_URL", raising=False)
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_proposal_report_with_lotus_report(request=_proposal_request())
+
+
+def test_lotus_report_adapter_rejects_invalid_base_url_without_http_client(monkeypatch) -> None:
+    def _unexpected_client(*args: object, **kwargs: object) -> _FakeClient:
+        raise AssertionError("invalid lotus-report base URL should fail before opening a client")
+
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "ftp://report.dev.lotus:8300")
+    monkeypatch.setattr("src.integrations.lotus_report.adapter.httpx.Client", _unexpected_client)
 
     with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
         request_proposal_report_with_lotus_report(request=_proposal_request())

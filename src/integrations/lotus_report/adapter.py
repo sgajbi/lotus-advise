@@ -8,7 +8,11 @@ import httpx
 
 from src.core.proposals.contract_types import ProposalReportType
 from src.core.proposals.models import ProposalReportResponse
-from src.integrations.base import IntegrationDependencyState, build_dependency_state
+from src.integrations.base import (
+    IntegrationDependencyState,
+    build_dependency_state,
+    sanitized_http_base_url,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 _PORTFOLIO_REVIEW_PATH = "/reports/portfolio-reviews"
@@ -285,9 +289,9 @@ def _load_report_status(
 
 
 def _resolve_base_url() -> str:
-    configured = os.getenv("LOTUS_REPORT_BASE_URL")
-    if configured and configured.strip():
-        return configured.rstrip("/")
+    configured = sanitized_http_base_url(os.getenv("LOTUS_REPORT_BASE_URL"))
+    if configured:
+        return cast(str, configured)
     raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
 
 
