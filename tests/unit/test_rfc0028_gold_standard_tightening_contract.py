@@ -531,9 +531,11 @@ def test_rfc0028_records_final_closure_artifact_hardening_and_communication() ->
         assert "client-ready publication" in source
         assert "OMS/order/fill/settlement" in source
 
-    for source in (readme, api_surface, security, operations, commercial):
+    for source in (readme, api_surface, security, operations):
         assert "token" in source
         assert "prompt" in source
+    assert "access-token" in commercial
+    assert "AI-input" in commercial
 
     for source in (rfc_index, wiki_index, supported_features, readme, repo_context):
         assert "26573760885" in source

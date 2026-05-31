@@ -294,9 +294,10 @@ Contract rules that are easy to get wrong:
    /advisory/bank-demo-proof/proof-packs` fails with HTTP 409 when material proof fields drift from
    the supported-claim register, rejects runtime base URLs that include credentials, query strings,
    or fragments, rejects proof artifact references that include URL/query/fragment/traversal or
-   sensitive token/secret/prompt/raw-payload path material, redacts secrets, tokens, prompts, raw
-   payloads, trace IDs, and correlation IDs from summaries, does not echo rejected sensitive input
-   in HTTP 422 validation responses, and records bounded integer `latency_ms` endpoint evidence.
+   sensitive access-token, credential, AI-input, or implementation-payload path material, redacts
+   secrets, tokens, prompts, implementation payloads, trace IDs, and correlation IDs from
+   summaries, does not echo rejected sensitive input in HTTP 422 validation responses, and records
+   bounded integer `latency_ms` endpoint evidence.
    These APIs do not approve
    client-ready publication, external client communication, bank-specific attestations,
    legal/regulatory advice, completed sign-off/approval, or OMS/order/fill/settlement.
@@ -333,8 +334,8 @@ generation, or downstream execution truth.
 - keep `live_suite_result_ref`, `live_suite_bundle_ref`, and `output_ref_prefix` as local relative
   proof-artifact references; use `--artifact-ref-prefix` when writing proof artifacts to an
   absolute `--output-dir` so proof-pack asset references remain portable and sanitized
-- URL, query, fragment, traversal, and sensitive-token material is rejected before proof capture can
-  proceed
+- URL, query, fragment, traversal, and sensitive access-token material is rejected before proof
+  capture can proceed
 - treat `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED` and HTTP 409 proof-pack responses as
   material-drift defects that require code, seed, or documentation correction before demo evidence
   is reused

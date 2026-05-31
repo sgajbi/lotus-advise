@@ -8846,6 +8846,37 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-354
+
+- Scope: RFC-0028 commercial and wiki proof wording
+- Pattern: Client-demo/RFP material should express proof controls in business-facing language
+- Status: Hardened
+- Finding Class: Documentation/product quality
+- Summary: The RFC-0028 commercial guide and demo wiki source still used raw-material terminology
+  in customer-consumable proof and RFP wording. That language was accurate for engineering controls
+  but too implementation-facing for sales, pre-sales, RFP/security, and client-demo preparation.
+- Evidence:
+  - Reworded commercial RFP, security-posture, architecture-outline, proof-guide, and operator
+    checklist copy to use unredacted AI input, source evidence, implementation payload, access
+    token, and local-runtime language.
+  - Updated the demo/commercial wiki source with the same business-facing proof boundary.
+  - Updated README RFC-0028 proof-capture language to avoid raw payload phrasing in the product
+    overview while retaining the security control truth.
+  - Updated the RFC-0028 gold-standard documentation contract so technical governance docs still
+    assert prompt controls, while the commercial guide must assert business-facing AI-input and
+    access-token wording.
+  - Focused RFC-0028 contract, wiki, commercial-material, proof-capture, supported-claim, and
+    proof-model tests passed with 48 tests.
+- Consequence:
+  - RFC-0028 documentation remains implementation-backed while being cleaner for business users,
+    RFP/security reviewers, sales, pre-sales, operations, and demo leads.
+- Documentation:
+  - README, commercial docs, and wiki source changed; repo wiki check/publish is required before
+    and after merge under the Lotus wiki publication rule.
+- Follow-Up:
+  - Keep engineering/security controls explicit in RFCs and runbooks, but keep commercial and demo
+    copy free of avoidable raw-material phrasing.
+
 ## LA-REV-353
 
 - Scope: RFC-0028 journey integration proof business wording
