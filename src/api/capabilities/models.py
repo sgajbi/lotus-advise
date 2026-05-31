@@ -93,7 +93,7 @@ class DependencyReadiness(BaseModel):
     }
 
     dependency_key: str = Field(
-        description="Canonical dependency key for the Lotus platform integration seam.",
+        description="Canonical dependency key for the Lotus platform integration boundary.",
         examples=["lotus_core"],
     )
     service_name: str = Field(
@@ -113,7 +113,7 @@ class DependencyReadiness(BaseModel):
         examples=[True],
     )
     operational_ready: bool = Field(
-        description="Whether the dependency seam is currently ready for use by lotus-advise.",
+        description="Whether the dependency boundary is currently ready for use by lotus-advise.",
         examples=[True],
     )
     runtime_probe_enabled: bool = Field(
@@ -135,7 +135,8 @@ class DependencyReadiness(BaseModel):
     degraded_reason: str | None = Field(
         default=None,
         description=(
-            "Bounded dependency-level degraded reason when this seam is not operationally ready."
+            "Bounded dependency-level degraded reason when this integration boundary is not "
+            "operationally ready."
         ),
         examples=["LOTUS_CORE_DEPENDENCY_UNAVAILABLE"],
     )
@@ -174,7 +175,8 @@ class OperationalReadiness(BaseModel):
 
     operational_ready: bool = Field(
         description=(
-            "Whether the current lotus-advise runtime has all configured integration seams ready."
+            "Whether the current lotus-advise runtime has all configured integration boundaries "
+            "ready."
         ),
         examples=[False],
     )
@@ -189,7 +191,9 @@ class OperationalReadiness(BaseModel):
     )
     dependencies: list[DependencyReadiness] = Field(
         default_factory=list,
-        description="Lotus platform dependency readiness details for advisory integration seams.",
+        description=(
+            "Lotus platform dependency readiness details for advisory integration boundaries."
+        ),
     )
 
 
@@ -228,17 +232,17 @@ class AdvisorySupportability(BaseModel):
     )
     dependency_count: int = Field(
         ge=0,
-        description="Number of advisory dependency seams evaluated for supportability.",
+        description="Number of advisory dependency boundaries evaluated for supportability.",
         examples=[5],
     )
     ready_dependency_count: int = Field(
         ge=0,
-        description="Number of advisory dependency seams currently operationally ready.",
+        description="Number of advisory dependency boundaries currently operationally ready.",
         examples=[5],
     )
     degraded_dependency_count: int = Field(
         ge=0,
-        description="Number of advisory dependency seams currently degraded.",
+        description="Number of advisory dependency boundaries currently degraded.",
         examples=[0],
     )
     enabled_feature_count: int = Field(
@@ -357,7 +361,7 @@ class IntegrationCapabilitiesResponse(BaseModel):
         description="Workflow-level capability flags and feature dependencies."
     )
     readiness: OperationalReadiness = Field(
-        description="Operational readiness metadata for Lotus platform dependency seams."
+        description="Operational readiness metadata for Lotus platform dependency boundaries."
     )
     supportability: AdvisorySupportability = Field(
         description=(

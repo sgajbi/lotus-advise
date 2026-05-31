@@ -724,7 +724,7 @@ class WorkspaceAssistantEvidence(BaseModel):
         description="Resolved advisory context attached to the evaluated workspace.",
     )
     evaluation_summary: WorkspaceEvaluationSummary = Field(
-        description="Current deterministic evaluation summary supplied to the AI assist seam.",
+        description="Current deterministic evaluation summary supplied to the AI assist boundary.",
     )
     proposal_status: str = Field(
         description="Current deterministic proposal status from the evaluated workspace result.",
@@ -803,7 +803,7 @@ class WorkspaceAssistantWorkflowPackRun(BaseModel):
 
 class WorkspaceAssistantWorkflowPackRunReviewActionRequest(BaseModel):
     run_id: str = Field(
-        description="Workflow-pack run identifier to update through the bounded review seam.",
+        description="Workflow-pack run identifier to update through the bounded review boundary.",
         examples=["packrun_workspace_rationale_req_001"],
         min_length=1,
         max_length=_WORKSPACE_ASSISTANT_RUN_ID_MAX_LENGTH,
@@ -899,7 +899,7 @@ class WorkspaceAssistantWorkflowPackRunReviewActionResponse(BaseModel):
 
 class WorkspaceAssistantResponse(BaseModel):
     assistant_output: str = Field(
-        description="Evidence-grounded advisory rationale produced through the Lotus AI seam.",
+        description="Evidence-grounded advisory rationale produced through the Lotus AI boundary.",
         examples=["The draft remains READY and proposes a modest growth reallocation."],
     )
     generated_by: str = Field(
@@ -913,7 +913,7 @@ class WorkspaceAssistantResponse(BaseModel):
         default=None,
         description=(
             "Bounded lotus-ai workflow-pack run posture preserved for this workspace rationale "
-            "when the governed explicit execution seam succeeds."
+            "when the governed explicit execution boundary succeeds."
         ),
     )
 

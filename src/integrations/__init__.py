@@ -1,1 +1,1 @@
-"""Integration seam package for Lotus platform dependencies."""
+"""Integration boundary package for Lotus platform dependencies."""

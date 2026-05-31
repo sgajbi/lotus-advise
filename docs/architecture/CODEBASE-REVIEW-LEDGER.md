@@ -8348,3 +8348,32 @@
   - Any future client-ready status addition must arrive with implementation, policy/disclosure
     gates, report/render/archive controls, OpenAPI examples, live evidence, and documentation in
     the same implementation slice.
+
+## LA-REV-315
+
+- Scope: API-facing integration-boundary vocabulary
+- Pattern: OpenAPI and runtime supportability descriptions use business-facing boundary language
+- Status: Hardened
+- Finding Class: API documentation quality and product-language consistency
+- Summary: A source scan found `seam` terminology in API-visible descriptions for integration
+  capabilities, report delivery, advisory copilot, workspace rationale, workspace AI review, and
+  proposal report status. The wording was technically understandable but weaker for banking
+  audiences and inconsistent with the hardened RFC/wiki/commercial language.
+- Evidence:
+  - Replaced API/runtime descriptions with `integration boundary`, `boundary`, or
+    `dependency boundary` wording in capabilities, delivery, copilot, workspace, and proposal
+    response models.
+  - Updated the integration capabilities test fixture wording.
+  - Added an OpenAPI guard in
+    `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` that prevents
+    `seam` from returning to the generated OpenAPI surface.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py tests/unit/advisory/api/test_api_integration_capabilities.py tests/unit/advisory/contracts/test_contract_openapi_workspace_docs.py`.
+- Consequence:
+  - API consumers, operators, and client-facing technical readers see consistent
+    integration-boundary language across generated contracts and supportability payloads.
+- Documentation:
+  - No README/wiki update was required because this slice changes generated API contract wording
+    and the API vocabulary inventory records the updated descriptions.
+- Follow-Up:
+  - Keep OpenAPI wording business-facing and avoid engineering shorthand in generated contracts.

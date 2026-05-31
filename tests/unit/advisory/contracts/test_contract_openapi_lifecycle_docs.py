@@ -10,6 +10,13 @@ def _assert_property_has_docs(schema: dict, property_name: str) -> None:
     assert ("example" in prop) or ("examples" in prop)
 
 
+def test_openapi_uses_business_facing_integration_boundary_language():
+    openapi_text = repr(app.openapi()).lower()
+
+    assert " seam" not in openapi_text
+    assert "seam " not in openapi_text
+
+
 def test_idempotency_header_openapi_contract_is_bounded_and_business_clear():
     with TestClient(app) as client:
         openapi = client.get("/openapi.json").json()

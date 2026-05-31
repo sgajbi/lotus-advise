@@ -171,7 +171,9 @@ def build_feature_capabilities(
             enabled=lifecycle_enabled,
             operational_ready=lifecycle_enabled and lotus_report_ready,
             owner_service="LOTUS_REPORT",
-            description="Advisory proposal report-request seam through lotus-report.",
+            description=(
+                "Advisory proposal report-request integration boundary through lotus-report."
+            ),
             fallback_mode="NONE",
             degraded_reason=(
                 None
