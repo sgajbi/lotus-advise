@@ -64,6 +64,10 @@ def map_bounded_string_list(
     return tuple(items)
 
 
+def map_bounded_text(value: Any, *, max_length: int) -> str | None:
+    return _bounded_text(value, max_length=max_length)
+
+
 def _bounded_text(value: Any, *, max_length: int) -> str | None:
     if not isinstance(value, str):
         return None

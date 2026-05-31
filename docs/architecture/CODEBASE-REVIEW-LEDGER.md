@@ -6249,3 +6249,27 @@
   - No wiki source change is required. This is internal adapter modularity and safety hardening.
 - Follow-Up:
   - None.
+
+## LA-REV-238
+
+- Scope: Workspace rationale Lotus AI output boundary
+- Pattern: bounded AI assistant output, bounded workflow-pack run metadata, governed review actions
+- Status: Hardened
+- Finding Class: unbounded downstream AI output handling
+- Summary: The workspace rationale adapter failed closed on missing AI output, but it accepted
+  unbounded assistant text, review-action summaries, allowed-action strings, and workflow-pack
+  supportability findings from lotus-ai.
+- Evidence:
+  - `src/integrations/lotus_ai/rationale.py` now bounds assistant output, review summaries,
+    workflow-pack identifiers, run state fields, owner fields, and supportability findings.
+  - Allowed review actions are constrained to the governed workspace rationale action set and
+    de-duplicated before being returned to API consumers.
+  - Unit tests prove oversized assistant output fails closed, review summaries are capped, and
+    workflow-pack run metadata is bounded and filtered.
+- Consequence:
+  - RFC-0026/RFC-0027 workspace assistance remains evidence-grounded and review-gated without
+    surfacing malformed, oversized, or non-governed lotus-ai metadata as trusted API output.
+- Documentation:
+  - No wiki source change is required. This hardens an existing internal AI adapter contract.
+- Follow-Up:
+  - None.
