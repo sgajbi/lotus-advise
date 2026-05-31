@@ -4937,3 +4937,28 @@
 - Follow-Up:
   - Keep capability-rule matching tests in place when wildcard or templated route policies are
     introduced.
+
+## LA-REV-187
+
+- Scope: Enterprise runtime JSON configuration validation
+- Pattern: configuration hardening / startup safety
+- Status: Hardened
+- Finding Class: security and operational diagnostics gap
+- Summary: Invalid `ENTERPRISE_FEATURE_FLAGS_JSON` and `ENTERPRISE_CAPABILITY_RULES_JSON` values
+  were loaded as empty maps without surfacing configuration drift. In strict runtime-config mode,
+  that could let a malformed capability or feature-flag configuration pass startup validation.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now reports invalid or non-object JSON map configuration for
+    feature flags and capability rules, and preserves fail-fast startup behavior when
+    `ENTERPRISE_ENFORCE_RUNTIME_CONFIG=true`.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now covers issue reporting and strict
+    fail-fast behavior for malformed enterprise JSON maps.
+- Consequence:
+  - Operators receive deterministic configuration issues instead of silent fallback to empty
+    feature-flag or capability-rule maps.
+- Documentation:
+  - No wiki source change is required. This slice hardens runtime configuration validation without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Keep startup validation aligned with any future enterprise policy env vars before enabling
+    production enforcement.

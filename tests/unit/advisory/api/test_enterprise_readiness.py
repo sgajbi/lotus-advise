@@ -1,6 +1,30 @@
 from __future__ import annotations
 
-from src.api.enterprise_readiness import authorize_write_request, redact_sensitive
+import pytest
+
+from src.api.enterprise_readiness import (
+    authorize_write_request,
+    redact_sensitive,
+    validate_enterprise_runtime_config,
+)
+
+
+def test_enterprise_runtime_config_reports_invalid_json_maps(monkeypatch) -> None:
+    monkeypatch.setenv("ENTERPRISE_FEATURE_FLAGS_JSON", "not-json")
+    monkeypatch.setenv("ENTERPRISE_CAPABILITY_RULES_JSON", '["not", "a", "map"]')
+
+    issues = validate_enterprise_runtime_config()
+
+    assert "invalid_feature_flags_json" in issues
+    assert "invalid_capability_rules_json" in issues
+
+
+def test_enterprise_runtime_config_can_fail_fast_on_invalid_json_maps(monkeypatch) -> None:
+    monkeypatch.setenv("ENTERPRISE_FEATURE_FLAGS_JSON", "not-json")
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_RUNTIME_CONFIG", "true")
+
+    with pytest.raises(RuntimeError, match="invalid_feature_flags_json"):
+        validate_enterprise_runtime_config()
 
 
 def test_authorize_write_request_rejects_blank_enterprise_headers(

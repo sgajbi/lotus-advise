@@ -55,6 +55,17 @@ def _load_json_map(name: str) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
+def _json_map_config_issue(name: str, issue: str) -> str | None:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return issue
+    return None if isinstance(parsed, dict) else issue
+
+
 def _env_int(name: str, default: int) -> int:
     try:
         return int(os.getenv(name, str(default)))
@@ -80,6 +91,18 @@ def validate_enterprise_runtime_config() -> list[str]:
         and not os.getenv("ENTERPRISE_PRIMARY_KEY_ID", "").strip()
     ):
         issues.append("missing_primary_key_id")
+    for issue in (
+        _json_map_config_issue(
+            "ENTERPRISE_FEATURE_FLAGS_JSON",
+            "invalid_feature_flags_json",
+        ),
+        _json_map_config_issue(
+            "ENTERPRISE_CAPABILITY_RULES_JSON",
+            "invalid_capability_rules_json",
+        ),
+    ):
+        if issue is not None:
+            issues.append(issue)
 
     if issues and _env_enabled("ENTERPRISE_ENFORCE_RUNTIME_CONFIG", "false"):
         raise RuntimeError(f"enterprise_runtime_config_invalid:{','.join(issues)}")
