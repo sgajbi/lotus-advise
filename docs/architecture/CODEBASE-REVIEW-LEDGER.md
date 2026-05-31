@@ -5317,3 +5317,31 @@
     and operator workflow are unchanged.
 - Follow-Up:
   - None.
+
+## LA-REV-201
+
+- Scope: Shared Postgres migration cleanup and diagnostics
+- Pattern: operational hardening and persistence infrastructure reliability
+- Status: Hardened
+- Finding Class: observability and migration failure-handling gap
+- Summary: The shared Postgres migration runner suppressed rollback failures silently and allowed
+  advisory-lock cleanup failures to mask the original migration error. That weakened operator
+  diagnostics for proposal and advisory-copilot persistence migrations during cutover or startup.
+- Evidence:
+  - `src/infrastructure/postgres_migrations.py` now has explicit rollback and advisory-lock
+    cleanup helpers with structured logging for cleanup failures.
+  - Migration failures still attempt rollback and advisory unlock while preserving the original
+    failure if cleanup also fails.
+  - Successful migrations surface advisory-unlock failures as
+    `POSTGRES_MIGRATION_UNLOCK_FAILED:<namespace>` instead of hiding lock-release problems.
+  - `tests/unit/infrastructure/test_postgres_migrations.py` covers rollback/unlock behavior,
+    original-error preservation when cleanup fails, and successful-migration unlock failures.
+- Consequence:
+  - Proposal and advisory-copilot Postgres migration startup behavior is more diagnosable and less
+    likely to mislead operators during production cutover or incident triage.
+- Documentation:
+  - No wiki source change is required. This slice hardens shared persistence infrastructure
+    behavior without changing supported feature posture, operator workflow, or business-facing
+    documentation.
+- Follow-Up:
+  - None.

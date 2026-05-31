@@ -1,0 +1,119 @@
+from pathlib import Path
+
+import pytest
+
+import src.infrastructure.postgres_migrations as migrations_module
+from src.infrastructure.postgres_migrations import PostgresMigration, apply_postgres_migrations
+
+
+class _Cursor:
+    def __init__(self, rows=None):
+        self._rows = rows or []
+
+    def fetchall(self):
+        return list(self._rows)
+
+
+class _Connection:
+    def __init__(
+        self,
+        *,
+        fail_statement: str | None = None,
+        fail_rollback: bool = False,
+        fail_unlock: bool = False,
+    ) -> None:
+        self.fail_statement = fail_statement
+        self.fail_rollback = fail_rollback
+        self.fail_unlock = fail_unlock
+        self.executed: list[str] = []
+        self.commits = 0
+        self.rollbacks = 0
+
+    def execute(self, query, args=None):
+        sql = " ".join(str(query).split())
+        self.executed.append(sql)
+        if self.fail_unlock and sql == "SELECT pg_advisory_unlock(%s::bigint)":
+            raise RuntimeError("unlock failed")
+        if self.fail_statement and self.fail_statement in sql:
+            raise RuntimeError("migration failed")
+        if "FROM schema_migrations" in sql:
+            return _Cursor(rows=[])
+        return _Cursor()
+
+    def commit(self) -> None:
+        self.commits += 1
+
+    def rollback(self) -> None:
+        self.rollbacks += 1
+        if self.fail_rollback:
+            raise RuntimeError("rollback failed")
+
+
+def _one_migration(tmp_path: Path) -> list[PostgresMigration]:
+    sql_path = tmp_path / "0001_sample.sql"
+    sql_path.write_text(
+        "CREATE TABLE sample_migration(id TEXT);\nINSERT INTO sample_migration VALUES ('1');",
+        encoding="utf-8",
+    )
+    return [
+        PostgresMigration(
+            version="0001",
+            sql_path=sql_path,
+            checksum="checksum-0001",
+        )
+    ]
+
+
+def test_apply_postgres_migrations_rolls_back_and_releases_lock_on_failure(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(
+        migrations_module,
+        "_load_migrations",
+        lambda *, namespace: _one_migration(tmp_path),
+    )
+    connection = _Connection(fail_statement="INSERT INTO sample_migration")
+
+    with pytest.raises(RuntimeError, match="migration failed"):
+        apply_postgres_migrations(connection=connection, namespace="proposals")
+
+    assert connection.rollbacks == 1
+    assert connection.commits == 0
+    assert connection.executed[-1] == "SELECT pg_advisory_unlock(%s::bigint)"
+
+
+def test_apply_postgres_migrations_preserves_original_error_when_cleanup_fails(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(
+        migrations_module,
+        "_load_migrations",
+        lambda *, namespace: _one_migration(tmp_path),
+    )
+    connection = _Connection(
+        fail_statement="INSERT INTO sample_migration",
+        fail_rollback=True,
+        fail_unlock=True,
+    )
+
+    with pytest.raises(RuntimeError, match="migration failed"):
+        apply_postgres_migrations(connection=connection, namespace="proposals")
+
+    assert connection.rollbacks == 1
+    assert connection.executed[-1] == "SELECT pg_advisory_unlock(%s::bigint)"
+
+
+def test_apply_postgres_migrations_surfaces_unlock_failure_after_success(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(
+        migrations_module,
+        "_load_migrations",
+        lambda *, namespace: _one_migration(tmp_path),
+    )
+    connection = _Connection(fail_unlock=True)
+
+    with pytest.raises(RuntimeError, match="POSTGRES_MIGRATION_UNLOCK_FAILED:proposals"):
+        apply_postgres_migrations(connection=connection, namespace="proposals")
+
+    assert connection.commits == 1
