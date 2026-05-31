@@ -119,6 +119,16 @@ def test_query_base_url_prefers_explicit_query_env(monkeypatch):
     assert _resolve_query_base_url() == "http://query.example.internal:9999"
 
 
+def test_explicit_query_base_url_strips_credentials_query_and_fragment(monkeypatch):
+    monkeypatch.setenv(
+        "LOTUS_CORE_QUERY_BASE_URL",
+        "https://user:secret@query.example.internal:9999/api?token=secret#fragment",
+    )
+    monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
+
+    assert _resolve_query_base_url() == "https://query.example.internal:9999/api"
+
+
 def test_stateful_context_default_core_urls_keep_query_and_control_planes_separate(monkeypatch):
     monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
     monkeypatch.delenv("LOTUS_CORE_QUERY_BASE_URL", raising=False)
@@ -141,12 +151,15 @@ def test_control_plane_base_url_derives_from_query_service_port_env(monkeypatch)
     assert _resolve_control_plane_base_url() == "http://host.docker.internal:8202"
 
 
-def test_core_base_url_derivation_preserves_credentials_and_swaps_ports(monkeypatch):
+def test_core_base_url_derivation_strips_credentials_and_swaps_ports(monkeypatch):
     monkeypatch.delenv("LOTUS_CORE_QUERY_BASE_URL", raising=False)
-    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://user:secret@core.dev.lotus:8202/api/")
+    monkeypatch.setenv(
+        "LOTUS_CORE_BASE_URL",
+        "http://user:secret@core.dev.lotus:8202/api/?token=should-not-leak#fragment",
+    )
 
-    assert _resolve_query_base_url() == "http://user:secret@core.dev.lotus:8201/api"
-    assert _resolve_control_plane_base_url() == "http://user:secret@core.dev.lotus:8202/api"
+    assert _resolve_query_base_url() == "http://core.dev.lotus:8201/api"
+    assert _resolve_control_plane_base_url() == "http://core.dev.lotus:8202/api"
 
 
 def test_stateful_context_env_parsing_falls_back_for_invalid_values(monkeypatch) -> None:

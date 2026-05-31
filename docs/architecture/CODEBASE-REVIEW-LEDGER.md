@@ -5706,3 +5706,28 @@
     posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-216
+
+- Scope: Lotus-core stateful-context base URL derivation sanitization
+- Pattern: sensitive configuration handling and upstream integration hardening
+- Status: Hardened
+- Finding Class: security and configuration hygiene gap
+- Summary: Stateful-context query/control-plane URL derivation preserved embedded credentials
+  from `LOTUS_CORE_BASE_URL` or `LOTUS_CORE_QUERY_BASE_URL`. Those derived URLs are reused across
+  upstream source reads, making credential-bearing URL propagation an avoidable security and
+  diagnostics risk.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context_routes.py` now strips URL credentials, query
+    strings, and fragments while preserving host, path, scheme, and query/control-plane port
+    derivation.
+  - Stateful-context tests now verify explicit query URLs and derived query/control-plane URLs do
+    not retain credentials or sensitive URL components.
+- Consequence:
+  - Lotus-core stateful context reads use cleaner derived service URLs and no longer propagate
+    embedded URL credentials through Advise integration routing.
+- Documentation:
+  - No wiki source change is required. This is runtime configuration hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
