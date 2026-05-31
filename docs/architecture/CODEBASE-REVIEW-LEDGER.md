@@ -8730,6 +8730,34 @@
   - Keep explicit `DPM_OWNER` wording limited to the inbound caller-role compatibility exception
     until Gateway/Workbench migration removes it.
 
+## LA-REV-330
+
+- Scope: Mesh data-product wiki boundary for RFC-0023/RFC-0024/RFC-0028
+- Pattern: Current wiki truth must not imply client-ready publication or stale bank-demo gating
+- Status: Hardened
+- Finding Class: Documentation truth and commercial-claim governance
+- Summary: The mesh data-product operating rule still described proposal narrative truth as
+  advisor-review only "until" client-draft and client-ready publication slices were implemented,
+  and memo truth still said full bank-demo/RFP package claims remained gated. That wording was easy
+  to misread after RFC-0028 implemented supported-claim demo/RFP proof while client-ready
+  publication remains blocked.
+- Evidence:
+  - Updated `wiki/Mesh-Data-Products.md` to state that narrative evidence remains advisor-review
+    only and that compliance-review, client-draft, client-ready publication, and external client
+    communication remain unsupported unless a later source-owned RFC proves those controls.
+  - Updated the same page to route bank-demo/RFP proof truth to RFC-0028 supported claims without
+    promoting client-ready memo publication.
+  - Added a wiki contract test that rejects the stale client-ready-publication and full-demo-gating
+    wording.
+- Consequence:
+  - Business, pre-sales, and operations readers get the current implemented proof boundary without
+    interpreting mesh data-product status as client-ready publication or obsolete RFC-0028 gating.
+- Documentation:
+  - Wiki source changed; wiki check/publish is required before/after merge.
+- Follow-Up:
+  - Continue reviewing public wiki operating rules for stale pre-RFC-0028 language before PR
+    handoff.
+
 ## LA-REV-326
 
 - Scope: OpenAPI enrichment portfolio-id example vocabulary
