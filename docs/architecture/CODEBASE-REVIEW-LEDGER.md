@@ -6514,3 +6514,29 @@
     existing copilot endpoints.
 - Follow-Up:
   - None.
+
+## LA-REV-249
+
+- Scope: Advisory copilot lotus-ai adapter outbound context
+- Pattern: integration boundary hardening, prompt-leak prevention, bounded downstream payloads
+- Status: Hardened
+- Finding Class: validation and security risk
+- Summary: RFC-0027 service and API paths bounded copilot inputs, but direct lotus-ai adapter
+  calls could still forward overlong generated correlation ids, duplicate/oversized requested
+  output keys, overlong actor text, or raw prompt-like reason fields in the workflow-pack request.
+- Evidence:
+  - `src/integrations/lotus_ai/advisory_copilot.py` now compacts generated caller correlation
+    ids, bounds outbound requested outputs and actor text, filters raw prompt/provider keys from
+    reason payloads, bounds reason text/list values, caps source refs, and bounds workflow/model
+    lineage values extracted from lotus-ai responses.
+  - Adapter tests prove maximum-length packet ids, duplicated/oversized requested outputs,
+    overlong actor text, overlong reason values, and raw prompt-like reason keys are handled
+    before an outbound workflow-pack request is built.
+- Consequence:
+  - RFC-0027 copilot execution no longer relies solely on API/service callers for outbound safety;
+    the lotus-ai adapter enforces bounded, business-safe payloads at the integration boundary.
+- Documentation:
+  - No wiki source change is required. This is integration-boundary hardening aligned with the
+    existing governed copilot semantics.
+- Follow-Up:
+  - None.

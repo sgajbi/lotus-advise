@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from dataclasses import dataclass
 from typing import Any, cast
@@ -43,6 +44,29 @@ MAX_COPILOT_SECTION_TITLE_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH
 MAX_COPILOT_SECTION_TEXT_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH
 MAX_COPILOT_REVIEW_GUIDANCE_ITEMS = DEFAULT_AI_REVIEW_GUIDANCE_LIMIT
 MAX_COPILOT_REVIEW_GUIDANCE_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
+MAX_COPILOT_CALLER_CORRELATION_ID_LENGTH = 128
+MAX_COPILOT_REQUESTED_OUTPUTS = 8
+MAX_COPILOT_REQUESTED_OUTPUT_LENGTH = 96
+MAX_COPILOT_REQUESTED_BY_LENGTH = 128
+MAX_COPILOT_REASON_KEYS = 16
+MAX_COPILOT_REASON_KEY_LENGTH = 64
+MAX_COPILOT_REASON_TEXT_LENGTH = 1000
+MAX_COPILOT_REASON_LIST_ITEMS = 8
+MAX_COPILOT_SOURCE_REFS = 32
+MAX_COPILOT_SOURCE_REF_LENGTH = 512
+MAX_COPILOT_LINEAGE_REF_LENGTH = 160
+_RAW_REASON_KEYS = frozenset(
+    {
+        "prompt",
+        "raw_prompt",
+        "raw_output",
+        "unsafe_output",
+        "provider_response",
+        "model_response",
+        "instruction",
+        "system_instruction",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -228,8 +252,11 @@ def _build_workflow_pack_request(
             "input_mode": "STRUCTURED_CONTEXT",
             "caller": {
                 "caller_app": "lotus-advise",
-                "correlation_id": f"advisory-copilot-{evidence_packet.evidence_packet_id}",
-                "requested_by": requested_by,
+                "correlation_id": _caller_correlation_id(evidence_packet),
+                "requested_by": _bounded_text(
+                    requested_by,
+                    max_length=MAX_COPILOT_REQUESTED_BY_LENGTH,
+                ),
                 "tenant_id": resolve_lotus_ai_tenant_id(),
             },
             "context": {
@@ -239,9 +266,12 @@ def _build_workflow_pack_request(
                     "copilot_request": {
                         "action_family": action_family,
                         "audience": audience,
-                        "requested_outputs": requested_outputs,
-                        "requested_by": requested_by,
-                        "reason": reason,
+                        "requested_outputs": _requested_outputs(requested_outputs),
+                        "requested_by": _bounded_text(
+                            requested_by,
+                            max_length=MAX_COPILOT_REQUESTED_BY_LENGTH,
+                        ),
+                        "reason": _safe_reason(reason),
                     },
                     "model_risk_controls": {
                         "adapter_version": ADAPTER_VERSION,
@@ -303,7 +333,9 @@ def _source_refs(evidence_packet: CopilotEvidencePacket) -> list[str]:
                     )
                 )
             )
-    return refs
+    return [_bounded_text(ref, max_length=MAX_COPILOT_SOURCE_REF_LENGTH) for ref in refs][
+        :MAX_COPILOT_SOURCE_REFS
+    ]
 
 
 def _has_source_refs(evidence_packet: CopilotEvidencePacket) -> bool:
@@ -311,20 +343,26 @@ def _has_source_refs(evidence_packet: CopilotEvidencePacket) -> bool:
 
 
 def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
-    return map_review_required_sections(
-        value,
-        max_sections=MAX_COPILOT_OUTPUT_SECTIONS,
-        max_section_key_length=MAX_COPILOT_SECTION_KEY_LENGTH,
-        max_title_length=MAX_COPILOT_SECTION_TITLE_LENGTH,
-        max_text_length=MAX_COPILOT_SECTION_TEXT_LENGTH,
+    return cast(
+        tuple[dict[str, Any], ...],
+        map_review_required_sections(
+            value,
+            max_sections=MAX_COPILOT_OUTPUT_SECTIONS,
+            max_section_key_length=MAX_COPILOT_SECTION_KEY_LENGTH,
+            max_title_length=MAX_COPILOT_SECTION_TITLE_LENGTH,
+            max_text_length=MAX_COPILOT_SECTION_TEXT_LENGTH,
+        ),
     )
 
 
 def _map_string_list(value: Any) -> tuple[str, ...]:
-    return map_bounded_string_list(
-        value,
-        max_items=MAX_COPILOT_REVIEW_GUIDANCE_ITEMS,
-        max_item_length=MAX_COPILOT_REVIEW_GUIDANCE_LENGTH,
+    return cast(
+        tuple[str, ...],
+        map_bounded_string_list(
+            value,
+            max_items=MAX_COPILOT_REVIEW_GUIDANCE_ITEMS,
+            max_item_length=MAX_COPILOT_REVIEW_GUIDANCE_LENGTH,
+        ),
     )
 
 
@@ -389,27 +427,90 @@ def _proposal_version_no(evidence_packet: CopilotEvidencePacket) -> int | None:
 
 def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:
     workflow_pack_run = _safe_dict(payload.get("workflow_pack_run"))
-    run_id = workflow_pack_run.get("run_id")
-    if not isinstance(run_id, str):
-        return None
-    stripped = run_id.strip()
-    return stripped or None
+    return _optional_bounded_text(
+        workflow_pack_run.get("run_id"),
+        max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
+    )
 
 
 def _extract_model_version(result: dict[str, Any]) -> str | None:
-    value = result.get("model_version")
-    if not isinstance(value, str):
-        return None
-    stripped = value.strip()
-    return stripped or None
+    return _optional_bounded_text(
+        result.get("model_version"),
+        max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
+    )
 
 
 def _extract_detail(payload: dict[str, Any]) -> str:
     detail = payload.get("detail")
     if isinstance(detail, str) and detail.strip():
-        return detail.strip()
+        return _bounded_text(detail, max_length=MAX_COPILOT_LINEAGE_REF_LENGTH)
     return "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE"
 
 
 def _safe_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _caller_correlation_id(evidence_packet: CopilotEvidencePacket) -> str:
+    candidate = f"advisory-copilot-{evidence_packet.evidence_packet_id}"
+    if len(candidate) <= MAX_COPILOT_CALLER_CORRELATION_ID_LENGTH:
+        return candidate
+    digest = hashlib.sha256(candidate.encode("utf-8")).hexdigest()[:24]
+    return f"advisory-copilot-{digest}"
+
+
+def _requested_outputs(values: list[str]) -> list[str]:
+    bounded: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        output = _bounded_text(value, max_length=MAX_COPILOT_REQUESTED_OUTPUT_LENGTH)
+        if not output or output in seen:
+            continue
+        bounded.append(output)
+        seen.add(output)
+        if len(bounded) >= MAX_COPILOT_REQUESTED_OUTPUTS:
+            break
+    return bounded
+
+
+def _safe_reason(reason: dict[str, Any]) -> dict[str, Any]:
+    safe: dict[str, Any] = {}
+    for key, value in reason.items():
+        key_text = _bounded_text(str(key), max_length=MAX_COPILOT_REASON_KEY_LENGTH)
+        if not key_text or key_text.strip().lower() in _RAW_REASON_KEYS:
+            continue
+        safe_value = _safe_reason_value(value)
+        if safe_value is not None:
+            safe[key_text] = safe_value
+        if len(safe) >= MAX_COPILOT_REASON_KEYS:
+            break
+    return safe
+
+
+def _safe_reason_value(value: Any) -> str | int | bool | None | list[str]:
+    if value is None or isinstance(value, bool | int):
+        return value
+    if isinstance(value, str):
+        return _bounded_text(value, max_length=MAX_COPILOT_REASON_TEXT_LENGTH) or None
+    if isinstance(value, list | tuple):
+        items = [
+            _bounded_text(item, max_length=MAX_COPILOT_REASON_TEXT_LENGTH)
+            for item in value
+            if isinstance(item, str)
+        ]
+        return [item for item in items if item][:MAX_COPILOT_REASON_LIST_ITEMS] or None
+    return _bounded_text(str(value), max_length=MAX_COPILOT_REASON_TEXT_LENGTH) or None
+
+
+def _optional_bounded_text(value: Any, *, max_length: int) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return _bounded_text(value, max_length=max_length) or None
+
+
+def _bounded_text(value: str, *, max_length: int) -> str:
+    normalized = " ".join(value.split())
+    if len(normalized) <= max_length:
+        return normalized
+    suffix = "..."
+    return normalized[: max_length - len(suffix)].rstrip() + suffix

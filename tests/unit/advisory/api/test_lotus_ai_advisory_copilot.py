@@ -127,6 +127,46 @@ def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_onl
     ]
 
 
+def test_workflow_pack_request_bounds_outbound_advisor_context() -> None:
+    packet = _packet().model_copy(update={"evidence_packet_id": f"pkt_{'x' * 156}"})
+
+    request = _build_workflow_pack_request(
+        evidence_packet=packet,
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary", "advisor_review_summary", "x" * 200]
+        + [f"section_{index}" for index in range(12)],
+        requested_by="advisor_" + ("x" * 200),
+        reason={
+            "purpose": "advisor review " * 120,
+            "raw_prompt": "secret raw prompt should not leave advise",
+            "notes": [" cited evidence only ", "x" * 1200, 7],
+        },
+    )
+
+    task_request = request["task_request"]
+    assert isinstance(task_request, dict)
+    caller = task_request["caller"]
+    context = task_request["context"]
+    assert isinstance(caller, dict)
+    assert isinstance(context, dict)
+    payload = context["payload"]
+    assert isinstance(payload, dict)
+    copilot_request = payload["copilot_request"]
+    assert isinstance(copilot_request, dict)
+
+    assert len(caller["correlation_id"]) <= 128
+    assert caller["correlation_id"].startswith("advisory-copilot-")
+    assert len(caller["requested_by"]) <= 128
+    assert len(copilot_request["requested_outputs"]) == 8
+    assert all(len(item) <= 96 for item in copilot_request["requested_outputs"])
+    assert len(copilot_request["requested_by"]) <= 128
+    assert "raw_prompt" not in copilot_request["reason"]
+    assert "secret raw prompt" not in str(request).lower()
+    assert len(copilot_request["reason"]["purpose"]) <= 1000
+    assert len(copilot_request["reason"]["notes"]) == 2
+    assert all(len(item) <= 1000 for item in copilot_request["reason"]["notes"])
+
+
 def test_generate_advisory_copilot_returns_review_required_sections(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
