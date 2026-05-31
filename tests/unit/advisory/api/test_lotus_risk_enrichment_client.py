@@ -234,6 +234,27 @@ def test_enrich_with_lotus_risk_maps_proposal_to_stateless_concentration(monkeyp
     )
 
 
+def test_enrich_with_lotus_risk_normalizes_invalid_outbound_correlation_id(monkeypatch):
+    request = _request()
+    result = _proposal_result(request)
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enrich_with_lotus_risk(
+        request=request,
+        proposal_result=result,
+        correlation_id="corr-risk-client\x7f",
+    )
+
+    outbound_correlation_id = fake_client.calls[0]["headers"]["X-Correlation-Id"]
+    assert outbound_correlation_id.startswith("corr_")
+    assert outbound_correlation_id != "corr-risk-client\x7f"
+
+
 def test_enrich_with_lotus_risk_sanitizes_configured_base_url(monkeypatch):
     request = _request()
     result = _proposal_result(request)

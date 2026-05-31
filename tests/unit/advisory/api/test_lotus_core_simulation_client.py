@@ -209,6 +209,34 @@ def test_simulate_with_lotus_core_sends_contract_header_and_validates_response(m
     assert fake_client.calls[0]["url"] == (
         "http://lotus-core:8201/integration/advisory/proposals/simulate-execution"
     )
+    assert headers["X-Correlation-Id"] == "corr-1"
+
+
+def test_simulate_with_lotus_core_normalizes_invalid_outbound_correlation_id(monkeypatch):
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=200,
+            payload=_result_payload(),
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    simulate_with_lotus_core(
+        request=_request(),
+        request_hash="sha256:test-hash",
+        idempotency_key="idem-1",
+        correlation_id="corr-1\x7f",
+    )
+
+    outbound_correlation_id = fake_client.calls[0]["headers"]["X-Correlation-Id"]
+    assert outbound_correlation_id.startswith("corr_")
+    assert outbound_correlation_id != "corr-1\x7f"
 
 
 def test_simulate_with_lotus_core_sanitizes_configured_base_url(monkeypatch):

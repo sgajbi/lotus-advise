@@ -6009,3 +6009,28 @@
     supported feature scope.
 - Follow-Up:
   - None.
+
+## LA-REV-228
+
+- Scope: Lotus Core and Lotus Risk outbound correlation headers
+- Pattern: integration boundary hardening, observability, and downstream diagnostics
+- Status: Hardened
+- Finding Class: weak outbound correlation-id normalization
+- Summary: Lotus Core simulation and Lotus Risk enrichment clients passed caller-provided
+  correlation identifiers directly into downstream headers. API entrypoints already normalize
+  request IDs, but the integration clients lacked defensive boundary normalization for direct
+  service use and tests.
+- Evidence:
+  - `src/integrations/lotus_core/simulation.py` now resolves outbound correlation IDs before
+    calling Lotus Core.
+  - `src/integrations/lotus_risk/enrichment.py` now resolves one outbound correlation ID per
+    enrichment request and reuses it across retry attempts.
+  - Integration client tests prove malformed correlation IDs are not propagated downstream.
+- Consequence:
+  - Downstream Core and Risk logs receive bounded correlation identifiers even when an internal
+    caller bypasses normal API ingress validation.
+- Documentation:
+  - No wiki source change is required. This tightens existing observability hygiene without
+    changing supported feature scope.
+- Follow-Up:
+  - None.

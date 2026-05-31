@@ -15,6 +15,7 @@ from src.core.models import (
     SecurityTradeIntent,
     ShelfEntry,
 )
+from src.core.proposals.correlation import resolve_correlation_id
 from src.integrations.base import sanitized_http_base_url
 from src.integrations.lotus_core.runtime_config import env_positive_float, env_positive_int
 
@@ -116,6 +117,7 @@ def _request_concentration_response(
 ) -> LotusRiskConcentrationResponse:
     attempts = _resolve_retry_attempts()
     base_url = _resolve_base_url()
+    outbound_correlation_id = resolve_correlation_id(correlation_id)
     last_error: Exception | None = None
     with httpx.Client(timeout=_resolve_timeout()) as client:
         for attempt in range(1, attempts + 1):
@@ -123,7 +125,7 @@ def _request_concentration_response(
                 response = client.post(
                     f"{base_url}{_CONCENTRATION_PATH}",
                     json=payload,
-                    headers={"X-Correlation-Id": correlation_id},
+                    headers={"X-Correlation-Id": outbound_correlation_id},
                 )
                 response.raise_for_status()
                 body = cast(dict[str, Any], response.json())
