@@ -76,6 +76,12 @@ _COPILOT_SECTION_TITLE_MAX_LENGTH = 160
 _COPILOT_SUMMARY_ITEM_LIMIT = 8
 _COPILOT_SUMMARY_ITEM_MAX_LENGTH = 1000
 _COPILOT_SOURCE_REF_LIMIT = 8
+_COPILOT_IDENTIFIER_MAX_LENGTH = 160
+_COPILOT_HASH_MAX_LENGTH = 128
+_COPILOT_LINEAGE_TYPE_MAX_LENGTH = 96
+_COPILOT_LINEAGE_REF_LIMIT = 16
+_COPILOT_UNSUPPORTED_EVIDENCE_LIMIT = 12
+_COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH = 500
 
 
 class CopilotActionDefinition(BaseModel):
@@ -197,15 +203,26 @@ class CopilotLineageRef(BaseModel):
     lineage_type: str = Field(
         description="Lineage reference family, such as evidence packet, workflow run, or review.",
         examples=["EVIDENCE_PACKET"],
+        min_length=1,
+        max_length=_COPILOT_LINEAGE_TYPE_MAX_LENGTH,
     )
     lineage_id: str = Field(
         description="Stable lineage reference identifier.",
         examples=["copilot_packet_pb_sg_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     source_system: str = Field(
         description="System that owns the lineage reference.",
         examples=["lotus-advise"],
+        min_length=1,
+        max_length=_COPILOT_SOURCE_SYSTEM_MAX_LENGTH,
     )
+
+    @field_validator("lineage_type", "lineage_id", "source_system")
+    @classmethod
+    def _normalize_required_lineage_text(cls, value: str) -> str:
+        return _normalize_required_text(value, error_code="COPILOT_LINEAGE_REF_REQUIRED")
 
 
 class CopilotUnsupportedEvidence(BaseModel):
@@ -221,7 +238,14 @@ class CopilotUnsupportedEvidence(BaseModel):
     advisor_message: str = Field(
         description="Business-facing explanation that avoids technical internals.",
         examples=["Policy evidence is not available for this request."],
+        min_length=1,
+        max_length=_COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH,
     )
+
+    @field_validator("advisor_message")
+    @classmethod
+    def _normalize_advisor_message(cls, value: str) -> str:
+        return _normalize_required_text(value, error_code="COPILOT_UNSUPPORTED_MESSAGE_REQUIRED")
 
 
 class CopilotEvidencePacketSection(BaseModel):
@@ -312,10 +336,14 @@ class CopilotEvidencePacket(BaseModel):
     evidence_packet_id: str = Field(
         description="Stable evidence-packet identifier for copilot action execution.",
         examples=["copilot_packet_pb_sg_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     evidence_packet_hash: str = Field(
         description="Deterministic hash of projected packet content and source refs.",
         examples=["sha256:copilot-packet"],
+        min_length=1,
+        max_length=_COPILOT_HASH_MAX_LENGTH,
     )
     action_family: CopilotActionFamily = Field(
         description="Copilot action family this packet supports.",
@@ -324,11 +352,15 @@ class CopilotEvidencePacket(BaseModel):
     portfolio_id: str = Field(
         description="Portfolio identifier for source-scoped advisory evidence.",
         examples=["PB_SG_GLOBAL_BAL_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     proposal_id: str | None = Field(
         default=None,
         description="Proposal identifier when the copilot action is proposal-scoped.",
         examples=["proposal_sg_structured_note_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     sections: tuple[CopilotEvidencePacketSection, ...] = Field(
         description="Redacted, source-backed evidence sections allowed for the action.",
@@ -336,10 +368,12 @@ class CopilotEvidencePacket(BaseModel):
     unsupported_evidence: tuple[CopilotUnsupportedEvidence, ...] = Field(
         default=(),
         description="Controlled unsupported-evidence posture for missing or restricted sources.",
+        max_length=_COPILOT_UNSUPPORTED_EVIDENCE_LIMIT,
     )
     lineage_refs: tuple[CopilotLineageRef, ...] = Field(
         default=(),
         description="Lineage refs for packet, source, workflow, review, and audit evidence.",
+        max_length=_COPILOT_LINEAGE_REF_LIMIT,
     )
     retention_class: CopilotRetentionClass = Field(
         description="Retention class for evidence-packet handling.",
@@ -350,6 +384,18 @@ class CopilotEvidencePacket(BaseModel):
         description="Client-ready publication posture for evidence produced by this packet.",
         examples=["BLOCKED"],
     )
+
+    @field_validator("evidence_packet_id", "evidence_packet_hash", "portfolio_id")
+    @classmethod
+    def _normalize_required_packet_text(cls, value: str) -> str:
+        return _normalize_required_text(value, error_code="COPILOT_EVIDENCE_PACKET_REQUIRED")
+
+    @field_validator("proposal_id")
+    @classmethod
+    def _normalize_optional_packet_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _normalize_required_text(value, error_code="COPILOT_EVIDENCE_PACKET_REQUIRED")
 
 
 def _normalize_required_text(value: str, *, error_code: str) -> str:

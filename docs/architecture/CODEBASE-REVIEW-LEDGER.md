@@ -6440,3 +6440,28 @@
     existing copilot evidence-packet semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-246
+
+- Scope: Advisory copilot evidence-packet domain model audit fields
+- Pattern: domain-model boundary enforcement, audit reference bounds, direct service-call safety
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: RFC-0027 API request models bounded copilot evidence-packet identifiers, but the
+  core evidence-packet model still accepted oversized packet ids, hashes, portfolio/proposal ids,
+  lineage refs, unsupported-evidence messages, and oversized audit collections from direct
+  service callers.
+- Evidence:
+  - `src/core/advisory_copilot/models.py` now trims and bounds packet identifiers, packet hashes,
+    portfolio/proposal ids, lineage refs, unsupported-evidence advisor messages, and lineage or
+    unsupported-evidence collection sizes.
+  - Foundation tests prove normalization and rejection for oversized packet ids, hashes, lineage
+    ids, unsupported-evidence messages, and oversized audit collections.
+- Consequence:
+  - RFC-0027 evidence packets now enforce bounded audit and persistence fields in the domain model
+    itself, not only through API request DTOs or source-projection callers.
+- Documentation:
+  - No wiki source change is required. This is internal model hardening aligned with existing
+    copilot packet semantics.
+- Follow-Up:
+  - None.

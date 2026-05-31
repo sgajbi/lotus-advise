@@ -202,6 +202,113 @@ def test_copilot_evidence_packet_shape_preserves_review_and_lineage_boundaries()
     assert packet.lineage_refs[0].source_system == "lotus-advise"
 
 
+def test_copilot_evidence_packet_model_normalizes_and_bounds_audit_fields() -> None:
+    packet = CopilotEvidencePacket(
+        evidence_packet_id=" copilot_packet_pb_sg_001 ",
+        evidence_packet_hash=" sha256:copilot-packet ",
+        action_family="COMPLIANCE_REVIEW_SUMMARY",
+        portfolio_id=" PB_SG_GLOBAL_BAL_001 ",
+        proposal_id=" proposal_sg_structured_note_001 ",
+        sections=(),
+        unsupported_evidence=(
+            CopilotUnsupportedEvidence(
+                reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+                source_dependency="RFC0025_POLICY_EVALUATION",
+                advisor_message=" Client-ready publication is blocked for this review. ",
+            ),
+        ),
+        lineage_refs=(
+            CopilotLineageRef(
+                lineage_type=" EVIDENCE_PACKET ",
+                lineage_id=" copilot_packet_pb_sg_001 ",
+                source_system=" lotus-advise ",
+            ),
+        ),
+        retention_class="ADVISORY_REVIEW_RECORD",
+    )
+
+    assert packet.evidence_packet_id == "copilot_packet_pb_sg_001"
+    assert packet.evidence_packet_hash == "sha256:copilot-packet"
+    assert packet.portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert packet.proposal_id == "proposal_sg_structured_note_001"
+    assert packet.unsupported_evidence[0].advisor_message == (
+        "Client-ready publication is blocked for this review."
+    )
+    assert packet.lineage_refs[0].lineage_type == "EVIDENCE_PACKET"
+    assert packet.lineage_refs[0].lineage_id == "copilot_packet_pb_sg_001"
+    assert packet.lineage_refs[0].source_system == "lotus-advise"
+
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="x" * 161,
+            evidence_packet_hash="sha256:copilot-packet",
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=(),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            evidence_packet_hash="x" * 129,
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=(),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotLineageRef(
+            lineage_type="EVIDENCE_PACKET",
+            lineage_id="x" * 161,
+            source_system="lotus-advise",
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotUnsupportedEvidence(
+            reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+            source_dependency="RFC0025_POLICY_EVALUATION",
+            advisor_message="x" * 501,
+        )
+
+    unsupported = CopilotUnsupportedEvidence(
+        reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+        source_dependency="RFC0025_POLICY_EVALUATION",
+        advisor_message="Client-ready publication is blocked for this review.",
+    )
+    lineage_ref = CopilotLineageRef(
+        lineage_type="EVIDENCE_PACKET",
+        lineage_id="copilot_packet_pb_sg_001",
+        source_system="lotus-advise",
+    )
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            evidence_packet_hash="sha256:copilot-packet",
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=(),
+            unsupported_evidence=tuple(unsupported for _ in range(13)),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            evidence_packet_hash="sha256:copilot-packet",
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=(),
+            lineage_refs=tuple(lineage_ref for _ in range(17)),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+
 def test_copilot_evidence_section_input_normalizes_and_bounds_source_evidence() -> None:
     source_ref = CopilotSourceRef(
         source_system=" lotus-advise ",
