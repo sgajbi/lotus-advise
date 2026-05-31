@@ -135,6 +135,44 @@ def test_resolve_async_create_payload_uses_persisted_payload_and_idempotency_key
     assert resolved.idempotency_key == "idem_from_payload"
 
 
+def test_resolve_async_create_payload_requires_meaningful_idempotency_key():
+    payload = ProposalCreateRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    operation = ProposalAsyncOperationRecord(
+        operation_id="op_async_create_blank_idempotency",
+        operation_type="CREATE_PROPOSAL",
+        status="PENDING",
+        correlation_id="corr_async_create_blank_idempotency",
+        idempotency_key="   ",
+        created_by="advisor_service",
+        created_at=datetime(2026, 5, 20, tzinfo=timezone.utc),
+        payload_json={
+            "payload": payload.model_dump(mode="json", exclude_none=True),
+            "idempotency_key": "\t",
+        },
+    )
+
+    resolved = resolve_async_create_payload(
+        operation=operation,
+        fallback_payload=None,
+        fallback_idempotency_key="  idem_from_fallback  ",
+    )
+
+    assert not isinstance(resolved, AsyncPayloadResolutionFailure)
+    assert resolved.idempotency_key == "idem_from_fallback"
+
+    missing = resolve_async_create_payload(
+        operation=operation,
+        fallback_payload=None,
+        fallback_idempotency_key=" ",
+    )
+    assert missing == AsyncPayloadResolutionFailure(
+        message="PROPOSAL_ASYNC_IDEMPOTENCY_KEY_REQUIRED"
+    )
+
+
 def test_resolve_async_create_payload_reports_invalid_payload_and_missing_idempotency():
     operation = ProposalAsyncOperationRecord(
         operation_id="op_async_create_invalid",
@@ -196,6 +234,42 @@ def test_resolve_async_version_payload_uses_fallback_proposal_scope():
     assert not isinstance(resolved, AsyncPayloadResolutionFailure)
     assert resolved.proposal_id == "pp_fallback"
     assert resolved.payload.created_by == "advisor_service"
+
+
+def test_resolve_async_version_payload_requires_meaningful_proposal_scope():
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    operation = ProposalAsyncOperationRecord(
+        operation_id="op_async_version_blank_scope",
+        operation_type="CREATE_PROPOSAL_VERSION",
+        status="PENDING",
+        correlation_id="corr_async_version_blank_scope",
+        proposal_id="   ",
+        created_by="advisor_service",
+        created_at=datetime(2026, 5, 20, tzinfo=timezone.utc),
+        payload_json={
+            "payload": payload.model_dump(mode="json", exclude_none=True),
+            "proposal_id": "\t",
+        },
+    )
+
+    resolved = resolve_async_version_payload(
+        operation=operation,
+        fallback_proposal_id="  pp_fallback_trimmed  ",
+        fallback_payload=None,
+    )
+
+    assert not isinstance(resolved, AsyncPayloadResolutionFailure)
+    assert resolved.proposal_id == "pp_fallback_trimmed"
+
+    missing = resolve_async_version_payload(
+        operation=operation,
+        fallback_proposal_id=" ",
+        fallback_payload=None,
+    )
+    assert missing == AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PROPOSAL_ID_REQUIRED")
 
 
 def test_resolve_async_version_payload_reports_missing_proposal_scope():

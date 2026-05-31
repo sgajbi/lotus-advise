@@ -4989,3 +4989,33 @@
 - Follow-Up:
   - Prefer extending `advisor_cockpit.pagination` for future cockpit page tokens instead of adding
     service-local cursor loops.
+
+## LA-REV-189
+
+- Scope: Proposal async lifecycle payload resolution
+- Pattern: idempotency, lineage, and validation hardening
+- Status: Hardened
+- Finding Class: validation and operational reliability gap
+- Summary: Async proposal lifecycle payload resolution accepted whitespace-only idempotency keys and
+  proposal identifiers as meaningful replay scope, and model validation used broad exception
+  handling. That could degrade retry lineage quality and hide unexpected implementation defects
+  behind a generic payload-invalid failure.
+- Evidence:
+  - `src/core/proposals/async_payloads.py` now resolves idempotency keys and proposal identifiers
+    through a shared non-blank string helper, trims accepted values, falls back across persisted and
+    request-scope sources only when values are meaningful, and catches Pydantic validation errors
+    explicitly.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_payloads.py` covers trimmed fallback
+    resolution and whitespace-only rejection for async create idempotency keys and async version
+    proposal scope.
+- Consequence:
+  - Proposal async replay and retry paths now carry meaningful lifecycle identity before work is
+    retried or marked failed, improving operational auditability and preventing blank replay
+    scopes from being treated as valid state.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal async lifecycle validation
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep future async lifecycle identity fields normalized through shared helpers before they are
+    used for idempotency, persistence lookup, or audit lineage.
