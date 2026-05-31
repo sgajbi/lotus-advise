@@ -8846,6 +8846,34 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-346
+
+- Scope: Advisor cockpit action factory helper structure
+- Pattern: Source-backed action construction should separate reusable bounded component builders
+  from business action-family assembly
+- Status: Hardened
+- Finding Class: Modularity and maintainability
+- Summary: `src/core/advisor_cockpit/action_factory.py` assembled every cockpit action family and
+  also owned low-level identifier, evidence, lineage, readiness, source-reference, and deduplication
+  helpers. As RFC-0026 through RFC-0028 action families grow, keeping those component builders in
+  the same module makes the business flow harder to review and increases duplication risk.
+- Evidence:
+  - Extracted reusable bounded action component builders to
+    `src/core/advisor_cockpit/action_components.py`.
+  - Kept `action_factory.py` focused on source-backed business action families and approval-specific
+    vocabulary.
+  - Focused `ruff`, format check, action-factory tests, and RFC-0026 action-factory contract tests
+    passed with 18 tests.
+- Consequence:
+  - Future cockpit action families can reuse one validated component-construction layer while the
+    action factory remains easier to scan for private-banking workflow semantics.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal domain
+    structure cleanup with stable behavior.
+- Follow-Up:
+  - Continue extracting cockpit orchestration helpers when a module mixes reusable construction
+    mechanics with business workflow decisions.
+
 ## LA-REV-345
 
 - Scope: API main module compatibility exports
