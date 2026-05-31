@@ -9127,6 +9127,35 @@
   - Continue leaving `response_models.py` as a stable facade until route modules are intentionally
     migrated to direct owner-module imports.
 
+## LA-REV-378
+
+- Scope: Proposal async operation and idempotency response model modularity
+- Pattern: Operational async and idempotency DTOs should be isolated from workflow-state mutation
+  DTOs and proposal lineage read models
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: Async operation acceptance/status DTOs and idempotency lookup DTOs remained in the
+  remaining proposal response facade even though they model the operational command boundary for
+  queued proposal creation/versioning and replay diagnostics.
+- Evidence:
+  - Extracted async operation and idempotency response DTOs into
+    `src/core/proposals/operation_response_models.py`.
+  - Kept `src/core/proposals/response_models.py` as a backwards-compatible facade for existing
+    route and service imports.
+  - Added a module-boundary contract assertion proving
+    `models.ProposalAsyncOperationStatusResponse` still resolves through the existing facade while
+    the implementation lives in the operation module.
+  - Focused lifecycle API, OpenAPI lifecycle docs, module-boundary tests, `ruff`, format check, and
+    `mypy` passed with 103 behavior tests.
+- Consequence:
+  - Async operation contracts are easier to review against idempotency, correlation, retry, and
+    replay semantics without coupling them to workflow transition DTOs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing operation API contracts.
+- Follow-Up:
+  - Keep async/idempotency model changes aligned with operation persistence and recovery tests.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

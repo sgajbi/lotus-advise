@@ -9,7 +9,13 @@ from src.core.proposals.memo_response_models import (
 from src.core.proposals.narrative_response_models import (
     ProposalNarrativeReviewResponse as NarrativeProposalNarrativeReviewResponse,
 )
+from src.core.proposals.operation_response_models import (
+    ProposalAsyncOperationStatusResponse as OperationProposalAsyncOperationStatusResponse,
+)
 from src.core.proposals.persistence_models import ProposalRecord as PersistenceProposalRecord
+from src.core.proposals.response_models import (
+    ProposalAsyncOperationStatusResponse as ResponseProposalAsyncOperationStatusResponse,
+)
 from src.core.proposals.response_models import (
     ProposalCreateResponse as ResponseProposalCreateResponse,
 )
@@ -33,6 +39,13 @@ def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert ResponseProposalMemoResponse is MemoProposalMemoResponse
     assert models.ProposalNarrativeReviewResponse is ResponseProposalNarrativeReviewResponse
     assert ResponseProposalNarrativeReviewResponse is NarrativeProposalNarrativeReviewResponse
+    assert (
+        models.ProposalAsyncOperationStatusResponse is ResponseProposalAsyncOperationStatusResponse
+    )
+    assert (
+        ResponseProposalAsyncOperationStatusResponse
+        is OperationProposalAsyncOperationStatusResponse
+    )
     assert models.ProposalRecord is PersistenceProposalRecord
 
 
