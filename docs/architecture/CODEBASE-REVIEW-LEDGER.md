@@ -7421,3 +7421,31 @@
 - Follow-Up:
   - Continue auditing the remaining risk enrichment response-application and retry diagnostics
     boundaries if later slices touch risk-lens behavior.
+
+## LA-REV-283
+
+- Scope: Lotus Risk concentration response projection
+- Pattern: upstream risk contract and risk-lens application separated from HTTP retry transport
+- Status: Hardened
+- Finding Class: service-boundary modularity and test gap
+- Summary: After concentration request mapping was extracted, the Lotus Risk enrichment client
+  still owned upstream response DTOs and risk-lens explanation projection alongside retrying HTTP
+  transport. That made the canonical `proposal.explanation.risk_lens` envelope harder to test
+  directly and kept upstream contract validation coupled to HTTP fakes.
+- Evidence:
+  - `src/integrations/lotus_risk/concentration_response.py` now owns the
+    `LotusRiskConcentrationResponse` DTO family and `apply_concentration_response`.
+  - `src/integrations/lotus_risk/enrichment.py` now keeps runtime configuration, retrying HTTP
+    transport, upstream JSON validation, and orchestration.
+  - `tests/unit/advisory/api/test_lotus_risk_concentration_response.py` proves canonical risk-lens
+    projection, preservation of existing explanation fields, decimal JSON projection, and
+    rejection of wrong upstream source-service identity without HTTP fakes.
+- Consequence:
+  - The risk-lens evidence envelope is independently testable and the enrichment transport module
+    is smaller, clearer, and less coupled to risk-domain projection.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing retry diagnostics and other integration adapters for similarly separable
+    request/response contracts.
