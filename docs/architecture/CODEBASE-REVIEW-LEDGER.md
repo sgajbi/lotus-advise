@@ -5577,3 +5577,30 @@
     change.
 - Follow-Up:
   - None.
+
+## LA-REV-211
+
+- Scope: Shared actor and support-note normalization
+- Pattern: duplicate DTO validation cleanup and shared core helper extraction
+- Status: Hardened
+- Finding Class: duplication and maintainability gap
+- Summary: RFC-0026 cockpit acknowledgement and RFC-0027 copilot APIs both implemented local
+  actor normalization after audit-lineage hardening. Keeping separate validators would invite
+  drift in actor trimming, blank actor rejection, and support-safe note normalization across
+  advisor workflow surfaces.
+- Evidence:
+  - `src/core/common/actors.py` now provides reusable `normalize_required_actor_id` and
+    `normalize_optional_support_note` helpers.
+  - Cockpit and copilot API DTOs now delegate to the shared helpers while preserving their
+    existing domain-specific error codes.
+  - `tests/unit/core/test_actor_normalization.py` covers helper behavior directly.
+  - Focused actor-normalization, advisor-cockpit API/service, and advisory-copilot API/application
+    tests passed with `31 passed`.
+- Consequence:
+  - Actor/audit normalization is reusable across Advise modules, reducing duplicate DTO logic and
+    making future advisory workflow APIs easier to keep consistent.
+- Documentation:
+  - No wiki source change is required. This is internal shared-helper refactoring with no product
+    posture or operator workflow change.
+- Follow-Up:
+  - None.

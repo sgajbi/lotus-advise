@@ -16,13 +16,7 @@ from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunRecord,
 )
 from src.core.advisory_copilot.review import CopilotReviewAction
-
-
-def _normalize_required_actor(value: str) -> str:
-    normalized = value.strip()
-    if not normalized:
-        raise ValueError("COPILOT_ACTOR_REQUIRED")
-    return normalized
+from src.core.common.actors import normalize_required_actor_id
 
 
 class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
@@ -63,7 +57,7 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     @field_validator("created_by")
     @classmethod
     def _normalize_created_by(cls, value: str) -> str:
-        return _normalize_required_actor(value)
+        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
 
 
 class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
@@ -105,7 +99,7 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
     @field_validator("created_by")
     @classmethod
     def _normalize_created_by(cls, value: str) -> str:
-        return _normalize_required_actor(value)
+        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
 
 
 class AdvisoryCopilotEvidencePacketResponse(BaseModel):
@@ -153,7 +147,7 @@ class AdvisoryCopilotActionRequest(BaseModel):
     @field_validator("requested_by")
     @classmethod
     def _normalize_requested_by(cls, value: str) -> str:
-        return _normalize_required_actor(value)
+        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
 
 
 class AdvisoryCopilotRunResponse(BaseModel):
@@ -186,7 +180,7 @@ class AdvisoryCopilotReviewRequest(BaseModel):
     @field_validator("actor_id")
     @classmethod
     def _normalize_actor_id(cls, value: str) -> str:
-        return _normalize_required_actor(value)
+        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
 
 
 class AdvisoryCopilotReviewResponse(BaseModel):

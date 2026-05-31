@@ -10,6 +10,7 @@ from src.core.advisor_cockpit.models import (
     CockpitAcknowledgementState,
     MeetingPreparationPacket,
 )
+from src.core.common.actors import normalize_optional_support_note, normalize_required_actor_id
 
 
 class AdvisorCockpitAcknowledgeRequest(BaseModel):
@@ -31,18 +32,12 @@ class AdvisorCockpitAcknowledgeRequest(BaseModel):
     @field_validator("acknowledged_by")
     @classmethod
     def _normalize_acknowledged_by(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("ACKNOWLEDGED_BY_REQUIRED")
-        return normalized
+        return normalize_required_actor_id(value, error_code="ACKNOWLEDGED_BY_REQUIRED")
 
     @field_validator("acknowledgement_note")
     @classmethod
     def _normalize_acknowledgement_note(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        normalized = " ".join(value.split())
-        return normalized or None
+        return normalize_optional_support_note(value)
 
 
 class AdvisorCockpitAcknowledgeResponse(BaseModel):
