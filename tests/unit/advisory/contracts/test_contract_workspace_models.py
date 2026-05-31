@@ -19,6 +19,8 @@ from src.core.models import (
 )
 from src.core.proposals.models import ProposalCreateResponse
 from src.core.workspace.models import (
+    WorkspaceAssistantRequest,
+    WorkspaceAssistantWorkflowPackRunReviewActionRequest,
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
@@ -196,6 +198,61 @@ def test_workspace_schema_exposes_examples_and_descriptions():
     assert properties["workspace_name"]["description"]
     assert properties["input_mode"]["examples"] == ["stateful"]
     assert "examples" in properties["stateless_input"]
+
+
+def test_workspace_assistant_request_normalizes_and_bounds_advisor_instruction():
+    request = WorkspaceAssistantRequest(
+        requested_by="  advisor_123  ",
+        instruction="  Summarize\n\n  the advisory rationale.  ",
+    )
+
+    assert request.requested_by == "advisor_123"
+    assert request.instruction == "Summarize the advisory rationale."
+
+    with pytest.raises(ValidationError):
+        WorkspaceAssistantRequest(requested_by="advisor_123", instruction="   ")
+
+    with pytest.raises(ValidationError):
+        WorkspaceAssistantRequest(requested_by="advisor_123", instruction="x" * 1001)
+
+
+def test_workspace_rationale_review_action_normalizes_and_bounds_lineage_fields():
+    request = WorkspaceAssistantWorkflowPackRunReviewActionRequest(
+        run_id="  packrun_workspace_rationale_req_001  ",
+        action_type="SUPERSEDE",
+        reviewed_by="  supervisor_123  ",
+        reason="  Replacement\nrun reviewed.  ",
+        replacement_run_id="  packrun_workspace_rationale_req_002  ",
+    )
+
+    assert request.run_id == "packrun_workspace_rationale_req_001"
+    assert request.reviewed_by == "supervisor_123"
+    assert request.reason == "Replacement run reviewed."
+    assert request.replacement_run_id == "packrun_workspace_rationale_req_002"
+
+    with pytest.raises(ValidationError):
+        WorkspaceAssistantWorkflowPackRunReviewActionRequest(
+            run_id="x" * 161,
+            action_type="ACCEPT",
+            reviewed_by="supervisor_123",
+            reason="Reviewed.",
+        )
+
+    with pytest.raises(ValidationError):
+        WorkspaceAssistantWorkflowPackRunReviewActionRequest(
+            run_id="packrun_workspace_rationale_req_001",
+            action_type="REVISE",
+            reviewed_by="supervisor_123",
+            reason="Reviewed.",
+        )
+
+
+def test_workspace_assistant_schema_exposes_string_bounds():
+    assistant_schema = WorkspaceAssistantRequest.model_json_schema()
+    review_schema = WorkspaceAssistantWorkflowPackRunReviewActionRequest.model_json_schema()
+
+    assert assistant_schema["properties"]["instruction"]["maxLength"] == 1000
+    assert review_schema["properties"]["run_id"]["maxLength"] == 160
 
 
 def test_workspace_draft_action_requires_trade_for_add_trade():

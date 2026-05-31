@@ -6273,3 +6273,27 @@
   - No wiki source change is required. This hardens an existing internal AI adapter contract.
 - Follow-Up:
   - None.
+
+## LA-REV-239
+
+- Scope: Workspace assistant request-boundary validation
+- Pattern: API input bounds, advisor instruction normalization, review-action lineage validation
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: Workspace assistant output was bounded, but inbound advisor instructions and
+  workflow-pack review-action text were not consistently normalized or length-bounded before
+  reaching the Lotus AI integration seam.
+- Evidence:
+  - `src/core/workspace/models.py` now trims and bounds assistant requester ids, advisor
+    instructions, workflow-pack run ids, reviewer ids, review reasons, and replacement run ids.
+  - Workspace assistant schema exposes max-length bounds for request bodies.
+  - Contract tests prove normalization, empty-value rejection, oversize rejection, and replacement
+    lineage requirements.
+- Consequence:
+  - RFC-0026/RFC-0027 workspace assistance has a stronger API boundary before AI execution or
+    review-action forwarding.
+- Documentation:
+  - No wiki source change is required. This is API contract hardening aligned with existing
+    endpoint semantics.
+- Follow-Up:
+  - None.

@@ -1,8 +1,9 @@
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, cast
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.advisory.alternatives_models import ProposalAlternativesRequest
+from src.core.common.actors import normalize_required_actor_id
 from src.core.models import (
     EngineOptions,
     GateDecision,
@@ -32,6 +33,10 @@ WorkspaceAssistantWorkflowPackRunReviewActionType = Literal[
     "SUPERSEDE",
     "ABANDON",
 ]
+_WORKSPACE_ASSISTANT_ACTOR_ID_MAX_LENGTH = 128
+_WORKSPACE_ASSISTANT_INSTRUCTION_MAX_LENGTH = 1000
+_WORKSPACE_ASSISTANT_RUN_ID_MAX_LENGTH = 160
+_WORKSPACE_ASSISTANT_REVIEW_REASON_MAX_LENGTH = 1000
 
 
 class WorkspaceStatelessInput(BaseModel):
@@ -673,11 +678,36 @@ class WorkspaceAssistantRequest(BaseModel):
     requested_by: str = Field(
         description="Actor identifier requesting the advisory AI assistance output.",
         examples=["advisor_123"],
+        max_length=_WORKSPACE_ASSISTANT_ACTOR_ID_MAX_LENGTH,
     )
     instruction: str = Field(
         description="Advisor instruction for the evidence-grounded workspace rationale request.",
         examples=["Summarize the proposal rationale for an advisor review note."],
+        min_length=1,
+        max_length=_WORKSPACE_ASSISTANT_INSTRUCTION_MAX_LENGTH,
     )
+
+    @field_validator("requested_by")
+    @classmethod
+    def _normalize_requested_by(cls, value: str) -> str:
+        normalized = normalize_required_actor_id(
+            value,
+            error_code="WORKSPACE_ASSISTANT_ACTOR_REQUIRED",
+        )
+        if len(normalized) > _WORKSPACE_ASSISTANT_ACTOR_ID_MAX_LENGTH:
+            raise ValueError("WORKSPACE_ASSISTANT_ACTOR_TOO_LONG")
+        return cast(str, normalized)
+
+    @field_validator("instruction")
+    @classmethod
+    def _normalize_instruction(cls, value: str) -> str:
+        normalized = _normalize_workspace_assistant_text(
+            value,
+            error_code="WORKSPACE_ASSISTANT_INSTRUCTION_REQUIRED",
+        )
+        if len(normalized) > _WORKSPACE_ASSISTANT_INSTRUCTION_MAX_LENGTH:
+            raise ValueError("WORKSPACE_ASSISTANT_INSTRUCTION_TOO_LONG")
+        return cast(str, normalized)
 
 
 class WorkspaceAssistantEvidence(BaseModel):
@@ -775,6 +805,8 @@ class WorkspaceAssistantWorkflowPackRunReviewActionRequest(BaseModel):
     run_id: str = Field(
         description="Workflow-pack run identifier to update through the bounded review seam.",
         examples=["packrun_workspace_rationale_req_001"],
+        min_length=1,
+        max_length=_WORKSPACE_ASSISTANT_RUN_ID_MAX_LENGTH,
     )
     action_type: WorkspaceAssistantWorkflowPackRunReviewActionType = Field(
         description="Bounded review action requested for the workspace rationale run.",
@@ -783,10 +815,13 @@ class WorkspaceAssistantWorkflowPackRunReviewActionRequest(BaseModel):
     reviewed_by: str = Field(
         description="Actor identifier applying the bounded review action.",
         examples=["advisor_123"],
+        max_length=_WORKSPACE_ASSISTANT_ACTOR_ID_MAX_LENGTH,
     )
     reason: str = Field(
         description="Short reviewer rationale captured alongside the workflow-pack review action.",
         examples=["A newer workspace rationale run supersedes this earlier draft."],
+        min_length=1,
+        max_length=_WORKSPACE_ASSISTANT_REVIEW_REASON_MAX_LENGTH,
     )
     replacement_run_id: str | None = Field(
         default=None,
@@ -795,7 +830,46 @@ class WorkspaceAssistantWorkflowPackRunReviewActionRequest(BaseModel):
             "replacement lineage."
         ),
         examples=["packrun_workspace_rationale_req_002"],
+        min_length=1,
+        max_length=_WORKSPACE_ASSISTANT_RUN_ID_MAX_LENGTH,
     )
+
+    @field_validator("run_id")
+    @classmethod
+    def _normalize_run_id(cls, value: str) -> str:
+        return _normalize_bounded_run_id(value, error_code="WORKSPACE_ASSISTANT_RUN_ID_REQUIRED")
+
+    @field_validator("reviewed_by")
+    @classmethod
+    def _normalize_reviewed_by(cls, value: str) -> str:
+        normalized = normalize_required_actor_id(
+            value,
+            error_code="WORKSPACE_ASSISTANT_REVIEW_ACTOR_REQUIRED",
+        )
+        if len(normalized) > _WORKSPACE_ASSISTANT_ACTOR_ID_MAX_LENGTH:
+            raise ValueError("WORKSPACE_ASSISTANT_REVIEW_ACTOR_TOO_LONG")
+        return cast(str, normalized)
+
+    @field_validator("reason")
+    @classmethod
+    def _normalize_reason(cls, value: str) -> str:
+        normalized = _normalize_workspace_assistant_text(
+            value,
+            error_code="WORKSPACE_ASSISTANT_REVIEW_REASON_REQUIRED",
+        )
+        if len(normalized) > _WORKSPACE_ASSISTANT_REVIEW_REASON_MAX_LENGTH:
+            raise ValueError("WORKSPACE_ASSISTANT_REVIEW_REASON_TOO_LONG")
+        return normalized
+
+    @field_validator("replacement_run_id")
+    @classmethod
+    def _normalize_replacement_run_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _normalize_bounded_run_id(
+            value,
+            error_code="WORKSPACE_ASSISTANT_REPLACEMENT_RUN_ID_REQUIRED",
+        )
 
     @model_validator(mode="after")
     def validate_replacement_lineage(
@@ -893,3 +967,19 @@ class WorkspaceLifecycleHandoffResponse(BaseModel):
             "Persisted proposal lifecycle response payload returned by the proposal service."
         ),
     )
+
+
+def _normalize_workspace_assistant_text(value: str, *, error_code: str) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ValueError(error_code)
+    return normalized
+
+
+def _normalize_bounded_run_id(value: str, *, error_code: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(error_code)
+    if len(normalized) > _WORKSPACE_ASSISTANT_RUN_ID_MAX_LENGTH:
+        raise ValueError("WORKSPACE_ASSISTANT_RUN_ID_TOO_LONG")
+    return normalized
