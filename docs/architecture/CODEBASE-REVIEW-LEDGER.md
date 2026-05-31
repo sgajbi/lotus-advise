@@ -6563,3 +6563,27 @@
     semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-251
+
+- Scope: RFC-0028 bank-demo proof capture API metadata
+- Pattern: proof-pack API contract hardening, metadata hygiene, correlation-id bounds
+- Status: Hardened
+- Finding Class: validation and security risk
+- Summary: RFC-0028 proof-pack capture sanitized local artifact refs, but optional runtime
+  metadata and the proof-pack correlation header were not explicitly bounded or screened for
+  sensitive fragments before proof metadata construction.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now bounds repository SHA, service version, environment,
+    and correlation-id metadata, normalizes blank optional metadata to fallback behavior, and
+    rejects sensitive metadata fragments.
+  - API tests prove oversized repository metadata, sensitive environment metadata, and oversized
+    correlation headers fail with HTTP 422 before proof-pack construction.
+- Consequence:
+  - RFC-0028 proof bundles remain sanitized not only for artifact paths, but also for the metadata
+    that Gateway, Workbench, wiki, and commercial proof materials consume.
+- Documentation:
+  - No wiki source change is required. This is API request-contract hardening for existing
+    RFC-0028 proof-pack semantics.
+- Follow-Up:
+  - None.
