@@ -447,7 +447,7 @@ def test_rfc0028_records_slice_twelve_documentation_product_truth() -> None:
     security_markers = (
         "RFC-0028 Proof Artifact Governance",
         "credentials, query strings, or fragments",
-        "secrets, tokens, prompts",
+        "credential, AI-input, runtime-payload, trace, and correlation material",
         "committed proof assets must use commit-safe or customer-consumable access classes",
         "`COMMIT_SOURCE` retention, and a canonical content hash",
         "bank-specific attestations",
@@ -532,8 +532,8 @@ def test_rfc0028_records_final_closure_artifact_hardening_and_communication() ->
         assert "OMS/order/fill/settlement" in source
 
     for source in (readme, api_surface, security, operations):
-        assert "token" in source
-        assert "prompt" in source
+        assert "token" in source or "credential" in source
+        assert "prompt" in source or "AI-input" in source
     assert "access-token" in commercial
     assert "AI-input" in commercial
 

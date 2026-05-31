@@ -105,9 +105,9 @@ unpromoted until separately implementation-backed and reviewed. Slice 11 adds
 `src/core/bank_demo_proof/runtime_posture.py`, bounded `latency_ms`, runtime base-URL
 credential/query/fragment rejection, sensitive summary redaction, and proof marker
 `RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED` so runtime proof artifacts carry sanitized
-security/latency posture without leaking secrets, prompts, raw payloads, trace IDs, or correlation
-IDs. Slice 12 updates README and wiki product truth for the source-owned proof APIs, runtime
-posture artifacts, repeatable capture commands, commercial proof-guide navigation,
+security/latency posture without leaking credential, AI-input, runtime-payload, trace, or
+correlation material. Slice 12 updates README and wiki product truth for the source-owned proof
+APIs, runtime posture artifacts, repeatable capture commands, commercial proof-guide navigation,
 HTTP 409 material-drift handling, and blocked client-ready publication plus OMS/order/fill/settlement
 boundaries. Slice 13/14 close implementation proof and final hardening through PR #213,
 `src/core/bank_demo_proof/artifact_refs.py`, local artifact-reference normalization, safe HTTP 422
@@ -177,7 +177,8 @@ RFC-0027 Slice 8 is implemented as copilot run persistence, review audit, and re
 foundation. Evidence lives in
 `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`. `lotus-advise` now has durable
 run, idempotency, review, audit, retention, legal-hold, and Postgres migration support for governed
-copilot records. The persistence layer rejects raw prompt, provider, and unsafe-output storage.
+copilot records. The persistence layer rejects unredacted AI input, provider output, and unsafe
+output storage.
 Advise copilot APIs, Gateway, Workbench, canonical proof, data-product promotion, and supported
 runtime claims remain unpromoted.
 

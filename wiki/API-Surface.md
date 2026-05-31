@@ -106,9 +106,9 @@ capture writes sanitized runtime posture for repeatable validation.
 `POST /advisory/bank-demo-proof/proof-packs` must fail with HTTP 409 when material proof fields
 drift from the supported-claim register. Runtime posture rejects runtime base URLs that carry
 credentials, query strings, or fragments; proof artifact refs reject URL/query/fragment/traversal
-and sensitive token/secret/prompt/raw-payload material; HTTP 422 validation responses do not echo
-rejected sensitive input; summaries redact secrets, tokens, prompts, raw payloads, trace IDs, and
-correlation IDs; endpoint evidence records bounded integer `latency_ms` values.
+and sensitive credential, AI-input, or runtime-payload material; HTTP 422 validation responses do
+not echo rejected sensitive input; summaries redact credential, AI-input, runtime-payload, trace,
+and correlation material; endpoint evidence records bounded integer `latency_ms` values.
 
 The proof APIs do not approve client-ready publication, external client communication,
 bank-specific attestations, legal/regulatory advice, completed sign-off/approval, or

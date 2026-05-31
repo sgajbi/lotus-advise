@@ -41,9 +41,9 @@ Runtime proof artifacts are sanitized before they become commit-safe or demo-sup
 1. runtime base URLs must not include credentials, query strings, or fragments
 2. proof artifact references must stay as local relative paths and must not include URL schemes,
    authorities, credentials, query strings, fragments, absolute paths, parent-directory traversal,
-   control characters, or sensitive token/secret/prompt/raw-payload path material
+   control characters, or sensitive credential, AI-input, or runtime-payload path material
 3. HTTP 422 request-validation errors must not echo rejected sensitive input values
-4. summaries redact secrets, tokens, prompts, raw payloads, trace IDs, and correlation IDs
+4. summaries redact credential, AI-input, runtime-payload, trace, and correlation material
 5. endpoint posture records bounded integer `latency_ms` values only
 6. local-only runtime outputs under `output/` must not be treated as wiki or README source truth
 7. committed proof assets must use commit-safe or customer-consumable access classes,
@@ -59,6 +59,7 @@ truth in the same slice.
 
 Governed advisory copilot output is internal advisor/reviewer evidence, not client-ready advice or
 model authority. Evidence-section models, unsupported-evidence messages, action projections, and
-copilot structured-payload persistence reject raw prompt, provider-response, trace/correlation,
-run-ledger, and raw-payload wording at the lowest boundary. This keeps UI, API, persistence, and
-replay paths aligned with the same business-copy redaction rule.
+copilot structured-payload persistence reject unredacted AI input, provider-output,
+trace/correlation, run-ledger, and unrestricted runtime-payload wording at the lowest boundary.
+This keeps UI, API, persistence, and replay paths aligned with the same business-copy redaction
+rule.

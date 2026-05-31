@@ -23,6 +23,14 @@ PUBLIC_VOCABULARY_SURFACES = (
     Path("src/core/advisory_copilot/records.py"),
 )
 
+PUBLIC_WIKI_SURFACES = (
+    Path("wiki/API-Surface.md"),
+    Path("wiki/Operations-Runbook.md"),
+    Path("wiki/RFC-Index.md"),
+    Path("wiki/Security-and-Governance.md"),
+    Path("wiki/Supported-Features.md"),
+)
+
 
 BANNED_CURRENT_STATE_PHRASES = (
     "first-wave",
@@ -35,6 +43,13 @@ BANNED_CURRENT_STATE_PHRASES = (
     "placeholder task",
 )
 
+BANNED_PUBLIC_WIKI_TECHNICAL_PHRASES = (
+    "raw prompt",
+    "raw payload",
+    "provider-response",
+    "provider response",
+)
+
 
 def test_public_rfc0023_0028_surfaces_use_supported_scope_language() -> None:
     failures: list[str] = []
@@ -42,6 +57,18 @@ def test_public_rfc0023_0028_surfaces_use_supported_scope_language() -> None:
     for path in PUBLIC_VOCABULARY_SURFACES:
         text = path.read_text(encoding="utf-8").lower()
         for phrase in BANNED_CURRENT_STATE_PHRASES:
+            if phrase in text:
+                failures.append(f"{path}: {phrase}")
+
+    assert failures == []
+
+
+def test_public_wiki_surfaces_use_business_safe_sensitive_data_language() -> None:
+    failures: list[str] = []
+
+    for path in PUBLIC_WIKI_SURFACES:
+        text = path.read_text(encoding="utf-8").lower()
+        for phrase in BANNED_PUBLIC_WIKI_TECHNICAL_PHRASES:
             if phrase in text:
                 failures.append(f"{path}: {phrase}")
 

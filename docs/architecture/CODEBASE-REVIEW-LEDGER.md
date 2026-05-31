@@ -8846,6 +8846,34 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-360
+
+- Scope: RFC-0027/RFC-0028 public wiki sensitive-data vocabulary
+- Pattern: Public wiki pages should describe proof and copilot guardrails with enterprise-safe
+  language while technical RFCs and tests retain precise blocked-term fixtures
+- Status: Hardened
+- Finding Class: Documentation quality and business-facing security posture
+- Summary: The authored wiki source for security, API, operations, and RFC index pages still used
+  low-level raw-prompt/raw-payload/provider-response language in business-facing descriptions of
+  proof and copilot controls. Those controls are correct, but the wiki should be reusable for
+  business, operations, sales, and pre-sales without exposing implementation-oriented phrasing.
+- Evidence:
+  - Reworded wiki sensitive-data controls to credential, AI-input, runtime-payload, trace, and
+    correlation material.
+  - Kept implementation RFCs and tests free to name blocked technical concepts where that precision
+    is needed for governance and regression fixtures.
+  - Added a public-wiki vocabulary contract that fails if raw-prompt/raw-payload/provider-response
+    wording returns to the public wiki surfaces.
+  - Focused `ruff`, format, and RFC-0023/RFC-0027/RFC-0028 documentation contract tests passed
+    with 25 tests.
+- Consequence:
+  - The Advise wiki remains implementation-backed while becoming cleaner for client-demo,
+    operations, sales, and RFP-adjacent use.
+- Documentation:
+  - Wiki source and review ledger updated. README and RFC source posture did not change.
+- Follow-Up:
+  - Resolve existing published-wiki drift before PR closure and publish repo wiki after merge.
+
 ## LA-REV-359
 
 - Scope: RFC-0027 Advisory Copilot public API vocabulary
