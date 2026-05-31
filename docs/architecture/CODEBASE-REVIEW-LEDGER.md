@@ -6204,3 +6204,24 @@
   - No wiki source change is required. This hardens existing memo AI commentary semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-236
+
+- Scope: Proposal narrative AI draft output boundary
+- Pattern: bounded advisor-review AI narrative, fail-closed output mapping, RFC-0023 supportability
+- Status: Hardened
+- Finding Class: unbounded downstream AI narrative draft
+- Summary: The proposal narrative AI adapter validated section keys and failed closed when no valid
+  sections remained, but it still accepted unbounded downstream section counts and text sizes.
+- Evidence:
+  - `src/integrations/lotus_ai/proposal_narrative.py` now bounds narrative AI section count,
+    section titles, and section text before returning advisor-review draft sections.
+  - Unit tests prove oversized narrative output is unavailable and repeated valid sections are
+    capped deterministically.
+- Consequence:
+  - RFC-0023 AI-assisted narrative remains advisor-review only and safe for downstream artifact,
+    report, API, and UI surfaces without accepting unbounded AI text.
+- Documentation:
+  - No wiki source change is required. This hardens existing proposal narrative AI draft semantics.
+- Follow-Up:
+  - None.

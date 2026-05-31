@@ -23,6 +23,9 @@ PROMPT_TEMPLATE_VERSION = "proposal-narrative-instructions.v1"
 WORKFLOW_PACK_ID = "proposal_narrative_draft.pack"
 WORKFLOW_PACK_VERSION = "v1"
 WORKFLOW_SURFACE = "advisory-proposal-narrative"
+MAX_NARRATIVE_AI_OUTPUT_SECTIONS = 8
+MAX_NARRATIVE_AI_SECTION_TITLE_LENGTH = 160
+MAX_NARRATIVE_AI_SECTION_TEXT_LENGTH = 4000
 
 
 class LotusAIProposalNarrativeUnavailableError(Exception):
@@ -89,9 +92,12 @@ def build_ai_fallback_lineage(reason: str) -> ProposalNarrativeAiLineage:
 
 
 def _resolve_base_url() -> str:
-    return resolve_lotus_ai_base_url(
-        unavailable_error_type=LotusAIProposalNarrativeUnavailableError,
-        unavailable_message="LOTUS_AI_NARRATIVE_UNAVAILABLE",
+    return cast(
+        str,
+        resolve_lotus_ai_base_url(
+            unavailable_error_type=LotusAIProposalNarrativeUnavailableError,
+            unavailable_message="LOTUS_AI_NARRATIVE_UNAVAILABLE",
+        ),
     )
 
 
@@ -163,6 +169,8 @@ def _map_sections(value: Any) -> tuple[ProposalNarrativeDraftSection, ...]:
     for item in value:
         if not isinstance(item, dict):
             continue
+        if len(sections) >= MAX_NARRATIVE_AI_OUTPUT_SECTIONS:
+            break
         section_key = item.get("section_key")
         title = item.get("title")
         text = item.get("text")
@@ -173,6 +181,11 @@ def _map_sections(value: Any) -> tuple[ProposalNarrativeDraftSection, ...]:
         ):
             continue
         if section_key not in _allowed_section_keys() or not title.strip() or not text.strip():
+            continue
+        if (
+            len(title.strip()) > MAX_NARRATIVE_AI_SECTION_TITLE_LENGTH
+            or len(text.strip()) > MAX_NARRATIVE_AI_SECTION_TEXT_LENGTH
+        ):
             continue
         sections.append(
             ProposalNarrativeDraftSection(
