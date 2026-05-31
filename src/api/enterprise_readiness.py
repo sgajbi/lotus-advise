@@ -126,7 +126,7 @@ def authorize_write_request(
     ):
         return True, None
 
-    normalized = {str(k).lower(): str(v) for k, v in headers.items()}
+    normalized = {str(k).strip().lower(): str(v).strip() for k, v in headers.items()}
     missing = sorted(header for header in _REQUIRED_HEADERS if not normalized.get(header))
     if missing:
         return False, f"missing_headers:{','.join(missing)}"

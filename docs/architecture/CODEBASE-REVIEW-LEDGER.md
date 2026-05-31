@@ -4889,3 +4889,27 @@
 - Follow-Up:
   - Keep future audit metadata expansions covered with direct redaction tests before adding new log
     fields or diagnostic payloads.
+
+## LA-REV-185
+
+- Scope: Enterprise write-authorization header validation
+- Pattern: authorization/auditability hardening
+- Status: Hardened
+- Finding Class: security and validation gap
+- Summary: Enterprise write authorization normalized header names but did not trim header values.
+  Whitespace-only actor, tenant, role, correlation, service identity, or authorization values could
+  be treated as present, weakening enforcement and audit lineage quality for write requests.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now strips normalized header names and values before required
+    header, service-identity, authorization, and capability checks.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now covers whitespace-only required
+    headers, whitespace-only service identity, and trimmed valid header/capability values.
+- Consequence:
+  - Enterprise authorization checks now require meaningful identity and correlation values before
+    allowing write requests under enforced authorization mode.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal authorization validation without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Keep authorization-policy normalization covered when new enterprise headers or capability rules
+    are added.

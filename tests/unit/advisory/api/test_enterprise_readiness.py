@@ -1,6 +1,64 @@
 from __future__ import annotations
 
-from src.api.enterprise_readiness import redact_sensitive
+from src.api.enterprise_readiness import authorize_write_request, redact_sensitive
+
+
+def test_authorize_write_request_rejects_blank_enterprise_headers(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+
+    authorized, reason = authorize_write_request(
+        "POST",
+        "/advisory/proposals",
+        {
+            "X-Actor-Id": "   ",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Role": "ADVISOR",
+            "X-Correlation-Id": "corr-001",
+            "X-Service-Identity": "lotus-workbench",
+        },
+    )
+    service_authorized, service_reason = authorize_write_request(
+        "POST",
+        "/advisory/proposals",
+        {
+            "X-Actor-Id": "advisor-sg-001",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Role": "ADVISOR",
+            "X-Correlation-Id": "corr-001",
+            "X-Service-Identity": "   ",
+        },
+    )
+
+    assert authorized is False
+    assert reason == "missing_headers:x-actor-id"
+    assert service_authorized is False
+    assert service_reason == "missing_service_identity"
+
+
+def test_authorize_write_request_trims_headers_and_capabilities(monkeypatch) -> None:
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+    monkeypatch.setenv(
+        "ENTERPRISE_CAPABILITY_RULES_JSON",
+        '{"POST /advisory/proposals": "advisory.proposals.write"}',
+    )
+
+    authorized, reason = authorize_write_request(
+        "POST",
+        "/advisory/proposals",
+        {
+            " X-Actor-Id ": " advisor-sg-001 ",
+            "X-Tenant-Id": " tenant-sg-001 ",
+            "X-Role": " ADVISOR ",
+            "X-Correlation-Id": " corr-001 ",
+            "X-Service-Identity": " lotus-workbench ",
+            "X-Capabilities": " advisory.proposals.write ",
+        },
+    )
+
+    assert authorized is True
+    assert reason is None
 
 
 def test_redact_sensitive_covers_common_audit_metadata_key_variants() -> None:
