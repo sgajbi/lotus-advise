@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import re
 from typing import Literal
+from urllib.parse import urlsplit, urlunsplit
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
     RFC28_CANONICAL_SCENARIO_ID,
+    SupportedClaimAudience,
 )
 
 RFC28_COMMERCIAL_MATERIAL_REFS: tuple[str, ...] = (
@@ -15,11 +18,35 @@ RFC28_COMMERCIAL_MATERIAL_REFS: tuple[str, ...] = (
     "docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md#slice-10---commercial-rfp-security-architecture-roi-and-demo-package",
     "docs/demo/README.md#rfc-0028-bank-demo-proof-materials",
 )
+_RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH = 160
+_RFC28_MATERIAL_TITLE_MAX_LENGTH = 160
+_RFC28_MATERIAL_SOURCE_REF_MAX_LENGTH = 512
+_RFC28_MATERIAL_LIST_MAX_ITEMS = 64
+_RFC28_WINDOWS_DRIVE_REF = re.compile(r"^[A-Za-z]:")
+_RFC28_SENSITIVE_MATERIAL_FRAGMENTS = (
+    "authorization",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "raw_payload",
+    "raw_prompt",
+    "provider_response",
+)
 
 
 class CommercialMaterial(BaseModel):
-    material_id: str = Field(description="Stable commercial material identifier.")
-    title: str = Field(description="Business-facing material title.")
+    material_id: str = Field(
+        description="Stable commercial material identifier.",
+        max_length=_RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH,
+    )
+    title: str = Field(
+        description="Business-facing material title.",
+        max_length=_RFC28_MATERIAL_TITLE_MAX_LENGTH,
+    )
     material_type: Literal[
         "PRODUCT_ONE_PAGER",
         "RFP_RESPONSE",
@@ -32,19 +59,43 @@ class CommercialMaterial(BaseModel):
         "DEMO_BOUNDARY",
         "OPERATOR_CHECKLIST",
     ] = Field(description="Governed material family.")
-    source_ref: str = Field(description="Repository source reference for this material.")
+    source_ref: str = Field(
+        description="Repository source reference for this material.",
+        max_length=_RFC28_MATERIAL_SOURCE_REF_MAX_LENGTH,
+    )
     mapped_claim_ids: list[str] = Field(
         min_length=1,
+        max_length=_RFC28_MATERIAL_LIST_MAX_ITEMS,
         description="Supported-claim ids that govern the material wording.",
     )
-    allowed_audiences: list[str] = Field(
+    allowed_audiences: list[SupportedClaimAudience] = Field(
         min_length=1,
+        max_length=_RFC28_MATERIAL_LIST_MAX_ITEMS,
         description="Audiences allowed to use the material.",
     )
     excluded_claims: list[str] = Field(
         default_factory=list,
+        max_length=_RFC28_MATERIAL_LIST_MAX_ITEMS,
         description="Unsupported claims explicitly excluded from the material.",
     )
+
+    @field_validator("material_id", "title")
+    @classmethod
+    def _business_fields_must_be_safe(cls, value: str) -> str:
+        normalized = _normalize_required_text(value, field_name="commercial material field")
+        if _contains_sensitive_fragment(normalized):
+            raise ValueError("commercial material field cannot contain sensitive technical detail")
+        return normalized
+
+    @field_validator("source_ref")
+    @classmethod
+    def _source_ref_must_be_repository_local(cls, value: str) -> str:
+        return _normalize_repository_source_ref(value)
+
+    @field_validator("mapped_claim_ids", "excluded_claims")
+    @classmethod
+    def _claim_refs_must_be_bounded(cls, value: list[str]) -> list[str]:
+        return _normalize_ref_list(value, field_name="commercial material claim refs")
 
 
 class CommercialMaterialPack(BaseModel):
@@ -52,34 +103,110 @@ class CommercialMaterialPack(BaseModel):
         default="AdvisoryCommercialMaterialPack"
     )
     contract_version: Literal["v1"] = Field(default="v1")
-    scenario_id: str = Field(description="Canonical RFC-0028 scenario id.")
-    primary_portfolio_id: str = Field(description="Canonical proof portfolio id.")
-    proof_marker: str = Field(description="Canonical proof marker required for the pack.")
+    scenario_id: str = Field(
+        description="Canonical RFC-0028 scenario id.",
+        max_length=_RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH,
+    )
+    primary_portfolio_id: str = Field(
+        description="Canonical proof portfolio id.",
+        max_length=_RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH,
+    )
+    proof_marker: str = Field(
+        description="Canonical proof marker required for the pack.",
+        max_length=_RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH,
+    )
     publication_posture: Literal["CUSTOMER_CONSUMABLE_WITH_BOUNDARIES"] = Field(
         description="Commercial publication posture for the material pack."
     )
     required_claim_ids: list[str] = Field(
         min_length=1,
+        max_length=_RFC28_MATERIAL_LIST_MAX_ITEMS,
         description="Supported-claim ids required before using the pack.",
     )
     blocked_claims: list[str] = Field(
         min_length=1,
+        max_length=_RFC28_MATERIAL_LIST_MAX_ITEMS,
         description="Claims that remain blocked in every commercial asset.",
     )
     materials: list[CommercialMaterial] = Field(
         min_length=1,
+        max_length=_RFC28_MATERIAL_LIST_MAX_ITEMS,
         description="Governed material inventory.",
     )
+
+    @field_validator("scenario_id", "primary_portfolio_id", "proof_marker")
+    @classmethod
+    def _pack_identifiers_must_be_bounded(cls, value: str) -> str:
+        return _normalize_required_text(value, field_name="commercial material pack field")
+
+    @field_validator("required_claim_ids", "blocked_claims")
+    @classmethod
+    def _pack_claim_refs_must_be_bounded(cls, value: list[str]) -> list[str]:
+        return _normalize_ref_list(value, field_name="commercial material pack claim refs")
 
     @model_validator(mode="after")
     def _materials_must_map_to_required_claims(self) -> CommercialMaterialPack:
         required = set(self.required_claim_ids)
+        material_ids = [material.material_id for material in self.materials]
+        if len(set(material_ids)) != len(material_ids):
+            raise ValueError("commercial material ids must be unique")
         for material in self.materials:
             if not set(material.mapped_claim_ids).issubset(required):
                 raise ValueError("commercial material maps to an unsupported claim id")
             if "client_ready_publication" not in " ".join(material.excluded_claims):
                 raise ValueError("commercial material must exclude client-ready publication")
         return self
+
+
+def _normalize_required_text(value: str, *, field_name: str) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ValueError(f"{field_name} is required")
+    return normalized
+
+
+def _normalize_ref_list(value: list[str], *, field_name: str) -> list[str]:
+    normalized: list[str] = []
+    for item in value:
+        normalized_item = _normalize_required_text(str(item), field_name=field_name)
+        if len(normalized_item) > _RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH:
+            raise ValueError(f"{field_name} entry is too long")
+        if _contains_sensitive_fragment(normalized_item):
+            raise ValueError(f"{field_name} cannot contain sensitive technical detail")
+        normalized.append(normalized_item)
+    return normalized
+
+
+def _normalize_repository_source_ref(value: str) -> str:
+    normalized = value.strip().replace("\\", "/")
+    if not normalized:
+        raise ValueError("commercial material source_ref is required")
+    if any(char in normalized for char in ("\r", "\n", "\t", "\x00")):
+        raise ValueError("commercial material source_ref cannot contain control characters")
+    parsed = urlsplit(normalized)
+    if parsed.scheme or parsed.netloc or parsed.query:
+        raise ValueError("commercial material source_ref must be a repository-local reference")
+    if normalized.startswith("/") or _RFC28_WINDOWS_DRIVE_REF.match(normalized):
+        raise ValueError("commercial material source_ref must be relative, not absolute")
+    path_parts = [part for part in parsed.path.split("/") if part]
+    if any(part == ".." for part in path_parts):
+        raise ValueError("commercial material source_ref cannot contain parent-directory traversal")
+    if any(_contains_sensitive_fragment(part) for part in path_parts):
+        raise ValueError("commercial material source_ref cannot contain sensitive material")
+    fragment = parsed.fragment.strip()
+    if len(fragment) > _RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH:
+        raise ValueError("commercial material source_ref fragment is too long")
+    if fragment and _contains_sensitive_fragment(fragment):
+        raise ValueError(
+            "commercial material source_ref fragment cannot contain sensitive material"
+        )
+    path = "/".join(path_parts)
+    return urlunsplit(("", "", path, "", fragment))
+
+
+def _contains_sensitive_fragment(value: str) -> bool:
+    normalized = value.lower().replace("-", "_").replace(" ", "_")
+    return any(fragment in normalized for fragment in _RFC28_SENSITIVE_MATERIAL_FRAGMENTS)
 
 
 def build_commercial_material_pack() -> CommercialMaterialPack:

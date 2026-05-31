@@ -6636,3 +6636,28 @@
     proof-pack contract.
 - Follow-Up:
   - None.
+
+## LA-REV-254
+
+- Scope: RFC-0028 commercial material model
+- Pattern: business-facing material governance, source-ref hygiene, audience typing
+- Status: Hardened
+- Finding Class: documentation-quality and security risk
+- Summary: RFC-0028 commercial material records drive sales, pre-sales, RFP, demo, architecture,
+  and operations material, but the model still accepted loose string audiences, unsafe repository
+  source references, unbounded material fields, and duplicate material identifiers.
+- Evidence:
+  - `src/core/bank_demo_proof/commercial_materials.py` now types material audiences with the
+    supported-claim audience vocabulary, bounds identifiers/titles/source refs/lists, rejects
+    sensitive technical copy, normalizes repository-local source references, and enforces unique
+    material ids.
+  - Commercial material tests prove the generated pack remains business usable while unsafe source
+    refs, raw-prompt wording, unsupported audiences, and duplicate material ids are rejected.
+- Consequence:
+  - RFC-0028 commercial, RFP, demo, and wiki-facing material inventory has domain-model controls
+    that match its client-facing use rather than relying only on generated docs remaining clean.
+- Documentation:
+  - No wiki source change is required. This hardens the source model behind existing RFC-0028
+    commercial documentation and proof-pack output.
+- Follow-Up:
+  - None.
