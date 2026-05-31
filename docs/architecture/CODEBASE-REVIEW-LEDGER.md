@@ -7360,3 +7360,33 @@
 - Follow-Up:
   - Continue separating response projection from transport if future report-package changes add
     more explanation or lineage mapping complexity.
+
+## LA-REV-281
+
+- Scope: Lotus Report integration response projection
+- Pattern: transport orchestration separated from advisory evidence-envelope construction
+- Status: Hardened
+- Finding Class: service-boundary modularity, lineage projection, and test gap
+- Summary: After request mapping was extracted, the Lotus Report adapter still constructed
+  portfolio-review, memo-package, and policy sign-off response explanations inline with HTTP
+  transport. That kept report/render/archive lineage projection harder to test without fake HTTP
+  clients and made future explanation changes more likely to couple to transport code.
+- Evidence:
+  - `src/integrations/lotus_report/response_projection.py` now owns
+    `ProposalReportResponse` construction for portfolio review, advisor memo report packages, and
+    policy sign-off report packages.
+  - `src/integrations/lotus_report/adapter.py` now orchestrates override handling, base URL
+    resolution, HTTP calls, status fetches, and fail-closed translation while delegating
+    evidence-envelope projection to the response projection module.
+  - `tests/unit/advisory/api/test_lotus_report_response_projection.py` proves bounded reviewed
+    narrative summaries, blocked client-ready posture for memo and policy packages, render/archive
+    refs, and fail-closed missing report-job identity behavior without HTTP fakes.
+- Consequence:
+  - Report response lineage is independently testable and the adapter is materially smaller,
+    clearer, and less coupled to business evidence projection.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing other large adapters for the same request mapping / transport / response
+    projection separation pattern.
