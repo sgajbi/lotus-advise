@@ -8377,3 +8377,32 @@
     and the API vocabulary inventory records the updated descriptions.
 - Follow-Up:
   - Keep OpenAPI wording business-facing and avoid engineering shorthand in generated contracts.
+
+## LA-REV-316
+
+- Scope: Tactical house-view portfolio-management API wording
+- Pattern: Public route descriptions and examples prefer private-banking terminology over internal
+  abbreviations
+- Status: Hardened
+- Finding Class: API documentation quality and private-banking vocabulary
+- Summary: The tactical house-view route and request model still used `DPM` in API descriptions and
+  examples. The source product may continue to accept source-owned portfolio type values, but the
+  public contract should explain the capability in discretionary portfolio-management language.
+- Evidence:
+  - Updated tactical house-view request model descriptions/examples to use discretionary
+    portfolio-management wording.
+  - Updated the route description to say downstream discretionary portfolio-management workflows.
+  - Updated tactical house-view API/engine tests to use `DISCRETIONARY` in example requests.
+  - Added an OpenAPI assertion that prevents the route description from returning to `DPM`
+    workflow wording.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/api/test_tactical_house_view_api.py tests/unit/advisory/engine/test_tactical_house_view.py tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py`.
+- Consequence:
+  - Tactical house-view API docs now read as a private-banking capability while preserving
+    downstream portfolio-management ownership boundaries.
+- Documentation:
+  - No README/wiki change was required because this slice changes generated API contract wording
+    and examples only.
+- Follow-Up:
+  - Keep source-owned codes compatible where needed, but prefer business-facing examples in public
+    API contracts.

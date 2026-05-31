@@ -34,7 +34,7 @@ def _payload() -> dict:
             {
                 "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                 "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
-                "portfolio_type": "DPM",
+                "portfolio_type": "DISCRETIONARY",
                 "discretionary_mandate": True,
                 "booking_center_code": "Singapore",
                 "current_exposure_weight": "0.18",
@@ -50,7 +50,7 @@ def _payload() -> dict:
                 ],
             }
         ],
-        "eligible_portfolio_types": ["DPM"],
+        "eligible_portfolio_types": ["DISCRETIONARY"],
         "correlation_id": "corr-thv-001",
     }
 

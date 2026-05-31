@@ -47,8 +47,10 @@ class TacticalHouseViewCandidatePortfolio(BaseModel):
         description="Mandate identifier when supplied by the source owner.",
     )
     portfolio_type: str = Field(
-        description="Source-owned portfolio type used for DPM/discretionary eligibility.",
-        examples=["DPM"],
+        description=(
+            "Source-owned portfolio type used for discretionary portfolio-management eligibility."
+        ),
+        examples=["DISCRETIONARY"],
     )
     discretionary_mandate: bool = Field(
         description="Whether source evidence says the portfolio is discretionary or managed."
@@ -120,7 +122,7 @@ class TacticalHouseViewCohortRequest(BaseModel):
     )
     eligible_portfolio_types: list[str] = Field(
         default_factory=lambda: ["DPM", "DISCRETIONARY"],
-        description="Portfolio types eligible for Manage consumption.",
+        description="Portfolio types eligible for downstream portfolio-management consumption.",
     )
     min_exposure_weight: Decimal | None = Field(
         default=None,

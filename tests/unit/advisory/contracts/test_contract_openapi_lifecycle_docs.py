@@ -17,6 +17,14 @@ def test_openapi_uses_business_facing_integration_boundary_language():
     assert "seam " not in openapi_text
 
 
+def test_tactical_house_view_openapi_uses_private_banking_portfolio_management_language():
+    operation = app.openapi()["paths"]["/advisory/tactical-house-view/cohorts/evaluate"]["post"]
+    description = operation["description"]
+
+    assert "DPM workflows" not in description
+    assert "discretionary portfolio-management workflows" in description
+
+
 def test_idempotency_header_openapi_contract_is_bounded_and_business_clear():
     with TestClient(app) as client:
         openapi = client.get("/openapi.json").json()

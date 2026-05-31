@@ -3221,7 +3221,7 @@
       "semanticId": "lotus.eligible_portfolio_types",
       "canonicalTerm": "eligible_portfolio_types",
       "preferredName": "eligible_portfolio_types",
-      "description": "Portfolio types eligible for Manage consumption.",
+      "description": "Portfolio types eligible for downstream portfolio-management consumption.",
       "example": [
         "example_eligible_portfolio_types_item"
       ],
@@ -7074,7 +7074,7 @@
       "semanticId": "lotus.portfolio_type",
       "canonicalTerm": "portfolio_type",
       "preferredName": "portfolio_type",
-      "description": "Source-owned portfolio type used for DPM/discretionary eligibility.",
+      "description": "Source-owned portfolio type used for discretionary portfolio-management eligibility.",
       "example": "example_portfolio_type",
       "type": "string",
       "locations": [
