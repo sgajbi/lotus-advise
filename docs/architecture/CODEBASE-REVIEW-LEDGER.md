@@ -7204,3 +7204,28 @@
 - Follow-Up:
   - Continue auditing proof-pack asset uniqueness and repository-SHA metadata before RFC-0028
     closure review.
+
+## LA-REV-275
+
+- Scope: RFC-0028 proof-pack audit record
+- Pattern: UTC proof timestamps, unique assets, and normalized repository evidence
+- Status: Hardened
+- Finding Class: audit replay, lineage, and proof-pack integrity risk
+- Summary: The proof-pack model required canonical markers and blocked client-ready approval, but
+  direct proof-pack construction did not enforce UTC generation timestamps, duplicate proof-asset
+  ids, sensitive repository names, or repository-name collisions after normalization.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now requires timezone-aware UTC proof-pack timestamps,
+    rejects sensitive or oversized repository names, detects repository-name collisions after
+    normalization, and rejects duplicate proof-pack asset ids.
+  - RFC-0028 proof model tests cover non-UTC timestamps, sensitive repository names,
+    normalization collisions, and duplicate asset ids.
+- Consequence:
+  - RFC-0028 proof packs are safer to replay, compare, archive, and present because their core
+    audit identity cannot silently contain ambiguous repository evidence or duplicate assets.
+- Documentation:
+  - No wiki source change is required. This is proof-pack integrity hardening for existing
+    RFC-0028 output.
+- Follow-Up:
+  - Continue auditing document and integration proof source-payload validation before RFC-0028
+    closure review.

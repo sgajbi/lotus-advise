@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 from pydantic import ValidationError
@@ -391,6 +391,48 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
             **{
                 **proof_pack.model_dump(),
                 "client_ready_posture": "CLIENT_READY_APPROVED",
+            }
+        )
+
+    with pytest.raises(ValidationError, match="timezone-aware UTC"):
+        AdvisoryBankDemoProofPack(
+            **{
+                **proof_pack.model_dump(),
+                "generated_at": datetime(
+                    2026,
+                    5,
+                    28,
+                    9,
+                    0,
+                    tzinfo=timezone(timedelta(hours=1)),
+                ),
+            }
+        )
+
+    with pytest.raises(ValidationError, match="repository name cannot contain sensitive"):
+        AdvisoryBankDemoProofPack(
+            **{
+                **proof_pack.model_dump(),
+                "repository_shas": {"secret-repository": "abc123"},
+            }
+        )
+
+    with pytest.raises(ValidationError, match="repository names must be unique"):
+        AdvisoryBankDemoProofPack(
+            **{
+                **proof_pack.model_dump(),
+                "repository_shas": {
+                    "lotus-advise": "abc123",
+                    " lotus-advise ": "def456",
+                },
+            }
+        )
+
+    with pytest.raises(ValidationError, match="asset ids must be unique"):
+        AdvisoryBankDemoProofPack(
+            **{
+                **proof_pack.model_dump(),
+                "assets": [proof_pack.assets[0], proof_pack.assets[0]],
             }
         )
 

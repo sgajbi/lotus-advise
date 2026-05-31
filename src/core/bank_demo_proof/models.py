@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -586,6 +586,13 @@ class AdvisoryBankDemoProofPack(BaseModel):
     def _proof_pack_identifiers_must_be_bounded(cls, value: str) -> str:
         return _normalize_required_text(value, error_code="proof-pack identifier is required")
 
+    @field_validator("generated_at")
+    @classmethod
+    def _generated_at_must_be_utc(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() != UTC.utcoffset(None):
+            raise ValueError("proof-pack generated_at must be timezone-aware UTC")
+        return value
+
     @field_validator("repository_shas")
     @classmethod
     def _repository_shas_must_be_bounded(cls, value: dict[str, str]) -> dict[str, str]:
@@ -595,6 +602,12 @@ class AdvisoryBankDemoProofPack(BaseModel):
                 str(repository),
                 error_code="repository name is required",
             )
+            if len(repository_name) > _RFC28_IDENTIFIER_MAX_LENGTH:
+                raise ValueError("repository name is too long")
+            if _contains_sensitive_technical_term(repository_name):
+                raise ValueError("repository name cannot contain sensitive technical detail")
+            if repository_name in normalized:
+                raise ValueError("repository names must be unique after normalization")
             repository_sha = _normalize_required_text(
                 str(sha),
                 error_code="repository sha is required",
@@ -630,4 +643,7 @@ class AdvisoryBankDemoProofPack(BaseModel):
             raise ValueError("proof_marker must be present in evidence_markers")
         if self.client_ready_posture == "CLIENT_READY_APPROVED":
             raise ValueError("CLIENT_READY_APPROVED is not supported before publication controls")
+        asset_ids = [asset.asset_id for asset in self.assets]
+        if len(set(asset_ids)) != len(asset_ids):
+            raise ValueError("proof-pack asset ids must be unique")
         return self
