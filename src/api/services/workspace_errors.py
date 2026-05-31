@@ -1,4 +1,4 @@
-from src.api.sensitive_error_details import contains_sensitive_error_detail
+from src.core.common.sensitive_error_details import contains_sensitive_error_detail
 
 WORKSPACE_AI_UNAVAILABLE_DETAIL = "WORKSPACE_AI_UNAVAILABLE"
 WORKSPACE_DRAFT_ACTION_INVALID_DETAIL = "WORKSPACE_DRAFT_ACTION_INVALID"

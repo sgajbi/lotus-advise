@@ -1,23 +1,8 @@
-SENSITIVE_ERROR_DETAIL_FRAGMENTS = (
-    "authorization",
-    "bearer ",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "raw prompt",
-    "raw payload",
-    "raw source",
-    "provider response",
+from __future__ import annotations
+
+from src.core.common.sensitive_error_details import (
+    SENSITIVE_ERROR_DETAIL_FRAGMENTS,
+    contains_sensitive_error_detail,
 )
 
-
-def contains_sensitive_error_detail(error_detail: str) -> bool:
-    normalized = error_detail.lower().replace("-", " ").replace("_", " ")
-    return any(
-        fragment.replace("-", " ").replace("_", " ") in normalized
-        for fragment in SENSITIVE_ERROR_DETAIL_FRAGMENTS
-    )
+__all__ = ["SENSITIVE_ERROR_DETAIL_FRAGMENTS", "contains_sensitive_error_detail"]

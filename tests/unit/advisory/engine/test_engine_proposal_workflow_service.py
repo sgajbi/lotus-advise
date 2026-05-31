@@ -4,11 +4,13 @@ from datetime import datetime, timezone
 
 import pytest
 
+import src.core.proposals.service as proposal_service_module
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.command_validation import resolve_proposal_approval_transition
+from src.core.proposals.context import ProposalContextResolutionError
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
@@ -110,6 +112,33 @@ def _create_payload() -> ProposalCreateRequest:
         simulate_request=_simulate_request(),
         metadata={"title": "Service test"},
     )
+
+
+def test_create_proposal_redacts_sensitive_context_resolution_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    def _raise_sensitive_context_error(_payload):
+        raise ProposalContextResolutionError(
+            "raw payload includes Authorization Bearer token material"
+        )
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "resolve_create_request",
+        _raise_sensitive_context_error,
+    )
+
+    with pytest.raises(ProposalValidationError) as exc:
+        service.create_proposal(
+            payload=_create_payload(),
+            idempotency_key="prop-sensitive-context",
+            correlation_id="corr-sensitive-context",
+        )
+
+    assert str(exc.value) == "PROPOSAL_CONTEXT_RESOLUTION_FAILED"
+    assert "token" not in str(exc.value).lower()
 
 
 def _create_payload_with_narrative(portfolio_id: str) -> ProposalCreateRequest:

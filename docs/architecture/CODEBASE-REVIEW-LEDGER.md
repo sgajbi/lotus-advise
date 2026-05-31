@@ -8846,6 +8846,37 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-351
+
+- Scope: Proposal workflow context-resolution error boundaries
+- Pattern: Proposal-domain services should not propagate sensitive source-context detail after
+  lower-layer resolution failures
+- Status: Hardened
+- Finding Class: Security posture and service-boundary consistency
+- Summary: Proposal API routes already redacted sensitive `ProposalValidationError` details, but
+  `ProposalWorkflowService` still wrapped context-resolution failures with raw `str(exc)`. A
+  sensitive lower-layer source-context message would be stopped before the HTTP response, but the
+  domain service boundary itself still carried the sensitive text farther than necessary.
+- Evidence:
+  - Moved the shared sensitive-error detector to `src/core/common/sensitive_error_details.py` and
+    kept `src/api/sensitive_error_details.py` as a compatibility re-export.
+  - Added `src/core/proposals/error_details.py` with a proposal-domain safe-detail helper and
+    `PROPOSAL_CONTEXT_RESOLUTION_FAILED` fallback.
+  - Applied the safe-detail helper to proposal create and version context-resolution failures.
+  - Added a service-level regression proving sensitive create-proposal context failures are
+    collapsed before leaving `ProposalWorkflowService`.
+  - Focused `ruff`, format check, proposal workflow, proposal HTTP error, and workspace API tests
+    passed with 103 tests.
+- Consequence:
+  - Proposal routes remain client-safe, and proposal-domain service boundaries now also fail closed
+    for sensitive context-resolution failures.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    service-boundary hardening with stable public API behavior.
+- Follow-Up:
+  - Reuse the core sensitive-detail helper for future non-API service boundaries instead of
+    duplicating route-local detectors.
+
 ## LA-REV-350
 
 - Scope: Proposal-domain idempotency validation

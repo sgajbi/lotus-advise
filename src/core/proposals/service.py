@@ -55,6 +55,10 @@ from src.core.proposals.delivery_summary import (
     build_delivery_summary_response,
 )
 from src.core.proposals.detail_read_model import load_proposal_detail_read_model
+from src.core.proposals.error_details import (
+    PROPOSAL_CONTEXT_RESOLUTION_FAILED_DETAIL,
+    safe_proposal_error_detail,
+)
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalLifecycleError,
@@ -210,7 +214,12 @@ class ProposalWorkflowService:
         try:
             resolved_request = resolve_create_request(payload)
         except ProposalContextResolutionError as exc:
-            raise ProposalValidationError(str(exc)) from exc
+            raise ProposalValidationError(
+                safe_proposal_error_detail(
+                    str(exc),
+                    fallback=PROPOSAL_CONTEXT_RESOLUTION_FAILED_DETAIL,
+                )
+            ) from exc
         request_hash = build_create_request_hash(payload=payload, resolved=resolved_request)
 
         idempotency_read_model = load_proposal_idempotency_read_model(
@@ -607,7 +616,12 @@ class ProposalWorkflowService:
         try:
             resolved_request = resolve_version_request(payload)
         except ProposalContextResolutionError as exc:
-            raise ProposalValidationError(str(exc)) from exc
+            raise ProposalValidationError(
+                safe_proposal_error_detail(
+                    str(exc),
+                    fallback=PROPOSAL_CONTEXT_RESOLUTION_FAILED_DETAIL,
+                )
+            ) from exc
         validate_proposal_simulation_flag(
             request=resolved_request.simulate_request,
             require_simulation_flag=self._require_proposal_simulation_flag,
