@@ -8846,6 +8846,35 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-353
+
+- Scope: RFC-0028 journey integration proof business wording
+- Pattern: Business-facing proof summaries should not expose raw AI/source-material terminology
+- Status: Hardened
+- Finding Class: Documentation/product quality and sensitive-data posture
+- Summary: The RFC-0028 journey integration proof summary correctly blocked retention of raw
+  AI/source material, but its default unsupported-claim wording still used raw AI/source-material
+  terms. That wording could leak into demo, RFP, or proof-pack interpretation material even though
+  the underlying controls were sound.
+- Evidence:
+  - Reworded the default unsupported claim to business-safe language: underlying AI inputs, model
+    outputs, and source evidence are excluded from shared proof summaries.
+  - Changed unsupported-claim validation to use the RFC-0028 business-text validator so sensitive
+    terms such as raw prompt or token cannot enter shared proof summaries.
+  - Updated AI proof field descriptions and validation errors away from raw prompt/raw source
+    wording while preserving the underlying boolean contract fields.
+  - Added a regression test proving sensitive unsupported-claim text is rejected.
+  - Focused `ruff`, format, and RFC-0028 proof-capture/integration tests passed with 15 tests.
+- Consequence:
+  - RFC-0028 proof material remains implementation-backed and model-risk aware while being safer
+    for business, sales, demo, and client-facing review packs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the public feature
+    posture did not change and existing wiki language already states the control boundary.
+- Follow-Up:
+  - Continue separating internal evidence field names from business-facing proof language when
+    RFC-0028 material is rendered into Workbench, wiki, or commercial artifacts.
+
 ## LA-REV-352
 
 - Scope: RFC-0027 advisory copilot source projection structure

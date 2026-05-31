@@ -138,6 +138,28 @@ def test_integration_summary_rejects_duplicate_required_panels() -> None:
         )
 
 
+def test_integration_summary_rejects_sensitive_unsupported_claim_text() -> None:
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        AdvisoryJourneyIntegrationProofSummary(
+            scenario_id=RFC28_CANONICAL_SCENARIO_ID,
+            primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
+            proof_marker=RFC28_CANONICAL_PROOF_MARKER,
+            required_workbench_panels=[
+                "advisory.advisor_cockpit",
+                "advisory.suitability_review",
+                "proposal.memo_evidence_pack",
+                "advisory.bank_demo_proof",
+            ],
+            ai_model_risk_controls=[_ai_control()],
+            policy_evidence=_policy_evidence(),
+            cockpit_evidence=CockpitEvidenceProof(
+                proof_posture="IMPLEMENTATION_BACKED",
+                client_ready_publication="BLOCKED",
+            ),
+            unsupported_claims=["Raw prompt token details are excluded."],
+        )
+
+
 def test_journey_integration_builder_rejects_malformed_source_payloads() -> None:
     missing_policy_field = deepcopy(_live_runtime_payload())
     del missing_policy_field["parity"]["proposal_policy"]["policy_pack_id"]
