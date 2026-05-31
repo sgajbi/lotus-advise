@@ -5046,3 +5046,28 @@
 - Follow-Up:
   - Keep additional optional analytics dependencies behind explicit loader boundaries with direct
     tests for unavailable and available dependency states.
+
+## LA-REV-191
+
+- Scope: Workspace session cache bounds
+- Pattern: bounded in-memory runtime hardening
+- Status: Hardened
+- Finding Class: validation and operational reliability gap
+- Summary: The Workspace session cache accepted invalid cache sizes and changing the cache size did
+  not immediately evict existing sessions over the new limit. A zero or negative limit could make
+  the next save fail at runtime rather than failing configuration deterministically.
+- Evidence:
+  - `src/api/services/workspace_store.py` now validates cache size at construction and resize time,
+    rejects non-meaningful limits, centralizes over-capacity eviction, and applies eviction
+    immediately when the cache size changes.
+  - `tests/unit/advisory/api/test_workspace_store.py` now covers invalid cache sizes and immediate
+    oldest-session eviction after reducing the cache limit.
+- Consequence:
+  - Workspace runtime memory bounds are deterministic, misconfiguration fails early, and cache
+    resizing cannot leave the store temporarily above its configured capacity.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal bounded-cache behavior without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Keep future in-memory fallback stores explicit about bounded capacity and deterministic
+    validation before runtime traffic reaches them.
