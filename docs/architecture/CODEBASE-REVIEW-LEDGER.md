@@ -9096,6 +9096,37 @@
   - Continue reviewing the remaining response facade for operational-read DTOs and consider moving
     route imports to owning modules in a later bounded slice after compatibility is proven.
 
+## LA-REV-377
+
+- Scope: Proposal narrative response model modularity
+- Pattern: Narrative read, regeneration, and review DTOs should be owned by the narrative surface
+  instead of sharing the remaining proposal response facade
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: RFC-0023/RFC-0024 narrative DTOs remained in `response_models.py` alongside lineage,
+  timeline, approval, async, and transition DTOs. Narrative read, regeneration, and review
+  contracts have distinct source-hash, review-gating, and client-ready-publication semantics that
+  are easier to maintain in a dedicated module.
+- Evidence:
+  - Extracted narrative read, regeneration, and review DTOs into
+    `src/core/proposals/narrative_response_models.py`.
+  - Kept `src/core/proposals/response_models.py` as a backwards-compatible facade for existing
+    route and service imports.
+  - Added a module-boundary contract assertion proving `models.ProposalNarrativeReviewResponse`
+    still resolves through the existing facade while the implementation lives in the narrative
+    module.
+  - Focused lifecycle API, OpenAPI lifecycle docs, proposal workflow service, module-boundary
+    tests, `ruff`, format check, and `mypy` passed with 151 behavior tests.
+- Consequence:
+  - Narrative API contracts are easier to review against source-hash, review, and publication
+    guardrails without increasing coupling to operational proposal DTOs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing narrative API contracts.
+- Follow-Up:
+  - Continue leaving `response_models.py` as a stable facade until route modules are intentionally
+    migrated to direct owner-module imports.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
