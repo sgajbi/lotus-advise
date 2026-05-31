@@ -69,7 +69,10 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                     ),
                 ],
                 wording_rules=[
-                    "State that this is backend proof until Gateway and Workbench slices pass.",
+                    (
+                        "State that this is backend proof until Gateway and Workbench validation "
+                        "is complete."
+                    ),
                     "Do not imply client-ready approval or external client communication.",
                 ],
             ),
@@ -81,8 +84,8 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 allowed_materials=["WIKI", "DEMO_SCRIPT"],
                 claim_text=(
                     "The advisory backend can prove the advisor journey evidence for proposal "
-                    "lifecycle, narrative, memo, policy, report seam, and execution boundary "
-                    "review before product-surface promotion."
+                    "lifecycle, narrative, memo, policy, report-package handoff, and execution "
+                    "boundary review before product-surface promotion."
                 ),
                 evidence_refs=[backend_summary_ref, field_review_ref],
                 proof_requirements=[
@@ -92,8 +95,14 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                     )
                 ],
                 wording_rules=[
-                    "Use 'backend evidence available' until Gateway and Workbench proof is merged.",
-                    "Do not use screenshots for this claim in Slice 5.",
+                    (
+                        "Use 'backend evidence available' until Gateway and Workbench validation "
+                        "is complete."
+                    ),
+                    (
+                        "Do not use screenshots for this claim until product-surface proof is "
+                        "complete."
+                    ),
                 ],
             ),
             SupportedClaim(
@@ -180,10 +189,10 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 allowed_materials=["WIKI", "OPERATOR_RUNBOOK"],
                 claim_text=(
                     "Client-ready publication, sign-off approval, and external client "
-                    "communication are not supported by this backend proof slice."
+                    "communication are not supported by this backend proof scope."
                 ),
                 wording_rules=[
-                    "Use blocked/not supported language in all RFC-0028 Slice 5 material.",
+                    "Use blocked/not supported language in all RFC-0028 proof material.",
                 ],
             ),
             SupportedClaim(

@@ -58,3 +58,12 @@ def test_default_supported_claim_register_defines_artifact_policy_boundaries() -
     assert "SECRET_MATERIAL" in policy.local_only_access_classes
     assert "token" in policy.sensitive_material_rules[0].lower()
     assert "prompt" in policy.sensitive_material_rules[0].lower()
+
+
+def test_default_supported_claim_register_uses_business_safe_wording() -> None:
+    register = build_default_supported_claim_register()
+
+    for claim in register.claims:
+        combined = " ".join([claim.claim_text, *claim.wording_rules]).lower()
+        assert "seam" not in combined
+        assert "slice" not in combined

@@ -7913,3 +7913,29 @@
 - Follow-Up:
   - Continue extracting model submodules only where a complete domain boundary can be moved with
     focused tests; avoid broad churn in the central proof contract module.
+
+## LA-REV-300
+
+- Scope: RFC-0028 supported-claim register vocabulary
+- Pattern: claim register wording avoids implementation-process language in proof material
+- Status: Hardened
+- Finding Class: business-facing language quality and commercial-proof leakage risk
+- Summary: `src/core/bank_demo_proof/supported_claim_register.py` still used implementation-process
+  terms such as "report seam" and "Slice 5" in claim text or wording rules. The supported-claim
+  register feeds RFC-0028 proof and commercial material governance, so it should use private-banking
+  and product-proof language rather than internal implementation phrasing.
+- Evidence:
+  - Supported-claim wording now uses "report-package handoff", "proof scope", and "Gateway and
+    Workbench validation" instead of seam/slice phrasing.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_supported_claim_register.py` now prevents
+    `seam` and `slice` from appearing in claim text or wording rules.
+  - Focused supported-claim, proof-capture, and RFC-0028 documentation-contract tests pass.
+- Consequence:
+  - RFC-0028 proof material is less likely to leak engineering process language into business,
+    sales, pre-sales, or client-demo audiences.
+- Documentation:
+  - No README or wiki source change is required. This is a source-of-truth claim-register wording
+    correction and does not change public behavior or commands.
+- Follow-Up:
+  - Continue scanning generated proof summaries and commercial docs for implementation-process
+    wording before final RFC-0028 closure.
