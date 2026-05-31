@@ -25,6 +25,17 @@ def test_tactical_house_view_openapi_uses_private_banking_portfolio_management_l
     assert "discretionary portfolio-management workflows" in description
 
 
+def test_advisor_cockpit_openapi_exposes_business_owner_role_label():
+    schemas = app.openapi()["components"]["schemas"]
+    action_schema = schemas["AdvisoryActionItem"]
+    owner_role = action_schema["properties"]["owner_role"]
+    owner_role_label = action_schema["properties"]["owner_role_label"]
+
+    assert "PORTFOLIO_MANAGER" in repr(schemas)
+    assert "Use owner_role_label for business-facing display." in owner_role["description"]
+    assert "Business-facing owner label" in owner_role_label["description"]
+
+
 def test_idempotency_header_openapi_contract_is_bounded_and_business_clear():
     with TestClient(app) as client:
         openapi = client.get("/openapi.json").json()

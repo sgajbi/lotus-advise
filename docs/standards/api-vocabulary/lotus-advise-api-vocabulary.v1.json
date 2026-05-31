@@ -6758,6 +6758,20 @@
       ]
     },
     {
+      "semanticId": "lotus.owner_role_label",
+      "canonicalTerm": "owner_role_label",
+      "preferredName": "owner_role_label",
+      "description": "Business-facing owner label for advisor cockpit display.",
+      "example": "example_owner_role_label",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.owner_service",
       "canonicalTerm": "owner_service",
       "preferredName": "owner_service",
@@ -12985,6 +12999,7 @@
         "DESK_HEAD",
         "COMPLIANCE_REVIEWER",
         "INVESTMENT_DESK",
+        "PORTFOLIO_MANAGER",
         "OPERATIONS",
         "CRM_OWNER",
         "REPORTING_OWNER",
@@ -13081,6 +13096,7 @@
         "DESK_HEAD",
         "COMPLIANCE_REVIEWER",
         "INVESTMENT_DESK",
+        "PORTFOLIO_MANAGER",
         "OPERATIONS",
         "CRM_OWNER",
         "REPORTING_OWNER",
@@ -13141,6 +13157,7 @@
         "DESK_HEAD",
         "COMPLIANCE_REVIEWER",
         "INVESTMENT_DESK",
+        "PORTFOLIO_MANAGER",
         "OPERATIONS",
         "CRM_OWNER",
         "REPORTING_OWNER",
@@ -13201,6 +13218,7 @@
         "DESK_HEAD",
         "COMPLIANCE_REVIEWER",
         "INVESTMENT_DESK",
+        "PORTFOLIO_MANAGER",
         "OPERATIONS",
         "CRM_OWNER",
         "REPORTING_OWNER",
@@ -13285,6 +13303,7 @@
         "DESK_HEAD",
         "COMPLIANCE_REVIEWER",
         "INVESTMENT_DESK",
+        "PORTFOLIO_MANAGER",
         "OPERATIONS",
         "CRM_OWNER",
         "REPORTING_OWNER",
@@ -13357,6 +13376,7 @@
         "DESK_HEAD",
         "COMPLIANCE_REVIEWER",
         "INVESTMENT_DESK",
+        "PORTFOLIO_MANAGER",
         "OPERATIONS",
         "CRM_OWNER",
         "REPORTING_OWNER",
@@ -38866,6 +38886,14 @@
             "attributeRef": "#/attributeCatalog/lotus.owner_role"
           },
           {
+            "name": "items[].owner_role_label",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.owner_role_label",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role_label"
+          },
+          {
             "name": "items[].owning_system",
             "location": "body",
             "required": true,
@@ -39351,6 +39379,14 @@
             "type": "string",
             "semanticId": "lotus.owner_role",
             "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "owner_role_label",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.owner_role_label",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role_label"
           },
           {
             "name": "owning_system",
@@ -39886,6 +39922,14 @@
             "type": "string",
             "semanticId": "lotus.owner_role",
             "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "top_priority_actions[].owner_role_label",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.owner_role_label",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role_label"
           },
           {
             "name": "top_priority_actions[].owning_system",
@@ -40875,6 +40919,14 @@
             "type": "string",
             "semanticId": "lotus.owner_role",
             "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "action_item.owner_role_label",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.owner_role_label",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role_label"
           },
           {
             "name": "action_item.owning_system",

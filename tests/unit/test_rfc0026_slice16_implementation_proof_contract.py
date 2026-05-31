@@ -73,7 +73,7 @@ def test_rfc0026_slice16_preserves_claim_boundaries() -> None:
         "CRM system-of-record behavior",
         "external client communication",
         "OMS orders, fills, settlement",
-        "DPM campaign creation",
+        "portfolio-management campaign creation",
         "full RFC-0028 demo/RFP package readiness",
     ):
         assert marker in docs

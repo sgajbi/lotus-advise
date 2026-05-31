@@ -248,7 +248,7 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
                 TacticalHouseViewCandidatePortfolio(
                     portfolio_id="PB_SG_GLOBAL_BAL_001",
                     mandate_id="MANDATE_PB_SG_GLOBAL_BAL_001",
-                    portfolio_type="DPM",
+                    portfolio_type="DISCRETIONARY",
                     discretionary_mandate=True,
                     current_exposure_weight="0.18",
                     alignment_signal="OVERWEIGHT",
@@ -263,7 +263,7 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
                     ],
                 )
             ],
-            eligible_portfolio_types=["DPM"],
+            eligible_portfolio_types=["DISCRETIONARY"],
             correlation_id="corr-thv-001",
         ),
         generated_at=NOW,
@@ -275,7 +275,7 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
     )
 
     page = service.list_actions(
-        caller_context=_caller(role="DPM_OWNER", advisor_id=None),
+        caller_context=_caller(role="PORTFOLIO_MANAGER", advisor_id=None),
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         limit=25,
         cursor=None,
@@ -285,8 +285,18 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
     assert [action.action_family for action in page.items] == ["HOUSE_VIEW_IMPACT_REVIEW"]
     action = page.items[0]
     assert action.owner_role == "DPM_OWNER"
+    assert action.owner_role_label == "Portfolio manager"
     assert action.evidence_refs[0].evidence_type == "TACTICAL_HOUSE_VIEW_COHORT"
     assert action.correlation_id == "corr-cockpit-thv"
+
+    legacy_page = service.list_actions(
+        caller_context=_caller(role="DPM_OWNER", advisor_id=None),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id="corr-cockpit-thv",
+    )
+    assert [action.action_family for action in legacy_page.items] == ["HOUSE_VIEW_IMPACT_REVIEW"]
 
 
 def test_cockpit_service_snapshot_preserves_supported_downstream_posture(

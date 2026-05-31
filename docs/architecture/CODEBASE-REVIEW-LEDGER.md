@@ -8406,3 +8406,32 @@
 - Follow-Up:
   - Keep source-owned codes compatible where needed, but prefer business-facing examples in public
     API contracts.
+
+## LA-REV-317
+
+- Scope: Advisor cockpit owner-role vocabulary and compatibility
+- Pattern: Business-facing labels are exposed without breaking legacy cross-repo role values
+- Status: Hardened
+- Finding Class: API design, integration compatibility, and private-banking vocabulary
+- Summary: Advisor cockpit house-view actions still relied on the legacy `DPM_OWNER` role as the
+  only portfolio-management projection value. Gateway and Workbench currently consume that value,
+  so removing it would break live canonical integration. Advise now accepts the business-facing
+  `PORTFOLIO_MANAGER` caller role and emits `owner_role_label` for display while preserving the
+  legacy role value for existing consumers.
+- Evidence:
+  - Added `PORTFOLIO_MANAGER` to `AdvisorCockpitOwnerRole` and projected it to the same visible
+    action set as the legacy role.
+  - Added `owner_role_label` to `AdvisoryActionItem` so UI/reporting consumers can render
+    "Portfolio manager" instead of showing machine role codes.
+  - Updated cockpit house-view API and service tests to seed `DISCRETIONARY` portfolio examples,
+    query through `PORTFOLIO_MANAGER`, and prove legacy `DPM_OWNER` callers still see the action.
+  - Added an OpenAPI guard that requires the business-facing owner-role label contract.
+- Consequence:
+  - Advise improves private-banking vocabulary without introducing a breaking contract change for
+    Gateway or Workbench during their parallel refactors.
+- Documentation:
+  - RFC-0026 Slice 16 proof language was updated from internal abbreviated wording to
+    portfolio-manager / portfolio-management wording.
+- Follow-Up:
+  - Gateway and Workbench can migrate display logic to `owner_role_label` while continuing to pass
+    legacy role values until a coordinated public-contract migration removes them.

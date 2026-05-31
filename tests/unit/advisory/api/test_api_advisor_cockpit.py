@@ -225,7 +225,7 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
             "/advisory/cockpit/actions",
             params={
                 "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "role": "DPM_OWNER",
+                "role": "PORTFOLIO_MANAGER",
             },
             headers={"X-Correlation-ID": "corr-cockpit-house-view"},
         )
@@ -237,6 +237,7 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
     action = payload["items"][0]
     assert action["action_family"] == "HOUSE_VIEW_IMPACT_REVIEW"
     assert action["owner_role"] == "DPM_OWNER"
+    assert action["owner_role_label"] == "Portfolio manager"
     assert action["evidence_refs"][0]["evidence_type"] == "TACTICAL_HOUSE_VIEW_COHORT"
     assert action["correlation_id"] == "corr-cockpit-house-view"
 
@@ -412,7 +413,7 @@ def _house_view_payload() -> dict:
             {
                 "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                 "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
-                "portfolio_type": "DPM",
+                "portfolio_type": "DISCRETIONARY",
                 "discretionary_mandate": True,
                 "booking_center_code": "Singapore",
                 "current_exposure_weight": "0.18",
@@ -428,6 +429,6 @@ def _house_view_payload() -> dict:
                 ],
             }
         ],
-        "eligible_portfolio_types": ["DPM"],
+        "eligible_portfolio_types": ["DISCRETIONARY"],
         "correlation_id": "corr-thv-001",
     }

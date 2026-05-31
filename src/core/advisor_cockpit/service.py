@@ -417,8 +417,8 @@ def _visible_owner_roles(role: str) -> set[str] | None:
         return {"INVESTMENT_DESK"}
     if role == "OPERATIONS":
         return {"REPORTING_OWNER", "ARCHIVE_OWNER", "EXECUTION_OWNER", "OPERATIONS"}
-    if role == "DPM_OWNER":
-        return {"DPM_OWNER"}
+    if role in {"PORTFOLIO_MANAGER", "DPM_OWNER"}:
+        return {"PORTFOLIO_MANAGER", "DPM_OWNER"}
     if role == "CRM_OWNER":
         return {"CRM_OWNER", "ADVISOR"}
     return {role}
