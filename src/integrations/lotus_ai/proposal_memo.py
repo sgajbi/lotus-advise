@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -16,6 +16,12 @@ ADAPTER_VERSION = "proposal-memo-commentary-lotus-ai-adapter.v1"
 WORKFLOW_PACK_ID = "proposal_memo_commentary.pack"
 WORKFLOW_PACK_VERSION = "v1"
 WORKFLOW_SURFACE = "advisor-proposal-memo-commentary"
+MAX_MEMO_AI_OUTPUT_SECTIONS = 8
+MAX_MEMO_AI_SECTION_KEY_LENGTH = 96
+MAX_MEMO_AI_SECTION_TITLE_LENGTH = 160
+MAX_MEMO_AI_SECTION_TEXT_LENGTH = 4000
+MAX_MEMO_AI_REVIEW_GUIDANCE_ITEMS = 8
+MAX_MEMO_AI_REVIEW_GUIDANCE_LENGTH = 1000
 
 
 class LotusAIProposalMemoUnavailableError(Exception):
@@ -151,9 +157,12 @@ def _build_workflow_pack_request(
 
 
 def _resolve_base_url() -> str:
-    return resolve_lotus_ai_base_url(
-        unavailable_error_type=LotusAIProposalMemoUnavailableError,
-        unavailable_message="LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE",
+    return cast(
+        str,
+        resolve_lotus_ai_base_url(
+            unavailable_error_type=LotusAIProposalMemoUnavailableError,
+            unavailable_message="LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE",
+        ),
     )
 
 
@@ -176,10 +185,12 @@ def _source_refs(memo_evidence: dict[str, Any]) -> list[str]:
 def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
     if not isinstance(value, list):
         raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
-    sections = []
+    sections: list[dict[str, Any]] = []
     for item in value:
         if not isinstance(item, dict):
             continue
+        if len(sections) >= MAX_MEMO_AI_OUTPUT_SECTIONS:
+            break
         section_key_value = item.get("section_key")
         title_value = item.get("title")
         text_value = item.get("text")
@@ -190,6 +201,12 @@ def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
             and section_key_value.strip()
             and title_value.strip()
             and text_value.strip()
+        ):
+            continue
+        if (
+            len(section_key_value.strip()) > MAX_MEMO_AI_SECTION_KEY_LENGTH
+            or len(title_value.strip()) > MAX_MEMO_AI_SECTION_TITLE_LENGTH
+            or len(text_value.strip()) > MAX_MEMO_AI_SECTION_TEXT_LENGTH
         ):
             continue
         sections.append(
@@ -208,7 +225,17 @@ def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
 def _map_string_list(value: Any) -> tuple[str, ...]:
     if not isinstance(value, list):
         return ()
-    return tuple(item.strip() for item in value if isinstance(item, str) and item.strip())
+    items: list[str] = []
+    for item in value:
+        if len(items) >= MAX_MEMO_AI_REVIEW_GUIDANCE_ITEMS:
+            break
+        if not isinstance(item, str):
+            continue
+        stripped = item.strip()
+        if not stripped or len(stripped) > MAX_MEMO_AI_REVIEW_GUIDANCE_LENGTH:
+            continue
+        items.append(stripped)
+    return tuple(items)
 
 
 def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:

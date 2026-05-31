@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from src.integrations.lotus_ai.proposal_memo import (
+    MAX_MEMO_AI_OUTPUT_SECTIONS,
     LotusAIProposalMemoUnavailableError,
     _build_workflow_pack_request,
     build_proposal_memo_ai_unavailable_commentary,
@@ -156,6 +157,108 @@ def test_generate_proposal_memo_commentary_returns_review_required_sections(
     assert response.lineage["model_version"] == "lotus-ai-governed-model.v1"
     assert response.lineage["fallback_reason"] is None
     assert response.review_guidance == ("Review against persisted memo hash before advisor use.",)
+
+
+def test_generate_proposal_memo_commentary_rejects_oversized_output_sections(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_memo.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "state": "REVIEW_REQUIRED",
+                                    "sections": [
+                                        {
+                                            "section_key": "EXECUTIVE_SUMMARY",
+                                            "title": "Executive Summary",
+                                            "text": "x" * 4001,
+                                        }
+                                    ],
+                                },
+                            },
+                        }
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIProposalMemoUnavailableError) as exc:
+        generate_proposal_memo_commentary_with_lotus_ai(
+            memo_evidence=_memo_evidence(),
+            requested_sections=["EXECUTIVE_SUMMARY"],
+            requested_by="advisor_123",
+            reason={"purpose": "advisor-review"},
+        )
+
+    assert str(exc.value) == "LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE"
+
+
+def test_generate_proposal_memo_commentary_bounds_sections_and_review_guidance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_memo.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "state": "REVIEW_REQUIRED",
+                                    "sections": [
+                                        {
+                                            "section_key": f"SECTION_{index}",
+                                            "title": f"Section {index}",
+                                            "text": "Advisor-use memo commentary.",
+                                        }
+                                        for index in range(MAX_MEMO_AI_OUTPUT_SECTIONS + 2)
+                                    ],
+                                    "review_guidance": [
+                                        "Review against persisted memo hash.",
+                                        "x" * 1001,
+                                        "Check advisor-use posture.",
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_proposal_memo_commentary_with_lotus_ai(
+        memo_evidence=_memo_evidence(),
+        requested_sections=["EXECUTIVE_SUMMARY"],
+        requested_by="advisor_123",
+        reason={"purpose": "advisor-review"},
+    )
+
+    assert len(response.sections) == MAX_MEMO_AI_OUTPUT_SECTIONS
+    assert response.sections[-1]["section_key"] == "SECTION_7"
+    assert response.review_guidance == (
+        "Review against persisted memo hash.",
+        "Check advisor-use posture.",
+    )
 
 
 def test_generate_proposal_memo_commentary_masks_transport_failure(

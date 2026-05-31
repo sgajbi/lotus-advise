@@ -6182,3 +6182,25 @@
     changing user-facing capability scope.
 - Follow-Up:
   - None.
+
+## LA-REV-235
+
+- Scope: Proposal memo AI commentary output boundary
+- Pattern: bounded advisor-use AI commentary, fail-closed output mapping, RFC-0024/RFC-0027 reuse
+- Status: Hardened
+- Finding Class: unbounded downstream AI commentary
+- Summary: The memo commentary adapter already failed closed when no valid section remained, but it
+  accepted unbounded downstream AI section counts, text sizes, and review-guidance payloads before
+  returning advisor-use commentary.
+- Evidence:
+  - `src/integrations/lotus_ai/proposal_memo.py` now bounds memo AI section count, section
+    identifiers, titles, text, and review guidance.
+  - Unit tests prove oversized memo commentary is unavailable and valid multi-section output is
+    capped deterministically.
+- Consequence:
+  - Memo commentary stays review-gated, advisor-use only, and safe for downstream API/UI consumers
+    without accepting unbounded AI text.
+- Documentation:
+  - No wiki source change is required. This hardens existing memo AI commentary semantics.
+- Follow-Up:
+  - None.
