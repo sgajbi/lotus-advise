@@ -346,13 +346,14 @@ def _build_sections(
             evidence_bundle=evidence_bundle,
             source_manifest=source_manifest,
             summary=(
-                "Memo report, render, archive, and delivery readiness is blocked until "
-                "later slices."
+                "Memo report, render, archive, and delivery readiness requires an approved "
+                "advisor-use memo report package; no package request has been recorded for "
+                "this memo evidence."
             ),
             claims=[],
             forced_status="BLOCKED",
             forced_missing=["memo_report_package", "memo_render", "memo_archive_record"],
-            forced_reasons=["MEMO_REPORT_RENDER_ARCHIVE_NOT_IMPLEMENTED"],
+            forced_reasons=["MEMO_REPORT_PACKAGE_NOT_REQUESTED"],
         ),
         _section(
             section_id="EXECUTION_HANDOFF_BOUNDARY",

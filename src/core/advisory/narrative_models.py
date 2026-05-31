@@ -74,24 +74,23 @@ class ProposalNarrativeRequest(BaseModel):
         default_factory=list,
         description=(
             "Optional product-type hints used for disclosure policy selection. When omitted, "
-            "Slice 6 derives product types from proposal evidence where possible."
+            "Lotus derives product types from proposal evidence where possible."
         ),
         examples=[["EQUITY", "FX"]],
     )
     client_audience: ProposalNarrativeClientAudience = Field(
         default="ADVISOR_REVIEW",
         description=(
-            "Policy audience used for disclosure and promotion gating. Slice 6 may return a "
-            "blocked policy result for `CLIENT_READY`, but does not promote client-ready output."
+            "Policy audience used for disclosure and promotion gating. `CLIENT_READY` requests "
+            "return blocked posture unless explicit client-ready release authority exists."
         ),
         examples=["ADVISOR_REVIEW"],
     )
     generation_mode: ProposalNarrativeRequestedGenerationMode = Field(
         default="DETERMINISTIC_TEMPLATE",
         description=(
-            "Requested narrative generation mode. `AI_ASSISTED_DRAFT` is Slice 7 opt-in only, "
-            "uses the governed lotus-ai workflow-pack adapter, and remains draft until later "
-            "review slices."
+            "Requested narrative generation mode. `AI_ASSISTED_DRAFT` uses the governed "
+            "lotus-ai workflow-pack adapter and remains advisor-review draft output."
         ),
         examples=["DETERMINISTIC_TEMPLATE"],
     )
@@ -306,13 +305,13 @@ class ProposalNarrative(BaseModel):
     generation_mode: ProposalNarrativeGenerationMode = Field(
         default="DETERMINISTIC_TEMPLATE",
         description=(
-            "Actual generation mode used for this narrative. AI-assisted output remains draft "
-            "and is never client-ready in RFC-0023 Slice 7."
+            "Actual generation mode used for this narrative. AI-assisted output remains "
+            "advisor-review draft output and is never client-ready."
         ),
     )
     review_state: ProposalNarrativeReviewState = Field(
         default="DRAFT",
-        description="Review state. Slice 5 creates advisor-review draft only.",
+        description="Review state for the advisor-review narrative projection.",
     )
     policy_version: str = Field(
         description="Narrative policy or template version used for deterministic rendering.",

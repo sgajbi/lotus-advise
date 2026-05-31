@@ -198,6 +198,10 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(memo_review_schema, "reviewed_by")
     _assert_property_has_docs(memo_review_schema, "source_memo_hash")
     _assert_property_has_docs(memo_review_schema, "client_ready_release_requested")
+    assert (
+        "unsupported in Slice 7"
+        not in memo_review_schema["properties"]["client_ready_release_requested"]["description"]
+    )
 
     memo_report_event_schema = schemas["ProposalMemoReportPackageEventRequest"]
     _assert_property_has_docs(memo_report_event_schema, "recorded_by")
@@ -210,6 +214,12 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(memo_report_package_schema, "source_memo_hash")
     _assert_property_has_docs(memo_report_package_schema, "requested_output_formats")
     _assert_property_has_docs(memo_report_package_schema, "client_ready_document_requested")
+    assert (
+        "later RFC-0024 client-ready gates"
+        not in memo_report_package_schema["properties"]["client_ready_document_requested"][
+            "description"
+        ]
+    )
 
     memo_lineage_schema = schemas["ProposalMemoLineageResponse"]
     _assert_property_has_docs(memo_lineage_schema, "memo_count")
@@ -601,6 +611,12 @@ def test_rfc0023_narrative_additive_fields_are_openapi_documented():
         "limitations",
     ):
         _assert_property_has_docs(narrative_schema, property_name)
+    narrative_descriptions = " ".join(
+        str(property_schema.get("description", ""))
+        for property_schema in narrative_schema["properties"].values()
+    )
+    assert "RFC-0023 Slice 7" not in narrative_descriptions
+    assert "Slice 5 creates" not in narrative_descriptions
 
 
 def test_openapi_does_not_expose_api_v1_compatibility_paths():

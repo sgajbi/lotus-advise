@@ -238,17 +238,23 @@ def _missing_evidence(
         _missing(
             "mandate_policy",
             "client-ready narrative",
-            "Mandate policy pack is not implemented for RFC-0023 Slice 6.",
+            (
+                "Policy evaluation evidence is implemented, but completed mandate-policy "
+                "approval/sign-off is not available for client-ready narrative publication."
+            ),
         ),
         _missing(
             "review_workflow",
             "client-ready narrative",
-            "Narrative review workflow is deferred to later RFC-0023 slices.",
+            (
+                "Advisor-review workflow is available; client-ready narrative publication "
+                "remains blocked until explicit release authority is supported."
+            ),
         ),
         _missing(
             "report_archive_lineage",
             "client-ready artifact inclusion",
-            "Report/render/archive lineage is not available for Slice 6 narrative.",
+            "Report/render/archive lineage is not available for this transient artifact narrative.",
         ),
     ]
     if not is_disclosure_policy_available(request.jurisdiction):

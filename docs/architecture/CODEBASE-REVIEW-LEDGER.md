@@ -4686,3 +4686,45 @@
 - Follow-Up:
   - When an implementation RFC reaches final closure, update the RFC-local supported-features
     ledger from promotion criteria to current support posture in the same closure PR.
+
+## LA-REV-179
+
+- Scope: RFC-0023/RFC-0024 advisor narrative and memo runtime copy
+- Pattern: stale implementation-state language / business-facing API quality
+- Status: Hardened
+- Finding Class: documentation and API quality gap
+- Summary: Advisor narrative and memo evidence still emitted or documented pre-closure wording such
+  as policy packs "not implemented," narrative review "deferred," report/archive readiness blocked
+  until "later slices," and memo conflict review blocked until policy packs were implemented. Those
+  statements no longer matched the implemented RFC-0023 through RFC-0025 and RFC-0028 posture:
+  advisor-review narrative, policy evaluation, advisor-use memo evidence, and report-package
+  boundaries are implemented, while client-ready publication remains explicitly blocked.
+- Evidence:
+  - `src/core/advisory/narrative.py` now explains the actual client-ready blockers: completed
+    mandate-policy approval/sign-off and explicit client-ready release authority are not
+    supported, rather than claiming policy packs or advisor review are absent.
+  - `src/core/advisory/narrative_policy.py` now returns
+    `CLIENT_READY_NARRATIVE_RELEASE_NOT_SUPPORTED` for client-ready narrative requests.
+  - `src/core/proposals/memo_policy_enrichment.py` and
+    `src/core/proposals/memo_builder.py` now use current advisor-use memo/report-package language
+    and review-required reason codes instead of stale implementation-state wording.
+  - `src/core/advisory/narrative_models.py`, `src/core/advisory/artifact_models.py`, and
+    `src/core/proposals/response_models.py` remove stale slice-number descriptions from OpenAPI
+    schema text.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py`,
+    `tests/unit/advisory/engine/test_engine_proposal_memo_builder.py`, and
+    `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` pin the lower-level
+    API, domain, and OpenAPI wording boundaries.
+- Consequence:
+  - Business-facing runtime evidence and Swagger descriptions now stay truthful for private-banking
+    users: implemented advisor/internal capabilities are acknowledged, while client-ready
+    narrative, document publication, external communication, and execution authority remain
+    blocked.
+- Documentation:
+  - `docs/rfcs/RFC-0023-slice-6-narrative-policy-disclosure-and-guardrail-framework.md` now uses
+    the current client-ready narrative release blocker code. No wiki source change is required
+    because public wiki support posture already states client-ready narrative publication remains
+    gated.
+- Follow-Up:
+  - Avoid embedding RFC slice numbers or transient implementation-state wording in runtime
+    messages and OpenAPI descriptions once the capability has moved past that slice.
