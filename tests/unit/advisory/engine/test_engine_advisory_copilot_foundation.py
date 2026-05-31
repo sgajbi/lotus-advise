@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from src.core.advisory_copilot import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,
@@ -197,6 +200,62 @@ def test_copilot_evidence_packet_shape_preserves_review_and_lineage_boundaries()
     assert packet.sections[0].source_refs[0].content_hash == "sha256:policy-evaluation"
     assert packet.unsupported_evidence[0].reason_code == "CLIENT_READY_PUBLICATION_BLOCKED"
     assert packet.lineage_refs[0].source_system == "lotus-advise"
+
+
+def test_copilot_evidence_section_input_normalizes_and_bounds_source_evidence() -> None:
+    source_ref = CopilotSourceRef(
+        source_system=" lotus-advise ",
+        source_type=" POLICY_EVALUATION ",
+        source_id=" policy_eval_sg_001 ",
+        content_hash=" sha256:policy-evaluation ",
+        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+    )
+    section = CopilotEvidenceSectionInput(
+        section_key=" POLICY_POSTURE ",
+        title=" Policy\nposture ",
+        evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+        source_refs=(source_ref,),
+        summary_items=(" Policy evaluation\nrequires compliance review. ",),
+        allowed_audiences=("ADVISOR", "COMPLIANCE_REVIEWER"),
+    )
+
+    assert source_ref.source_system == "lotus-advise"
+    assert source_ref.source_type == "POLICY_EVALUATION"
+    assert source_ref.source_id == "policy_eval_sg_001"
+    assert source_ref.content_hash == "sha256:policy-evaluation"
+    assert section.section_key == "POLICY_POSTURE"
+    assert section.title == "Policy posture"
+    assert section.summary_items == ("Policy evaluation requires compliance review.",)
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(),
+            summary_items=("Policy evaluation requires compliance review.",),
+            allowed_audiences=("ADVISOR",),
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=("x" * 1001,),
+            allowed_audiences=("ADVISOR",),
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=tuple(f"Summary {index}." for index in range(9)),
+            allowed_audiences=("ADVISOR",),
+        )
 
 
 def test_copilot_evidence_packet_builder_projects_allowed_sections_and_hashes() -> None:

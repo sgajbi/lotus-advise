@@ -6391,3 +6391,26 @@
   - No wiki source change is required. This is internal persistence safety hardening.
 - Follow-Up:
   - None.
+
+## LA-REV-244
+
+- Scope: Advisory copilot evidence-section model bounds
+- Pattern: source-evidence input hygiene, bounded evidence packet projection, API model safety
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: Direct RFC-0027 evidence-packet creation accepted source refs and source section
+  summary items without model-level bounds, leaving direct API callers able to submit oversized
+  evidence section payloads before packet hashing and persistence.
+- Evidence:
+  - `src/core/advisory_copilot/models.py` now trims and bounds source-ref identifiers, content
+    hashes, section keys, section titles, source-ref counts, and summary item counts/lengths.
+  - Evidence-section tests prove source evidence normalization plus empty source-ref, oversized
+    summary text, and oversized summary-list rejection.
+- Consequence:
+  - Copilot evidence packets now apply consistent source-evidence bounds before role projection,
+    hashing, persistence, and downstream AI action execution.
+- Documentation:
+  - No wiki source change is required. This is API/model hardening aligned with existing RFC-0027
+    evidence-packet semantics.
+- Follow-Up:
+  - None.

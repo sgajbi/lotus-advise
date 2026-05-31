@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 CopilotActionFamily = Literal[
     "PROPOSAL_EXPLANATION",
@@ -66,6 +66,16 @@ CopilotUnsupportedEvidenceReason = Literal[
     "POLICY_APPROVAL_NOT_AVAILABLE",
     "AI_UNAVAILABLE",
 ]
+
+_COPILOT_SOURCE_SYSTEM_MAX_LENGTH = 64
+_COPILOT_SOURCE_TYPE_MAX_LENGTH = 96
+_COPILOT_SOURCE_ID_MAX_LENGTH = 160
+_COPILOT_CONTENT_HASH_MAX_LENGTH = 128
+_COPILOT_SECTION_KEY_MAX_LENGTH = 96
+_COPILOT_SECTION_TITLE_MAX_LENGTH = 160
+_COPILOT_SUMMARY_ITEM_LIMIT = 8
+_COPILOT_SUMMARY_ITEM_MAX_LENGTH = 1000
+_COPILOT_SOURCE_REF_LIMIT = 8
 
 
 class CopilotActionDefinition(BaseModel):
@@ -143,24 +153,44 @@ class CopilotSourceRef(BaseModel):
     source_system: str = Field(
         description="Authoritative Lotus system that owns the cited evidence.",
         examples=["lotus-advise"],
+        min_length=1,
+        max_length=_COPILOT_SOURCE_SYSTEM_MAX_LENGTH,
     )
     source_type: str = Field(
         description="Evidence family emitted by the source authority.",
         examples=["POLICY_EVALUATION"],
+        min_length=1,
+        max_length=_COPILOT_SOURCE_TYPE_MAX_LENGTH,
     )
     source_id: str = Field(
         description="Stable source evidence identifier safe for audit use.",
         examples=["policy_eval_sg_001"],
+        min_length=1,
+        max_length=_COPILOT_SOURCE_ID_MAX_LENGTH,
     )
     content_hash: str | None = Field(
         default=None,
         description="Source content hash when the source authority exposes one.",
         examples=["sha256:policy-evaluation"],
+        min_length=1,
+        max_length=_COPILOT_CONTENT_HASH_MAX_LENGTH,
     )
     access_class: CopilotEvidenceAccessClass = Field(
         description="Projection and access class for this evidence ref.",
         examples=["COMPLIANCE_REVIEW_EVIDENCE"],
     )
+
+    @field_validator("source_system", "source_type", "source_id")
+    @classmethod
+    def _normalize_required_ref_text(cls, value: str) -> str:
+        return _normalize_required_text(value, error_code="COPILOT_SOURCE_REF_REQUIRED")
+
+    @field_validator("content_hash")
+    @classmethod
+    def _normalize_optional_ref_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _normalize_required_text(value, error_code="COPILOT_SOURCE_REF_REQUIRED")
 
 
 class CopilotLineageRef(BaseModel):
@@ -198,10 +228,14 @@ class CopilotEvidencePacketSection(BaseModel):
     section_key: str = Field(
         description="Stable evidence section key included in the packet.",
         examples=["POLICY_POSTURE"],
+        min_length=1,
+        max_length=_COPILOT_SECTION_KEY_MAX_LENGTH,
     )
     title: str = Field(
         description="Business-facing section title.",
         examples=["Policy posture"],
+        min_length=1,
+        max_length=_COPILOT_SECTION_TITLE_MAX_LENGTH,
     )
     evidence_class: CopilotEvidenceAccessClass = Field(
         description="Access class for this evidence section.",
@@ -209,22 +243,39 @@ class CopilotEvidencePacketSection(BaseModel):
     )
     source_refs: tuple[CopilotSourceRef, ...] = Field(
         description="Source refs used to build this evidence section.",
+        min_length=1,
+        max_length=_COPILOT_SOURCE_REF_LIMIT,
     )
     summary_items: tuple[str, ...] = Field(
         default=(),
         description="Business-safe evidence statements allowed for the requested projection.",
         examples=[["Policy evaluation requires compliance review."]],
+        max_length=_COPILOT_SUMMARY_ITEM_LIMIT,
     )
+
+    @field_validator("section_key", "title")
+    @classmethod
+    def _normalize_required_section_text(cls, value: str) -> str:
+        return _normalize_required_text(value, error_code="COPILOT_EVIDENCE_SECTION_REQUIRED")
+
+    @field_validator("summary_items", mode="before")
+    @classmethod
+    def _normalize_summary_items(cls, value: Any) -> tuple[str, ...]:
+        return _normalize_summary_tuple(value, allow_empty=True)
 
 
 class CopilotEvidenceSectionInput(BaseModel):
     section_key: str = Field(
         description="Stable evidence section key offered by the source projection.",
         examples=["POLICY_POSTURE"],
+        min_length=1,
+        max_length=_COPILOT_SECTION_KEY_MAX_LENGTH,
     )
     title: str = Field(
         description="Business-facing section title.",
         examples=["Policy posture"],
+        min_length=1,
+        max_length=_COPILOT_SECTION_TITLE_MAX_LENGTH,
     )
     evidence_class: CopilotEvidenceAccessClass = Field(
         description="Access class for this source section.",
@@ -232,15 +283,29 @@ class CopilotEvidenceSectionInput(BaseModel):
     )
     source_refs: tuple[CopilotSourceRef, ...] = Field(
         description="Source refs used to build this evidence section.",
+        min_length=1,
+        max_length=_COPILOT_SOURCE_REF_LIMIT,
     )
     summary_items: tuple[str, ...] = Field(
         description="Business-safe evidence statements emitted by the source projection.",
         examples=[["Policy evaluation requires compliance review."]],
+        min_length=1,
+        max_length=_COPILOT_SUMMARY_ITEM_LIMIT,
     )
     allowed_audiences: tuple[CopilotAudience, ...] = Field(
         description="Audiences allowed to receive this evidence section.",
         examples=[["ADVISOR", "COMPLIANCE_REVIEWER"]],
     )
+
+    @field_validator("section_key", "title")
+    @classmethod
+    def _normalize_required_section_text(cls, value: str) -> str:
+        return _normalize_required_text(value, error_code="COPILOT_EVIDENCE_SECTION_REQUIRED")
+
+    @field_validator("summary_items", mode="before")
+    @classmethod
+    def _normalize_summary_items(cls, value: Any) -> tuple[str, ...]:
+        return _normalize_summary_tuple(value, allow_empty=False)
 
 
 class CopilotEvidencePacket(BaseModel):
@@ -285,3 +350,33 @@ class CopilotEvidencePacket(BaseModel):
         description="Client-ready publication posture for evidence produced by this packet.",
         examples=["BLOCKED"],
     )
+
+
+def _normalize_required_text(value: str, *, error_code: str) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ValueError(error_code)
+    return normalized
+
+
+def _normalize_summary_tuple(value: Any, *, allow_empty: bool) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("COPILOT_EVIDENCE_SUMMARY_INVALID")
+
+    normalized: list[str] = []
+    for item in value:
+        if len(normalized) >= _COPILOT_SUMMARY_ITEM_LIMIT:
+            raise ValueError("COPILOT_EVIDENCE_SUMMARY_TOO_LARGE")
+        if not isinstance(item, str):
+            raise ValueError("COPILOT_EVIDENCE_SUMMARY_INVALID")
+        summary = _normalize_required_text(
+            item,
+            error_code="COPILOT_EVIDENCE_SUMMARY_REQUIRED",
+        )
+        if len(summary) > _COPILOT_SUMMARY_ITEM_MAX_LENGTH:
+            raise ValueError("COPILOT_EVIDENCE_SUMMARY_TOO_LARGE")
+        normalized.append(summary)
+
+    if not normalized and not allow_empty:
+        raise ValueError("COPILOT_EVIDENCE_SUMMARY_REQUIRED")
+    return tuple(normalized)
