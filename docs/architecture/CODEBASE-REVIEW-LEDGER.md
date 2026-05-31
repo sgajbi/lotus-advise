@@ -8846,6 +8846,32 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-361
+
+- Scope: RFC-0026 advisor cockpit action construction modularity
+- Pattern: Generic action-item assembly should be separated from source-specific cockpit action
+  mapping
+- Status: Hardened
+- Finding Class: Maintainability and service-boundary clarity
+- Summary: `advisor_cockpit/action_factory.py` mixed the generic source-backed action-item builder
+  with source-specific policy, memo, meeting, approval, execution, supportability, and unsupported
+  capability mappings. That made the factory harder to extend as RFC-0026 action families grew.
+- Evidence:
+  - Extracted `src/core/advisor_cockpit/action_builder.py` for the generic
+    `build_source_backed_action` path and source-ref/id/lineage normalization.
+  - Kept public imports stable through `src.core.advisor_cockpit` and `action_factory`.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    15 tests.
+- Consequence:
+  - Future cockpit action-family work can reuse the generic builder without further enlarging the
+    source-specific factory module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no supported feature posture change.
+- Follow-Up:
+  - Continue splitting source-specific cockpit mappings if future slices materially change action
+    ownership or source-read-model behavior.
+
 ## LA-REV-360
 
 - Scope: RFC-0027/RFC-0028 public wiki sensitive-data vocabulary

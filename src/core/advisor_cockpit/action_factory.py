@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import Literal, cast
 
 from src.core.advisor_cockpit import action_components
+from src.core.advisor_cockpit.action_builder import build_source_backed_action
 from src.core.advisor_cockpit.action_sources import (
     ApprovalDependencyActionSource,
     ClientFollowUpActionSource,
@@ -26,67 +27,14 @@ from src.core.advisor_cockpit.models import (
     AdvisorCockpitUnsupportedCapability,
     AdvisoryActionItem,
 )
-from src.core.advisor_cockpit.projection_bounds import bounded_optional_reference
 from src.core.advisor_cockpit.vocabulary import sort_cockpit_action_items
 
 LOTUS_ADVISE_SOURCE_SYSTEM = action_components.LOTUS_ADVISE_SOURCE_SYSTEM
-_bounded_source_refs = action_components.bounded_source_refs
-_build_action_item_id = action_components.build_action_item_id
 _dependency_readiness = action_components.dependency_readiness
 _evidence_ref = action_components.evidence_ref
 _lineage_refs = action_components.lineage_refs
 _source_readiness_gap = action_components.source_readiness_gap
 _unique_ordered = action_components.unique_ordered
-
-
-def build_source_backed_action(source: CockpitActionConstructionInput) -> AdvisoryActionItem:
-    if not source.reason_codes:
-        raise ValueError("cockpit action construction requires at least one reason code")
-    if not (
-        source.evidence_refs
-        or source.source_readiness_gaps
-        or source.dependency_readiness
-        or source.unsupported_capabilities
-    ):
-        raise ValueError(
-            "cockpit action construction requires evidence, readiness, dependency, "
-            "or unsupported-capability context"
-        )
-
-    action_item_id = _build_action_item_id(source.action_family, source.source_action_id)
-    source_refs = _bounded_source_refs(source.source_refs)
-    return AdvisoryActionItem(
-        action_item_id=action_item_id,
-        action_item_version=1,
-        action_family=source.action_family,
-        status=source.status,
-        priority=source.priority,
-        owner_role=source.owner_role,
-        owning_system=LOTUS_ADVISE_SOURCE_SYSTEM,
-        title=source.title,
-        next_required_action=source.next_required_action,
-        reason_codes=_unique_ordered(source.reason_codes),
-        client_ref=source_refs.client_ref,
-        household_ref=source_refs.household_ref,
-        portfolio_id=source_refs.portfolio_id,
-        proposal_id=source_refs.proposal_id,
-        workspace_id=source_refs.workspace_id,
-        memo_id=source_refs.memo_id,
-        policy_evaluation_id=source_refs.policy_evaluation_id,
-        report_ref=source_refs.report_ref,
-        execution_ref=source_refs.execution_ref,
-        due_at=bounded_optional_reference(source.due_at),
-        sla_age_band=source.sla_age_band,
-        materiality_rank=source.materiality_rank,
-        source_timestamp=bounded_optional_reference(source.source_timestamp),
-        evidence_refs=source.evidence_refs,
-        source_readiness_gaps=source.source_readiness_gaps,
-        dependency_readiness=source.dependency_readiness,
-        lineage_refs=source.lineage_refs
-        or _lineage_refs(f"{source.action_family.lower()}:{source.source_action_id}", None),
-        unsupported_capabilities=_unique_ordered(source.unsupported_capabilities),
-        correlation_id=bounded_optional_reference(source.correlation_id),
-    )
 
 
 def build_policy_review_required_action(
