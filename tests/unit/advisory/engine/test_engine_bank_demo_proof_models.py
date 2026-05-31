@@ -492,3 +492,22 @@ def test_runtime_posture_blocks_secret_urls_and_sanitizes_probe_summaries() -> N
 
     with pytest.raises(ValidationError, match="path without query or fragment"):
         RuntimeEndpointEvidence(endpoint="/health?token=abc", posture="READY", summary={})
+
+
+def test_runtime_posture_redacts_sensitive_values_in_neutral_summary_fields() -> None:
+    endpoint = RuntimeEndpointEvidence(
+        endpoint="/health/ready",
+        http_status=503,
+        posture="DEGRADED",
+        summary={
+            "detail": "Dependency returned Authorization: Bearer should-not-leak",
+            "message": "token=should-not-leak",
+            "error": "Traceback (most recent call last): File C:/Users/local/app.py",
+            "safe": "readiness check degraded",
+        },
+    )
+
+    assert endpoint.summary["detail"] == "[REDACTED]"
+    assert endpoint.summary["message"] == "[REDACTED]"
+    assert endpoint.summary["error"] == "[REDACTED]"
+    assert endpoint.summary["safe"] == "readiness check degraded"

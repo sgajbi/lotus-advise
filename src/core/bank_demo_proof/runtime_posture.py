@@ -30,6 +30,19 @@ _MAX_BASE_URL_LENGTH = 512
 _MAX_ENDPOINT_PATH_LENGTH = 160
 _MAX_RUNTIME_ENDPOINTS = 32
 _URL_PATTERN = re.compile(r"https?://[^\s]+")
+_SENSITIVE_VALUE_PATTERNS = (
+    re.compile(r"\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]+", re.IGNORECASE),
+    re.compile(
+        r"\b(?:api[-_ ]?key|authorization|cookie|password|secret|token)\b\s*[:=]\s*\S+",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:correlation[-_ ]?id|trace[-_ ]?id|raw[-_ ]?(?:payload|prompt|source))"
+        r"\b\s*[:=]\s*\S+",
+        re.IGNORECASE,
+    ),
+    re.compile(r"traceback \(most recent call last\)", re.IGNORECASE),
+)
 
 
 class RuntimeEndpointEvidence(BaseModel):
@@ -156,6 +169,8 @@ def _sanitize_summary_value(value: Any) -> Any:
 def _sanitize_string(value: str) -> str:
     normalized = value.replace("\r", " ").replace("\n", " ").strip()
     normalized = _URL_PATTERN.sub(lambda match: _sanitize_url_text(match.group(0)), normalized)
+    if _contains_sensitive_value(normalized):
+        return "[REDACTED]"
     parsed = urlsplit(normalized)
     if parsed.scheme in {"http", "https"} and parsed.hostname:
         normalized = _sanitize_url_text(normalized)
@@ -177,3 +192,7 @@ def _sanitize_url_text(value: str) -> str:
 def _is_sensitive_key(key: str) -> bool:
     normalized = key.lower().replace("-", "_")
     return any(fragment in normalized for fragment in _SENSITIVE_KEY_FRAGMENTS)
+
+
+def _contains_sensitive_value(value: str) -> bool:
+    return any(pattern.search(value) for pattern in _SENSITIVE_VALUE_PATTERNS)

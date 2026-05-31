@@ -8017,3 +8017,33 @@
 - Follow-Up:
   - If Gateway or Workbench needs typed problem-details bodies later, introduce that as a dedicated
     cross-repo API-contract slice rather than a local response-description edit.
+
+## LA-REV-304
+
+- Scope: RFC-0028 runtime proof summary sanitization
+- Pattern: sanitized runtime evidence redacts sensitive values even when upstream services place
+  them in neutral summary fields
+- Status: Hardened
+- Finding Class: evidence-leakage prevention and operational diagnostics hardening
+- Summary: Runtime proof summaries already redacted sensitive keys, but a neutral health or
+  readiness field such as `detail`, `message`, or `error` could still carry bearer credentials,
+  token assignments, or traceback text returned by a dependency. RFC-0028 proof material must
+  remain useful for operational posture without carrying credentials, prompts, raw payload/source
+  markers, trace/correlation identifiers, or stack traces.
+- Evidence:
+  - `src/core/bank_demo_proof/runtime_posture.py` now redacts sensitive string values matching
+    bearer/basic credentials, token/secret/password/cookie/API-key assignments, trace/correlation
+    identifiers, raw prompt/payload/source assignments, and traceback text.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` proves neutral runtime
+    summary fields are redacted while business-useful degraded-readiness wording remains intact.
+  - Focused proof-model tests and touched-file Ruff checks pass.
+- Consequence:
+  - Runtime evidence remains operationally meaningful while reducing the chance that upstream
+    health/readiness diagnostics leak secret or stack details into RFC-0028 proof artifacts.
+- Documentation:
+  - No README or wiki source change is required. Existing RFC-0028 public docs already state that
+    runtime proof summaries redact credentials, tokens, raw payload/prompt/source material, and
+    trace/correlation identifiers.
+- Follow-Up:
+  - Continue checking generated proof artifacts for business-facing vocabulary and secret-free
+    summaries during final RFC-0028 closure.
