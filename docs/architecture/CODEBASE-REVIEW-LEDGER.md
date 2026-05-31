@@ -8846,6 +8846,37 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-352
+
+- Scope: RFC-0027 advisory copilot source projection structure
+- Pattern: Proposal-version copilot projection should separate repository orchestration from
+  evidence-section construction
+- Status: Hardened
+- Finding Class: Modularity and maintainability
+- Summary: `source_projection.py` still mixed proposal repository reads, policy evaluation
+  filtering, section construction, source-reference bounding, text bounding, and packet id
+  generation. That made the RFC-0027 proposal-version projection harder to review and extend as
+  additional governed source sections are added.
+- Evidence:
+  - Extracted proposal-version evidence-section builders, source-reference compaction, content-hash
+    bounding, default packet-id generation, report-readiness detection, and operations-handoff
+    detection into `src/core/advisory_copilot/source_projection_sections.py`.
+  - Kept `src/core/advisory_copilot/source_projection.py` focused on repository orchestration,
+    version/policy matching, packet assembly, and lineage refs.
+  - Preserved existing packet ids, source refs, unsupported-evidence behavior, and private-banking
+    business copy.
+  - Focused `ruff`, format, `mypy`, advisory copilot application tests, and advisory copilot API
+    tests passed with 27 tests.
+- Consequence:
+  - RFC-0027 copilot source projection is easier to maintain without moving business logic into API
+    routes or Gateway/Workbench consumers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    code-structure hardening with stable public API behavior.
+- Follow-Up:
+  - Keep future copilot source sections in the section projection module and keep the entry-point
+    module limited to source loading, filtering, and packet assembly.
+
 ## LA-REV-351
 
 - Scope: Proposal workflow context-resolution error boundaries
