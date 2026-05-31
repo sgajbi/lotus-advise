@@ -164,7 +164,7 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
             proposal_version_no=1,
             action_family="PROPOSAL_EXPLANATION",
             audience="ADVISOR",
-            created_by="advisor_123",
+            created_by="  advisor_123  ",
             reason={"business_reason": "Prepare advisor copilot review."},
         ),
         proposal_repository=proposal_repository,
@@ -182,6 +182,7 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
     }
     assert response.record.reason_json["source_projection"] == "PROPOSAL_VERSION"
     assert response.record.correlation_id == "corr_projection_001"
+    assert response.record.created_by == "advisor_123"
 
 
 def test_application_service_run_action_keeps_raw_instruction_out_of_persistence() -> None:
@@ -207,7 +208,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
             evidence_packet_id="copilot_packet_pb_sg_001",
             audience="ADVISOR",
             requested_outputs=("advisor_review_summary",),
-            requested_by="advisor_123",
+            requested_by="  advisor_123  ",
             reason={"business_reason": "Prepare advisor review."},
             requested_intents=("explain_policy_posture",),
             user_instruction="Summarize the advisory evidence for internal review.",
@@ -252,6 +253,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
     assert len(draft_calls) == 1
     assert first.run.run_id == replay.run.run_id
     assert first.run.idempotency_key == "copilot-action-idem-001"
+    assert first.run.created_by == "advisor_123"
     assert first.run.correlation_id == "corr_action_001"
     assert first.run.request_summary_json["user_instruction_hash"].startswith("sha256:")
     assert "user_instruction" not in first.run.request_summary_json

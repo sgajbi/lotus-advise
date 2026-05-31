@@ -5552,3 +5552,28 @@
     change.
 - Follow-Up:
   - None.
+
+## LA-REV-210
+
+- Scope: Advisory copilot actor normalization
+- Pattern: RFC-0027 API DTO validation, idempotency, and audit-lineage hardening
+- Status: Hardened
+- Finding Class: API validation and audit hygiene gap
+- Summary: Governed advisory copilot requests accepted actor fields without DTO-level
+  normalization. Padded `created_by`, `requested_by`, or review `actor_id` values could create
+  dirty audit records and avoidable idempotency hash drift, while blank review actors were not
+  rejected before service execution.
+- Evidence:
+  - `src/core/advisory_copilot/api_models.py` now trims and validates copilot actor fields.
+  - Advisory copilot application tests now verify normalized packet/run audit actors.
+  - Advisory copilot API tests now verify padded review actor replay and blank actor rejection.
+  - Focused advisory-copilot application, API, and RFC-0027 certified API tests passed with
+    `17 passed`.
+- Consequence:
+  - RFC-0027 copilot audit lineage is cleaner, replay hashes are less brittle, and invalid review
+    actors are blocked at the API model boundary.
+- Documentation:
+  - No wiki source change is required. This is DTO/audit-lineage hardening with no product posture
+    change.
+- Follow-Up:
+  - None.

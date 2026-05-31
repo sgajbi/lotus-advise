@@ -505,16 +505,27 @@ def test_advisory_copilot_review_api_is_idempotent(
             f"/advisory/copilot/actions/{run['run_id']}/reviews",
             json={
                 "action": "APPROVE_FOR_INTERNAL_USE",
-                "actor_id": "supervisor_123",
+                "actor_id": "  supervisor_123  ",
                 "reason": {"decision": "Reviewed against cited source evidence."},
             },
             headers={"Idempotency-Key": "copilot-review-idem-001"},
+        )
+        blank_actor = client.post(
+            f"/advisory/copilot/actions/{run['run_id']}/reviews",
+            json={
+                "action": "APPROVE_FOR_INTERNAL_USE",
+                "actor_id": "   ",
+                "reason": {"decision": "Reviewed against cited source evidence."},
+            },
+            headers={"Idempotency-Key": "copilot-review-idem-blank"},
         )
 
     assert first.status_code == 200
     assert replay.status_code == 200
     assert replay.json()["replayed"] is True
+    assert first.json()["review"]["actor_id"] == "supervisor_123"
     assert first.json()["run"]["review_posture"] == "APPROVED_FOR_INTERNAL_USE"
+    assert blank_actor.status_code == 422
 
 
 def test_advisory_copilot_supportability_is_static_contract_without_repository() -> None:

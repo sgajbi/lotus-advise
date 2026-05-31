@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.core.advisory_copilot.models import (
     CopilotActionFamily,
@@ -16,6 +16,13 @@ from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunRecord,
 )
 from src.core.advisory_copilot.review import CopilotReviewAction
+
+
+def _normalize_required_actor(value: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError("COPILOT_ACTOR_REQUIRED")
+    return normalized
 
 
 class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
@@ -53,6 +60,11 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
         examples=[{"business_reason": "Prepare advisor review."}],
     )
 
+    @field_validator("created_by")
+    @classmethod
+    def _normalize_created_by(cls, value: str) -> str:
+        return _normalize_required_actor(value)
+
 
 class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
     proposal_id: str = Field(
@@ -89,6 +101,11 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
         description="Business reason for packet creation; raw prompt fields are rejected.",
         examples=[{"business_reason": "Prepare advisor copilot review."}],
     )
+
+    @field_validator("created_by")
+    @classmethod
+    def _normalize_created_by(cls, value: str) -> str:
+        return _normalize_required_actor(value)
 
 
 class AdvisoryCopilotEvidencePacketResponse(BaseModel):
@@ -133,6 +150,11 @@ class AdvisoryCopilotActionRequest(BaseModel):
         examples=["Summarize advisor-use evidence."],
     )
 
+    @field_validator("requested_by")
+    @classmethod
+    def _normalize_requested_by(cls, value: str) -> str:
+        return _normalize_required_actor(value)
+
 
 class AdvisoryCopilotRunResponse(BaseModel):
     run: AdvisoryCopilotRunRecord = Field(description="Persisted advisory copilot run.")
@@ -160,6 +182,11 @@ class AdvisoryCopilotReviewRequest(BaseModel):
         description="Structured review reason; raw prompt fields are rejected.",
         examples=[{"decision": "Reviewed against cited source evidence."}],
     )
+
+    @field_validator("actor_id")
+    @classmethod
+    def _normalize_actor_id(cls, value: str) -> str:
+        return _normalize_required_actor(value)
 
 
 class AdvisoryCopilotReviewResponse(BaseModel):
