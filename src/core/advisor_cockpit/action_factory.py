@@ -719,7 +719,8 @@ def build_house_view_impact_action(source: HouseViewImpactActionSource) -> Advis
             owner_role="DPM_OWNER",
             title="Tactical house-view impact review",
             next_required_action=(
-                "Review the source-backed tactical house-view cohort before DPM actioning."
+                "Review the source-backed tactical house-view cohort before discretionary "
+                "portfolio-management actioning."
             ),
             reason_codes=[source.impact_code, "TACTICAL_HOUSE_VIEW_REVIEW_REQUIRED"],
             source_refs=CockpitActionSourceRefs(portfolio_id=source.portfolio_id),

@@ -61,7 +61,7 @@ contract, evidence, or integration update.
 | Architecture | Correctly said `lotus-advise` owns action semantics while Gateway/Workbench own composition/UI. | Did not fully define source authority, cockpit data product, entitlement boundary, acknowledgement ownership, CRM/calendar boundaries, or downstream execution/report ownership. | Added source authority matrix, canonical flow, ownership rules, entitlement projection, and downstream consumer obligations. |
 | Product gap handling | Covered worklists, preparation packets, priorities, approval/evidence items, and supportability. | Did not allocate broader bank-buyable gaps such as advisor cockpit, maker-checker UX, SLA aging, CRM handoff, collaboration, house-view actioning, AI preparation, commercial packaging, and operational dashboards. | Added product-gap allocation that decides what RFC-0026 owns directly and what it consumes from RFC-0024, RFC-0025, RFC-0027, and RFC-0028. |
 | Data mesh | Not present beyond existing proposal lifecycle declarations. | Did not require a cockpit data product, trust telemetry, SLO/access/evidence policy, certification, or Gateway/Workbench mesh consumption. | Added `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` as governed data-product outcomes. |
-| API design | Listed basic cockpit endpoints. | Did not cover versioned contracts, cursor pagination, stable sort, acknowledgement idempotency, batch retrieval, meeting packet variants, CRM/export seam, dashboard support, or complete Swagger examples. | Added a certified API/contract direction with error handling, idempotency, correlation IDs, OpenAPI quality, and consumer migration requirements. |
+| API design | Listed basic cockpit endpoints. | Did not cover versioned contracts, cursor pagination, stable sort, acknowledgement idempotency, batch retrieval, meeting packet variants, CRM/export handoff boundaries, dashboard support, or complete Swagger examples. | Added a certified API/contract direction with error handling, idempotency, correlation IDs, OpenAPI quality, and consumer migration requirements. |
 | Evidence and testing | Included unit, contract, integration, and live proof. | Did not require source-critical review, cross-repo Gateway/Workbench proof, browser proof, security proof, performance proof, data-mesh proof, or no-unsupported-claim review. | Added complete test/evidence strategy, implementation proof slice, and second-last hardening slice. |
 | Platform automation | Had only a decision point for scaffolding. | Did not require reusable platform improvements when repeatable gaps are found. | Added mandatory platform automation and scaffolding improvement slice. |
 | Documentation | Required README/wiki/supported-features updates. | Did not specify audience, implementation-backed grounding, no-duplication rules, wiki publication, or demo/sales usefulness. | Added documentation-as-product requirements across developer, business, operations, sales, pre-sales, demo, and client-pitch audiences. |
@@ -130,8 +130,8 @@ manual queries, or depend on UI-local inference to know:
 6. which house-view or tactical instruction affected the book,
 7. which follow-ups must be sent to the client, compliance, investment desk, operations, or CRM,
 8. which dependency degradation affects advisory work,
-9. which actions are advisory-owned versus owned by CRM, report, archive, execution, DPM, or other
-   systems.
+9. which actions are advisory-owned versus owned by CRM, report, archive, execution,
+   discretionary portfolio management, or other systems.
 
 Without a backend-owned cockpit product, downstream surfaces will rebuild worklists from partial
 data. That creates duplicate logic, entitlement risk, inconsistent priorities, unsupported demo
@@ -193,9 +193,9 @@ RFC-0026 includes all work required to deliver a supported advisor cockpit outco
    drafting support that is explicitly review-gated and evidence-bound. AI must not own action
    priority or workflow decisions.
 6. `lotus-gateway` and `lotus-workbench` changes required to expose the cockpit snapshot,
-   action-list, preparation packet, approval/SLA queues, acknowledgement flow, CRM handoff seam,
+   action-list, preparation packet, approval/SLA queues, acknowledgement flow, CRM handoff boundary,
    supportability state, and browser-validated advisor experience.
-7. `lotus-manage` changes required only where the cockpit must surface DPM or campaign handoff
+7. `lotus-manage` changes required only where the cockpit must surface portfolio-management or campaign handoff
    boundaries for tactical house-view actioning, without moving discretionary management ownership
    into `lotus-advise`.
 8. `lotus-platform` automation/scaffolding improvements when reusable gaps are discovered in API
@@ -242,11 +242,11 @@ claim, RFC-0026 must implement the cockpit-critical subset or remove the unsuppo
 | Suitability policy needs regulatory policy packs and complex product approvals | Cockpit exposes policy-driven action items and blocked/pending review posture. | RFC-0025. |
 | Proposal alternatives need cost-aware, tax-aware, liquidity-aware, risk-budget-aware, private-assets-aware strategies | Cockpit shows alternative-selection blockers, rejected-alternative review posture, and source gaps only when evidence exists. | RFC-0022, RFC-0016, `lotus-risk`, `lotus-core`. |
 | Risk lens needs broader stress, VaR/drawdown, issuer/country/sector, liquidity, private assets, climate/geopolitical scenarios | Cockpit surfaces risk-review work items and degraded risk posture; missing risk evidence must be explicit. | `lotus-risk`. |
-| Advisory workspace needs full advisor cockpit | Directly in scope. RFC-0026 is the cockpit owner: meeting prep, action items, follow-ups, queues, collaboration boundaries, CRM handoff seam, supportability, Gateway/Workbench realization. | `lotus-advise`, Gateway, Workbench. |
+| Advisory workspace needs full advisor cockpit | Directly in scope. RFC-0026 is the cockpit owner: meeting prep, action items, follow-ups, queues, collaboration boundaries, CRM handoff boundaries, supportability, Gateway/Workbench realization. | `lotus-advise`, Gateway, Workbench. |
 | Workspace AI rationale needs grounded client-ready commentary, model governance, human review, prompt/output lineage | Cockpit may invoke or surface governed preparation/follow-up drafts only through `lotus-ai` and review state. | RFC-0027 and `lotus-ai`. |
 | Execution handoff/status needs adapters, order lifecycle reconciliation, exception management, OMS/broker story | Cockpit exposes readiness, handoff status, exception posture, and ownership boundary; it does not become execution SOR. | RFC-0017 and downstream execution owners. |
-| Report request seam needs polished proposal pack generation | Cockpit exposes memo/report/render/archive readiness and blockers. | RFC-0024, `lotus-report`, `lotus-render`, `lotus-archive`. |
-| Tactical house-view cohorts need Workbench/Gateway/Manage productization | Cockpit surfaces affected advisory cohorts, advisor actioning, and evidence trail; DPM campaign ownership remains in `lotus-manage`. | `lotus-manage`, Gateway, Workbench for broader campaign flow. |
+| Report request boundary needs polished proposal pack generation | Cockpit exposes memo/report/render/archive readiness and blockers. | RFC-0024, `lotus-report`, `lotus-render`, `lotus-archive`. |
+| Tactical house-view cohorts need Workbench/Gateway/Manage productization | Cockpit surfaces affected advisory cohorts, advisor actioning, and evidence trail; discretionary portfolio-management campaign ownership remains in `lotus-manage`. | `lotus-manage`, Gateway, Workbench for broader campaign flow. |
 | Capability discovery needs sales/demo surfacing and operational dashboards | Cockpit supportability is in scope through capabilities, metrics, and operational diagnostics. | Gateway/Workbench consume; RFC-0028 owns broader demo packaging. |
 | Non-functional posture needs load benchmarks, SLO dashboards, tenant/legal-entity configuration, DR/RTO/RPO evidence | In scope for cockpit APIs and cockpit data products. | `lotus-platform` owns reusable standards. |
 | Commercial packaging needs RFP pack, architecture deck, security pack, demo scripts, ROI story, product one-pager | In scope for cockpit-specific one-pager/demo notes/security posture/RFP-support excerpt. | RFC-0028 owns full bank-demo and RFP package. |
@@ -385,7 +385,7 @@ Rules:
    and retrieval truth.
 7. `lotus-ai` owns workflow-pack execution and model telemetry. It cannot decide priorities,
    approvals, recommendations, or next actions.
-8. `lotus-manage` owns DPM campaigns and portfolio-management operations. The cockpit may show
+8. `lotus-manage` owns discretionary portfolio-management campaigns and operations. The cockpit may show
    handoff posture only when source-backed.
 9. All action item reason codes must map to evidence refs, source refs, or explicit unsupported
    capability refs.
@@ -405,7 +405,7 @@ Rules:
 | Client, household, advisor assignment, mandate, portfolio, account | `lotus-core` | Show refs and source readiness; do not invent missing client facts. |
 | Risk review and risk degradation | `lotus-risk` | Show risk action items and readiness/degraded posture; do not recalculate risk locally. |
 | Execution handoff/status | `lotus-advise` for advisory posture; downstream provider for execution SOR | Preserve ownership-boundary evidence. |
-| DPM campaigns and portfolio-management operations | `lotus-manage` | Surface advisory handoff or house-view actioning only where source-backed. |
+| Discretionary portfolio-management campaigns and operations | `lotus-manage` | Surface advisory handoff or house-view actioning only where source-backed. |
 | Product UI | `lotus-workbench` | Render cockpit through Gateway, including empty, degraded, blocked, and permission states. |
 | Experience API | `lotus-gateway` | Publish authenticated cockpit contract and preserve source semantics. |
 | Platform governance | `lotus-platform` | Provide reusable certification, scaffolding, data-mesh, CI, and evidence automation where gaps are repeatable. |
@@ -1122,7 +1122,7 @@ Outcome:
 1. implement meeting-preparation packet,
 2. implement client follow-up items,
 3. implement advisory-owned acknowledgements,
-4. define CRM/calendar/export handoff seams without turning `lotus-advise` into a CRM.
+4. define CRM/calendar/export handoff boundaries without turning `lotus-advise` into a CRM.
 
 Acceptance gate:
 
@@ -1364,7 +1364,7 @@ Acceptance gate:
 | Evidence-gap worklist | Supported | Missing, stale, degraded, unsupported, and source-readiness states are explicit in action evidence and covered by tests/live proof. |
 | Report/render/archive readiness items | Supported for readiness visibility | Downstream owner refs and readiness/degraded posture are integrated without claiming client-ready report/archive publication. |
 | Execution handoff/status attention items | Supported for advisory boundary visibility | Advisory/downstream system-of-record boundaries and lineage refs are visible and tested; OMS order/fill/settlement support remains unsupported. |
-| Tactical house-view impact items | Supported | Source-backed cohort evidence renders through Gateway/Workbench with Manage boundary preserved and no DPM campaign creation claim. |
+| Tactical house-view impact items | Supported | Source-backed cohort evidence renders through Gateway/Workbench with Manage boundary preserved and no discretionary portfolio-management campaign creation claim. |
 | Cockpit data products | Supported | `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active with declarations, trust telemetry, SLO/access/evidence policy, certification, docs, and tests. |
 | Gateway/Workbench advisor cockpit | Supported for the canonical advisor cockpit surface | Gateway and Workbench implementation is proven through governed canonical browser/product validation. UI-local workflow logic remains prohibited. |
 
@@ -1486,7 +1486,7 @@ boundaries without updating this RFC, tests, docs, and downstream contracts.
 | Meeting-preparation packet variants | Supported implementation covers portfolio and proposal contexts, plus client/household refs only when source-backed. Meeting-id scheduling remains out of scope until an implementation-backed calendar/CRM source exists. |
 | Action families required before Workbench promotion | Workbench promotion requires at least `CLIENT_MEETING_PREPARATION`, `PROPOSAL_READY_FOR_REVIEW`, `POLICY_REVIEW_REQUIRED`, `APPROVAL_DEPENDENCY_AGING`, `MEMO_PACKAGE_BLOCKED`, `REPORT_RENDER_ARCHIVE_BLOCKED`, `CLIENT_FOLLOW_UP_REQUIRED`, `SUPPORTABILITY_DEGRADED`, and `UNSUPPORTED_CAPABILITY`, plus any source-backed execution or house-view family claimed in the UI. |
 | Cursor pagination defaults | Default page size is 25, maximum page size is 100, and stable ordering is priority rank, due time, SLA aging rank, materiality rank, status rank, action family, source timestamp, then `action_item_id`. Invalid or stale cursors return safe machine-readable errors. |
-| Acknowledgement ownership | `lotus-advise` owns acknowledgement only for advisory-owned action items. CRM, compliance, report, archive, execution, DPM, and external workflow handoffs must remain explicit ownership boundaries and cannot be completed by advisory acknowledgement. |
+| Acknowledgement ownership | `lotus-advise` owns acknowledgement only for advisory-owned action items. CRM, compliance, report, archive, execution, discretionary portfolio management, and external workflow handoffs must remain explicit ownership boundaries and cannot be completed by advisory acknowledgement. |
 | Evidence access classes | Cockpit fields must be classified as customer-consumable summary, restricted customer evidence, operator-only supportability, or internal-only diagnostics. Customer-facing projections must not include raw memo, policy, AI, report, archive, execution, or storage payloads. |
 | Supported load benchmark | Minimum benchmark is an advisor book with at least 100 portfolios, 250 proposals or proposal-like work items, 500 action items, mixed statuses, mixed owner roles, and degraded-source cases. The benchmark must verify deterministic pagination and bounded snapshot payloads. |
 | RFC-0026 versus RFC-0028 claims | RFC-0026 owns implementation-backed cockpit capability, APIs, Gateway/Workbench product surface, cockpit-specific docs, and cockpit-specific proof. RFC-0028 owns full bank-demo/RFP packaging, demo journey orchestration, and broader commercial claims. |

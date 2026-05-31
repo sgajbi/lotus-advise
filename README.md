@@ -70,7 +70,8 @@ Boundary rules that matter:
 3. Runtime smoke and production-profile guardrail validation are part of the actual CI contract.
 4. Live operator evidence covers canonical and degraded decision-summary and alternatives posture.
 5. `TacticalHouseViewAffectedCohort:v1` is a governed source-owned cohort product for downstream
-   DPM workflows in `lotus-manage`, bounded to supplied eligible candidates and preserved lineage.
+   discretionary portfolio-management workflows in `lotus-manage`, bounded to supplied eligible
+   candidates and preserved lineage.
 6. `AdvisoryPolicyEvaluationRecord:v1` is an active advisor/compliance policy evidence product for
    RFC-0025. Completed approval/waiver authority, completed sign-off authority, client-ready
    policy publication, and external client communication remain gated.

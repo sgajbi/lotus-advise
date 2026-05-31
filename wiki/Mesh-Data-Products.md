@@ -56,8 +56,8 @@
 
 Advisory lifecycle truth remains in `lotus-advise`. Tactical house-view cohort truth is bounded to
 source-backed candidates and must not be replaced by decorative gateway or Workbench status.
-`lotus-manage` owns DPM workflows, policies, campaigns, and evidence after consuming the cohort
-product.
+`lotus-manage` owns discretionary portfolio-management workflows, policies, campaigns, and
+evidence after consuming the cohort product.
 Proposal narrative evidence truth remains advisor-review only until compliance-review,
 client-draft, and client-ready publication slices are implemented and proven.
 Proposal memo evidence truth is active for advisor-use support only; client-ready memo publication,

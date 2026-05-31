@@ -66,7 +66,8 @@ Current governed usage includes:
 Boundary rule:
 
 - `lotus-advise` evaluates affected-cohort membership for supplied source-backed candidates
-- `lotus-manage` owns DPM campaigns, policies, rebalance workflows, and execution evidence
+- `lotus-manage` owns discretionary portfolio-management campaigns, policies, rebalance workflows,
+  and execution evidence
 
 ## `lotus-report`
 

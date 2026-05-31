@@ -416,7 +416,8 @@ Current note:
 - RFC-0026 Slice 10 readiness evidence lives in
   `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`; it adds report/archive
   readiness, execution handoff/status attention, and explicit source-batched tactical house-view
-  impact actions while preserving report/archive, OMS, and DPM source-of-record boundaries.
+  impact actions while preserving report/archive, OMS, and discretionary portfolio-management
+  source-of-record boundaries.
 - RFC-0026 Slice 13 data-product and capability-promotion evidence lives in
   `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`; it promotes
   `AdvisorCockpitOperatingSnapshot:v1`, `AdvisoryActionItemRegister:v1`, trust telemetry,
@@ -424,10 +425,10 @@ Current note:
   `PB_SG_GLOBAL_BAL_001` proof.
 - RFC-0026 Slice 16 implementation-proof evidence lives in
   `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`; it records hardened live canonical proof
-  for action detail, cursor pagination, invalid-cursor rejection, compliance and DPM role
-  projection, preparation packets, house-view impact, acknowledgement idempotency, supportability
-  posture, and action evidence/lineage. The slice also records live defects fixed at the owning
-  layer and pinned by lower-level tests before rerun.
+  for action detail, cursor pagination, invalid-cursor rejection, compliance and discretionary
+  portfolio-management role projection, preparation packets, house-view impact, acknowledgement
+  idempotency, supportability posture, and action evidence/lineage. The slice also records live
+  defects fixed at the owning layer and pinned by lower-level tests before rerun.
 - RFC-0027 Slice 1 platform-scaffolding evidence lives in
   `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`; it records that
   existing platform and repo-native controls are sufficient before copilot domain work, rejects

@@ -170,8 +170,9 @@ outcome:
 7. `lotus-workbench` changes needed to expose the end-to-end advisor/demo journey, cockpit,
    proposal pack, policy posture, AI review posture, supportability, and screenshots through
    Gateway/BFF only.
-8. `lotus-manage` changes only when the demo includes tactical house-view campaign or DPM handoff
-   actioning; Manage remains owner of discretionary management and campaign operations.
+8. `lotus-manage` changes only when the demo includes tactical house-view campaign or
+   discretionary portfolio-management handoff actioning; Manage remains owner of discretionary
+   management and campaign operations.
 9. `lotus-platform` automation/scaffolding improvements when reusable gaps are discovered in
    scenario contracts, proof capture, API certification, Swagger, observability, health/readiness,
    structured logging, error handling, test scaffolding, CI defaults, documentation scaffolding,
@@ -383,7 +384,7 @@ flowchart LR
     Report[lotus-report<br/>proposal/report requests] --> Advise
     Render[lotus-render<br/>deterministic documents] --> Report
     Archive[lotus-archive<br/>retention and retrieval refs] --> Report
-    Manage[lotus-manage<br/>DPM and campaign boundary where used] --> Advise
+    Manage[lotus-manage<br/>Portfolio-management and campaign boundary where used] --> Advise
     Advise --> Gateway[lotus-gateway<br/>experience API and supportability]
     Gateway --> Workbench[lotus-workbench<br/>advisor/demo surface]
     Advise --> Proof[AdvisoryBankDemoProofPack]
@@ -406,8 +407,8 @@ Ownership rules:
    claimed.
 7. AI proof must preserve `lotus-ai` workflow-pack ownership and `lotus-advise` advisory evidence
    ownership.
-8. Manage remains DPM/campaign owner and participates only when the scenario includes tactical
-   house-view or discretionary-management handoff proof.
+8. Manage remains discretionary portfolio-management/campaign owner and participates only when
+   the scenario includes tactical house-view or discretionary-management handoff proof.
 
 ---
 
@@ -425,7 +426,7 @@ Ownership rules:
 | Report/render/archive | `lotus-report`, `lotus-render`, `lotus-archive` | Prove deterministic artifact, archive refs, retention, and retrieval if claimed. |
 | Gateway contracts | `lotus-gateway` | Route and preserve Advise truth; do not reconstruct supportability or advisory state. |
 | Workbench surfaces | `lotus-workbench` | Use Gateway/BFF only and validate browser states before screenshots are demo-ready. |
-| DPM/campaign boundary | `lotus-manage` | Participate only for tactical house-view/campaign handoff proof. |
+| Portfolio-management campaign boundary | `lotus-manage` | Participate only for tactical house-view/campaign handoff proof. |
 | Automation, CI, docs scaffolding, canonical validation | `lotus-platform` | Reuse or improve platform automation when the gap is repeatable. |
 
 ---
@@ -743,9 +744,10 @@ Acceptance gate:
 
 Slice 1 implementation decision and evidence:
 
-1. A reusable platform gap exists: Lotus had front-office contracts and DPM proof-pack vocabulary,
-   but no platform-owned supported-claim register contract or validator that could prevent demo,
-   wiki, screenshot, RFP, security, and one-pager claims from outrunning implementation evidence.
+1. A reusable platform gap exists: Lotus had front-office contracts and portfolio-management
+   proof-pack vocabulary, but no platform-owned supported-claim register contract or validator
+   that could prevent demo, wiki, screenshot, RFP, security, and one-pager claims from outrunning
+   implementation evidence.
 2. The reusable platform fix was merged through `lotus-platform` PR #366 at merge commit
    `1f46cd764b1e8437091c6d5e567403053b899313`. The implementation commit
    `ea6e8151d253f5d738dfb5902d8193238b946bba` adds:

@@ -53,9 +53,9 @@ owns action, snapshot, supportability, preparation-packet, supervisory queue, re
 execution-status attention, house-view impact, and acknowledgement truth; Gateway and Workbench
 consume the canonical contract; active cockpit data products, trust telemetry, and
 `/platform/capabilities` are promoted. Slice 16 adds hardened live canonical proof for action
-detail, cursor pagination, invalid-cursor rejection, compliance and DPM role projection,
-preparation packets, house-view impact, acknowledgement idempotency, supportability posture, and
-action evidence/lineage.
+detail, cursor pagination, invalid-cursor rejection, compliance and discretionary
+portfolio-management role projection, preparation packets, house-view impact, acknowledgement
+idempotency, supportability posture, and action evidence/lineage.
 
 RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions. It supports
 all six supported action families through Advise-owned source evidence, governed `lotus-ai`
@@ -256,7 +256,7 @@ RFC-0026 Slice 10 is implemented as source-backed readiness, execution, and hous
 support. Evidence lives in `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`.
 `lotus-advise` now projects report/archive readiness, execution handoff/status attention, and
 explicit source-batched tactical house-view impact actions without claiming report/archive, OMS, or
-DPM system-of-record ownership.
+discretionary portfolio-management system-of-record ownership.
 
 RFC-0026 Slice 13 is implemented as data-product and capability promotion. Evidence lives in
 `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`.

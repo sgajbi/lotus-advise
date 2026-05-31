@@ -170,8 +170,8 @@ lifecycle, completed policy approval authority, or full RFC-0028 demo/RFP readin
 ### `lotus-manage`
 
 `lotus-advise` can produce `TacticalHouseViewAffectedCohort:v1` as source-owned cohort evidence.
-`lotus-manage` remains responsible for DPM campaign workflows, policy application, evidence
-packaging, rebalance waves, and downstream execution posture.
+`lotus-manage` remains responsible for discretionary portfolio-management campaign workflows,
+policy application, evidence packaging, rebalance waves, and downstream execution posture.
 
 Advisory execution handoff/status routes may reference `lotus-manage` or another downstream
 provider as the execution venue. Those routes expose `execution_ownership` evidence and do not make

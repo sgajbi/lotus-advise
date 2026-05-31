@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 PUBLIC_DOCS = sorted(
@@ -20,3 +21,4 @@ def test_public_docs_use_business_facing_integration_vocabulary() -> None:
         text = path.read_text(encoding="utf-8").lower()
         assert " seam" not in text
         assert "seam " not in text
+        assert re.search(r"\bdpm\b", text) is None

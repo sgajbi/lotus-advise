@@ -8188,3 +8188,35 @@
 - Follow-Up:
   - Keep any future review posture addition tied to model, API, OpenAPI, persistence, and RFC tests
     in the same slice.
+
+## LA-REV-310
+
+- Scope: RFC-0026 cockpit business-facing vocabulary
+- Pattern: Workbench-facing action copy and public docs use private-banking boundary language
+- Status: Hardened
+- Finding Class: business-language quality and product-surface clarity
+- Summary: Advisor-cockpit action copy and public/RFC documentation still used internal shorthand
+  such as `DPM` and `seam` for portfolio-management and handoff boundaries. Those terms are
+  acceptable in engineering conversation but weaker in Workbench-facing action text, wiki, README,
+  and active RFC source truth intended for business, operations, sales, pre-sales, and client-demo
+  readers.
+- Evidence:
+  - `src/core/advisor_cockpit/action_factory.py` and `src/core/advisor_cockpit/service.py` now use
+    discretionary portfolio-management wording in tactical house-view action text and summaries.
+  - `README.md`, `wiki/Architecture.md`, `wiki/Integrations.md`, `wiki/Mesh-Data-Products.md`,
+    `wiki/RFC-Index.md`, `wiki/Supported-Features.md`, `docs/rfcs/README.md`, RFC-0026, and
+    RFC-0028 use portfolio-management and handoff-boundary wording instead of `DPM`/`seam`
+    shorthand.
+  - `tests/unit/advisory/engine/test_engine_advisor_cockpit_action_factory.py` asserts the updated
+    Workbench-facing tactical house-view action copy.
+  - `tests/unit/test_public_docs_vocabulary.py` prevents `DPM` and `seam` wording from returning
+    to public docs.
+- Consequence:
+  - The advisor cockpit reads more like a private-banking product surface while preserving the
+    source-of-record boundaries with `lotus-manage`, CRM, report, archive, and execution services.
+- Documentation:
+  - Repo-local wiki source changed and must pass wiki sync check before merge, then publish after
+    merge to `main`.
+- Follow-Up:
+  - Continue replacing implementation shorthand only where it affects product-surface, wiki, RFC,
+    README, or commercial-material clarity.
