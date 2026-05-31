@@ -11,6 +11,7 @@ It does not own canonical portfolio source data, risk methodology, performance m
 - [Architecture](Architecture)
 - [API Surface](API-Surface)
 - [Supported Features](Supported-Features)
+- [Demo and Commercial Proof](Demo-and-Commercial-Proof)
 - [Proposal Lifecycle](Proposal-Lifecycle)
 - [Advisory Workspace](Advisory-Workspace)
 - [Development Workflow](Development-Workflow)
