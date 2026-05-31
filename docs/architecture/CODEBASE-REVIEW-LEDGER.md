@@ -4861,3 +4861,31 @@
 - Follow-Up:
   - Keep application-layer replay shortcuts tied to shared domain predicates when persistence owns
     the authoritative recovery or idempotency rule.
+
+## LA-REV-184
+
+- Scope: Enterprise audit metadata redaction
+- Pattern: sensitive-data handling / operational diagnostics hardening
+- Status: Hardened
+- Finding Class: security and observability gap
+- Summary: The enterprise audit redaction helper only redacted exact lowercase field names and
+  assumed dictionary keys were strings. Common audit metadata variants such as `apiToken`,
+  `client-email`, `authorizationHeader`, `privateKey`, or `session_cookie` could avoid redaction,
+  and non-string keys could make redaction brittle.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now normalizes audit metadata field names, handles non-string
+    keys safely, and redacts common token, authorization, cookie, password, secret, key, account,
+    session, SSN, and client-email field-name variants.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` covers nested dictionaries, lists,
+    non-string keys, common camel-case and hyphenated sensitive names, safe business metadata, and
+    non-mutating behavior.
+- Consequence:
+  - Enterprise audit logging is less likely to leak credentials or client-identifying metadata when
+    callers use realistic field naming conventions in diagnostic metadata.
+- Documentation:
+  - No wiki source change is required. This slice hardens an internal security/diagnostic utility
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep future audit metadata expansions covered with direct redaction tests before adding new log
+    fields or diagnostic payloads.

@@ -23,6 +23,23 @@ _REDACT_FIELDS = {
     "account_number",
     "client_email",
 }
+_REDACT_FIELD_MARKERS = frozenset(
+    {
+        "access_key",
+        "account_number",
+        "api_key",
+        "authorization",
+        "client_email",
+        "cookie",
+        "password",
+        "private_key",
+        "secret",
+        "session",
+        "ssn",
+        "token",
+    }
+)
+_REDACTED_VALUE = "***REDACTED***"
 
 
 def _env_enabled(name: str, default: str = "true") -> bool:
@@ -132,14 +149,25 @@ def redact_sensitive(value: Any) -> Any:
     if isinstance(value, dict):
         out: dict[str, Any] = {}
         for key, item in value.items():
-            if key.lower() in _REDACT_FIELDS:
-                out[key] = "***REDACTED***"
+            if _is_sensitive_field_name(key):
+                out[key] = _REDACTED_VALUE
             else:
                 out[key] = redact_sensitive(item)
         return out
     if isinstance(value, list):
         return [redact_sensitive(item) for item in value]
     return value
+
+
+def _is_sensitive_field_name(key: Any) -> bool:
+    normalized = str(key).strip().lower().replace("-", "_")
+    if normalized in _REDACT_FIELDS:
+        return True
+    compact = normalized.replace("_", "")
+    return any(
+        marker in normalized or marker.replace("_", "") in compact
+        for marker in _REDACT_FIELD_MARKERS
+    )
 
 
 def emit_audit_event(
