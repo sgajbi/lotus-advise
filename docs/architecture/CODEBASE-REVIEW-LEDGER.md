@@ -7096,3 +7096,27 @@
 - Follow-Up:
   - Continue auditing proof-pack writer artifacts, manifest shape, and local output references for
     any remaining repeatability or disclosure gaps.
+
+## LA-REV-271
+
+- Scope: RFC-0028 backend proof writer manifest
+- Pattern: portable bundle-local artifact references
+- Status: Hardened
+- Finding Class: evidence portability and local-path disclosure risk
+- Summary: `manifest.json` recorded artifact paths using the concrete output directory. When
+  operators wrote proof evidence to an absolute temporary or workstation path, the manifest could
+  leak machine-specific filesystem locations into otherwise sanitized proof evidence.
+- Evidence:
+  - `scripts/capture_rfc0028_backend_proof.py` now writes manifest artifact references relative to
+    the proof bundle root.
+  - The proof-capture writer test now uses an absolute pytest temp directory and proves manifest
+    artifact references stay bundle-local and do not include the temp path.
+- Consequence:
+  - RFC-0028 proof bundles are more portable for review, archive, and client-demo preparation while
+    preserving the generated proof asset content and supported-claim posture.
+- Documentation:
+  - No wiki source change is required. This is evidence-manifest hardening for the existing
+    proof-capture script behavior.
+- Follow-Up:
+  - Continue auditing runtime probe configuration, CLI validation, and proof-pack summary copy for
+    remaining operator-experience or disclosure issues.

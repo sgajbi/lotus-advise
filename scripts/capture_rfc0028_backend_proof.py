@@ -188,10 +188,17 @@ def write_backend_proof_capture_bundle(
             "primary_portfolio_id": bundle.proof_pack.primary_portfolio_id,
             "proof_marker": bundle.proof_pack.proof_marker,
             "client_ready_posture": bundle.proof_pack.client_ready_posture,
-            "artifacts": {key: _display_path(path) for key, path in paths.items()},
+            "artifacts": _manifest_artifact_refs(paths, output_dir),
         },
     )
     return paths
+
+
+def _manifest_artifact_refs(paths: dict[str, Path], output_dir: Path) -> dict[str, str]:
+    artifact_refs: dict[str, str] = {}
+    for key, path in paths.items():
+        artifact_refs[key] = path.relative_to(output_dir).as_posix()
+    return artifact_refs
 
 
 def _load_or_run_live_suite(

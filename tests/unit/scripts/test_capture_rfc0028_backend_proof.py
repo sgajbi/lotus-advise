@@ -113,6 +113,11 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
     assert commercial_pack["publication_posture"] == "CUSTOMER_CONSUMABLE_WITH_BOUNDARIES"
     assert "commercial_rfp_security_material_available" in commercial_pack["required_claim_ids"]
     assert manifest["artifact_family"] == "rfc0028.backend-proof-capture.v1"
+    assert manifest["artifacts"]["metadata"] == "metadata.json"
+    assert manifest["artifacts"]["proof_pack"] == "proof-pack.json"
+    assert all(
+        str(tmp_path).replace("\\", "/") not in ref for ref in manifest["artifacts"].values()
+    )
     assert "BANK_DEMO_PROOF_PACK_CREATED" in markdown_summary
     assert "AI, Policy, And Cockpit Integration Proof" in markdown_summary
     assert "Commercial, RFP, Security, Architecture, ROI, And Demo Material" in markdown_summary
