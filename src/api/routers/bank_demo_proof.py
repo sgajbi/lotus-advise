@@ -23,6 +23,22 @@ from src.core.bank_demo_proof import (
 )
 
 RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX = "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED"
+RFC28_PROOF_VALIDATION_FAILED = "RFC0028_PROOF_PACK_VALIDATION_FAILED"
+_SENSITIVE_ERROR_FRAGMENTS = (
+    "authorization",
+    "bearer ",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "raw prompt",
+    "raw payload",
+    "raw source",
+    "provider response",
+)
 
 router = APIRouter(prefix="/advisory/bank-demo-proof", tags=["Bank Demo Proof"])
 
@@ -122,9 +138,10 @@ def build_bank_demo_proof_pack(
             output_ref_prefix=request.output_ref_prefix,
         )
     except ValueError as exc:
+        raw_detail = str(exc)
         raise HTTPException(
-            status_code=_proof_pack_error_status(str(exc)),
-            detail=str(exc),
+            status_code=_proof_pack_error_status(raw_detail),
+            detail=_safe_proof_pack_error_detail(raw_detail),
         ) from exc
 
 
@@ -132,3 +149,22 @@ def _proof_pack_error_status(error_detail: str) -> int:
     if error_detail.startswith(RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX):
         return 409
     return 422
+
+
+def _safe_proof_pack_error_detail(error_detail: str) -> str:
+    if not _contains_sensitive_error_detail(error_detail):
+        return error_detail
+    if error_detail.startswith(RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX):
+        return (
+            f"{RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX}: "
+            "material field review failed with sensitive detail redacted"
+        )
+    return f"{RFC28_PROOF_VALIDATION_FAILED}: source evidence failed validation"
+
+
+def _contains_sensitive_error_detail(error_detail: str) -> bool:
+    normalized = error_detail.lower().replace("-", " ").replace("_", " ")
+    return any(
+        fragment.replace("-", " ").replace("_", " ") in normalized
+        for fragment in _SENSITIVE_ERROR_FRAGMENTS
+    )

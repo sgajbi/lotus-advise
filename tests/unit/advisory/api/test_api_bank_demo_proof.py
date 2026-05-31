@@ -131,6 +131,25 @@ def test_bank_demo_proof_pack_endpoint_rejects_malformed_source_evidence_as_422(
     assert "policy_pack_id" in response.json()["detail"]
 
 
+def test_bank_demo_proof_pack_endpoint_redacts_sensitive_source_evidence_errors() -> None:
+    live_runtime_payload = _live_runtime_payload()
+    live_runtime_payload["parity"]["proposal_policy"]["evaluation_status"] = "token=should-not-leak"
+    request = {
+        "live_runtime_payload": live_runtime_payload,
+        "runtime_posture": _runtime_posture().model_dump(mode="json"),
+        "repository_sha": "api-sha-123",
+    }
+
+    with TestClient(app) as client:
+        response = client.post("/advisory/bank-demo-proof/proof-packs", json=request)
+
+    assert response.status_code == 422
+    detail = repr(response.json()["detail"])
+    assert "RFC0028_PROOF_PACK_VALIDATION_FAILED" in detail
+    assert "token" not in detail
+    assert "should-not-leak" not in detail
+
+
 def test_bank_demo_proof_pack_endpoint_rejects_sensitive_artifact_refs_as_request_shape() -> None:
     request = {
         "live_runtime_payload": _live_runtime_payload(),

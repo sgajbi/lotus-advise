@@ -8075,3 +8075,32 @@
 - Follow-Up:
   - Keep future documentation edits tied to implementation-backed truth or buyer-facing clarity;
     do not rewrite historical RFC records purely for style.
+
+## LA-REV-306
+
+- Scope: RFC-0028 proof-pack API validation-error redaction
+- Pattern: endpoint error details must not echo sensitive nested source-evidence values
+- Status: Hardened
+- Finding Class: API security, evidence hygiene, and consumer-safe diagnostics
+- Summary: `POST /advisory/bank-demo-proof/proof-packs` already prevented request-shape
+  validation errors from echoing sensitive artifact references, but proof-build validation errors
+  were returned with `str(exc)`. If nested live-runtime source evidence carried a sensitive value in
+  a material field, Pydantic validation text could include the rejected input. That is not suitable
+  for Gateway, Workbench, automation logs, or proof-pack diagnostics.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now classifies status from the raw proof error but returns
+    a sanitized detail when the error contains credentials, tokens, secrets, raw prompt/payload/
+    source terms, provider responses, authorization, or cookies.
+  - Material-review conflicts still preserve the 409 remediation path when details are safe.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof.py` proves sensitive nested source evidence
+    returns a bounded 422 `RFC0028_PROOF_PACK_VALIDATION_FAILED` detail without echoing the token or
+    rejected value.
+- Consequence:
+  - RFC-0028 proof API consumers keep actionable HTTP classification without exposing sensitive
+    source-evidence values in API responses or logs.
+- Documentation:
+  - No README or wiki source change is required. Existing API/wiki proof-boundary docs already
+    state that HTTP 422 validation responses must not echo rejected sensitive input.
+- Follow-Up:
+  - Consider typed problem-detail models only as a coordinated cross-repo API-contract slice if
+    Gateway or Workbench needs machine-readable remediation codes beyond current stable strings.
