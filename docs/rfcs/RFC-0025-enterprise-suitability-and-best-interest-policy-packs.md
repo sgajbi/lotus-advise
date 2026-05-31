@@ -41,7 +41,8 @@ post-completion communication.
 `AdvisoryPolicyEvaluationRecord:v1` is active with current trust telemetry, platform capability
 posture, Gateway/Workbench consumption, live-suite proof, and SLO/access/evidence-policy support.
 Completed approval/waiver authority, completed policy sign-off authority, client-ready policy
-publication, external client communication, and full RFC-0028 bank-demo/RFP claims remain gated.
+publication, and external client communication remain gated. RFC-0028 governs broader
+bank-demo/RFP proof through supported claims without promoting policy approval authority.
 
 The implementation must deliver the complete policy-pack outcome end to end. This RFC does not allow
 a "policy engine done, product surface later" closure, a "configuration exists but source evidence is
@@ -1329,7 +1330,8 @@ Current boundary:
 4. Slice 17 post-completion communication is complete through an employer-safe, non-promotional
    LinkedIn draft and content-ledger update in `lotus-platform`,
 5. completed approval/waiver authority, completed sign-off authority, client-ready policy
-   publication, external client communication, and full RFC-0028 bank-demo/RFP claims remain gated.
+   publication, and external client communication remain gated; RFC-0028 governs broader
+   bank-demo/RFP proof through supported claims without promoting policy approval authority.
 
 ### Slice 17 - Post-Completion Communication
 

@@ -1216,7 +1216,7 @@ Update or add:
 | Gateway narrative API | Supported for advisor-use reviewed narrative posture | `lotus-gateway` consumes canonical Advise review, report-request, delivery-summary, and delivery-event APIs with contract and integration proof; compliance-review, client-draft, client-ready publication, and capability promotion remain gated. |
 | Workbench narrative review UX | Supported for advisor-use proposal posture | `lotus-workbench` renders Gateway-backed proposal narrative posture and does not infer narrative facts locally; broader compliance, client-draft, blocked, degraded, and canonical demo screenshot proof remain gated. |
 | Narrative evidence data product | Supported for advisor-review evidence | `ProposalNarrativeEvidence:v1` is active with producer declaration, trust telemetry, SLO/access/evidence policy, mesh certification, catalog publication, and `/platform/capabilities` posture. |
-| Sales/demo-safe narrative proof | Supported for advisor-review walkthrough material | Canonical `PB_SG_GLOBAL_BAL_001` Workbench proof supports advisor-review narrative posture only; client-ready publication, external client communication, and bank-demo/RFP package claims remain gated. |
+| Sales/demo-safe narrative proof | Supported for advisor-review walkthrough material | Canonical `PB_SG_GLOBAL_BAL_001` Workbench proof supports advisor-review narrative posture only; client-ready publication and external client communication remain gated; broader bank-demo/RFP proof is governed by RFC-0028 supported claims rather than RFC-0023 narrative authority. |
 
 ## Existing WTBD Import and No-WTBD Execution Rule
 
@@ -1246,7 +1246,8 @@ deterministic grounding packets, bounded AI-assisted draft posture, unsupported-
 review workflow, persistence, replay, report-package posture, Gateway exposure, Workbench
 consumption, data-product posture, and supported-feature boundaries are implemented for
 advisor-use narrative review. Client-draft narrative, client-ready publication, external client
-communication, and bank-demo/RFP-ready narrative claims remain gated.
+communication, and client-ready narrative claims remain gated. RFC-0028 governs broader
+bank-demo/RFP proof through supported claims rather than RFC-0023 narrative authority.
 
 Quality improvements verified during the RFC 23-25 gold pass:
 
@@ -1276,9 +1277,9 @@ Proof reviewed:
    boundaries.
 
 Production-readiness assessment: RFC-0023 reaches the expected standard for advisor-review
-narrative evidence. It must not be represented as client-ready narrative publication, external
-communication, or a completed bank-demo/RFP claim until a later client-ready RFC implements and
-proves those controls.
+narrative evidence. It must not be represented as client-ready narrative publication or external
+communication until a later source-owned RFC implements and proves those controls. Broader
+bank-demo/RFP proof is governed by RFC-0028 supported claims.
 
 ## Naming and Vocabulary Rules
 

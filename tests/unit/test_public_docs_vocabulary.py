@@ -35,3 +35,24 @@ def test_rfc23_28_docs_use_private_banking_portfolio_management_language() -> No
     for path in RFC_23_28_DOCS:
         text = path.read_text(encoding="utf-8").lower()
         assert re.search(r"\bdpm\b", text) is None, path.as_posix()
+
+
+def test_current_public_docs_do_not_preserve_stale_rfc0028_gating_language() -> None:
+    stale_phrases = (
+        "full rfc-0028 bank-demo/rfp package claims remain gated",
+        "full rfc-0028 bank-demo/rfp claims remain gated",
+        "full rfc-0028 demo/rfp package claims remain gated",
+        "full bank-demo/rfp claims remain gated",
+        "bank-demo/rfp package claims remain gated",
+    )
+    current_docs = PUBLIC_DOCS + [
+        Path("docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md"),
+        Path("docs/rfcs/RFC-0024-advisor-proposal-memo-and-evidence-pack.md"),
+        Path("docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md"),
+        Path("docs/rfcs/README.md"),
+    ]
+
+    for path in current_docs:
+        text = path.read_text(encoding="utf-8").lower()
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{phrase!r} in {path.as_posix()}"

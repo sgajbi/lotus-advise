@@ -38,7 +38,7 @@ def test_rfc0025_slice16_closes_policy_evidence_without_client_ready_claims() ->
         "RFC-0025 is implemented for advisor/compliance policy evaluation evidence",
         "client-ready policy document publication is not supported",
         "external client communication is not supported",
-        "full RFC-0028 bank-demo/RFP package claims remain gated",
+        "RFC-0028 now governs broader bank-demo/RFP proof through supported claims",
         "No Lotus agent context, skill, or procedural guidance change is required",
     ]
     for term in required_terms:
@@ -91,6 +91,9 @@ def test_rfc0025_slice16_promotes_active_policy_data_product_truth() -> None:
     )
     assert "completed policy sign-off authority" in telemetry["evidence"]["claim_boundary"]
     assert "client-ready publication" in telemetry["evidence"]["claim_boundary"]
+    assert "full RFC-0028 bank-demo/RFP package claims remain gated" not in _read(
+        "docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md"
+    )
 
     assert "advisory.proposals.policy_evaluation" in capabilities
     assert "advisory_policy_evaluation" in capabilities

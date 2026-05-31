@@ -17,7 +17,8 @@ The supported posture remains bounded:
 2. completed policy sign-off authority is not supported,
 3. client-ready policy document publication is not supported,
 4. external client communication is not supported,
-5. full RFC-0028 bank-demo/RFP package claims remain gated to RFC-0028,
+5. RFC-0028 now governs broader bank-demo/RFP proof through supported claims without promoting
+   policy approval or client-ready policy publication,
 6. post-completion communication remains a separate Slice 17 deliverable.
 
 ## Durable Truth Surfaces
@@ -65,8 +66,9 @@ Core seed now rewrites only the governed demo benchmark to `BMK_PB_GLOBAL_BALANC
 benchmark definitions, compositions, and return-series keys unique across repeatable seeded runs.
 
 Validation evidence remains bounded to advisor/compliance policy evidence. Completed approval,
-waiver, sign-off, client-ready publication, external communication, and full RFC-0028 bank-demo/RFP
-claims remain gated.
+waiver, sign-off, client-ready publication, and external communication remain gated. RFC-0028
+governs broader bank-demo/RFP proof through supported claims without promoting policy approval
+authority.
 
 ## Wiki And Branch Hygiene
 
@@ -92,5 +94,5 @@ existing Lotus rules already covered the actual closure path:
 5. supported-feature claim boundaries for advisor/compliance evidence versus client-ready posture,
 6. capability and trust-telemetry promotion only after implementation-backed proof.
 
-Future guidance should change only if RFC-0028 introduces new bank-demo, RFP, or client-ready
-publication proof rules.
+Future guidance should change only if a later source-owned RFC introduces new client-ready policy
+publication controls or changes the RFC-0028 supported-claim proof rules.

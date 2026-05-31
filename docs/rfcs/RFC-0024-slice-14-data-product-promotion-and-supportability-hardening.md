@@ -42,8 +42,8 @@ unblocked advisor-use evidence posture.
 2. workflow key `advisory_proposal_memo_evidence_pack`,
 3. dependency on `advisory.proposals.lifecycle`, `advisory.proposals.reporting`, and `lotus-report`,
 4. degraded posture when report-package support is unavailable,
-5. explicit wording that client-ready memo publication, external client communication, and full
-   bank-demo/RFP package claims remain gated.
+5. explicit wording that client-ready memo publication and external client communication remain
+   blocked while RFC-0028 governs broader bank-demo/RFP proof through supported claims.
 
 `lotus-platform` adds mesh SLO, access, and evidence-pack policies for the product and refreshes the
 generated domain-product catalog, dependency graph, certification report, and maturity matrix.

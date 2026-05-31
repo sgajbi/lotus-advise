@@ -8758,6 +8758,33 @@
   - Continue reviewing public wiki operating rules for stale pre-RFC-0028 language before PR
     handoff.
 
+## LA-REV-331
+
+- Scope: RFC-0023 through RFC-0026 current documentation and closure records
+- Pattern: Current RFC truth must route bank-demo/RFP proof to RFC-0028 without reviving stale
+  pre-RFC-0028 gating language
+- Status: Hardened
+- Finding Class: Documentation truth and commercial-claim governance
+- Summary: Current RFC bodies, RFC index material, and durable RFC-0024/RFC-0025 closure records
+  still contained phrasing that full RFC-0028 bank-demo/RFP claims remained gated. That was true
+  before RFC-0028 completion, but after supported-claim proof shipped it understated the supported
+  demo/RFP proof boundary and could confuse business readers.
+- Evidence:
+  - Updated current RFC-0023/RFC-0024/RFC-0025/RFC-0026 source pages, RFC index source, and wiki
+    RFC index source to route broader bank-demo/RFP proof to RFC-0028 supported claims.
+  - Preserved the stronger blocked wording for client-ready publication, external communication,
+    policy approval authority, OMS/order lifecycle, and execution/settlement claims.
+  - Updated RFC-0024/RFC-0025 final-closure contract tests and added a public-doc vocabulary
+    guard against stale RFC-0028 gating phrases in current public documentation.
+- Consequence:
+  - Implementation-backed commercial proof can be described accurately without promoting
+    client-ready publication or approval authority.
+- Documentation:
+  - RFC and wiki source changed; wiki check/publish is required before/after merge.
+- Follow-Up:
+  - Keep historical slice records audit-friendly, but keep current RFC and wiki summaries aligned
+    with the implemented RFC-0028 supported-claim boundary.
+
 ## LA-REV-326
 
 - Scope: OpenAPI enrichment portfolio-id example vocabulary
