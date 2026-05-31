@@ -7858,3 +7858,32 @@
 - Follow-Up:
   - Continue the same consolidation in integration-proof validation if focused tests show no public
     contract drift.
+
+## LA-REV-298
+
+- Scope: RFC-0028 journey integration proof validation
+- Pattern: source integration proof status fields reuse shared RFC-0028 text-safety helpers
+- Status: Hardened
+- Finding Class: duplicate status validation and blocked-boundary wording risk
+- Summary: `src/core/bank_demo_proof/integration_proof.py` carried another local sensitive-term
+  tuple and status normalizer for AI, policy, panel, and proof identifiers. Reusing the shared RFC
+  28 text-safety helper reduces duplicate validation, but unsupported-claim boundary statements must
+  still be allowed to name blocked concepts such as raw prompts when explaining what is excluded.
+- Evidence:
+  - `src/core/bank_demo_proof/integration_proof.py` now delegates status and identifier validation
+    to the shared business-safe helper while using required-text normalization for unsupported-claim
+    boundary statements.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_integration_proof.py` now covers
+    underscore-form sensitive provider-response status text.
+  - Focused proof-capture tests continue to prove the canonical integration proof summary can state
+    raw-prompt exclusion without leaking raw material.
+- Consequence:
+  - RFC-0028 AI/policy/cockpit integration proof fields now share the same sensitive-detail
+    boundary as document and commercial proof fields while keeping business-facing blocked-claim
+    language truthful.
+- Documentation:
+  - No README or wiki source change is required. The integration proof contract and generated proof
+    artifact semantics are unchanged.
+- Follow-Up:
+  - Continue auditing larger proof model contracts for reusable validators only where the change
+    preserves externally visible proof wording.

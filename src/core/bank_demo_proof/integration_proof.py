@@ -9,6 +9,10 @@ from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PROOF_MARKER,
     RFC28_CANONICAL_SCENARIO_ID,
 )
+from src.core.bank_demo_proof.validation import (
+    normalize_required_rfc28_text,
+    normalize_rfc28_business_text,
+)
 
 IntegrationProofPosture = Literal[
     "IMPLEMENTATION_BACKED",
@@ -28,18 +32,6 @@ _RFC28_INTEGRATION_PANEL_MAX_ITEMS = 16
 _RFC28_INTEGRATION_AI_ROW_MAX_ITEMS = 16
 _RFC28_INTEGRATION_UNSUPPORTED_MAX_ITEMS = 32
 _RFC28_POLICY_RULE_COUNT_MAX = 100_000
-_RFC28_SENSITIVE_INTEGRATION_TERMS = (
-    "authorization",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api key",
-    "apikey",
-    "raw payload",
-    "provider response",
-)
 
 
 class AiModelRiskControlProof(BaseModel):
@@ -219,7 +211,7 @@ class AdvisoryJourneyIntegrationProofSummary(BaseModel):
     def _unsupported_claims_must_be_business_safe(cls, value: list[str]) -> list[str]:
         normalized: list[str] = []
         for claim in value:
-            claim_text = _normalize_status_text(
+            claim_text = normalize_required_rfc28_text(
                 claim,
                 field_name="integration proof unsupported claim",
                 max_length=_RFC28_INTEGRATION_TEXT_MAX_LENGTH,
@@ -410,16 +402,8 @@ def _normalize_status_text(
     field_name: str,
     max_length: int = _RFC28_INTEGRATION_IDENTIFIER_MAX_LENGTH,
 ) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(f"{field_name} is required")
-    if len(normalized) > max_length:
-        raise ValueError(f"{field_name} is too long")
-    if _contains_sensitive_integration_term(normalized):
-        raise ValueError(f"{field_name} cannot contain sensitive technical detail")
-    return normalized
-
-
-def _contains_sensitive_integration_term(value: str) -> bool:
-    lowered = value.lower().replace("-", " ")
-    return any(term in lowered for term in _RFC28_SENSITIVE_INTEGRATION_TERMS)
+    return normalize_rfc28_business_text(
+        value,
+        field_name=field_name,
+        max_length=max_length,
+    )

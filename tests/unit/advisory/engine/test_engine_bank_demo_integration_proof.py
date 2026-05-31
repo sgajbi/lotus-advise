@@ -98,6 +98,18 @@ def test_ai_proof_rejects_sensitive_status_text() -> None:
             guardrail_status="CLIENT_READY_RELEASE_BLOCKED",
         )
 
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        AiModelRiskControlProof(
+            evidence_family="PROPOSAL_MEMO",
+            proof_posture="IMPLEMENTATION_BACKED",
+            ai_status="provider_response available",
+            authoritative_for_advice=False,
+            human_review_required=True,
+            raw_prompt_retained=False,
+            raw_source_evidence_included=False,
+            guardrail_status="CLIENT_READY_RELEASE_BLOCKED",
+        )
+
 
 def test_policy_proof_rejects_impossible_rule_counts() -> None:
     with pytest.raises(ValidationError, match="pending rule count cannot exceed"):
