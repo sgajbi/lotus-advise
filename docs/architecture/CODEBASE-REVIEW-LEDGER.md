@@ -5682,3 +5682,27 @@
     changing supported product capabilities.
 - Follow-Up:
   - None.
+
+## LA-REV-215
+
+- Scope: Integration dependency health probe target hardening
+- Pattern: operational diagnostics and security posture hardening
+- Status: Hardened
+- Finding Class: security and runtime resilience gap
+- Summary: Dependency health probes accepted any configured URL shape and followed redirects.
+  Misconfigured dependency URLs could therefore trigger unnecessary non-http probe attempts or
+  redirect-driven probe behavior that is not needed for Lotus readiness decisions.
+- Evidence:
+  - `src/integrations/base.py` now fails closed for non-http(s) or invalid-port probe targets
+    before creating an HTTP client.
+  - Dependency probes now run with redirects disabled.
+  - Integration base tests verify redirect disabling and fail-closed behavior for invalid probe
+    targets.
+- Consequence:
+  - Runtime readiness probing is more predictable and avoids probing unexpected schemes or
+    redirect targets from misconfigured dependency URLs.
+- Documentation:
+  - No wiki source change is required. This is internal operational hardening with no product
+    posture change.
+- Follow-Up:
+  - None.

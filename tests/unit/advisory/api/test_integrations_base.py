@@ -49,16 +49,21 @@ def test_runtime_dependency_probing_enabled_respects_override(
 
 def test_probe_dependency_health_checks_ready_then_health(monkeypatch: pytest.MonkeyPatch) -> None:
     base_url = "http://service.dev.lotus"
-    monkeypatch.setattr(
-        "src.integrations.base.httpx.Client",
-        lambda *args, **kwargs: _FakeClient(
+
+    def _client(*args, **kwargs) -> _FakeClient:  # noqa: ANN002, ANN003
+        assert kwargs["follow_redirects"] is False
+        return _FakeClient(
             *args,
             responses={
                 f"{base_url}/health/ready": httpx.ReadTimeout("not ready"),
                 f"{base_url}/health": _FakeResponse(200),
             },
             **kwargs,
-        ),
+        )
+
+    monkeypatch.setattr(
+        "src.integrations.base.httpx.Client",
+        _client,
     )
 
     assert probe_dependency_health(base_url) is True
@@ -77,6 +82,20 @@ def test_probe_dependency_health_reports_false_for_not_ready_and_transport_error
         ),
     )
     assert probe_dependency_health(base_url) is False
+
+
+def test_probe_dependency_health_fails_closed_for_non_http_targets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://service.dev.lotus"
+
+    def _unexpected_client(*args, **kwargs) -> _FakeClient:  # noqa: ANN002, ANN003
+        raise AssertionError("invalid dependency probe target should not open a client")
+
+    monkeypatch.setattr("src.integrations.base.httpx.Client", _unexpected_client)
+
+    assert probe_dependency_health("ftp://service.dev.lotus") is False
+    assert probe_dependency_health("https://service.dev.lotus:not-a-port") is False
 
     monkeypatch.setattr(
         "src.integrations.base.httpx.Client",

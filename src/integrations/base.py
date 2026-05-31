@@ -27,10 +27,12 @@ def runtime_dependency_probing_enabled() -> bool:
 
 
 def probe_dependency_health(base_url: str) -> bool:
+    if not _is_http_probe_base_url(base_url):
+        return False
     endpoints = ["/health/ready", "/health"]
     timeout = httpx.Timeout(connect=0.5, read=0.75, write=0.75, pool=0.5)
     try:
-        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+        with httpx.Client(timeout=timeout, follow_redirects=False) as client:
             for endpoint in endpoints:
                 try:
                     response = client.get(f"{base_url.rstrip('/')}{endpoint}")
@@ -43,6 +45,17 @@ def probe_dependency_health(base_url: str) -> bool:
     except httpx.HTTPError:
         return False
     return False
+
+
+def _is_http_probe_base_url(base_url: str) -> bool:
+    split = urlsplit(base_url.strip())
+    if split.scheme not in {"http", "https"} or split.hostname is None:
+        return False
+    try:
+        _ = split.port
+    except ValueError:
+        return False
+    return True
 
 
 def public_dependency_base_url(base_url: str | None) -> str | None:
