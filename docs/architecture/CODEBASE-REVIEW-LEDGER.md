@@ -8972,6 +8972,35 @@
   - Keep new API route error mapping wired to the shared detector instead of adding local sensitive
     term lists.
 
+## LA-REV-373
+
+- Scope: Active API/model portfolio example vocabulary
+- Pattern: Current OpenAPI examples should use the governed private-banking canonical portfolio
+  instead of legacy advisory demo identifiers
+- Status: Hardened
+- Finding Class: API documentation quality and private-banking vocabulary
+- Summary: Active source model and router examples still used `pf_advisory_01` and related legacy
+  demo identifiers even though RFC-0023 through RFC-0028 canonical proof uses
+  `PB_SG_GLOBAL_BAL_001`. These are examples rather than runtime behavior, but they feed OpenAPI
+  and API-vocabulary artifacts used by Gateway, Workbench, operators, and sales/pre-sales readers.
+- Evidence:
+  - Updated active `src/api` and `src/core` examples to use `PB_SG_GLOBAL_BAL_001`.
+  - Regenerated `docs/standards/api-vocabulary/lotus-advise-api-vocabulary.v1.json`.
+  - Added a source-example vocabulary regression test that rejects stale active-source portfolio
+    examples such as `pf_advisory_01`, `pf_advisory_demo`, and `DEMO_DPM`.
+  - Focused OpenAPI contract tests, OpenAPI quality gate, API vocabulary validation, `ruff`, and
+    format checks passed.
+- Consequence:
+  - Generated API documentation now aligns with the governed canonical private-banking proof
+    dataset and is less likely to leak older demo vocabulary into client-facing or integrator
+    material.
+- Documentation:
+  - Generated API vocabulary source changed. No README/wiki source change is required because this
+    updates API example truth without changing supported feature posture.
+- Follow-Up:
+  - Keep historical RFC/demo fixtures separate from active API source examples; update generated
+    vocabulary whenever source examples change.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

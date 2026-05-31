@@ -48,7 +48,7 @@ class WorkspaceStatelessInput(BaseModel):
         examples=[
             {
                 "portfolio_snapshot": {
-                    "portfolio_id": "pf_advisory_01",
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                     "base_currency": "USD",
                     "positions": [],
                     "cash_balances": [{"currency": "USD", "amount": "250000"}],
@@ -66,7 +66,7 @@ class WorkspaceStatelessInput(BaseModel):
 class WorkspaceStatefulInput(BaseModel):
     portfolio_id: str = Field(
         description="Canonical Lotus portfolio identifier resolved through upstream services.",
-        examples=["pf_advisory_01"],
+        examples=["PB_SG_GLOBAL_BAL_001"],
     )
     as_of: str = Field(
         description="Business date or timestamp used to resolve the source portfolio context.",
@@ -92,7 +92,7 @@ class WorkspaceStatefulInput(BaseModel):
 class WorkspaceResolvedContext(BaseModel):
     portfolio_id: str = Field(
         description="Resolved portfolio identifier used by the workspace evaluation.",
-        examples=["pf_advisory_01"],
+        examples=["PB_SG_GLOBAL_BAL_001"],
     )
     as_of: str = Field(
         description="Resolved business date or timestamp used during evaluation.",
@@ -368,7 +368,7 @@ class WorkspaceSessionCreateRequest(BaseModel):
             {
                 "simulate_request": {
                     "portfolio_snapshot": {
-                        "portfolio_id": "pf_advisory_01",
+                        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                         "base_currency": "USD",
                     },
                     "market_data_snapshot": {"prices": [], "fx_rates": []},
@@ -385,7 +385,7 @@ class WorkspaceSessionCreateRequest(BaseModel):
         description="Identifier-based input payload for stateful workspace sessions.",
         examples=[
             {
-                "portfolio_id": "pf_advisory_01",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                 "household_id": "hh_001",
                 "as_of": "2026-03-25",
                 "mandate_id": "mandate_growth_01",

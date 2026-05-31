@@ -733,7 +733,10 @@ class ProposalMemoReplayEvidenceResponse(BaseModel):
 
 class ProposalSummary(BaseModel):
     proposal_id: str = Field(description="Proposal identifier.", examples=["pp_001"])
-    portfolio_id: str = Field(description="Portfolio identifier.", examples=["pf_advisory_01"])
+    portfolio_id: str = Field(
+        description="Portfolio identifier.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    )
     mandate_id: Optional[str] = Field(
         default=None,
         description="Optional mandate identifier associated with the proposal.",

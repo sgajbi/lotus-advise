@@ -45,7 +45,7 @@ class AdvisoryReplaySubject(BaseModel):
 class AdvisoryReplayResolvedContext(BaseModel):
     portfolio_id: str = Field(
         description="Resolved portfolio identifier used by the replayable advisory evaluation.",
-        examples=["pf_advisory_01"],
+        examples=["PB_SG_GLOBAL_BAL_001"],
     )
     as_of: str = Field(
         description="Resolved business date or timestamp used by the replayable evaluation.",

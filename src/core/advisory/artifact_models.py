@@ -27,7 +27,7 @@ class ProposalArtifactTakeaway(BaseModel):
 class ProposalArtifactSummary(BaseModel):
     title: str = Field(
         description="Artifact title for advisor/client views.",
-        examples=["Proposal for pf_advisory_01"],
+        examples=["Proposal for PB_SG_GLOBAL_BAL_001"],
     )
     objective_tags: List[str] = Field(
         default_factory=list,
