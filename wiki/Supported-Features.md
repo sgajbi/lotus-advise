@@ -168,6 +168,9 @@ flowchart TB
   discovery.
 - For client demos, prepare with `GET /platform/capabilities`, `/health/ready`, and the relevant
   proposal or workspace routes so readiness claims match the current runtime posture.
+- For the RFC-0028 bank-demo proof journey, use [Demo and Commercial Proof](Demo-and-Commercial-Proof)
+  as the wiki navigation layer before using commercial, RFP, security, architecture, ROI, or
+  screenshot material.
 - For RFC-0024 memo-specific sales and pre-sales walkthroughs, use
   `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`; it is the current
   claim-controlled source for advisor-use memo demo notes, API examples, and RFP-safe wording.

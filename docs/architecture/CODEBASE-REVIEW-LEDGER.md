@@ -4765,3 +4765,36 @@
 - Follow-Up:
   - Keep future script-level automation covered by direct command tests or subprocess import tests
     when the failure mode only appears outside pytest's normal module graph.
+
+## LA-REV-181
+
+- Scope: Wiki demo and commercial proof navigation
+- Pattern: documentation product truth / demo-readiness usability
+- Status: Hardened
+- Finding Class: documentation quality gap
+- Summary: The RFC-0028 implementation-backed proof path had strong source material in README,
+  API-surface, operations, supported-features, RFC, and commercial docs, but the wiki lacked a
+  focused navigation page for business users, sales/pre-sales, operations, demo leads, and
+  engineers. That made it harder to prepare client demos and RFP material from one
+  implementation-backed wiki entry point without reading every RFC section.
+- Evidence:
+  - `wiki/Demo-and-Commercial-Proof.md` now summarizes current supported posture, proof flow,
+    business flow, operator checklist, audience-specific next reads, blocked claims, and
+    implementation references for the RFC-0028 bank-demo proof journey.
+  - `wiki/Home.md`, `wiki/_Sidebar.md`, and `wiki/Supported-Features.md` now link the new page from
+    the product-surface/demo navigation path.
+  - `tests/unit/test_wiki_demo_commercial_proof_contract.py` protects navigation, canonical
+    scenario/portfolio/proof-marker references, proof API references, commercial material
+    references, blocked-claim language, and Mermaid diagram presence.
+- Consequence:
+  - Business, operations, sales/pre-sales, and engineering audiences now have a concise,
+    implementation-backed wiki entry point for demo and commercial proof without promoting
+    client-ready publication, external communication, bank attestations, legal/regulatory advice,
+    completed approval/sign-off, AI authority, or OMS execution claims.
+- Documentation:
+  - Repo-local wiki source changed. Run the governed wiki sync check before merge and publish the
+    `lotus-advise` wiki after this branch lands on `main`.
+- Follow-Up:
+  - Keep future demo-oriented wiki additions as navigation and interpretation layers over
+    implementation-backed proof artifacts; do not duplicate long-form RFC or commercial-guide
+    content.
