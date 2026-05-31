@@ -7887,3 +7887,29 @@
 - Follow-Up:
   - Continue auditing larger proof model contracts for reusable validators only where the change
     preserves externally visible proof wording.
+
+## LA-REV-299
+
+- Scope: RFC-0028 proof model sensitive-term vocabulary
+- Pattern: proof model contracts reuse the shared RFC-0028 sensitive-term matcher
+- Status: Hardened
+- Finding Class: duplicate sensitive-term vocabulary and underscore-drift risk
+- Summary: `src/core/bank_demo_proof/models.py` still had a model-local sensitive technical-term
+  tuple used by scenario, supported-claim, proof-asset, and proof-pack validators. That duplicated
+  the same vocabulary now shared by document, commercial, integration, and capture proof modules
+  and did not cover underscore variants consistently.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now delegates sensitive-term matching to the shared RFC-0028
+    validation helper while preserving its custom required-field error messages.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` now covers underscore-form
+    provider-response text in supported-claim wording.
+  - Focused RFC-0028 proof model, integration, commercial, document, and capture tests pass.
+- Consequence:
+  - RFC-0028 proof model contracts now use the same sensitive-detail vocabulary as the rest of the
+    proof-pack stack without widening model error-message churn.
+- Documentation:
+  - No README or wiki source change is required. Public proof models and generated proof artifacts
+    retain the same schema and business meaning.
+- Follow-Up:
+  - Continue extracting model submodules only where a complete domain boundary can be moved with
+    focused tests; avoid broad churn in the central proof contract module.

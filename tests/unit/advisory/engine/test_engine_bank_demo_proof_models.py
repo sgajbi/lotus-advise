@@ -217,6 +217,18 @@ def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> No
             proof_requirements=[_proof_requirement()],
         )
 
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        SupportedClaim(
+            claim_id="unsafe_provider_response",
+            title="Unsafe provider response",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Provider_response evidence is available for client review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
     with pytest.raises(ValidationError):
         SupportedClaim(
             claim_id="x" * 161,

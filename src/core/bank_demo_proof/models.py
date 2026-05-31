@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.bank_demo_proof.artifact_refs import normalize_local_artifact_ref
+from src.core.bank_demo_proof.validation import contains_sensitive_rfc28_term
 
 SupportedClaimClassification = Literal[
     "IMPLEMENTATION_BACKED",
@@ -89,19 +90,6 @@ _RFC28_MAX_PROOF_ASSETS = 32
 _RFC28_MAX_REPOSITORY_SHAS = 16
 _RFC28_MAX_REF_LIST_ITEMS = 64
 _RFC28_SHA256_HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
-_RFC28_TECHNICAL_COPY_TERMS = (
-    "raw prompt",
-    "provider response",
-    "raw payload",
-    "authorization",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api key",
-    "apikey",
-)
 
 
 class DemoScenarioStep(BaseModel):
@@ -286,8 +274,7 @@ class SupportedClaim(BaseModel):
     @classmethod
     def _claim_copy_must_be_business_safe(cls, value: str) -> str:
         normalized = _normalize_required_text(value, error_code="supported claim text is required")
-        lowered = normalized.lower().replace("-", " ")
-        if any(term in lowered for term in _RFC28_TECHNICAL_COPY_TERMS):
+        if _contains_sensitive_technical_term(normalized):
             raise ValueError("supported claim text cannot contain sensitive technical detail")
         return normalized
 
@@ -355,8 +342,7 @@ def _normalize_ref_list(
 
 
 def _contains_sensitive_technical_term(value: str) -> bool:
-    lowered = value.lower().replace("-", " ")
-    return any(term in lowered for term in _RFC28_TECHNICAL_COPY_TERMS)
+    return contains_sensitive_rfc28_term(value)
 
 
 class ArtifactPolicy(BaseModel):
