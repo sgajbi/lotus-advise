@@ -1,6 +1,7 @@
+import json
 from pathlib import Path
 
-from scripts.engineering_health_report import build_report, render_markdown
+from scripts.engineering_health_report import build_report, main, render_markdown
 
 
 def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -> None:
@@ -36,3 +37,44 @@ def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -
     assert any(gate.make_target == "lint" for gate in report.gate_inventory)
     assert "Largest Functions" in markdown
     assert "`demo_route`" in markdown
+
+
+def test_engineering_health_report_renders_baseline_comparison(tmp_path: Path) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "module.py").write_text("def current_function():\n    return 1\n", encoding="utf-8")
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text(
+        json.dumps(
+            {
+                "python_file_count": 3,
+                "package_count": 1,
+                "module_count": 2,
+                "total_python_lines": 100,
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "report.md"
+
+    report = build_report(tmp_path, source_roots=("src",), limit=5)
+    markdown = render_markdown(
+        report,
+        baseline=json.loads(baseline.read_text(encoding="utf-8")),
+    )
+
+    assert "Baseline Comparison" in markdown
+    assert "| `python_file_count` | 3 | 1 | -2 |" in markdown
+
+    exit_code = main(
+        [
+            "--repo-root",
+            str(tmp_path),
+            "--compare-to",
+            str(baseline),
+            "--output",
+            str(output),
+        ]
+    )
+    assert exit_code == 0
+    assert "Baseline Comparison" in output.read_text(encoding="utf-8")

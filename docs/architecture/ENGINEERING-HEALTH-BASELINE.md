@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-01T23:18:19.195707+00:00`
+- Generated At: `2026-06-01T23:22:15.876680+00:00`
 - Branch: `advise-enterprise-hardening-slice-14`
-- Head: `33764a6b9dc4325528e0ba0230327980127ced63`
+- Head: `50e4c2bba84f2348f05a20e580c9ff8a7b9ecdad`
 - Python Files: `744`
 - Packages: `37`
 - Modules: `707`
-- Total Python Lines: `128816`
+- Total Python Lines: `128920`
 
 ## Largest Files
 
@@ -105,6 +105,8 @@
 ## Interpretation
 
 - This baseline captures deterministic structural metrics from the current branch.
+- Use `--format json` to save a phase snapshot and `--compare-to <snapshot.json>`
+  to render structural metric deltas in later refactoring phases.
 - External scanners such as coverage, radon, vulture, deptry, bandit, pip-audit,
   Spectral, import-linter, and interrogate should be added as follow-up CI phases
   when their repo-native configuration is introduced.

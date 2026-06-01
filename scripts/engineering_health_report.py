@@ -50,6 +50,14 @@ class GateInventory:
 
 
 @dataclass(frozen=True)
+class MetricDelta:
+    metric: str
+    baseline: int
+    current: int
+    delta: int
+
+
+@dataclass(frozen=True)
 class EngineeringHealthReport:
     generated_at: str
     git_branch: str
@@ -204,7 +212,35 @@ def build_report(
     )
 
 
-def render_markdown(report: EngineeringHealthReport) -> str:
+def _metric_deltas(
+    report: EngineeringHealthReport, baseline: dict[str, object]
+) -> list[MetricDelta]:
+    comparable_metrics = (
+        "python_file_count",
+        "package_count",
+        "module_count",
+        "total_python_lines",
+    )
+    deltas: list[MetricDelta] = []
+    for metric in comparable_metrics:
+        baseline_value = baseline.get(metric)
+        current_value = getattr(report, metric)
+        if not isinstance(baseline_value, int):
+            continue
+        deltas.append(
+            MetricDelta(
+                metric=metric,
+                baseline=baseline_value,
+                current=current_value,
+                delta=current_value - baseline_value,
+            )
+        )
+    return deltas
+
+
+def render_markdown(
+    report: EngineeringHealthReport, *, baseline: dict[str, object] | None = None
+) -> str:
     lines = [
         "# Lotus Advise Engineering Health Baseline",
         "",
@@ -216,11 +252,30 @@ def render_markdown(report: EngineeringHealthReport) -> str:
         f"- Modules: `{report.module_count}`",
         f"- Total Python Lines: `{report.total_python_lines}`",
         "",
-        "## Largest Files",
-        "",
-        "| Rank | File | Lines |",
-        "| ---: | --- | ---: |",
     ]
+    if baseline is not None:
+        lines.extend(
+            [
+                "## Baseline Comparison",
+                "",
+                "| Metric | Baseline | Current | Delta |",
+                "| --- | ---: | ---: | ---: |",
+            ]
+        )
+        for metric_delta in _metric_deltas(report, baseline):
+            lines.append(
+                f"| `{metric_delta.metric}` | {metric_delta.baseline} | "
+                f"{metric_delta.current} | {metric_delta.delta:+} |"
+            )
+        lines.append("")
+    lines.extend(
+        [
+            "## Largest Files",
+            "",
+            "| Rank | File | Lines |",
+            "| ---: | --- | ---: |",
+        ]
+    )
     for index, file_metric in enumerate(report.largest_files, start=1):
         lines.append(f"| {index} | `{file_metric.path}` | {file_metric.lines} |")
     lines.extend(
@@ -268,6 +323,8 @@ def render_markdown(report: EngineeringHealthReport) -> str:
             "## Interpretation",
             "",
             "- This baseline captures deterministic structural metrics from the current branch.",
+            "- Use `--format json` to save a phase snapshot and `--compare-to <snapshot.json>`",
+            "  to render structural metric deltas in later refactoring phases.",
             "- External scanners such as coverage, radon, vulture, deptry, bandit, pip-audit,",
             "  Spectral, import-linter, and interrogate should be added as follow-up CI phases",
             "  when their repo-native configuration is introduced.",
@@ -276,20 +333,27 @@ def render_markdown(report: EngineeringHealthReport) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--compare-to", type=Path)
     parser.add_argument("--limit", type=int, default=20)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     repo_root = args.repo_root.resolve()
     report = build_report(repo_root, limit=args.limit)
+    baseline: dict[str, object] | None = None
+    if args.compare_to is not None:
+        compare_path = args.compare_to
+        if not compare_path.is_absolute():
+            compare_path = repo_root / compare_path
+        baseline = json.loads(compare_path.read_text(encoding="utf-8"))
     content = (
         json.dumps(asdict(report), indent=2, sort_keys=True)
         if args.format == "json"
-        else render_markdown(report)
+        else render_markdown(report, baseline=baseline)
     )
     if args.output is not None:
         output_path = args.output

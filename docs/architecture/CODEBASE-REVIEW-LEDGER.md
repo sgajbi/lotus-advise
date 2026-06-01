@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-573
+
+- Scope: Engineering health phase comparison support
+- Pattern: Engineering-health reporting should support phase snapshots and baseline deltas so
+  refactoring progress is measurable across commits and PR batches.
+- Status: Hardened
+- Finding Class: Engineering quality measurement and CI-readiness
+- Summary: The new engineering-health baseline report captured a branch snapshot, but it did not
+  yet support comparing later refactoring phases against a saved JSON baseline.
+- Evidence:
+  - Added `--compare-to <snapshot.json>` support to `scripts/engineering_health_report.py` for
+    structural metric deltas.
+  - Added `make engineering-health-json` to emit `output/engineering-health-current.json` phase
+    snapshots without committing local run output.
+  - Extended unit coverage for JSON-backed baseline comparison and CLI rendering.
+  - Regenerated `docs/architecture/ENGINEERING-HEALTH-BASELINE.md` with comparison usage guidance.
+- Consequence:
+  - Future slices can show measurable movement in Python file count, package/module count, and
+    total Python lines against an explicit saved phase snapshot.
+- Documentation:
+  - Review ledger and architecture baseline report updated. No wiki source update is included in
+    this slice because the change is an internal engineering-health measurement mechanism.
+- Follow-Up:
+  - Add stable configured scanners and thresholds for complexity, dead-code, dependency hygiene,
+    security, OpenAPI linting, architecture boundaries, and docstring coverage.
+
 ## LA-REV-572
 
 - Scope: Engineering health baseline reporting
