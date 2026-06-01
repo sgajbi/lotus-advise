@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-427
+
+- Scope: Proposal memo route error boundary
+- Pattern: Memo routes should share proposal exception mapping while preserving the dedicated
+  lotus-report unavailable boundary for memo report-package materialization.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_memo.py` repeated proposal exception imports and local HTTP
+  mapping across memo creation, read, projection, review, report-package, AI commentary, lineage,
+  and replay routes.
+- Evidence:
+  - Reused `run_proposal_operation` across nine memo route service calls.
+  - Kept `raise_lotus_report_unavailable_http_exception` as the dedicated integration-unavailable
+    boundary for report-package failures.
+  - Extended the memo route guard to keep proposal exception mapping in the shared boundary.
+- Consequence:
+  - Memo routes now share the same proposal taxonomy-to-HTTP path as lifecycle, policy, delivery,
+    support, and policy-pack routes while retaining separate report integration failure semantics.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to async routes.
+
 ## LA-REV-426
 
 - Scope: Policy pack route error boundary

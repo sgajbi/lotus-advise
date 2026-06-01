@@ -119,6 +119,10 @@ def test_memo_routes_use_shared_response_metadata():
     assert "responses=MEMO_CREATE_RESPONSES" in source
     assert "responses=MEMO_REPORT_PACKAGE_RESPONSES" in source
     assert "responses=MEMO_AI_COMMENTARY_RESPONSES" in source
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert "raise_lotus_report_unavailable_http_exception" in source
+    assert source.count("run_proposal_operation(") == 9
 
 
 def test_policy_pack_routes_use_shared_response_metadata():
