@@ -2,7 +2,7 @@
 Shared diagnostics builders for engine pipelines.
 """
 
-from src.core.models import DiagnosticsData
+from src.core.diagnostics_models import DiagnosticsData
 
 
 def make_empty_data_quality_log() -> dict[str, list[str]]:

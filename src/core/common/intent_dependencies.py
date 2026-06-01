@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 from typing import TypeAlias
 
-from src.core.models import FxSpotIntent, SecurityTradeIntent
+from src.core.order_intent_models import FxSpotIntent, SecurityTradeIntent
 
 ProposalIntent: TypeAlias = SecurityTradeIntent | FxSpotIntent
 

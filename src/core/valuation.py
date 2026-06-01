@@ -5,18 +5,15 @@ FILE: src/core/valuation.py
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from src.core.models import (
-    AllocationMetric,
-    EngineOptions,
+from src.core.engine_options_models import EngineOptions, ValuationMode
+from src.core.portfolio_models import (
     MarketDataSnapshot,
     Money,
     PortfolioSnapshot,
     Position,
-    PositionSummary,
     ShelfEntry,
-    SimulatedState,
-    ValuationMode,
 )
+from src.core.simulation_state_models import AllocationMetric, PositionSummary, SimulatedState
 
 
 def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> Optional[Decimal]:

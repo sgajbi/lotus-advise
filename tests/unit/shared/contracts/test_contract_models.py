@@ -272,6 +272,32 @@ def test_core_models_remains_compatibility_reexport_facade():
     assert inline_definitions == []
 
 
+def test_core_runtime_modules_use_focused_model_imports():
+    source_root = Path(__file__).resolve().parents[4] / "src" / "core"
+    runtime_modules = [
+        source_root / "advisory_engine.py",
+        source_root / "compliance.py",
+        source_root / "target_generation.py",
+        source_root / "valuation.py",
+        source_root / "advisory" / "funding.py",
+        source_root / "advisory" / "intents.py",
+        source_root / "common" / "diagnostics.py",
+        source_root / "common" / "drift_analytics.py",
+        source_root / "common" / "intent_dependencies.py",
+        source_root / "common" / "simulation_shared.py",
+        source_root / "common" / "suitability.py",
+        source_root / "common" / "workflow_gates.py",
+    ]
+
+    offenders = [
+        str(path.relative_to(source_root.parents[1]))
+        for path in runtime_modules
+        if "from src.core.models import" in path.read_text(encoding="utf-8")
+    ]
+
+    assert offenders == []
+
+
 def test_core_models_preserves_portfolio_model_import_contract():
     assert Money is PortfolioMoney
     assert CashBalance is PortfolioCashBalance

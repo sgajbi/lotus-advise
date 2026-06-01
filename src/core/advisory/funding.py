@@ -6,7 +6,8 @@ from src.core.common.simulation_shared import (
     ensure_cash_balance,
     quantize_amount_for_currency,
 )
-from src.core.models import FundingPlanEntry, FxSpotIntent, InsufficientCashEntry, IntentRationale
+from src.core.diagnostics_models import FundingPlanEntry, InsufficientCashEntry
+from src.core.order_intent_models import FxSpotIntent, IntentRationale
 from src.core.valuation import get_fx_rate
 
 

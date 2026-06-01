@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-504
+
+- Scope: Core engine model dependency direction after facade extraction
+- Pattern: Engine, valuation, compliance, target-generation, funding, and shared computation
+  modules should import focused model modules directly instead of depending on the
+  `src/core/models.py` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency-flow and modularity maintainability
+- Summary: After `src/core/models.py` became a re-export facade, several core computation modules
+  still imported runtime DTOs from the facade. That preserved unnecessary internal coupling and made
+  the compatibility module look like a normal implementation dependency.
+- Evidence:
+  - Updated valuation, compliance, target generation, advisory engine, funding, intent generation,
+    drift analytics, suitability, workflow gates, diagnostics, intent dependency, and shared
+    simulation modules to import from focused model modules directly.
+  - Kept external/public import compatibility through `src.core.models` unchanged.
+  - Added a contract asserting these core runtime modules do not import from the compatibility
+    facade.
+- Consequence:
+  - Core runtime dependency flow now points toward owned model modules, while the compatibility
+    facade remains available for downstream callers and legacy surfaces.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue migrating API, integration, workspace, and proposal service imports away from the
+    compatibility facade in small bounded slices.
+
 ## LA-REV-503
 
 - Scope: Core model compatibility facade regression guard

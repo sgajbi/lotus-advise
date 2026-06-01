@@ -2,7 +2,8 @@ from decimal import Decimal
 from typing import Any
 
 from src.core.common.simulation_shared import ensure_cash_balance
-from src.core.models import IntentRationale, Money, SecurityTradeIntent
+from src.core.order_intent_models import IntentRationale, SecurityTradeIntent
+from src.core.portfolio_models import Money
 from src.core.valuation import get_fx_rate
 
 
