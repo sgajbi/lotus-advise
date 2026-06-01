@@ -46,6 +46,9 @@ from src.core.advisory_copilot.review import (
 )
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
+from src.core.advisory_copilot.run_review_policy import (
+    can_attempt_advisory_copilot_run_refresh,
+)
 from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
@@ -117,6 +120,7 @@ __all__ = [
     "business_projection_for_action",
     "build_advisory_copilot_run_request_hash",
     "build_copilot_evidence_packet",
+    "can_attempt_advisory_copilot_run_refresh",
     "canonical_json_hash",
     "evaluate_copilot_guardrails",
     "get_copilot_action_definition",

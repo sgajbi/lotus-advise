@@ -22,8 +22,12 @@ from src.core.advisory_copilot.review import (
 )
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
+from src.core.advisory_copilot.run_review_policy import (
+    can_refresh_retryable_copilot_run,
+    review_posture_from_draft_status,
+)
 from src.core.advisory_copilot.structured_payload import assert_safe_structured_payload
-from src.core.advisory_copilot.type_models import CopilotAudience, CopilotReviewPosture
+from src.core.advisory_copilot.type_models import CopilotAudience
 from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
@@ -138,7 +142,7 @@ def persist_advisory_copilot_run(
             if existing_run is None:
                 raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
 
-    review_posture = _review_posture_from_draft(draft_status)
+    review_posture = review_posture_from_draft_status(draft_status)
     output_json = [dict(section) for section in output_sections]
     run_id = _stable_id(prefix="copilot_run", value=request_hash)
     run = AdvisoryCopilotRunRecord(
@@ -190,7 +194,7 @@ def persist_advisory_copilot_run(
         lineage_json=dict(lineage),
     )
     if existing_run is not None:
-        if _can_refresh_retryable_run(
+        if can_refresh_retryable_copilot_run(
             existing_run=existing_run,
             incoming_review_posture=review_posture,
         ):
@@ -289,45 +293,6 @@ def list_advisory_copilot_reviews(
     *, repository: AdvisoryCopilotRepository, run_id: str
 ) -> tuple[AdvisoryCopilotReviewRecord, ...]:
     return tuple(repository.list_reviews(run_id=run_id))
-
-
-def _review_posture_from_draft(status: str) -> CopilotReviewPosture:
-    allowed: set[CopilotReviewPosture] = {
-        "REVIEW_REQUIRED",
-        "APPROVED_FOR_INTERNAL_USE",
-        "REJECTED",
-        "SUPERSEDED",
-        "EXPIRED",
-        "UNSUPPORTED",
-        "GUARDRAIL_REJECTED",
-        "UNAVAILABLE",
-    }
-    return status if status in allowed else "REVIEW_REQUIRED"  # type: ignore[return-value]
-
-
-def _can_refresh_retryable_run(
-    *,
-    existing_run: AdvisoryCopilotRunRecord,
-    incoming_review_posture: CopilotReviewPosture,
-) -> bool:
-    if not can_attempt_advisory_copilot_run_refresh(existing_run):
-        return False
-    if existing_run.review_posture == "UNAVAILABLE" and incoming_review_posture != "UNAVAILABLE":
-        return True
-    return bool(
-        existing_run.review_posture == "GUARDRAIL_REJECTED"
-        and incoming_review_posture == "REVIEW_REQUIRED"
-    )
-
-
-def can_attempt_advisory_copilot_run_refresh(existing_run: AdvisoryCopilotRunRecord) -> bool:
-    fallback_reason = existing_run.lineage_json.get("fallback_reason")
-    if existing_run.review_posture == "UNAVAILABLE":
-        return fallback_reason is not None
-    return bool(
-        existing_run.review_posture == "GUARDRAIL_REJECTED"
-        and fallback_reason == "COPILOT_OUTPUT_GUARDRAIL_REJECTED"
-    )
 
 
 def _optional_str(value: Any) -> str | None:

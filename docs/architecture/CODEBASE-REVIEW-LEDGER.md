@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-549
+
+- Scope: Advisory copilot run review and retryability policy boundary
+- Pattern: Draft-status review posture mapping and retryability rules should have a focused policy
+  owner outside persistence orchestration.
+- Status: Hardened
+- Finding Class: Domain policy modularity and replay behavior auditability
+- Summary: `src/core/advisory_copilot/service.py` still owned draft-status-to-review-posture
+  mapping and retryability checks for unavailable or guardrail-rejected copilot runs. Those rules
+  are used by both application replay decisions and persistence refresh decisions.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_review_policy.py` for draft review posture mapping and
+    retryable run refresh checks.
+  - Updated the application service, persistence service, and package exports to import the policy
+    from the focused module.
+  - Added coverage proving the service no longer defines the retryability/public posture helper
+    and validating fallback posture behavior plus unavailable-run refresh eligibility.
+- Consequence:
+  - Advisory-copilot replay and review-posture policy can now evolve independently from storage
+    workflow code.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue decomposing advisory-copilot persistence orchestration around packet save, run save,
+    and review append workflows.
+
 ## LA-REV-548
 
 - Scope: Advisory copilot retention expiry policy boundary

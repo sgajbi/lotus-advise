@@ -58,6 +58,10 @@ from src.core.advisory_copilot.review_records import (
 from src.core.advisory_copilot.run_records import (
     AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
 )
+from src.core.advisory_copilot.run_review_policy import (
+    can_attempt_advisory_copilot_run_refresh,
+    review_posture_from_draft_status,
+)
 from src.core.advisory_copilot.structured_payload import assert_safe_structured_payload
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
 from src.infrastructure.advisory_copilot.postgres import PostgresAdvisoryCopilotRepository
@@ -263,6 +267,26 @@ def test_advisory_copilot_retention_policy_has_focused_owner() -> None:
         retention_class="STANDARD_ADVISORY_RECORD",
         created_at=created_at,
     ) == datetime(2033, 5, 26, 9, 0, tzinfo=timezone.utc)
+
+
+def test_advisory_copilot_run_review_policy_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+    repository = InMemoryAdvisoryCopilotRepository()
+
+    assert "def can_attempt_advisory_copilot_run_refresh" not in service_source
+    assert "def _review_posture_from_draft" not in service_source
+    assert review_posture_from_draft_status("APPROVED_FOR_INTERNAL_USE") == (
+        "APPROVED_FOR_INTERNAL_USE"
+    )
+    assert review_posture_from_draft_status("UNKNOWN_DRAFT_STATUS") == "REVIEW_REQUIRED"
+
+    result = _persist_run(
+        repository,
+        draft_status="UNAVAILABLE",
+        lineage={"fallback_reason": "LOTUS_AI_UNAVAILABLE"},
+    )
+
+    assert can_attempt_advisory_copilot_run_refresh(result.run) is True
 
 
 class _FakePostgresConnection:

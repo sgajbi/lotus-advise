@@ -21,8 +21,8 @@ from src.core.advisory_copilot.pagination import normalize_copilot_run_page_size
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.request_hashing import build_advisory_copilot_run_request_hash
 from src.core.advisory_copilot.review import CopilotReviewAction
+from src.core.advisory_copilot.run_review_policy import can_attempt_advisory_copilot_run_refresh
 from src.core.advisory_copilot.service import (
-    can_attempt_advisory_copilot_run_refresh,
     list_advisory_copilot_reviews,
     load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
