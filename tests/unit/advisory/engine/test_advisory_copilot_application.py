@@ -155,6 +155,19 @@ def test_copilot_api_response_models_have_focused_owner() -> None:
     assert "class AdvisoryCopilotSupportabilityResponse" in response_models_source
 
 
+def test_copilot_api_request_models_have_focused_owner() -> None:
+    api_models_source = Path("src/core/advisory_copilot/api_models.py").read_text(encoding="utf-8")
+    request_models_source = Path("src/core/advisory_copilot/api_request_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert AdvisoryCopilotActionRequest.__module__.endswith("api_request_models")
+    assert "class AdvisoryCopilotActionRequest" not in api_models_source
+    assert "class AdvisoryCopilotEvidencePacketCreateRequest" not in api_models_source
+    assert "field_validator" not in api_models_source
+    assert "class AdvisoryCopilotActionRequest" in request_models_source
+
+
 def test_copilot_evidence_packet_requests_normalize_and_bound_identifiers() -> None:
     create_request = AdvisoryCopilotEvidencePacketCreateRequest(
         evidence_packet_id="  copilot_packet_pb_sg_001  ",

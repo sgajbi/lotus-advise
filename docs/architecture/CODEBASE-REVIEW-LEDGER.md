@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-576
+
+- Scope: Advisory copilot API request DTO ownership
+- Pattern: Request validation DTOs should have a focused owner instead of leaving `api_models.py`
+  as a mixed validation, request, response, and compatibility module.
+- Status: Hardened
+- Finding Class: API boundary modularity and validation maintainability
+- Summary: After response DTO extraction, `api_models.py` still owned all request DTO classes and
+  their validators. That kept request validation dependencies coupled to the compatibility import
+  surface and made future workflow-specific request splitting harder to audit.
+- Evidence:
+  - Added `src/core/advisory_copilot/api_request_models.py` for advisory-copilot evidence-packet,
+    proposal-version evidence, action, and review request DTOs.
+  - Converted `api_models.py` into a thin compatibility facade that re-exports request and
+    response DTOs without owning validation logic.
+  - Added unit coverage proving request DTO classes are owned by `api_request_models.py` and that
+    `api_models.py` does not regain validator logic.
+- Consequence:
+  - Advisory-copilot request validation is isolated from the legacy import facade, reducing a
+    remaining API-model hotspot while preserving existing imports for routes, services, and tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior,
+    OpenAPI shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Move production imports from the compatibility facade to focused request/response modules in a
+    later slice when the migration can be validated across API routes and services together.
+
 ## LA-REV-575
 
 - Scope: Advisory copilot API response DTO ownership
