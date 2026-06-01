@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-521
+
+- Scope: Policy evaluation persistence model ownership
+- Pattern: Durable policy evaluation record, audit event, persistence result, replay response, and
+  request DTOs should live in a focused module instead of remaining inline in the broad policy-pack
+  model surface.
+- Status: Hardened
+- Finding Class: modularity and policy evaluation persistence maintainability
+- Summary: `src/core/policy_packs/models.py` still owned durable RFC-0025 policy evaluation
+  persistence DTOs after catalog and evaluation model extraction. These DTOs are the persistence
+  boundary for finalized records, append-only events, replay proof, and API command payloads, and
+  are distinct from workflow, report-package, and AI evidence DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_models.py` for policy evaluation event types, audit
+    events, durable records, persistence results, replay responses, and API command request DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated persistence, workflow, reporting, AI evidence, route, and package exports to import
+    persistence DTOs from the focused module.
+  - Extended policy-pack model contract coverage to prove compatibility imports point at the
+    extracted persistence model definitions.
+  - Tightened `routes_policy_evaluations.py` return typing around shared error wrappers so the API
+    boundary remains explicit under strict mypy checks.
+- Consequence:
+  - Policy evaluation persistence code now depends on a narrow durable-record model boundary
+    instead of the broader policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation workflow, report-package, and AI evidence DTO groups from
+    `src/core/policy_packs/models.py`.
+
 ## LA-REV-520
 
 - Scope: Policy-pack evaluation engine model ownership

@@ -6,8 +6,6 @@ from typing import Any
 
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.policy_packs.models import (
-    PolicyEvaluationAuditEvent,
-    PolicyEvaluationEventType,
     PolicyEvaluationRequirementProjection,
     PolicyEvaluationSignOffDecisionRequest,
     PolicyEvaluationSignOffDecisionResponse,
@@ -17,6 +15,10 @@ from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
     get_policy_evaluation_record,
     list_policy_evaluation_events,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationAuditEvent,
+    PolicyEvaluationEventType,
 )
 from src.core.policy_packs.supportability import (
     CLIENT_READY_PUBLICATION_POSTURE,

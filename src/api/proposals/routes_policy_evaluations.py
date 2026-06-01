@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi import status
 
 import src.api.proposals.router as shared
@@ -77,17 +79,20 @@ def create_or_replay_policy_evaluation(
     payload: PolicyEvaluationCreateRequest,
     idempotency_key: PolicyEvaluationFinalizeIdempotencyKeyHeader,
 ) -> PolicyEvaluationPersistenceResult:
-    return run_proposal_operation(
-        lambda: finalize_policy_evaluation_record(
-            evidence_bundle=payload.evidence_bundle,
-            policy_pack_id=payload.policy_pack_id,
-            policy_version=payload.policy_version,
-            proposal_id=proposal_id,
-            proposal_version_id=proposal_version_id,
-            created_by=payload.created_by,
-            idempotency_key=idempotency_key,
-            reason=payload.reason,
-        )
+    return cast(
+        PolicyEvaluationPersistenceResult,
+        run_proposal_operation(
+            lambda: finalize_policy_evaluation_record(
+                evidence_bundle=payload.evidence_bundle,
+                policy_pack_id=payload.policy_pack_id,
+                policy_version=payload.policy_version,
+                proposal_id=proposal_id,
+                proposal_version_id=proposal_version_id,
+                created_by=payload.created_by,
+                idempotency_key=idempotency_key,
+                reason=payload.reason,
+            )
+        ),
     )
 
 
@@ -130,7 +135,10 @@ def read_policy_review_queue(
 def read_policy_evaluation(
     evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationRecord:
-    return run_proposal_operation(lambda: get_policy_evaluation_record(evaluation_id=evaluation_id))
+    return cast(
+        PolicyEvaluationRecord,
+        run_proposal_operation(lambda: get_policy_evaluation_record(evaluation_id=evaluation_id)),
+    )
 
 
 @shared.router.post(
@@ -150,11 +158,14 @@ def replay_policy_evaluation(
     evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationReplayRequest,
 ) -> PolicyEvaluationReplayResponse:
-    return run_proposal_operation(
-        lambda: replay_policy_evaluation_record(
-            evaluation_id=evaluation_id,
-            evidence_bundle=payload.evidence_bundle,
-        )
+    return cast(
+        PolicyEvaluationReplayResponse,
+        run_proposal_operation(
+            lambda: replay_policy_evaluation_record(
+                evaluation_id=evaluation_id,
+                evidence_bundle=payload.evidence_bundle,
+            )
+        ),
     )
 
 
@@ -176,14 +187,17 @@ def record_policy_evaluation_event(
     payload: PolicyEvaluationEventRequest,
     idempotency_key: PolicyEvaluationEventIdempotencyKeyHeader = None,
 ) -> PolicyEvaluationAuditEvent:
-    return run_proposal_operation(
-        lambda: append_policy_evaluation_event(
-            evaluation_id=evaluation_id,
-            event_type=payload.event_type,
-            actor_id=payload.actor_id,
-            reason=payload.reason,
-            idempotency_key=idempotency_key,
-        )
+    return cast(
+        PolicyEvaluationAuditEvent,
+        run_proposal_operation(
+            lambda: append_policy_evaluation_event(
+                evaluation_id=evaluation_id,
+                event_type=payload.event_type,
+                actor_id=payload.actor_id,
+                reason=payload.reason,
+                idempotency_key=idempotency_key,
+            )
+        ),
     )
 
 
@@ -202,8 +216,9 @@ def record_policy_evaluation_event(
 def read_policy_evaluation_lineage(
     evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationLineageResponse:
-    return run_proposal_operation(
-        lambda: get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+    return cast(
+        PolicyEvaluationLineageResponse,
+        run_proposal_operation(lambda: get_policy_evaluation_lineage(evaluation_id=evaluation_id)),
     )
 
 
@@ -223,8 +238,11 @@ def read_policy_evaluation_lineage(
 def read_policy_sign_off_package(
     evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationSignOffPackageResponse:
-    return run_proposal_operation(
-        lambda: get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
+    return cast(
+        PolicyEvaluationSignOffPackageResponse,
+        run_proposal_operation(
+            lambda: get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
+        ),
     )
 
 
@@ -244,8 +262,9 @@ def read_policy_sign_off_package(
 def read_policy_evaluation_workflow(
     evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationWorkflowResponse:
-    return run_proposal_operation(
-        lambda: get_policy_evaluation_workflow(evaluation_id=evaluation_id)
+    return cast(
+        PolicyEvaluationWorkflowResponse,
+        run_proposal_operation(lambda: get_policy_evaluation_workflow(evaluation_id=evaluation_id)),
     )
 
 
@@ -267,12 +286,15 @@ def record_policy_sign_off_decision(
     payload: PolicyEvaluationSignOffDecisionRequest,
     idempotency_key: PolicyEvaluationSignOffDecisionIdempotencyKeyHeader = None,
 ) -> PolicyEvaluationSignOffDecisionResponse:
-    return run_proposal_operation(
-        lambda: record_policy_evaluation_sign_off_decision(
-            evaluation_id=evaluation_id,
-            payload=payload,
-            idempotency_key=idempotency_key,
-        )
+    return cast(
+        PolicyEvaluationSignOffDecisionResponse,
+        run_proposal_operation(
+            lambda: record_policy_evaluation_sign_off_decision(
+                evaluation_id=evaluation_id,
+                payload=payload,
+                idempotency_key=idempotency_key,
+            )
+        ),
     )
 
 
@@ -295,15 +317,18 @@ def request_policy_report_package(
     payload: PolicyEvaluationReportPackageRequest,
     idempotency_key: PolicyEvaluationReportPackageIdempotencyKeyHeader = None,
 ) -> PolicyEvaluationReportPackageResponse:
-    return run_lotus_report_operation(
-        lambda: run_proposal_operation(
-            lambda: request_policy_evaluation_report_package(
-                evaluation_id=evaluation_id,
-                payload=payload,
-                report_request_id=new_report_request_id(),
-                idempotency_key=idempotency_key,
+    return cast(
+        PolicyEvaluationReportPackageResponse,
+        run_lotus_report_operation(
+            lambda: run_proposal_operation(
+                lambda: request_policy_evaluation_report_package(
+                    evaluation_id=evaluation_id,
+                    payload=payload,
+                    report_request_id=new_report_request_id(),
+                    idempotency_key=idempotency_key,
+                )
             )
-        )
+        ),
     )
 
 
@@ -327,10 +352,13 @@ def request_policy_ai_evidence(
     payload: PolicyEvaluationAiEvidenceRequest,
     idempotency_key: PolicyEvaluationAiEvidenceIdempotencyKeyHeader = None,
 ) -> PolicyEvaluationAiEvidenceResponse:
-    return run_proposal_operation(
-        lambda: request_policy_evaluation_ai_evidence(
-            evaluation_id=evaluation_id,
-            payload=payload,
-            idempotency_key=idempotency_key,
-        )
+    return cast(
+        PolicyEvaluationAiEvidenceResponse,
+        run_proposal_operation(
+            lambda: request_policy_evaluation_ai_evidence(
+                evaluation_id=evaluation_id,
+                payload=payload,
+                idempotency_key=idempotency_key,
+            )
+        ),
     )

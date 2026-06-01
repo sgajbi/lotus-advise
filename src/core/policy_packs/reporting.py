@@ -7,8 +7,6 @@ from typing import Any, cast
 from src.core.common.canonical import hash_canonical_payload
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.policy_packs.models import (
-    PolicyEvaluationAuditEvent,
-    PolicyEvaluationRecord,
     PolicyEvaluationReportPackageRequest,
     PolicyEvaluationReportPackageResponse,
 )
@@ -16,6 +14,10 @@ from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
     get_policy_evaluation_record,
     list_policy_evaluation_events,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationAuditEvent,
+    PolicyEvaluationRecord,
 )
 from src.core.policy_packs.workflow import get_policy_evaluation_workflow
 from src.core.proposals.contract_types import ProposalReportType

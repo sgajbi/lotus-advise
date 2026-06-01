@@ -26,15 +26,7 @@ from src.core.policy_packs.evaluation_models import (
 from src.core.policy_packs.models import (
     PolicyEvaluationAiEvidenceRequest,
     PolicyEvaluationAiEvidenceResponse,
-    PolicyEvaluationAuditEvent,
-    PolicyEvaluationCreateRequest,
-    PolicyEvaluationEventRequest,
-    PolicyEvaluationEventType,
     PolicyEvaluationLineageResponse,
-    PolicyEvaluationPersistenceResult,
-    PolicyEvaluationRecord,
-    PolicyEvaluationReplayRequest,
-    PolicyEvaluationReplayResponse,
     PolicyEvaluationReportPackageRequest,
     PolicyEvaluationReportPackageResponse,
     PolicyEvaluationRequirementProjection,
@@ -55,6 +47,16 @@ from src.core.policy_packs.persistence import (
     list_policy_evaluation_records,
     replay_policy_evaluation_record,
     reset_policy_evaluation_store_for_tests,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationAuditEvent,
+    PolicyEvaluationCreateRequest,
+    PolicyEvaluationEventRequest,
+    PolicyEvaluationEventType,
+    PolicyEvaluationPersistenceResult,
+    PolicyEvaluationRecord,
+    PolicyEvaluationReplayRequest,
+    PolicyEvaluationReplayResponse,
 )
 from src.core.policy_packs.reporting import request_policy_evaluation_report_package
 from src.core.policy_packs.workflow import (

@@ -32,6 +32,13 @@ from src.core.policy_packs.evaluation_models import (
     PolicyRuleEvaluationResult as EvaluationPolicyRuleEvaluationResult,
 )
 from src.core.policy_packs.models import (
+    PolicyEvaluationAuditEvent,
+    PolicyEvaluationCreateRequest,
+    PolicyEvaluationEventRequest,
+    PolicyEvaluationPersistenceResult,
+    PolicyEvaluationRecord,
+    PolicyEvaluationReplayRequest,
+    PolicyEvaluationReplayResponse,
     PolicyPackActivationRequest,
     PolicyPackActivationResponse,
     PolicyPackApplicabilityResult,
@@ -43,6 +50,27 @@ from src.core.policy_packs.models import (
     PolicyPackValidationRequest,
     PolicyPackValidationResponse,
     PolicyRuleEvaluationResult,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationAuditEvent as PersistencePolicyEvaluationAuditEvent,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationCreateRequest as PersistencePolicyEvaluationCreateRequest,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationEventRequest as PersistencePolicyEvaluationEventRequest,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationPersistenceResult as PersistencePolicyEvaluationPersistenceResult,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationRecord as PersistencePolicyEvaluationRecord,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationReplayRequest as PersistencePolicyEvaluationReplayRequest,
+)
+from src.core.policy_packs.persistence_models import (
+    PolicyEvaluationReplayResponse as PersistencePolicyEvaluationReplayResponse,
 )
 
 
@@ -61,3 +89,13 @@ def test_policy_pack_models_preserves_evaluation_model_import_contract():
     assert PolicyPackApplicabilityResult is EvaluationPolicyPackApplicabilityResult
     assert PolicyPackEvaluationResponse is EvaluationPolicyPackEvaluationResponse
     assert PolicyRuleEvaluationResult is EvaluationPolicyRuleEvaluationResult
+
+
+def test_policy_pack_models_preserves_persistence_model_import_contract():
+    assert PolicyEvaluationAuditEvent is PersistencePolicyEvaluationAuditEvent
+    assert PolicyEvaluationCreateRequest is PersistencePolicyEvaluationCreateRequest
+    assert PolicyEvaluationEventRequest is PersistencePolicyEvaluationEventRequest
+    assert PolicyEvaluationPersistenceResult is PersistencePolicyEvaluationPersistenceResult
+    assert PolicyEvaluationRecord is PersistencePolicyEvaluationRecord
+    assert PolicyEvaluationReplayRequest is PersistencePolicyEvaluationReplayRequest
+    assert PolicyEvaluationReplayResponse is PersistencePolicyEvaluationReplayResponse
