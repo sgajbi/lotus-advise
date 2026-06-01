@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-560
+
+- Scope: Advisory copilot source-projection text helper boundary
+- Pattern: Generic bounded reference, summary, hash, and nested-string helpers should be separated
+  from source-section construction.
+- Status: Hardened
+- Finding Class: Service decomposition and duplication reduction
+- Summary: `src/core/advisory_copilot/source_projection_sections.py` mixed proposal-version source
+  section construction with reusable text, identifier, bounded-reference, content-hash, nested
+  lookup, and latest-reference helpers. That kept the section builder broader than its business
+  responsibility.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_text.py` for projection identifiers,
+    bounded references, bounded summary text, bounded content hashes, nested string extraction, and
+    latest-reference selection.
+  - Updated source-projection section builders to consume the focused helpers.
+  - Added coverage proving helper behavior and removal of source-section-local helper definitions.
+- Consequence:
+  - Proposal-version source-section construction is now more focused on private-banking evidence
+    section assembly, while reusable projection text behavior has a separate owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue decomposing source projection sections by evidence-section family if further changes
+    are needed.
+
 ## LA-REV-559
 
 - Scope: Advisory copilot unsupported-evidence advisor-message normalization

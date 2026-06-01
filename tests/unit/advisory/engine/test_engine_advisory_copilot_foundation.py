@@ -112,6 +112,14 @@ from src.core.advisory_copilot.section_models import (
 from src.core.advisory_copilot.section_models import (
     CopilotEvidenceSectionInput as FocusedCopilotEvidenceSectionInput,
 )
+from src.core.advisory_copilot.source_projection_text import (
+    bounded_content_hash,
+    bounded_projection_reference,
+    latest_reference,
+    projection_identifier,
+    projection_summary_item,
+    safe_nested_string,
+)
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily as FocusedCopilotActionFamily,
 )
@@ -300,6 +308,23 @@ def test_copilot_unsupported_evidence_uses_business_text_normalizer() -> None:
         )
     assert "def _normalize_required_text" not in unsupported_source
     assert "contains_copilot_business_technical_detail" not in unsupported_source
+
+
+def test_copilot_source_projection_text_helpers_have_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert projection_identifier("Proposal/Version 1") == "proposal_version_1"
+    assert bounded_projection_reference("a" * 200, max_length=40).startswith("a" * 23)
+    assert len(bounded_projection_reference("a" * 200, max_length=40)) == 40
+    assert projection_summary_item(" first\nsecond ") == "first second"
+    assert bounded_content_hash("x" * 200).startswith("sha256:")
+    assert safe_nested_string({"a": {"b": "  value  "}}, "a", "b") == "value"
+    assert latest_reference([{"event_id": "old"}, {"archive_ref": "  latest  "}]) == "latest"
+    assert "def _summary_item" not in section_source
+    assert "def _bounded_content_hash" not in section_source
+    assert "def _safe_nested_string" not in section_source
 
 
 def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:

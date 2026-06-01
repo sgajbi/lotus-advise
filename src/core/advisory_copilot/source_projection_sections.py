@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-import hashlib
-import re
-from typing import Any
-
 from src.core.advisor_cockpit.source_read_model import (
     AdvisorCockpitSourceBatch,
     build_advisor_cockpit_source_read_model,
 )
 from src.core.advisory_copilot.reference_models import CopilotSourceRef
 from src.core.advisory_copilot.section_models import CopilotEvidenceSectionInput
+from src.core.advisory_copilot.source_projection_text import (
+    bounded_content_hash,
+    bounded_projection_reference,
+    latest_reference,
+    projection_identifier,
+    projection_summary_item,
+    safe_nested_string,
+)
 from src.core.advisory_copilot.type_models import CopilotActionFamily
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import (
@@ -24,9 +28,6 @@ EVIDENCE_PACKET_ID_MAX_LENGTH = 160
 LINEAGE_REF_ID_MAX_LENGTH = 160
 
 _SOURCE_REF_ID_MAX_LENGTH = 160
-_CONTENT_HASH_MAX_LENGTH = 128
-_SUMMARY_ITEM_MAX_LENGTH = 1000
-_REFERENCE_DIGEST_LENGTH = 16
 
 
 def build_proposal_version_source_sections(
@@ -65,18 +66,11 @@ def default_proposal_version_packet_id(
     *, action_family: CopilotActionFamily, proposal_id: str, version_no: int
 ) -> str:
     return bounded_projection_reference(
-        _identifier(f"copilot_packet_{action_family.lower()}_{proposal_id}_v{version_no}"),
+        projection_identifier(
+            f"copilot_packet_{action_family.lower()}_{proposal_id}_v{version_no}"
+        ),
         max_length=EVIDENCE_PACKET_ID_MAX_LENGTH,
     )
-
-
-def bounded_projection_reference(value: str, *, max_length: int) -> str:
-    normalized = " ".join(value.split())
-    if len(normalized) <= max_length:
-        return normalized
-    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:_REFERENCE_DIGEST_LENGTH]
-    prefix_length = max_length - _REFERENCE_DIGEST_LENGTH - 1
-    return f"{normalized[:prefix_length].rstrip('_')}_{digest}"
 
 
 def _proposal_context_section(
@@ -95,11 +89,11 @@ def _proposal_context_section(
             ),
         ),
         summary_items=(
-            _summary_item(
+            projection_summary_item(
                 f"{proposal.title or 'Advisory proposal'} is in {proposal.current_state} "
                 f"for portfolio {proposal.portfolio_id}."
             ),
-            _summary_item(
+            projection_summary_item(
                 f"Proposal version {version.version_no} was created with "
                 f"{version.status_at_creation} source readiness."
             ),
@@ -111,11 +105,11 @@ def _proposal_context_section(
 def _narrative_posture_section(
     *, proposal: ProposalRecord, version: ProposalVersionRecord
 ) -> CopilotEvidenceSectionInput:
-    narrative_status = _safe_nested_string(
+    narrative_status = safe_nested_string(
         version.artifact_json,
         "narrative",
         "status",
-    ) or _safe_nested_string(version.artifact_json, "narrative_status")
+    ) or safe_nested_string(version.artifact_json, "narrative_status")
     if not narrative_status:
         narrative_status = str(version.status_at_creation)
     return CopilotEvidenceSectionInput(
@@ -131,8 +125,10 @@ def _narrative_posture_section(
             ),
         ),
         summary_items=(
-            _summary_item(f"Advisor-use proposal narrative posture is {narrative_status}."),
-            _summary_item(
+            projection_summary_item(
+                f"Advisor-use proposal narrative posture is {narrative_status}."
+            ),
+            projection_summary_item(
                 f"Client-ready publication remains blocked for proposal {proposal.proposal_id}."
             ),
         ),
@@ -154,8 +150,8 @@ def _memo_evidence_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSectio
             ),
         ),
         summary_items=(
-            _summary_item(f"Proposal memo {memo.memo_id} is {memo.memo_status}."),
-            _summary_item(f"Memo lifecycle posture is {memo.lifecycle_status}."),
+            projection_summary_item(f"Proposal memo {memo.memo_id} is {memo.memo_status}."),
+            projection_summary_item(f"Memo lifecycle posture is {memo.lifecycle_status}."),
             (
                 "Memo evidence remains advisor-use only until source review and publication "
                 "gates pass."
@@ -178,8 +174,10 @@ def _policy_posture_section(
         )
     )
     summary_items = [
-        _summary_item(f"Policy evaluation {latest.evaluation_id} is {latest.evaluation_status}."),
-        _summary_item(
+        projection_summary_item(
+            f"Policy evaluation {latest.evaluation_id} is {latest.evaluation_status}."
+        ),
+        projection_summary_item(
             f"Policy pack {latest.policy_pack_id} version {latest.policy_version} is the "
             "source authority."
         ),
@@ -187,7 +185,7 @@ def _policy_posture_section(
     ]
     if review_items:
         summary_items.append(
-            _summary_item(f"Open policy evidence items: {', '.join(review_items[:5])}.")
+            projection_summary_item(f"Open policy evidence items: {', '.join(review_items[:5])}.")
         )
     return CopilotEvidenceSectionInput(
         section_key="POLICY_POSTURE",
@@ -225,7 +223,7 @@ def _cockpit_actions_section(
     )
     action_items = read_model.action_items[:5]
     summaries = [
-        _summary_item(f"{item.title} is {item.status}; owner is {item.owner_role}.")
+        projection_summary_item(f"{item.title} is {item.status}; owner is {item.owner_role}.")
         for item in action_items
     ] or ["No advisor cockpit action is currently open for this proposal."]
     return CopilotEvidenceSectionInput(
@@ -255,8 +253,8 @@ def _cockpit_actions_section(
 
 
 def _report_readiness_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSectionInput:
-    latest_report_ref = _latest_ref(memo.report_package_events_json) or memo.memo_id
-    latest_archive_ref = _latest_ref(memo.archive_refs_json) or "Not recorded"
+    latest_report_ref = latest_reference(memo.report_package_events_json) or memo.memo_id
+    latest_archive_ref = latest_reference(memo.archive_refs_json) or "Not recorded"
     return CopilotEvidenceSectionInput(
         section_key="REPORT_READINESS",
         title="Report readiness",
@@ -271,7 +269,7 @@ def _report_readiness_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSec
         ),
         summary_items=(
             "Advisor-use report package evidence is recorded for the memo.",
-            _summary_item(f"Latest archive reference posture: {latest_archive_ref}."),
+            projection_summary_item(f"Latest archive reference posture: {latest_archive_ref}."),
         ),
         allowed_audiences=("ADVISOR", "DESK_HEAD", "OPERATIONS_SUPPORT"),
     )
@@ -299,8 +297,10 @@ def _operations_handoff_section(
             ),
         ),
         summary_items=(
-            _summary_item(f"Latest implementation handoff posture is {latest.event_type}."),
-            _summary_item(
+            projection_summary_item(
+                f"Latest implementation handoff posture is {latest.event_type}."
+            ),
+            projection_summary_item(
                 f"Proposal {proposal.proposal_id} remains source-owned for lifecycle state."
             ),
         ),
@@ -330,49 +330,6 @@ def _source_ref(
         source_system="lotus-advise",
         source_type=source_type,
         source_id=bounded_projection_reference(source_id, max_length=_SOURCE_REF_ID_MAX_LENGTH),
-        content_hash=_bounded_content_hash(content_hash),
+        content_hash=bounded_content_hash(content_hash),
         access_class=access_class,  # type: ignore[arg-type]
     )
-
-
-def _identifier(value: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_]+", "_", value).strip("_").lower()
-
-
-def _summary_item(value: str) -> str:
-    return _bounded_text(value, max_length=_SUMMARY_ITEM_MAX_LENGTH)
-
-
-def _bounded_text(value: str, *, max_length: int) -> str:
-    normalized = " ".join(value.split())
-    if len(normalized) <= max_length:
-        return normalized
-    suffix = "..."
-    return normalized[: max_length - len(suffix)].rstrip() + suffix
-
-
-def _bounded_content_hash(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = " ".join(value.split())
-    if len(normalized) <= _CONTENT_HASH_MAX_LENGTH:
-        return normalized
-    return f"sha256:{hashlib.sha256(normalized.encode('utf-8')).hexdigest()}"
-
-
-def _safe_nested_string(payload: dict[str, Any], *path: str) -> str | None:
-    current: Any = payload
-    for key in path:
-        if not isinstance(current, dict):
-            return None
-        current = current.get(key)
-    return current.strip() if isinstance(current, str) and current.strip() else None
-
-
-def _latest_ref(items: list[dict[str, Any]]) -> str | None:
-    for item in reversed(items):
-        for key in ("report_reference_id", "archive_ref", "archive_reference_id", "event_id"):
-            value = item.get(key)
-            if isinstance(value, str) and value.strip():
-                return value.strip()
-    return None
