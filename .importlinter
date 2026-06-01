@@ -1,0 +1,27 @@
+[importlinter]
+root_package = src
+
+[importlinter:contract:api_routers_do_not_import_infrastructure]
+name = API routers do not import infrastructure adapters directly
+type = forbidden
+source_modules =
+    src.api
+forbidden_modules =
+    src.infrastructure
+
+[importlinter:contract:core_does_not_import_fastapi]
+name = Core domain and application modules do not depend on FastAPI
+type = forbidden
+source_modules =
+    src.core
+forbidden_modules =
+    fastapi
+    starlette
+
+[importlinter:contract:infrastructure_does_not_import_api]
+name = Infrastructure does not depend on API routers
+type = forbidden
+source_modules =
+    src.infrastructure
+forbidden_modules =
+    src.api
