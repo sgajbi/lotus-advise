@@ -24,6 +24,9 @@ from src.core.advisory_copilot import (
     record_advisory_copilot_review,
     save_advisory_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.idempotency_records import (
+    AdvisoryCopilotRunIdempotencyRecord as FocusedAdvisoryCopilotRunIdempotencyRecord,
+)
 from src.core.advisory_copilot.packet_records import (
     AdvisoryCopilotEvidencePacketRecord as FocusedAdvisoryCopilotEvidencePacketRecord,
 )
@@ -34,6 +37,9 @@ from src.core.advisory_copilot.record_text import (
 )
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotEvidencePacketRecord as CompatibilityAdvisoryCopilotEvidencePacketRecord,
+)
+from src.core.advisory_copilot.records import (
+    AdvisoryCopilotRunIdempotencyRecord as CompatibilityAdvisoryCopilotRunIdempotencyRecord,
 )
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunRecord as CompatibilityAdvisoryCopilotRunRecord,
@@ -159,6 +165,19 @@ def test_advisory_copilot_records_preserve_packet_record_import_contract() -> No
         is FocusedAdvisoryCopilotEvidencePacketRecord
     )
     assert "AdvisoryCopilotEvidencePacketRecord" not in [
+        node.name for node in tree.body if isinstance(node, ast.ClassDef)
+    ]
+
+
+def test_advisory_copilot_records_preserve_idempotency_record_import_contract() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert AdvisoryCopilotRunIdempotencyRecord is FocusedAdvisoryCopilotRunIdempotencyRecord
+    assert (
+        CompatibilityAdvisoryCopilotRunIdempotencyRecord
+        is FocusedAdvisoryCopilotRunIdempotencyRecord
+    )
+    assert "AdvisoryCopilotRunIdempotencyRecord" not in [
         node.name for node in tree.body if isinstance(node, ast.ClassDef)
     ]
 

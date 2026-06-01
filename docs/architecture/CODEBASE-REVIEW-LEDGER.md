@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-543
+
+- Scope: Advisory copilot run idempotency persistence record
+- Pattern: Idempotency mapping records should have focused model ownership outside the broad
+  advisory-copilot record module
+- Status: Hardened
+- Finding Class: Modularity and replay-safety boundary ownership
+- Summary: `AdvisoryCopilotRunIdempotencyRecord` stores request-hash-to-run replay identity for
+  advisory-copilot action execution. Keeping it in the broad `records.py` module mixed replay
+  identity ownership with evidence-packet and human-review event records.
+- Evidence:
+  - Added `src/core/advisory_copilot/idempotency_records.py` for run idempotency records.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/records.py` and package
+    exports.
+  - Added import-contract and AST coverage proving compatibility imports resolve to the focused
+    idempotency record class and `records.py` no longer defines
+    `AdvisoryCopilotRunIdempotencyRecord`.
+- Consequence:
+  - Advisory-copilot replay identity now has a focused persistence model boundary, leaving the
+    broad record module with review event ownership only.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract advisory-copilot review event records and convert `records.py` to a pure compatibility
+    facade.
+
 ## LA-REV-542
 
 - Scope: Advisory copilot evidence-packet persistence record
