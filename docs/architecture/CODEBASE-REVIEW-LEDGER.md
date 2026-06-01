@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-426
+
+- Scope: Policy pack route error boundary
+- Pattern: Policy pack routes should share proposal exception mapping and avoid unreachable
+  fall-through code after raising helpers.
+- Status: Hardened
+- Finding Class: duplication and dead-code cleanup
+- Summary: `src/api/proposals/routes_policy_packs.py` repeated proposal exception imports and
+  local HTTP mapping across read, validate, and activate routes. Each handler also retained an
+  unreachable `AssertionError("unreachable")` after the local exception block.
+- Evidence:
+  - Reused `run_proposal_operation` across three policy-pack route service calls.
+  - Removed route-local proposal exception imports and unreachable fall-through assertions.
+  - Extended the policy-pack route guard to prevent both local proposal exception mapping and
+    unreachable assertions from returning.
+- Consequence:
+  - Policy pack route handlers are smaller, use the same proposal taxonomy-to-HTTP path as the
+    other proposal modules, and no longer carry dead fall-through statements.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to memo and async routes.
+
 ## LA-REV-425
 
 - Scope: Proposal lifecycle route error boundary

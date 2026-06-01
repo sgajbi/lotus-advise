@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Header, Path, status
 
 import src.api.proposals.router as shared
-from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.policy_pack_responses import (
     POLICY_PACK_ACTIVATE_RESPONSES,
     POLICY_PACK_LIST_RESPONSES,
@@ -21,11 +21,6 @@ from src.core.policy_packs import (
     get_policy_pack_version,
     list_policy_pack_versions,
     validate_policy_pack_version,
-)
-from src.core.proposals.exceptions import (
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalValidationError,
 )
 
 
@@ -70,14 +65,12 @@ def get_advisory_policy_pack_version(
         Path(description="Policy pack version.", examples=["2026.05"]),
     ],
 ) -> PolicyPackDetailResponse:
-    try:
-        return get_policy_pack_version(
+    return run_proposal_operation(
+        lambda: get_policy_pack_version(
             policy_pack_id=policy_pack_id,
             policy_version=policy_version,
         )
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
-    raise AssertionError("unreachable")
+    )
 
 
 @shared.router.post(
@@ -112,21 +105,15 @@ def validate_advisory_policy_pack_version(
         ),
     ],
 ) -> PolicyPackValidationResponse:
-    try:
-        return validate_policy_pack_version(
+    return run_proposal_operation(
+        lambda: validate_policy_pack_version(
             policy_pack_id=policy_pack_id,
             policy_version=policy_version,
             requested_by=payload.requested_by,
             idempotency_key=idempotency_key,
             reason=payload.reason,
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
-    raise AssertionError("unreachable")
+    )
 
 
 @shared.router.post(
@@ -161,8 +148,8 @@ def activate_advisory_policy_pack_version(
         ),
     ],
 ) -> PolicyPackActivationResponse:
-    try:
-        return activate_policy_pack_version(
+    return run_proposal_operation(
+        lambda: activate_policy_pack_version(
             policy_pack_id=policy_pack_id,
             policy_version=policy_version,
             activated_by=payload.activated_by,
@@ -170,10 +157,4 @@ def activate_advisory_policy_pack_version(
             idempotency_key=idempotency_key,
             reason=payload.reason,
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
-    raise AssertionError("unreachable")
+    )

@@ -128,6 +128,10 @@ def test_policy_pack_routes_use_shared_response_metadata():
     assert "responses=POLICY_PACK_LIST_RESPONSES" in source
     assert "responses=POLICY_PACK_VALIDATE_RESPONSES" in source
     assert "responses=POLICY_PACK_ACTIVATE_RESPONSES" in source
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert 'AssertionError("unreachable")' not in source
+    assert source.count("run_proposal_operation(") == 3
 
 
 def test_support_routes_use_shared_response_metadata():
