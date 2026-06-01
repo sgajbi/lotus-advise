@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from src.core.models import (
     AllocationMetric,
+    CashBalance,
     DiagnosticsData,
     EngineOptions,
     GroupConstraint,
@@ -23,6 +24,41 @@ from src.core.models import (
     TargetMethod,
     TaxLot,
 )
+from src.core.portfolio_models import (
+    CashBalance as PortfolioCashBalance,
+)
+from src.core.portfolio_models import (
+    MarketDataSnapshot as PortfolioMarketDataSnapshot,
+)
+from src.core.portfolio_models import (
+    Money as PortfolioMoney,
+)
+from src.core.portfolio_models import (
+    PortfolioSnapshot as PortfolioPortfolioSnapshot,
+)
+from src.core.portfolio_models import (
+    Position as PortfolioPosition,
+)
+from src.core.portfolio_models import (
+    Price as PortfolioPrice,
+)
+from src.core.portfolio_models import (
+    ShelfEntry as PortfolioShelfEntry,
+)
+from src.core.portfolio_models import (
+    TaxLot as PortfolioTaxLot,
+)
+
+
+def test_core_models_preserves_portfolio_model_import_contract():
+    assert Money is PortfolioMoney
+    assert CashBalance is PortfolioCashBalance
+    assert PortfolioSnapshot is PortfolioPortfolioSnapshot
+    assert Position is PortfolioPosition
+    assert Price is PortfolioPrice
+    assert MarketDataSnapshot is PortfolioMarketDataSnapshot
+    assert ShelfEntry is PortfolioShelfEntry
+    assert TaxLot is PortfolioTaxLot
 
 
 def test_money_validation():

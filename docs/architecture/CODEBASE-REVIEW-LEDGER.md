@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-491
+
+- Scope: Core portfolio and market data model ownership
+- Pattern: Portfolio snapshots, cash balances, tax lots, market data, reference models, and product
+  shelf entries should live in a focused core model module instead of remaining inline in the broad
+  `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and domain model maintainability
+- Summary: `src/core/models.py` still mixed portfolio/market-data primitives with engine options,
+  diagnostics, suitability, intents, gates, and proposal result models. That made a heavily imported
+  compatibility module the owner of unrelated private-banking data concepts.
+- Evidence:
+  - Added `src/core/portfolio_models.py` for portfolio, market-data, reference-model, tax-lot, and
+    product-shelf model definitions.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    portfolio model definitions.
+- Consequence:
+  - Portfolio and market-data primitives now have explicit domain ownership while downstream callers
+    can continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting engine-option, diagnostics, suitability, and proposal-result model groups
+    from `src/core/models.py` in small compatibility-preserving slices.
+
 ## LA-REV-490
 
 - Scope: Postgres proposal persistence helper dependency direction
