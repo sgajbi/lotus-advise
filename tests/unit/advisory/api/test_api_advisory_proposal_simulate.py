@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import src.api.services.advisory_simulation_service as advisory_simulation_service
+import src.api.services.advisory_simulation_validation as advisory_simulation_validation
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory.narrative_models import ProposalNarrativeAiLineage
@@ -614,7 +615,7 @@ def test_advisory_proposal_simulate_redacts_sensitive_idempotency_validation_det
         raise ValueError("Authorization Bearer token leaked from upstream validation")
 
     monkeypatch.setattr(
-        advisory_simulation_service,
+        advisory_simulation_validation,
         "normalize_required_idempotency_key",
         _raise_sensitive_idempotency_error,
     )

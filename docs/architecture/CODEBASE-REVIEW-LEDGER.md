@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-438
+
+- Scope: Advisory simulation idempotency-key validation boundary
+- Pattern: Simulation idempotency-key normalization and safe validation-error translation should
+  live in a focused validation helper.
+- Status: Hardened
+- Finding Class: modularity problem and sensitive-error handling consistency
+- Summary: `src/api/services/advisory_simulation_service.py` still normalized idempotency keys
+  directly and translated raw `ValueError` details into HTTP validation errors inline.
+- Evidence:
+  - Added `src/api/services/advisory_simulation_validation.py` with
+    `normalize_simulation_idempotency_key`.
+  - Updated `simulate_proposal_response` to delegate idempotency-key normalization to that helper.
+  - Updated sensitive-detail coverage to patch the new validation boundary and extended the
+    internal service guard to keep core idempotency normalization out of the orchestration service.
+- Consequence:
+  - Advisory simulation orchestration no longer owns low-level replay-key normalization, and
+    sensitive validation-detail redaction remains centralized.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting simulation-gate validation and context-resolution translation from the
+    orchestration service.
+
 ## LA-REV-437
 
 - Scope: Proposal router module registration
