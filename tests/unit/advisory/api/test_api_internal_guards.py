@@ -9,6 +9,7 @@ from src.api.proposals import (
     router as proposal_router,
 )
 from src.api.proposals import (
+    routes_delivery,
     routes_lifecycle,
     routes_memo,
     routes_policy_packs,
@@ -224,6 +225,15 @@ def test_advisor_cockpit_routes_use_shared_error_boundary():
     assert "raise_proposal_http_exception" not in source
     assert "ProposalNotFoundError" not in source
     assert source.count("run_proposal_operation(") == 4
+
+
+def test_delivery_routes_use_shared_proposal_error_boundary():
+    source = inspect.getsource(routes_delivery)
+
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert "raise_lotus_report_unavailable_http_exception" in source
+    assert source.count("run_proposal_operation(") == 6
 
 
 def test_direct_http_exception_construction_stays_in_error_boundary_modules():

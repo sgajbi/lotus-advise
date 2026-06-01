@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-423
+
+- Scope: Advisory delivery route error boundary
+- Pattern: Delivery routes should share proposal exception mapping while preserving the dedicated
+  lotus-report unavailable boundary.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_delivery.py` repeated proposal exception imports and local
+  HTTP mapping across report request, execution handoff, delivery reads, and execution update
+  routes.
+- Evidence:
+  - Reused `run_proposal_operation` across six delivery route service calls.
+  - Kept `raise_lotus_report_unavailable_http_exception` as the dedicated integration-unavailable
+    boundary for report request failures.
+  - Added an internal guard preventing local proposal exception mapping from returning to delivery
+    routes.
+- Consequence:
+  - Delivery routes now use one proposal taxonomy-to-HTTP path while retaining separate integration
+    failure semantics for lotus-report.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to lifecycle and policy-evaluation
+    routes.
+
 ## LA-REV-422
 
 - Scope: Advisory support route error boundary
