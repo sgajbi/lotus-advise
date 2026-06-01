@@ -125,6 +125,11 @@ from src.core.advisory_copilot.source_projection_operations import (
     has_report_readiness,
 )
 from src.core.advisory_copilot.source_projection_policy import build_policy_posture_section
+from src.core.advisory_copilot.source_projection_proposal import (
+    build_memo_evidence_section,
+    build_narrative_posture_section,
+    build_proposal_context_section,
+)
 from src.core.advisory_copilot.source_projection_refs import projection_source_ref
 from src.core.advisory_copilot.source_projection_text import (
     bounded_content_hash,
@@ -163,6 +168,7 @@ from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import (
     ProposalMemoRecord,
     ProposalRecord,
+    ProposalVersionRecord,
     ProposalWorkflowEventRecord,
 )
 
@@ -492,6 +498,65 @@ def test_copilot_source_projection_cockpit_has_focused_owner() -> None:
     assert "owner is" in section.summary_items[0]
     assert "def _cockpit_actions_section" not in section_source
     assert "AdvisorCockpitSourceBatch" not in section_source
+
+
+def test_copilot_source_projection_proposal_sections_have_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+    proposal = ProposalRecord(
+        proposal_id="proposal_sg_structured_note_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        last_event_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        current_state="COMPLIANCE_REVIEW",
+        current_version_no=1,
+        title="Structured note proposal review",
+    )
+    version = ProposalVersionRecord(
+        proposal_version_id="version_sg_001",
+        proposal_id="proposal_sg_structured_note_001",
+        version_no=1,
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        request_hash="sha256:request",
+        artifact_hash="sha256:artifact",
+        simulation_hash="sha256:simulation",
+        status_at_creation="READY",
+        proposal_result_json={"status": "READY"},
+        artifact_json={"narrative": {"status": "REVIEW_REQUIRED"}},
+        evidence_bundle_json={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+    )
+    memo = ProposalMemoRecord(
+        memo_id="memo_sg_001",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_no=1,
+        proposal_version_id="version_sg_001",
+        artifact_id="artifact_sg_001",
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="FINALIZED",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        source_input_hash="sha256:memo-source",
+        memo_hash="sha256:memo",
+        memo_json={"memo_id": "memo_sg_001"},
+    )
+
+    context_section = build_proposal_context_section(proposal=proposal, version=version)
+    narrative_section = build_narrative_posture_section(proposal=proposal, version=version)
+    memo_section = build_memo_evidence_section(memo=memo)
+
+    assert context_section.section_key == "PROPOSAL_CONTEXT"
+    assert context_section.source_refs[0].source_type == "PROPOSAL_VERSION"
+    assert "PB_SG_GLOBAL_BAL_001" in context_section.summary_items[0]
+    assert narrative_section.section_key == "NARRATIVE_POSTURE"
+    assert "REVIEW_REQUIRED" in narrative_section.summary_items[0]
+    assert memo_section.section_key == "MEMO_EVIDENCE"
+    assert memo_section.source_refs[0].source_id == "memo_sg_001"
+    assert "def _proposal_context_section" not in section_source
+    assert "def _narrative_posture_section" not in section_source
+    assert "def _memo_evidence_section" not in section_source
 
 
 def test_copilot_reference_models_use_reference_text_helpers() -> None:

@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-571
+
+- Scope: Advisory copilot source projection proposal evidence sections
+- Pattern: Proposal context, narrative posture, and memo evidence section builders should live in a
+  focused proposal source-projection module instead of the main section assembly file.
+- Status: Hardened
+- Finding Class: Source projection modularity and proposal evidence auditability
+- Summary: After extracting policy, cockpit, and operational sections, `source_projection_sections.py`
+  still owned proposal context, narrative posture, and memo evidence builders. Those functions were
+  source-evidence construction logic rather than section ordering.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_proposal.py` with
+    `build_proposal_context_section`, `build_narrative_posture_section`, and
+    `build_memo_evidence_section`.
+  - Updated `source_projection_sections.py` to delegate proposal, narrative, and memo evidence
+    construction to the focused proposal projection helper.
+  - Added coverage proving proposal source refs, narrative status projection, memo source refs, and
+    removal of the local proposal/narrative/memo builders from the main section assembly file.
+- Consequence:
+  - Proposal-version source projection now has focused modules for proposal, policy, cockpit, and
+    operational evidence while the main assembly file owns ordering and inclusion decisions.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because packet behavior,
+    endpoint behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Consider a lightweight import-boundary contract around source projection modules before
+    moving to non-copilot Advise backend hotspots.
+
 ## LA-REV-570
 
 - Scope: Advisory copilot source projection cockpit action section

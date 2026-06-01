@@ -9,12 +9,14 @@ from src.core.advisory_copilot.source_projection_operations import (
     has_report_readiness,
 )
 from src.core.advisory_copilot.source_projection_policy import build_policy_posture_section
-from src.core.advisory_copilot.source_projection_refs import projection_source_ref
+from src.core.advisory_copilot.source_projection_proposal import (
+    build_memo_evidence_section,
+    build_narrative_posture_section,
+    build_proposal_context_section,
+)
 from src.core.advisory_copilot.source_projection_text import (
     bounded_projection_reference,
     projection_identifier,
-    projection_summary_item,
-    safe_nested_string,
 )
 from src.core.advisory_copilot.type_models import CopilotActionFamily
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
@@ -41,8 +43,8 @@ def build_proposal_version_source_sections(
     policy_evaluations: list[PolicyEvaluationRecord],
 ) -> tuple[CopilotEvidenceSectionInput, ...]:
     sections = [
-        _proposal_context_section(proposal=proposal, version=version),
-        _narrative_posture_section(proposal=proposal, version=version),
+        build_proposal_context_section(proposal=proposal, version=version),
+        build_narrative_posture_section(proposal=proposal, version=version),
         build_cockpit_actions_section(
             proposal=proposal,
             memos=memos,
@@ -52,7 +54,7 @@ def build_proposal_version_source_sections(
         ),
     ]
     if memo is not None:
-        sections.append(_memo_evidence_section(memo=memo))
+        sections.append(build_memo_evidence_section(memo=memo))
         if has_report_readiness(memo):
             sections.append(build_report_readiness_section(memo=memo))
     if policy_evaluations:
@@ -70,92 +72,4 @@ def default_proposal_version_packet_id(
             f"copilot_packet_{action_family.lower()}_{proposal_id}_v{version_no}"
         ),
         max_length=EVIDENCE_PACKET_ID_MAX_LENGTH,
-    )
-
-
-def _proposal_context_section(
-    *, proposal: ProposalRecord, version: ProposalVersionRecord
-) -> CopilotEvidenceSectionInput:
-    return CopilotEvidenceSectionInput(
-        section_key="PROPOSAL_CONTEXT",
-        title="Proposal context",
-        evidence_class="ADVISOR_USE_SUMMARY",
-        source_refs=(
-            projection_source_ref(
-                source_type="PROPOSAL_VERSION",
-                source_id=version.proposal_version_id,
-                content_hash=version.artifact_hash,
-                access_class="ADVISOR_USE_SUMMARY",
-            ),
-        ),
-        summary_items=(
-            projection_summary_item(
-                f"{proposal.title or 'Advisory proposal'} is in {proposal.current_state} "
-                f"for portfolio {proposal.portfolio_id}."
-            ),
-            projection_summary_item(
-                f"Proposal version {version.version_no} was created with "
-                f"{version.status_at_creation} source readiness."
-            ),
-        ),
-        allowed_audiences=("ADVISOR", "DESK_HEAD", "COMPLIANCE_REVIEWER", "OPERATIONS_SUPPORT"),
-    )
-
-
-def _narrative_posture_section(
-    *, proposal: ProposalRecord, version: ProposalVersionRecord
-) -> CopilotEvidenceSectionInput:
-    narrative_status = safe_nested_string(
-        version.artifact_json,
-        "narrative",
-        "status",
-    ) or safe_nested_string(version.artifact_json, "narrative_status")
-    if not narrative_status:
-        narrative_status = str(version.status_at_creation)
-    return CopilotEvidenceSectionInput(
-        section_key="NARRATIVE_POSTURE",
-        title="Proposal narrative posture",
-        evidence_class="ADVISOR_USE_SUMMARY",
-        source_refs=(
-            projection_source_ref(
-                source_type="PROPOSAL_NARRATIVE",
-                source_id=version.proposal_version_id,
-                content_hash=version.artifact_hash,
-                access_class="ADVISOR_USE_SUMMARY",
-            ),
-        ),
-        summary_items=(
-            projection_summary_item(
-                f"Advisor-use proposal narrative posture is {narrative_status}."
-            ),
-            projection_summary_item(
-                f"Client-ready publication remains blocked for proposal {proposal.proposal_id}."
-            ),
-        ),
-        allowed_audiences=("ADVISOR", "DESK_HEAD", "COMPLIANCE_REVIEWER"),
-    )
-
-
-def _memo_evidence_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSectionInput:
-    return CopilotEvidenceSectionInput(
-        section_key="MEMO_EVIDENCE",
-        title="Proposal memo evidence",
-        evidence_class="ADVISOR_USE_SUMMARY",
-        source_refs=(
-            projection_source_ref(
-                source_type="PROPOSAL_MEMO",
-                source_id=memo.memo_id,
-                content_hash=memo.memo_hash,
-                access_class="ADVISOR_USE_SUMMARY",
-            ),
-        ),
-        summary_items=(
-            projection_summary_item(f"Proposal memo {memo.memo_id} is {memo.memo_status}."),
-            projection_summary_item(f"Memo lifecycle posture is {memo.lifecycle_status}."),
-            (
-                "Memo evidence remains advisor-use only until source review and publication "
-                "gates pass."
-            ),
-        ),
-        allowed_audiences=("ADVISOR", "DESK_HEAD", "COMPLIANCE_REVIEWER", "OPERATIONS_SUPPORT"),
     )
