@@ -30,6 +30,8 @@ from src.core.workspace.models import (
     WorkspaceLifecycleHandoffMetadata,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
+)
+from src.core.workspace.save_models import (
     WorkspaceResumeRequest,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,

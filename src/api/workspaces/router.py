@@ -61,6 +61,8 @@ from src.core.workspace.models import (
     WorkspaceDraftActionResponse,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
+)
+from src.core.workspace.save_models import (
     WorkspaceResumeRequest,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,

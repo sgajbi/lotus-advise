@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import cast
 
 from src.api.services import workspace_saved_versions, workspace_store
 from src.api.services.workspace_context_resolution import build_workspace_simulate_request
@@ -17,6 +18,8 @@ from src.core.workspace.models import (
     WorkspaceDraftActionResponse,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
+)
+from src.core.workspace.save_models import (
     WorkspaceResumeRequest,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
@@ -50,7 +53,7 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
         simulate_request_builder=_build_simulate_request_for_workspace,
     )
     _save_workspace_session(reevaluated_session)
-    return reevaluated_session
+    return cast(WorkspaceSession, reevaluated_session)
 
 
 def _save_workspace_session(session: WorkspaceSession) -> None:
@@ -59,7 +62,7 @@ def _save_workspace_session(session: WorkspaceSession) -> None:
 
 
 def get_workspace_session(workspace_id: str) -> WorkspaceSession:
-    return workspace_store.get_workspace_session(workspace_id)
+    return cast(WorkspaceSession, workspace_store.get_workspace_session(workspace_id))
 
 
 def reset_workspace_sessions_for_tests() -> None:
@@ -76,7 +79,7 @@ def create_workspace_session(
         fallback_as_of=_current_business_date_iso(),
     )
     _save_workspace_session(response.workspace)
-    return response
+    return cast(WorkspaceSessionCreateResponse, response)
 
 
 def apply_workspace_draft_action(
@@ -121,7 +124,10 @@ def resume_workspace_version(
     workspace_id: str,
     request: WorkspaceResumeRequest,
 ) -> WorkspaceSession:
-    return workspace_saved_versions.resume_workspace_version(workspace_id, request)
+    return cast(
+        WorkspaceSession,
+        workspace_saved_versions.resume_workspace_version(workspace_id, request),
+    )
 
 
 def compare_workspace_to_saved_version(
@@ -150,4 +156,4 @@ def handoff_workspace_to_proposal_lifecycle(
         completed_at=_utc_now_iso(),
     )
     _save_workspace_session(session)
-    return response
+    return cast(WorkspaceLifecycleHandoffResponse, response)

@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-515
+
+- Scope: Workspace save/resume model ownership
+- Pattern: Workspace save, saved-version list, and resume DTOs should live in a focused module
+  instead of remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and replay/audit workflow maintainability
+- Summary: `src/core/workspace/models.py` still owned save request/response, saved-version list,
+  and resume request DTOs after session model extraction. These schemas belong to the
+  saved-version workflow boundary and are used by API routes, saved-version services, versioning
+  helpers, and OpenAPI documentation.
+- Evidence:
+  - Added `src/core/workspace/save_models.py` for workspace save, saved-version list, and resume
+    DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers and OpenAPI
+    schema names.
+  - Updated workspace route, API service, saved-version service, versioning helper, and package
+    exports to import save/resume DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    save/resume model definitions.
+- Consequence:
+  - Saved-version workflow code now depends on a narrow save/resume model boundary instead of the
+    broad workspace compatibility model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace draft-action and lifecycle-handoff DTOs in small
+    compatibility-preserving slices.
+
 ## LA-REV-514
 
 - Scope: Workspace session model ownership

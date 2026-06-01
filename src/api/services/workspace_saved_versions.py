@@ -9,7 +9,7 @@ from src.core.replay.service import build_workspace_saved_version_replay_respons
 from src.core.workspace.compare import build_workspace_compare_response
 from src.core.workspace.compare_models import WorkspaceCompareRequest, WorkspaceCompareResponse
 from src.core.workspace.identifiers import new_workspace_version_id
-from src.core.workspace.models import (
+from src.core.workspace.save_models import (
     WorkspaceResumeRequest,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
