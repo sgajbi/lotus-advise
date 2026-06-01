@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -116,6 +117,13 @@ from src.core.advisory_copilot.section_models import (
 from src.core.advisory_copilot.section_models import (
     CopilotEvidenceSectionInput as FocusedCopilotEvidenceSectionInput,
 )
+from src.core.advisory_copilot.source_projection_operations import (
+    build_operations_handoff_section,
+    build_report_readiness_section,
+    has_operations_handoff,
+    has_report_readiness,
+)
+from src.core.advisory_copilot.source_projection_refs import projection_source_ref
 from src.core.advisory_copilot.source_projection_text import (
     bounded_content_hash,
     bounded_projection_reference,
@@ -148,6 +156,11 @@ from src.core.advisory_copilot.type_models import (
 )
 from src.core.advisory_copilot.unsupported_models import (
     CopilotUnsupportedEvidence as FocusedCopilotUnsupportedEvidence,
+)
+from src.core.proposals.models import (
+    ProposalMemoRecord,
+    ProposalRecord,
+    ProposalWorkflowEventRecord,
 )
 
 ADVISORY_COPILOT_MODELS_PATH = Path("src/core/advisory_copilot/models.py")
@@ -329,6 +342,74 @@ def test_copilot_source_projection_text_helpers_have_focused_owner() -> None:
     assert "def _summary_item" not in section_source
     assert "def _bounded_content_hash" not in section_source
     assert "def _safe_nested_string" not in section_source
+
+
+def test_copilot_source_projection_operations_have_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+    memo = ProposalMemoRecord(
+        memo_id="memo_sg_001",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_no=1,
+        proposal_version_id="version_sg_001",
+        artifact_id="artifact_sg_001",
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="FINALIZED",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        source_input_hash="sha256:memo-source",
+        memo_hash="sha256:memo",
+        memo_json={"memo_id": "memo_sg_001"},
+        report_package_events_json=[
+            {"event_id": "memo_report_pkg_001", "report_reference_id": "report_pkg_001"}
+        ],
+        archive_refs_json=[{"archive_ref": "archive_ref_001"}],
+    )
+    proposal = ProposalRecord(
+        proposal_id="proposal_sg_structured_note_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        last_event_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        current_state="EXECUTION_READY",
+        current_version_no=1,
+        title="Structured note proposal review",
+    )
+    event = ProposalWorkflowEventRecord(
+        event_id="event_execution_001",
+        proposal_id="proposal_sg_structured_note_001",
+        event_type="EXECUTION_REQUESTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="operations_123",
+        occurred_at=datetime(2026, 5, 28, 10, 0, tzinfo=UTC),
+        reason_json={"handoff": "ready"},
+        related_version_no=1,
+    )
+
+    report_section = build_report_readiness_section(memo=memo)
+    handoff_section = build_operations_handoff_section(proposal=proposal, events=[event])
+    source_ref = projection_source_ref(
+        source_type="PROPOSAL_WORKFLOW_EVENT",
+        source_id="x" * 220,
+        content_hash="y" * 220,
+        access_class="OPERATIONS_HANDOFF_EVIDENCE",
+    )
+
+    assert has_report_readiness(memo) is True
+    assert has_operations_handoff([event]) is True
+    assert report_section.section_key == "REPORT_READINESS"
+    assert report_section.source_refs[0].source_id == "report_pkg_001"
+    assert handoff_section.section_key == "OPERATIONS_HANDOFF"
+    assert handoff_section.source_refs[0].source_id == "event_execution_001"
+    assert len(source_ref.source_id) <= 160
+    assert source_ref.content_hash is not None
+    assert len(source_ref.content_hash) <= 128
+    assert "def _report_readiness_section" not in section_source
+    assert "def _operations_handoff_section" not in section_source
+    assert "def _source_ref" not in section_source
 
 
 def test_copilot_reference_models_use_reference_text_helpers() -> None:

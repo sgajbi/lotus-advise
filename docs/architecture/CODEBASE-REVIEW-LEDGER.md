@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-568
+
+- Scope: Advisory copilot source projection operational evidence sections
+- Pattern: Operational handoff and report-readiness evidence builders should live in focused
+  source-projection modules instead of the main proposal-version section assembly file.
+- Status: Hardened
+- Finding Class: Source projection modularity and operational evidence auditability
+- Summary: `source_projection_sections.py` assembled proposal context, narrative, memo, policy,
+  cockpit, report-readiness, operations-handoff, and source-ref normalization in one file. The
+  operational evidence builders were coherent enough to extract without changing packet content.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_operations.py` for report-readiness and
+    operations-handoff section construction and presence checks.
+  - Added `src/core/advisory_copilot/source_projection_refs.py` for bounded source-ref projection.
+  - Updated `source_projection_sections.py` to delegate operational evidence sections and shared
+    source-ref construction to focused helpers.
+  - Added coverage proving section keys, source refs, bounded identifiers, bounded content hashes,
+    and removal of the local operational/source-ref helpers from the main section assembly file.
+- Consequence:
+  - Proposal-version source projection is easier to review by evidence class, and operational
+    handoff behavior is independently testable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because packet behavior,
+    endpoint behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting policy and cockpit source-projection sections when the adjacent helpers can
+    move without broad behavior changes.
+
 ## LA-REV-567
 
 - Scope: Advisory copilot proposal-version projection persistence

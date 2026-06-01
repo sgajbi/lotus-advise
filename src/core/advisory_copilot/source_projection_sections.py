@@ -4,12 +4,16 @@ from src.core.advisor_cockpit.source_read_model import (
     AdvisorCockpitSourceBatch,
     build_advisor_cockpit_source_read_model,
 )
-from src.core.advisory_copilot.reference_models import CopilotSourceRef
 from src.core.advisory_copilot.section_models import CopilotEvidenceSectionInput
+from src.core.advisory_copilot.source_projection_operations import (
+    build_operations_handoff_section,
+    build_report_readiness_section,
+    has_operations_handoff,
+    has_report_readiness,
+)
+from src.core.advisory_copilot.source_projection_refs import projection_source_ref
 from src.core.advisory_copilot.source_projection_text import (
-    bounded_content_hash,
     bounded_projection_reference,
-    latest_reference,
     projection_identifier,
     projection_summary_item,
     safe_nested_string,
@@ -26,8 +30,6 @@ from src.core.proposals.models import (
 
 EVIDENCE_PACKET_ID_MAX_LENGTH = 160
 LINEAGE_REF_ID_MAX_LENGTH = 160
-
-_SOURCE_REF_ID_MAX_LENGTH = 160
 
 
 def build_proposal_version_source_sections(
@@ -53,12 +55,12 @@ def build_proposal_version_source_sections(
     ]
     if memo is not None:
         sections.append(_memo_evidence_section(memo=memo))
-        if _has_report_readiness(memo):
-            sections.append(_report_readiness_section(memo=memo))
+        if has_report_readiness(memo):
+            sections.append(build_report_readiness_section(memo=memo))
     if policy_evaluations:
         sections.append(_policy_posture_section(policy_evaluations=policy_evaluations))
-    if _has_operations_handoff(events):
-        sections.append(_operations_handoff_section(proposal=proposal, events=events))
+    if has_operations_handoff(events):
+        sections.append(build_operations_handoff_section(proposal=proposal, events=events))
     return tuple(sections)
 
 
@@ -81,7 +83,7 @@ def _proposal_context_section(
         title="Proposal context",
         evidence_class="ADVISOR_USE_SUMMARY",
         source_refs=(
-            _source_ref(
+            projection_source_ref(
                 source_type="PROPOSAL_VERSION",
                 source_id=version.proposal_version_id,
                 content_hash=version.artifact_hash,
@@ -117,7 +119,7 @@ def _narrative_posture_section(
         title="Proposal narrative posture",
         evidence_class="ADVISOR_USE_SUMMARY",
         source_refs=(
-            _source_ref(
+            projection_source_ref(
                 source_type="PROPOSAL_NARRATIVE",
                 source_id=version.proposal_version_id,
                 content_hash=version.artifact_hash,
@@ -142,7 +144,7 @@ def _memo_evidence_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSectio
         title="Proposal memo evidence",
         evidence_class="ADVISOR_USE_SUMMARY",
         source_refs=(
-            _source_ref(
+            projection_source_ref(
                 source_type="PROPOSAL_MEMO",
                 source_id=memo.memo_id,
                 content_hash=memo.memo_hash,
@@ -192,7 +194,7 @@ def _policy_posture_section(
         title="Policy posture",
         evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
         source_refs=(
-            _source_ref(
+            projection_source_ref(
                 source_type="POLICY_EVALUATION",
                 source_id=latest.evaluation_id,
                 content_hash=latest.evaluation_hash,
@@ -231,7 +233,7 @@ def _cockpit_actions_section(
         title="Advisor cockpit actions",
         evidence_class="ADVISOR_USE_SUMMARY",
         source_refs=tuple(
-            _source_ref(
+            projection_source_ref(
                 source_type="ADVISOR_COCKPIT_ACTION",
                 source_id=item.action_item_id,
                 content_hash=None,
@@ -240,7 +242,7 @@ def _cockpit_actions_section(
             for item in action_items
         )
         or (
-            _source_ref(
+            projection_source_ref(
                 source_type="ADVISOR_COCKPIT_SCOPE",
                 source_id=proposal.proposal_id,
                 content_hash=None,
@@ -249,87 +251,4 @@ def _cockpit_actions_section(
         ),
         summary_items=tuple(summaries),
         allowed_audiences=("ADVISOR", "DESK_HEAD", "COMPLIANCE_REVIEWER", "OPERATIONS_SUPPORT"),
-    )
-
-
-def _report_readiness_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSectionInput:
-    latest_report_ref = latest_reference(memo.report_package_events_json) or memo.memo_id
-    latest_archive_ref = latest_reference(memo.archive_refs_json) or "Not recorded"
-    return CopilotEvidenceSectionInput(
-        section_key="REPORT_READINESS",
-        title="Report readiness",
-        evidence_class="OPERATIONS_HANDOFF_EVIDENCE",
-        source_refs=(
-            _source_ref(
-                source_type="MEMO_REPORT_PACKAGE",
-                source_id=latest_report_ref,
-                content_hash=memo.memo_hash,
-                access_class="OPERATIONS_HANDOFF_EVIDENCE",
-            ),
-        ),
-        summary_items=(
-            "Advisor-use report package evidence is recorded for the memo.",
-            projection_summary_item(f"Latest archive reference posture: {latest_archive_ref}."),
-        ),
-        allowed_audiences=("ADVISOR", "DESK_HEAD", "OPERATIONS_SUPPORT"),
-    )
-
-
-def _operations_handoff_section(
-    *, proposal: ProposalRecord, events: list[ProposalWorkflowEventRecord]
-) -> CopilotEvidenceSectionInput:
-    execution_events = [
-        event
-        for event in events
-        if str(event.event_type).startswith("EXECUTION") or event.event_type == "EXECUTED"
-    ]
-    latest = sorted(execution_events, key=lambda item: (item.occurred_at, item.event_id))[-1]
-    return CopilotEvidenceSectionInput(
-        section_key="OPERATIONS_HANDOFF",
-        title="Operations handoff",
-        evidence_class="OPERATIONS_HANDOFF_EVIDENCE",
-        source_refs=(
-            _source_ref(
-                source_type="PROPOSAL_WORKFLOW_EVENT",
-                source_id=latest.event_id,
-                content_hash=None,
-                access_class="OPERATIONS_HANDOFF_EVIDENCE",
-            ),
-        ),
-        summary_items=(
-            projection_summary_item(
-                f"Latest implementation handoff posture is {latest.event_type}."
-            ),
-            projection_summary_item(
-                f"Proposal {proposal.proposal_id} remains source-owned for lifecycle state."
-            ),
-        ),
-        allowed_audiences=("ADVISOR", "DESK_HEAD", "OPERATIONS_SUPPORT"),
-    )
-
-
-def _has_report_readiness(memo: ProposalMemoRecord) -> bool:
-    return bool(memo.report_package_events_json or memo.archive_refs_json)
-
-
-def _has_operations_handoff(events: list[ProposalWorkflowEventRecord]) -> bool:
-    return any(
-        str(event.event_type).startswith("EXECUTION") or event.event_type == "EXECUTED"
-        for event in events
-    )
-
-
-def _source_ref(
-    *,
-    source_type: str,
-    source_id: str,
-    content_hash: str | None,
-    access_class: str,
-) -> CopilotSourceRef:
-    return CopilotSourceRef(
-        source_system="lotus-advise",
-        source_type=source_type,
-        source_id=bounded_projection_reference(source_id, max_length=_SOURCE_REF_ID_MAX_LENGTH),
-        content_hash=bounded_content_hash(content_hash),
-        access_class=access_class,  # type: ignore[arg-type]
     )
