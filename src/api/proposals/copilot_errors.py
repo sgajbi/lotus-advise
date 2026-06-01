@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import NoReturn
+from collections.abc import Callable
+from typing import NoReturn, TypeVar
 
 from fastapi import HTTPException, status
 
@@ -19,6 +20,17 @@ ADVISORY_COPILOT_RESPONSES = {
 
 COPILOT_REPOSITORY_UNAVAILABLE_DETAIL = "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
 COPILOT_VALIDATION_FAILED_DETAIL = "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
+
+_CopilotOperationResult = TypeVar("_CopilotOperationResult")
+
+
+def run_copilot_operation(
+    operation: Callable[[], _CopilotOperationResult],
+) -> _CopilotOperationResult:
+    try:
+        return operation()
+    except ValueError as exc:
+        raise_copilot_http_exception(exc)
 
 
 def raise_copilot_http_exception(exc: ValueError) -> NoReturn:

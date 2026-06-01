@@ -11,7 +11,7 @@ from src.api.proposals.copilot_dependencies import (
 )
 from src.api.proposals.copilot_errors import (
     ADVISORY_COPILOT_RESPONSES,
-    raise_copilot_http_exception,
+    run_copilot_operation,
 )
 from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotActionRequest,
@@ -61,13 +61,12 @@ def create_advisory_copilot_evidence_packet(
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
-    try:
-        return service.create_evidence_packet(
+    return run_copilot_operation(
+        lambda: service.create_evidence_packet(
             payload=payload,
             correlation_id=correlation_id,
         )
-    except ValueError as exc:
-        raise_copilot_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -98,14 +97,13 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
     proposal_repository: ProposalRepository = Depends(get_advisory_proposal_repository),
 ) -> AdvisoryCopilotEvidencePacketResponse:
-    try:
-        return service.create_proposal_version_evidence_packet(
+    return run_copilot_operation(
+        lambda: service.create_proposal_version_evidence_packet(
             payload=payload,
             proposal_repository=proposal_repository,
             correlation_id=correlation_id,
         )
-    except ValueError as exc:
-        raise_copilot_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -128,10 +126,9 @@ def get_advisory_copilot_evidence_packet(
     ],
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
-    try:
-        return service.get_evidence_packet(evidence_packet_id=evidence_packet_id)
-    except ValueError as exc:
-        raise_copilot_http_exception(exc)
+    return run_copilot_operation(
+        lambda: service.get_evidence_packet(evidence_packet_id=evidence_packet_id)
+    )
 
 
 @shared.router.post(
@@ -167,14 +164,13 @@ def run_advisory_copilot_action(
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
-    try:
-        return service.run_action(
+    return run_copilot_operation(
+        lambda: service.run_action(
             payload=payload,
             correlation_id=correlation_id,
             idempotency_key=idempotency_key,
         )
-    except ValueError as exc:
-        raise_copilot_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -197,10 +193,7 @@ def get_advisory_copilot_run(
     ],
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
-    try:
-        return service.get_run(run_id=run_id)
-    except ValueError as exc:
-        raise_copilot_http_exception(exc)
+    return run_copilot_operation(lambda: service.get_run(run_id=run_id))
 
 
 @shared.router.post(
@@ -245,15 +238,14 @@ def review_advisory_copilot_run(
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotReviewResponse:
-    try:
-        return service.review_run(
+    return run_copilot_operation(
+        lambda: service.review_run(
             run_id=run_id,
             payload=payload,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
-    except ValueError as exc:
-        raise_copilot_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -314,12 +306,11 @@ def list_proposal_version_copilot_runs(
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunPage:
-    try:
-        return service.list_proposal_version_runs(
+    return run_copilot_operation(
+        lambda: service.list_proposal_version_runs(
             proposal_id=proposal_id,
             version_id=version_id,
             limit=limit,
             cursor=cursor,
         )
-    except ValueError as exc:
-        raise_copilot_http_exception(exc)
+    )

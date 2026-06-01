@@ -208,6 +208,13 @@ def test_proposal_router_uses_shared_runtime_error_helpers():
     assert "proposal_backend_connection_failed_exception" in source
 
 
+def test_advisory_copilot_routes_use_shared_error_boundary():
+    source = Path("src/api/proposals/routes_advisory_copilot.py").read_text(encoding="utf-8")
+
+    assert "except ValueError as exc" not in source
+    assert source.count("run_copilot_operation(") == 7
+
+
 def test_direct_http_exception_construction_stays_in_error_boundary_modules():
     offenders = []
     for path in Path("src/api").rglob("*.py"):

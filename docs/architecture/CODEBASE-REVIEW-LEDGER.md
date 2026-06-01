@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-420
+
+- Scope: Advisory Copilot route error boundary
+- Pattern: Route modules should call shared boundary helpers for repeated validation-to-HTTP
+  exception mapping instead of repeating identical `try`/`except` blocks.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_advisory_copilot.py` repeated the same `ValueError` handling
+  pattern across route handlers even though copilot error classification already lived in
+  `copilot_errors.py`.
+- Evidence:
+  - Added `run_copilot_operation` to `src/api/proposals/copilot_errors.py`.
+  - Replaced seven route-local `except ValueError` blocks with calls to the shared copilot boundary.
+  - Added an internal guard preventing route-local `ValueError` handling from returning.
+- Consequence:
+  - Advisory Copilot routes now share one validation-to-HTTP classification path, reducing drift
+    risk across not-found, conflict, and validation responses.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Apply the same route-boundary consolidation to other proposal route modules with repeated
+    exception mapping.
+
 ## LA-REV-419
 
 - Scope: Workspace session creation service boundary
