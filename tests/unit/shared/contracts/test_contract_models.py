@@ -25,12 +25,16 @@ from src.core.engine_options_models import (
 from src.core.models import (
     AllocationMetric,
     CashBalance,
+    CashFlowIntent,
     DiagnosticsData,
     EngineOptions,
     ExcludedInstrument,
+    FxSpotIntent,
     GroupConstraint,
+    IntentRationale,
     MarketDataSnapshot,
     Money,
+    OrderIntent,
     PortfolioSnapshot,
     Position,
     PositionSummary,
@@ -38,7 +42,9 @@ from src.core.models import (
     ProposalAllocationBucket,
     ProposalAllocationLens,
     ProposalAllocationView,
+    ProposalOrderIntent,
     ProposedTrade,
+    SecurityTradeIntent,
     ShelfEntry,
     SimulatedState,
     SuitabilityThresholds,
@@ -49,6 +55,24 @@ from src.core.models import (
     UniverseCoverage,
     UniverseData,
     ValuationMode,
+)
+from src.core.order_intent_models import (
+    CashFlowIntent as OrderCashFlowIntent,
+)
+from src.core.order_intent_models import (
+    FxSpotIntent as OrderFxSpotIntent,
+)
+from src.core.order_intent_models import (
+    IntentRationale as OrderIntentRationale,
+)
+from src.core.order_intent_models import (
+    OrderIntent as OrderOrderIntent,
+)
+from src.core.order_intent_models import (
+    ProposalOrderIntent as OrderProposalOrderIntent,
+)
+from src.core.order_intent_models import (
+    SecurityTradeIntent as OrderSecurityTradeIntent,
 )
 from src.core.portfolio_models import (
     CashBalance as PortfolioCashBalance,
@@ -143,6 +167,15 @@ def test_core_models_preserves_universe_target_model_import_contract():
     assert TargetInstrument is UniverseTargetInstrument
     assert UniverseCoverage is UniverseUniverseCoverage
     assert UniverseData is UniverseUniverseData
+
+
+def test_core_models_preserves_order_intent_model_import_contract():
+    assert CashFlowIntent is OrderCashFlowIntent
+    assert FxSpotIntent is OrderFxSpotIntent
+    assert IntentRationale is OrderIntentRationale
+    assert SecurityTradeIntent is OrderSecurityTradeIntent
+    assert OrderIntent == OrderOrderIntent
+    assert ProposalOrderIntent == OrderProposalOrderIntent
 
 
 def test_money_validation():

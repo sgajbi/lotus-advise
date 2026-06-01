@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-495
+
+- Scope: Core advisory order intent model ownership
+- Pattern: Generated advisory security, FX, and cash-flow order intents should live in a focused
+  core model module instead of remaining inline in the broad `src/core/models.py` compatibility
+  surface.
+- Status: Hardened
+- Finding Class: modularity and intent model maintainability
+- Summary: `src/core/models.py` still owned generated order intent DTOs and intent-union aliases
+  used by funding, advisory intent generation, simulation shared logic, and risk integration
+  alongside unrelated diagnostics, gates, and proposal result models.
+- Evidence:
+  - Added `src/core/order_intent_models.py` for intent rationale, security trade intents, FX spot
+    intents, cash-flow intents, and order intent union aliases.
+  - Updated `src/core/models.py` to re-export those models and aliases so existing public imports
+    remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    order intent model definitions.
+- Consequence:
+  - Advisory order intent definitions now have explicit ownership while downstream callers can
+    continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting diagnostics, suitability output, gate, proposal-input, and proposal-result
+    model groups from `src/core/models.py` in small compatibility-preserving slices.
+
 ## LA-REV-494
 
 - Scope: Core universe coverage and target-generation trace model ownership
