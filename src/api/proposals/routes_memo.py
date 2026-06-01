@@ -4,8 +4,16 @@ from typing import Annotated, Optional
 from fastapi import Depends, Header, Path, Query, status
 
 import src.api.proposals.router as shared
-from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.memo_responses import (
+    MEMO_AI_COMMENTARY_RESPONSES,
+    MEMO_CREATE_RESPONSES,
+    MEMO_LINEAGE_RESPONSES,
+    MEMO_READ_RESPONSES,
+    MEMO_REPORT_PACKAGE_EVENT_RESPONSES,
+    MEMO_REPORT_PACKAGE_RESPONSES,
+    MEMO_REVIEW_RESPONSES,
+)
 from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
 from src.core.proposals import (
     ProposalMemoAiCommentaryRequest,
@@ -54,23 +62,7 @@ from src.integrations.lotus_report import LotusReportUnavailableError
         "immutable proposal version. The route is idempotent, hash-backed, and does not publish "
         "client-ready memo content."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal or immutable proposal version was not found."
-        },
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused with a different memo-create payload."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "Memo creation failed validation or finalization is blocked by "
-                "source-readiness posture."
-            )
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=MEMO_CREATE_RESPONSES,
 )
 def create_proposal_memo(
     proposal_id: Annotated[
@@ -124,14 +116,7 @@ def create_proposal_memo(
         "Returns the exact persisted memo evidence pack, projection policy, append-only memo "
         "audit events, and replay links for an immutable proposal version."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal, immutable proposal version, or persisted memo was not found."
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=MEMO_READ_RESPONSES,
 )
 def get_proposal_memo(
     proposal_id: Annotated[
@@ -168,14 +153,7 @@ def get_proposal_memo(
         "Returns memo projection policy and audience-filtered sections from the persisted memo. "
         "Projection is read-only and keeps client-ready publication blocked in Slice 7."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal, immutable proposal version, or persisted memo was not found."
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=MEMO_READ_RESPONSES,
 )
 def get_proposal_memo_projection(
     proposal_id: Annotated[
@@ -220,22 +198,7 @@ def get_proposal_memo_projection(
         "Records an idempotent review event against the persisted memo hash. The operation is "
         "append-only, rejects stale memo hashes, and cannot release client-ready publication."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal, immutable proposal version, or persisted memo was not found."
-        },
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused with a different memo-review payload."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "Review request is invalid, stale, or attempts unsupported client-ready release."
-            )
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=MEMO_REVIEW_RESPONSES,
 )
 def review_proposal_memo(
     proposal_id: Annotated[
@@ -291,22 +254,7 @@ def review_proposal_memo(
         "external lineage; use the report-package request endpoint when Advise must request "
         "Lotus Report materialization. Client-ready document release remains blocked."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal, immutable proposal version, or persisted memo was not found."
-        },
-        status.HTTP_409_CONFLICT: {
-            "description": (
-                "Idempotency key was reused with a different report-package event payload."
-            )
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": "Report-package event is invalid or references a stale memo hash."
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=MEMO_REPORT_PACKAGE_EVENT_RESPONSES,
 )
 def record_proposal_memo_report_package_event(
     proposal_id: Annotated[
@@ -362,25 +310,7 @@ def record_proposal_memo_report_package_event(
         "returned report, render, and archive references in memo lineage. Client-ready document "
         "release remains blocked."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal, immutable proposal version, or persisted memo was not found."
-        },
-        status.HTTP_409_CONFLICT: {
-            "description": (
-                "Idempotency key was reused with a different report-package request payload."
-            )
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "Report-package request is invalid, references a stale memo hash, lacks "
-                "advisor-use review, or attempts client-ready document release."
-            )
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "lotus-report report/render/archive materialization is unavailable."
-        },
-    },
+    responses=MEMO_REPORT_PACKAGE_RESPONSES,
 )
 def request_proposal_memo_report_package(
     proposal_id: Annotated[
@@ -439,23 +369,7 @@ def request_proposal_memo_report_package(
         "AI lineage, and cannot alter memo evidence, suitability, approval, or client-ready "
         "publication posture."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal, immutable proposal version, or persisted memo was not found."
-        },
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused with a different AI commentary payload."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "AI commentary request is invalid, references a stale memo hash, or lacks "
-                "advisor-use review."
-            )
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=MEMO_AI_COMMENTARY_RESPONSES,
 )
 def request_proposal_memo_ai_commentary(
     proposal_id: Annotated[
@@ -509,12 +423,7 @@ def request_proposal_memo_ai_commentary(
         "Returns persisted memo lineage for a proposal, including memo hashes, source hashes, "
         "lifecycle status, and event counts."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Proposal was not found."},
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=MEMO_LINEAGE_RESPONSES,
 )
 def get_proposal_memo_lineage(
     proposal_id: Annotated[
@@ -543,14 +452,7 @@ def get_proposal_memo_lineage(
         "Returns memo replay evidence with proposal source hashes, memo hashes, replay metadata, "
         "projection posture, and append-only memo audit events."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal, immutable proposal version, or persisted memo was not found."
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=MEMO_READ_RESPONSES,
 )
 def get_proposal_memo_replay_evidence(
     proposal_id: Annotated[
