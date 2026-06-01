@@ -554,6 +554,14 @@ def test_capabilities_service_delegates_runtime_flag_resolution():
     assert "os.getenv(" not in source
 
 
+def test_capabilities_service_delegates_feature_catalog_assembly():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+
+    assert "from src.api.capabilities.feature_catalog import build_feature_capabilities" in source
+    assert "def build_feature_capabilities(" not in source
+    assert "FeatureCapability(" not in source
+
+
 def test_bank_demo_proof_routes_use_shared_response_metadata():
     source = inspect.getsource(bank_demo_proof_router)
 

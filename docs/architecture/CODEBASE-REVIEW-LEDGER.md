@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-467
+
+- Scope: Capability feature catalog assembly
+- Pattern: Integration capability service orchestration should delegate feature catalog construction
+  to a catalog module instead of owning every feature row inline.
+- Status: Hardened
+- Finding Class: modularity and service-boundary maintainability
+- Summary: `src/api/capabilities/service.py` still embedded every `FeatureCapability` row, keeping
+  long catalog data, dependency readiness logic, and response orchestration in one module.
+- Evidence:
+  - Added `src/api/capabilities/feature_catalog.py` for feature capability construction.
+  - Updated `src/api/capabilities/service.py` to import the feature catalog builder and focus on
+    response orchestration plus the remaining workflow catalog.
+  - Added guard coverage preventing `FeatureCapability` row assembly from drifting back into
+    `service.py`.
+- Consequence:
+  - Feature catalog ownership is now isolated, making the integration capability response easier to
+    maintain and reducing service module size without changing public response values.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Extract workflow capability catalog construction into a sibling module once this feature catalog
+    split is green locally and remotely.
+
 ## LA-REV-466
 
 - Scope: Capability degraded-reason code selection
