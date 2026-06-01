@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-460
+
+- Scope: API problem-detail response construction
+- Pattern: Repeated problem-detail response construction should use a shared API helper.
+- Status: Hardened
+- Finding Class: error response consistency and API maintainability
+- Summary: `src/api/main.py` repeated `application/problem+json` response construction in the
+  readiness, unhandled exception, and Lotus Core simulation exception handlers. Each block carried
+  the same response shape, which made future correlation or problem-detail changes easy to miss in
+  one handler.
+- Evidence:
+  - Added `src/api/problem_details.py` with `build_problem_detail_response`.
+  - Updated readiness, unhandled exception, and Lotus Core simulation handlers to use the shared
+    builder while preserving response shape.
+  - Added tests for the shared problem-detail builder and an internal guard requiring `main.py` to
+    use it.
+- Consequence:
+  - API problem-detail responses now have one shared construction path for status, detail,
+    instance, and correlation id fields.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because response behavior is
+    unchanged.
+- Follow-Up:
+  - Reuse the helper in future API-level exception handlers that return problem-detail payloads.
+
 ## LA-REV-459
 
 - Scope: FastAPI OpenAPI tag catalog

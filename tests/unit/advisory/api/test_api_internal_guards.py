@@ -126,6 +126,14 @@ def test_api_main_uses_shared_openapi_tag_catalog():
     assert api_main.app.openapi_tags == OPENAPI_TAGS
 
 
+def test_api_main_uses_shared_problem_detail_builder():
+    source = Path("src/api/main.py").read_text(encoding="utf-8")
+
+    assert "from src.api.problem_details import build_problem_detail_response" in source
+    assert "application/problem+json" not in source
+    assert source.count("build_problem_detail_response(") == 3
+
+
 def test_memo_routes_use_shared_response_metadata():
     source = inspect.getsource(routes_memo)
 

@@ -17,6 +17,7 @@ from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.observability import correlation_id_var, setup_observability
 from src.api.openapi_enrichment import enrich_openapi_schema
 from src.api.openapi_tags import OPENAPI_TAGS
+from src.api.problem_details import build_problem_detail_response
 from src.api.proposals.router import (
     ensure_proposal_runtime_ready,
     recover_proposal_async_runtime,
@@ -122,17 +123,12 @@ def health_ready() -> JSONResponse:
     ready, detail = _readiness_probe()
     if ready:
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
-    return JSONResponse(
+    return build_problem_detail_response(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        media_type="application/problem+json",
-        content={
-            "type": "about:blank",
-            "title": "Service Unavailable",
-            "status": 503,
-            "detail": detail or "READINESS_CHECK_FAILED",
-            "instance": "/health/ready",
-            "correlation_id": correlation_id_var.get() or "",
-        },
+        title="Service Unavailable",
+        detail=detail or "READINESS_CHECK_FAILED",
+        instance="/health/ready",
+        correlation_id=correlation_id_var.get() or "",
     )
 
 
@@ -165,17 +161,12 @@ async def request_validation_error_to_safe_response(
 @app.exception_handler(Exception)
 async def unhandled_exception_to_problem_details(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled exception while serving request", exc_info=exc)
-    return JSONResponse(
+    return build_problem_detail_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        media_type="application/problem+json",
-        content={
-            "type": "about:blank",
-            "title": "Internal Server Error",
-            "status": 500,
-            "detail": "An unexpected error occurred.",
-            "instance": str(request.url.path),
-            "correlation_id": correlation_id_var.get() or "",
-        },
+        title="Internal Server Error",
+        detail="An unexpected error occurred.",
+        instance=str(request.url.path),
+        correlation_id=correlation_id_var.get() or "",
     )
 
 
@@ -185,19 +176,14 @@ async def lotus_core_simulation_unavailable_to_problem_details(
     exc: LotusCoreSimulationUnavailableError,
 ) -> JSONResponse:
     status_code = exc.status_code or status.HTTP_503_SERVICE_UNAVAILABLE
-    return JSONResponse(
+    return build_problem_detail_response(
         status_code=status_code,
-        media_type="application/problem+json",
-        content={
-            "type": "about:blank",
-            "title": "Upstream Canonical Simulation Error"
-            if status_code != status.HTTP_503_SERVICE_UNAVAILABLE
-            else "Service Unavailable",
-            "status": status_code,
-            "detail": _safe_lotus_core_simulation_error_detail(str(exc)),
-            "instance": str(request.url.path),
-            "correlation_id": correlation_id_var.get() or "",
-        },
+        title="Upstream Canonical Simulation Error"
+        if status_code != status.HTTP_503_SERVICE_UNAVAILABLE
+        else "Service Unavailable",
+        detail=_safe_lotus_core_simulation_error_detail(str(exc)),
+        instance=str(request.url.path),
+        correlation_id=correlation_id_var.get() or "",
     )
 
 
