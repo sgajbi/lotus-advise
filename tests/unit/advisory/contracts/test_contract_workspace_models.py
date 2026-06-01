@@ -78,9 +78,19 @@ from src.core.workspace.models import (
     WorkspaceSaveRequest,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
+    WorkspaceSessionCreateResponse,
     WorkspaceStatefulInput,
     WorkspaceStatelessInput,
     WorkspaceTradeDraft,
+)
+from src.core.workspace.session_models import (
+    WorkspaceSession as SessionWorkspaceSession,
+)
+from src.core.workspace.session_models import (
+    WorkspaceSessionCreateRequest as SessionWorkspaceSessionCreateRequest,
+)
+from src.core.workspace.session_models import (
+    WorkspaceSessionCreateResponse as SessionWorkspaceSessionCreateResponse,
 )
 from src.core.workspace.version_models import (
     WorkspaceLifecycleLink as VersionWorkspaceLifecycleLink,
@@ -143,6 +153,12 @@ def test_workspace_models_preserves_assistant_model_import_contract():
         WorkspaceAssistantWorkflowPackRunReviewActionResponse
         is assistant_model_module.WorkspaceAssistantWorkflowPackRunReviewActionResponse
     )
+
+
+def test_workspace_models_preserves_session_model_import_contract():
+    assert WorkspaceSession is SessionWorkspaceSession
+    assert WorkspaceSessionCreateRequest is SessionWorkspaceSessionCreateRequest
+    assert WorkspaceSessionCreateResponse is SessionWorkspaceSessionCreateResponse
 
 
 def _build_state() -> SimulatedState:

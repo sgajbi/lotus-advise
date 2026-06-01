@@ -18,9 +18,9 @@ from src.core.workspace.handoff import (
 from src.core.workspace.models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
-    WorkspaceSession,
 )
 from src.core.workspace.replay import build_workspace_handoff_replay_lineage
+from src.core.workspace.session_models import WorkspaceSession
 
 WorkspaceSimulateRequestBuilder = Callable[[WorkspaceSession], ProposalSimulateRequest]
 WorkspaceLifecycleHandoffExecution = tuple[

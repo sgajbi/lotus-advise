@@ -11,12 +11,12 @@ from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals.correlation import resolve_correlation_id
 from src.core.workspace.evaluation import build_evaluation_summary
-from src.core.workspace.models import WorkspaceSession
 from src.core.workspace.reevaluation import (
     WorkspaceReevaluationContextError,
     build_workspace_evaluation_context,
 )
 from src.core.workspace.replay import build_replay_evidence
+from src.core.workspace.session_models import WorkspaceSession
 
 WorkspaceSimulateRequestBuilder = Callable[[WorkspaceSession], ProposalSimulateRequest]
 

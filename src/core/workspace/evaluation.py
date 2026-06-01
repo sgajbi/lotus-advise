@@ -6,7 +6,7 @@ from src.core.workspace.draft_models import (
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
 )
-from src.core.workspace.models import WorkspaceSession
+from src.core.workspace.session_models import WorkspaceSession
 
 
 class _MoneyLike(Protocol):

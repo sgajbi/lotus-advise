@@ -21,6 +21,8 @@ from src.core.workspace.models import (
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
+)
+from src.core.workspace.session_models import (
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,

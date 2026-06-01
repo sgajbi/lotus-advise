@@ -9,7 +9,7 @@ from src.core.proposals.context import (
     build_simulation_request_hash,
 )
 from src.core.proposals.models import ProposalResolvedContext
-from src.core.workspace.models import WorkspaceSession
+from src.core.workspace.session_models import WorkspaceSession
 
 
 class WorkspaceReevaluationContextError(ValueError):

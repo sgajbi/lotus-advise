@@ -6,10 +6,7 @@ from src.core.workspace.draft_state import (
     build_draft_state_from_simulate_request,
 )
 from src.core.workspace.input_models import WorkspaceResolvedContext
-from src.core.workspace.models import (
-    WorkspaceSession,
-    WorkspaceSessionCreateRequest,
-)
+from src.core.workspace.session_models import WorkspaceSession, WorkspaceSessionCreateRequest
 from src.core.workspace.sessions import build_stateless_workspace_resolved_context
 from src.integrations.lotus_core import (
     LotusCoreContextResolutionError,

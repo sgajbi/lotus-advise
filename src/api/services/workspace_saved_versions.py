@@ -14,8 +14,8 @@ from src.core.workspace.models import (
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
-    WorkspaceSession,
 )
+from src.core.workspace.session_models import WorkspaceSession
 from src.core.workspace.version_models import WorkspaceSavedVersion
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,

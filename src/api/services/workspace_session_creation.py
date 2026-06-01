@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from src.api.services.workspace_context_resolution import build_initial_workspace_context
-from src.core.workspace.models import WorkspaceSessionCreateRequest, WorkspaceSessionCreateResponse
+from src.core.workspace.session_models import (
+    WorkspaceSessionCreateRequest,
+    WorkspaceSessionCreateResponse,
+)
 from src.core.workspace.sessions import build_workspace_session
 
 

@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-514
+
+- Scope: Workspace session model ownership
+- Pattern: Workspace session creation and session-state DTOs should live in a focused module instead
+  of remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and workspace lifecycle maintainability
+- Summary: `src/core/workspace/models.py` still owned `WorkspaceSessionCreateRequest`,
+  `WorkspaceSession`, and `WorkspaceSessionCreateResponse` after the input, draft,
+  saved-version, compare, and assistant model extractions. These DTOs define the session boundary
+  used by workspace creation, context resolution, reevaluation, persistence, replay, handoff, and
+  route response typing, making them a distinct ownership unit.
+- Evidence:
+  - Added `src/core/workspace/session_models.py` for workspace session lifecycle state, create
+    request, session state, and create response DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers and OpenAPI
+    schema names.
+  - Updated workspace runtime, API service, route, replay, evaluation, comparison, store, and
+    handoff modules to import session DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    session model definitions.
+- Consequence:
+  - Session-oriented workspace code now depends on a narrow session model boundary instead of the
+    broad compatibility model module, reducing coupling before save/action/handoff DTO extraction.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace save/resume, draft-action, and lifecycle-handoff DTOs in small
+    compatibility-preserving slices.
+
 ## LA-REV-513
 
 - Scope: Workspace assistant model ownership

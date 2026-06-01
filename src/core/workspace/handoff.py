@@ -16,9 +16,9 @@ from src.core.proposals.models import (
 from src.core.workspace.models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
-    WorkspaceSession,
 )
 from src.core.workspace.replay import apply_workspace_handoff_replay_lineage
+from src.core.workspace.session_models import WorkspaceSession
 from src.core.workspace.version_models import WorkspaceLifecycleLink
 
 

@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi import APIRouter, Depends, status
 
 import src.api.proposals.router as proposal_shared
@@ -63,6 +65,8 @@ from src.core.workspace.models import (
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
+)
+from src.core.workspace.session_models import (
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
@@ -72,7 +76,10 @@ router = APIRouter()
 
 
 def _resolve_workspace_or_404(workspace_id: str) -> WorkspaceSession:
-    return run_workspace_operation(lambda: get_workspace_session(workspace_id))
+    return cast(
+        WorkspaceSession,
+        run_workspace_operation(lambda: get_workspace_session(workspace_id)),
+    )
 
 
 @router.post(
@@ -128,7 +135,10 @@ def apply_draft_action(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceDraftActionRequest,
 ) -> WorkspaceDraftActionResponse:
-    return run_workspace_operation(lambda: apply_workspace_draft_action(workspace_id, request))
+    return cast(
+        WorkspaceDraftActionResponse,
+        run_workspace_operation(lambda: apply_workspace_draft_action(workspace_id, request)),
+    )
 
 
 @router.post(
@@ -145,7 +155,10 @@ def apply_draft_action(
 def evaluate_workspace(
     workspace_id: WorkspaceIdPath,
 ) -> WorkspaceSession:
-    return run_workspace_operation(lambda: reevaluate_workspace_session(workspace_id))
+    return cast(
+        WorkspaceSession,
+        run_workspace_operation(lambda: reevaluate_workspace_session(workspace_id)),
+    )
 
 
 @router.post(
@@ -163,7 +176,10 @@ def save_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceSaveRequest,
 ) -> WorkspaceSaveResponse:
-    return run_workspace_operation(lambda: save_workspace_version(workspace_id, request))
+    return cast(
+        WorkspaceSaveResponse,
+        run_workspace_operation(lambda: save_workspace_version(workspace_id, request)),
+    )
 
 
 @router.get(
@@ -180,7 +196,10 @@ def save_workspace(
 def list_saved_workspace_versions(
     workspace_id: WorkspaceIdPath,
 ) -> WorkspaceSavedVersionListResponse:
-    return run_workspace_operation(lambda: list_workspace_saved_versions(workspace_id))
+    return cast(
+        WorkspaceSavedVersionListResponse,
+        run_workspace_operation(lambda: list_workspace_saved_versions(workspace_id)),
+    )
 
 
 @router.get(
@@ -198,8 +217,11 @@ def get_saved_workspace_version_replay_evidence(
     workspace_id: WorkspaceIdPath,
     workspace_version_id: WorkspaceVersionIdPath,
 ) -> AdvisoryReplayEvidenceResponse:
-    return run_workspace_operation(
-        lambda: get_workspace_saved_version_replay(workspace_id, workspace_version_id)
+    return cast(
+        AdvisoryReplayEvidenceResponse,
+        run_workspace_operation(
+            lambda: get_workspace_saved_version_replay(workspace_id, workspace_version_id)
+        ),
     )
 
 
@@ -217,7 +239,10 @@ def resume_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceResumeRequest,
 ) -> WorkspaceSession:
-    return run_workspace_operation(lambda: resume_workspace_version(workspace_id, request))
+    return cast(
+        WorkspaceSession,
+        run_workspace_operation(lambda: resume_workspace_version(workspace_id, request)),
+    )
 
 
 @router.post(
@@ -235,8 +260,9 @@ def compare_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceCompareRequest,
 ) -> WorkspaceCompareResponse:
-    return run_workspace_operation(
-        lambda: compare_workspace_to_saved_version(workspace_id, request)
+    return cast(
+        WorkspaceCompareResponse,
+        run_workspace_operation(lambda: compare_workspace_to_saved_version(workspace_id, request)),
     )
 
 
@@ -256,7 +282,10 @@ def generate_workspace_rationale_endpoint(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceAssistantRequest,
 ) -> WorkspaceAssistantResponse:
-    return run_workspace_operation(lambda: generate_workspace_rationale(workspace_id, request))
+    return cast(
+        WorkspaceAssistantResponse,
+        run_workspace_operation(lambda: generate_workspace_rationale(workspace_id, request)),
+    )
 
 
 @router.post(
@@ -276,8 +305,11 @@ def apply_workspace_rationale_review_action_endpoint(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
 ) -> WorkspaceAssistantWorkflowPackRunReviewActionResponse:
-    return run_workspace_operation(
-        lambda: apply_workspace_rationale_review_action(workspace_id, request)
+    return cast(
+        WorkspaceAssistantWorkflowPackRunReviewActionResponse,
+        run_workspace_operation(
+            lambda: apply_workspace_rationale_review_action(workspace_id, request)
+        ),
     )
 
 
@@ -304,14 +336,17 @@ def handoff_workspace(
 ) -> WorkspaceLifecycleHandoffResponse:
     proposal_shared._assert_lifecycle_enabled()
     try:
-        return run_workspace_operation(
-            lambda: handoff_workspace_to_proposal_lifecycle(
-                workspace_id=workspace_id,
-                request=request,
-                proposal_service=proposal_service,
-                idempotency_key=idempotency_key,
-                correlation_id=correlation_id,
-            )
+        return cast(
+            WorkspaceLifecycleHandoffResponse,
+            run_workspace_operation(
+                lambda: handoff_workspace_to_proposal_lifecycle(
+                    workspace_id=workspace_id,
+                    request=request,
+                    proposal_service=proposal_service,
+                    idempotency_key=idempotency_key,
+                    correlation_id=correlation_id,
+                )
+            ),
         )
     except (
         ProposalIdempotencyConflictError,
@@ -319,3 +354,4 @@ def handoff_workspace(
         ProposalValidationError,
     ) as exc:
         raise_proposal_http_exception(exc)
+        raise
