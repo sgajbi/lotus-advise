@@ -1,9 +1,11 @@
+from src.core.workspace.input_models import (
+    WorkspaceResolvedContext,
+    WorkspaceStatelessInput,
+)
 from src.core.workspace.models import (
     WorkspaceDraftState,
-    WorkspaceResolvedContext,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
-    WorkspaceStatelessInput,
 )
 
 

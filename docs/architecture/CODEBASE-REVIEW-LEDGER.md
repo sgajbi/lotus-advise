@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-509
+
+- Scope: Workspace input and resolved-context model ownership
+- Pattern: Workspace input DTOs shared by API and integration adapters should live in a focused
+  module instead of the broad `src/core/workspace/models.py` surface.
+- Status: Hardened
+- Finding Class: modularity and workspace boundary maintainability
+- Summary: `src/core/workspace/models.py` remained the largest model module and owned both input
+  context DTOs and unrelated workspace session, draft, assistant, compare, and handoff models. The
+  stateful/stateless input and resolved-context DTOs are used independently by Lotus Core adapters,
+  API bootstrap code, and workspace session helpers, making them a clean first extraction boundary.
+- Evidence:
+  - Added `src/core/workspace/input_models.py` for `WorkspaceInputMode`,
+    `WorkspaceStatelessInput`, `WorkspaceStatefulInput`, and `WorkspaceResolvedContext`.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated API, Lotus Core integration, and workspace session helpers to import input/context DTOs
+    from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    input model definitions.
+- Consequence:
+  - Workspace context resolution and stateful integration code now depend on the narrow input-model
+    boundary rather than the monolithic workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace session/draft, assistant, compare, and lifecycle handoff DTOs in
+    small compatibility-preserving slices.
+
 ## LA-REV-508
 
 - Scope: Lotus Core and Lotus Risk integration model dependency direction

@@ -1,3 +1,8 @@
+from src.core.workspace.input_models import (
+    WorkspaceResolvedContext,
+    WorkspaceStatefulInput,
+    WorkspaceStatelessInput,
+)
 from src.core.workspace.models import (
     WorkspaceAssistantEvidence,
     WorkspaceAssistantRequest,
@@ -16,7 +21,6 @@ from src.core.workspace.models import (
     WorkspaceLifecycleHandoffResponse,
     WorkspaceLifecycleLink,
     WorkspaceReplayEvidence,
-    WorkspaceResolvedContext,
     WorkspaceResumeRequest,
     WorkspaceSavedVersion,
     WorkspaceSavedVersionListResponse,
@@ -26,8 +30,6 @@ from src.core.workspace.models import (
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
-    WorkspaceStatefulInput,
-    WorkspaceStatelessInput,
     WorkspaceTradeDraft,
 )
 

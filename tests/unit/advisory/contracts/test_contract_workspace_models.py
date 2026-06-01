@@ -18,6 +18,15 @@ from src.core.models import (
     SimulatedState,
 )
 from src.core.proposals.models import ProposalCreateResponse
+from src.core.workspace.input_models import (
+    WorkspaceResolvedContext as InputWorkspaceResolvedContext,
+)
+from src.core.workspace.input_models import (
+    WorkspaceStatefulInput as InputWorkspaceStatefulInput,
+)
+from src.core.workspace.input_models import (
+    WorkspaceStatelessInput as InputWorkspaceStatelessInput,
+)
 from src.core.workspace.models import (
     WorkspaceAssistantRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
@@ -40,6 +49,12 @@ from src.core.workspace.models import (
     WorkspaceStatefulInput,
     WorkspaceStatelessInput,
 )
+
+
+def test_workspace_models_preserves_input_model_import_contract():
+    assert WorkspaceResolvedContext is InputWorkspaceResolvedContext
+    assert WorkspaceStatefulInput is InputWorkspaceStatefulInput
+    assert WorkspaceStatelessInput is InputWorkspaceStatelessInput
 
 
 def _build_state() -> SimulatedState:

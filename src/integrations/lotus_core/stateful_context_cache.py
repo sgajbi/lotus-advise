@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from threading import RLock
 from typing import Any, cast
 
-from src.core.workspace.models import WorkspaceStatefulInput
+from src.core.workspace.input_models import WorkspaceStatefulInput
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
 from src.integrations.lotus_core.runtime_config import (
     env_non_negative_float,

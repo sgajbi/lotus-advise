@@ -4,9 +4,9 @@ from src.core.workspace.draft_state import (
     apply_workspace_draft_state,
     build_draft_state_from_simulate_request,
 )
+from src.core.workspace.input_models import WorkspaceResolvedContext
 from src.core.workspace.models import (
     WorkspaceDraftState,
-    WorkspaceResolvedContext,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
 )
