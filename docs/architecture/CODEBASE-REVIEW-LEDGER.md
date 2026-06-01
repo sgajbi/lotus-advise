@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-511
+
+- Scope: Workspace saved-version and replay model ownership
+- Pattern: Workspace saved-version, replay evidence, and lifecycle-link DTOs should live in a
+  focused module instead of remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and replay/audit lineage maintainability
+- Summary: `src/core/workspace/models.py` still owned replay evidence, saved-version summaries,
+  full saved versions, and lifecycle links after the input and draft model extractions. These DTOs
+  are used directly by workspace replay, saved-version, compare, lifecycle handoff, and replay
+  service code, making them a separate audit-lineage ownership boundary.
+- Evidence:
+  - Added `src/core/workspace/version_models.py` for replay evidence, saved-version, saved-version
+    summary, and lifecycle-link DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated replay, versioning, compare, handoff, API saved-version, and replay-service helpers to
+    import saved-version and replay DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    version model definitions.
+- Consequence:
+  - Workspace replay, saved-version, and lifecycle lineage code now depends on a narrow audit model
+    boundary instead of the broad workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace assistant, compare, and lifecycle request/response DTOs in small
+    compatibility-preserving slices.
+
 ## LA-REV-510
 
 - Scope: Workspace draft and evaluation model ownership

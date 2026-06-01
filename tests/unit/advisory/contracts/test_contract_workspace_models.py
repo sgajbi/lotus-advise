@@ -66,6 +66,18 @@ from src.core.workspace.models import (
     WorkspaceStatelessInput,
     WorkspaceTradeDraft,
 )
+from src.core.workspace.version_models import (
+    WorkspaceLifecycleLink as VersionWorkspaceLifecycleLink,
+)
+from src.core.workspace.version_models import (
+    WorkspaceReplayEvidence as VersionWorkspaceReplayEvidence,
+)
+from src.core.workspace.version_models import (
+    WorkspaceSavedVersion as VersionWorkspaceSavedVersion,
+)
+from src.core.workspace.version_models import (
+    WorkspaceSavedVersionSummary as VersionWorkspaceSavedVersionSummary,
+)
 
 
 def test_workspace_models_preserves_input_model_import_contract():
@@ -80,6 +92,13 @@ def test_workspace_models_preserves_draft_model_import_contract():
     assert WorkspaceEvaluationImpactSummary is DraftWorkspaceEvaluationImpactSummary
     assert WorkspaceEvaluationSummary is DraftWorkspaceEvaluationSummary
     assert WorkspaceTradeDraft is DraftWorkspaceTradeDraft
+
+
+def test_workspace_models_preserves_version_model_import_contract():
+    assert WorkspaceLifecycleLink is VersionWorkspaceLifecycleLink
+    assert WorkspaceReplayEvidence is VersionWorkspaceReplayEvidence
+    assert WorkspaceSavedVersion is VersionWorkspaceSavedVersion
+    assert WorkspaceSavedVersionSummary is VersionWorkspaceSavedVersionSummary
 
 
 def _build_state() -> SimulatedState:

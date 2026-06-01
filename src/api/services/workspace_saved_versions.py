@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from src.api.services import workspace_store
 from src.api.services.workspace_errors import WorkspaceSavedVersionNotFoundError
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
@@ -10,12 +12,12 @@ from src.core.workspace.models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceResumeRequest,
-    WorkspaceSavedVersion,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
     WorkspaceSession,
 )
+from src.core.workspace.version_models import WorkspaceSavedVersion
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
     apply_saved_workspace_version,
@@ -72,7 +74,7 @@ def resume_workspace_version(
     saved_version = _find_saved_version(session, request.workspace_version_id)
     apply_saved_workspace_version(session=session, saved_version=saved_version)
     _save_workspace_session(session)
-    return session
+    return cast(WorkspaceSession, session)
 
 
 def compare_workspace_to_saved_version(

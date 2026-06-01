@@ -22,17 +22,19 @@ from src.core.workspace.models import (
     WorkspaceLifecycleHandoffMetadata,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
-    WorkspaceLifecycleLink,
-    WorkspaceReplayEvidence,
     WorkspaceResumeRequest,
-    WorkspaceSavedVersion,
     WorkspaceSavedVersionListResponse,
-    WorkspaceSavedVersionSummary,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
+)
+from src.core.workspace.version_models import (
+    WorkspaceLifecycleLink,
+    WorkspaceReplayEvidence,
+    WorkspaceSavedVersion,
+    WorkspaceSavedVersionSummary,
 )
 
 __all__ = [

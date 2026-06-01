@@ -1,9 +1,9 @@
 from src.core.workspace.models import (
     WorkspaceCompareDiffSummary,
     WorkspaceCompareResponse,
-    WorkspaceSavedVersion,
     WorkspaceSession,
 )
+from src.core.workspace.version_models import WorkspaceSavedVersion
 
 
 def build_workspace_compare_response(
