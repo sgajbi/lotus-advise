@@ -39,10 +39,16 @@ from src.core.advisory_copilot.records import (
     AdvisoryCopilotEvidencePacketRecord as CompatibilityAdvisoryCopilotEvidencePacketRecord,
 )
 from src.core.advisory_copilot.records import (
+    AdvisoryCopilotReviewRecord as CompatibilityAdvisoryCopilotReviewRecord,
+)
+from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunIdempotencyRecord as CompatibilityAdvisoryCopilotRunIdempotencyRecord,
 )
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunRecord as CompatibilityAdvisoryCopilotRunRecord,
+)
+from src.core.advisory_copilot.review_records import (
+    AdvisoryCopilotReviewRecord as FocusedAdvisoryCopilotReviewRecord,
 )
 from src.core.advisory_copilot.run_records import (
     AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
@@ -180,6 +186,23 @@ def test_advisory_copilot_records_preserve_idempotency_record_import_contract() 
     assert "AdvisoryCopilotRunIdempotencyRecord" not in [
         node.name for node in tree.body if isinstance(node, ast.ClassDef)
     ]
+
+
+def test_advisory_copilot_records_preserve_review_record_import_contract() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert AdvisoryCopilotReviewRecord is FocusedAdvisoryCopilotReviewRecord
+    assert CompatibilityAdvisoryCopilotReviewRecord is FocusedAdvisoryCopilotReviewRecord
+    assert "AdvisoryCopilotReviewRecord" not in [
+        node.name for node in tree.body if isinstance(node, ast.ClassDef)
+    ]
+
+
+def test_advisory_copilot_records_is_pure_compatibility_facade() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
 
 
 class _FakePostgresConnection:

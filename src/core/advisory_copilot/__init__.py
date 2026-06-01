@@ -30,9 +30,6 @@ from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
     business_projection_for_action,
 )
-from src.core.advisory_copilot.records import (
-    AdvisoryCopilotReviewRecord,
-)
 from src.core.advisory_copilot.reference_models import CopilotLineageRef, CopilotSourceRef
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import (
@@ -42,6 +39,7 @@ from src.core.advisory_copilot.review import (
     is_terminal_review_posture,
     review_posture_for_action,
 )
+from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection,

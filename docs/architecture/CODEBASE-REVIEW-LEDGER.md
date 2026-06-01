@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-544
+
+- Scope: Advisory copilot review record facade closure
+- Pattern: The broad advisory-copilot record module should become a compatibility facade once
+  focused persistence record modules own each audit boundary
+- Status: Hardened
+- Finding Class: Modularity and dependency boundary regression prevention
+- Summary: After extracting run, evidence-packet, and idempotency records, the human-review event
+  record was the last real DTO still defined in `src/core/advisory_copilot/records.py`. That kept
+  the broad record module as an implementation owner instead of a compatibility surface.
+- Evidence:
+  - Added `src/core/advisory_copilot/review_records.py` for review event records and review schema
+    version.
+  - Converted `src/core/advisory_copilot/records.py` into a compatibility facade with no class or
+    function definitions.
+  - Moved package-level review record exports to the focused review record module.
+  - Added import-contract and AST coverage proving compatibility imports resolve to the focused
+    review record class and the broad records module is a pure facade.
+- Consequence:
+  - Advisory-copilot persistence model ownership is now split across focused run, packet,
+    idempotency, review, and shared record-text modules instead of one broad record module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Add production-import guard coverage preventing new imports from the advisory-copilot records
+    compatibility facade.
+
 ## LA-REV-543
 
 - Scope: Advisory copilot run idempotency persistence record
