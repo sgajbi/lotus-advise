@@ -3,10 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 from src.core.advisory_copilot.idempotency_records import AdvisoryCopilotRunIdempotencyRecord
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
+from src.core.advisory_copilot.persistence_results import (
+    AdvisoryCopilotReviewResult,
+    AdvisoryCopilotRunPersistenceResult,
+)
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.request_hashing import (
     build_advisory_copilot_run_request_summary,
@@ -40,23 +42,6 @@ from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_version_for_action,
 )
 from src.core.common.idempotency import normalize_optional_idempotency_key
-
-
-class AdvisoryCopilotRunPersistenceResult(BaseModel):
-    run: AdvisoryCopilotRunRecord = Field(
-        description="Persisted or replayed advisory copilot run record."
-    )
-    replayed: bool = Field(description="Whether the request replayed an existing idempotent run.")
-
-
-class AdvisoryCopilotReviewResult(BaseModel):
-    run: AdvisoryCopilotRunRecord = Field(description="Run after review processing.")
-    review: AdvisoryCopilotReviewRecord = Field(
-        description="Persisted or replayed advisory copilot review event."
-    )
-    replayed: bool = Field(
-        description="Whether the request replayed an existing idempotent review."
-    )
 
 
 def persist_advisory_copilot_run(

@@ -30,6 +30,10 @@ from src.core.advisory_copilot.packet_persistence import (
     save_advisory_copilot_evidence_packet,
 )
 from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
+from src.core.advisory_copilot.persistence_results import (
+    AdvisoryCopilotReviewResult,
+    AdvisoryCopilotRunPersistenceResult,
+)
 from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
     business_projection_for_action,
@@ -58,8 +62,6 @@ from src.core.advisory_copilot.section_models import (
     CopilotEvidenceSectionInput,
 )
 from src.core.advisory_copilot.service import (
-    AdvisoryCopilotReviewResult,
-    AdvisoryCopilotRunPersistenceResult,
     list_advisory_copilot_reviews,
     persist_advisory_copilot_run,
     record_advisory_copilot_review,

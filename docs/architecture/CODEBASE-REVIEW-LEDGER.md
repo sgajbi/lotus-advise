@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-552
+
+- Scope: Advisory copilot persistence result DTO boundary
+- Pattern: Workflow result DTOs should have a focused model owner instead of being defined inside
+  the persistence service implementation module.
+- Status: Hardened
+- Finding Class: DTO ownership and service decomposition
+- Summary: `src/core/advisory_copilot/service.py` still defined the run persistence and review
+  result DTOs even after persistence records, packet workflows, lineage policy, hashing, and
+  retention policy were split into focused modules. That kept response/result model ownership
+  coupled to workflow orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/persistence_results.py` for advisory-copilot run persistence
+    and review result DTOs.
+  - Updated package exports and service compatibility imports to resolve result models from the
+    focused module.
+  - Added coverage proving `service.py` no longer defines the result classes and the public
+    package result exports resolve to the focused DTO owner.
+- Consequence:
+  - Advisory-copilot workflow result contracts now have a reusable model boundary separate from
+    run/review mutation logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract run persistence construction or review append workflows into focused modules.
+
 ## LA-REV-551
 
 - Scope: Advisory copilot evidence-packet persistence workflow boundary

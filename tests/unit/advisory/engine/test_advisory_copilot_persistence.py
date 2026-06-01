@@ -12,7 +12,9 @@ from pydantic import ValidationError
 from src.core.advisory_copilot import (
     AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
+    AdvisoryCopilotReviewResult,
     AdvisoryCopilotRunIdempotencyRecord,
+    AdvisoryCopilotRunPersistenceResult,
     AdvisoryCopilotRunRecord,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
@@ -35,6 +37,12 @@ from src.core.advisory_copilot.packet_persistence import (
 )
 from src.core.advisory_copilot.packet_records import (
     AdvisoryCopilotEvidencePacketRecord as FocusedAdvisoryCopilotEvidencePacketRecord,
+)
+from src.core.advisory_copilot.persistence_results import (
+    AdvisoryCopilotReviewResult as FocusedAdvisoryCopilotReviewResultModel,
+)
+from src.core.advisory_copilot.persistence_results import (
+    AdvisoryCopilotRunPersistenceResult as FocusedAdvisoryCopilotRunPersistenceResult,
 )
 from src.core.advisory_copilot.record_text import (
     normalize_bounded_record_text_list,
@@ -329,6 +337,40 @@ def test_advisory_copilot_packet_persistence_has_focused_owner() -> None:
     assert "def load_advisory_copilot_evidence_packet" not in service_source
     assert save_advisory_copilot_evidence_packet is focused_save_advisory_copilot_evidence_packet
     assert load_advisory_copilot_evidence_packet is focused_load_advisory_copilot_evidence_packet
+
+
+def test_advisory_copilot_persistence_results_have_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+    run_result = _persist_run(InMemoryAdvisoryCopilotRepository())
+    review_record = AdvisoryCopilotReviewRecord(
+        review_id="review_001",
+        run_id=run_result.run.run_id,
+        action="APPROVE_FOR_INTERNAL_USE",
+        previous_posture="REVIEW_REQUIRED",
+        new_posture="APPROVED_FOR_INTERNAL_USE",
+        actor_id="advisor_123",
+        occurred_at=datetime(2026, 5, 28, 9, 10, tzinfo=timezone.utc),
+        reason_json={"business_reason": "Internal review complete."},
+        request_hash="sha256:review",
+        idempotency_key=None,
+        correlation_id="corr_review_001",
+    )
+
+    assert "class AdvisoryCopilotRunPersistenceResult" not in service_source
+    assert "class AdvisoryCopilotReviewResult" not in service_source
+    assert AdvisoryCopilotRunPersistenceResult is FocusedAdvisoryCopilotRunPersistenceResult
+    assert AdvisoryCopilotReviewResult is FocusedAdvisoryCopilotReviewResultModel
+    assert FocusedAdvisoryCopilotRunPersistenceResult(run=run_result.run, replayed=False).run == (
+        run_result.run
+    )
+    assert (
+        FocusedAdvisoryCopilotReviewResultModel(
+            run=run_result.run,
+            review=review_record,
+            replayed=False,
+        ).review
+        == review_record
+    )
 
 
 class _FakePostgresConnection:
