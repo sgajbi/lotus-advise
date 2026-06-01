@@ -2,7 +2,9 @@
 FILE: tests/contracts/test_contract_models.py
 """
 
+import ast
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -123,6 +125,7 @@ from src.core.models import (
     ProposalAllocationLens,
     ProposalAllocationView,
     ProposalOrderIntent,
+    ProposalResult,
     ProposalSimulateRequest,
     ProposedCashFlow,
     ProposedTrade,
@@ -205,6 +208,9 @@ from src.core.proposal_request_models import (
 from src.core.proposal_request_models import (
     ProposedTrade as RequestProposedTrade,
 )
+from src.core.proposal_result_models import (
+    ProposalResult as ResultProposalResult,
+)
 from src.core.simulation_state_models import (
     AllocationMetric as SimulationAllocationMetric,
 )
@@ -253,6 +259,17 @@ from src.core.universe_target_models import (
 from src.core.universe_target_models import (
     UniverseData as UniverseUniverseData,
 )
+
+
+def test_core_models_remains_compatibility_reexport_facade():
+    source_path = Path(__file__).resolve().parents[4] / "src" / "core" / "models.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"))
+    inline_definitions = [
+        node.name
+        for node in tree.body
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    assert inline_definitions == []
 
 
 def test_core_models_preserves_portfolio_model_import_contract():
@@ -347,6 +364,10 @@ def test_core_models_preserves_proposal_request_model_import_contract():
     assert ProposalSimulateRequest is RequestProposalSimulateRequest
     assert ProposedCashFlow is RequestProposedCashFlow
     assert ProposedTrade is RequestProposedTrade
+
+
+def test_core_models_preserves_proposal_result_model_import_contract():
+    assert ProposalResult is ResultProposalResult
 
 
 def test_money_validation():

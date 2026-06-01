@@ -1,5 +1,57 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-503
+
+- Scope: Core model compatibility facade regression guard
+- Pattern: `src/core/models.py` should remain a compatibility re-export facade after model ownership
+  has been split into focused modules.
+- Status: Hardened
+- Finding Class: architecture regression test gap
+- Summary: After extracting the remaining proposal result model, the compatibility module no longer
+  owns inline classes or helper functions. Without a direct contract, future changes could quietly
+  reintroduce unrelated model ownership into the facade.
+- Evidence:
+  - Added an AST-based contract in `tests/unit/shared/contracts/test_contract_models.py` asserting
+    that `src/core/models.py` contains no inline class, function, or async function definitions.
+  - Existing import-identity contracts continue proving the re-exported public symbols point to the
+    focused implementation modules.
+- Consequence:
+  - The facade boundary is now pinned by a fast unit contract, making future monolith regression
+    visible before broader gates.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue modularization outside `src/core/models.py`, especially service boundaries, mapper
+    duplication, and infrastructure adapter seams.
+
+## LA-REV-502
+
+- Scope: Core proposal result model ownership
+- Pattern: Proposal result output DTOs should live in a focused core model module instead of
+  remaining inline in the broad `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and proposal result model maintainability
+- Summary: `src/core/models.py` still owned the proposal result DTO after the surrounding domain
+  model groups had been extracted, leaving the compatibility module as an implementation owner
+  instead of a stable import facade.
+- Evidence:
+  - Added `src/core/proposal_result_models.py` for the proposal result DTO and its composed output
+    model dependencies.
+  - Updated `src/core/models.py` to re-export `ProposalResult` so existing public imports remain
+    stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    proposal result model definition.
+- Consequence:
+  - `src/core/models.py` now acts as a compatibility facade over focused model modules instead of
+    owning proposal domain model implementation directly.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Add an architecture contract that keeps `src/core/models.py` as a re-export facade and prevents
+    future inline model ownership from returning.
+
 ## LA-REV-501
 
 - Scope: Core proposal request model ownership
