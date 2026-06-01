@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
-from typing import Optional, cast
+from typing import Optional
 
 from src.api.proposals.router import get_proposal_repository
-from src.api.services.advisory_simulation_errors import (
-    simulation_idempotency_conflict_exception,
-    simulation_idempotency_store_unavailable_exception,
-    simulation_validation_exception,
+from src.api.services.advisory_simulation_errors import simulation_validation_exception
+from src.api.services.advisory_simulation_idempotency import (
+    get_replayed_simulation_result,
+    save_simulation_idempotency_result,
 )
 from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
 from src.core.advisory.orchestration import evaluate_advisory_proposal
@@ -20,10 +20,7 @@ from src.core.proposals.context import (
     resolve_simulation_request,
 )
 from src.core.proposals.correlation import resolve_correlation_id
-from src.core.proposals.models import (
-    ProposalSimulationIdempotencyRecord,
-    ProposalSimulationRequest,
-)
+from src.core.proposals.models import ProposalSimulationRequest
 from src.core.proposals.simulation_gate import (
     ProposalSimulationGateError,
     validate_proposal_simulation_enabled,
@@ -54,11 +51,13 @@ def simulate_proposal_response(
     request_hash = hash_canonical_payload(request_payload)
     repository = get_proposal_repository()
 
-    existing = repository.get_simulation_idempotency(idempotency_key=idempotency_key)
-    if existing is not None and existing.request_hash != request_hash:
-        raise simulation_idempotency_conflict_exception()
-    if existing is not None:
-        return cast(ProposalResult, ProposalResult.model_validate(existing.response_json))
+    replayed_result = get_replayed_simulation_result(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    if replayed_result is not None:
+        return replayed_result
 
     resolved_correlation_id = resolve_correlation_id(correlation_id)
     context_resolution = build_context_resolution_evidence(resolved_request)
@@ -76,17 +75,13 @@ def simulate_proposal_response(
         raise simulation_validation_exception(f"{exc.reason_code}: {exc}") from exc
     result.explanation["context_resolution"] = context_resolution
 
-    try:
-        repository.save_simulation_idempotency(
-            ProposalSimulationIdempotencyRecord(
-                idempotency_key=idempotency_key,
-                request_hash=request_hash,
-                response_json=result.model_dump(mode="json"),
-                created_at=datetime.now(timezone.utc),
-            )
-        )
-    except (RuntimeError, ValueError, TypeError, ConnectionError) as exc:
-        raise simulation_idempotency_store_unavailable_exception() from exc
+    save_simulation_idempotency_result(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        result=result,
+        created_at=datetime.now(timezone.utc),
+    )
     return result
 
 

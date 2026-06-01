@@ -298,8 +298,9 @@ def test_advisory_simulation_service_uses_shared_error_helpers():
 
     assert "HTTPException(" not in source
     assert "simulation_validation_exception" in source
-    assert "simulation_idempotency_conflict_exception" in source
-    assert "simulation_idempotency_store_unavailable_exception" in source
+    assert "ProposalSimulationIdempotencyRecord" not in source
+    assert "get_replayed_simulation_result" in source
+    assert "save_simulation_idempotency_result" in source
 
 
 def test_integration_capabilities_routes_use_shared_response_metadata():

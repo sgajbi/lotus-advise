@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-429
+
+- Scope: Advisory simulation idempotency service boundary
+- Pattern: Simulation idempotency replay and persistence should live behind a focused helper so
+  the public simulation service can focus on request normalization, evaluation, and response
+  enrichment.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `src/api/services/advisory_simulation_service.py` owned request validation, context
+  resolution, proposal evaluation, idempotency replay, and idempotency persistence in one function.
+  The idempotency-specific conflict and store-unavailable handling was a separate operational
+  concern.
+- Evidence:
+  - Added `src/api/services/advisory_simulation_idempotency.py` with replay lookup and persistence
+    helpers.
+  - Updated `simulate_proposal_response` to delegate idempotency replay/save behavior while keeping
+    repository acquisition in the public service seam.
+  - Extended the internal service guard so direct `ProposalSimulationIdempotencyRecord` construction
+    stays out of the public simulation service.
+- Consequence:
+  - Advisory simulation idempotency behavior now has a named API service boundary and can be tested
+    or reused separately from simulation orchestration.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing simulation orchestration by isolating context resolution and evaluation
+    enrichment if future changes touch that surface.
+
 ## LA-REV-428
 
 - Scope: Async proposal route error boundary
