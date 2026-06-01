@@ -1,6 +1,7 @@
 import pytest
 
-from src.api.services.workspace_store import WorkspaceNotFoundError, WorkspaceSessionStore
+from src.api.services.workspace_errors import WorkspaceNotFoundError
+from src.api.services.workspace_store import WorkspaceSessionStore
 from src.core.workspace.models import WorkspaceSession
 
 

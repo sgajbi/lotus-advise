@@ -1,5 +1,6 @@
 import importlib
 import inspect
+from pathlib import Path
 
 import pytest
 
@@ -157,6 +158,13 @@ def test_workspace_store_uses_shared_workspace_exception_types():
 
     assert "class WorkspaceNotFoundError" not in source
     assert "from src.api.services.workspace_errors import WorkspaceNotFoundError" in source
+
+
+def test_workspace_store_tests_import_shared_not_found_error():
+    source = Path("tests/unit/advisory/api/test_workspace_store.py").read_text()
+
+    assert "from src.api.services.workspace_errors import WorkspaceNotFoundError" in source
+    assert "from src.api.services.workspace_store import WorkspaceNotFoundError" not in source
 
 
 def test_workspace_service_uses_consolidated_workspace_imports():

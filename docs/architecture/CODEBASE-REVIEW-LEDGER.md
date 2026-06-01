@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-411
+
+- Scope: Workspace store test exception imports
+- Pattern: Tests should import shared boundary exception types from the owning error module, not
+  through compatibility re-exports on implementation modules.
+- Status: Hardened
+- Finding Class: test dependency-flow consistency
+- Summary: After moving `WorkspaceNotFoundError` ownership to
+  `src/api/services/workspace_errors.py`, `tests/unit/advisory/api/test_workspace_store.py` still
+  imported the exception from `workspace_store.py`. That kept tests coupled to a compatibility
+  re-export instead of the authoritative boundary module.
+- Evidence:
+  - Updated workspace store tests to import `WorkspaceNotFoundError` from
+    `src/api/services/workspace_errors.py`.
+  - Added an internal guard that prevents store tests from regressing to the store-module
+    re-export.
+- Consequence:
+  - Workspace tests now reinforce the intended dependency direction while store-level behavior
+    remains covered.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal test
+    dependency cleanup for existing behavior.
+- Follow-Up:
+  - Continue aligning tests with shared boundary modules when implementation re-exports remain for
+    compatibility.
+
 ## LA-REV-410
 
 - Scope: Workspace router exception dependencies
