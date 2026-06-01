@@ -36,7 +36,5 @@ class AdvisoryCopilotRunIdempotencyRecord(BaseModel):
     def _normalize_required_idempotency_text(cls, value: str) -> str:
         return cast(
             str,
-            normalize_required_record_text(
-                value, error_code="COPILOT_IDEMPOTENCY_RECORD_REQUIRED"
-            ),
+            normalize_required_record_text(value, error_code="COPILOT_IDEMPOTENCY_RECORD_REQUIRED"),
         )
