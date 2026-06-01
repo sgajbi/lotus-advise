@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-581
+
+- Scope: Advisory copilot review-record limit ownership
+- Pattern: Persisted review-record schema limits should be owned by a focused module rather than
+  embedded as private constants inside the review-record DTO.
+- Status: Hardened
+- Finding Class: Persistence model modularity and validation consistency
+- Summary: `review_records.py` still carried local `_COPILOT_*` limits for actor ids, hashes,
+  identifiers, and bounded JSON fields. This duplicated run and packet record limit patterns and
+  kept durable review-record schema limits mixed with field declarations.
+- Evidence:
+  - Added `src/core/advisory_copilot/review_record_limits.py` for review-record schema limits.
+  - Updated `review_records.py` to consume named review-record constants from the focused owner
+    module.
+  - Updated persistence boundary tests to use named review-record limits instead of magic numbers.
+  - Added coverage proving review-record limits have a focused owner and preventing the private
+    limit block from returning to `review_records.py`.
+- Consequence:
+  - Review event validation limits are now reusable and auditable independently from the persisted
+    review record DTO.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because persistence behavior,
+    API behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue converging idempotency record limits and other schema constants only where tests can
+    prove the extraction is behavior-preserving.
+
 ## LA-REV-580
 
 - Scope: Advisory copilot packet-record limit ownership

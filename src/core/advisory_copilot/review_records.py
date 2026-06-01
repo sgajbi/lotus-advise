@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -10,16 +10,17 @@ from src.core.advisory_copilot.record_text import (
     normalize_required_record_text,
 )
 from src.core.advisory_copilot.review import CopilotReviewAction
+from src.core.advisory_copilot.review_record_limits import (
+    COPILOT_REVIEW_RECORD_ACTOR_ID_MAX_LENGTH,
+    COPILOT_REVIEW_RECORD_HASH_MAX_LENGTH,
+    COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH,
+    COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS,
+)
 from src.core.advisory_copilot.type_models import CopilotReviewPosture
 from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
 from src.core.proposals.correlation import MAX_CORRELATION_ID_LENGTH
 
 CopilotReviewRecordSchemaVersion = Literal["advisory-copilot-review-record.v1"]
-
-_COPILOT_ACTOR_ID_MAX_LENGTH = 128
-_COPILOT_HASH_MAX_LENGTH = 128
-_COPILOT_IDENTIFIER_MAX_LENGTH = 160
-_COPILOT_JSON_FIELD_MAX_ITEMS = 64
 
 
 class AdvisoryCopilotReviewRecord(BaseModel):
@@ -32,13 +33,13 @@ class AdvisoryCopilotReviewRecord(BaseModel):
         description="Stable advisory copilot review event identifier.",
         examples=["copilot_review_a1b2c3"],
         min_length=1,
-        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        max_length=COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH,
     )
     run_id: str = Field(
         description="Copilot run identifier reviewed by this event.",
         examples=["copilot_run_a1b2c3"],
         min_length=1,
-        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        max_length=COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH,
     )
     action: CopilotReviewAction = Field(
         description="Human review action applied to the run.",
@@ -56,7 +57,7 @@ class AdvisoryCopilotReviewRecord(BaseModel):
         description="Actor that recorded the review event.",
         examples=["supervisor_123"],
         min_length=1,
-        max_length=_COPILOT_ACTOR_ID_MAX_LENGTH,
+        max_length=COPILOT_REVIEW_RECORD_ACTOR_ID_MAX_LENGTH,
     )
     occurred_at: datetime = Field(
         description="UTC timestamp when the review event was recorded.",
@@ -67,13 +68,13 @@ class AdvisoryCopilotReviewRecord(BaseModel):
             "Structured review reason; unredacted AI input and unsafe output are never stored."
         ),
         examples=[{"comment": "Reviewed against source evidence."}],
-        max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
+        max_length=COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS,
     )
     request_hash: str = Field(
         description="Canonical hash of the review request for idempotent replay.",
         examples=["sha256:copilot-review-request"],
         min_length=1,
-        max_length=_COPILOT_HASH_MAX_LENGTH,
+        max_length=COPILOT_REVIEW_RECORD_HASH_MAX_LENGTH,
     )
     idempotency_key: str | None = Field(
         default=None,
@@ -92,9 +93,15 @@ class AdvisoryCopilotReviewRecord(BaseModel):
     @field_validator("review_id", "run_id", "actor_id", "request_hash", "correlation_id")
     @classmethod
     def _normalize_required_review_text(cls, value: str) -> str:
-        return normalize_required_record_text(value, error_code="COPILOT_REVIEW_RECORD_REQUIRED")
+        return cast(
+            str,
+            normalize_required_record_text(value, error_code="COPILOT_REVIEW_RECORD_REQUIRED"),
+        )
 
     @field_validator("idempotency_key")
     @classmethod
     def _normalize_optional_review_text(cls, value: str | None) -> str | None:
-        return normalize_optional_record_text(value, error_code="COPILOT_REVIEW_RECORD_REQUIRED")
+        return cast(
+            str | None,
+            normalize_optional_record_text(value, error_code="COPILOT_REVIEW_RECORD_REQUIRED"),
+        )

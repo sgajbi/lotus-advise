@@ -76,6 +76,11 @@ from src.core.advisory_copilot.review_persistence import (
 from src.core.advisory_copilot.review_persistence import (
     record_advisory_copilot_review as focused_record_advisory_copilot_review,
 )
+from src.core.advisory_copilot.review_record_limits import (
+    COPILOT_REVIEW_RECORD_ACTOR_ID_MAX_LENGTH,
+    COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH,
+    COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS,
+)
 from src.core.advisory_copilot.review_records import (
     AdvisoryCopilotReviewRecord as FocusedAdvisoryCopilotReviewRecord,
 )
@@ -833,12 +838,20 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
     assert normalized_review.review_id == "copilot_review_trimmed"
     assert normalized_review.idempotency_key == "copilot-review-idem-trimmed"
     with pytest.raises(ValidationError):
-        AdvisoryCopilotReviewRecord(**{**review.model_dump(), "actor_id": "x" * 129})
+        AdvisoryCopilotReviewRecord(
+            **{
+                **review.model_dump(),
+                "actor_id": "x" * (COPILOT_REVIEW_RECORD_ACTOR_ID_MAX_LENGTH + 1),
+            }
+        )
     with pytest.raises(ValidationError):
         AdvisoryCopilotReviewRecord(
             **{
                 **review.model_dump(),
-                "reason_json": {f"key_{index}": index for index in range(65)},
+                "reason_json": {
+                    f"key_{index}": index
+                    for index in range(COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS + 1)
+                },
             }
         )
 
@@ -866,6 +879,18 @@ def test_copilot_packet_record_limits_have_focused_owner() -> None:
     assert COPILOT_PACKET_RECORD_JSON_FIELD_MAX_ITEMS == 64
     assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in packet_records_source
     assert "_COPILOT_JSON_FIELD_MAX_ITEMS = 64" not in packet_records_source
+
+
+def test_copilot_review_record_limits_have_focused_owner() -> None:
+    review_records_source = Path("src/core/advisory_copilot/review_records.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH == 160
+    assert COPILOT_REVIEW_RECORD_ACTOR_ID_MAX_LENGTH == 128
+    assert COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS == 64
+    assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in review_records_source
+    assert "_COPILOT_ACTOR_ID_MAX_LENGTH = 128" not in review_records_source
 
 
 def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:
