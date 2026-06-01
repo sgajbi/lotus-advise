@@ -13,6 +13,7 @@ from src.core.bank_demo_proof.commercial_materials import (
     CommercialMaterial,
     CommercialMaterialPack,
     build_commercial_material_pack,
+    validate_commercial_material_pack_against_register,
 )
 from src.core.bank_demo_proof.document_proof import (
     AdvisoryDocumentProof,
@@ -115,4 +116,5 @@ __all__ = [
     "normalize_runtime_base_url",
     "review_material_fields",
     "sanitize_live_runtime_summary",
+    "validate_commercial_material_pack_against_register",
 ]

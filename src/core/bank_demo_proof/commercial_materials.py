@@ -12,6 +12,7 @@ from src.core.bank_demo_proof.model_common import (
     RFC28_CANONICAL_SCENARIO_ID,
     SupportedClaimAudience,
 )
+from src.core.bank_demo_proof.supported_claim_models import AdvisorySupportedClaimRegister
 from src.core.bank_demo_proof.validation import (
     contains_sensitive_rfc28_term,
     normalize_required_rfc28_text,
@@ -28,6 +29,15 @@ _RFC28_MATERIAL_TITLE_MAX_LENGTH = 160
 _RFC28_MATERIAL_SOURCE_REF_MAX_LENGTH = 512
 _RFC28_MATERIAL_LIST_MAX_ITEMS = 64
 _RFC28_WINDOWS_DRIVE_REF = re.compile(r"^[A-Za-z]:")
+_CLIENT_FACING_MATERIAL_TYPES = {
+    "PRODUCT_ONE_PAGER",
+    "RFP_RESPONSE",
+    "SECURITY_PACK",
+    "DEMO_SCRIPT",
+    "ROI_STORY",
+    "FEATURE_MATRIX",
+    "DEMO_BOUNDARY",
+}
 
 
 class CommercialMaterial(BaseModel):
@@ -210,6 +220,35 @@ def _normalize_repository_source_ref(value: str) -> str:
         )
     path = "/".join(path_parts)
     return urlunsplit(("", "", path, "", fragment))
+
+
+def validate_commercial_material_pack_against_register(
+    pack: CommercialMaterialPack,
+    register: AdvisorySupportedClaimRegister,
+) -> CommercialMaterialPack:
+    claim_by_id = {claim.claim_id: claim for claim in register.claims}
+    referenced_claim_ids = set(pack.required_claim_ids)
+    for material in pack.materials:
+        referenced_claim_ids.update(material.mapped_claim_ids)
+
+    missing = sorted(referenced_claim_ids.difference(claim_by_id))
+    if missing:
+        raise ValueError(f"commercial material references unknown supported claims: {missing}")
+
+    for material in pack.materials:
+        is_client_facing = (
+            "CLIENT_DEMO" in material.allowed_audiences
+            or material.material_type in _CLIENT_FACING_MATERIAL_TYPES
+        )
+        if not is_client_facing:
+            continue
+        for claim_id in material.mapped_claim_ids:
+            claim = claim_by_id[claim_id]
+            if claim.classification == "BACKEND_BACKED_UI_PENDING":
+                raise ValueError(
+                    "commercial material cannot map client-facing assets to UI-pending claims"
+                )
+    return pack
 
 
 def build_commercial_material_pack() -> CommercialMaterialPack:

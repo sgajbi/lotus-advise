@@ -9394,6 +9394,37 @@
   - Publish `lotus-advise` wiki after merge because this branch already carries wiki source
     changes from LA-REV-380.
 
+## LA-REV-387
+
+- Scope: RFC-0028 commercial material/register alignment guard
+- Pattern: Proof capture should validate commercial material packs against the active
+  supported-claim register before returning customer-consumable material
+- Status: Hardened
+- Finding Class: Contract consistency and product-claim governance
+- Summary: `build_commercial_material_pack()` and `build_default_supported_claim_register()` were
+  independently valid, but the capture path did not enforce cross-object alignment. A future
+  commercial material could reference an unknown claim id or map client-facing material to a
+  backend/UI-pending claim without failing proof capture.
+- Evidence:
+  - Added `validate_commercial_material_pack_against_register`.
+  - The validator rejects commercial material packs that reference unknown supported claims or map
+    client-facing material to `BACKEND_BACKED_UI_PENDING` claims.
+  - The RFC-0028 proof capture path now validates the commercial material pack against the default
+    supported-claim register before hashing and returning proof artifacts.
+  - Added focused tests for unknown claim ids, UI-pending client-facing mappings, API proof
+    capture, and commercial pack/register success.
+  - Focused `ruff`, format check, targeted bank-demo proof tests, and RFC-0028 bank-demo/API
+    selected tests passed with 90 tests.
+- Consequence:
+  - Commercial/RFP/demo material now fails closed if claim-register truth and material mappings
+    drift apart.
+- Documentation:
+  - Review ledger updated. Existing commercial guide and wiki source already describe
+    supported-claim governance; no additional wording change is required.
+- Follow-Up:
+  - Keep new commercial material families validated against the active register in proof capture,
+    not only in documentation tests.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
