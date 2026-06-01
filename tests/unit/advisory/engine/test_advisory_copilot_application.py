@@ -18,6 +18,9 @@ from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotProposalVersionEvidenceRequest,
     AdvisoryCopilotReviewRequest,
 )
+from src.core.advisory_copilot.api_response_models import (
+    AdvisoryCopilotSupportabilityResponse,
+)
 from src.core.advisory_copilot.api_validation import (
     normalize_bounded_copilot_string_tuple,
     normalize_copilot_actor_id,
@@ -137,6 +140,19 @@ def test_copilot_api_limits_have_focused_owner() -> None:
     assert "_COPILOT_REQUESTED_OUTPUT_LIMIT" not in api_models_source
     assert "_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT" not in api_models_source
     assert "COPILOT_REQUESTED_OUTPUT_LIMIT = 8" not in api_models_source
+
+
+def test_copilot_api_response_models_have_focused_owner() -> None:
+    api_models_source = Path("src/core/advisory_copilot/api_models.py").read_text(encoding="utf-8")
+    response_models_source = Path("src/core/advisory_copilot/api_response_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert AdvisoryCopilotSupportabilityResponse.__module__.endswith("api_response_models")
+    assert "class AdvisoryCopilotSupportabilityResponse" not in api_models_source
+    assert "class AdvisoryCopilotRunResponse" not in api_models_source
+    assert "class AdvisoryCopilotRunPage" not in api_models_source
+    assert "class AdvisoryCopilotSupportabilityResponse" in response_models_source
 
 
 def test_copilot_evidence_packet_requests_normalize_and_bound_identifiers() -> None:

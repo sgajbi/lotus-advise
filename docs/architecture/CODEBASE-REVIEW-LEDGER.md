@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-575
+
+- Scope: Advisory copilot API response DTO ownership
+- Pattern: Request DTOs and response DTOs should not remain coupled in one oversized API model
+  module when they have different validation and persistence dependencies.
+- Status: Hardened
+- Finding Class: API boundary modularity and maintainability
+- Summary: `api_models.py` still owned both request validation DTOs and response-envelope DTOs,
+  keeping packet, run, review, pagination, supportability, and request-normalization dependencies
+  in one module. That made the advisory-copilot API model surface harder to audit and kept response
+  schema growth tied to request validation changes.
+- Evidence:
+  - Added `src/core/advisory_copilot/api_response_models.py` for advisory-copilot response
+    envelopes, supportability response, and run pagination DTOs.
+  - Kept `api_models.py` as the compatibility request-model facade with response re-exports so
+    existing route and service imports remain stable during the split.
+  - Added unit coverage proving response DTO classes are owned by `api_response_models.py` and do
+    not drift back into `api_models.py`.
+  - Focused `ruff`, `mypy`, and advisory-copilot application tests passed.
+- Consequence:
+  - Advisory-copilot response schema dependencies are now isolated from request validation models,
+    reducing the largest API-model hotspot without changing the public API contract.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior,
+    OpenAPI shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue splitting the remaining request DTOs by workflow once import compatibility is stable.
+
 ## LA-REV-574
 
 - Scope: Advisory copilot API model limit ownership
