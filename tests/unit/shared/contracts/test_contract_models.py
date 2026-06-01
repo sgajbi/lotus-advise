@@ -76,6 +76,15 @@ from src.core.engine_options_models import (
 from src.core.engine_options_models import (
     ValuationMode as OptionsValuationMode,
 )
+from src.core.gate_models import (
+    GateDecision as GateGateDecision,
+)
+from src.core.gate_models import (
+    GateDecisionSummary as GateGateDecisionSummary,
+)
+from src.core.gate_models import (
+    GateReason as GateGateReason,
+)
 from src.core.models import (
     AllocationMetric,
     CashBalance,
@@ -95,6 +104,9 @@ from src.core.models import (
     ExcludedInstrument,
     FundingPlanEntry,
     FxSpotIntent,
+    GateDecision,
+    GateDecisionSummary,
+    GateReason,
     GroupConstraint,
     GroupConstraintEvent,
     InsufficientCashEntry,
@@ -299,6 +311,12 @@ def test_core_models_preserves_suitability_model_import_contract():
     assert SuitabilityIssue is SuitabilitySuitabilityIssue
     assert SuitabilityResult is SuitabilitySuitabilityResult
     assert SuitabilitySummary is SuitabilitySuitabilitySummary
+
+
+def test_core_models_preserves_gate_model_import_contract():
+    assert GateDecision is GateGateDecision
+    assert GateDecisionSummary is GateGateDecisionSummary
+    assert GateReason is GateGateReason
 
 
 def test_money_validation():

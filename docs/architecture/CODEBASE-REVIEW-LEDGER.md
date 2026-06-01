@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-499
+
+- Scope: Core workflow gate model ownership
+- Pattern: Workflow gate reasons, summary counters, and deterministic gate decisions should live in
+  a focused core model module instead of remaining inline in the broad `src/core/models.py`
+  compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and workflow decision model maintainability
+- Summary: `src/core/models.py` still owned advisory workflow gate DTOs used by gate policy and
+  proposal simulation alongside unrelated proposal-input and proposal-result models.
+- Evidence:
+  - Added `src/core/gate_models.py` for gate reasons, gate summary counters, and gate decisions.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    gate model definitions.
+- Consequence:
+  - Advisory workflow gate output vocabulary now has explicit ownership while downstream callers can
+    continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal-input, reconciliation/tax, and proposal-result model groups from
+    `src/core/models.py` in small compatibility-preserving slices.
+
 ## LA-REV-498
 
 - Scope: Core suitability output model ownership
