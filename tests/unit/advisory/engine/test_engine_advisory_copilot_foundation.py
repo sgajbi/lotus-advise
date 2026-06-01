@@ -274,6 +274,34 @@ def test_copilot_catalog_projection_uses_business_text_normalizer() -> None:
     assert "def _normalize_required_text" not in catalog_source
 
 
+def test_copilot_unsupported_evidence_uses_business_text_normalizer() -> None:
+    unsupported_source = Path("src/core/advisory_copilot/unsupported_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    unsupported = CopilotUnsupportedEvidence(
+        reason_code="SOURCE_NOT_AVAILABLE",
+        source_dependency="RFC0025_POLICY_EVALUATION",
+        advisor_message="  Policy evidence\nis not available.  ",
+    )
+
+    assert unsupported.advisor_message == "Policy evidence is not available."
+    with pytest.raises(ValidationError, match="COPILOT_UNSUPPORTED_MESSAGE_REQUIRED"):
+        CopilotUnsupportedEvidence(
+            reason_code="SOURCE_NOT_AVAILABLE",
+            source_dependency="RFC0025_POLICY_EVALUATION",
+            advisor_message="   ",
+        )
+    with pytest.raises(ValidationError, match="COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL"):
+        CopilotUnsupportedEvidence(
+            reason_code="SOURCE_NOT_AVAILABLE",
+            source_dependency="RFC0025_POLICY_EVALUATION",
+            advisor_message="raw payload detail",
+        )
+    assert "def _normalize_required_text" not in unsupported_source
+    assert "contains_copilot_business_technical_detail" not in unsupported_source
+
+
 def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:
     tree = ast.parse(ADVISORY_COPILOT_MODELS_PATH.read_text(encoding="utf-8"))
     literal_assignments = [

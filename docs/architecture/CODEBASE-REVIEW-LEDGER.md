@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-559
+
+- Scope: Advisory copilot unsupported-evidence advisor-message normalization
+- Pattern: Advisor-facing unsupported-evidence copy should reuse the shared business-text
+  normalizer while preserving its domain-specific error codes.
+- Status: Hardened
+- Finding Class: Duplication reduction and sensitive-data handling
+- Summary: `src/core/advisory_copilot/unsupported_models.py` still carried local required-text
+  normalization and a direct technical-detail check for advisor-facing unsupported-evidence
+  messages.
+- Evidence:
+  - Extended `assert_copilot_business_safe_text` and
+    `normalize_required_copilot_business_text` to accept a domain-specific technical-leak error
+    code.
+  - Updated unsupported-evidence advisor messages to use the shared normalizer while preserving
+    `COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL`.
+  - Added coverage proving whitespace normalization, blank rejection, technical-leak rejection,
+    and removal of the unsupported-model local helper.
+- Consequence:
+  - Unsupported-evidence messages now share the same normalization/sensitive-data boundary as other
+    advisory-copilot business copy without losing domain-specific validation errors.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API shape did not
+    change and validation behavior is preserved.
+- Follow-Up:
+  - Decide whether reference identifiers should adopt business-safe text normalization or retain
+    technical lineage semantics with a separate shared identifier helper.
+
 ## LA-REV-558
 
 - Scope: Advisory copilot catalog projection business-text normalization

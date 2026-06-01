@@ -20,16 +20,24 @@ _COPILOT_BUSINESS_COPY_TECHNICAL_TERMS = (
 )
 
 
-def assert_copilot_business_safe_text(*values: str) -> None:
+def assert_copilot_business_safe_text(
+    *values: str,
+    error_code: str = "COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL",
+) -> None:
     if contains_copilot_business_technical_detail(" ".join(values)):
-        raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
+        raise ValueError(error_code)
 
 
-def normalize_required_copilot_business_text(value: str, *, error_code: str) -> str:
+def normalize_required_copilot_business_text(
+    value: str,
+    *,
+    error_code: str,
+    technical_error_code: str = "COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL",
+) -> str:
     normalized = " ".join(value.split())
     if not normalized:
         raise ValueError(error_code)
-    assert_copilot_business_safe_text(normalized)
+    assert_copilot_business_safe_text(normalized, error_code=technical_error_code)
     return normalized
 
 
