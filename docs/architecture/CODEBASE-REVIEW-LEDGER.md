@@ -31,6 +31,37 @@
   - Continue extracting route-local dependency/error helpers from the remaining large proposal API
     route families when the change can be pinned by meaningful behavior tests.
 
+## LA-REV-394
+
+- Scope: Advisor cockpit API route boundary
+- Pattern: Cockpit endpoint modules should keep HTTP route declarations separate from dependency
+  construction and reusable OpenAPI response metadata.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/proposals/routes_advisor_cockpit.py` still mixed endpoint definitions with
+  service construction and response metadata. The cockpit route file already delegates business
+  behavior to `AdvisorCockpitService`, but keeping construction and response dictionaries in the
+  route module made the file harder to scan and less consistent with the newly extracted copilot
+  route boundary.
+- Evidence:
+  - Moved cockpit service dependency construction into
+    `src/api/proposals/cockpit_dependencies.py`.
+  - Moved cockpit OpenAPI response metadata into
+    `src/api/proposals/cockpit_responses.py`.
+  - Added API tests that pin the dependency wiring to the shared proposal repository and keep the
+    route-family-specific 422/409 response descriptions stable.
+  - Focused `ruff`, format check, targeted `mypy`, and advisor cockpit API tests passed with 10
+    tests.
+- Consequence:
+  - Advisor cockpit routes are narrower and easier to extend without mixing endpoint declarations,
+    service dependency construction, and OpenAPI response vocabulary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    modularity and response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue applying the route/dependency/response split to remaining proposal route families only
+    where the extraction reduces real coupling and can be protected by behavior or contract tests.
+
 ## LA-REV-001
 
 - Scope: Product surface, ecosystem fit, and architecture posture

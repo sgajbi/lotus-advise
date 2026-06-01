@@ -9,6 +9,11 @@ from pydantic import ValidationError
 import src.api.proposals.router as proposals_router
 import src.core.advisor_cockpit.service as cockpit_service
 from src.api.main import app
+from src.api.proposals.cockpit_dependencies import get_advisor_cockpit_service
+from src.api.proposals.cockpit_responses import (
+    ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES,
+    ADVISOR_COCKPIT_READ_RESPONSES,
+)
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisor_cockpit import (
     AdvisorCockpitPreparationPacketPage,
@@ -97,6 +102,26 @@ def test_advisor_cockpit_api_models_reject_unbounded_supportability_context() ->
             supportability={},
             unsupported_capabilities=[f"UNSUPPORTED_{index}" for index in range(65)],
         )
+
+
+def test_advisor_cockpit_dependency_wires_shared_proposal_repository(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = InMemoryProposalRepository()
+    monkeypatch.setattr(proposals_router, "get_proposal_repository", lambda: repository)
+
+    service = get_advisor_cockpit_service()
+
+    assert getattr(service, "_repository") is repository
+
+
+def test_advisor_cockpit_response_metadata_stays_route_family_specific() -> None:
+    assert ADVISOR_COCKPIT_READ_RESPONSES[422]["description"] == (
+        "Advisor cockpit request failed validation, including invalid cursors."
+    )
+    assert ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES[409]["description"] == (
+        "Idempotency key was reused with a different acknowledgement request."
+    )
 
 
 @pytest.fixture()

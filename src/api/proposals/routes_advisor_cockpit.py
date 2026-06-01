@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-from typing import Annotated, cast
+from typing import Annotated
 
 from fastapi import Depends, Header, Path, Query, status
 
-from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals import router as shared
+from src.api.proposals.cockpit_dependencies import get_advisor_cockpit_service
+from src.api.proposals.cockpit_responses import (
+    ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES,
+    ADVISOR_COCKPIT_READ_RESPONSES,
+)
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
     AdvisorCockpitCallerRole,
     AdvisorCockpitPreparationPacketPage,
-    AdvisorCockpitRepository,
     AdvisorCockpitService,
     AdvisorCockpitSnapshotResponse,
     AdvisorCockpitSupportabilityResponse,
@@ -28,28 +31,6 @@ from src.core.proposals.exceptions import (
     ProposalNotFoundError,
     ProposalValidationError,
 )
-
-ADVISOR_COCKPIT_READ_RESPONSES = {
-    status.HTTP_404_NOT_FOUND: {
-        "description": "Advisor cockpit action item was not found for the supplied scope."
-    },
-    HTTP_422_UNPROCESSABLE: {
-        "description": "Advisor cockpit request failed validation, including invalid cursors."
-    },
-}
-
-ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES = {
-    **ADVISOR_COCKPIT_READ_RESPONSES,
-    status.HTTP_409_CONFLICT: {
-        "description": ("Idempotency key was reused with a different acknowledgement request.")
-    },
-}
-
-
-def get_advisor_cockpit_service() -> AdvisorCockpitService:
-    return AdvisorCockpitService(
-        repository=cast(AdvisorCockpitRepository, shared.get_proposal_repository())
-    )
 
 
 @shared.router.get(
