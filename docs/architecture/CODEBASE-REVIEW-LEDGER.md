@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-554
+
+- Scope: Advisory copilot run persistence workflow boundary
+- Pattern: Run persistence orchestration should have a focused workflow owner, leaving the broad
+  service module as a compatibility facade.
+- Status: Hardened
+- Finding Class: Service decomposition and run auditability
+- Summary: After extracting evidence-packet persistence, review persistence, result DTOs, lineage
+  policy, hashing, retention policy, structured-payload safety, and review retryability policy,
+  `src/core/advisory_copilot/service.py` still owned the run persistence workflow. That prevented
+  the broad service module from becoming a stable compatibility surface.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_persistence.py` for advisory-copilot run persistence,
+    idempotency replay, retryable refresh, retention stamping, workflow-pack lineage, and output
+    hash storage.
+  - Converted `src/core/advisory_copilot/service.py` into a compatibility facade that re-exports
+    the focused packet, run, review, and result workflow surfaces.
+  - Updated the application service and package export to import run persistence from the focused
+    workflow module.
+  - Added coverage proving `service.py` no longer defines the run persistence function and public
+    imports resolve to the focused implementation.
+- Consequence:
+  - Advisory-copilot persistence workflows now have focused owners, and the broad service module no
+    longer carries workflow implementation logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Add a pure-facade AST guard for the advisory-copilot service module and continue similar
+    decomposition on adjacent oversized advisory workflow modules.
+
 ## LA-REV-553
 
 - Scope: Advisory copilot review persistence workflow boundary

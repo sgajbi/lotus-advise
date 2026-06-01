@@ -57,6 +57,7 @@ from src.core.advisory_copilot.review_persistence import (
     record_advisory_copilot_review,
 )
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
+from src.core.advisory_copilot.run_persistence import persist_advisory_copilot_run
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 from src.core.advisory_copilot.run_review_policy import (
     can_attempt_advisory_copilot_run_refresh,
@@ -64,9 +65,6 @@ from src.core.advisory_copilot.run_review_policy import (
 from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
-)
-from src.core.advisory_copilot.service import (
-    persist_advisory_copilot_run,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,

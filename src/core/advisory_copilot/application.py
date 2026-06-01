@@ -29,10 +29,8 @@ from src.core.advisory_copilot.review_persistence import (
     list_advisory_copilot_reviews,
     record_advisory_copilot_review,
 )
+from src.core.advisory_copilot.run_persistence import persist_advisory_copilot_run
 from src.core.advisory_copilot.run_review_policy import can_attempt_advisory_copilot_run_refresh
-from src.core.advisory_copilot.service import (
-    persist_advisory_copilot_run,
-)
 from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,
 )

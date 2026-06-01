@@ -84,12 +84,18 @@ from src.core.advisory_copilot.run_lineage import (
     optional_lineage_text,
     stable_copilot_record_id,
 )
+from src.core.advisory_copilot.run_persistence import (
+    persist_advisory_copilot_run as focused_persist_advisory_copilot_run,
+)
 from src.core.advisory_copilot.run_records import (
     AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
 )
 from src.core.advisory_copilot.run_review_policy import (
     can_attempt_advisory_copilot_run_refresh,
     review_posture_from_draft_status,
+)
+from src.core.advisory_copilot.service import (
+    persist_advisory_copilot_run as service_persist_advisory_copilot_run,
 )
 from src.core.advisory_copilot.structured_payload import assert_safe_structured_payload
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
@@ -386,6 +392,15 @@ def test_advisory_copilot_review_persistence_has_focused_owner() -> None:
     assert "def list_advisory_copilot_reviews" not in service_source
     assert record_advisory_copilot_review is focused_record_advisory_copilot_review
     assert list_advisory_copilot_reviews is focused_list_advisory_copilot_reviews
+
+
+def test_advisory_copilot_run_persistence_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "def persist_advisory_copilot_run" not in service_source
+    assert "__all__" in service_source
+    assert persist_advisory_copilot_run is focused_persist_advisory_copilot_run
+    assert service_persist_advisory_copilot_run is focused_persist_advisory_copilot_run
 
 
 class _FakePostgresConnection:
