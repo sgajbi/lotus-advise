@@ -888,6 +888,54 @@ def test_service_delegates_version_replay_view(monkeypatch):
     }
 
 
+def test_service_delegates_create_version_command(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(
+        repository=repo,
+        store_evidence_bundle=False,
+        require_proposal_simulation_flag=False,
+        allow_portfolio_id_change_on_new_version=True,
+    )
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    replay_lineage = {"source": "async-replay"}
+    context_resolution_override = {"source": "test-context"}
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_create_proposal_version(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "create_proposal_version",
+        fake_create_proposal_version,
+    )
+
+    response = service.create_version(
+        proposal_id="pp_create_version_delegate",
+        payload=payload,
+        correlation_id="corr-create-version-delegate",
+        replay_lineage=replay_lineage,
+        context_resolution_override=context_resolution_override,
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["proposal_id"] == "pp_create_version_delegate"
+    assert captured["payload"] is payload
+    assert captured["correlation_id"] == "corr-create-version-delegate"
+    assert captured["replay_lineage"] is replay_lineage
+    assert captured["context_resolution_override"] is context_resolution_override
+    assert captured["store_evidence_bundle"] is False
+    assert captured["require_proposal_simulation_flag"] is False
+    assert captured["allow_portfolio_id_change_on_new_version"] is True
+    assert callable(captured["utc_now"])
+
+
 def test_service_delegates_narrative_read_view(monkeypatch):
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

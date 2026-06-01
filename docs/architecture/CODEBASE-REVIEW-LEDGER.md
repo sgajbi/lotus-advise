@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-476
+
+- Scope: Proposal create-version command orchestration
+- Pattern: Create-version command execution should live in a command boundary instead of keeping
+  state validation, context resolution, simulation, materialization, persistence, and response
+  projection inline in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and command-boundary maintainability
+- Summary: `src/core/proposals/service.py` still owned the full create-version command path,
+  mixing proposal state validation, portfolio-context checks, advisory simulation, materialization,
+  workflow event creation, and persistence into the service facade.
+- Evidence:
+  - Added `src/core/proposals/version_command.py` with the create-version command boundary and
+    explicit dependencies for repository, runtime flags, replay lineage, context override, and
+    clock source.
+  - Updated `ProposalWorkflowService.create_version()` to delegate to the command boundary while
+    preserving public method signatures.
+  - Added service-level guard coverage proving the command receives repository, proposal identity,
+    payload, correlation ID, replay lineage, context override, evidence-storage flag, simulation
+    flag, portfolio-change flag, and clock dependency unchanged.
+- Consequence:
+  - The workflow service no longer owns the largest create-version command implementation, making
+    command behavior easier to test and reducing the service facade's responsibility surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting create-proposal command orchestration and async submission command helpers
+    once the create-version boundary is green locally and remotely.
+
 ## LA-REV-475
 
 - Scope: Proposal replay referent view assembly

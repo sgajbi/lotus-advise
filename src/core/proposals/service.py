@@ -38,7 +38,6 @@ from src.core.proposals.async_payloads import (
     hash_async_create_submission,
     hash_async_version_submission,
 )
-from src.core.proposals.command_read_model import load_proposal_command_read_model
 from src.core.proposals.command_validation import (
     validate_proposal_simulation_flag,
 )
@@ -46,14 +45,11 @@ from src.core.proposals.context import (
     ProposalContextResolutionError,
     build_context_resolution_evidence,
     build_create_request_hash,
-    build_version_request_hash,
     resolve_create_request,
-    resolve_version_request,
 )
 from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.create_persistence import (
     persist_created_proposal,
-    persist_created_proposal_version,
 )
 from src.core.proposals.error_details import (
     PROPOSAL_CONTEXT_RESOLUTION_FAILED_DETAIL,
@@ -141,14 +137,9 @@ from src.core.proposals.replay_views import (
 from src.core.proposals.report_request_command import record_proposal_report_request
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
+from src.core.proposals.version_command import create_proposal_version
 from src.core.proposals.versions import (
-    ProposalVersionConflictError,
-    ProposalVersionPortfolioContextError,
-    ProposalVersionTerminalStateError,
-    build_new_version_created_event_and_apply_state,
     build_proposal_version_record,
-    validate_create_version_portfolio_context,
-    validate_create_version_state,
 )
 from src.core.proposals.workflow_rules import TERMINAL_STATES
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
@@ -485,96 +476,20 @@ class ProposalWorkflowService:
         replay_lineage: Optional[dict[str, Any]] = None,
         context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
-        now = _utc_now()
-        command_read_model = load_proposal_command_read_model(
+        return create_proposal_version(
             repository=self._repository,
             proposal_id=proposal_id,
-        )
-        if command_read_model.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        proposal = command_read_model.proposal
-        try:
-            validate_create_version_state(
-                proposal=proposal,
-                expected_current_version_no=payload.expected_current_version_no,
-                terminal_states=TERMINAL_STATES,
-            )
-        except ProposalVersionTerminalStateError as exc:
-            raise ProposalValidationError(str(exc)) from exc
-        except ProposalVersionConflictError as exc:
-            raise ProposalStateConflictError(str(exc)) from exc
-
-        try:
-            resolved_request = resolve_version_request(payload)
-        except ProposalContextResolutionError as exc:
-            raise ProposalValidationError(
-                safe_proposal_error_detail(
-                    str(exc),
-                    fallback=PROPOSAL_CONTEXT_RESOLUTION_FAILED_DETAIL,
-                )
-            ) from exc
-        validate_proposal_simulation_flag(
-            request=resolved_request.simulate_request,
-            require_simulation_flag=self._require_proposal_simulation_flag,
-        )
-        context_resolution = build_context_resolution_evidence(resolved_request)
-        request_hash = build_version_request_hash(payload=payload, resolved=resolved_request)
-        try:
-            validate_create_version_portfolio_context(
-                proposal_portfolio_id=proposal.portfolio_id,
-                request_portfolio_id=(
-                    resolved_request.simulate_request.portfolio_snapshot.portfolio_id
-                ),
-                allow_portfolio_id_change=self._allow_portfolio_id_change_on_new_version,
-            )
-        except ProposalVersionPortfolioContextError as exc:
-            raise ProposalValidationError(str(exc)) from exc
-
-        proposal_result = run_advisory_proposal_simulation(
-            request=resolved_request.simulate_request,
-            resolved_as_of=resolved_request.resolved_context.as_of,
-            input_mode=resolved_request.input_mode,
-            request_hash=request_hash,
-            idempotency_key=None,
+            payload=payload,
             correlation_id=correlation_id,
-            policy_context=context_resolution["advisory_policy_context"],
-        )
-        materialization = build_proposal_version_materialization(
-            request=resolved_request.simulate_request,
-            proposal_result=proposal_result,
-            created_at=now,
-            context_resolution=context_resolution,
-            context_resolution_override=context_resolution_override,
             replay_lineage=replay_lineage,
-        )
-
-        next_version_no = proposal.current_version_no + 1
-        version = build_proposal_version_record(
-            proposal_version_id=new_proposal_version_id(),
-            proposal_id=proposal.proposal_id,
-            version_no=next_version_no,
-            request_hash=request_hash,
-            proposal_result=proposal_result,
-            artifact=materialization.artifact.model_dump(mode="json"),
-            evidence_bundle=materialization.evidence_bundle,
-            created_at=now,
+            context_resolution_override=context_resolution_override,
             store_evidence_bundle=self._store_evidence_bundle,
+            require_proposal_simulation_flag=self._require_proposal_simulation_flag,
+            allow_portfolio_id_change_on_new_version=(
+                self._allow_portfolio_id_change_on_new_version
+            ),
+            utc_now=_utc_now,
         )
-        event = build_new_version_created_event_and_apply_state(
-            event_id=new_workflow_event_id(),
-            proposal=proposal,
-            actor_id=payload.created_by,
-            occurred_at=now,
-            related_version_no=next_version_no,
-            correlation_id=correlation_id,
-        )
-        persist_created_proposal_version(
-            repository=self._repository,
-            proposal=proposal,
-            version=version,
-            event=event,
-        )
-        return to_create_response(proposal=proposal, version=version, latest_event=event)
 
     def submit_create_version_async(
         self,
