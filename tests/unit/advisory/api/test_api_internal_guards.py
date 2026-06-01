@@ -138,6 +138,10 @@ def test_workspace_routes_use_shared_response_metadata():
     assert "responses=WORKSPACE_DRAFT_ACTION_RESPONSES" in source
     assert "responses=WORKSPACE_HANDOFF_RESPONSES" in source
     assert "_raise_saved_version_not_found" not in source
+    assert "from src.api.services.workspace_errors import" in source
+    assert "WorkspaceEvaluationUnavailableError" in source
+    assert "WorkspaceSavedVersionNotFoundError" in source
+    assert "from src.api.services.workspace_service import (\n    WorkspaceEvaluation" not in source
 
 
 def test_workspace_ai_service_uses_shared_workspace_exception_types():

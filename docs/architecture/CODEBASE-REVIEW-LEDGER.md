@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-410
+
+- Scope: Workspace router exception dependencies
+- Pattern: API routers should import shared exception types from boundary error modules, not
+  through service modules whose primary purpose is behavior orchestration.
+- Status: Hardened
+- Finding Class: dependency-flow consistency
+- Summary: `src/api/workspaces/router.py` imported `WorkspaceEvaluationUnavailableError` and
+  `WorkspaceSavedVersionNotFoundError` through `workspace_service.py`, while other workspace
+  exceptions had already moved to `workspace_errors.py`. This kept part of the route error boundary
+  coupled to a concrete service implementation for shared exception types.
+- Evidence:
+  - Updated the workspace router to import evaluation, saved-version, not-found, lifecycle-handoff,
+    and assistant unavailable exceptions from `src/api/services/workspace_errors.py`.
+  - Updated workspace API tests to import workspace evaluation errors from the shared error module.
+  - Extended the internal router guard to catch regression to service-module exception imports.
+- Consequence:
+  - Workspace route dependencies now separate behavior functions from shared error types more
+    cleanly, reducing accidental coupling as workspace service internals continue to be refactored.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    route dependency-flow cleanup for existing behavior.
+- Follow-Up:
+  - Continue replacing service re-export dependencies with explicit boundary-module imports where
+    they remain.
+
 ## LA-REV-409
 
 - Scope: Workspace service dependency imports

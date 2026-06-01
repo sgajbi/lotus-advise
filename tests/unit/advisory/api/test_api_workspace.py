@@ -9,10 +9,10 @@ from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.api.services.workspace_errors import (
     WorkspaceAssistantUnavailableError,
+    WorkspaceEvaluationUnavailableError,
     WorkspaceNotFoundError,
 )
 from src.api.services.workspace_service import (
-    WorkspaceEvaluationUnavailableError,
     get_workspace_session,
     reevaluate_workspace_session,
     reset_workspace_sessions_for_tests,

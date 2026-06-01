@@ -10,12 +10,12 @@ from src.api.services.workspace_ai_service import (
 )
 from src.api.services.workspace_errors import (
     WorkspaceAssistantUnavailableError,
+    WorkspaceEvaluationUnavailableError,
     WorkspaceLifecycleHandoffUnavailableError,
     WorkspaceNotFoundError,
+    WorkspaceSavedVersionNotFoundError,
 )
 from src.api.services.workspace_service import (
-    WorkspaceEvaluationUnavailableError,
-    WorkspaceSavedVersionNotFoundError,
     apply_workspace_draft_action,
     compare_workspace_to_saved_version,
     create_workspace_session,
