@@ -7,6 +7,21 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
+from src.core.engine_options_models import (
+    EngineOptions as OptionsEngineOptions,
+)
+from src.core.engine_options_models import (
+    GroupConstraint as OptionsGroupConstraint,
+)
+from src.core.engine_options_models import (
+    SuitabilityThresholds as OptionsSuitabilityThresholds,
+)
+from src.core.engine_options_models import (
+    TargetMethod as OptionsTargetMethod,
+)
+from src.core.engine_options_models import (
+    ValuationMode as OptionsValuationMode,
+)
 from src.core.models import (
     AllocationMetric,
     CashBalance,
@@ -21,8 +36,10 @@ from src.core.models import (
     ProposedTrade,
     ShelfEntry,
     SimulatedState,
+    SuitabilityThresholds,
     TargetMethod,
     TaxLot,
+    ValuationMode,
 )
 from src.core.portfolio_models import (
     CashBalance as PortfolioCashBalance,
@@ -59,6 +76,14 @@ def test_core_models_preserves_portfolio_model_import_contract():
     assert MarketDataSnapshot is PortfolioMarketDataSnapshot
     assert ShelfEntry is PortfolioShelfEntry
     assert TaxLot is PortfolioTaxLot
+
+
+def test_core_models_preserves_engine_options_model_import_contract():
+    assert EngineOptions is OptionsEngineOptions
+    assert GroupConstraint is OptionsGroupConstraint
+    assert SuitabilityThresholds is OptionsSuitabilityThresholds
+    assert TargetMethod is OptionsTargetMethod
+    assert ValuationMode is OptionsValuationMode
 
 
 def test_money_validation():

@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-492
+
+- Scope: Core engine option and suitability threshold model ownership
+- Pattern: Engine configuration, target/valuation modes, group constraints, and suitability
+  thresholds should live in a focused core model module instead of remaining inline in the broad
+  `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and engine configuration maintainability
+- Summary: `src/core/models.py` still mixed runtime engine configuration with portfolio primitives,
+  diagnostics, suitability outputs, intents, gates, and proposal result models. That made advisory
+  tuning and suitability threshold definitions harder to reason about and test as a cohesive unit.
+- Evidence:
+  - Added `src/core/engine_options_models.py` for engine options, valuation/target modes, group
+    constraints, and suitability threshold definitions.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    engine option model definitions.
+- Consequence:
+  - Engine tuning and suitability threshold definitions now have explicit ownership while downstream
+    callers can continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting diagnostics, suitability output, intent, gate, and proposal-result model
+    groups from `src/core/models.py` in small compatibility-preserving slices.
+
 ## LA-REV-491
 
 - Scope: Core portfolio and market data model ownership
