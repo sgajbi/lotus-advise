@@ -144,6 +144,33 @@ def test_commercial_material_pack_requires_exact_blocked_claim_coverage() -> Non
             materials=[_commercial_material()],
         )
 
+
+def test_commercial_material_pack_requires_every_required_claim_to_be_mapped() -> None:
+    with pytest.raises(ValidationError, match="required claims must all be mapped"):
+        CommercialMaterialPack(
+            scenario_id=RFC28_CANONICAL_SCENARIO_ID,
+            primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
+            proof_marker=RFC28_CANONICAL_PROOF_MARKER,
+            publication_posture="CUSTOMER_CONSUMABLE_WITH_BOUNDARIES",
+            required_claim_ids=[
+                "commercial_rfp_security_material_available",
+                "backend_proof_capture_repeatable",
+            ],
+            blocked_claims=["client_ready_publication"],
+            materials=[_commercial_material()],
+        )
+
+    with pytest.raises(ValidationError, match="required and blocked claims must be distinct"):
+        CommercialMaterialPack(
+            scenario_id=RFC28_CANONICAL_SCENARIO_ID,
+            primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
+            proof_marker=RFC28_CANONICAL_PROOF_MARKER,
+            publication_posture="CUSTOMER_CONSUMABLE_WITH_BOUNDARIES",
+            required_claim_ids=["commercial_rfp_security_material_available"],
+            blocked_claims=["commercial_rfp_security_material_available"],
+            materials=[_commercial_material()],
+        )
+
     with pytest.raises(ValidationError, match="must exclude every blocked claim"):
         _commercial_material_pack(
             [

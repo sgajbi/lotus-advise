@@ -152,14 +152,22 @@ class CommercialMaterialPack(BaseModel):
     @model_validator(mode="after")
     def _materials_must_map_to_required_claims(self) -> CommercialMaterialPack:
         required = set(self.required_claim_ids)
+        blocked = set(self.blocked_claims)
+        if required.intersection(blocked):
+            raise ValueError("commercial material required and blocked claims must be distinct")
         material_ids = [material.material_id for material in self.materials]
         if len(set(material_ids)) != len(material_ids):
             raise ValueError("commercial material ids must be unique")
+        mapped: set[str] = set()
         for material in self.materials:
-            if not set(material.mapped_claim_ids).issubset(required):
+            mapped_claims = set(material.mapped_claim_ids)
+            if not mapped_claims.issubset(required):
                 raise ValueError("commercial material maps to an unsupported claim id")
-            if not set(self.blocked_claims).issubset(material.excluded_claims):
+            mapped.update(mapped_claims)
+            if not blocked.issubset(material.excluded_claims):
                 raise ValueError("commercial material must exclude every blocked claim")
+        if not required.issubset(mapped):
+            raise ValueError("commercial material required claims must all be mapped")
         return self
 
 

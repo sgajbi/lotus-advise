@@ -9299,6 +9299,36 @@
   - Keep live-validation defects and sensitive-leak findings covered at the lowest request/model
     boundary where they can recur.
 
+## LA-REV-384
+
+- Scope: RFC-0028 commercial material claim mapping completeness
+- Pattern: Claim-controlled commercial material packs must prove every required supported claim is
+  mapped to at least one governed material, not only that each material uses allowed claims
+- Status: Hardened
+- Finding Class: Documentation/product-claim correctness and test quality
+- Summary: `CommercialMaterialPack` validated that each material mapped only to required claim ids
+  and excluded blocked claims, but it did not reject a pack where a required claim id was declared
+  and never used by any material. That could let claim-control coverage appear complete while
+  leaving a product, RFP, security, ROI, or demo material family unmapped.
+- Evidence:
+  - Added a completeness validator requiring every `required_claim_id` to appear in at least one
+    material's `mapped_claim_ids`.
+  - Added a distinctness guard so a claim cannot be both required and blocked in the same material
+    pack.
+  - Added behavior tests for missing required-claim mapping and overlapping required/blocked
+    claim sets.
+  - Focused `ruff`, format check, commercial material/API proof tests, and RFC-0028 bank-demo/API
+    selected tests passed with 89 tests.
+- Consequence:
+  - RFC-0028 commercial/RFP/security/demo material packs now fail closed when claim-control
+    coverage is incomplete or internally contradictory.
+- Documentation:
+  - Review ledger updated. README/wiki source already describes claim-controlled commercial
+    material; no source-truth change is required for this stricter validator.
+- Follow-Up:
+  - Keep commercial material additions tied to supported-claim tests so new claims cannot become
+    decorative metadata.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
