@@ -192,6 +192,18 @@ def test_workspace_routes_use_shared_response_metadata():
     assert "from src.api.services.workspace_service import (\n    WorkspaceEvaluation" not in source
 
 
+def test_workspace_routes_use_shared_parameter_contracts():
+    source = Path("src/api/workspaces/router.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import APIRouter, Depends, status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "WorkspaceIdPath" in source
+    assert "WorkspaceVersionIdPath" in source
+    assert "WorkspaceCreateCorrelationIdHeader" in source
+    assert "WorkspaceHandoffIdempotencyKeyHeader" in source
+
+
 def test_workspace_ai_service_uses_shared_workspace_exception_types():
     source = inspect.getsource(workspace_ai_service)
 

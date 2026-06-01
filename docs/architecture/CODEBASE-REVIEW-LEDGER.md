@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-446
+
+- Scope: Advisory workspace route parameter contracts
+- Pattern: Workspace path and header contracts should live in a shared workspace API parameter
+  module where repeated across create, read, draft, evaluate, save, replay, resume, compare, AI,
+  and handoff endpoints.
+- Status: Hardened
+- Finding Class: OpenAPI duplication and route-boundary maintainability
+- Summary: `src/api/workspaces/router.py` repeated workspace session path metadata across nearly
+  every endpoint and repeated create/handoff correlation and idempotency header metadata inline.
+  That made the workspace route module larger and increased Swagger drift risk.
+- Evidence:
+  - Added `src/api/workspaces/parameters.py` with reusable annotated FastAPI parameter contracts.
+  - Updated workspace routes to consume shared workspace id, workspace version id, correlation id,
+    and handoff idempotency aliases.
+  - Added an internal guard so the workspace router no longer owns raw `Header` or `Path`
+    declarations for the shared workspace route contract.
+- Consequence:
+  - Workspace route signatures now foreground workflow behavior while one module owns repeated
+    path/header documentation and examples.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while reducing internal route duplication.
+- Follow-Up:
+  - Continue extracting shared route parameter contracts only where the metadata is repeated enough
+    to create real drift risk.
+
 ## LA-REV-445
 
 - Scope: Proposal lifecycle route parameter contracts
