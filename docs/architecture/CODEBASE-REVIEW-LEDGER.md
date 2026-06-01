@@ -62,6 +62,35 @@
   - Continue applying the route/dependency/response split to remaining proposal route families only
     where the extraction reduces real coupling and can be protected by behavior or contract tests.
 
+## LA-REV-395
+
+- Scope: Advisory policy evaluation API response metadata
+- Pattern: Repeated OpenAPI response descriptions should be centralized when they express one
+  route-family contract rather than route-local business logic.
+- Status: Hardened
+- Finding Class: duplication and API documentation quality
+- Summary: `src/api/proposals/routes_policy_evaluations.py` repeated policy evaluation not-found,
+  idempotency-conflict, validation, report-unavailable, and AI-evidence response dictionaries
+  across the route file. The duplication made certified policy API documentation harder to review
+  and increased the chance of inconsistent future wording for the same RFC-0025 boundary.
+- Evidence:
+  - Moved policy evaluation response metadata into
+    `src/api/proposals/policy_evaluation_responses.py`.
+  - Route decorators now reference named response maps for create, review queue, read/replay/
+    lineage/sign-off package/workflow, event, sign-off decision, report package, and AI evidence
+    routes.
+  - OpenAPI tests now pin representative 422 and 503 descriptions to the centralized response
+    metadata.
+- Consequence:
+  - Policy evaluation API docs remain easier to audit for private-banking wording, client-ready
+    boundaries, and report/AI degraded-posture semantics without changing endpoint behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the API contract text is
+    unchanged and now centralized.
+- Follow-Up:
+  - Continue centralizing route-family response metadata where it removes duplicated contract
+    wording without hiding route-specific behavior.
+
 ## LA-REV-001
 
 - Scope: Product surface, ecosystem fit, and architecture posture

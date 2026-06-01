@@ -3,8 +3,16 @@ from typing import Annotated
 from fastapi import Header, Path, Query, status
 
 import src.api.proposals.router as shared
-from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.policy_evaluation_responses import (
+    POLICY_AI_EVIDENCE_RESPONSES,
+    POLICY_EVALUATION_CREATE_RESPONSES,
+    POLICY_EVALUATION_EVENT_RESPONSES,
+    POLICY_EVALUATION_READ_RESPONSES,
+    POLICY_REPORT_PACKAGE_RESPONSES,
+    POLICY_REVIEW_QUEUE_RESPONSES,
+    POLICY_SIGN_OFF_DECISION_RESPONSES,
+)
 from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
 from src.core.policy_packs import (
     PolicyEvaluationAiEvidenceRequest,
@@ -57,15 +65,7 @@ from src.integrations.lotus_report import LotusReportUnavailableError
         "Gateway/Workbench consumption and signed-off report-package handoff are supported by "
         "the current RFC-0025 implementation, while client-ready publication remains gated."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Policy-pack version was not found."},
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused for a different evaluation request."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": "Policy pack is inactive, not applicable, or source evidence is invalid."
-        },
-    },
+    responses=POLICY_EVALUATION_CREATE_RESPONSES,
 )
 def create_or_replay_policy_evaluation(
     proposal_id: Annotated[
@@ -122,7 +122,7 @@ def create_or_replay_policy_evaluation(
         "the Advise source queue for later Gateway and Workbench review surfaces, not a "
         "client-ready release queue."
     ),
-    responses={200: {"description": "Policy review queue returned."}},
+    responses=POLICY_REVIEW_QUEUE_RESPONSES,
 )
 def read_policy_review_queue(
     evaluation_status: Annotated[
@@ -163,7 +163,7 @@ def read_policy_review_queue(
         "gaps, approval dependencies, disclosure requirements, consent requirements, and "
         "append-only review/sign-off/report reference arrays."
     ),
-    responses={status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."}},
+    responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def read_policy_evaluation(
     evaluation_id: Annotated[
@@ -188,7 +188,7 @@ def read_policy_evaluation(
         "hash against the finalized policy evaluation record. Optional current evidence proves "
         "whether material source or result truth has drifted."
     ),
-    responses={status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."}},
+    responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def replay_policy_evaluation(
     evaluation_id: Annotated[
@@ -217,12 +217,7 @@ def replay_policy_evaluation(
         "finalized policy evaluation hash. Event capture does not mutate the immutable evaluation "
         "truth or release client-ready publication."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."},
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused for a different event request."
-        },
-    },
+    responses=POLICY_EVALUATION_EVENT_RESPONSES,
 )
 def record_policy_evaluation_event(
     evaluation_id: Annotated[
@@ -261,7 +256,7 @@ def record_policy_evaluation_event(
         "Returns hash-backed policy, source, rule-result, and audit-event lineage for a finalized "
         "policy evaluation record."
     ),
-    responses={status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."}},
+    responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def read_policy_evaluation_lineage(
     evaluation_id: Annotated[
@@ -286,7 +281,7 @@ def read_policy_evaluation_lineage(
         "contains the finalized evaluation, lineage, and audit events, but does not claim "
         "report/render/archive realization or client-ready publication."
     ),
-    responses={status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."}},
+    responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def read_policy_sign_off_package(
     evaluation_id: Annotated[
@@ -311,7 +306,7 @@ def read_policy_sign_off_package(
         "SLA aging, maker-checker posture, and sign-off blockers derived from the finalized policy "
         "evaluation record. This route does not infer client-ready publication."
     ),
-    responses={status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."}},
+    responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def read_policy_evaluation_workflow(
     evaluation_id: Annotated[
@@ -336,18 +331,7 @@ def read_policy_evaluation_workflow(
         "Approval requires maker-checker separation and explicit resolution of approval, "
         "disclosure, consent, and conflict requirements; client-ready publication remains blocked."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."},
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused for a different sign-off decision."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "Sign-off is blocked by stale hash, maker-checker, unresolved requirement, "
-                "blocked evaluation, or unresolved conflict posture."
-            )
-        },
-    },
+    responses=POLICY_SIGN_OFF_DECISION_RESPONSES,
 )
 def record_policy_sign_off_decision(
     evaluation_id: Annotated[
@@ -390,21 +374,7 @@ def record_policy_sign_off_decision(
         "report/render/archive handling, and records returned report, render, and archive "
         "references in policy lineage. Client-ready document release remains blocked."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."},
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused with a different report-package request."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "Report package is blocked by stale hash, missing sign-off, unresolved "
-                "requirements, unsupported output formats, or client-ready document request."
-            )
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "lotus-report report/render/archive materialization is unavailable."
-        },
-    },
+    responses=POLICY_REPORT_PACKAGE_RESPONSES,
 )
 def request_policy_report_package(
     evaluation_id: Annotated[
@@ -451,18 +421,7 @@ def request_policy_report_package(
         "cannot alter policy status, rule results, approvals, waivers, disclosures, consent, or "
         "client-ready publication posture."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."},
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused with a different AI evidence request."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "AI evidence request is blocked by stale hash, missing action, forbidden action, "
-                "or unsupported claim request."
-            )
-        },
-    },
+    responses=POLICY_AI_EVIDENCE_RESPONSES,
 )
 def request_policy_ai_evidence(
     evaluation_id: Annotated[
