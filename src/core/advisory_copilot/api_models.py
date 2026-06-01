@@ -8,13 +8,11 @@ from src.core.advisory_copilot.packet_models import (
     COPILOT_PACKET_SECTION_LIMIT,
     CopilotEvidencePacket,
 )
+from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
 from src.core.advisory_copilot.pagination import COPILOT_RUN_MAX_PAGE_SIZE
-from src.core.advisory_copilot.records import (
-    AdvisoryCopilotEvidencePacketRecord,
-    AdvisoryCopilotReviewRecord,
-    AdvisoryCopilotRunRecord,
-)
 from src.core.advisory_copilot.review import CopilotReviewAction
+from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
+from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 from src.core.advisory_copilot.section_models import CopilotEvidenceSectionInput
 from src.core.advisory_copilot.type_models import CopilotActionFamily, CopilotAudience
 from src.core.common.actors import normalize_required_actor_id

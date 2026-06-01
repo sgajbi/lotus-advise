@@ -126,6 +126,7 @@ _REVIEW_COLUMNS = (
 )
 
 ADVISORY_COPILOT_RECORDS_PATH = Path("src/core/advisory_copilot/records.py")
+SRC_ROOT = Path("src")
 
 
 def test_advisory_copilot_record_text_helpers_normalize_audit_text() -> None:
@@ -203,6 +204,17 @@ def test_advisory_copilot_records_is_pure_compatibility_facade() -> None:
 
     assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
     assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+
+def test_production_code_uses_focused_advisory_copilot_record_imports() -> None:
+    compatibility_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != ADVISORY_COPILOT_RECORDS_PATH.as_posix()
+        and "src.core.advisory_copilot.records" in path.read_text(encoding="utf-8")
+    )
+
+    assert compatibility_importers == []
 
 
 class _FakePostgresConnection:

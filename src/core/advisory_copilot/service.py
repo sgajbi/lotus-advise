@@ -8,19 +8,17 @@ from typing import Any, cast
 from pydantic import BaseModel, Field
 
 from src.core.advisory_copilot.business_text import contains_copilot_business_technical_detail
+from src.core.advisory_copilot.idempotency_records import AdvisoryCopilotRunIdempotencyRecord
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
-from src.core.advisory_copilot.records import (
-    AdvisoryCopilotEvidencePacketRecord,
-    AdvisoryCopilotReviewRecord,
-    AdvisoryCopilotRunIdempotencyRecord,
-    AdvisoryCopilotRunRecord,
-)
+from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import (
     CopilotReviewAction,
     is_terminal_review_posture,
     review_posture_for_action,
 )
+from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
+from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 from src.core.advisory_copilot.type_models import CopilotAudience, CopilotReviewPosture
 from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_id_for_action,

@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-545
+
+- Scope: Advisory copilot records facade production import boundary
+- Pattern: Production code should import focused advisory-copilot persistence records from their
+  owner modules instead of the broad compatibility facade.
+- Status: Hardened
+- Finding Class: Modularity and dependency boundary regression prevention
+- Summary: After `src/core/advisory_copilot/records.py` became a pure compatibility facade,
+  production service, API, repository, and infrastructure code still imported from that facade.
+  That preserved runtime behavior but left the old broad module on the active dependency path.
+- Evidence:
+  - Moved production imports to the focused run, evidence-packet, idempotency, and review record
+    modules.
+  - Added source-scan coverage proving production code no longer imports
+    `src.core.advisory_copilot.records`.
+  - Kept compatibility import-contract coverage for callers that still rely on the old public
+    module path.
+- Consequence:
+  - The compatibility facade remains available for stable imports, while active application code
+    now depends on the focused persistence-record owners.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue splitting advisory-copilot service logic around evidence-packet assembly, run
+    persistence, and review workflows.
+
 ## LA-REV-544
 
 - Scope: Advisory copilot review record facade closure

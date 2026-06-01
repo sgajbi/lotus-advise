@@ -6,16 +6,14 @@ from datetime import datetime
 from importlib.util import find_spec
 from typing import Any
 
+from src.core.advisory_copilot.idempotency_records import AdvisoryCopilotRunIdempotencyRecord
+from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
 from src.core.advisory_copilot.pagination import (
     decode_copilot_run_cursor,
     encode_copilot_run_cursor,
 )
-from src.core.advisory_copilot.records import (
-    AdvisoryCopilotEvidencePacketRecord,
-    AdvisoryCopilotReviewRecord,
-    AdvisoryCopilotRunIdempotencyRecord,
-    AdvisoryCopilotRunRecord,
-)
+from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
+from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 from src.infrastructure.postgres_migrations import apply_postgres_migrations
 
 
