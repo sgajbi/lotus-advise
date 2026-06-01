@@ -791,8 +791,7 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
         AdvisoryCopilotEvidencePacketRecord(
             **{
                 **packet_record.model_dump(),
-                "evidence_packet_id": "x"
-                * (COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH + 1),
+                "evidence_packet_id": "x" * (COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH + 1),
             }
         )
     with pytest.raises(ValidationError):
@@ -897,9 +896,9 @@ def test_copilot_review_record_limits_have_focused_owner() -> None:
 
 
 def test_copilot_idempotency_record_limits_have_focused_owner() -> None:
-    idempotency_records_source = Path(
-        "src/core/advisory_copilot/idempotency_records.py"
-    ).read_text(encoding="utf-8")
+    idempotency_records_source = Path("src/core/advisory_copilot/idempotency_records.py").read_text(
+        encoding="utf-8"
+    )
 
     assert COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH == 160
     assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in idempotency_records_source

@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-01T23:34:43.541077+00:00`
+- Generated At: `2026-06-01T23:51:32.591585+00:00`
 - Branch: `advise-enterprise-hardening-slice-14`
-- Head: `efd1432cd79753be5419f4b9f3e06a56849c45ab`
-- Python Files: `747`
+- Head: `0f6ffecc6af02481e4b72f9b720c85e18b9ffa16`
+- Python Files: `753`
 - Packages: `37`
-- Modules: `710`
-- Total Python Lines: `129094`
+- Modules: `716`
+- Total Python Lines: `129655`
 
 ## Largest Files
 
@@ -18,7 +18,7 @@
 | 4 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2368 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
-| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1484 |
+| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1571 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 9 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 | 10 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
