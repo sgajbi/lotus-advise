@@ -7,10 +7,8 @@ from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
-from src.core.advisory_copilot.models import (
-    CopilotEvidencePacket,
-    contains_copilot_business_technical_detail,
-)
+from src.core.advisory_copilot.business_text import contains_copilot_business_technical_detail
+from src.core.advisory_copilot.models import CopilotEvidencePacket
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,

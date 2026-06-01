@@ -28,6 +28,12 @@ from src.core.advisory_copilot import (
     review_posture_for_action,
     workflow_pack_id_for_action,
 )
+from src.core.advisory_copilot.business_text import (
+    assert_copilot_business_safe_text as FocusedAssertCopilotBusinessSafeText,
+)
+from src.core.advisory_copilot.business_text import (
+    contains_copilot_business_technical_detail as focused_contains_technical_detail,
+)
 from src.core.advisory_copilot.models import (
     CopilotActionFamily as CompatibilityCopilotActionFamily,
 )
@@ -49,6 +55,12 @@ from src.core.advisory_copilot.models import (
 )
 from src.core.advisory_copilot.models import (
     CopilotUnsupportedEvidenceReason as CompatibilityCopilotUnsupportedEvidenceReason,
+)
+from src.core.advisory_copilot.models import (
+    assert_copilot_business_safe_text as CompatibilityAssertCopilotBusinessSafeText,
+)
+from src.core.advisory_copilot.models import (
+    contains_copilot_business_technical_detail as compatibility_contains_technical_detail,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily as FocusedCopilotActionFamily,
@@ -126,6 +138,17 @@ def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> Non
     ]
 
     assert literal_assignments == []
+
+
+def test_advisory_copilot_business_text_import_contract() -> None:
+    assert CompatibilityAssertCopilotBusinessSafeText is FocusedAssertCopilotBusinessSafeText
+    assert compatibility_contains_technical_detail is focused_contains_technical_detail
+
+    FocusedAssertCopilotBusinessSafeText("Review policy evidence for advisor use.")
+    assert focused_contains_technical_detail("raw prompt must not be exposed") is True
+
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        FocusedAssertCopilotBusinessSafeText("Provider response must not appear.")
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:

@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-533
+
+- Scope: Advisory copilot business-text safety boundary
+- Pattern: Business-copy safety checks should be reusable outside the broad advisory-copilot model
+  module
+- Status: Hardened
+- Finding Class: Modularity and sensitive-detail handling
+- Summary: Advisory-copilot evidence builders and run-review service logic imported business-copy
+  safety helpers through `src/core/advisory_copilot/models.py`. That kept sensitive-detail
+  detection coupled to the model monolith even though the helpers are a cross-cutting evidence and
+  API-boundary concern.
+- Evidence:
+  - Added `src/core/advisory_copilot/business_text.py` for copilot business-copy sensitive-detail
+    detection and assertion helpers.
+  - Kept compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved evidence-packet and service imports to the focused business-text helper module.
+  - Added import-contract and behavior coverage proving compatibility imports still point at the
+    focused helpers and still reject technical detail such as raw prompt or provider-response copy.
+- Consequence:
+  - Subsequent advisory-copilot model extraction can reuse sensitive-detail handling without
+    preserving a dependency on the broad model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because runtime capability
+    truth did not change.
+- Follow-Up:
+  - Extract source, lineage, unsupported-evidence, and packet-section models into focused modules
+    now that shared vocabulary and business-text helpers are independent.
+
 ## LA-REV-532
 
 - Scope: Advisory copilot model vocabulary

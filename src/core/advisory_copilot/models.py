@@ -4,6 +4,12 @@ from typing import Any, cast
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.core.advisory_copilot.business_text import (
+    assert_copilot_business_safe_text as assert_copilot_business_safe_text,
+)
+from src.core.advisory_copilot.business_text import (
+    contains_copilot_business_technical_detail as contains_copilot_business_technical_detail,
+)
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily as CopilotActionFamily,
 )
@@ -44,24 +50,6 @@ _COPILOT_LINEAGE_TYPE_MAX_LENGTH = 96
 _COPILOT_LINEAGE_REF_LIMIT = 16
 _COPILOT_UNSUPPORTED_EVIDENCE_LIMIT = 12
 _COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH = 500
-_COPILOT_BUSINESS_COPY_TECHNICAL_TERMS = (
-    "authorization",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api key",
-    "apikey",
-    "raw prompt",
-    "provider response",
-    "provider output",
-    "trace id",
-    "correlation id",
-    "run ledger",
-    "raw payload",
-    "raw source",
-)
 COPILOT_AUDIENCE_LIMIT = 5
 COPILOT_PACKET_SECTION_LIMIT = 12
 
@@ -476,13 +464,3 @@ def _normalize_audience_tuple(value: Any) -> tuple[CopilotAudience, ...]:
     if not normalized:
         raise ValueError("COPILOT_AUDIENCE_REQUIRED")
     return tuple(normalized)
-
-
-def assert_copilot_business_safe_text(*values: str) -> None:
-    if contains_copilot_business_technical_detail(" ".join(values)):
-        raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
-
-
-def contains_copilot_business_technical_detail(value: str) -> bool:
-    normalized = value.lower().replace("-", " ").replace("_", " ")
-    return any(term in normalized for term in _COPILOT_BUSINESS_COPY_TECHNICAL_TERMS)
