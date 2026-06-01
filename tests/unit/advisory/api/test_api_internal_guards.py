@@ -152,6 +152,17 @@ def test_support_routes_use_shared_response_metadata():
     assert source.count("run_proposal_operation(") == 6
 
 
+def test_support_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_support.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Path(" not in source
+    assert "ProposalIdPath" in source
+    assert "ProposalVersionNoPath" in source
+    assert "ProposalIdempotencyKeyPath" in source
+    assert "ProposalAsyncOperationIdPath" in source
+
+
 def test_lifecycle_routes_use_shared_response_metadata():
     source = inspect.getsource(routes_lifecycle)
 

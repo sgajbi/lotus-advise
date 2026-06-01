@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-450
+
+- Scope: Advisory proposal support route parameter contracts
+- Pattern: Support routes should share proposal, version, idempotency, and async operation
+  identifier contracts with adjacent lifecycle route modules.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_support.py` repeated path parameter declarations for
+  proposal ids, proposal version numbers, idempotency lookup keys, and async operation ids. The
+  route module also used dependency `Annotated` wrappers where direct FastAPI dependencies are
+  already the local route-family convention.
+- Evidence:
+  - Added `src/api/proposals/support_parameters.py` for support-specific idempotency key lookup.
+  - Reused lifecycle `ProposalIdPath` and `ProposalVersionNoPath` and async
+    `ProposalAsyncOperationIdPath` aliases in support routes.
+  - Updated support route dependencies to direct `Depends(...)` declarations.
+  - Extended internal guards so support routes do not reintroduce inline `Path` contracts.
+- Consequence:
+  - Support route handlers now align with lifecycle and async parameter ownership while preserving
+    existing support API behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is route-internal
+    API contract consolidation.
+- Follow-Up:
+  - Continue consolidating delivery and memo route parameters where lifecycle aliases match their
+    public contract.
+
 ## LA-REV-449
 
 - Scope: Advisory proposal async route parameter contracts
