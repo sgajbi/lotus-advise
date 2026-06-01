@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-01T23:44:28.218622+00:00`
+- Generated At: `2026-06-01T23:46:01.540296+00:00`
 - Branch: `advise-enterprise-hardening-slice-14`
-- Head: `e425e24220de9cf1855613403af669a92cf6b55b`
-- Branch Commits Over Main: `42`
+- Head: `22cb78cd95d13c19e4e4fc939d93d234e2b25d2d`
+- Branch Commits Over Main: `43`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -94,8 +94,8 @@
 
 ## Documentation Gaps
 
-- Requested docs present: `none`
-- Requested docs missing: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
+- Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
+- Requested docs missing: `none`
 
 ## Observability Gaps
 
