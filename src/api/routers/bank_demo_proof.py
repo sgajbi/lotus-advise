@@ -118,7 +118,7 @@ def _proof_pack_error_status(error_detail: str) -> int:
 
 
 def _safe_proof_pack_error_detail(error_detail: str) -> str:
-    if not _contains_sensitive_error_detail(error_detail):
+    if not contains_sensitive_error_detail(error_detail):
         return error_detail
     if error_detail.startswith(RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX):
         return (
@@ -126,7 +126,3 @@ def _safe_proof_pack_error_detail(error_detail: str) -> str:
             "material field review failed with sensitive detail redacted"
         )
     return f"{RFC28_PROOF_VALIDATION_FAILED}: source evidence failed validation"
-
-
-def _contains_sensitive_error_detail(error_detail: str) -> bool:
-    return contains_sensitive_error_detail(error_detail)

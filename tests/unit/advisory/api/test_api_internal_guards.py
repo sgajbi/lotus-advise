@@ -154,3 +154,4 @@ def test_bank_demo_proof_routes_use_shared_response_metadata():
 
     assert "responses={" not in source
     assert "responses=BANK_DEMO_PROOF_PACK_RESPONSES" in source
+    assert "_contains_sensitive_error_detail" not in source

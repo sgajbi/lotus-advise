@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-405
+
+- Scope: RFC-0028 bank-demo proof sensitive-detail boundary
+- Pattern: Sensitive-detail error mapping should call the shared detector directly when a local
+  helper only delegates and adds no route-specific semantics.
+- Status: Hardened
+- Finding Class: dead indirection and security-boundary clarity
+- Summary: `src/api/routers/bank_demo_proof.py` kept a private
+  `_contains_sensitive_error_detail` wrapper that only called
+  `contains_sensitive_error_detail`. This made the proof-pack sensitive-detail boundary look more
+  specialized than it was and added a route-local path with no behavior.
+- Evidence:
+  - Removed `_contains_sensitive_error_detail`.
+  - `_safe_proof_pack_error_detail` now calls the shared sensitive-detail detector directly while
+    preserving the RFC-0028 redacted 409 and 422 detail behavior.
+  - Extended the bank-demo proof internal guard to keep the dead wrapper from returning.
+- Consequence:
+  - RFC-0028 proof-pack error handling is easier to audit because the route visibly relies on the
+    platform shared sensitive-detail detector.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    security-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue removing route-local wrappers that duplicate shared security or error helpers.
+
 ## LA-REV-404
 
 - Scope: Advisory workspace saved-version error boundary
