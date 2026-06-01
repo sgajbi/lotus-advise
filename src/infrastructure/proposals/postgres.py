@@ -89,13 +89,23 @@ from src.infrastructure.proposals.postgres_memos import (
 from src.infrastructure.proposals.postgres_memos import (
     list_memos_for_proposals as _list_memos_for_proposals,
 )
+from src.infrastructure.proposals.postgres_versions import (
+    create_version as _create_version,
+)
+from src.infrastructure.proposals.postgres_versions import (
+    get_current_version as _get_current_version,
+)
+from src.infrastructure.proposals.postgres_versions import (
+    get_version as _get_version,
+)
+from src.infrastructure.proposals.postgres_versions import (
+    list_versions as _list_versions,
+)
 
 _json_dump = _postgres_mappers.json_dump
-_optional_json = _postgres_mappers.optional_json
 _to_approval = _postgres_mappers.to_approval
 _to_event = _postgres_mappers.to_event
 _to_proposal = _postgres_mappers.to_proposal
-_to_version = _postgres_mappers.to_version
 
 
 class PostgresProposalRepository:
@@ -359,121 +369,23 @@ class PostgresProposalRepository:
         return page, next_cursor
 
     def create_version(self, version: ProposalVersionRecord) -> None:
-        query = """
-            INSERT INTO proposal_versions (
-                proposal_version_id,
-                proposal_id,
-                version_no,
-                created_at,
-                request_hash,
-                artifact_hash,
-                simulation_hash,
-                status_at_creation,
-                proposal_result_json,
-                artifact_json,
-                evidence_bundle_json,
-                gate_decision_json
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (proposal_id, version_no) DO UPDATE SET
-                proposal_version_id=excluded.proposal_version_id,
-                created_at=excluded.created_at,
-                request_hash=excluded.request_hash,
-                artifact_hash=excluded.artifact_hash,
-                simulation_hash=excluded.simulation_hash,
-                status_at_creation=excluded.status_at_creation,
-                proposal_result_json=excluded.proposal_result_json,
-                artifact_json=excluded.artifact_json,
-                evidence_bundle_json=excluded.evidence_bundle_json,
-                gate_decision_json=excluded.gate_decision_json
-        """
-        with closing(self._connect()) as connection:
-            connection.execute(
-                query,
-                (
-                    version.proposal_version_id,
-                    version.proposal_id,
-                    version.version_no,
-                    version.created_at.isoformat(),
-                    version.request_hash,
-                    version.artifact_hash,
-                    version.simulation_hash,
-                    version.status_at_creation,
-                    _json_dump(version.proposal_result_json),
-                    _json_dump(version.artifact_json),
-                    _json_dump(version.evidence_bundle_json),
-                    _optional_json(version.gate_decision_json),
-                ),
-            )
-            connection.commit()
+        _create_version(connect=self._connect, version=version)
 
     def get_version(self, *, proposal_id: str, version_no: int) -> Optional[ProposalVersionRecord]:
-        query = """
-            SELECT
-                proposal_version_id,
-                proposal_id,
-                version_no,
-                created_at,
-                request_hash,
-                artifact_hash,
-                simulation_hash,
-                status_at_creation,
-                proposal_result_json,
-                artifact_json,
-                evidence_bundle_json,
-                gate_decision_json
-            FROM proposal_versions
-            WHERE proposal_id = %s AND version_no = %s
-        """
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, (proposal_id, version_no)).fetchone()
-        return _to_version(row)
+        return _get_version(
+            connect=self._connect,
+            proposal_id=proposal_id,
+            version_no=version_no,
+        )
 
     def list_versions(self, *, proposal_id: str) -> list[ProposalVersionRecord]:
-        query = """
-            SELECT
-                proposal_version_id,
-                proposal_id,
-                version_no,
-                created_at,
-                request_hash,
-                artifact_hash,
-                simulation_hash,
-                status_at_creation,
-                proposal_result_json,
-                artifact_json,
-                evidence_bundle_json,
-                gate_decision_json
-            FROM proposal_versions
-            WHERE proposal_id = %s
-            ORDER BY version_no ASC
-        """
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, (proposal_id,)).fetchall()
-        return [version for row in rows if (version := _to_version(row)) is not None]
+        return cast(
+            list[ProposalVersionRecord],
+            _list_versions(connect=self._connect, proposal_id=proposal_id),
+        )
 
     def get_current_version(self, *, proposal_id: str) -> Optional[ProposalVersionRecord]:
-        query = """
-            SELECT
-                proposal_version_id,
-                proposal_id,
-                version_no,
-                created_at,
-                request_hash,
-                artifact_hash,
-                simulation_hash,
-                status_at_creation,
-                proposal_result_json,
-                artifact_json,
-                evidence_bundle_json,
-                gate_decision_json
-            FROM proposal_versions
-            WHERE proposal_id = %s
-            ORDER BY version_no DESC
-            LIMIT 1
-        """
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, (proposal_id,)).fetchone()
-        return _to_version(row)
+        return _get_current_version(connect=self._connect, proposal_id=proposal_id)
 
     def append_event(self, event: ProposalWorkflowEventRecord) -> None:
         with closing(self._connect()) as connection:

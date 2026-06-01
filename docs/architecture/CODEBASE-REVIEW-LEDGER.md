@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-484
+
+- Scope: Postgres proposal version persistence
+- Pattern: Proposal version insert/upsert, point lookup, ordered listing, and current-version lookup
+  should live in a focused infrastructure helper instead of remaining inline in the proposal
+  Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and proposal version persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned proposal version SQL directly,
+  including the version column projection, canonical JSON serialization, conflict update behavior,
+  and current-version query. This coupled advisory artifact lineage persistence to unrelated
+  lifecycle, event, and approval persistence in the same adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_versions.py` for proposal version persistence
+    helpers.
+  - Updated `PostgresProposalRepository` version methods to delegate through `_connect` while
+    preserving existing repository method signatures.
+  - Reused existing Postgres repository coverage for version create/get/list/current-version
+    behavior.
+- Consequence:
+  - Proposal artifact lineage persistence now has explicit infrastructure ownership, reducing the
+    repository adapter surface and making version-query hardening easier to localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting workflow event, approval, and proposal lifecycle persistence groups after
+    this helper is green locally and remotely.
+
 ## LA-REV-483
 
 - Scope: Postgres proposal memo persistence
