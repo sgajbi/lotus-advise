@@ -123,6 +123,7 @@ from src.core.advisory_copilot.source_projection_operations import (
     has_operations_handoff,
     has_report_readiness,
 )
+from src.core.advisory_copilot.source_projection_policy import build_policy_posture_section
 from src.core.advisory_copilot.source_projection_refs import projection_source_ref
 from src.core.advisory_copilot.source_projection_text import (
     bounded_content_hash,
@@ -157,6 +158,7 @@ from src.core.advisory_copilot.type_models import (
 from src.core.advisory_copilot.unsupported_models import (
     CopilotUnsupportedEvidence as FocusedCopilotUnsupportedEvidence,
 )
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import (
     ProposalMemoRecord,
     ProposalRecord,
@@ -410,6 +412,53 @@ def test_copilot_source_projection_operations_have_focused_owner() -> None:
     assert "def _report_readiness_section" not in section_source
     assert "def _operations_handoff_section" not in section_source
     assert "def _source_ref" not in section_source
+
+
+def test_copilot_source_projection_policy_has_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+    older = PolicyEvaluationRecord(
+        evaluation_id="policy_eval_old",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_id="version_sg_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.04",
+        generated_at="2026-04-28T09:00:00+00:00",
+        created_by="advisor_123",
+        evaluation_status="READY",
+        policy_content_hash="sha256:policy-content-old",
+        source_evidence_hash="sha256:source-evidence-old",
+        evaluation_hash="sha256:policy-evaluation-old",
+        evaluation_json={"evaluation_status": "READY"},
+    )
+    latest = PolicyEvaluationRecord(
+        evaluation_id="policy_eval_latest",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_id="version_sg_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        generated_at="2026-05-28T09:00:00+00:00",
+        created_by="advisor_123",
+        evaluation_status="PENDING_REVIEW",
+        policy_content_hash="sha256:policy-content",
+        source_evidence_hash="sha256:source-evidence",
+        evaluation_hash="sha256:policy-evaluation",
+        evaluation_json={"evaluation_status": "PENDING_REVIEW"},
+        approval_dependencies=["COMPLIANCE_REVIEW"],
+        source_gaps=["MISSING_CLIENT_CONSENT"],
+    )
+
+    section = build_policy_posture_section(policy_evaluations=[older, latest])
+
+    assert section.section_key == "POLICY_POSTURE"
+    assert section.source_refs[0].source_id == "policy_eval_latest"
+    assert section.source_refs[0].content_hash == "sha256:policy-evaluation"
+    assert "PENDING_REVIEW" in section.summary_items[0]
+    assert any("COMPLIANCE_REVIEW" in item for item in section.summary_items)
+    assert "def _policy_posture_section" not in section_source
 
 
 def test_copilot_reference_models_use_reference_text_helpers() -> None:

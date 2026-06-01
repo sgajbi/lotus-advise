@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-569
+
+- Scope: Advisory copilot source projection policy posture section
+- Pattern: Policy evaluation evidence projection should live in a focused source-projection module
+  instead of the main proposal-version section assembly file.
+- Status: Hardened
+- Finding Class: Source projection modularity and policy evidence auditability
+- Summary: `source_projection_sections.py` still owned latest policy evaluation selection, review
+  item summarization, policy source-ref construction, and policy posture section construction after
+  the operational evidence extraction.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_policy.py` with
+    `build_policy_posture_section`.
+  - Updated `source_projection_sections.py` to delegate policy posture section construction to the
+    focused policy projection helper.
+  - Added coverage proving latest policy evaluation selection, source-ref hash preservation,
+    policy summary content, and removal of the local policy posture builder.
+- Consequence:
+  - Policy source projection is independently testable and easier to review as private-banking
+    policy evidence logic rather than generic packet assembly.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because packet behavior,
+    endpoint behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting cockpit action projection when the read-model dependency can move cleanly.
+
 ## LA-REV-568
 
 - Scope: Advisory copilot source projection operational evidence sections

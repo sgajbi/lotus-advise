@@ -11,6 +11,7 @@ from src.core.advisory_copilot.source_projection_operations import (
     has_operations_handoff,
     has_report_readiness,
 )
+from src.core.advisory_copilot.source_projection_policy import build_policy_posture_section
 from src.core.advisory_copilot.source_projection_refs import projection_source_ref
 from src.core.advisory_copilot.source_projection_text import (
     bounded_projection_reference,
@@ -58,7 +59,7 @@ def build_proposal_version_source_sections(
         if has_report_readiness(memo):
             sections.append(build_report_readiness_section(memo=memo))
     if policy_evaluations:
-        sections.append(_policy_posture_section(policy_evaluations=policy_evaluations))
+        sections.append(build_policy_posture_section(policy_evaluations=policy_evaluations))
     if has_operations_handoff(events):
         sections.append(build_operations_handoff_section(proposal=proposal, events=events))
     return tuple(sections)
@@ -160,49 +161,6 @@ def _memo_evidence_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSectio
             ),
         ),
         allowed_audiences=("ADVISOR", "DESK_HEAD", "COMPLIANCE_REVIEWER", "OPERATIONS_SUPPORT"),
-    )
-
-
-def _policy_posture_section(
-    *, policy_evaluations: list[PolicyEvaluationRecord]
-) -> CopilotEvidenceSectionInput:
-    latest = sorted(policy_evaluations, key=lambda item: item.generated_at)[-1]
-    review_items = sorted(
-        set(
-            latest.approval_dependencies
-            + latest.disclosure_requirements
-            + latest.consent_requirements
-            + latest.source_gaps
-        )
-    )
-    summary_items = [
-        projection_summary_item(
-            f"Policy evaluation {latest.evaluation_id} is {latest.evaluation_status}."
-        ),
-        projection_summary_item(
-            f"Policy pack {latest.policy_pack_id} version {latest.policy_version} is the "
-            "source authority."
-        ),
-        "Client-ready publication remains blocked until policy and review gates are resolved.",
-    ]
-    if review_items:
-        summary_items.append(
-            projection_summary_item(f"Open policy evidence items: {', '.join(review_items[:5])}.")
-        )
-    return CopilotEvidenceSectionInput(
-        section_key="POLICY_POSTURE",
-        title="Policy posture",
-        evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
-        source_refs=(
-            projection_source_ref(
-                source_type="POLICY_EVALUATION",
-                source_id=latest.evaluation_id,
-                content_hash=latest.evaluation_hash,
-                access_class="COMPLIANCE_REVIEW_EVIDENCE",
-            ),
-        ),
-        summary_items=tuple(summary_items),
-        allowed_audiences=("ADVISOR", "DESK_HEAD", "COMPLIANCE_REVIEWER"),
     )
 
 
