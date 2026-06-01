@@ -3,6 +3,7 @@ import inspect
 import pytest
 
 import src.api.main as api_main
+from src.api.proposals import routes_memo
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.routers.advisory_simulation import (
     build_proposal_artifact_endpoint,
@@ -72,3 +73,12 @@ def test_api_main_does_not_export_router_or_engine_internals():
     assert stale_exports.isdisjoint(api_main.__all__)
     for export_name in stale_exports:
         assert not hasattr(api_main, export_name)
+
+
+def test_memo_routes_use_shared_response_metadata():
+    source = inspect.getsource(routes_memo)
+
+    assert "responses={" not in source
+    assert "responses=MEMO_CREATE_RESPONSES" in source
+    assert "responses=MEMO_REPORT_PACKAGE_RESPONSES" in source
+    assert "responses=MEMO_AI_COMMENTARY_RESPONSES" in source

@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-396
+
+- Scope: Proposal memo API response metadata
+- Pattern: Repeated OpenAPI response descriptions should be centralized when a route family shares
+  not-found, idempotency, validation, runtime, and downstream-unavailable semantics.
+- Status: Hardened
+- Finding Class: duplication and API documentation quality
+- Summary: `src/api/proposals/routes_memo.py` was the largest proposal API route module and still
+  repeated RFC-0024 memo response dictionaries inline across create, read, projection, review,
+  report-package, AI-commentary, lineage, and replay routes. The endpoint behavior was already
+  delegated to `src.core.proposals.memo_api`, but duplicated response maps kept route metadata
+  mixed into the controller layer and made future memo documentation wording more likely to drift.
+- Evidence:
+  - Moved proposal memo OpenAPI response metadata into
+    `src/api/proposals/memo_responses.py`.
+  - Memo route decorators now reference named response maps for create, read/projection/replay,
+    review, report-package event, report-package request, AI commentary, and lineage routes.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `routes_memo.py`.
+- Consequence:
+  - RFC-0024 memo API routes are easier to scan for endpoint flow while shared private-banking
+    response wording stays centralized for audit and OpenAPI review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue applying this response-metadata extraction to lifecycle, support, and policy-pack route
+    families when each slice can preserve public OpenAPI behavior and add focused tests.
+
 ## LA-REV-393
 
 - Scope: Advisory copilot API route boundary
