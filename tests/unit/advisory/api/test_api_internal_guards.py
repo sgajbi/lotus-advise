@@ -372,6 +372,20 @@ def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
     assert source.count("run_proposal_operation(") == 10
 
 
+def test_policy_evaluation_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_policy_evaluations.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "Query(" not in source
+    assert "PolicyEvaluationProposalIdPath" in source
+    assert "PolicyEvaluationProposalVersionIdPath" in source
+    assert "PolicyEvaluationFinalizeIdempotencyKeyHeader" in source
+    assert "PolicyEvaluationIdPath" in source
+    assert "PolicyEvaluationStatusQuery" in source
+
+
 def test_async_routes_use_shared_proposal_error_boundary():
     source = inspect.getsource(routes_async)
 

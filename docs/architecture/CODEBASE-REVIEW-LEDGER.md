@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-453
+
+- Scope: Advisory policy evaluation route parameter contracts
+- Pattern: Policy evaluation routes should centralize policy identifiers, review queue filters, and
+  idempotency metadata outside the controller module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_policy_evaluations.py` repeated `Path`, `Query`, and
+  `Header` declarations for proposal ids, proposal version ids, policy evaluation ids, review queue
+  filters, finalization idempotency, event capture, sign-off decisions, report-package requests, and
+  AI evidence requests. This made the controller module the owner of both orchestration and a large
+  OpenAPI metadata surface.
+- Evidence:
+  - Added `src/api/proposals/policy_evaluation_parameters.py` for policy evaluation path, query,
+    and idempotency header contracts.
+  - Updated policy evaluation routes to use named aliases while preserving existing descriptions,
+    examples, required finalization idempotency, and optional event/report/AI idempotency behavior.
+  - Extended internal guards so policy evaluation routes cannot reintroduce inline `Header`,
+    `Path`, or `Query` contracts.
+- Consequence:
+  - Policy evaluation route handlers are thinner, and policy OpenAPI/validation metadata now has a
+    single route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Policy pack routes remain a smaller parameter-contract duplication surface and can be cleaned up
+    separately.
+
 ## LA-REV-452
 
 - Scope: Advisory proposal memo route parameter contracts
