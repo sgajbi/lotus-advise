@@ -282,6 +282,20 @@ def test_advisory_copilot_routes_use_shared_error_boundary():
     assert source.count("run_copilot_operation(") == 7
 
 
+def test_advisory_copilot_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_advisory_copilot.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Query(" not in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "AdvisoryCopilotCorrelationIdHeader" in source
+    assert "AdvisoryCopilotOptionalIdempotencyKeyHeader" in source
+    assert "AdvisoryCopilotReviewIdempotencyKeyHeader" in source
+    assert "AdvisoryCopilotEvidencePacketIdPath" in source
+    assert "AdvisoryCopilotRunLimitQuery" in source
+
+
 def test_advisor_cockpit_routes_use_shared_error_boundary():
     source = Path("src/api/proposals/routes_advisor_cockpit.py").read_text(encoding="utf-8")
 

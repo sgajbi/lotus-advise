@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-448
+
+- Scope: Advisory Copilot route parameter contracts
+- Pattern: Advisory Copilot path, header, and pagination contracts should be shared rather than
+  repeated inline across route handlers.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_advisory_copilot.py` repeated FastAPI `Header`, `Path`, and
+  `Query` declarations for correlation ids, idempotency keys, evidence packet ids, run ids,
+  proposal/version ids, and bounded pagination. The repeated inline contracts made future OpenAPI
+  or validation changes more error-prone across the Copilot route family.
+- Evidence:
+  - Added `src/api/proposals/copilot_parameters.py` for Advisory Copilot path, header, and query
+    contracts.
+  - Updated Advisory Copilot routes to depend on named parameter aliases while preserving existing
+    descriptions, bounds, required review idempotency, optional action idempotency, and pagination.
+  - Extended internal route guards to keep inline `Header`, `Path`, and `Query` contracts out of
+    the Copilot router.
+- Consequence:
+  - Advisory Copilot route functions are thinner and OpenAPI/validation metadata now has a single
+    route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Continue extracting duplicated parameter contracts from remaining large proposal route modules.
+
 ## LA-REV-447
 
 - Scope: Advisory workspace route exception boundary
