@@ -974,6 +974,53 @@ def test_service_execute_async_returns_when_operation_missing():
     )
 
 
+@pytest.mark.parametrize(
+    ("service_method_name", "view_function_name", "call_kwargs", "expected_identity"),
+    [
+        (
+            "get_async_operation",
+            "build_async_operation_status_view",
+            {"operation_id": "pop_status_view"},
+            {"operation_id": "pop_status_view"},
+        ),
+        (
+            "get_async_operation_replay",
+            "build_async_operation_replay_view",
+            {"operation_id": "pop_replay_view"},
+            {"operation_id": "pop_replay_view"},
+        ),
+        (
+            "get_async_operation_by_correlation",
+            "build_async_operation_correlation_view",
+            {"correlation_id": "corr_async_view"},
+            {"correlation_id": "corr_async_view"},
+        ),
+    ],
+)
+def test_service_delegates_async_operation_views(
+    monkeypatch,
+    service_method_name: str,
+    view_function_name: str,
+    call_kwargs: dict[str, str],
+    expected_identity: dict[str, str],
+):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+
+    response = getattr(service, service_method_name)(**call_kwargs)
+
+    assert response is sentinel
+    assert captured == {"repository": repo, **expected_identity}
+
+
 def test_service_delegates_create_proposal_async_execution(monkeypatch):
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

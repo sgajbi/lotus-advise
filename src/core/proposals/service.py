@@ -15,7 +15,6 @@ from src.core.proposals.async_operation_execution import (
 )
 from src.core.proposals.async_operation_read_model import (
     load_proposal_async_operation_by_correlation_read_model,
-    load_proposal_async_operation_read_model,
 )
 from src.core.proposals.async_operation_recovery import (
     ASYNC_RECOVERY_BATCH_SIZE,
@@ -24,6 +23,11 @@ from src.core.proposals.async_operation_recovery import (
 from src.core.proposals.async_operation_submission import (
     persist_create_proposal_async_submission,
     persist_create_version_async_submission,
+)
+from src.core.proposals.async_operation_views import (
+    build_async_operation_correlation_view,
+    build_async_operation_replay_view,
+    build_async_operation_status_view,
 )
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
@@ -35,7 +39,6 @@ from src.core.proposals.async_payloads import (
     hash_async_create_submission,
     hash_async_version_submission,
 )
-from src.core.proposals.async_replay import load_async_operation_replay_referents
 from src.core.proposals.command_read_model import load_proposal_command_read_model
 from src.core.proposals.command_validation import (
     validate_proposal_simulation_flag,
@@ -128,7 +131,6 @@ from src.core.proposals.projections import (
     build_proposal_lineage_response,
     build_proposal_list_response,
     to_async_accepted_response,
-    to_async_status_response,
     to_create_response,
     to_idempotency_lookup_response,
     to_proposal_summary,
@@ -151,10 +153,7 @@ from src.core.proposals.versions import (
 )
 from src.core.proposals.workflow_rules import TERMINAL_STATES
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-from src.core.replay.service import (
-    build_async_operation_replay_response,
-    build_proposal_version_replay_response,
-)
+from src.core.replay.service import build_proposal_version_replay_response
 
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
 
@@ -483,43 +482,24 @@ class ProposalWorkflowService:
         return to_idempotency_lookup_response(read_model.record)
 
     def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
-        read_model = load_proposal_async_operation_read_model(
+        return build_async_operation_status_view(
             repository=self._repository,
             operation_id=operation_id,
         )
-        if read_model.operation is None:
-            raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
-        return to_async_status_response(read_model.operation)
 
     def get_async_operation_replay(self, *, operation_id: str) -> AdvisoryReplayEvidenceResponse:
-        read_model = load_proposal_async_operation_read_model(
+        return build_async_operation_replay_view(
             repository=self._repository,
             operation_id=operation_id,
-        )
-        if read_model.operation is None:
-            raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
-
-        referents = load_async_operation_replay_referents(
-            repository=self._repository,
-            operation=read_model.operation,
-        )
-        return build_async_operation_replay_response(
-            operation=read_model.operation,
-            proposal=referents.proposal,
-            version=referents.version,
-            events=referents.events,
         )
 
     def get_async_operation_by_correlation(
         self, *, correlation_id: str
     ) -> ProposalAsyncOperationStatusResponse:
-        read_model = load_proposal_async_operation_by_correlation_read_model(
+        return build_async_operation_correlation_view(
             repository=self._repository,
             correlation_id=correlation_id,
         )
-        if read_model.operation is None:
-            raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
-        return to_async_status_response(read_model.operation)
 
     def get_version(
         self,

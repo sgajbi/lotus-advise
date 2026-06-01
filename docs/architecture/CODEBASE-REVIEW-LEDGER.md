@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-473
+
+- Scope: Proposal async operation status and replay views
+- Pattern: Async operation status, replay, and correlation lookup should share a focused
+  read-side boundary instead of repeating async-operation read-model lookup, not-found translation,
+  and projection wiring in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and async read-side maintainability
+- Summary: `src/core/proposals/service.py` still owned async status lookup, replay response
+  assembly, and correlation lookup directly. That kept status/replay projection details and
+  repeated `PROPOSAL_ASYNC_OPERATION_NOT_FOUND` handling inside the workflow service.
+- Evidence:
+  - Added `src/core/proposals/async_operation_views.py` with status, replay, and correlation
+    read-side boundaries.
+  - Updated `ProposalWorkflowService` async-operation read methods to delegate to the async view
+    boundary while preserving public method signatures.
+  - Added parameterized service-level guard coverage proving all async-operation read methods pass
+    repository and operation/correlation identity into the view boundary.
+- Consequence:
+  - Async read behavior is now isolated from command orchestration, giving status/replay hardening
+    a narrower module with explicit ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal detail/list/approval/lineage read helpers where repeated
+    read-model lookup and projection assembly remain.
+
 ## LA-REV-472
 
 - Scope: Proposal narrative read and review orchestration
