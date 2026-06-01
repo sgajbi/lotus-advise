@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-482
+
+- Scope: Postgres advisor cockpit acknowledgement persistence
+- Pattern: Advisor cockpit acknowledgement lookup, idempotent save, and idempotency lookup SQL
+  should live in a focused infrastructure helper instead of remaining inline in the proposal
+  Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and infrastructure persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned cockpit acknowledgement
+  persistence directly, including idempotency insert, conflict validation, acknowledgement upsert,
+  rollback behavior, and row mapping. This kept a separate advisor-cockpit persistence concern in
+  the proposal repository monolith.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_cockpit_acknowledgements.py` for cockpit
+    acknowledgement persistence helpers.
+  - Updated `PostgresProposalRepository` cockpit acknowledgement methods to delegate through
+    `_connect` while preserving existing repository method signatures.
+  - Reused existing Postgres repository roundtrip coverage proving acknowledgement persistence,
+    idempotency lookup, and idempotency conflict rollback behavior.
+- Consequence:
+  - Advisor cockpit acknowledgement persistence now has explicit infrastructure ownership, reducing
+    unrelated persistence concerns in the proposal repository adapter.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting memo persistence or proposal/version/event persistence groups after this
+    helper is green locally and remotely.
+
 ## LA-REV-481
 
 - Scope: Postgres proposal async operation persistence
