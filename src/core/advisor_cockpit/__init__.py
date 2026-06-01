@@ -40,12 +40,6 @@ from src.core.advisor_cockpit.models import (
     AdvisorCockpitOperatingSnapshot,
     AdvisoryActionItem,
     AdvisoryActionItemPage,
-    CockpitAcknowledgementState,
-    CockpitCallerContext,
-    CockpitDependencyReadiness,
-    CockpitEvidenceRef,
-    CockpitLineageRef,
-    CockpitSourceReadinessGap,
     MeetingPreparationPacket,
 )
 from src.core.advisor_cockpit.pagination import (
@@ -57,6 +51,14 @@ from src.core.advisor_cockpit.pagination import (
 from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitAcknowledgementState,
+    CockpitCallerContext,
+    CockpitDependencyReadiness,
+    CockpitEvidenceRef,
+    CockpitLineageRef,
+    CockpitSourceReadinessGap,
 )
 from src.core.advisor_cockpit.repository import AdvisorCockpitRepository
 from src.core.advisor_cockpit.rules import (

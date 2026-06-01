@@ -34,6 +34,24 @@ from src.core.advisor_cockpit.models import (
 from src.core.advisor_cockpit.models import (
     AdvisorCockpitOwnerRole as CompatibilityAdvisorCockpitOwnerRole,
 )
+from src.core.advisor_cockpit.models import (
+    CockpitAcknowledgementState as CompatibilityCockpitAcknowledgementState,
+)
+from src.core.advisor_cockpit.models import (
+    CockpitCallerContext as CompatibilityCockpitCallerContext,
+)
+from src.core.advisor_cockpit.models import (
+    CockpitEvidenceRef as CompatibilityCockpitEvidenceRef,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitAcknowledgementState as FocusedCockpitAcknowledgementState,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitCallerContext as FocusedCockpitCallerContext,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitEvidenceRef as FocusedCockpitEvidenceRef,
+)
 from src.core.advisor_cockpit.type_models import (
     AdvisorCockpitActionFamily as FocusedAdvisorCockpitActionFamily,
 )
@@ -102,6 +120,15 @@ def test_advisor_cockpit_models_preserve_type_import_contract() -> None:
     assert CompatibilityAdvisorCockpitActionPriority is FocusedAdvisorCockpitActionPriority
     assert CompatibilityAdvisorCockpitActionStatus is FocusedAdvisorCockpitActionStatus
     assert CompatibilityAdvisorCockpitOwnerRole is FocusedAdvisorCockpitOwnerRole
+
+
+def test_advisor_cockpit_models_preserve_reference_import_contract() -> None:
+    assert CockpitAcknowledgementState is FocusedCockpitAcknowledgementState
+    assert CockpitCallerContext is FocusedCockpitCallerContext
+    assert CockpitEvidenceRef is FocusedCockpitEvidenceRef
+    assert CompatibilityCockpitAcknowledgementState is FocusedCockpitAcknowledgementState
+    assert CompatibilityCockpitCallerContext is FocusedCockpitCallerContext
+    assert CompatibilityCockpitEvidenceRef is FocusedCockpitEvidenceRef
 
 
 def test_advisor_cockpit_sorting_matches_rfc0026_stable_order() -> None:

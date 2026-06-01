@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-528
+
+- Scope: Advisor cockpit reference model ownership
+- Pattern: Caller context, evidence refs, lineage refs, source readiness gaps, dependency readiness,
+  and acknowledgement state should live in a focused reference model module instead of remaining
+  inline in the broad advisor cockpit model surface.
+- Status: Hardened
+- Finding Class: modularity and cockpit source-readiness maintainability
+- Summary: `src/core/advisor_cockpit/models.py` still mixed shared source/reference/readiness DTOs
+  with action item, preparation packet, and operating snapshot DTOs. These reference DTOs are used
+  by action construction and service boundaries and are distinct from the action register and
+  snapshot data-product models.
+- Evidence:
+  - Added `src/core/advisor_cockpit/reference_models.py` for caller context, evidence references,
+    lineage references, source-readiness gaps, dependency readiness, and acknowledgement state.
+  - Kept compatibility imports from `src.core.advisor_cockpit.models` and package exports stable.
+  - Updated action source/construction modules to import reference DTOs directly from the focused
+    module.
+  - Added contract coverage proving package-level and compatibility imports point at the focused
+    reference model definitions.
+- Consequence:
+  - Cockpit action construction now depends on a narrow source/reference/readiness model boundary,
+    reducing coupling to the remaining action/snapshot model surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Extract action register DTOs and operating snapshot DTOs from
+    `src/core/advisor_cockpit/models.py`, then reserve it as a compatibility facade.
+
 ## LA-REV-527
 
 - Scope: Advisor cockpit type vocabulary ownership
