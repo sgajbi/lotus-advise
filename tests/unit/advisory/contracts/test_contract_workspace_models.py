@@ -1,4 +1,6 @@
+import ast
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -49,6 +51,15 @@ from src.core.workspace.draft_models import (
 from src.core.workspace.draft_models import (
     WorkspaceTradeDraft as DraftWorkspaceTradeDraft,
 )
+from src.core.workspace.handoff_models import (
+    WorkspaceLifecycleHandoffMetadata as HandoffWorkspaceLifecycleHandoffMetadata,
+)
+from src.core.workspace.handoff_models import (
+    WorkspaceLifecycleHandoffRequest as HandoffWorkspaceLifecycleHandoffRequest,
+)
+from src.core.workspace.handoff_models import (
+    WorkspaceLifecycleHandoffResponse as HandoffWorkspaceLifecycleHandoffResponse,
+)
 from src.core.workspace.input_models import (
     WorkspaceResolvedContext as InputWorkspaceResolvedContext,
 )
@@ -75,6 +86,7 @@ from src.core.workspace.models import (
     WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
+    WorkspaceLifecycleHandoffMetadata,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
     WorkspaceLifecycleLink,
@@ -193,6 +205,24 @@ def test_workspace_models_preserves_save_model_import_contract():
 def test_workspace_models_preserves_action_model_import_contract():
     assert WorkspaceDraftActionRequest is ActionWorkspaceDraftActionRequest
     assert WorkspaceDraftActionResponse is ActionWorkspaceDraftActionResponse
+
+
+def test_workspace_models_preserves_handoff_model_import_contract():
+    assert WorkspaceLifecycleHandoffMetadata is HandoffWorkspaceLifecycleHandoffMetadata
+    assert WorkspaceLifecycleHandoffRequest is HandoffWorkspaceLifecycleHandoffRequest
+    assert WorkspaceLifecycleHandoffResponse is HandoffWorkspaceLifecycleHandoffResponse
+
+
+def test_workspace_models_remains_compatibility_reexport_facade():
+    source_path = Path(__file__).resolve().parents[4] / "src" / "core" / "workspace" / "models.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"))
+    inline_definitions = [
+        node.name
+        for node in tree.body
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+
+    assert inline_definitions == []
 
 
 def _build_state() -> SimulatedState:

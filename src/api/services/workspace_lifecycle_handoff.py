@@ -15,7 +15,7 @@ from src.core.workspace.handoff import (
     complete_workspace_lifecycle_handoff,
     require_handoff_simulate_request,
 )
-from src.core.workspace.models import (
+from src.core.workspace.handoff_models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
 )

@@ -23,15 +23,15 @@ from src.core.workspace.draft_models import (
     WorkspaceEvaluationSummary,
     WorkspaceTradeDraft,
 )
+from src.core.workspace.handoff_models import (
+    WorkspaceLifecycleHandoffMetadata,
+    WorkspaceLifecycleHandoffRequest,
+    WorkspaceLifecycleHandoffResponse,
+)
 from src.core.workspace.input_models import (
     WorkspaceResolvedContext,
     WorkspaceStatefulInput,
     WorkspaceStatelessInput,
-)
-from src.core.workspace.models import (
-    WorkspaceLifecycleHandoffMetadata,
-    WorkspaceLifecycleHandoffRequest,
-    WorkspaceLifecycleHandoffResponse,
 )
 from src.core.workspace.save_models import (
     WorkspaceResumeRequest,

@@ -58,11 +58,13 @@ from src.core.workspace.assistant_models import (
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionResponse,
 )
+from src.core.workspace.handoff_models import (
+    WorkspaceLifecycleHandoffRequest,
+    WorkspaceLifecycleHandoffResponse,
+)
 from src.core.workspace.models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
-    WorkspaceLifecycleHandoffRequest,
-    WorkspaceLifecycleHandoffResponse,
 )
 from src.core.workspace.save_models import (
     WorkspaceResumeRequest,

@@ -3,9 +3,7 @@ from typing import Any, Protocol, cast
 
 from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload
-from src.core.workspace.models import (
-    WorkspaceLifecycleHandoffRequest,
-)
+from src.core.workspace.handoff_models import WorkspaceLifecycleHandoffRequest
 from src.core.workspace.session_models import WorkspaceSession
 from src.core.workspace.version_models import WorkspaceReplayEvidence, WorkspaceSavedVersion
 

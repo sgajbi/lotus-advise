@@ -13,7 +13,7 @@ from src.core.proposals.models import (
     ProposalResolvedContext,
     ProposalVersionRequest,
 )
-from src.core.workspace.models import (
+from src.core.workspace.handoff_models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
 )

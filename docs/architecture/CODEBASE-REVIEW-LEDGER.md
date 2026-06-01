@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-517
+
+- Scope: Workspace lifecycle-handoff model ownership
+- Pattern: Workspace lifecycle-handoff DTOs should live in a focused module, leaving
+  `src/core/workspace/models.py` as a compatibility facade.
+- Status: Hardened
+- Finding Class: modularity and lifecycle-boundary maintainability
+- Summary: After the session, save/resume, and draft-action extractions,
+  `src/core/workspace/models.py` still owned lifecycle-handoff metadata, request, and response
+  DTOs. These schemas are used by route, service, replay, and handoff orchestration code and
+  represent the workspace-to-proposal lifecycle boundary rather than generic workspace model
+  ownership.
+- Evidence:
+  - Added `src/core/workspace/handoff_models.py` for lifecycle-handoff metadata, request, and
+    response DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers and OpenAPI
+    schema names.
+  - Updated workspace route, service, handoff orchestration, replay helper, and package exports to
+    import lifecycle-handoff DTOs from the focused module.
+  - Added contract coverage proving compatibility imports point at the extracted handoff model
+    definitions and that `src/core/workspace/models.py` has no inline class or function
+    definitions.
+- Consequence:
+  - The workspace model compatibility file is now a facade over focused model modules, reducing the
+    risk of unrelated advisory workspace schema changes colliding in one monolithic file.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue replacing remaining production imports from `src.core.workspace.models` with focused
+    modules where ownership is now clear.
+
 ## LA-REV-516
 
 - Scope: Workspace draft-action model ownership
