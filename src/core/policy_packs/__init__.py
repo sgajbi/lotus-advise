@@ -27,11 +27,6 @@ from src.core.policy_packs.evaluation_models import (
     PolicyPackEvaluationResponse,
     PolicyRuleEvaluationResult,
 )
-from src.core.policy_packs.models import (
-    PolicyEvaluationLineageResponse,
-    PolicyEvaluationReviewQueueResponse,
-    PolicyEvaluationSignOffPackageResponse,
-)
 from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
     finalize_policy_evaluation_record,
@@ -53,6 +48,11 @@ from src.core.policy_packs.persistence_models import (
     PolicyEvaluationRecord,
     PolicyEvaluationReplayRequest,
     PolicyEvaluationReplayResponse,
+)
+from src.core.policy_packs.projection_models import (
+    PolicyEvaluationLineageResponse,
+    PolicyEvaluationReviewQueueResponse,
+    PolicyEvaluationSignOffPackageResponse,
 )
 from src.core.policy_packs.reporting import request_policy_evaluation_report_package
 from src.core.policy_packs.reporting_models import (

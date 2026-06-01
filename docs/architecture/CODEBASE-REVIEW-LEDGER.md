@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-525
+
+- Scope: Policy-pack model compatibility facade closure
+- Pattern: The broad `src/core/policy_packs/models.py` surface should be a pure compatibility
+  facade once focused model modules own each domain boundary.
+- Status: Hardened
+- Finding Class: modularity and dependency boundary regression prevention
+- Summary: After catalog, evaluation, persistence, workflow, report-package, and AI model
+  extraction, `src/core/policy_packs/models.py` still owned lineage, review-queue, and sign-off
+  package projection DTOs. That prevented the file from becoming a narrow legacy import surface.
+- Evidence:
+  - Added `src/core/policy_packs/projection_models.py` for policy evaluation lineage, review-queue,
+    and sign-off package projection DTOs.
+  - Updated persistence runtime and package exports to import projection DTOs from the focused
+    module.
+  - Converted `src/core/policy_packs/models.py` into a pure compatibility facade with no class or
+    function definitions.
+  - Extended policy-pack model contract coverage to prove projection compatibility imports and to
+    prevent future class/function definitions from being reintroduced into the facade.
+- Consequence:
+  - RFC-0025 policy-pack model ownership is now split by catalog, evaluation, persistence,
+    projection, workflow, reporting, and AI evidence boundaries instead of being concentrated in a
+    monolithic model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue moving production imports away from the compatibility facade where any remain, then
+    add dependency contract coverage that keeps new production code on focused model modules.
+
 ## LA-REV-524
 
 - Scope: Policy evaluation AI evidence model ownership

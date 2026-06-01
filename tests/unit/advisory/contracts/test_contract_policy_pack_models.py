@@ -1,3 +1,6 @@
+import ast
+from pathlib import Path
+
 from src.core.policy_packs.ai_models import (
     PolicyEvaluationAiEvidenceRequest as AiPolicyEvaluationAiEvidenceRequest,
 )
@@ -43,6 +46,7 @@ from src.core.policy_packs.models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationCreateRequest,
     PolicyEvaluationEventRequest,
+    PolicyEvaluationLineageResponse,
     PolicyEvaluationPersistenceResult,
     PolicyEvaluationRecord,
     PolicyEvaluationReplayRequest,
@@ -50,8 +54,10 @@ from src.core.policy_packs.models import (
     PolicyEvaluationReportPackageRequest,
     PolicyEvaluationReportPackageResponse,
     PolicyEvaluationRequirementProjection,
+    PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffDecisionRequest,
     PolicyEvaluationSignOffDecisionResponse,
+    PolicyEvaluationSignOffPackageResponse,
     PolicyEvaluationWorkflowResponse,
     PolicyPackActivationRequest,
     PolicyPackActivationResponse,
@@ -86,6 +92,15 @@ from src.core.policy_packs.persistence_models import (
 from src.core.policy_packs.persistence_models import (
     PolicyEvaluationReplayResponse as PersistencePolicyEvaluationReplayResponse,
 )
+from src.core.policy_packs.projection_models import (
+    PolicyEvaluationLineageResponse as ProjectionPolicyEvaluationLineageResponse,
+)
+from src.core.policy_packs.projection_models import (
+    PolicyEvaluationReviewQueueResponse as ProjectionPolicyEvaluationReviewQueueResponse,
+)
+from src.core.policy_packs.projection_models import (
+    PolicyEvaluationSignOffPackageResponse as ProjectionPolicyEvaluationSignOffPackageResponse,
+)
 from src.core.policy_packs.reporting_models import (
     PolicyEvaluationReportPackageRequest as ReportingPolicyEvaluationReportPackageRequest,
 )
@@ -104,6 +119,8 @@ from src.core.policy_packs.workflow_models import (
 from src.core.policy_packs.workflow_models import (
     PolicyEvaluationWorkflowResponse as WorkflowPolicyEvaluationWorkflowResponse,
 )
+
+MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
 
 
 def test_policy_pack_models_preserves_catalog_model_import_contract():
@@ -150,3 +167,18 @@ def test_policy_pack_models_preserves_reporting_model_import_contract():
 def test_policy_pack_models_preserves_ai_model_import_contract():
     assert PolicyEvaluationAiEvidenceRequest is AiPolicyEvaluationAiEvidenceRequest
     assert PolicyEvaluationAiEvidenceResponse is AiPolicyEvaluationAiEvidenceResponse
+
+
+def test_policy_pack_models_preserves_projection_model_import_contract():
+    assert PolicyEvaluationLineageResponse is ProjectionPolicyEvaluationLineageResponse
+    assert PolicyEvaluationReviewQueueResponse is ProjectionPolicyEvaluationReviewQueueResponse
+    assert (
+        PolicyEvaluationSignOffPackageResponse is ProjectionPolicyEvaluationSignOffPackageResponse
+    )
+
+
+def test_policy_pack_models_is_pure_compatibility_facade():
+    tree = ast.parse(MODELS_SOURCE_PATH.read_text(encoding="utf-8"))
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
