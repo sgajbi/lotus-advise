@@ -18,6 +18,17 @@ router = APIRouter()
 
 _REPOSITORY: Optional[ProposalRepository] = None
 _SERVICE: Optional[ProposalWorkflowService] = None
+_ROUTE_MODULES = (
+    "src.api.proposals.routes_lifecycle",
+    "src.api.proposals.routes_async",
+    "src.api.proposals.routes_support",
+    "src.api.proposals.routes_delivery",
+    "src.api.proposals.routes_memo",
+    "src.api.proposals.routes_policy_packs",
+    "src.api.proposals.routes_policy_evaluations",
+    "src.api.proposals.routes_advisor_cockpit",
+    "src.api.proposals.routes_advisory_copilot",
+)
 
 
 def _proposal_store_backend_name() -> str:
@@ -80,12 +91,5 @@ def _assert_async_operations_enabled() -> None:
     assert_proposal_async_operations_enabled()
 
 
-importlib.import_module("src.api.proposals.routes_lifecycle")
-importlib.import_module("src.api.proposals.routes_async")
-importlib.import_module("src.api.proposals.routes_support")
-importlib.import_module("src.api.proposals.routes_delivery")
-importlib.import_module("src.api.proposals.routes_memo")
-importlib.import_module("src.api.proposals.routes_policy_packs")
-importlib.import_module("src.api.proposals.routes_policy_evaluations")
-importlib.import_module("src.api.proposals.routes_advisor_cockpit")
-importlib.import_module("src.api.proposals.routes_advisory_copilot")
+for route_module in _ROUTE_MODULES:
+    importlib.import_module(route_module)

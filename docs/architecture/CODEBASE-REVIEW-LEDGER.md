@@ -1,5 +1,27 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-437
+
+- Scope: Proposal router module registration
+- Pattern: Route module registration should be data-driven instead of repeated import statements.
+- Status: Hardened
+- Finding Class: duplication and readability
+- Summary: `src/api/proposals/router.py` registered proposal route modules through nine repeated
+  `importlib.import_module(...)` calls. That made route registration harder to scan and update.
+- Evidence:
+  - Added `_ROUTE_MODULES` as the explicit proposal route module registry.
+  - Replaced repeated import calls with one loop over the registry.
+  - Extended the internal router guard to prevent repeated import registration from returning.
+- Consequence:
+  - Proposal route registration is now a single auditable list, reducing copy/paste churn when
+    route modules are added or retired.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    router cleanup for existing behavior.
+- Follow-Up:
+  - Keep route registration data explicit and avoid dynamic discovery so API surface remains
+    reviewable.
+
 ## LA-REV-436
 
 - Scope: Proposal feature-gate boundary

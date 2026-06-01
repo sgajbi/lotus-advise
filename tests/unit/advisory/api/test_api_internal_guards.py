@@ -241,6 +241,8 @@ def test_proposal_router_uses_shared_runtime_error_helpers():
     assert "proposal_backend_connection_failed_exception" not in source
     assert "resolve_proposal_runtime_dependency" in source
     assert "assert_proposal_lifecycle_enabled" in source
+    assert source.count("importlib.import_module(") == 1
+    assert "_ROUTE_MODULES" in source
 
 
 def test_advisory_copilot_routes_use_shared_error_boundary():
