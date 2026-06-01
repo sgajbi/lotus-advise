@@ -18,6 +18,21 @@ from src.core.models import (
     SimulatedState,
 )
 from src.core.proposals.models import ProposalCreateResponse
+from src.core.workspace.draft_models import (
+    WorkspaceCashFlowDraft as DraftWorkspaceCashFlowDraft,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceDraftState as DraftWorkspaceDraftState,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceEvaluationImpactSummary as DraftWorkspaceEvaluationImpactSummary,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceEvaluationSummary as DraftWorkspaceEvaluationSummary,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceTradeDraft as DraftWorkspaceTradeDraft,
+)
 from src.core.workspace.input_models import (
     WorkspaceResolvedContext as InputWorkspaceResolvedContext,
 )
@@ -30,6 +45,7 @@ from src.core.workspace.input_models import (
 from src.core.workspace.models import (
     WorkspaceAssistantRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    WorkspaceCashFlowDraft,
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
@@ -48,6 +64,7 @@ from src.core.workspace.models import (
     WorkspaceSessionCreateRequest,
     WorkspaceStatefulInput,
     WorkspaceStatelessInput,
+    WorkspaceTradeDraft,
 )
 
 
@@ -55,6 +72,14 @@ def test_workspace_models_preserves_input_model_import_contract():
     assert WorkspaceResolvedContext is InputWorkspaceResolvedContext
     assert WorkspaceStatefulInput is InputWorkspaceStatefulInput
     assert WorkspaceStatelessInput is InputWorkspaceStatelessInput
+
+
+def test_workspace_models_preserves_draft_model_import_contract():
+    assert WorkspaceCashFlowDraft is DraftWorkspaceCashFlowDraft
+    assert WorkspaceDraftState is DraftWorkspaceDraftState
+    assert WorkspaceEvaluationImpactSummary is DraftWorkspaceEvaluationImpactSummary
+    assert WorkspaceEvaluationSummary is DraftWorkspaceEvaluationSummary
+    assert WorkspaceTradeDraft is DraftWorkspaceTradeDraft
 
 
 def _build_state() -> SimulatedState:

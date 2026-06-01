@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-510
+
+- Scope: Workspace draft and evaluation model ownership
+- Pattern: Workspace draft state and evaluation summary DTOs should live in a focused module instead
+  of remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and workspace draft maintainability
+- Summary: After extracting input/context DTOs, `src/core/workspace/models.py` still owned draft
+  trade/cash-flow containers, workspace draft state, and evaluation summary DTOs. These models are
+  used directly by draft application, session creation, and evaluation helpers, making them a
+  bounded ownership group separate from assistant, compare, and lifecycle handoff schemas.
+- Evidence:
+  - Added `src/core/workspace/draft_models.py` for draft item, draft state, and evaluation summary
+    DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated draft/evaluation/session/context-resolution helpers to import draft DTOs from the
+    focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    draft model definitions.
+- Consequence:
+  - Draft-state mutation and evaluation code now depends on a narrow workspace draft model boundary
+    instead of the broad workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace assistant, compare, saved-version, and lifecycle handoff DTOs in
+    small compatibility-preserving slices.
+
 ## LA-REV-509
 
 - Scope: Workspace input and resolved-context model ownership

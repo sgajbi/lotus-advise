@@ -2,11 +2,11 @@ from decimal import Decimal
 from typing import Any, Protocol
 
 from src.core.proposal_result_models import ProposalResult
-from src.core.workspace.models import (
+from src.core.workspace.draft_models import (
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
-    WorkspaceSession,
 )
+from src.core.workspace.models import WorkspaceSession
 
 
 class _MoneyLike(Protocol):

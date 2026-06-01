@@ -1,12 +1,12 @@
 from src.api.services.workspace_errors import WorkspaceEvaluationUnavailableError
 from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.workspace.draft_models import WorkspaceDraftState
 from src.core.workspace.draft_state import (
     apply_workspace_draft_state,
     build_draft_state_from_simulate_request,
 )
 from src.core.workspace.input_models import WorkspaceResolvedContext
 from src.core.workspace.models import (
-    WorkspaceDraftState,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
 )
