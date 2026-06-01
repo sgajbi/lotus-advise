@@ -12,16 +12,9 @@ from src.core.proposals.async_operation_execution import (
     execute_create_proposal_async_operation,
     execute_create_version_async_operation,
 )
-from src.core.proposals.async_operation_read_model import (
-    load_proposal_async_operation_by_correlation_read_model,
-)
 from src.core.proposals.async_operation_recovery import (
     ASYNC_RECOVERY_BATCH_SIZE,
     recover_async_operation_batch,
-)
-from src.core.proposals.async_operation_submission import (
-    persist_create_proposal_async_submission,
-    persist_create_version_async_submission,
 )
 from src.core.proposals.async_operation_views import (
     build_async_operation_correlation_view,
@@ -31,14 +24,11 @@ from src.core.proposals.async_operation_views import (
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
-    build_create_proposal_async_operation,
-    build_create_version_async_operation,
 )
-from src.core.proposals.async_payloads import (
-    hash_async_create_submission,
-    hash_async_version_submission,
+from src.core.proposals.async_submission_commands import (
+    accept_create_proposal_async_submission_command,
+    accept_create_version_async_submission_command,
 )
-from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.create_command import create_proposal_command
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
@@ -50,11 +40,7 @@ from src.core.proposals.exceptions import (
 )
 from src.core.proposals.execution_handoff_command import request_proposal_execution_handoff
 from src.core.proposals.execution_update_command import record_proposal_execution_update
-from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
-from src.core.proposals.identifiers import (
-    new_async_operation_id,
-    new_workflow_event_id,
-)
+from src.core.proposals.identifiers import new_workflow_event_id
 from src.core.proposals.lifecycle_command import (
     record_proposal_approval,
     transition_proposal_state,
@@ -93,9 +79,6 @@ from src.core.proposals.narrative_views import (
     build_narrative_view,
     record_narrative_review,
     regenerate_narrative_view,
-)
-from src.core.proposals.projections import (
-    to_async_accepted_response,
 )
 from src.core.proposals.read_views import (
     build_idempotency_lookup_view,
@@ -176,29 +159,15 @@ class ProposalWorkflowService:
         idempotency_key: str,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        idempotency_key = require_proposal_idempotency_key(idempotency_key)
-        submission_hash = hash_async_create_submission(payload)
-        resolved_correlation_id = resolve_correlation_id(correlation_id)
-        operation = build_create_proposal_async_operation(
-            operation_id=new_async_operation_id(),
-            correlation_id=resolved_correlation_id,
-            idempotency_key=idempotency_key,
-            payload=payload,
-            submission_hash=submission_hash,
-            created_at=_utc_now(),
-            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
-        )
-        submission_result = persist_create_proposal_async_submission(
+        return accept_create_proposal_async_submission_command(
             repository=self._repository,
-            operation=operation,
+            payload=payload,
             idempotency_key=idempotency_key,
-            submission_hash=submission_hash,
+            correlation_id=correlation_id,
+            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
+            utc_now=_utc_now,
+            submission_stats=self._async_create_submission_stats,
         )
-        if submission_result.is_conflict:
-            self._async_create_submission_stats.record_conflict()
-            raise ProposalIdempotencyConflictError(str(submission_result.conflict_message))
-        self._async_create_submission_stats.record_acceptance(is_new=submission_result.is_new)
-        return to_async_accepted_response(submission_result.operation), submission_result.is_new
 
     def submit_create_proposal_async(
         self,
@@ -399,33 +368,14 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        resolved_correlation_id = resolve_correlation_id(correlation_id)
-        submission_hash = hash_async_version_submission(
-            proposal_id=proposal_id,
-            payload=payload,
-        )
-        existing_read_model = load_proposal_async_operation_by_correlation_read_model(
-            repository=self._repository, correlation_id=resolved_correlation_id
-        )
-        operation = build_create_version_async_operation(
-            operation_id=new_async_operation_id(),
-            proposal_id=proposal_id,
-            correlation_id=resolved_correlation_id,
-            payload=payload,
-            submission_hash=submission_hash,
-            created_at=_utc_now(),
-            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
-        )
-        submission_result = persist_create_version_async_submission(
+        return accept_create_version_async_submission_command(
             repository=self._repository,
-            existing_operation=existing_read_model.operation,
-            operation=operation,
             proposal_id=proposal_id,
-            submission_hash=submission_hash,
+            payload=payload,
+            correlation_id=correlation_id,
+            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
+            utc_now=_utc_now,
         )
-        if submission_result.is_conflict:
-            raise ProposalIdempotencyConflictError(str(submission_result.conflict_message))
-        return to_async_accepted_response(submission_result.operation), submission_result.is_new
 
     def execute_create_version_async(
         self,

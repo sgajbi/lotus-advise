@@ -983,6 +983,74 @@ def test_service_delegates_create_proposal_command(monkeypatch):
     assert callable(captured["utc_now"])
 
 
+def test_service_delegates_create_proposal_async_submission(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_accept_create_proposal_async_submission_command(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "accept_create_proposal_async_submission_command",
+        fake_accept_create_proposal_async_submission_command,
+    )
+
+    response = service.accept_create_proposal_async_submission(
+        payload=payload,
+        idempotency_key="idem-create-async-delegate",
+        correlation_id="corr-create-async-delegate",
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["payload"] is payload
+    assert captured["idempotency_key"] == "idem-create-async-delegate"
+    assert captured["correlation_id"] == "corr-create-async-delegate"
+    assert captured["max_attempts"] == 3
+    assert callable(captured["utc_now"])
+    assert captured["submission_stats"] is service._async_create_submission_stats  # noqa: SLF001
+
+
+def test_service_delegates_create_version_async_submission(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_accept_create_version_async_submission_command(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "accept_create_version_async_submission_command",
+        fake_accept_create_version_async_submission_command,
+    )
+
+    response = service.accept_create_version_async_submission(
+        proposal_id="pp-version-async-delegate",
+        payload=payload,
+        correlation_id="corr-version-async-delegate",
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["proposal_id"] == "pp-version-async-delegate"
+    assert captured["payload"] is payload
+    assert captured["correlation_id"] == "corr-version-async-delegate"
+    assert captured["max_attempts"] == 3
+    assert callable(captured["utc_now"])
+
+
 def test_service_delegates_narrative_read_view(monkeypatch):
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

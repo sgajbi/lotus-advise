@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-478
+
+- Scope: Proposal async submission command orchestration
+- Pattern: Async create and version submission acceptance should live in command helpers instead
+  of keeping idempotency normalization, correlation resolution, operation construction,
+  persistence, and acceptance projection inline in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and async command-boundary maintainability
+- Summary: `src/core/proposals/service.py` still owned async submission acceptance for both
+  initial create and create-version flows. These methods mixed correlation/idempotency handling,
+  operation construction, persistence, conflict translation, and create-submission telemetry updates
+  inside the service facade.
+- Evidence:
+  - Added `src/core/proposals/async_submission_commands.py` for create-proposal and create-version
+    async submission acceptance.
+  - Updated `ProposalWorkflowService` async submission methods to delegate to the command helpers
+    while preserving public method signatures.
+  - Added service-level guard coverage proving repository, payloads, proposal identity,
+    idempotency key, correlation ID, max attempts, clock dependency, and create-submission stats
+    tracker are passed through unchanged.
+- Consequence:
+  - Async submission acceptance now has explicit command ownership, separating request acceptance
+    from the service facade and making future idempotency/correlation diagnostics easier to test.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Run a broader proposal workflow regression pack before preparing the branch for PR.
+
 ## LA-REV-477
 
 - Scope: Proposal create command orchestration
