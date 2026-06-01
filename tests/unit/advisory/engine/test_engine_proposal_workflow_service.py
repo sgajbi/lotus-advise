@@ -753,6 +753,98 @@ def test_service_delegates_activity_views(
     }
 
 
+def test_service_delegates_narrative_read_view(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_build_narrative_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "build_narrative_view",
+        fake_build_narrative_view,
+    )
+
+    response = service.get_narrative(proposal_id="pp_narrative_view", version_no=2)
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_narrative_view",
+        "version_no": 2,
+    }
+
+
+def test_service_delegates_narrative_regeneration_view(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = object()
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_regenerate_narrative_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "regenerate_narrative_view",
+        fake_regenerate_narrative_view,
+    )
+
+    response = service.regenerate_narrative(
+        proposal_id="pp_narrative_regenerate",
+        version_no=3,
+        payload=payload,  # type: ignore[arg-type]
+    )
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_narrative_regenerate",
+        "version_no": 3,
+        "payload": payload,
+    }
+
+
+def test_service_delegates_narrative_review_command(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = object()
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_record_narrative_review(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "record_narrative_review",
+        fake_record_narrative_review,
+    )
+
+    response = service.record_narrative_review(
+        proposal_id="pp_narrative_review",
+        version_no=4,
+        payload=payload,  # type: ignore[arg-type]
+        idempotency_key="idem-narrative-review",
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["proposal_id"] == "pp_narrative_review"
+    assert captured["version_no"] == 4
+    assert captured["payload"] is payload
+    assert captured["idempotency_key"] == "idem-narrative-review"
+    assert isinstance(captured["event_id"], str)
+    assert callable(captured["occurred_at"])
+
+
 def test_service_missing_version_paths_and_helper_branches():
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-472
+
+- Scope: Proposal narrative read and review orchestration
+- Pattern: Proposal workflow service should delegate narrative read, regeneration, and review
+  command orchestration to a focused narrative boundary instead of repeating proposal/version
+  referent loading and domain-error translation inline.
+- Status: Hardened
+- Finding Class: modularity and narrative workflow maintainability
+- Summary: `src/core/proposals/service.py` owned three narrative methods that each loaded proposal
+  version replay referents, translated `PROPOSAL_NOT_FOUND` and `PROPOSAL_VERSION_NOT_FOUND`, and
+  mapped narrative review errors. That mixed narrative package behavior into the already large
+  workflow service.
+- Evidence:
+  - Added `src/core/proposals/narrative_views.py` to own narrative read, regeneration, and review
+    command orchestration.
+  - Updated `ProposalWorkflowService` narrative methods to delegate to the narrative boundary while
+    preserving public method signatures.
+  - Added service-level guard coverage proving narrative read, regeneration, and review methods
+    pass repository, proposal identity, version identity, payloads, idempotency keys, and event-time
+    dependencies into the boundary.
+- Consequence:
+  - Narrative behavior now has a narrower module-level ownership point, making future client-ready
+    narrative gating and replay evidence hardening easier to test without growing the workflow
+    service.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting async status/replay and version replay read helpers where repeated
+    read-model lookup and not-found translation remain.
+
 ## LA-REV-471
 
 - Scope: Proposal activity view assembly
