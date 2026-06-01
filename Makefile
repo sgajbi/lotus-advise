@@ -1,4 +1,4 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run verify-dependencies check-deps check-deps-strict security-audit openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run verify-dependencies check-deps check-deps-strict security-audit openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
 install: install-ci
 	python -m pre_commit install
@@ -73,6 +73,9 @@ api-vocabulary-gate:
 
 domain-data-products-gate:
 	python scripts/validate_domain_data_product_declarations.py
+
+engineering-health:
+	python scripts/engineering_health_report.py --output docs/architecture/ENGINEERING-HEALTH-BASELINE.md
 
 migration-smoke:
 	python -m pytest tests/unit/shared/dependencies/test_runtime_persistence.py tests/unit/shared/dependencies/test_production_cutover_contract.py tests/unit/shared/dependencies/test_postgres_migrate_targets.py -q

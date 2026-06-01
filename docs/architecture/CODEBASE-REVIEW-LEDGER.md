@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-572
+
+- Scope: Engineering health baseline reporting
+- Pattern: Refactoring progress should be backed by repeatable structural metrics and a
+  repo-native report command, not only local judgement.
+- Status: Hardened
+- Finding Class: Engineering quality measurement and governance evidence
+- Summary: The branch had strong repo-native gates, but no lightweight baseline artifact capturing
+  current code size, largest files, largest functions, router hotspots, and gate inventory for
+  repeated comparison across refactoring phases.
+- Evidence:
+  - Added `scripts/engineering_health_report.py` to collect deterministic structural metrics using
+    standard-library analysis.
+  - Added `make engineering-health` to regenerate
+    `docs/architecture/ENGINEERING-HEALTH-BASELINE.md`.
+  - Added unit coverage for report generation, router hotspot detection, Makefile gate inventory,
+    and Markdown rendering.
+  - Generated the current branch baseline report with Python file count, package/module count,
+    total Python lines, largest files, largest functions, router hotspots, and repo-native gates.
+- Consequence:
+  - Future refactoring phases can compare concrete engineering-health movement instead of relying
+    on subjective cleanup claims.
+- Documentation:
+  - Review ledger and architecture baseline report updated. No wiki source update is included in
+    this slice because the report is an internal engineering-health measurement artifact rather
+    than a client-facing capability or operator runbook.
+- Follow-Up:
+  - Add configured radon, vulture, deptry, bandit, pip-audit, Spectral, import-linter, and
+    interrogate phases once each tool has repo-native configuration and stable thresholds.
+
 ## LA-REV-571
 
 - Scope: Advisory copilot source projection proposal evidence sections
