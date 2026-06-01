@@ -40,6 +40,27 @@ from src.core.diagnostics_models import (
 from src.core.diagnostics_models import (
     TaxBudgetConstraintEvent as DiagnosticsTaxBudgetConstraintEvent,
 )
+from src.core.drift_models import (
+    DriftAnalysis as DriftDriftAnalysis,
+)
+from src.core.drift_models import (
+    DriftBucketDetail as DriftDriftBucketDetail,
+)
+from src.core.drift_models import (
+    DriftDimensionAnalysis as DriftDriftDimensionAnalysis,
+)
+from src.core.drift_models import (
+    DriftHighlightEntry as DriftDriftHighlightEntry,
+)
+from src.core.drift_models import (
+    DriftHighlights as DriftDriftHighlights,
+)
+from src.core.drift_models import (
+    DriftReferenceModelSummary as DriftDriftReferenceModelSummary,
+)
+from src.core.drift_models import (
+    DriftUnmodeledExposure as DriftDriftUnmodeledExposure,
+)
 from src.core.engine_options_models import (
     EngineOptions as OptionsEngineOptions,
 )
@@ -62,6 +83,13 @@ from src.core.models import (
     CashLadderBreach,
     CashLadderPoint,
     DiagnosticsData,
+    DriftAnalysis,
+    DriftBucketDetail,
+    DriftDimensionAnalysis,
+    DriftHighlightEntry,
+    DriftHighlights,
+    DriftReferenceModelSummary,
+    DriftUnmodeledExposure,
     DroppedIntent,
     EngineOptions,
     ExcludedInstrument,
@@ -233,6 +261,16 @@ def test_core_models_preserves_diagnostics_model_import_contract():
     assert RuleResult is DiagnosticsRuleResult
     assert SuppressedIntent is DiagnosticsSuppressedIntent
     assert TaxBudgetConstraintEvent is DiagnosticsTaxBudgetConstraintEvent
+
+
+def test_core_models_preserves_drift_model_import_contract():
+    assert DriftAnalysis is DriftDriftAnalysis
+    assert DriftBucketDetail is DriftDriftBucketDetail
+    assert DriftDimensionAnalysis is DriftDriftDimensionAnalysis
+    assert DriftHighlightEntry is DriftDriftHighlightEntry
+    assert DriftHighlights is DriftDriftHighlights
+    assert DriftReferenceModelSummary is DriftDriftReferenceModelSummary
+    assert DriftUnmodeledExposure is DriftDriftUnmodeledExposure
 
 
 def test_money_validation():
