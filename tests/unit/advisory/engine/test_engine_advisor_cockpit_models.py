@@ -9,7 +9,11 @@ from pydantic import ValidationError
 from src.core.advisor_cockpit import (
     COCKPIT_ACTION_DEFAULT_PAGE_SIZE,
     COCKPIT_ACTION_MAX_PAGE_SIZE,
+    AdvisorCockpitActionFamily,
+    AdvisorCockpitActionPriority,
+    AdvisorCockpitActionStatus,
     AdvisorCockpitOperatingSnapshot,
+    AdvisorCockpitOwnerRole,
     AdvisoryActionItem,
     CockpitAcknowledgementState,
     CockpitCallerContext,
@@ -17,6 +21,30 @@ from src.core.advisor_cockpit import (
     cockpit_cursor_start,
     normalize_cockpit_page_size,
     sort_cockpit_action_items,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitActionFamily as CompatibilityAdvisorCockpitActionFamily,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitActionPriority as CompatibilityAdvisorCockpitActionPriority,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitActionStatus as CompatibilityAdvisorCockpitActionStatus,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitOwnerRole as CompatibilityAdvisorCockpitOwnerRole,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionFamily as FocusedAdvisorCockpitActionFamily,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionPriority as FocusedAdvisorCockpitActionPriority,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionStatus as FocusedAdvisorCockpitActionStatus,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitOwnerRole as FocusedAdvisorCockpitOwnerRole,
 )
 from src.core.proposals.exceptions import ProposalValidationError
 
@@ -63,6 +91,17 @@ def test_advisor_cockpit_models_expose_private_banking_contract_vocabulary() -> 
     unsupported = schema["properties"]["unsupported_capabilities"]["items"]["enum"]
     assert "CLIENT_READY_PUBLICATION" in unsupported
     assert "FULL_RFC0028_DEMO_RFP_PACKAGE" in unsupported
+
+
+def test_advisor_cockpit_models_preserve_type_import_contract() -> None:
+    assert AdvisorCockpitActionFamily is FocusedAdvisorCockpitActionFamily
+    assert AdvisorCockpitActionPriority is FocusedAdvisorCockpitActionPriority
+    assert AdvisorCockpitActionStatus is FocusedAdvisorCockpitActionStatus
+    assert AdvisorCockpitOwnerRole is FocusedAdvisorCockpitOwnerRole
+    assert CompatibilityAdvisorCockpitActionFamily is FocusedAdvisorCockpitActionFamily
+    assert CompatibilityAdvisorCockpitActionPriority is FocusedAdvisorCockpitActionPriority
+    assert CompatibilityAdvisorCockpitActionStatus is FocusedAdvisorCockpitActionStatus
+    assert CompatibilityAdvisorCockpitOwnerRole is FocusedAdvisorCockpitOwnerRole
 
 
 def test_advisor_cockpit_sorting_matches_rfc0026_stable_order() -> None:

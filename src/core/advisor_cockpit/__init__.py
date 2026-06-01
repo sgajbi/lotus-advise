@@ -37,20 +37,12 @@ from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitSupportabilityResponse,
 )
 from src.core.advisor_cockpit.models import (
-    AdvisorCockpitActionFamily,
-    AdvisorCockpitActionPriority,
-    AdvisorCockpitActionStatus,
-    AdvisorCockpitCallerRole,
     AdvisorCockpitOperatingSnapshot,
-    AdvisorCockpitOwnerRole,
-    AdvisorCockpitSlaAgeBand,
-    AdvisorCockpitUnsupportedCapability,
     AdvisoryActionItem,
     AdvisoryActionItemPage,
     CockpitAcknowledgementState,
     CockpitCallerContext,
     CockpitDependencyReadiness,
-    CockpitEvidenceAccessClass,
     CockpitEvidenceRef,
     CockpitLineageRef,
     CockpitSourceReadinessGap,
@@ -91,6 +83,16 @@ from src.core.advisor_cockpit.source_read_model import (
     AdvisorCockpitSourceBatch,
     AdvisorCockpitSourceReadModel,
     build_advisor_cockpit_source_read_model,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionFamily,
+    AdvisorCockpitActionPriority,
+    AdvisorCockpitActionStatus,
+    AdvisorCockpitCallerRole,
+    AdvisorCockpitOwnerRole,
+    AdvisorCockpitSlaAgeBand,
+    AdvisorCockpitUnsupportedCapability,
+    CockpitEvidenceAccessClass,
 )
 from src.core.advisor_cockpit.vocabulary import (
     cockpit_action_sort_key,

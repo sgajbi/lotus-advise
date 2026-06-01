@@ -5,86 +5,34 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.advisor_cockpit import model_validation as cockpit_validation
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionFamily as AdvisorCockpitActionFamily,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionPriority as AdvisorCockpitActionPriority,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionStatus as AdvisorCockpitActionStatus,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitCallerRole as AdvisorCockpitCallerRole,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitOwnerRole as AdvisorCockpitOwnerRole,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitSlaAgeBand as AdvisorCockpitSlaAgeBand,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitUnsupportedCapability as AdvisorCockpitUnsupportedCapability,
+)
+from src.core.advisor_cockpit.type_models import (
+    CockpitDependencyState as CockpitDependencyState,
+)
+from src.core.advisor_cockpit.type_models import (
+    CockpitEvidenceAccessClass as CockpitEvidenceAccessClass,
+)
 
-AdvisorCockpitActionStatus = Literal[
-    "READY",
-    "PENDING_REVIEW",
-    "BLOCKED",
-    "ACKNOWLEDGED",
-    "HANDOFF_REQUESTED",
-    "COMPLETED",
-    "SUPERSEDED",
-]
-AdvisorCockpitActionPriority = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"]
-AdvisorCockpitOwnerRole = Literal[
-    "ADVISOR",
-    "DESK_HEAD",
-    "COMPLIANCE_REVIEWER",
-    "INVESTMENT_DESK",
-    "PORTFOLIO_MANAGER",
-    "OPERATIONS",
-    "CRM_OWNER",
-    "REPORTING_OWNER",
-    "ARCHIVE_OWNER",
-    "EXECUTION_OWNER",
-    "SYSTEM",
-]
-AdvisorCockpitCallerRole = Literal[
-    "ADVISOR",
-    "DESK_HEAD",
-    "COMPLIANCE_REVIEWER",
-    "INVESTMENT_DESK",
-    "PORTFOLIO_MANAGER",
-    "OPERATIONS",
-    "CRM_OWNER",
-    "REPORTING_OWNER",
-    "ARCHIVE_OWNER",
-    "EXECUTION_OWNER",
-    "DPM_OWNER",
-    "SYSTEM",
-]
-AdvisorCockpitSlaAgeBand = Literal[
-    "NOT_DUE",
-    "DUE_SOON",
-    "DUE_NOW",
-    "OVERDUE",
-    "CRITICAL_OVERDUE",
-    "NOT_APPLICABLE",
-]
-AdvisorCockpitActionFamily = Literal[
-    "CLIENT_MEETING_PREPARATION",
-    "PROPOSAL_READY_FOR_REVIEW",
-    "PROPOSAL_BLOCKED_BY_SOURCE_GAP",
-    "POLICY_REVIEW_REQUIRED",
-    "APPROVAL_DEPENDENCY_AGING",
-    "CLIENT_CONSENT_REQUIRED",
-    "MEMO_PACKAGE_BLOCKED",
-    "REPORT_RENDER_ARCHIVE_BLOCKED",
-    "EXECUTION_HANDOFF_READY",
-    "EXECUTION_STATUS_ATTENTION",
-    "HOUSE_VIEW_IMPACT_REVIEW",
-    "WORKSPACE_DRAFT_STALE",
-    "CLIENT_FOLLOW_UP_REQUIRED",
-    "SUPPORTABILITY_DEGRADED",
-    "UNSUPPORTED_CAPABILITY",
-]
-CockpitEvidenceAccessClass = Literal[
-    "CUSTOMER_CONSUMABLE_SUMMARY",
-    "RESTRICTED_CUSTOMER_EVIDENCE",
-    "OPERATOR_ONLY_SUPPORTABILITY",
-    "INTERNAL_ONLY_DIAGNOSTICS",
-]
-CockpitDependencyState = Literal["READY", "DEGRADED", "UNAVAILABLE", "NOT_CONFIGURED"]
-AdvisorCockpitUnsupportedCapability = Literal[
-    "CLIENT_READY_PUBLICATION",
-    "EXTERNAL_CLIENT_COMMUNICATION",
-    "CRM_SYSTEM_OF_RECORD",
-    "CALENDAR_SCHEDULING",
-    "OMS_ORDER_LIFECYCLE",
-    "COMPLETED_POLICY_APPROVAL_AUTHORITY",
-    "COMPLETED_POLICY_SIGN_OFF_AUTHORITY",
-    "FULL_RFC0028_DEMO_RFP_PACKAGE",
-]
 _COCKPIT_IDENTIFIER_MAX_LENGTH = cockpit_validation.COCKPIT_IDENTIFIER_MAX_LENGTH
 _COCKPIT_TEXT_MAX_LENGTH = cockpit_validation.COCKPIT_TEXT_MAX_LENGTH
 _COCKPIT_SUMMARY_MAX_LENGTH = cockpit_validation.COCKPIT_SUMMARY_MAX_LENGTH

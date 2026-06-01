@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-527
+
+- Scope: Advisor cockpit type vocabulary ownership
+- Pattern: Advisor cockpit literal vocabulary should live in a focused type module before DTO
+  classes are split from the broad cockpit model surface.
+- Status: Hardened
+- Finding Class: modularity and private-banking vocabulary maintainability
+- Summary: `src/core/advisor_cockpit/models.py` owned both DTO classes and shared literal
+  vocabulary for action status, priority, owner roles, caller roles, SLA bands, action families,
+  evidence access classes, dependency states, and unsupported capabilities. That made later DTO
+  extraction harder and kept private-banking cockpit vocabulary coupled to the model monolith.
+- Evidence:
+  - Added `src/core/advisor_cockpit/type_models.py` for shared advisor cockpit literal vocabulary.
+  - Kept compatibility imports from `src.core.advisor_cockpit.models` and package exports stable.
+  - Added contract coverage proving package-level and compatibility imports point at the focused
+    type definitions.
+- Consequence:
+  - Cockpit DTO modules can now depend on a narrow vocabulary module instead of duplicating or
+    importing through the broad model surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Extract cockpit source/reference/readiness DTOs and then action/snapshot DTOs from
+    `src/core/advisor_cockpit/models.py`.
+
 ## LA-REV-526
 
 - Scope: Policy-pack compatibility facade production import boundary
