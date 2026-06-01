@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from src.core.bank_demo_proof.models import (
+from src.core.bank_demo_proof.model_common import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
     RFC28_CANONICAL_SCENARIO_ID,
+)
+from src.core.bank_demo_proof.supported_claim_models import (
     AdvisorySupportedClaimRegister,
     ArtifactPolicy,
     SupportedClaim,

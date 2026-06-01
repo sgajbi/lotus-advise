@@ -22,16 +22,14 @@ from src.core.bank_demo_proof.integration_proof import (
     build_journey_integration_proof_summary,
 )
 from src.core.bank_demo_proof.material_review import MaterialFieldReview, review_material_fields
-from src.core.bank_demo_proof.models import (
-    AdvisoryBankDemoProofPack,
-    AdvisoryDemoScenarioContract,
-    AdvisorySupportedClaimRegister,
-)
 from src.core.bank_demo_proof.proof_assets import build_backend_proof_assets
 from src.core.bank_demo_proof.proof_pack import build_backend_proof_pack
+from src.core.bank_demo_proof.proof_pack_models import AdvisoryBankDemoProofPack
 from src.core.bank_demo_proof.runtime_posture import BackendRuntimePosture
 from src.core.bank_demo_proof.runtime_summary import sanitize_live_runtime_summary
 from src.core.bank_demo_proof.scenario_contract import build_default_scenario_contract
+from src.core.bank_demo_proof.scenario_models import AdvisoryDemoScenarioContract
+from src.core.bank_demo_proof.supported_claim_models import AdvisorySupportedClaimRegister
 from src.core.bank_demo_proof.supported_claim_register import (
     build_default_supported_claim_register,
 )

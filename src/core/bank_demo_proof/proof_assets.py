@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.bank_demo_proof.models import ProofAsset
+from src.core.bank_demo_proof.proof_asset_models import ProofAsset
 from src.core.common.canonical import hash_canonical_payload
 
 

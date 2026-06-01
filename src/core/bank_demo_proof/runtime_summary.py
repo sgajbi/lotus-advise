@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.bank_demo_proof.models import RFC28_CANONICAL_SCENARIO_ID
+from src.core.bank_demo_proof.model_common import RFC28_CANONICAL_SCENARIO_ID
 
 
 def sanitize_live_runtime_summary(live_runtime_payload: dict[str, Any]) -> dict[str, Any]:

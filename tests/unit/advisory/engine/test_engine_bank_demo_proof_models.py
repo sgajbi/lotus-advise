@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -610,3 +611,15 @@ def test_bank_demo_model_facade_preserves_focused_model_ownership() -> None:
     assert ArtifactPolicy.__module__.endswith(".supported_claim_models")
     assert ProofAsset.__module__.endswith(".proof_asset_models")
     assert AdvisoryBankDemoProofPack.__module__.endswith(".proof_pack_models")
+
+
+def test_bank_demo_internal_modules_import_focused_models_not_facade() -> None:
+    bank_demo_dir = Path("src/core/bank_demo_proof")
+    internal_modules = [
+        path for path in bank_demo_dir.glob("*.py") if path.name not in {"__init__.py", "models.py"}
+    ]
+
+    for path in internal_modules:
+        assert "from src.core.bank_demo_proof.models import" not in path.read_text(
+            encoding="utf-8"
+        ), path

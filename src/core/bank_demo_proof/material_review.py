@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.core.bank_demo_proof.models import RFC28_CANONICAL_PORTFOLIO_ID
+from src.core.bank_demo_proof.model_common import RFC28_CANONICAL_PORTFOLIO_ID
 from src.core.bank_demo_proof.runtime_summary import value_at
 from src.core.bank_demo_proof.validation import (
     RFC28_CAPTURE_CLAIM_REFS_MAX_ITEMS,

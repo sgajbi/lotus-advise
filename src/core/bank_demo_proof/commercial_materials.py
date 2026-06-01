@@ -6,7 +6,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from src.core.bank_demo_proof.models import (
+from src.core.bank_demo_proof.model_common import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
     RFC28_CANONICAL_SCENARIO_ID,

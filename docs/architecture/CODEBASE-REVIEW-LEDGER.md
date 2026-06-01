@@ -9243,6 +9243,33 @@
   - Add new RFC-0028 DTOs to the owning focused module first; use the facade only for stable import
     compatibility.
 
+## LA-REV-382
+
+- Scope: RFC-0028 proof model internal dependency direction
+- Pattern: Compatibility facades are for public import stability; internal modules should depend on
+  focused owning modules to keep dependency flow explicit
+- Status: Hardened
+- Finding Class: Dependency-flow and modularity hardening
+- Summary: After splitting the bank-demo proof model families, several internal RFC-0028 modules
+  still imported types and constants from `src.core.bank_demo_proof.models`. That kept behavior
+  correct, but it made the facade a hidden internal dependency and weakened the model-ownership
+  boundary.
+- Evidence:
+  - Repointed internal bank-demo proof modules to `model_common`, `scenario_models`,
+    `supported_claim_models`, `proof_asset_models`, and `proof_pack_models`.
+  - Added a contract test that prevents internal `src/core/bank_demo_proof/*.py` modules from
+    importing the compatibility facade.
+  - Focused `ruff`, format check, `mypy src/core/bank_demo_proof`, and RFC-0028 bank-demo/API
+    selected tests passed with 87 tests.
+- Consequence:
+  - The facade remains available for route, script, test, and downstream compatibility, while
+    implementation modules now follow the focused dependency direction.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because runtime behavior and
+    product truth are unchanged.
+- Follow-Up:
+  - Keep the `models.py` facade thin; do not add new implementation logic there.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
