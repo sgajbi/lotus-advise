@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-434
+
+- Scope: Lotus Report route error boundary
+- Pattern: Routes that call lotus-report-backed operations should use a shared report operation
+  boundary instead of importing integration exception taxonomy directly.
+- Status: Hardened
+- Finding Class: duplication and integration-boundary consistency
+- Summary: Delivery, memo, and policy evaluation routes each caught `LotusReportUnavailableError`
+  directly and called the report HTTP exception helper. That kept integration exception vocabulary
+  in route modules even after proposal exception mapping had been centralized.
+- Evidence:
+  - Added `run_lotus_report_operation` to `src/api/proposals/report_errors.py`.
+  - Updated delivery, memo, and policy-evaluation report-package paths to use the shared report
+    operation boundary.
+  - Extended internal route guards so `LotusReportUnavailableError` stays out of those route
+    modules.
+- Consequence:
+  - Report integration unavailability is now translated through one route-facing boundary, with
+    sensitive-detail redaction preserved.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue isolating integration exception taxonomy from route modules where new integrations are
+    added.
+
 ## LA-REV-433
 
 - Scope: Workspace handoff execution error boundary

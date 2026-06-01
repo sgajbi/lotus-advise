@@ -14,7 +14,7 @@ from src.api.proposals.memo_responses import (
     MEMO_REPORT_PACKAGE_RESPONSES,
     MEMO_REVIEW_RESPONSES,
 )
-from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
+from src.api.proposals.report_errors import run_lotus_report_operation
 from src.core.proposals import (
     ProposalMemoAiCommentaryRequest,
     ProposalMemoAiCommentaryResponse,
@@ -43,7 +43,6 @@ from src.core.proposals.memo_api import (
     request_memo_report_package_response,
 )
 from src.core.proposals.repository import ProposalRepository
-from src.integrations.lotus_report import LotusReportUnavailableError
 
 
 @shared.router.post(
@@ -314,8 +313,8 @@ def request_proposal_memo_report_package(
     ] = None,
 ) -> ProposalMemoReportPackageResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return run_proposal_operation(
+    return run_lotus_report_operation(
+        lambda: run_proposal_operation(
             lambda: request_memo_report_package_response(
                 repository=repository,
                 proposal_id=proposal_id,
@@ -327,8 +326,7 @@ def request_proposal_memo_report_package(
                 occurred_at=_utc_now(),
             )
         )
-    except LotusReportUnavailableError as exc:
-        raise_lotus_report_unavailable_http_exception(exc)
+    )
 
 
 @shared.router.post(

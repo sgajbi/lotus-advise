@@ -122,7 +122,8 @@ def test_memo_routes_use_shared_response_metadata():
     assert "responses=MEMO_AI_COMMENTARY_RESPONSES" in source
     assert "raise_proposal_http_exception" not in source
     assert "ProposalNotFoundError" not in source
-    assert "raise_lotus_report_unavailable_http_exception" in source
+    assert "LotusReportUnavailableError" not in source
+    assert "run_lotus_report_operation" in source
     assert source.count("run_proposal_operation(") == 9
 
 
@@ -258,7 +259,8 @@ def test_delivery_routes_use_shared_proposal_error_boundary():
 
     assert "raise_proposal_http_exception" not in source
     assert "ProposalNotFoundError" not in source
-    assert "raise_lotus_report_unavailable_http_exception" in source
+    assert "LotusReportUnavailableError" not in source
+    assert "run_lotus_report_operation" in source
     assert source.count("run_proposal_operation(") == 6
 
 
@@ -267,7 +269,8 @@ def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
 
     assert "raise_proposal_http_exception" not in source
     assert "ProposalNotFoundError" not in source
-    assert "raise_lotus_report_unavailable_http_exception" in source
+    assert "LotusReportUnavailableError" not in source
+    assert "run_lotus_report_operation" in source
     assert source.count("run_proposal_operation(") == 10
 
 

@@ -13,7 +13,7 @@ from src.api.proposals.policy_evaluation_responses import (
     POLICY_REVIEW_QUEUE_RESPONSES,
     POLICY_SIGN_OFF_DECISION_RESPONSES,
 )
-from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
+from src.api.proposals.report_errors import run_lotus_report_operation
 from src.core.policy_packs import (
     PolicyEvaluationAiEvidenceRequest,
     PolicyEvaluationAiEvidenceResponse,
@@ -45,7 +45,6 @@ from src.core.policy_packs import (
     request_policy_evaluation_report_package,
 )
 from src.core.proposals.identifiers import new_report_request_id
-from src.integrations.lotus_report import LotusReportUnavailableError
 
 
 @shared.router.post(
@@ -368,8 +367,8 @@ def request_policy_report_package(
         ),
     ] = None,
 ) -> PolicyEvaluationReportPackageResponse:
-    try:
-        return run_proposal_operation(
+    return run_lotus_report_operation(
+        lambda: run_proposal_operation(
             lambda: request_policy_evaluation_report_package(
                 evaluation_id=evaluation_id,
                 payload=payload,
@@ -377,8 +376,7 @@ def request_policy_report_package(
                 idempotency_key=idempotency_key,
             )
         )
-    except LotusReportUnavailableError as exc:
-        raise_lotus_report_unavailable_http_exception(exc)
+    )
 
 
 @shared.router.post(

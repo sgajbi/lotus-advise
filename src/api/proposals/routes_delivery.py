@@ -4,7 +4,7 @@ from fastapi import Depends, Header, Path, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import run_proposal_operation
-from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
+from src.api.proposals.report_errors import run_lotus_report_operation
 from src.api.services.proposal_reporting_service import request_proposal_report
 from src.core.proposals import (
     ProposalDeliveryHistoryResponse,
@@ -17,7 +17,6 @@ from src.core.proposals import (
     ProposalReportResponse,
     ProposalWorkflowService,
 )
-from src.integrations.lotus_report import LotusReportUnavailableError
 
 
 @shared.router.post(
@@ -44,16 +43,15 @@ def create_proposal_report_request(
     ],
 ) -> ProposalReportResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return run_proposal_operation(
+    return run_lotus_report_operation(
+        lambda: run_proposal_operation(
             lambda: request_proposal_report(
                 proposal_id=proposal_id,
                 payload=payload,
                 service=service,
             )
         )
-    except LotusReportUnavailableError as exc:
-        raise_lotus_report_unavailable_http_exception(exc)
+    )
 
 
 @shared.router.post(
