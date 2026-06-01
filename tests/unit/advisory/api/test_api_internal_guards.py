@@ -127,6 +127,20 @@ def test_memo_routes_use_shared_response_metadata():
     assert source.count("run_proposal_operation(") == 9
 
 
+def test_memo_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_memo.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "Query(" not in source
+    assert "ProposalIdPath" in source
+    assert "ProposalMemoSourceVersionNoPath" in source
+    assert "ProposalMemoCreateIdempotencyKeyHeader" in source
+    assert "ProposalMemoReviewIdempotencyKeyHeader" in source
+    assert "ProposalMemoAudienceQuery" in source
+
+
 def test_policy_pack_routes_use_shared_response_metadata():
     source = inspect.getsource(routes_policy_packs)
 

@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-452
+
+- Scope: Advisory proposal memo route parameter contracts
+- Pattern: Memo routes should centralize memo source version, audience, and idempotency contracts
+  outside the controller module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_memo.py` repeated proposal id, memo source version,
+  audience, and several memo idempotency `Header`, `Path`, and `Query` declarations across create,
+  read, projection, review, report-package, AI commentary, lineage, and replay routes. This made a
+  large controller module responsible for OpenAPI metadata as well as request orchestration.
+- Evidence:
+  - Added `src/api/proposals/memo_parameters.py` for memo source version, audience, and
+    idempotency header contracts.
+  - Reused lifecycle `ProposalIdPath` in memo routes.
+  - Updated memo repository dependencies to direct `Depends(...)` declarations.
+  - Extended internal guards so memo routes cannot reintroduce inline `Header`, `Path`, or `Query`
+    contracts.
+- Consequence:
+  - Memo route handlers are smaller and memo OpenAPI/validation metadata now has a route-family
+    owner while preserving distinct idempotency descriptions for create, review, report-package,
+    and AI commentary operations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Policy evaluation routes remain the largest parameter-contract duplication surface and should
+    be addressed in a separate scoped commit.
+
 ## LA-REV-451
 
 - Scope: Advisory proposal delivery route parameter contracts
