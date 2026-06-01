@@ -24,6 +24,24 @@ from src.core.proposals.models import (
 )
 from src.infrastructure.postgres_migrations import apply_postgres_migrations
 from src.infrastructure.proposals import postgres_mappers as _postgres_mappers
+from src.infrastructure.proposals.postgres_async_operations import (
+    create_operation_if_absent_by_idempotency as _create_operation_if_absent_by_idempotency,
+)
+from src.infrastructure.proposals.postgres_async_operations import (
+    get_operation as _get_operation,
+)
+from src.infrastructure.proposals.postgres_async_operations import (
+    get_operation_by_correlation as _get_operation_by_correlation,
+)
+from src.infrastructure.proposals.postgres_async_operations import (
+    get_operation_by_idempotency as _get_operation_by_idempotency,
+)
+from src.infrastructure.proposals.postgres_async_operations import (
+    list_recoverable_operations as _list_recoverable_operations,
+)
+from src.infrastructure.proposals.postgres_async_operations import (
+    upsert_operation as _upsert_async_operation,
+)
 from src.infrastructure.proposals.postgres_idempotency import (
     get_memo_idempotency as _get_memo_idempotency,
 )
@@ -472,233 +490,36 @@ class PostgresProposalRepository:
         )
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None:
-        self._upsert_operation(operation)
+        _upsert_async_operation(connect=self._connect, operation=operation)
 
     def create_operation_if_absent_by_idempotency(
         self, operation: ProposalAsyncOperationRecord
     ) -> tuple[ProposalAsyncOperationRecord, bool]:
-        if not operation.idempotency_key:
-            self._upsert_operation(operation)
-            return deepcopy(operation), True
-
-        query = """
-            WITH inserted AS (
-                INSERT INTO proposal_async_operations (
-                    operation_id,
-                    operation_type,
-                    status,
-                    correlation_id,
-                    idempotency_key,
-                    proposal_id,
-                    created_by,
-                    created_at,
-                    payload_json,
-                    attempt_count,
-                    max_attempts,
-                    started_at,
-                    lease_expires_at,
-                    finished_at,
-                    result_json,
-                    error_json
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
-                RETURNING
-                    operation_id,
-                    operation_type,
-                    status,
-                    correlation_id,
-                    idempotency_key,
-                    proposal_id,
-                    created_by,
-                    created_at,
-                    payload_json,
-                    attempt_count,
-                    max_attempts,
-                    started_at,
-                    lease_expires_at,
-                    finished_at,
-                    result_json,
-                    error_json
-            )
-            SELECT * FROM inserted
-            UNION ALL
-            SELECT
-                operation_id,
-                operation_type,
-                status,
-                correlation_id,
-                idempotency_key,
-                proposal_id,
-                created_by,
-                created_at,
-                payload_json,
-                attempt_count,
-                max_attempts,
-                started_at,
-                lease_expires_at,
-                finished_at,
-                result_json,
-                error_json
-            FROM proposal_async_operations
-            WHERE idempotency_key = %s
-            LIMIT 1
-        """
-        params = (
-            operation.operation_id,
-            operation.operation_type,
-            operation.status,
-            operation.correlation_id,
-            operation.idempotency_key,
-            operation.proposal_id,
-            operation.created_by,
-            operation.created_at.isoformat(),
-            _json_dump(operation.payload_json),
-            operation.attempt_count,
-            operation.max_attempts,
-            _optional_iso(operation.started_at),
-            _optional_iso(operation.lease_expires_at),
-            _optional_iso(operation.finished_at),
-            _optional_json(operation.result_json),
-            _optional_json(operation.error_json),
-            operation.idempotency_key,
+        return _create_operation_if_absent_by_idempotency(
+            connect=self._connect,
+            operation=operation,
         )
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, params).fetchone()
-            connection.commit()
-        stored = _to_operation(row)
-        assert stored is not None
-        return stored, stored.operation_id == operation.operation_id
 
     def update_operation(self, operation: ProposalAsyncOperationRecord) -> None:
-        self._upsert_operation(operation)
+        _upsert_async_operation(connect=self._connect, operation=operation)
 
     def get_operation(self, *, operation_id: str) -> Optional[ProposalAsyncOperationRecord]:
-        query = """
-            SELECT
-                operation_id,
-                operation_type,
-                status,
-                correlation_id,
-                idempotency_key,
-                proposal_id,
-                created_by,
-                created_at,
-                payload_json,
-                attempt_count,
-                max_attempts,
-                started_at,
-                lease_expires_at,
-                finished_at,
-                result_json,
-                error_json
-            FROM proposal_async_operations
-            WHERE operation_id = %s
-        """
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, (operation_id,)).fetchone()
-        return _to_operation(row)
+        return _get_operation(connect=self._connect, operation_id=operation_id)
 
     def get_operation_by_correlation(
         self, *, correlation_id: str
     ) -> Optional[ProposalAsyncOperationRecord]:
-        query = """
-            SELECT
-                operation_id,
-                operation_type,
-                status,
-                correlation_id,
-                idempotency_key,
-                proposal_id,
-                created_by,
-                created_at,
-                payload_json,
-                attempt_count,
-                max_attempts,
-                started_at,
-                lease_expires_at,
-                finished_at,
-                result_json,
-                error_json
-            FROM proposal_async_operations
-            WHERE correlation_id = %s
-        """
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, (correlation_id,)).fetchone()
-        return _to_operation(row)
+        return _get_operation_by_correlation(connect=self._connect, correlation_id=correlation_id)
 
     def get_operation_by_idempotency(
         self, *, idempotency_key: str
     ) -> Optional[ProposalAsyncOperationRecord]:
-        query = """
-            SELECT
-                operation_id,
-                operation_type,
-                status,
-                correlation_id,
-                idempotency_key,
-                proposal_id,
-                created_by,
-                created_at,
-                payload_json,
-                attempt_count,
-                max_attempts,
-                started_at,
-                lease_expires_at,
-                finished_at,
-                result_json,
-                error_json
-            FROM proposal_async_operations
-            WHERE idempotency_key = %s
-            ORDER BY created_at DESC, operation_id DESC
-            LIMIT 1
-        """
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, (idempotency_key,)).fetchone()
-        return _to_operation(row)
+        return _get_operation_by_idempotency(connect=self._connect, idempotency_key=idempotency_key)
 
     def list_recoverable_operations(
         self, *, as_of: datetime, limit: Optional[int] = None
     ) -> list[ProposalAsyncOperationRecord]:
-        if limit is not None and limit <= 0:
-            return []
-        args: list[object] = [as_of.isoformat()]
-        query = """
-            SELECT
-                operation_id,
-                operation_type,
-                status,
-                correlation_id,
-                idempotency_key,
-                proposal_id,
-                created_by,
-                created_at,
-                payload_json,
-                attempt_count,
-                max_attempts,
-                started_at,
-                lease_expires_at,
-                finished_at,
-                result_json,
-                error_json
-            FROM proposal_async_operations
-            WHERE
-                status = 'PENDING'
-                OR (
-                    status = 'RUNNING'
-                    AND finished_at IS NULL
-                    AND lease_expires_at IS NOT NULL
-                    AND lease_expires_at <= %s
-                )
-            ORDER BY created_at ASC, operation_id ASC
-        """
-        if limit is not None:
-            query = f"{query}\nLIMIT %s"
-            args.append(limit)
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, tuple(args)).fetchall()
-        return [
-            operation for operation in (_to_operation(row) for row in rows) if operation is not None
-        ]
+        return _list_recoverable_operations(connect=self._connect, as_of=as_of, limit=limit)
 
     def create_proposal(self, proposal: ProposalRecord) -> None:
         with closing(self._connect()) as connection:
@@ -1076,67 +897,6 @@ class PostgresProposalRepository:
     def _init_db(self) -> None:
         with closing(self._connect()) as connection:
             apply_postgres_migrations(connection=connection, namespace="proposals")
-
-    def _upsert_operation(self, operation: ProposalAsyncOperationRecord) -> None:
-        query = """
-            INSERT INTO proposal_async_operations (
-                operation_id,
-                operation_type,
-                status,
-                correlation_id,
-                idempotency_key,
-                proposal_id,
-                created_by,
-                created_at,
-                payload_json,
-                attempt_count,
-                max_attempts,
-                started_at,
-                lease_expires_at,
-                finished_at,
-                result_json,
-                error_json
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (operation_id) DO UPDATE SET
-                operation_type=excluded.operation_type,
-                status=excluded.status,
-                correlation_id=excluded.correlation_id,
-                idempotency_key=excluded.idempotency_key,
-                proposal_id=excluded.proposal_id,
-                created_by=excluded.created_by,
-                created_at=excluded.created_at,
-                payload_json=excluded.payload_json,
-                attempt_count=excluded.attempt_count,
-                max_attempts=excluded.max_attempts,
-                started_at=excluded.started_at,
-                lease_expires_at=excluded.lease_expires_at,
-                finished_at=excluded.finished_at,
-                result_json=excluded.result_json,
-                error_json=excluded.error_json
-        """
-        with closing(self._connect()) as connection:
-            connection.execute(
-                query,
-                (
-                    operation.operation_id,
-                    operation.operation_type,
-                    operation.status,
-                    operation.correlation_id,
-                    operation.idempotency_key,
-                    operation.proposal_id,
-                    operation.created_by,
-                    operation.created_at.isoformat(),
-                    _json_dump(operation.payload_json),
-                    operation.attempt_count,
-                    operation.max_attempts,
-                    _optional_iso(operation.started_at),
-                    _optional_iso(operation.lease_expires_at),
-                    _optional_iso(operation.finished_at),
-                    _optional_json(operation.result_json),
-                    _optional_json(operation.error_json),
-                ),
-            )
-            connection.commit()
 
     def _upsert_proposal(self, *, connection: Any, proposal: ProposalRecord) -> None:
         query = """

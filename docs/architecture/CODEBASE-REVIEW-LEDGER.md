@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-481
+
+- Scope: Postgres proposal async operation persistence
+- Pattern: Async operation upsert, idempotent insert, lookup, and recoverable-operation query logic
+  should live in a focused infrastructure helper instead of remaining inline in the oversized
+  Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and async persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned all async operation persistence
+  SQL directly, including operation upsert, atomic idempotent insert-or-load, status/correlation
+  lookup, and recoverable-operation scanning. This mixed operational retry persistence into the
+  already large repository adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_async_operations.py` for async operation
+    persistence helpers and the shared column/parameter mapping.
+  - Updated `PostgresProposalRepository` async operation methods to delegate through `_connect`
+    while preserving existing repository method signatures.
+  - Reused existing Postgres repository unit coverage for create/update, correlation lookup,
+    atomic idempotent insert-or-load, non-idempotent snapshot behavior, and recoverable operation
+    ordering/limit semantics.
+- Consequence:
+  - Async operation persistence now has explicit infrastructure ownership, making future retry,
+    lease, and recovery query hardening easier to localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting remaining Postgres repository method groups such as cockpit
+    acknowledgements and memo persistence once async operation extraction is green locally and
+    remotely.
+
 ## LA-REV-480
 
 - Scope: Postgres proposal idempotency persistence
