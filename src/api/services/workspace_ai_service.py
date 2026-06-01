@@ -1,8 +1,5 @@
-from src.api.services.workspace_errors import (
-    WORKSPACE_AI_UNAVAILABLE_DETAIL,
-    WorkspaceAssistantUnavailableError,
-    safe_workspace_error_detail,
-)
+from src.api.services.workspace_ai_errors import run_workspace_ai_operation
+from src.api.services.workspace_errors import WorkspaceAssistantUnavailableError
 from src.api.services.workspace_service import get_workspace_session
 from src.core.workspace.assistant_evidence import build_workspace_assistant_evidence
 from src.core.workspace.models import (
@@ -12,7 +9,6 @@ from src.core.workspace.models import (
     WorkspaceAssistantWorkflowPackRunReviewActionResponse,
 )
 from src.integrations.lotus_ai import (
-    LotusAIRationaleUnavailableError,
     apply_workspace_rationale_review_action_with_lotus_ai,
     generate_workspace_rationale_with_lotus_ai,
 )
@@ -27,15 +23,12 @@ def generate_workspace_rationale(
     if evidence is None:
         raise WorkspaceAssistantUnavailableError("WORKSPACE_AI_REQUIRES_EVALUATED_WORKSPACE")
 
-    try:
-        return generate_workspace_rationale_with_lotus_ai(
+    return run_workspace_ai_operation(
+        lambda: generate_workspace_rationale_with_lotus_ai(
             request=request,
             evidence=evidence,
         )
-    except LotusAIRationaleUnavailableError as exc:
-        raise WorkspaceAssistantUnavailableError(
-            safe_workspace_error_detail(str(exc), fallback=WORKSPACE_AI_UNAVAILABLE_DETAIL)
-        ) from exc
+    )
 
 
 def apply_workspace_rationale_review_action(
@@ -44,12 +37,9 @@ def apply_workspace_rationale_review_action(
 ) -> WorkspaceAssistantWorkflowPackRunReviewActionResponse:
     get_workspace_session(workspace_id)
 
-    try:
-        return apply_workspace_rationale_review_action_with_lotus_ai(
+    return run_workspace_ai_operation(
+        lambda: apply_workspace_rationale_review_action_with_lotus_ai(
             request,
             workspace_id=workspace_id,
         )
-    except LotusAIRationaleUnavailableError as exc:
-        raise WorkspaceAssistantUnavailableError(
-            safe_workspace_error_detail(str(exc), fallback=WORKSPACE_AI_UNAVAILABLE_DETAIL)
-        ) from exc
+    )

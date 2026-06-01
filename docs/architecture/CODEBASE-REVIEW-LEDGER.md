@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-431
+
+- Scope: Workspace AI service error boundary
+- Pattern: Lotus AI rationale unavailability should be translated through a focused workspace AI
+  boundary helper instead of repeated service-local `except` blocks.
+- Status: Hardened
+- Finding Class: duplication and service-boundary consistency
+- Summary: `src/api/services/workspace_ai_service.py` repeated `LotusAIRationaleUnavailableError`
+  handling for rationale generation and review-action calls. The service should orchestrate
+  workspace lookup and evidence selection while the integration error mapping remains centralized.
+- Evidence:
+  - Added `src/api/services/workspace_ai_errors.py` with `run_workspace_ai_operation`.
+  - Updated workspace rationale generation and review-action flows to delegate lotus-ai
+    unavailability mapping to the shared helper.
+  - Extended the internal workspace AI guard to prevent direct lotus-ai exception handling from
+    returning to `workspace_ai_service.py`.
+- Consequence:
+  - Workspace AI service handlers now share one safe-detail redaction and unavailable-error
+    translation path for lotus-ai rationale operations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue isolating integration-specific error boundaries from route and orchestration modules.
+
 ## LA-REV-430
 
 - Scope: Bank demo proof route error boundary
