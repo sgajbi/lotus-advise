@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-480
+
+- Scope: Postgres proposal idempotency persistence
+- Pattern: Proposal, simulation, and memo idempotency SQL should live in a focused infrastructure
+  helper instead of remaining inline in the oversized Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and infrastructure persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned three idempotency persistence
+  groups directly at the top of the repository class. These methods mixed idempotency SQL, row
+  mapping, and transaction handling into the adapter, widening a file already over 1,300 lines.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_idempotency.py` for proposal, simulation, and memo
+    idempotency get/save helpers.
+  - Updated `PostgresProposalRepository` idempotency methods to delegate through `_connect` while
+    preserving existing repository method signatures.
+  - Reused existing Postgres repository unit coverage for proposal, simulation, and memo
+    idempotency persistence semantics, including memo idempotency `ON CONFLICT DO NOTHING`
+    behavior.
+- Consequence:
+  - Idempotency persistence now has explicit infrastructure ownership, making future auditability,
+    conflict handling, and query-shape hardening easier to localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting Postgres async operation persistence and cockpit acknowledgement groups once
+    idempotency extraction is green locally and remotely.
+
 ## LA-REV-479
 
 - Scope: Postgres proposal repository mapping helpers
