@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-550
+
+- Scope: Advisory copilot run lineage defaults and record identity boundary
+- Pattern: Stable copilot record identifiers and Lotus AI lineage default constants should have a
+  focused owner outside persistence orchestration.
+- Status: Hardened
+- Finding Class: Lineage and identifier policy modularity
+- Summary: `src/core/advisory_copilot/service.py` still owned stable record-id generation plus
+  default caller, tenant, prompt-template, output-schema, and evaluation-pack lineage constants.
+  That mixed identifier and lineage fallback policy into workflow persistence code.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_lineage.py` for stable record IDs, optional lineage text
+    normalization, and advisory-copilot default lineage constants.
+  - Updated the persistence service to consume those focused helpers and constants.
+  - Added coverage proving service no longer defines the private ID/text helpers or caller-app
+    constant while validating the focused defaults and stable ID prefix behavior.
+- Consequence:
+  - Advisory-copilot lineage defaults and deterministic record identity can now be reviewed and
+    reused independently from persistence orchestration.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue decomposing advisory-copilot persistence orchestration around run construction and
+    review append workflows.
+
 ## LA-REV-549
 
 - Scope: Advisory copilot run review and retryability policy boundary

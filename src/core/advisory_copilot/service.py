@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from datetime import datetime, timezone
 from typing import Any, cast
 
@@ -21,6 +20,15 @@ from src.core.advisory_copilot.review import (
     review_posture_for_action,
 )
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
+from src.core.advisory_copilot.run_lineage import (
+    DEFAULT_CALLER_APP,
+    DEFAULT_EVALUATION_PACK_REF,
+    DEFAULT_OUTPUT_SCHEMA_VERSION,
+    DEFAULT_PROMPT_TEMPLATE_VERSION,
+    DEFAULT_TENANT_ID,
+    optional_lineage_text,
+    stable_copilot_record_id,
+)
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 from src.core.advisory_copilot.run_review_policy import (
     can_refresh_retryable_copilot_run,
@@ -33,12 +41,6 @@ from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_version_for_action,
 )
 from src.core.common.idempotency import normalize_optional_idempotency_key
-
-DEFAULT_CALLER_APP = "lotus-advise"
-DEFAULT_TENANT_ID = "tenant-sg-001"
-DEFAULT_PROMPT_TEMPLATE_VERSION = "advisory-copilot-prompt-template.v1"
-DEFAULT_OUTPUT_SCHEMA_VERSION = "advisory-copilot-output-schema.v1"
-DEFAULT_EVALUATION_PACK_REF = "advisory-copilot-eval-pack.v1"
 
 
 class AdvisoryCopilotRunPersistenceResult(BaseModel):
@@ -144,7 +146,7 @@ def persist_advisory_copilot_run(
 
     review_posture = review_posture_from_draft_status(draft_status)
     output_json = [dict(section) for section in output_sections]
-    run_id = _stable_id(prefix="copilot_run", value=request_hash)
+    run_id = stable_copilot_record_id(prefix="copilot_run", value=request_hash)
     run = AdvisoryCopilotRunRecord(
         run_id=run_id,
         action_family=evidence_packet.action_family,
@@ -169,8 +171,8 @@ def persist_advisory_copilot_run(
         idempotency_key=idempotency_key,
         created_at=now,
         updated_at=now,
-        lotus_ai_workflow_run_id=_optional_str(lineage.get("workflow_run_id")),
-        lotus_ai_model_version=_optional_str(lineage.get("model_version")),
+        lotus_ai_workflow_run_id=optional_lineage_text(lineage.get("workflow_run_id")),
+        lotus_ai_model_version=optional_lineage_text(lineage.get("model_version")),
         workflow_pack_id=str(
             lineage.get("workflow_pack_id")
             or workflow_pack_id_for_action(evidence_packet.action_family)
@@ -271,7 +273,7 @@ def record_advisory_copilot_review(
 
     new_posture = review_posture_for_action(action)
     review = AdvisoryCopilotReviewRecord(
-        review_id=_stable_id(prefix="copilot_review", value=request_hash),
+        review_id=stable_copilot_record_id(prefix="copilot_review", value=request_hash),
         run_id=run_id,
         action=action,
         previous_posture=run.review_posture,
@@ -293,12 +295,3 @@ def list_advisory_copilot_reviews(
     *, repository: AdvisoryCopilotRepository, run_id: str
 ) -> tuple[AdvisoryCopilotReviewRecord, ...]:
     return tuple(repository.list_reviews(run_id=run_id))
-
-
-def _optional_str(value: Any) -> str | None:
-    return value.strip() if isinstance(value, str) and value.strip() else None
-
-
-def _stable_id(*, prefix: str, value: str) -> str:
-    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:24]
-    return f"{prefix}_{digest}"

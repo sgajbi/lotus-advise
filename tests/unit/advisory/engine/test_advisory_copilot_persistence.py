@@ -55,6 +55,15 @@ from src.core.advisory_copilot.retention_policy import retention_expires_at
 from src.core.advisory_copilot.review_records import (
     AdvisoryCopilotReviewRecord as FocusedAdvisoryCopilotReviewRecord,
 )
+from src.core.advisory_copilot.run_lineage import (
+    DEFAULT_CALLER_APP,
+    DEFAULT_EVALUATION_PACK_REF,
+    DEFAULT_OUTPUT_SCHEMA_VERSION,
+    DEFAULT_PROMPT_TEMPLATE_VERSION,
+    DEFAULT_TENANT_ID,
+    optional_lineage_text,
+    stable_copilot_record_id,
+)
 from src.core.advisory_copilot.run_records import (
     AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
 )
@@ -287,6 +296,24 @@ def test_advisory_copilot_run_review_policy_has_focused_owner() -> None:
     )
 
     assert can_attempt_advisory_copilot_run_refresh(result.run) is True
+
+
+def test_advisory_copilot_run_lineage_defaults_have_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert 'DEFAULT_CALLER_APP = "lotus-advise"' not in service_source
+    assert "def _stable_id" not in service_source
+    assert "def _optional_str" not in service_source
+    assert DEFAULT_CALLER_APP == "lotus-advise"
+    assert DEFAULT_TENANT_ID == "tenant-sg-001"
+    assert DEFAULT_PROMPT_TEMPLATE_VERSION == "advisory-copilot-prompt-template.v1"
+    assert DEFAULT_OUTPUT_SCHEMA_VERSION == "advisory-copilot-output-schema.v1"
+    assert DEFAULT_EVALUATION_PACK_REF == "advisory-copilot-eval-pack.v1"
+    assert optional_lineage_text("  packrun_001  ") == "packrun_001"
+    assert optional_lineage_text("   ") is None
+    assert stable_copilot_record_id(prefix="copilot_run", value="sha256:request").startswith(
+        "copilot_run_"
+    )
 
 
 class _FakePostgresConnection:
