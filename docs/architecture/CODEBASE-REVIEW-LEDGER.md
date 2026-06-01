@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-485
+
+- Scope: Postgres proposal workflow event persistence
+- Pattern: Workflow event append/list/batch-list SQL and transaction-scoped event insertion should
+  live in a focused infrastructure helper instead of remaining inline in the proposal Postgres
+  repository adapter.
+- Status: Hardened
+- Finding Class: modularity and lifecycle audit persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned proposal workflow event
+  persistence directly, including ordered event reads, batch event ordering, and the private insert
+  routine reused by transition writes. This kept lifecycle audit persistence mixed with proposal,
+  version, memo, and approval persistence in one adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_workflow_events.py` for workflow event persistence
+    helpers.
+  - Updated `PostgresProposalRepository` event methods and transition writes to delegate through
+    the helper while preserving the transaction boundary used by `transition_proposal`.
+  - Reused existing Postgres repository coverage for workflow event ordering, batch ordering, and
+    transition write behavior.
+- Consequence:
+  - Lifecycle audit persistence now has explicit infrastructure ownership while preserving the
+    atomic proposal transition write path.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting approval and proposal record persistence groups after this helper is green
+    locally and remotely.
+
 ## LA-REV-484
 
 - Scope: Postgres proposal version persistence

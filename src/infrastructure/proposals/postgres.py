@@ -101,10 +101,21 @@ from src.infrastructure.proposals.postgres_versions import (
 from src.infrastructure.proposals.postgres_versions import (
     list_versions as _list_versions,
 )
+from src.infrastructure.proposals.postgres_workflow_events import (
+    append_event as _append_event,
+)
+from src.infrastructure.proposals.postgres_workflow_events import (
+    insert_event as _insert_workflow_event,
+)
+from src.infrastructure.proposals.postgres_workflow_events import (
+    list_events as _list_events,
+)
+from src.infrastructure.proposals.postgres_workflow_events import (
+    list_events_for_proposals as _list_events_for_proposals,
+)
 
 _json_dump = _postgres_mappers.json_dump
 _to_approval = _postgres_mappers.to_approval
-_to_event = _postgres_mappers.to_event
 _to_proposal = _postgres_mappers.to_proposal
 
 
@@ -388,61 +399,20 @@ class PostgresProposalRepository:
         return _get_current_version(connect=self._connect, proposal_id=proposal_id)
 
     def append_event(self, event: ProposalWorkflowEventRecord) -> None:
-        with closing(self._connect()) as connection:
-            self._insert_event(connection=connection, event=event)
-            connection.commit()
+        _append_event(connect=self._connect, event=event)
 
     def list_events(self, *, proposal_id: str) -> list[ProposalWorkflowEventRecord]:
-        query = """
-            SELECT
-                event_id,
-                proposal_id,
-                event_type,
-                from_state,
-                to_state,
-                actor_id,
-                occurred_at,
-                reason_json,
-                related_version_no
-            FROM proposal_workflow_events
-            WHERE proposal_id = %s
-            ORDER BY occurred_at ASC, event_id ASC
-        """
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, (proposal_id,)).fetchall()
-        return [_to_event(row) for row in rows]
+        return cast(
+            list[ProposalWorkflowEventRecord],
+            _list_events(connect=self._connect, proposal_id=proposal_id),
+        )
 
     def list_events_for_proposals(
         self, *, proposal_ids: list[str]
     ) -> list[ProposalWorkflowEventRecord]:
-        if not proposal_ids:
-            return []
-        query = """
-            SELECT
-                event_id,
-                proposal_id,
-                event_type,
-                from_state,
-                to_state,
-                actor_id,
-                occurred_at,
-                reason_json,
-                related_version_no
-            FROM proposal_workflow_events
-            WHERE proposal_id = ANY(%s)
-            ORDER BY proposal_id ASC, occurred_at ASC, event_id ASC
-        """
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, (proposal_ids,)).fetchall()
-        event_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
-        events = [_to_event(row) for row in rows]
-        return sorted(
-            events,
-            key=lambda event: (
-                event_order.get(event.proposal_id, len(event_order)),
-                event.occurred_at,
-                event.event_id,
-            ),
+        return cast(
+            list[ProposalWorkflowEventRecord],
+            _list_events_for_proposals(connect=self._connect, proposal_ids=proposal_ids),
         )
 
     def create_approval(self, approval: ProposalApprovalRecordData) -> None:
@@ -509,7 +479,7 @@ class PostgresProposalRepository:
         approval: Optional[ProposalApprovalRecordData],
     ) -> ProposalTransitionResult:
         with closing(self._connect()) as connection:
-            self._insert_event(connection=connection, event=event)
+            _insert_workflow_event(connection=connection, event=event)
             if approval is not None:
                 self._insert_approval(connection=connection, approval=approval)
             self._upsert_proposal(connection=connection, proposal=proposal)
@@ -576,44 +546,6 @@ class PostgresProposalRepository:
                 proposal.advisor_notes,
                 proposal.lifecycle_origin,
                 proposal.source_workspace_id,
-            ),
-        )
-
-    def _insert_event(self, *, connection: Any, event: ProposalWorkflowEventRecord) -> None:
-        query = """
-            INSERT INTO proposal_workflow_events (
-                event_id,
-                proposal_id,
-                event_type,
-                from_state,
-                to_state,
-                actor_id,
-                occurred_at,
-                reason_json,
-                related_version_no
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (event_id) DO UPDATE SET
-                proposal_id=excluded.proposal_id,
-                event_type=excluded.event_type,
-                from_state=excluded.from_state,
-                to_state=excluded.to_state,
-                actor_id=excluded.actor_id,
-                occurred_at=excluded.occurred_at,
-                reason_json=excluded.reason_json,
-                related_version_no=excluded.related_version_no
-        """
-        connection.execute(
-            query,
-            (
-                event.event_id,
-                event.proposal_id,
-                event.event_type,
-                event.from_state,
-                event.to_state,
-                event.actor_id,
-                event.occurred_at.isoformat(),
-                _json_dump(event.reason_json),
-                event.related_version_no,
             ),
         )
 

@@ -7,7 +7,6 @@ from src.infrastructure.proposals import postgres_mappers
 def test_postgres_mapper_aliases_cover_remaining_inline_persistence() -> None:
     assert postgres_module._json_dump is postgres_mappers.json_dump
     assert postgres_module._to_proposal is postgres_mappers.to_proposal
-    assert postgres_module._to_event is postgres_mappers.to_event
     assert postgres_module._to_approval is postgres_mappers.to_approval
 
 
