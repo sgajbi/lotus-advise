@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-465
+
+- Scope: Capability dependency status projection
+- Pattern: Feature and workflow capability assembly should consume one typed dependency status
+  projection rather than repeating dependency readiness lookups.
+- Status: Hardened
+- Finding Class: duplication reduction and service-boundary maintainability
+- Summary: `src/api/capabilities/service.py` still repeated the same dependency readiness lookups
+  and bank-demo proof readiness projection in both feature and workflow capability builders.
+- Evidence:
+  - Added `CapabilityDependencyStatus` and `resolve_capability_dependency_status()` to
+    `src/api/capabilities/dependencies.py`.
+  - Updated feature and workflow capability builders to consume the typed status projection.
+  - Added direct coverage proving the common status projection fails closed for a missing bank-demo
+    proof dependency.
+  - Tightened internal guard coverage so `capabilities.service` does not reintroduce direct
+    dependency readiness or bank-demo proof readiness calls.
+- Consequence:
+  - Dependency readiness behavior now has one reusable projection boundary, reducing duplicate
+    service logic while preserving the current public capability contract.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue decomposing the remaining feature/workflow catalog data in small commits after the
+    dependency and runtime boundaries remain green in CI.
+
 ## LA-REV-464
 
 - Scope: Capabilities runtime flag resolution

@@ -1,8 +1,20 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 DependencyMap = dict[str, dict[str, object]]
 
 BANK_DEMO_PROOF_DEPENDENCY_KEYS = ("lotus_core", "lotus_risk", "lotus_ai", "lotus_report")
+
+
+@dataclass(frozen=True)
+class CapabilityDependencyStatus:
+    lotus_core_ready: bool
+    lotus_risk_ready: bool
+    lotus_ai_ready: bool
+    lotus_report_ready: bool
+    bank_demo_operational_ready: bool
+    bank_demo_degraded_reason: str | None
 
 
 def dependency_rows(readiness: dict[str, object]) -> list[dict[str, object]]:
@@ -67,8 +79,28 @@ def bank_demo_proof_readiness(
     )
 
 
+def resolve_capability_dependency_status(
+    *,
+    lifecycle_enabled: bool,
+    dependencies: DependencyMap,
+) -> CapabilityDependencyStatus:
+    bank_demo_operational_ready, bank_demo_degraded_reason = bank_demo_proof_readiness(
+        lifecycle_enabled=lifecycle_enabled,
+        dependencies=dependencies,
+    )
+    return CapabilityDependencyStatus(
+        lotus_core_ready=dependency_ready(dependencies, "lotus_core"),
+        lotus_risk_ready=dependency_ready(dependencies, "lotus_risk"),
+        lotus_ai_ready=dependency_ready(dependencies, "lotus_ai"),
+        lotus_report_ready=dependency_ready(dependencies, "lotus_report"),
+        bank_demo_operational_ready=bank_demo_operational_ready,
+        bank_demo_degraded_reason=bank_demo_degraded_reason,
+    )
+
+
 __all__ = [
     "BANK_DEMO_PROOF_DEPENDENCY_KEYS",
+    "CapabilityDependencyStatus",
     "DependencyMap",
     "bank_demo_proof_dependency_keys",
     "bank_demo_proof_readiness",
@@ -76,4 +108,5 @@ __all__ = [
     "dependency_ready",
     "dependency_rows",
     "first_unready_dependency_reason",
+    "resolve_capability_dependency_status",
 ]

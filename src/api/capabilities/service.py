@@ -3,9 +3,8 @@ from datetime import UTC, date, datetime
 from src.api.capabilities.dependencies import (
     DependencyMap,
     bank_demo_proof_dependency_keys,
-    bank_demo_proof_readiness,
     dependency_map,
-    dependency_ready,
+    resolve_capability_dependency_status,
 )
 from src.api.capabilities.models import (
     ConsumerSystem,
@@ -27,11 +26,7 @@ def build_feature_capabilities(
     ai_rationale_enabled: bool,
     dependencies: DependencyMap,
 ) -> list[FeatureCapability]:
-    lotus_core_ready = dependency_ready(dependencies, "lotus_core")
-    lotus_risk_ready = dependency_ready(dependencies, "lotus_risk")
-    lotus_ai_ready = dependency_ready(dependencies, "lotus_ai")
-    lotus_report_ready = dependency_ready(dependencies, "lotus_report")
-    bank_demo_operational_ready, bank_demo_degraded_reason = bank_demo_proof_readiness(
+    dependency_status = resolve_capability_dependency_status(
         lifecycle_enabled=lifecycle_enabled,
         dependencies=dependencies,
     )
@@ -40,14 +35,16 @@ def build_feature_capabilities(
         FeatureCapability(
             key="advisory.proposals.simulation",
             enabled=True,
-            operational_ready=lotus_core_ready,
+            operational_ready=dependency_status.lotus_core_ready,
             owner_service="LOTUS_CORE",
             description=(
                 "Canonical advisory proposal simulation through lotus-core; "
                 "lotus-advise remains the workflow and API owner."
             ),
             fallback_mode=lotus_core_fallback_mode(),
-            degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+            degraded_reason=(
+                None if dependency_status.lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         FeatureCapability(
             key="advisory.proposals.lifecycle",
@@ -70,40 +67,44 @@ def build_feature_capabilities(
         FeatureCapability(
             key="advisory.workspaces.stateful",
             enabled=True,
-            operational_ready=lotus_core_ready,
+            operational_ready=dependency_status.lotus_core_ready,
             owner_service="ADVISORY",
             description=(
                 "Stateful advisory workspace evaluation through Lotus Core context resolution."
             ),
             fallback_mode=lotus_core_fallback_mode(),
-            degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+            degraded_reason=(
+                None if dependency_status.lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         FeatureCapability(
             key="advisory.workspaces.ai_rationale",
             enabled=ai_rationale_enabled,
-            operational_ready=ai_rationale_enabled and lotus_ai_ready,
+            operational_ready=ai_rationale_enabled and dependency_status.lotus_ai_ready,
             owner_service="ADVISORY",
             description="Evidence-grounded advisory workspace rationale through Lotus AI.",
             fallback_mode="NONE",
             degraded_reason=(
                 None
-                if not ai_rationale_enabled or lotus_ai_ready
+                if not ai_rationale_enabled or dependency_status.lotus_ai_ready
                 else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
             ),
         ),
         FeatureCapability(
             key="advisory.proposals.risk_lens",
             enabled=True,
-            operational_ready=lotus_risk_ready,
+            operational_ready=dependency_status.lotus_risk_ready,
             owner_service="LOTUS_RISK",
             description="Proposal before/after concentration risk lens through lotus-risk.",
             fallback_mode="LOCAL_RISK_FALLBACK",
-            degraded_reason=(None if lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"),
+            degraded_reason=(
+                None if dependency_status.lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         FeatureCapability(
             key="advisory.proposals.reporting",
             enabled=lifecycle_enabled,
-            operational_ready=lifecycle_enabled and lotus_report_ready,
+            operational_ready=lifecycle_enabled and dependency_status.lotus_report_ready,
             owner_service="LOTUS_REPORT",
             description=(
                 "Advisory proposal report-request integration boundary through lotus-report."
@@ -111,7 +112,7 @@ def build_feature_capabilities(
             fallback_mode="NONE",
             degraded_reason=(
                 None
-                if not lifecycle_enabled or lotus_report_ready
+                if not lifecycle_enabled or dependency_status.lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
         ),
@@ -132,7 +133,7 @@ def build_feature_capabilities(
         FeatureCapability(
             key="advisory.proposals.memo_evidence_pack",
             enabled=lifecycle_enabled,
-            operational_ready=lifecycle_enabled and lotus_report_ready,
+            operational_ready=lifecycle_enabled and dependency_status.lotus_report_ready,
             owner_service="ADVISORY",
             description=(
                 "RFC-0024 advisor-use proposal memo evidence product with persisted memo evidence, "
@@ -143,7 +144,7 @@ def build_feature_capabilities(
             fallback_mode="NONE",
             degraded_reason=(
                 None
-                if not lifecycle_enabled or lotus_report_ready
+                if not lifecycle_enabled or dependency_status.lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
         ),
@@ -163,7 +164,7 @@ def build_feature_capabilities(
         FeatureCapability(
             key="advisory.proposals.policy_evaluation",
             enabled=lifecycle_enabled,
-            operational_ready=lifecycle_enabled and lotus_report_ready,
+            operational_ready=lifecycle_enabled and dependency_status.lotus_report_ready,
             owner_service="ADVISORY",
             description=(
                 "RFC-0025 advisor/compliance policy evaluation data product with finalized "
@@ -176,7 +177,7 @@ def build_feature_capabilities(
             fallback_mode="NONE",
             degraded_reason=(
                 None
-                if not lifecycle_enabled or lotus_report_ready
+                if not lifecycle_enabled or dependency_status.lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
         ),
@@ -199,7 +200,7 @@ def build_feature_capabilities(
         FeatureCapability(
             key="advisory.advisory_copilot",
             enabled=lifecycle_enabled,
-            operational_ready=lifecycle_enabled and lotus_ai_ready,
+            operational_ready=lifecycle_enabled and dependency_status.lotus_ai_ready,
             owner_service="ADVISORY",
             description=(
                 "RFC-0027 governed advisory copilot interaction product with source-backed "
@@ -213,14 +214,14 @@ def build_feature_capabilities(
             fallback_mode="NONE",
             degraded_reason=(
                 None
-                if not lifecycle_enabled or lotus_ai_ready
+                if not lifecycle_enabled or dependency_status.lotus_ai_ready
                 else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
             ),
         ),
         FeatureCapability(
             key="advisory.bank_demo_proof",
             enabled=lifecycle_enabled,
-            operational_ready=bank_demo_operational_ready,
+            operational_ready=dependency_status.bank_demo_operational_ready,
             owner_service="ADVISORY",
             description=(
                 "RFC-0028 bank-demo proof capability with source-owned scenario contract, "
@@ -230,7 +231,7 @@ def build_feature_capabilities(
                 "and OMS order lifecycle remain blocked."
             ),
             fallback_mode="NONE",
-            degraded_reason=bank_demo_degraded_reason,
+            degraded_reason=dependency_status.bank_demo_degraded_reason,
         ),
         FeatureCapability(
             key="advisory.proposals.execution_handoff",
@@ -261,11 +262,7 @@ def build_workflow_capabilities(
     ai_rationale_enabled: bool,
     dependencies: DependencyMap,
 ) -> list[WorkflowCapability]:
-    lotus_core_ready = dependency_ready(dependencies, "lotus_core")
-    lotus_risk_ready = dependency_ready(dependencies, "lotus_risk")
-    lotus_ai_ready = dependency_ready(dependencies, "lotus_ai")
-    lotus_report_ready = dependency_ready(dependencies, "lotus_report")
-    bank_demo_operational_ready, bank_demo_degraded_reason = bank_demo_proof_readiness(
+    dependency_status = resolve_capability_dependency_status(
         lifecycle_enabled=lifecycle_enabled,
         dependencies=dependencies,
     )
@@ -274,10 +271,12 @@ def build_workflow_capabilities(
         WorkflowCapability(
             workflow_key="advisory_proposal_simulation",
             enabled=True,
-            operational_ready=lotus_core_ready,
+            operational_ready=dependency_status.lotus_core_ready,
             required_features=["advisory.proposals.simulation"],
             dependency_keys=["lotus_core"],
-            degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+            degraded_reason=(
+                None if dependency_status.lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_lifecycle",
@@ -290,40 +289,44 @@ def build_workflow_capabilities(
         WorkflowCapability(
             workflow_key="advisory_workspace_stateful",
             enabled=True,
-            operational_ready=lotus_core_ready,
+            operational_ready=dependency_status.lotus_core_ready,
             required_features=["advisory.workspaces.stateful"],
             dependency_keys=["lotus_core"],
-            degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+            degraded_reason=(
+                None if dependency_status.lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         WorkflowCapability(
             workflow_key="advisory_workspace_ai_rationale",
             enabled=ai_rationale_enabled,
-            operational_ready=ai_rationale_enabled and lotus_ai_ready,
+            operational_ready=ai_rationale_enabled and dependency_status.lotus_ai_ready,
             required_features=["advisory.workspaces.ai_rationale"],
             dependency_keys=["lotus_ai"],
             degraded_reason=(
                 None
-                if not ai_rationale_enabled or lotus_ai_ready
+                if not ai_rationale_enabled or dependency_status.lotus_ai_ready
                 else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
             ),
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_risk_lens",
             enabled=True,
-            operational_ready=lotus_risk_ready,
+            operational_ready=dependency_status.lotus_risk_ready,
             required_features=["advisory.proposals.risk_lens"],
             dependency_keys=["lotus_risk"],
-            degraded_reason=(None if lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"),
+            degraded_reason=(
+                None if dependency_status.lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_reporting",
             enabled=lifecycle_enabled,
-            operational_ready=lifecycle_enabled and lotus_report_ready,
+            operational_ready=lifecycle_enabled and dependency_status.lotus_report_ready,
             required_features=["advisory.proposals.reporting"],
             dependency_keys=["lotus_report"],
             degraded_reason=(
                 None
-                if not lifecycle_enabled or lotus_report_ready
+                if not lifecycle_enabled or dependency_status.lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
         ),
@@ -341,7 +344,7 @@ def build_workflow_capabilities(
         WorkflowCapability(
             workflow_key="advisory_proposal_memo_evidence_pack",
             enabled=lifecycle_enabled,
-            operational_ready=lifecycle_enabled and lotus_report_ready,
+            operational_ready=lifecycle_enabled and dependency_status.lotus_report_ready,
             required_features=[
                 "advisory.proposals.lifecycle",
                 "advisory.proposals.memo_evidence_pack",
@@ -350,7 +353,7 @@ def build_workflow_capabilities(
             dependency_keys=["lotus_report"],
             degraded_reason=(
                 None
-                if not lifecycle_enabled or lotus_report_ready
+                if not lifecycle_enabled or dependency_status.lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
         ),
@@ -368,7 +371,7 @@ def build_workflow_capabilities(
         WorkflowCapability(
             workflow_key="advisory_policy_evaluation",
             enabled=lifecycle_enabled,
-            operational_ready=lifecycle_enabled and lotus_report_ready,
+            operational_ready=lifecycle_enabled and dependency_status.lotus_report_ready,
             required_features=[
                 "advisory.proposals.lifecycle",
                 "advisory.policy_pack_catalog",
@@ -378,7 +381,7 @@ def build_workflow_capabilities(
             dependency_keys=["lotus_report"],
             degraded_reason=(
                 None
-                if not lifecycle_enabled or lotus_report_ready
+                if not lifecycle_enabled or dependency_status.lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
         ),
@@ -399,7 +402,7 @@ def build_workflow_capabilities(
         WorkflowCapability(
             workflow_key="advisory_copilot_interaction",
             enabled=lifecycle_enabled,
-            operational_ready=lifecycle_enabled and lotus_ai_ready,
+            operational_ready=lifecycle_enabled and dependency_status.lotus_ai_ready,
             required_features=[
                 "advisory.proposals.lifecycle",
                 "advisory.advisory_copilot",
@@ -407,14 +410,14 @@ def build_workflow_capabilities(
             dependency_keys=["lotus_ai"],
             degraded_reason=(
                 None
-                if not lifecycle_enabled or lotus_ai_ready
+                if not lifecycle_enabled or dependency_status.lotus_ai_ready
                 else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
             ),
         ),
         WorkflowCapability(
             workflow_key="advisory_bank_demo_proof",
             enabled=lifecycle_enabled,
-            operational_ready=bank_demo_operational_ready,
+            operational_ready=dependency_status.bank_demo_operational_ready,
             required_features=[
                 "advisory.proposals.lifecycle",
                 "advisory.proposals.reviewed_narrative_evidence",
@@ -426,7 +429,7 @@ def build_workflow_capabilities(
                 "advisory.bank_demo_proof",
             ],
             dependency_keys=bank_demo_proof_dependency_keys(),
-            degraded_reason=bank_demo_degraded_reason,
+            degraded_reason=dependency_status.bank_demo_degraded_reason,
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_execution_handoff",

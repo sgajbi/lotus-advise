@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from src.api.capabilities.dependencies import (
     bank_demo_proof_readiness,
     dependency_map,
+    resolve_capability_dependency_status,
 )
 from src.api.capabilities.runtime_flags import resolve_capability_runtime_flags
 from src.api.capabilities.service import build_integration_capabilities
@@ -662,6 +663,31 @@ def test_capability_dependency_helpers_fail_closed_for_missing_proof_dependency(
     assert "malformed-row" not in dependencies
     assert ready is False
     assert reason == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+
+
+def test_capability_dependency_status_projects_common_readiness_once():
+    dependencies = dependency_map(
+        {
+            "dependencies": [
+                {"dependency_key": "lotus_core", "operational_ready": True},
+                {"dependency_key": "lotus_risk", "operational_ready": True},
+                {"dependency_key": "lotus_ai", "operational_ready": True},
+                {"dependency_key": "lotus_report", "operational_ready": False},
+            ]
+        }
+    )
+
+    status = resolve_capability_dependency_status(
+        lifecycle_enabled=True,
+        dependencies=dependencies,
+    )
+
+    assert status.lotus_core_ready is True
+    assert status.lotus_risk_ready is True
+    assert status.lotus_ai_ready is True
+    assert status.lotus_report_ready is False
+    assert status.bank_demo_operational_ready is False
+    assert status.bank_demo_degraded_reason == "RFC0028_PROOF_DEPENDENCY_UNAVAILABLE"
 
 
 def test_capability_runtime_flags_resolve_shared_boolean_environment(monkeypatch):

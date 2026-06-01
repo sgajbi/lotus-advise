@@ -533,6 +533,9 @@ def test_capabilities_service_delegates_dependency_readiness_helpers():
     assert "from src.api.capabilities.dependencies import" in source
     assert "def dependency_map(" not in source
     assert "def dependency_ready(" not in source
+    assert "dependency_ready," not in source
+    assert "bank_demo_proof_readiness" not in source
+    assert "resolve_capability_dependency_status" in source
     assert "BANK_DEMO_PROOF_DEPENDENCY_KEYS" not in source
 
 
