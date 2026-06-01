@@ -9214,6 +9214,35 @@
 - Follow-Up:
   - Publish the `lotus-advise` wiki after this branch merges to `main`.
 
+## LA-REV-381
+
+- Scope: RFC-0028 bank-demo proof model modularity
+- Pattern: Scenario contracts, supported-claim registers, proof assets, and proof packs should have
+  focused model ownership while preserving the existing public import facade
+- Status: Hardened
+- Finding Class: Modularity problem and API contract maintainability
+- Summary: `src/core/bank_demo_proof/models.py` mixed all RFC-0028 proof model families in one
+  module. The file remained correct, but it was becoming a renewed domain-model monolith as bank
+  demo proof added scenario, commercial, runtime, asset, and claim-governance concerns.
+- Evidence:
+  - Added focused modules for shared constants/helpers, scenario models, supported-claim models,
+    proof-asset models, and proof-pack models.
+  - Converted `src/core/bank_demo_proof/models.py` into a compatibility facade so existing API,
+    tests, scripts, and downstream imports continue to resolve unchanged.
+  - Added a model-facade contract assertion proving each exported model class still lives in its
+    owning module.
+  - Focused `ruff`, format check, `mypy src/core/bank_demo_proof`, and RFC-0028 proof
+    model/capture/register tests passed with 23 tests.
+- Consequence:
+  - RFC-0028 model ownership is easier to extend without coupling claim taxonomy, asset retention,
+    scenario contract, and proof-pack validation logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the public API contract
+    and product truth are unchanged.
+- Follow-Up:
+  - Add new RFC-0028 DTOs to the owning focused module first; use the facade only for stable import
+    compatibility.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

@@ -600,3 +600,13 @@ def test_runtime_posture_redacts_sensitive_values_in_neutral_summary_fields() ->
     assert endpoint.summary["provider"] == "[REDACTED]"
     assert endpoint.summary["error"] == "[REDACTED]"
     assert endpoint.summary["safe"] == "readiness check degraded"
+
+
+def test_bank_demo_model_facade_preserves_focused_model_ownership() -> None:
+    assert AdvisoryDemoScenarioContract.__module__.endswith(".scenario_models")
+    assert DemoScenarioStep.__module__.endswith(".scenario_models")
+    assert AdvisorySupportedClaimRegister.__module__.endswith(".supported_claim_models")
+    assert SupportedClaim.__module__.endswith(".supported_claim_models")
+    assert ArtifactPolicy.__module__.endswith(".supported_claim_models")
+    assert ProofAsset.__module__.endswith(".proof_asset_models")
+    assert AdvisoryBankDemoProofPack.__module__.endswith(".proof_pack_models")
