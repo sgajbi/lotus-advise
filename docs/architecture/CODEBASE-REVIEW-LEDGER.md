@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-579
+
+- Scope: Quality baseline and progressive governance reporting
+- Pattern: Enterprise hardening should be measured through repeatable report-only baselines before
+  new quality tools become blocking CI gates.
+- Status: Hardened
+- Finding Class: Engineering quality measurement and CI governance
+- Summary: The branch had repo-native gates and an engineering-health baseline, but the broader
+  enterprise-readiness objective required explicit quality artifacts covering code size,
+  maintainability hotspots, complexity posture, lint/type/coverage gates, dead code, dependencies,
+  security, OpenAPI, architecture boundaries, documentation gaps, and observability gaps.
+- Evidence:
+  - Added report-only quality tool configuration in `pyproject.toml`, `.importlinter`, and
+    `.spectral.yaml`.
+  - Added `scripts/quality_baseline_report.py`, `make quality-baseline`, and the report-only
+    `Quality Baseline Report` GitHub workflow.
+  - Added `quality/baseline_report.md`, `quality/refactor_health_report.md`,
+    `quality/quality_scorecard.md`, `quality/architecture_rules.md`, and
+    `quality/api_governance_rules.md`.
+  - Added current-state docs for architecture, API governance, observability, security, operations,
+    and supported features with explicit no-overclaim supportability boundaries.
+  - Added unit coverage for quality report generation and CLI output.
+- Consequence:
+  - Lotus Advise now has a measurable baseline/report-only quality layer that can progress toward
+    fail-on-new-regression gates before strict enterprise thresholds are enforced.
+- Documentation:
+  - Review ledger, repo-local docs, and quality artifacts updated. No wiki source update is
+    included in this slice because these are repository-local engineering governance artifacts;
+    wiki synchronization should still be checked before PR closure.
+- Follow-Up:
+  - Install and calibrate optional scanners such as vulture, deptry, bandit, import-linter,
+    Spectral, interrogate, radon/xenon, and optional schemathesis/load testing before enforcing
+    fail thresholds.
+
 ## LA-REV-578
 
 - Scope: Advisory copilot run-record limit ownership
