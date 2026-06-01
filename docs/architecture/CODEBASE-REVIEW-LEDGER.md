@@ -1,5 +1,28 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-490
+
+- Scope: Postgres proposal persistence helper dependency direction
+- Pattern: Extracted Postgres persistence helpers should not import the repository adapter they
+  support, otherwise the modularization can regress into cyclic infrastructure dependencies.
+- Status: Hardened
+- Finding Class: dependency-flow regression test gap
+- Summary: The newly extracted persistence helpers had no explicit contract preventing reverse
+  imports from helper modules back into `src/infrastructure/proposals/postgres.py`.
+- Evidence:
+  - Extended `tests/unit/advisory/contracts/test_proposal_postgres_repository_boundary.py` with a
+    dependency-direction assertion across the extracted Postgres helper modules.
+  - The contract rejects imports of the repository adapter from helper modules.
+- Consequence:
+  - The extracted helper modules remain lower-level persistence units and the repository adapter
+    remains the orchestration layer.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public behavior is
+    unchanged.
+- Follow-Up:
+  - Run broad local gates and open the PR once GitHub Feature Lane is green for the final pushed
+    commit.
+
 ## LA-REV-489
 
 - Scope: Postgres proposal repository boundary regression coverage
