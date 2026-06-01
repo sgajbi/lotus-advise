@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-415
+
+- Scope: API HTTP exception construction boundary
+- Pattern: Direct `HTTPException(...)` construction should stay in explicit API error/helper
+  modules, not drift back into route, dependency, or service orchestration modules.
+- Status: Hardened
+- Finding Class: contract guard and error-boundary consistency
+- Summary: After extracting response/error helpers from proposal, workspace, simulation, copilot,
+  and proof route families, there was no durable guard preventing future inline HTTP exception
+  construction from returning to non-error modules.
+- Evidence:
+  - Added an internal source guard that scans `src/api/**/*.py`.
+  - The guard allows direct `HTTPException(...)` construction only in approved API error/helper
+    modules such as proposal errors, workspace errors, runtime errors, copilot errors, and proof
+    errors.
+  - Focused internal guard coverage now pins the error-boundary convention established by this
+    branch.
+- Consequence:
+  - Future API route/service hardening has a clear enforcement point for keeping HTTP status/detail
+    mapping centralized and auditable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    architectural guard coverage for existing behavior.
+- Follow-Up:
+  - Expand the allowed-list only when a new dedicated error-boundary module is intentionally added.
+
 ## LA-REV-414
 
 - Scope: Advisory copilot repository dependency error boundary

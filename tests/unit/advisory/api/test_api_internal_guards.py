@@ -38,6 +38,17 @@ workspace_ai_service = importlib.import_module("src.api.services.workspace_ai_se
 workspace_store = importlib.import_module("src.api.services.workspace_store")
 workspace_service = importlib.import_module("src.api.services.workspace_service")
 
+HTTP_EXCEPTION_ALLOWED_FILES = {
+    Path("src/api/proposals/copilot_errors.py"),
+    Path("src/api/proposals/errors.py"),
+    Path("src/api/proposals/report_errors.py"),
+    Path("src/api/proposals/runtime_errors.py"),
+    Path("src/api/routers/bank_demo_proof_errors.py"),
+    Path("src/api/routers/runtime_utils.py"),
+    Path("src/api/services/advisory_simulation_errors.py"),
+    Path("src/api/workspaces/errors.py"),
+}
+
 
 def test_raise_proposal_http_exception_re_raises_unknown_exception():
     with pytest.raises(ValueError, match="unexpected"):
@@ -187,6 +198,17 @@ def test_proposal_router_uses_shared_runtime_error_helpers():
     assert "_backend_init_error_detail" not in source
     assert "proposal_backend_unavailable_exception" in source
     assert "proposal_backend_connection_failed_exception" in source
+
+
+def test_direct_http_exception_construction_stays_in_error_boundary_modules():
+    offenders = []
+    for path in Path("src/api").rglob("*.py"):
+        normalized = Path(path.as_posix())
+        source = path.read_text()
+        if "HTTPException(" in source and normalized not in HTTP_EXCEPTION_ALLOWED_FILES:
+            offenders.append(str(normalized))
+
+    assert offenders == []
 
 
 def test_copilot_dependencies_use_shared_repository_error_helper():
