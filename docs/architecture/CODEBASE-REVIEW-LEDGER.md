@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-454
+
+- Scope: Advisory policy pack route parameter contracts
+- Pattern: Policy pack catalog routes should centralize pack id, version, and activation/validation
+  idempotency contracts outside the controller module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_policy_packs.py` repeated policy pack id/version path
+  metadata and required idempotency header declarations for validation and activation routes.
+- Evidence:
+  - Added `src/api/proposals/policy_pack_parameters.py` for policy pack path and idempotency
+    header contracts.
+  - Updated policy pack routes to use named aliases while preserving existing descriptions and
+    examples.
+  - Extended internal guards so policy pack routes cannot reintroduce inline `Header` or `Path`
+    contracts.
+- Consequence:
+  - Policy pack route handlers now focus on catalog orchestration while policy pack OpenAPI
+    metadata has a route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - After this parameter-contract cleanup batch, run a broader guard suite across all touched route
+    modules before choosing the next backend hardening seam.
+
 ## LA-REV-453
 
 - Scope: Advisory policy evaluation route parameter contracts

@@ -1,9 +1,13 @@
-from typing import Annotated
-
-from fastapi import Header, Path, status
+from fastapi import status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.policy_pack_parameters import (
+    PolicyPackActivationIdempotencyKeyHeader,
+    PolicyPackIdPath,
+    PolicyPackValidationIdempotencyKeyHeader,
+    PolicyPackVersionPath,
+)
 from src.api.proposals.policy_pack_responses import (
     POLICY_PACK_ACTIVATE_RESPONSES,
     POLICY_PACK_LIST_RESPONSES,
@@ -56,14 +60,8 @@ def list_advisory_policy_packs() -> PolicyPackListResponse:
     responses=POLICY_PACK_NOT_FOUND_RESPONSE,
 )
 def get_advisory_policy_pack_version(
-    policy_pack_id: Annotated[
-        str,
-        Path(description="Policy pack identifier.", examples=["SG_PRIVATE_BANKING_REFERENCE"]),
-    ],
-    policy_version: Annotated[
-        str,
-        Path(description="Policy pack version.", examples=["2026.05"]),
-    ],
+    policy_pack_id: PolicyPackIdPath,
+    policy_version: PolicyPackVersionPath,
 ) -> PolicyPackDetailResponse:
     return run_proposal_operation(
         lambda: get_policy_pack_version(
@@ -87,23 +85,10 @@ def get_advisory_policy_pack_version(
     responses=POLICY_PACK_VALIDATE_RESPONSES,
 )
 def validate_advisory_policy_pack_version(
-    policy_pack_id: Annotated[
-        str,
-        Path(description="Policy pack identifier.", examples=["SG_PRIVATE_BANKING_REFERENCE"]),
-    ],
-    policy_version: Annotated[
-        str,
-        Path(description="Policy pack version.", examples=["2026.05"]),
-    ],
+    policy_pack_id: PolicyPackIdPath,
+    policy_version: PolicyPackVersionPath,
     payload: PolicyPackValidationRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required idempotency key for replay-safe policy-pack validation.",
-            examples=["validate-sg-policy-pack-001"],
-        ),
-    ],
+    idempotency_key: PolicyPackValidationIdempotencyKeyHeader,
 ) -> PolicyPackValidationResponse:
     return run_proposal_operation(
         lambda: validate_policy_pack_version(
@@ -130,23 +115,10 @@ def validate_advisory_policy_pack_version(
     responses=POLICY_PACK_ACTIVATE_RESPONSES,
 )
 def activate_advisory_policy_pack_version(
-    policy_pack_id: Annotated[
-        str,
-        Path(description="Policy pack identifier.", examples=["SG_PRIVATE_BANKING_REFERENCE"]),
-    ],
-    policy_version: Annotated[
-        str,
-        Path(description="Policy pack version.", examples=["2026.05"]),
-    ],
+    policy_pack_id: PolicyPackIdPath,
+    policy_version: PolicyPackVersionPath,
     payload: PolicyPackActivationRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required idempotency key for replay-safe policy-pack activation.",
-            examples=["activate-sg-policy-pack-001"],
-        ),
-    ],
+    idempotency_key: PolicyPackActivationIdempotencyKeyHeader,
 ) -> PolicyPackActivationResponse:
     return run_proposal_operation(
         lambda: activate_policy_pack_version(

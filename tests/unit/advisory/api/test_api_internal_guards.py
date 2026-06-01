@@ -154,6 +154,18 @@ def test_policy_pack_routes_use_shared_response_metadata():
     assert source.count("run_proposal_operation(") == 3
 
 
+def test_policy_pack_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_policy_packs.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "PolicyPackIdPath" in source
+    assert "PolicyPackVersionPath" in source
+    assert "PolicyPackValidationIdempotencyKeyHeader" in source
+    assert "PolicyPackActivationIdempotencyKeyHeader" in source
+
+
 def test_support_routes_use_shared_response_metadata():
     source = inspect.getsource(routes_support)
 
