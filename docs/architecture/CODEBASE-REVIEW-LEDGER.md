@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-462
+
+- Scope: Integration capability supportability projection
+- Pattern: Capability assembly should delegate supportability metric projection to a focused
+  module instead of mixing it into the feature/workflow service.
+- Status: Hardened
+- Finding Class: modularity and service-boundary maintainability
+- Summary: `src/api/capabilities/service.py` mixed feature/workflow capability assembly with
+  advisory supportability projection and metric recording. This kept supportability state
+  derivation coupled to the broader capabilities service.
+- Evidence:
+  - Added `src/api/capabilities/supportability.py` with `build_advisory_supportability`.
+  - Updated the capabilities service to import the supportability projection instead of owning it.
+  - Added guard coverage preventing supportability state projection and metric recording from
+    drifting back into `service.py`.
+  - Added direct coverage for malformed dependency rows so supportability projection fails closed
+    to typed dependency dictionaries.
+- Consequence:
+  - Capability feature/workflow assembly is separated from supportability projection and metric
+    recording, making both responsibilities easier to test and evolve independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the public capability
+    contract is unchanged.
+- Follow-Up:
+  - Continue decomposing `src/api/capabilities/service.py` by extracting feature and workflow
+    catalog definitions when a coherent low-risk seam is available.
+
 ## LA-REV-461
 
 - Scope: Enterprise audit redaction configuration

@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from src.api.capabilities.service import build_integration_capabilities
+from src.api.capabilities.supportability import build_advisory_supportability
 from src.api.main import app
 from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
 
@@ -617,6 +618,19 @@ def test_integration_capabilities_openapi_documents_supportability_metric_labels
     assert "lotus_advise_advisory_supportability_total" in metric_labels["description"]
     assert "portfolio" in metric_labels["description"]
     assert "trace" in metric_labels["description"]
+
+
+def test_advisory_supportability_projection_handles_malformed_dependency_rows():
+    supportability = build_advisory_supportability(
+        readiness={"dependencies": ["not-a-row", {"operational_ready": True}]},
+        lifecycle_enabled=True,
+        features=[],
+    )
+
+    assert supportability.dependency_count == 1
+    assert supportability.ready_dependency_count == 1
+    assert supportability.degraded_dependency_count == 0
+    assert supportability.state == "ready"
 
 
 def test_integration_capabilities_service_fails_closed_for_missing_dependency():

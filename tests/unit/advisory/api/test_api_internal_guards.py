@@ -518,6 +518,15 @@ def test_integration_capabilities_routes_use_shared_parameter_contracts():
     assert "IntegrationTenantIdQuery" in source
 
 
+def test_capabilities_service_delegates_supportability_projection():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+
+    assert "from src.api.capabilities.supportability import build_advisory_supportability" in source
+    assert "record_advisory_supportability" not in source
+    assert "SupportabilityState" not in source
+    assert "def build_advisory_supportability(" not in source
+
+
 def test_bank_demo_proof_routes_use_shared_response_metadata():
     source = inspect.getsource(bank_demo_proof_router)
 
