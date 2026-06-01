@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-536
+
+- Scope: Advisory copilot evidence section models
+- Pattern: Evidence section DTOs and audience/summary validation should live outside the top-level
+  packet model module
+- Status: Hardened
+- Finding Class: Modularity and evidence projection boundary ownership
+- Summary: `CopilotEvidencePacketSection` and `CopilotEvidenceSectionInput` carried section-key,
+  summary, source-ref, and audience filtering validation inside `src/core/advisory_copilot/models.py`.
+  That mixed projection-section validation with top-level packet ownership and kept builders and API
+  models tied to the broad model surface.
+- Evidence:
+  - Added `src/core/advisory_copilot/section_models.py` for packet section and source-section input
+    DTOs.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved evidence-packet builder, source-projection, API model, and package exports to the focused
+    section model module.
+  - Added import-contract coverage proving package and compatibility imports resolve to the focused
+    section classes.
+- Consequence:
+  - Advisory-copilot section projection and audience filtering now have a focused model boundary,
+    reducing the remaining model module to action definition, business projection, and top-level
+    evidence packet ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract action catalog/business projection DTOs and the top-level evidence packet DTO, then
+    convert `src/core/advisory_copilot/models.py` to a pure compatibility facade.
+
 ## LA-REV-535
 
 - Scope: Advisory copilot unsupported-evidence model

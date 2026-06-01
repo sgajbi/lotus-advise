@@ -8,10 +8,12 @@ from typing import Literal
 from src.core.advisory_copilot.business_text import assert_copilot_business_safe_text
 from src.core.advisory_copilot.models import (
     CopilotEvidencePacket,
+)
+from src.core.advisory_copilot.reference_models import CopilotLineageRef
+from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
 )
-from src.core.advisory_copilot.reference_models import CopilotLineageRef
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,
     CopilotAudience,

@@ -8,8 +8,8 @@ from src.core.advisor_cockpit.source_read_model import (
     AdvisorCockpitSourceBatch,
     build_advisor_cockpit_source_read_model,
 )
-from src.core.advisory_copilot.models import CopilotEvidenceSectionInput
 from src.core.advisory_copilot.reference_models import CopilotSourceRef
+from src.core.advisory_copilot.section_models import CopilotEvidenceSectionInput
 from src.core.advisory_copilot.type_models import CopilotActionFamily
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import (

@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field, field_validator
 from src.core.advisory_copilot.models import (
     COPILOT_PACKET_SECTION_LIMIT,
     CopilotEvidencePacket,
-    CopilotEvidenceSectionInput,
 )
 from src.core.advisory_copilot.pagination import COPILOT_RUN_MAX_PAGE_SIZE
 from src.core.advisory_copilot.records import (
@@ -16,6 +15,7 @@ from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunRecord,
 )
 from src.core.advisory_copilot.review import CopilotReviewAction
+from src.core.advisory_copilot.section_models import CopilotEvidenceSectionInput
 from src.core.advisory_copilot.type_models import CopilotActionFamily, CopilotAudience
 from src.core.common.actors import normalize_required_actor_id
 

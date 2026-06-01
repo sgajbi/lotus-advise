@@ -21,8 +21,6 @@ from src.core.advisory_copilot.models import (
     CopilotActionDefinition,
     CopilotBusinessProjection,
     CopilotEvidencePacket,
-    CopilotEvidencePacketSection,
-    CopilotEvidenceSectionInput,
 )
 from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
@@ -42,6 +40,10 @@ from src.core.advisory_copilot.review import (
     CopilotReviewAction,
     is_terminal_review_posture,
     review_posture_for_action,
+)
+from src.core.advisory_copilot.section_models import (
+    CopilotEvidencePacketSection,
+    CopilotEvidenceSectionInput,
 )
 from src.core.advisory_copilot.service import (
     AdvisoryCopilotReviewResult,

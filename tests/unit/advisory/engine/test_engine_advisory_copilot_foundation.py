@@ -45,6 +45,12 @@ from src.core.advisory_copilot.models import (
     CopilotEvidenceAccessClass as CompatibilityCopilotEvidenceAccessClass,
 )
 from src.core.advisory_copilot.models import (
+    CopilotEvidencePacketSection as CompatibilityCopilotEvidencePacketSection,
+)
+from src.core.advisory_copilot.models import (
+    CopilotEvidenceSectionInput as CompatibilityCopilotEvidenceSectionInput,
+)
+from src.core.advisory_copilot.models import (
     CopilotLineageRef as CompatibilityCopilotLineageRef,
 )
 from src.core.advisory_copilot.models import (
@@ -76,6 +82,12 @@ from src.core.advisory_copilot.reference_models import (
 )
 from src.core.advisory_copilot.reference_models import (
     CopilotSourceRef as FocusedCopilotSourceRef,
+)
+from src.core.advisory_copilot.section_models import (
+    CopilotEvidencePacketSection as FocusedCopilotEvidencePacketSection,
+)
+from src.core.advisory_copilot.section_models import (
+    CopilotEvidenceSectionInput as FocusedCopilotEvidenceSectionInput,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily as FocusedCopilotActionFamily,
@@ -179,6 +191,13 @@ def test_advisory_copilot_models_preserve_reference_import_contract() -> None:
 def test_advisory_copilot_models_preserve_unsupported_evidence_import_contract() -> None:
     assert CopilotUnsupportedEvidence is FocusedCopilotUnsupportedEvidence
     assert CompatibilityCopilotUnsupportedEvidence is FocusedCopilotUnsupportedEvidence
+
+
+def test_advisory_copilot_models_preserve_section_import_contract() -> None:
+    assert CopilotEvidencePacketSection is FocusedCopilotEvidencePacketSection
+    assert CopilotEvidenceSectionInput is FocusedCopilotEvidenceSectionInput
+    assert CompatibilityCopilotEvidencePacketSection is FocusedCopilotEvidencePacketSection
+    assert CompatibilityCopilotEvidenceSectionInput is FocusedCopilotEvidenceSectionInput
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:
