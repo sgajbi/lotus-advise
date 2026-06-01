@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+import src.core.proposals.create_command as proposal_create_command_module
 import src.core.proposals.service as proposal_service_module
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
@@ -126,7 +127,7 @@ def test_create_proposal_redacts_sensitive_context_resolution_errors(
         )
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_create_command_module,
         "resolve_create_request",
         _raise_sensitive_context_error,
     )
