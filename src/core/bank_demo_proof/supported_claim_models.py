@@ -123,6 +123,18 @@ class SupportedClaim(BaseModel):
             and "SCREENSHOT" in self.allowed_materials
         ):
             raise ValueError("BACKEND_BACKED_UI_PENDING claims cannot use screenshots")
+        if self.classification == "BACKEND_BACKED_UI_PENDING":
+            if "CLIENT_DEMO" in self.audiences:
+                raise ValueError("BACKEND_BACKED_UI_PENDING claims cannot target client demos")
+            forbidden_materials = {
+                "PRODUCT_ONE_PAGER",
+                "RFP_RESPONSE",
+                "SECURITY_PACK",
+            }
+            if forbidden_materials.intersection(self.allowed_materials):
+                raise ValueError(
+                    "BACKEND_BACKED_UI_PENDING claims cannot use client-facing materials"
+                )
         return self
 
 

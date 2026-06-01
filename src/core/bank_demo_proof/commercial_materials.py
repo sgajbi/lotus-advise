@@ -215,7 +215,7 @@ def _normalize_repository_source_ref(value: str) -> str:
 def build_commercial_material_pack() -> CommercialMaterialPack:
     claim_ids = [
         "backend_proof_capture_repeatable",
-        "advisor_journey_backend_evidence_available",
+        "advisor_journey_product_surface_proven",
         "advisor_use_document_proof_available",
         "degraded_runtime_boundary_evidence_available",
         "ai_policy_cockpit_proof_integrated",
@@ -246,7 +246,7 @@ def build_commercial_material_pack() -> CommercialMaterialPack:
                 source_ref=source_ref,
                 mapped_claim_ids=[
                     "commercial_rfp_security_material_available",
-                    "advisor_journey_backend_evidence_available",
+                    "advisor_journey_product_surface_proven",
                     "client_ready_publication_blocked",
                 ],
                 allowed_audiences=["SALES", "PRE_SALES", "CLIENT_DEMO"],
@@ -326,7 +326,7 @@ def build_commercial_material_pack() -> CommercialMaterialPack:
                 source_ref=source_ref,
                 mapped_claim_ids=[
                     "commercial_rfp_security_material_available",
-                    "advisor_journey_backend_evidence_available",
+                    "advisor_journey_product_surface_proven",
                     "client_ready_publication_blocked",
                 ],
                 allowed_audiences=["SALES", "PRE_SALES"],

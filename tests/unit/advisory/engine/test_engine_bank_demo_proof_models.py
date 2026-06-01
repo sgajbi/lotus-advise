@@ -280,6 +280,30 @@ def test_supported_claim_register_bounds_taxonomy_and_policy_lists() -> None:
             proof_requirements=[_proof_requirement()],
         )
 
+    with pytest.raises(ValidationError, match="cannot target client demos"):
+        SupportedClaim(
+            claim_id="ui_pending_client_demo",
+            title="UI pending client demo",
+            classification="BACKEND_BACKED_UI_PENDING",
+            audiences=["CLIENT_DEMO"],
+            allowed_materials=["WIKI"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
+    with pytest.raises(ValidationError, match="cannot use client-facing materials"):
+        SupportedClaim(
+            claim_id="ui_pending_product_one_pager",
+            title="UI pending product one pager",
+            classification="BACKEND_BACKED_UI_PENDING",
+            audiences=["PRE_SALES"],
+            allowed_materials=["PRODUCT_ONE_PAGER"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
     with pytest.raises(ValidationError, match="entries must be unique"):
         SupportedClaim(
             claim_id="duplicate_wording",

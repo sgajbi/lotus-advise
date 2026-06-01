@@ -44,6 +44,8 @@ def test_commercial_material_pack_uses_bounded_business_safe_materials() -> None
 
     assert pack.contract_name == "AdvisoryCommercialMaterialPack"
     assert "commercial_rfp_security_material_available" in pack.required_claim_ids
+    assert "advisor_journey_product_surface_proven" in pack.required_claim_ids
+    assert "advisor_journey_backend_evidence_available" not in pack.required_claim_ids
     assert all(
         set(pack.blocked_claims).issubset(material.excluded_claims) for material in pack.materials
     )

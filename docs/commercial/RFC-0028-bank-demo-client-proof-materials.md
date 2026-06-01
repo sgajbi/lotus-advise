@@ -37,13 +37,13 @@ approval, or OMS order/fill/settlement authority from this proof.
 
 | Material | Claim ids | Allowed audiences | Required wording boundary |
 | --- | --- | --- | --- |
-| Product one-pager | `commercial_rfp_security_material_available`, `advisor_journey_backend_evidence_available`, `client_ready_publication_blocked` | Sales, pre-sales, client demo | Describe governed advisor proof, not a client-ready publication workflow. |
+| Product one-pager | `commercial_rfp_security_material_available`, `advisor_journey_product_surface_proven`, `client_ready_publication_blocked` | Sales, pre-sales, client demo | Describe governed advisor proof, not a client-ready publication workflow. |
 | RFP response pack | `commercial_rfp_security_material_available`, `backend_proof_capture_repeatable`, `degraded_runtime_boundary_evidence_available`, `client_ready_publication_blocked` | Sales, pre-sales, RFP/security | Use implementation evidence and state blocked external attestations. |
 | Security posture pack | `commercial_rfp_security_material_available`, `degraded_runtime_boundary_evidence_available`, `client_ready_publication_blocked` | Pre-sales, RFP/security, operations | Describe platform controls and CI evidence, not bank certification. |
 | Architecture outline | `commercial_rfp_security_material_available`, `ai_policy_cockpit_proof_integrated`, `client_ready_publication_blocked` | Sales, pre-sales, developers, operations | Show source authority and boundaries without exposing unredacted implementation payloads. |
 | Demo script | `commercial_rfp_security_material_available`, `advisor_use_document_proof_available`, `ai_policy_cockpit_proof_integrated`, `client_ready_publication_blocked` | Sales, pre-sales, client demo, operations | Keep advisor-use and blocked client-ready posture visible. |
 | Proof guide | `commercial_rfp_security_material_available`, `backend_proof_capture_repeatable`, `client_ready_publication_blocked` | Developers, operations, pre-sales | Interpret sanitized evidence only; do not use unredacted logs or AI inputs. |
-| ROI story | `commercial_rfp_security_material_available`, `advisor_journey_backend_evidence_available`, `client_ready_publication_blocked` | Sales, pre-sales | Use qualitative operating-value claims only; do not invent quantified savings. |
+| ROI story | `commercial_rfp_security_material_available`, `advisor_journey_product_surface_proven`, `client_ready_publication_blocked` | Sales, pre-sales | Use qualitative operating-value claims only; do not invent quantified savings. |
 | Feature matrix | `commercial_rfp_security_material_available`, `client_ready_publication_blocked` | Sales, pre-sales, RFP/security, operations | Mark blocked claims as blocked, not planned proof. |
 | Client-demo boundaries | `commercial_rfp_security_material_available`, `client_ready_publication_blocked` | Sales, pre-sales, client demo | State what the demo proves and what it does not prove. |
 | Operator checklist | `commercial_rfp_security_material_available`, `backend_proof_capture_repeatable`, `client_ready_publication_blocked` | Operations, pre-sales | Require green validation before screenshots or client playback. |

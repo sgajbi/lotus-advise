@@ -9358,6 +9358,42 @@
   - Treat any future required evidence addition as a model-test change and a supported-claim
     register update in the same slice.
 
+## LA-REV-386
+
+- Scope: RFC-0028 supported-claim taxonomy after Workbench proof promotion
+- Pattern: Backend-only or UI-pending claims must not be used for client-demo/product material
+  after Gateway and Workbench proof is implementation-backed
+- Status: Hardened
+- Finding Class: Product-claim correctness and commercial material governance
+- Summary: The supported-claim register still used `advisor_journey_backend_evidence_available`
+  in client-demo/product one-pager and ROI material even though RFC-0028 later slices completed
+  Gateway and Workbench proof for `advisory.bank_demo_proof`. The claim remained correctly useful
+  as backend evidence, but it was no longer the right client-facing claim. The adjacent
+  advisor-use document proof claim also still carried a UI-pending classification despite being
+  supported with boundaries.
+- Evidence:
+  - Added implementation-backed claim `advisor_journey_product_surface_proven` for the governed
+    Advise/Gateway/Workbench proof surface.
+  - Moved product one-pager and ROI commercial material mappings from the backend/UI-pending claim
+    to the product-surface claim.
+  - Promoted `advisor_use_document_proof_available` to implementation-backed advisor-use proof
+    while preserving blocked client-ready publication wording.
+  - Hardened `BACKEND_BACKED_UI_PENDING` validation so those claims cannot target client demos or
+    client-facing material types.
+  - Updated proof assets, commercial guide claim mapping, and tests for API/register/capture/model
+    behavior.
+  - Focused `ruff`, format check, targeted bank-demo proof tests, and RFC-0028 bank-demo/API
+    selected tests passed with 89 tests.
+- Consequence:
+  - Client-facing RFC-0028 commercial material now maps to implementation-backed product-surface
+    proof, while backend-only claims remain internal/pre-sales guarded evidence.
+- Documentation:
+  - Commercial guide source updated because product/RFP/demo claim ids changed. Wiki source did not
+    require a separate wording change for this narrower register taxonomy correction.
+- Follow-Up:
+  - Publish `lotus-advise` wiki after merge because this branch already carries wiki source
+    changes from LA-REV-380.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

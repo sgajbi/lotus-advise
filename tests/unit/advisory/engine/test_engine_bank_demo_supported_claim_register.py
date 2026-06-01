@@ -20,7 +20,8 @@ def test_default_supported_claim_register_pins_canonical_claims() -> None:
     assert claim_postures == {
         "backend_proof_capture_repeatable": "IMPLEMENTATION_BACKED",
         "advisor_journey_backend_evidence_available": "BACKEND_BACKED_UI_PENDING",
-        "advisor_use_document_proof_available": "BACKEND_BACKED_UI_PENDING",
+        "advisor_journey_product_surface_proven": "IMPLEMENTATION_BACKED",
+        "advisor_use_document_proof_available": "IMPLEMENTATION_BACKED",
         "degraded_runtime_boundary_evidence_available": "DEGRADED_SUPPORTED",
         "ai_policy_cockpit_proof_integrated": "IMPLEMENTATION_BACKED",
         "client_ready_publication_blocked": "UNSUPPORTED",
@@ -40,7 +41,18 @@ def test_default_supported_claim_register_keeps_ui_pending_claims_off_screenshot
     for claim in register.claims:
         if claim.classification == "BACKEND_BACKED_UI_PENDING":
             assert "SCREENSHOT" not in claim.allowed_materials
+            assert "CLIENT_DEMO" not in claim.audiences
             assert claim.proof_requirements
+
+    product_surface_claim = next(
+        claim
+        for claim in register.claims
+        if claim.claim_id == "advisor_journey_product_surface_proven"
+    )
+    assert product_surface_claim.classification == "IMPLEMENTATION_BACKED"
+    assert {"PRODUCT_ONE_PAGER", "DEMO_SCRIPT", "ROI_STORY"}.issubset(
+        product_surface_claim.allowed_materials
+    )
 
     commercial_claim = next(
         claim

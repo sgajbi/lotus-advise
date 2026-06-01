@@ -87,8 +87,8 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 claim_id="advisor_journey_backend_evidence_available",
                 title="Advisor journey backend evidence available",
                 classification="BACKEND_BACKED_UI_PENDING",
-                audiences=["BUSINESS_USER", "SALES", "PRE_SALES", "CLIENT_DEMO"],
-                allowed_materials=["WIKI", "DEMO_SCRIPT"],
+                audiences=["DEVELOPER", "OPERATIONS", "PRE_SALES"],
+                allowed_materials=["WIKI", "OPERATOR_RUNBOOK"],
                 claim_text=(
                     "The advisory backend can prove the advisor journey evidence for proposal "
                     "lifecycle, narrative, memo, policy, report-package handoff, and execution "
@@ -113,9 +113,52 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 ],
             ),
             SupportedClaim(
+                claim_id="advisor_journey_product_surface_proven",
+                title="Advisor journey product surface is proven",
+                classification="IMPLEMENTATION_BACKED",
+                audiences=["BUSINESS_USER", "OPERATIONS", "SALES", "PRE_SALES", "CLIENT_DEMO"],
+                allowed_materials=[
+                    "README",
+                    "WIKI",
+                    "SUPPORTED_FEATURES",
+                    "DEMO_SCRIPT",
+                    "PRODUCT_ONE_PAGER",
+                    "ARCHITECTURE_DECK",
+                    "ROI_STORY",
+                    "OPERATOR_RUNBOOK",
+                ],
+                claim_text=(
+                    "The canonical private-banking advisory proof journey is backed by Advise, "
+                    "Gateway, and Workbench evidence for the governed bank-demo proof surface."
+                ),
+                evidence_refs=[backend_summary_ref, integration_proof_ref, field_review_ref],
+                proof_requirements=[
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-advisor-journey-runtime-proof",
+                        evidence_ref=backend_summary_ref,
+                    ),
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-advisor-journey-product-surface-proof",
+                        evidence_ref=integration_proof_ref,
+                    ),
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-advisor-journey-material-review",
+                        evidence_ref=field_review_ref,
+                    ),
+                ],
+                wording_rules=[
+                    "State that the proof surface is governed and Gateway-backed.",
+                    "Do not imply client-ready publication or external client communication.",
+                    (
+                        "Do not imply Workbench calculates advisory, policy, memo, narrative, "
+                        "or AI truth."
+                    ),
+                ],
+            ),
+            SupportedClaim(
                 claim_id="advisor_use_document_proof_available",
                 title="Advisor-use document proof is available",
-                classification="BACKEND_BACKED_UI_PENDING",
+                classification="IMPLEMENTATION_BACKED",
                 audiences=["BUSINESS_USER", "SALES", "PRE_SALES", "CLIENT_DEMO"],
                 allowed_materials=["WIKI", "DEMO_SCRIPT"],
                 claim_text=(
@@ -131,7 +174,7 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                     )
                 ],
                 wording_rules=[
-                    "Use advisor-use document wording only until product-surface proof passes.",
+                    "Use advisor-use document wording and keep client-ready publication blocked.",
                     "Do not imply client-ready publication or external client distribution.",
                 ],
             ),
