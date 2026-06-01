@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import cast
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 
-from src.api.proposals.copilot_errors import safe_copilot_repository_error_detail
+from src.api.proposals.copilot_errors import copilot_repository_unavailable_exception
 from src.api.proposals.router import get_proposal_repository
 from src.api.proposals.runtime import proposal_postgres_dsn
 from src.core.advisory_copilot.application import (
@@ -27,10 +27,7 @@ def get_advisory_copilot_repository() -> AdvisoryCopilotRepository:
         try:
             _COPILOT_REPOSITORY = PostgresAdvisoryCopilotRepository(dsn=dsn)
         except RuntimeError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=safe_copilot_repository_error_detail(str(exc)),
-            ) from exc
+            raise copilot_repository_unavailable_exception(str(exc)) from exc
     return _COPILOT_REPOSITORY
 
 

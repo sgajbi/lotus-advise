@@ -10,7 +10,7 @@ from src.api.proposals.cockpit_responses import (
     ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES,
     ADVISOR_COCKPIT_READ_RESPONSES,
 )
-from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.errors import run_proposal_operation
 from src.core.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
@@ -26,11 +26,6 @@ from src.core.advisor_cockpit import (
 from src.core.advisor_cockpit.pagination import COCKPIT_ACTION_MAX_PAGE_SIZE
 from src.core.advisor_cockpit.projection_bounds import COCKPIT_IDENTIFIER_MAX_LENGTH
 from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
-from src.core.proposals.exceptions import (
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalValidationError,
-)
 
 
 @shared.router.get(
@@ -98,16 +93,15 @@ def list_advisor_cockpit_actions(
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisoryActionItemPage:
-    try:
-        return service.list_actions(
+    return run_proposal_operation(
+        lambda: service.list_actions(
             caller_context=_caller_context(advisor_id=advisor_id, role=role),
             portfolio_id=portfolio_id,
             limit=limit,
             cursor=cursor,
             correlation_id=correlation_id,
         )
-    except (ProposalValidationError, ProposalNotFoundError) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -167,15 +161,14 @@ def get_advisor_cockpit_action(
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisoryActionItem:
-    try:
-        return service.get_action(
+    return run_proposal_operation(
+        lambda: service.get_action(
             action_item_id=action_item_id,
             caller_context=_caller_context(advisor_id=advisor_id, role=role),
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-    except (ProposalValidationError, ProposalNotFoundError) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -301,16 +294,15 @@ def list_advisor_cockpit_preparation_packets(
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitPreparationPacketPage:
-    try:
-        return service.list_preparation_packets(
+    return run_proposal_operation(
+        lambda: service.list_preparation_packets(
             caller_context=_caller_context(advisor_id=advisor_id, role=role),
             portfolio_id=portfolio_id,
             limit=limit,
             cursor=cursor,
             correlation_id=correlation_id,
         )
-    except (ProposalValidationError, ProposalNotFoundError) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -437,8 +429,8 @@ def acknowledge_advisor_cockpit_action(
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitAcknowledgeResponse:
-    try:
-        return service.acknowledge_action(
+    return run_proposal_operation(
+        lambda: service.acknowledge_action(
             action_item_id=action_item_id,
             payload=payload,
             idempotency_key=idempotency_key,
@@ -446,12 +438,7 @@ def acknowledge_advisor_cockpit_action(
             caller_context=_caller_context(advisor_id=advisor_id, role=role),
             portfolio_id=portfolio_id,
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 def _caller_context(

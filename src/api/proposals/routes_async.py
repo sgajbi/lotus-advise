@@ -3,18 +3,13 @@ from typing import Annotated, Optional
 from fastapi import BackgroundTasks, Depends, Header, Path, status
 
 import src.api.proposals.router as shared
-from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.errors import run_proposal_operation
 from src.core.proposals import (
     ProposalAsyncAcceptedResponse,
     ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
     ProposalVersionRequest,
     ProposalWorkflowService,
-)
-from src.core.proposals.exceptions import (
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalValidationError,
 )
 
 
@@ -54,14 +49,13 @@ def create_proposal_async(
 ) -> ProposalAsyncAcceptedResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
-    try:
-        accepted, should_schedule = service.accept_create_proposal_async_submission(
+    accepted, should_schedule = run_proposal_operation(
+        lambda: service.accept_create_proposal_async_submission(
             payload=payload,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
-    except (ProposalIdempotencyConflictError, ProposalValidationError) as exc:
-        raise_proposal_http_exception(exc)
+    )
     if should_schedule:
         background_tasks.add_task(
             service.execute_create_proposal_async,
@@ -102,14 +96,13 @@ def create_proposal_version_async(
 ) -> ProposalAsyncAcceptedResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
-    try:
-        accepted, should_schedule = service.accept_create_version_async_submission(
+    accepted, should_schedule = run_proposal_operation(
+        lambda: service.accept_create_version_async_submission(
             proposal_id=proposal_id,
             payload=payload,
             correlation_id=correlation_id,
         )
-    except ProposalIdempotencyConflictError as exc:
-        raise_proposal_http_exception(exc)
+    )
     if should_schedule:
         background_tasks.add_task(
             service.execute_create_version_async,
@@ -135,10 +128,7 @@ def get_proposal_async_operation(
 ) -> ProposalAsyncOperationStatusResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
-    try:
-        return service.get_async_operation(operation_id=operation_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(lambda: service.get_async_operation(operation_id=operation_id))
 
 
 @shared.router.get(
@@ -161,7 +151,6 @@ def get_proposal_async_operation_by_correlation(
 ) -> ProposalAsyncOperationStatusResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
-    try:
-        return service.get_async_operation_by_correlation(correlation_id=correlation_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: service.get_async_operation_by_correlation(correlation_id=correlation_id)
+    )

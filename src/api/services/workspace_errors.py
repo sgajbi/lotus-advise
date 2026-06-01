@@ -10,6 +10,14 @@ class WorkspaceEvaluationUnavailableError(Exception):
     pass
 
 
+class WorkspaceNotFoundError(Exception):
+    pass
+
+
+class WorkspaceAssistantUnavailableError(Exception):
+    pass
+
+
 class WorkspaceSavedVersionNotFoundError(Exception):
     pass
 

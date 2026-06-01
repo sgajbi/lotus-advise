@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, status
+from fastapi import APIRouter, Header, status
 
+from src.api.routers.bank_demo_proof_errors import run_bank_demo_proof_operation
 from src.api.routers.bank_demo_proof_request import (
     RFC28_CORRELATION_ID_MAX_LENGTH,
     BankDemoProofCaptureRequest,
@@ -12,7 +13,9 @@ from src.api.routers.bank_demo_proof_request import (
     runtime_repository_sha,
     runtime_service_version,
 )
-from src.api.sensitive_error_details import contains_sensitive_error_detail
+from src.api.routers.bank_demo_proof_responses import (
+    BANK_DEMO_PROOF_PACK_RESPONSES,
+)
 from src.core.bank_demo_proof import (
     AdvisoryDemoScenarioContract,
     AdvisorySupportedClaimRegister,
@@ -22,9 +25,6 @@ from src.core.bank_demo_proof import (
     build_default_supported_claim_register,
     default_capture_metadata,
 )
-
-RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX = "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED"
-RFC28_PROOF_VALIDATION_FAILED = "RFC0028_PROOF_PACK_VALIDATION_FAILED"
 
 router = APIRouter(prefix="/advisory/bank-demo-proof", tags=["Bank Demo Proof"])
 
@@ -71,33 +71,7 @@ def get_bank_demo_supported_claim_register() -> AdvisorySupportedClaimRegister:
         "artifacts can be reused. Unredacted live runtime payloads are not persisted by this "
         "endpoint."
     ),
-    responses={
-        status.HTTP_409_CONFLICT: {
-            "description": (
-                "Material proof evidence is missing or does not match the canonical scenario."
-            ),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": (
-                            "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: "
-                            "policy_evaluation expected PENDING_REVIEW"
-                        )
-                    }
-                }
-            },
-        },
-        422: {
-            "description": ("Request shape, proof metadata, or source evidence validation failed."),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": ("RFC0028_INTEGRATION_PROOF_FIELD_MISSING: policy_pack_id")
-                    }
-                }
-            },
-        },
-    },
+    responses=BANK_DEMO_PROOF_PACK_RESPONSES,
 )
 def build_bank_demo_proof_pack(
     request: BankDemoProofCaptureRequest,
@@ -120,37 +94,11 @@ def build_bank_demo_proof_pack(
         live_suite_result_ref=request.live_suite_result_ref,
         live_suite_bundle_ref=request.live_suite_bundle_ref,
     )
-    try:
-        return build_backend_proof_capture(
+    return run_bank_demo_proof_operation(
+        lambda: build_backend_proof_capture(
             request.live_runtime_payload,
             metadata=metadata,
             runtime_posture=request.runtime_posture,
             output_ref_prefix=request.output_ref_prefix,
         )
-    except ValueError as exc:
-        raw_detail = str(exc)
-        raise HTTPException(
-            status_code=_proof_pack_error_status(raw_detail),
-            detail=_safe_proof_pack_error_detail(raw_detail),
-        ) from exc
-
-
-def _proof_pack_error_status(error_detail: str) -> int:
-    if error_detail.startswith(RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX):
-        return 409
-    return 422
-
-
-def _safe_proof_pack_error_detail(error_detail: str) -> str:
-    if not _contains_sensitive_error_detail(error_detail):
-        return error_detail
-    if error_detail.startswith(RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX):
-        return (
-            f"{RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX}: "
-            "material field review failed with sensitive detail redacted"
-        )
-    return f"{RFC28_PROOF_VALIDATION_FAILED}: source evidence failed validation"
-
-
-def _contains_sensitive_error_detail(error_detail: str) -> bool:
-    return contains_sensitive_error_detail(error_detail)
+    )

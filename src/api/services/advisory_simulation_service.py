@@ -1,42 +1,24 @@
-from datetime import datetime, timezone
-from typing import Optional, cast
+from typing import Optional
 
-from fastapi import HTTPException, status
-
-from src.api.http_status import HTTP_422_UNPROCESSABLE
-from src.api.proposals.errors import (
-    PROPOSAL_REQUEST_VALIDATION_FAILED_DETAIL,
-    safe_proposal_error_detail,
-)
 from src.api.proposals.router import get_proposal_repository
-from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
-from src.core.advisory.orchestration import evaluate_advisory_proposal
-from src.core.common.canonical import hash_canonical_payload
-from src.core.common.idempotency import normalize_required_idempotency_key
+from src.api.services.advisory_simulation_evaluation import evaluate_simulation_result
+from src.api.services.advisory_simulation_idempotency import (
+    get_replayed_simulation_result,
+    save_simulation_idempotency_result,
+)
+from src.api.services.advisory_simulation_validation import (
+    normalize_simulation_idempotency_key,
+    validate_simulation_request_enabled,
+)
+from src.api.services.advisory_simulation_validation import (
+    resolve_simulation_input as resolve_simulation_input_with_validation,
+)
 from src.core.models import ProposalResult
 from src.core.proposals.context import (
-    ProposalContextResolutionError,
     ResolvedSimulationContext,
-    build_context_resolution_evidence,
-    canonicalize_simulation_request_payload,
-    resolve_simulation_request,
+    build_simulation_request_hash,
 )
-from src.core.proposals.correlation import resolve_correlation_id
-from src.core.proposals.models import (
-    ProposalSimulationIdempotencyRecord,
-    ProposalSimulationRequest,
-)
-from src.core.proposals.simulation_gate import (
-    ProposalSimulationGateError,
-    validate_proposal_simulation_enabled,
-)
-
-
-def _safe_simulation_validation_detail(error_detail: str) -> str:
-    return safe_proposal_error_detail(
-        error_detail,
-        redacted_detail=PROPOSAL_REQUEST_VALIDATION_FAILED_DETAIL,
-    )
+from src.core.proposals.models import ProposalSimulationRequest
 
 
 def simulate_proposal_response(
@@ -46,81 +28,39 @@ def simulate_proposal_response(
     correlation_id: Optional[str],
     resolved_request: ResolvedSimulationContext | None = None,
 ) -> ProposalResult:
-    try:
-        idempotency_key = normalize_required_idempotency_key(idempotency_key)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE,
-            detail=_safe_simulation_validation_detail(str(exc)),
-        ) from exc
+    idempotency_key = normalize_simulation_idempotency_key(idempotency_key)
     resolved_request = resolved_request or resolve_simulation_input(request)
 
-    try:
-        validate_proposal_simulation_enabled(request=resolved_request.simulate_request)
-    except ProposalSimulationGateError as exc:
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE,
-            detail=_safe_simulation_validation_detail(str(exc)),
-        ) from exc
+    validate_simulation_request_enabled(resolved_request.simulate_request)
 
-    request_payload = canonicalize_simulation_request_payload(
-        resolved=resolved_request,
-    )
-    request_hash = hash_canonical_payload(request_payload)
+    request_hash = build_simulation_request_hash(resolved=resolved_request)
     repository = get_proposal_repository()
 
-    existing = repository.get_simulation_idempotency(idempotency_key=idempotency_key)
-    if existing is not None and existing.request_hash != request_hash:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
-        )
-    if existing is not None:
-        return cast(ProposalResult, ProposalResult.model_validate(existing.response_json))
+    replayed_result = get_replayed_simulation_result(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    if replayed_result is not None:
+        return replayed_result
 
-    resolved_correlation_id = resolve_correlation_id(correlation_id)
-    context_resolution = build_context_resolution_evidence(resolved_request)
-    try:
-        result = evaluate_advisory_proposal(
-            request=resolved_request.simulate_request,
-            request_hash=request_hash,
-            idempotency_key=idempotency_key,
-            correlation_id=resolved_correlation_id,
-            resolved_as_of=resolved_request.resolved_context.as_of,
-            input_mode=resolved_request.input_mode,
-            policy_context=context_resolution["advisory_policy_context"],
-        )
-    except AlternativesRequestNormalizationError as exc:
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE,
-            detail=_safe_simulation_validation_detail(f"{exc.reason_code}: {exc}"),
-        ) from exc
-    result.explanation["context_resolution"] = context_resolution
+    result = evaluate_simulation_result(
+        resolved_request=resolved_request,
+        request_hash=request_hash,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
 
-    try:
-        repository.save_simulation_idempotency(
-            ProposalSimulationIdempotencyRecord(
-                idempotency_key=idempotency_key,
-                request_hash=request_hash,
-                response_json=result.model_dump(mode="json"),
-                created_at=datetime.now(timezone.utc),
-            )
-        )
-    except (RuntimeError, ValueError, TypeError, ConnectionError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="PROPOSAL_IDEMPOTENCY_STORE_WRITE_FAILED",
-        ) from exc
+    save_simulation_idempotency_result(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        result=result,
+    )
     return result
 
 
 def resolve_simulation_input(
     request: ProposalSimulationRequest,
 ) -> ResolvedSimulationContext:
-    try:
-        return resolve_simulation_request(request)
-    except ProposalContextResolutionError as exc:
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE,
-            detail=_safe_simulation_validation_detail(str(exc)),
-        ) from exc
+    return resolve_simulation_input_with_validation(request)

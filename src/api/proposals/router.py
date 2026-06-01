@@ -1,14 +1,16 @@
 import importlib
 from typing import Optional, cast
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 
 from src.api.proposals import runtime
-from src.api.routers.runtime_utils import (
-    assert_feature_enabled,
-    env_flag,
-    normalize_backend_init_error,
+from src.api.proposals.feature_gates import (
+    assert_proposal_async_operations_enabled,
+    assert_proposal_lifecycle_enabled,
+    assert_proposal_support_apis_enabled,
 )
+from src.api.proposals.runtime_errors import resolve_proposal_runtime_dependency
+from src.api.routers.runtime_utils import env_flag
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.repository import ProposalRepository
 
@@ -16,21 +18,21 @@ router = APIRouter()
 
 _REPOSITORY: Optional[ProposalRepository] = None
 _SERVICE: Optional[ProposalWorkflowService] = None
+_ROUTE_MODULES = (
+    "src.api.proposals.routes_lifecycle",
+    "src.api.proposals.routes_async",
+    "src.api.proposals.routes_support",
+    "src.api.proposals.routes_delivery",
+    "src.api.proposals.routes_memo",
+    "src.api.proposals.routes_policy_packs",
+    "src.api.proposals.routes_policy_evaluations",
+    "src.api.proposals.routes_advisor_cockpit",
+    "src.api.proposals.routes_advisory_copilot",
+)
 
 
 def _proposal_store_backend_name() -> str:
     return cast(str, runtime.proposal_store_backend_name())
-
-
-def _backend_init_error_detail(detail: str) -> str:
-    return cast(
-        str,
-        normalize_backend_init_error(
-            detail=detail,
-            required_detail="PROPOSAL_POSTGRES_DSN_REQUIRED",
-            fallback_detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
-        ),
-    )
 
 
 def _resolve_repository() -> ProposalRepository:
@@ -43,8 +45,8 @@ def _resolve_repository() -> ProposalRepository:
 def get_proposal_workflow_service() -> ProposalWorkflowService:
     global _SERVICE
     if _SERVICE is None:
-        try:
-            _SERVICE = ProposalWorkflowService(
+        _SERVICE = resolve_proposal_runtime_dependency(
+            lambda: ProposalWorkflowService(
                 repository=_resolve_repository(),
                 store_evidence_bundle=env_flag("PROPOSAL_STORE_EVIDENCE_BUNDLE", True),
                 require_expected_state=env_flag("PROPOSAL_REQUIRE_EXPECTED_STATE", True),
@@ -54,32 +56,12 @@ def get_proposal_workflow_service() -> ProposalWorkflowService:
                 ),
                 require_proposal_simulation_flag=env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
             )
-        except RuntimeError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=_backend_init_error_detail(str(exc)),
-            ) from exc
-        except (TypeError, ValueError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
-            ) from exc
+        )
     return _SERVICE
 
 
 def get_proposal_repository() -> ProposalRepository:
-    try:
-        return _resolve_repository()
-    except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=_backend_init_error_detail(str(exc)),
-        ) from exc
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
-        ) from exc
+    return resolve_proposal_runtime_dependency(_resolve_repository)
 
 
 def ensure_proposal_runtime_ready() -> None:
@@ -98,35 +80,16 @@ def reset_proposal_workflow_service_for_tests() -> None:
 
 
 def _assert_lifecycle_enabled() -> None:
-    assert_feature_enabled(
-        name="PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED",
-        default=True,
-        detail="PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED",
-    )
+    assert_proposal_lifecycle_enabled()
 
 
 def _assert_support_apis_enabled() -> None:
-    assert_feature_enabled(
-        name="PROPOSAL_SUPPORT_APIS_ENABLED",
-        default=True,
-        detail="PROPOSAL_SUPPORT_APIS_DISABLED",
-    )
+    assert_proposal_support_apis_enabled()
 
 
 def _assert_async_operations_enabled() -> None:
-    assert_feature_enabled(
-        name="PROPOSAL_ASYNC_OPERATIONS_ENABLED",
-        default=True,
-        detail="PROPOSAL_ASYNC_OPERATIONS_DISABLED",
-    )
+    assert_proposal_async_operations_enabled()
 
 
-importlib.import_module("src.api.proposals.routes_lifecycle")
-importlib.import_module("src.api.proposals.routes_async")
-importlib.import_module("src.api.proposals.routes_support")
-importlib.import_module("src.api.proposals.routes_delivery")
-importlib.import_module("src.api.proposals.routes_memo")
-importlib.import_module("src.api.proposals.routes_policy_packs")
-importlib.import_module("src.api.proposals.routes_policy_evaluations")
-importlib.import_module("src.api.proposals.routes_advisor_cockpit")
-importlib.import_module("src.api.proposals.routes_advisory_copilot")
+for route_module in _ROUTE_MODULES:
+    importlib.import_module(route_module)

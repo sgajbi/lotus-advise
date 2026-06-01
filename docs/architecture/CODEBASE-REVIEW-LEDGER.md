@@ -1,5 +1,1237 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-443
+
+- Scope: Simulation idempotency persistence timestamp boundary
+- Pattern: Idempotency persistence helpers should construct persistence records, including UTC
+  creation timestamps, while preserving an override for deterministic tests.
+- Status: Hardened
+- Finding Class: service-boundary leakage
+- Summary: `simulate_proposal_response` still imported wall-clock utilities and supplied
+  `created_at` only to build the simulation idempotency persistence record. That made the API
+  orchestration service responsible for a persistence-detail timestamp.
+- Evidence:
+  - Updated `save_simulation_idempotency_result` to default `created_at` to current UTC when no
+    explicit timestamp is supplied.
+  - Removed direct timestamp construction from `src/api/services/advisory_simulation_service.py`.
+  - Extended the internal service guard to keep `datetime.now` out of the API simulation
+    orchestration service.
+- Consequence:
+  - Simulation idempotency replay/save details, including record timestamp construction, are owned
+    by the idempotency helper while the public service keeps replay orchestration readable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves existing
+    API behavior and internal persistence semantics.
+- Follow-Up:
+  - Keep explicit timestamp parameters on lower-level helpers where tests or replay import jobs need
+    deterministic event times.
+
+## LA-REV-442
+
+- Scope: Simulation request-hash lineage boundary
+- Pattern: Simulation request-hash construction should live beside canonical simulation payload
+  construction so API simulation and workspace reevaluation share one lineage contract.
+- Status: Hardened
+- Finding Class: duplication and lineage consistency
+- Summary: The advisory simulation service and workspace reevaluation path both assembled
+  `canonicalize_simulation_request_payload` plus `hash_canonical_payload` directly. That duplicated
+  the canonical request-hash recipe across API and workspace service boundaries.
+- Evidence:
+  - Added `build_simulation_request_hash` to `src/core/proposals/context.py`.
+  - Updated `src/api/services/advisory_simulation_service.py` and
+    `src/core/workspace/reevaluation.py` to use the shared helper.
+  - Extended the internal service guard to keep raw canonical hash construction out of the API
+    simulation orchestration service.
+- Consequence:
+  - Simulation lineage hashes now have a single core helper used by both direct simulation and
+    workspace reevaluation flows.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves existing
+    behavior while consolidating internal lineage construction.
+- Follow-Up:
+  - Consider moving other proposal hash recipes behind named helpers when duplicated across API and
+    workspace paths.
+
+## LA-REV-441
+
+- Scope: Advisory simulation evaluation boundary
+- Pattern: Simulation orchestration should delegate core proposal evaluation, correlation
+  resolution, context-resolution enrichment, and alternatives validation translation to a focused
+  evaluation helper.
+- Status: Hardened
+- Finding Class: modularity problem and error-boundary consistency
+- Summary: `simulate_proposal_response` still imported the core advisory evaluator, correlation
+  resolver, context-resolution evidence builder, and alternatives normalization exception taxonomy
+  directly. That kept evaluation execution and error translation mixed with replay/persistence
+  orchestration.
+- Evidence:
+  - Added `src/api/services/advisory_simulation_evaluation.py` with
+    `evaluate_simulation_result`.
+  - Updated `simulate_proposal_response` to delegate evaluation execution and context-resolution
+    enrichment to the helper after replay checks.
+  - Extended the internal guard to keep core evaluation and alternatives-normalization exception
+    imports out of the orchestration service.
+- Consequence:
+  - The advisory simulation service now coordinates validation, replay, evaluation, and
+    persistence through focused helper boundaries instead of owning core evaluation details.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing orchestration responsibilities around request hashing or persistence only if
+    later changes expose meaningful duplication.
+
+## LA-REV-440
+
+- Scope: Advisory simulation context-resolution validation boundary
+- Pattern: Simulation context-resolution exception translation should live in the simulation
+  validation helper while preserving the public service wrapper used by routes.
+- Status: Hardened
+- Finding Class: modularity problem and validation-boundary consistency
+- Summary: `advisory_simulation_service.resolve_simulation_input` still imported
+  `ProposalContextResolutionError` and translated context-resolution failures inline. That kept core
+  context exception taxonomy in the orchestration service.
+- Evidence:
+  - Added `resolve_simulation_input` to `src/api/services/advisory_simulation_validation.py`.
+  - Kept the public service wrapper stable while delegating to the validation helper.
+  - Updated sensitive-context redaction coverage to patch the validation boundary and extended the
+    internal guard to keep core context-resolution exception imports out of the orchestration
+    service.
+- Consequence:
+  - Advisory simulation validation now owns idempotency-key normalization, simulation-gate
+    validation, and context-resolution error translation behind one module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting evaluation execution/enrichment from the orchestration service if future
+    changes touch simulation evaluation.
+
+## LA-REV-439
+
+- Scope: Advisory simulation gate validation boundary
+- Pattern: Proposal-simulation gate validation should share the simulation validation helper rather
+  than being translated inline by the orchestration service.
+- Status: Hardened
+- Finding Class: modularity problem and validation-boundary consistency
+- Summary: `simulate_proposal_response` still imported `ProposalSimulationGateError` and translated
+  disabled-simulation failures directly. That mixed business gate validation with simulation
+  orchestration.
+- Evidence:
+  - Added `validate_simulation_request_enabled` to
+    `src/api/services/advisory_simulation_validation.py`.
+  - Updated `simulate_proposal_response` to delegate simulation-gate validation to that helper.
+  - Extended the internal service guard to keep `ProposalSimulationGateError` out of the
+    orchestration service.
+- Consequence:
+  - Advisory simulation validation responsibilities are grouped behind one helper module, and the
+    orchestration service has fewer direct dependencies on core validation exception taxonomy.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting context-resolution validation from the orchestration service.
+
+## LA-REV-438
+
+- Scope: Advisory simulation idempotency-key validation boundary
+- Pattern: Simulation idempotency-key normalization and safe validation-error translation should
+  live in a focused validation helper.
+- Status: Hardened
+- Finding Class: modularity problem and sensitive-error handling consistency
+- Summary: `src/api/services/advisory_simulation_service.py` still normalized idempotency keys
+  directly and translated raw `ValueError` details into HTTP validation errors inline.
+- Evidence:
+  - Added `src/api/services/advisory_simulation_validation.py` with
+    `normalize_simulation_idempotency_key`.
+  - Updated `simulate_proposal_response` to delegate idempotency-key normalization to that helper.
+  - Updated sensitive-detail coverage to patch the new validation boundary and extended the
+    internal service guard to keep core idempotency normalization out of the orchestration service.
+- Consequence:
+  - Advisory simulation orchestration no longer owns low-level replay-key normalization, and
+    sensitive validation-detail redaction remains centralized.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting simulation-gate validation and context-resolution translation from the
+    orchestration service.
+
+## LA-REV-437
+
+- Scope: Proposal router module registration
+- Pattern: Route module registration should be data-driven instead of repeated import statements.
+- Status: Hardened
+- Finding Class: duplication and readability
+- Summary: `src/api/proposals/router.py` registered proposal route modules through nine repeated
+  `importlib.import_module(...)` calls. That made route registration harder to scan and update.
+- Evidence:
+  - Added `_ROUTE_MODULES` as the explicit proposal route module registry.
+  - Replaced repeated import calls with one loop over the registry.
+  - Extended the internal router guard to prevent repeated import registration from returning.
+- Consequence:
+  - Proposal route registration is now a single auditable list, reducing copy/paste churn when
+    route modules are added or retired.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    router cleanup for existing behavior.
+- Follow-Up:
+  - Keep route registration data explicit and avoid dynamic discovery so API surface remains
+    reviewable.
+
+## LA-REV-436
+
+- Scope: Proposal feature-gate boundary
+- Pattern: Proposal feature flag details should live in a focused feature-gates module while route
+  modules continue to use stable router wrappers.
+- Status: Hardened
+- Finding Class: modularity problem and API-boundary consistency
+- Summary: `src/api/proposals/router.py` still owned the concrete lifecycle, support API, and async
+  operation feature-flag names/details inline. That mixed dependency construction with route
+  feature-gate policy.
+- Evidence:
+  - Added `src/api/proposals/feature_gates.py` with lifecycle, support, and async feature-gate
+    helpers.
+  - Updated router `_assert_*` wrappers to delegate to the feature-gate module, preserving route
+    call sites.
+  - Extended the internal router guard so direct `assert_feature_enabled` calls stay out of
+    `router.py`.
+- Consequence:
+  - Proposal router responsibilities are narrower: dependency construction remains in the router,
+    while feature-gate policy has a named module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Move additional proposal router runtime concerns only when route registration or dependency
+    construction changes require it.
+
+## LA-REV-435
+
+- Scope: Proposal runtime dependency error boundary
+- Pattern: Proposal runtime dependency resolution should share one backend-error translation helper
+  for repository and workflow service construction.
+- Status: Hardened
+- Finding Class: duplication and runtime-boundary consistency
+- Summary: `src/api/proposals/router.py` repeated `RuntimeError`, `TypeError`, and `ValueError`
+  handling in both repository and workflow service dependency paths. Runtime exception mapping
+  already belonged to `runtime_errors.py`.
+- Evidence:
+  - Added `resolve_proposal_runtime_dependency` to `src/api/proposals/runtime_errors.py`.
+  - Updated `get_proposal_workflow_service` and `get_proposal_repository` to delegate runtime
+    exception mapping through the shared helper.
+  - Strengthened the internal router guard so runtime exception handling stays out of
+    `router.py`.
+- Consequence:
+  - Proposal dependency construction now has a single backend-unavailable/backend-connection-failed
+    translation path, reducing drift between repository and service dependency behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    runtime-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing runtime dependency construction noise when new proposal runtime dependencies
+    are introduced.
+
+## LA-REV-434
+
+- Scope: Lotus Report route error boundary
+- Pattern: Routes that call lotus-report-backed operations should use a shared report operation
+  boundary instead of importing integration exception taxonomy directly.
+- Status: Hardened
+- Finding Class: duplication and integration-boundary consistency
+- Summary: Delivery, memo, and policy evaluation routes each caught `LotusReportUnavailableError`
+  directly and called the report HTTP exception helper. That kept integration exception vocabulary
+  in route modules even after proposal exception mapping had been centralized.
+- Evidence:
+  - Added `run_lotus_report_operation` to `src/api/proposals/report_errors.py`.
+  - Updated delivery, memo, and policy-evaluation report-package paths to use the shared report
+    operation boundary.
+  - Extended internal route guards so `LotusReportUnavailableError` stays out of those route
+    modules.
+- Consequence:
+  - Report integration unavailability is now translated through one route-facing boundary, with
+    sensitive-detail redaction preserved.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue isolating integration exception taxonomy from route modules where new integrations are
+    added.
+
+## LA-REV-433
+
+- Scope: Workspace handoff execution error boundary
+- Pattern: Workspace handoff execution should use a shared error-boundary helper for domain and
+  evaluation failures.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `execute_workspace_lifecycle_handoff` still wrapped create-versus-version execution in a
+  broad `try` block and translated `WorkspaceHandoffError`, evaluation errors, and `ValueError`
+  inline. That made the main executor harder to scan.
+- Evidence:
+  - Added `src/api/services/workspace_handoff_errors.py` with `run_workspace_handoff_operation`.
+  - Split execution selection into `_build_workspace_lifecycle_handoff_execution`.
+  - Extended the handoff guard to keep low-level handoff error taxonomy and fallback literals out of
+    the executor module.
+- Consequence:
+  - The lifecycle handoff executor now reads as execute-and-complete orchestration, with domain
+    error translation isolated behind a named helper.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting create/version handoff assembly only if future lifecycle changes touch that
+    behavior.
+
+## LA-REV-432
+
+- Scope: Workspace handoff idempotency boundary
+- Pattern: First-handoff idempotency-key normalization and missing-key translation should live in a
+  focused helper rather than inside the lifecycle handoff executor.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `src/api/services/workspace_lifecycle_handoff.py` normalized the required first-create
+  idempotency key inline and translated the missing-key error directly. That mixed replay-safety
+  validation with the broader create-versus-version handoff executor.
+- Evidence:
+  - Added `src/api/services/workspace_handoff_idempotency.py` with
+    `normalize_workspace_handoff_idempotency_key`.
+  - Updated `_create_proposal_from_workspace` to delegate idempotency normalization to that helper.
+  - Added an internal guard keeping core idempotency normalization and the handoff missing-key
+    literal out of the lifecycle handoff executor.
+- Consequence:
+  - Workspace lifecycle handoff orchestration is narrower, and first-handoff replay-safety
+    validation has a named API service boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting handoff create/version assembly if future changes touch lifecycle handoff
+    behavior.
+
+## LA-REV-431
+
+- Scope: Workspace AI service error boundary
+- Pattern: Lotus AI rationale unavailability should be translated through a focused workspace AI
+  boundary helper instead of repeated service-local `except` blocks.
+- Status: Hardened
+- Finding Class: duplication and service-boundary consistency
+- Summary: `src/api/services/workspace_ai_service.py` repeated `LotusAIRationaleUnavailableError`
+  handling for rationale generation and review-action calls. The service should orchestrate
+  workspace lookup and evidence selection while the integration error mapping remains centralized.
+- Evidence:
+  - Added `src/api/services/workspace_ai_errors.py` with `run_workspace_ai_operation`.
+  - Updated workspace rationale generation and review-action flows to delegate lotus-ai
+    unavailability mapping to the shared helper.
+  - Extended the internal workspace AI guard to prevent direct lotus-ai exception handling from
+    returning to `workspace_ai_service.py`.
+- Consequence:
+  - Workspace AI service handlers now share one safe-detail redaction and unavailable-error
+    translation path for lotus-ai rationale operations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue isolating integration-specific error boundaries from route and orchestration modules.
+
+## LA-REV-430
+
+- Scope: Bank demo proof route error boundary
+- Pattern: Bank-demo proof routes should delegate proof validation-to-HTTP mapping to the existing
+  proof error boundary.
+- Status: Hardened
+- Finding Class: API-boundary consistency
+- Summary: `src/api/routers/bank_demo_proof.py` still caught `ValueError` directly and translated
+  it with `bank_demo_proof_pack_exception` inside the route handler. The error classification logic
+  already lived in `bank_demo_proof_errors.py`.
+- Evidence:
+  - Added `run_bank_demo_proof_operation` to `src/api/routers/bank_demo_proof_errors.py`.
+  - Updated the proof-pack route to delegate proof capture execution through that boundary.
+  - Extended the internal route guard to prevent route-local `ValueError` mapping from returning.
+- Consequence:
+  - The proof route now focuses on request metadata and proof-pack capture, while validation,
+    material-review, and sensitive-detail redaction remain centralized.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue scanning non-proposal routers for route-local exception mapping.
+
+## LA-REV-429
+
+- Scope: Advisory simulation idempotency service boundary
+- Pattern: Simulation idempotency replay and persistence should live behind a focused helper so
+  the public simulation service can focus on request normalization, evaluation, and response
+  enrichment.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `src/api/services/advisory_simulation_service.py` owned request validation, context
+  resolution, proposal evaluation, idempotency replay, and idempotency persistence in one function.
+  The idempotency-specific conflict and store-unavailable handling was a separate operational
+  concern.
+- Evidence:
+  - Added `src/api/services/advisory_simulation_idempotency.py` with replay lookup and persistence
+    helpers.
+  - Updated `simulate_proposal_response` to delegate idempotency replay/save behavior while keeping
+    repository acquisition in the public service seam.
+  - Extended the internal service guard so direct `ProposalSimulationIdempotencyRecord` construction
+    stays out of the public simulation service.
+- Consequence:
+  - Advisory simulation idempotency behavior now has a named API service boundary and can be tested
+    or reused separately from simulation orchestration.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing simulation orchestration by isolating context resolution and evaluation
+    enrichment if future changes touch that surface.
+
+## LA-REV-428
+
+- Scope: Async proposal route error boundary
+- Pattern: Async proposal submission and lookup routes should share proposal exception mapping while
+  preserving their scheduling semantics.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_async.py` repeated proposal exception imports and local HTTP
+  mapping across async create, async version, operation lookup, and correlation lookup routes.
+- Evidence:
+  - Reused `run_proposal_operation` across four async route service calls.
+  - Preserved `should_schedule` behavior so replayed submissions are still not rescheduled.
+  - Added an internal guard preventing local proposal exception mapping from returning to async
+    routes.
+- Consequence:
+  - Async routes now share the same proposal taxonomy-to-HTTP path as the synchronous proposal API
+    modules while keeping route-owned background scheduling explicit.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue scanning for remaining route-local exception wrappers outside proposal taxonomy.
+
+## LA-REV-427
+
+- Scope: Proposal memo route error boundary
+- Pattern: Memo routes should share proposal exception mapping while preserving the dedicated
+  lotus-report unavailable boundary for memo report-package materialization.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_memo.py` repeated proposal exception imports and local HTTP
+  mapping across memo creation, read, projection, review, report-package, AI commentary, lineage,
+  and replay routes.
+- Evidence:
+  - Reused `run_proposal_operation` across nine memo route service calls.
+  - Kept `raise_lotus_report_unavailable_http_exception` as the dedicated integration-unavailable
+    boundary for report-package failures.
+  - Extended the memo route guard to keep proposal exception mapping in the shared boundary.
+- Consequence:
+  - Memo routes now share the same proposal taxonomy-to-HTTP path as lifecycle, policy, delivery,
+    support, and policy-pack routes while retaining separate report integration failure semantics.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to async routes.
+
+## LA-REV-426
+
+- Scope: Policy pack route error boundary
+- Pattern: Policy pack routes should share proposal exception mapping and avoid unreachable
+  fall-through code after raising helpers.
+- Status: Hardened
+- Finding Class: duplication and dead-code cleanup
+- Summary: `src/api/proposals/routes_policy_packs.py` repeated proposal exception imports and
+  local HTTP mapping across read, validate, and activate routes. Each handler also retained an
+  unreachable `AssertionError("unreachable")` after the local exception block.
+- Evidence:
+  - Reused `run_proposal_operation` across three policy-pack route service calls.
+  - Removed route-local proposal exception imports and unreachable fall-through assertions.
+  - Extended the policy-pack route guard to prevent both local proposal exception mapping and
+    unreachable assertions from returning.
+- Consequence:
+  - Policy pack route handlers are smaller, use the same proposal taxonomy-to-HTTP path as the
+    other proposal modules, and no longer carry dead fall-through statements.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to memo and async routes.
+
+## LA-REV-425
+
+- Scope: Proposal lifecycle route error boundary
+- Pattern: Lifecycle route handlers should delegate proposal exception classification to the
+  shared proposal operation boundary.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_lifecycle.py` repeated proposal exception imports and local
+  HTTP mapping across create, read, version, transition, approval, and narrative routes. As the
+  largest proposal API surface, this made lifecycle handlers noisy and increased mapping drift risk.
+- Evidence:
+  - Reused `run_proposal_operation` across nine lifecycle route service calls.
+  - Removed route-local proposal exception imports and `raise_proposal_http_exception` calls.
+  - Extended the lifecycle route guard to keep proposal exception mapping in the shared boundary.
+- Consequence:
+  - Lifecycle routes now focus on request binding, feature gating, and service calls while sharing
+    consistent not-found, conflict, transition, and validation HTTP mapping.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing duplicated proposal route boundaries where specialized modules still perform
+    local mapping.
+
+## LA-REV-424
+
+- Scope: Policy evaluation route error boundary
+- Pattern: Policy evaluation routes should share proposal exception mapping while preserving the
+  dedicated lotus-report unavailable boundary for report-package materialization.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_policy_evaluations.py` repeated proposal exception imports
+  and local HTTP mapping across finalization, read, replay, event, lineage, workflow, sign-off,
+  report-package, and AI-evidence routes.
+- Evidence:
+  - Reused `run_proposal_operation` across ten policy-evaluation route service calls.
+  - Kept `raise_lotus_report_unavailable_http_exception` as the dedicated report integration
+    boundary for report-package failures.
+  - Added an internal guard preventing local proposal exception mapping from returning to policy
+    evaluation routes.
+- Consequence:
+  - Policy evaluation routes now use one proposal taxonomy-to-HTTP path and keep route handlers
+    focused on request binding, idempotency keys, and policy operation calls.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to lifecycle routes.
+
+## LA-REV-423
+
+- Scope: Advisory delivery route error boundary
+- Pattern: Delivery routes should share proposal exception mapping while preserving the dedicated
+  lotus-report unavailable boundary.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_delivery.py` repeated proposal exception imports and local
+  HTTP mapping across report request, execution handoff, delivery reads, and execution update
+  routes.
+- Evidence:
+  - Reused `run_proposal_operation` across six delivery route service calls.
+  - Kept `raise_lotus_report_unavailable_http_exception` as the dedicated integration-unavailable
+    boundary for report request failures.
+  - Added an internal guard preventing local proposal exception mapping from returning to delivery
+    routes.
+- Consequence:
+  - Delivery routes now use one proposal taxonomy-to-HTTP path while retaining separate integration
+    failure semantics for lotus-report.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to lifecycle and policy-evaluation
+    routes.
+
+## LA-REV-422
+
+- Scope: Advisory support route error boundary
+- Pattern: Support routes should use the shared proposal operation boundary instead of repeating
+  not-found exception handling.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_support.py` repeated six local `ProposalNotFoundError`
+  wrappers around support read operations. This coupled the support route module directly to
+  proposal exception taxonomy and repeated the same HTTP mapping.
+- Evidence:
+  - Reused `run_proposal_operation` across workflow timeline, approvals, lineage, replay evidence,
+    idempotency lookup, and async replay support routes.
+  - Removed route-local proposal exception imports and `raise_proposal_http_exception` calls.
+  - Extended the support route guard to prevent local exception mapping from returning.
+- Consequence:
+  - Support endpoints now inherit one consistent not-found mapping path and keep route handlers
+    focused on feature gates, request binding, and service calls.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to lifecycle and delivery routes.
+
+## LA-REV-421
+
+- Scope: Advisor Cockpit route error boundary
+- Pattern: Proposal-backed route modules should delegate proposal exception classification to a
+  shared operation boundary.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_advisor_cockpit.py` repeated proposal exception imports and
+  `raise_proposal_http_exception` blocks across cockpit routes. This increased route-module
+  coupling to proposal exception taxonomy and created drift risk as more cockpit endpoints are
+  added.
+- Evidence:
+  - Added `run_proposal_operation` to `src/api/proposals/errors.py`.
+  - Replaced four cockpit route-local exception mapping blocks with the shared proposal boundary.
+  - Added an internal guard preventing cockpit routes from reintroducing local proposal exception
+    mapping.
+- Consequence:
+  - Advisor Cockpit routes remain focused on request binding and service calls, with consistent
+    not-found, conflict, and validation HTTP mapping inherited from one boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Reuse `run_proposal_operation` in lifecycle, delivery, support, and policy-evaluation route
+    modules where the same mapping appears.
+
+## LA-REV-420
+
+- Scope: Advisory Copilot route error boundary
+- Pattern: Route modules should call shared boundary helpers for repeated validation-to-HTTP
+  exception mapping instead of repeating identical `try`/`except` blocks.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_advisory_copilot.py` repeated the same `ValueError` handling
+  pattern across route handlers even though copilot error classification already lived in
+  `copilot_errors.py`.
+- Evidence:
+  - Added `run_copilot_operation` to `src/api/proposals/copilot_errors.py`.
+  - Replaced seven route-local `except ValueError` blocks with calls to the shared copilot boundary.
+  - Added an internal guard preventing route-local `ValueError` handling from returning.
+- Consequence:
+  - Advisory Copilot routes now share one validation-to-HTTP classification path, reducing drift
+    risk across not-found, conflict, and validation responses.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Apply the same route-boundary consolidation to other proposal route modules with repeated
+    exception mapping.
+
+## LA-REV-419
+
+- Scope: Workspace session creation service boundary
+- Pattern: Workspace creation assembly should have a focused API helper that owns initial context
+  construction and session model creation.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `workspace_service.create_workspace_session` still performed initial context resolution
+  and session construction inline. That kept creation details in the broad workspace façade even
+  after saved-version, draft-action, and re-evaluation logic had moved behind focused helpers.
+- Evidence:
+  - Added `src/api/services/workspace_session_creation.py` with
+    `build_workspace_session_create_response`.
+  - Updated `workspace_service.create_workspace_session` to provide identity/time inputs, persist
+    the created session, and return the helper response.
+  - Extended the internal workspace service guard to keep initial context and session construction
+    out of `workspace_service.py`.
+- Consequence:
+  - Workspace creation now has a named service boundary while the central service remains a stable
+    public wrapper around persistence and route-facing operations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing shared clock and persistence concerns in the remaining workspace wrappers.
+
+## LA-REV-418
+
+- Scope: Workspace re-evaluation service boundary
+- Pattern: Proposal evaluation, context-resolution evidence, and replay evidence assembly should
+  live behind a focused API service helper rather than in the broad workspace orchestration module.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `workspace_service.reevaluate_workspace_session` still contained proposal evaluation
+  orchestration, error translation, evaluation summary mutation, and replay evidence assembly. That
+  made the central workspace service harder to scan and coupled it directly to proposal evaluation
+  internals.
+- Evidence:
+  - Added `src/api/services/workspace_reevaluations.py` with
+    `reevaluate_workspace_session_state`.
+  - Kept `workspace_service.reevaluate_workspace_session` as the stable public wrapper that loads
+    the session, delegates re-evaluation, persists the result, and returns the updated session.
+  - Extended the internal workspace service guard so direct proposal evaluation calls stay out of
+    `workspace_service.py`.
+- Consequence:
+  - Workspace re-evaluation now has a named API service boundary, reducing direct dependency spread
+    in the main workspace orchestration module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue moving workspace creation and handoff orchestration behind focused service helpers.
+
+## LA-REV-417
+
+- Scope: Workspace draft-action service boundary
+- Pattern: Draft-action mutation and error translation should live in a focused API service helper,
+  leaving the main workspace service to orchestrate session load/save and re-evaluation.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `src/api/services/workspace_service.py` still imported core draft-action mutation
+  functions and translated `WorkspaceDraftActionError` directly into API-facing
+  `WorkspaceNotFoundError`. That mixed draft-action error-boundary details into the broader
+  workspace orchestration module.
+- Evidence:
+  - Added `src/api/services/workspace_draft_actions.py` with
+    `apply_workspace_draft_action_to_session`.
+  - Updated `workspace_service.apply_workspace_draft_action` to delegate mutation/error mapping to
+    the focused helper, then continue handling save and re-evaluation orchestration.
+  - Extended the internal workspace service guard to keep direct `WorkspaceDraftActionError`
+    handling out of `workspace_service.py`.
+- Consequence:
+  - Workspace service responsibilities are narrower: draft-action mutation has its own API service
+    boundary while evaluation orchestration remains explicit in the main service.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting focused workspace subdomain helpers where orchestration and domain mutation
+    remain mixed.
+
+## LA-REV-416
+
+- Scope: Workspace saved-version service boundary
+- Pattern: Workspace saved-version save/list/replay/resume/compare behavior should live behind a
+  dedicated service module instead of sharing the main workspace orchestration module.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `src/api/services/workspace_service.py` still owned workspace saved-version lookup,
+  save, list, replay, resume, and compare logic alongside session creation, evaluation, draft
+  actions, and lifecycle handoff. That kept several saved-version domain imports and helper paths
+  in the main workspace service module.
+- Evidence:
+  - Added `src/api/services/workspace_saved_versions.py` for saved-version save/list/replay/resume
+    and compare behavior.
+  - Kept the existing `workspace_service.py` public functions as thin delegates so route imports
+    and API behavior remain stable.
+  - Added an internal guard that prevents `workspace_service.py` from importing
+    `src.core.workspace.versions` directly and pins the new saved-version service dependency.
+- Consequence:
+  - The main workspace service is smaller and more focused on session lifecycle, evaluation, draft
+    action, and handoff orchestration, while saved-version behavior has a clearer module boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting focused workspace subdomains when the route-facing API can remain stable
+    behind thin delegates.
+
+## LA-REV-415
+
+- Scope: API HTTP exception construction boundary
+- Pattern: Direct `HTTPException(...)` construction should stay in explicit API error/helper
+  modules, not drift back into route, dependency, or service orchestration modules.
+- Status: Hardened
+- Finding Class: contract guard and error-boundary consistency
+- Summary: After extracting response/error helpers from proposal, workspace, simulation, copilot,
+  and proof route families, there was no durable guard preventing future inline HTTP exception
+  construction from returning to non-error modules.
+- Evidence:
+  - Added an internal source guard that scans `src/api/**/*.py`.
+  - The guard allows direct `HTTPException(...)` construction only in approved API error/helper
+    modules such as proposal errors, workspace errors, runtime errors, copilot errors, and proof
+    errors.
+  - Focused internal guard coverage now pins the error-boundary convention established by this
+    branch.
+- Consequence:
+  - Future API route/service hardening has a clear enforcement point for keeping HTTP status/detail
+    mapping centralized and auditable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    architectural guard coverage for existing behavior.
+- Follow-Up:
+  - Expand the allowed-list only when a new dedicated error-boundary module is intentionally added.
+
+## LA-REV-414
+
+- Scope: Advisory copilot repository dependency error boundary
+- Pattern: Dependency providers should call shared route-family error helpers for repository
+  startup failures instead of constructing HTTP exceptions inline.
+- Status: Hardened
+- Finding Class: modularity problem and error-boundary consistency
+- Summary: `src/api/proposals/copilot_dependencies.py` constructed a 503 `HTTPException` directly
+  when the Postgres advisory copilot repository could not initialize. The copilot route family
+  already had `copilot_errors.py` for request and repository detail sanitization, so repository
+  startup status mapping belonged there rather than in dependency wiring.
+- Evidence:
+  - Added `copilot_repository_unavailable_exception` to `src/api/proposals/copilot_errors.py`.
+  - Updated `get_advisory_copilot_repository` to raise the shared helper from repository
+    initialization errors.
+  - Added an internal guard that keeps direct `HTTPException(...)` construction out of
+    `copilot_dependencies.py`.
+- Consequence:
+  - Copilot dependency wiring is easier to scan and repository-unavailable response mapping is
+    centralized with the rest of the copilot HTTP error boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    dependency/error-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Keep direct HTTP exception construction limited to explicit error-mapping modules.
+
+## LA-REV-413
+
+- Scope: Proposal router runtime error boundary
+- Pattern: Router dependency providers should delegate backend-unavailable HTTP exception mapping
+  to shared error helpers instead of constructing status/detail payloads inline.
+- Status: Hardened
+- Finding Class: modularity problem and error-boundary consistency
+- Summary: `src/api/proposals/router.py` constructed `HTTPException` responses directly when
+  proposal repository or workflow-service initialization failed. The router also carried a private
+  backend detail normalizer, keeping runtime dependency flow mixed with HTTP status-code mapping.
+- Evidence:
+  - Added `src/api/proposals/runtime_errors.py` for proposal backend unavailable and connection
+    failed HTTP exception helpers.
+  - Updated `get_proposal_workflow_service` and `get_proposal_repository` to raise the named
+    helpers from caught initialization errors.
+  - Added an internal guard that keeps direct `HTTPException(...)` construction and the old private
+    backend normalizer out of `src/api/proposals/router.py`.
+- Consequence:
+  - Proposal router dependencies are easier to audit for runtime construction flow, and backend
+    unavailable response mapping is centralized for future observability/error-model hardening.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    API dependency/error-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue consolidating direct HTTP exception construction in reusable route/error modules where
+    focused tests can pin behavior.
+
+## LA-REV-412
+
+- Scope: RFC-0028 bank-demo proof API error mapping
+- Pattern: Proof-pack routes should delegate HTTP exception construction and sensitive-detail
+  redaction to a route-adjacent error module.
+- Status: Hardened
+- Finding Class: modularity problem and security-boundary clarity
+- Summary: `src/api/routers/bank_demo_proof.py` still constructed `HTTPException` directly and
+  carried private proof-pack status/detail helpers after response metadata extraction. That left
+  RFC-0028 proof runtime flow mixed with HTTP status mapping and sensitive-detail redaction.
+- Evidence:
+  - Moved proof-pack HTTP exception construction and redacted detail mapping into
+    `src/api/routers/bank_demo_proof_errors.py`.
+  - The proof route now raises `bank_demo_proof_pack_exception(str(exc))` from the caught
+    validation error.
+  - Extended the internal guard to keep direct `HTTPException(...)` construction out of
+    `bank_demo_proof.py`.
+- Consequence:
+  - RFC-0028 proof routing is focused on metadata normalization and proof capture invocation, while
+    security-sensitive error mapping is centralized for audit.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    route/error-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting direct HTTP exception construction from service/route modules where the
+    mapping is reusable and behavior can be pinned by focused tests.
+
+## LA-REV-411
+
+- Scope: Workspace store test exception imports
+- Pattern: Tests should import shared boundary exception types from the owning error module, not
+  through compatibility re-exports on implementation modules.
+- Status: Hardened
+- Finding Class: test dependency-flow consistency
+- Summary: After moving `WorkspaceNotFoundError` ownership to
+  `src/api/services/workspace_errors.py`, `tests/unit/advisory/api/test_workspace_store.py` still
+  imported the exception from `workspace_store.py`. That kept tests coupled to a compatibility
+  re-export instead of the authoritative boundary module.
+- Evidence:
+  - Updated workspace store tests to import `WorkspaceNotFoundError` from
+    `src/api/services/workspace_errors.py`.
+  - Added an internal guard that prevents store tests from regressing to the store-module
+    re-export.
+- Consequence:
+  - Workspace tests now reinforce the intended dependency direction while store-level behavior
+    remains covered.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal test
+    dependency cleanup for existing behavior.
+- Follow-Up:
+  - Continue aligning tests with shared boundary modules when implementation re-exports remain for
+    compatibility.
+
+## LA-REV-410
+
+- Scope: Workspace router exception dependencies
+- Pattern: API routers should import shared exception types from boundary error modules, not
+  through service modules whose primary purpose is behavior orchestration.
+- Status: Hardened
+- Finding Class: dependency-flow consistency
+- Summary: `src/api/workspaces/router.py` imported `WorkspaceEvaluationUnavailableError` and
+  `WorkspaceSavedVersionNotFoundError` through `workspace_service.py`, while other workspace
+  exceptions had already moved to `workspace_errors.py`. This kept part of the route error boundary
+  coupled to a concrete service implementation for shared exception types.
+- Evidence:
+  - Updated the workspace router to import evaluation, saved-version, not-found, lifecycle-handoff,
+    and assistant unavailable exceptions from `src/api/services/workspace_errors.py`.
+  - Updated workspace API tests to import workspace evaluation errors from the shared error module.
+  - Extended the internal router guard to catch regression to service-module exception imports.
+- Consequence:
+  - Workspace route dependencies now separate behavior functions from shared error types more
+    cleanly, reducing accidental coupling as workspace service internals continue to be refactored.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    route dependency-flow cleanup for existing behavior.
+- Follow-Up:
+  - Continue replacing service re-export dependencies with explicit boundary-module imports where
+    they remain.
+
+## LA-REV-409
+
+- Scope: Workspace service dependency imports
+- Pattern: Service modules should use consolidated imports from shared boundary modules rather
+  than repeated import blocks or self-aliases that obscure dependency flow.
+- Status: Hardened
+- Finding Class: readability and dependency-flow consistency
+- Summary: `src/api/services/workspace_service.py` imported workspace errors through two separate
+  blocks, including `WorkspaceLifecycleHandoffUnavailableError as
+  WorkspaceLifecycleHandoffUnavailableError`, and imported store helpers through multiple adjacent
+  blocks. This made the module's dependency boundary noisier than necessary.
+- Evidence:
+  - Consolidated workspace error imports into one block.
+  - Consolidated workspace store helper imports into one block.
+  - Added an internal guard that prevents the self-alias and repeated import blocks from returning.
+- Consequence:
+  - Workspace service dependencies are easier to scan, which matters as the module remains a key
+    orchestration boundary for workspace evaluation, saved-version, replay, and handoff flows.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service readability cleanup for existing behavior.
+- Follow-Up:
+  - Continue removing dependency-flow noise before deeper service extraction.
+
+## LA-REV-408
+
+- Scope: Workspace not-found exception ownership
+- Pattern: Boundary-level workspace exceptions should live in the shared workspace error module,
+  not in the concrete in-memory store implementation.
+- Status: Hardened
+- Finding Class: modularity problem and dependency-flow consistency
+- Summary: `WorkspaceNotFoundError` was defined in `src/api/services/workspace_store.py`, while
+  API routes and higher-level workspace services treated it as a workspace boundary error. This
+  made route and service exception handling depend on a storage implementation for a domain-level
+  not-found signal.
+- Evidence:
+  - Moved `WorkspaceNotFoundError` into `src/api/services/workspace_errors.py`.
+  - Updated workspace service, workspace router, and workspace API tests to import the not-found
+    exception from the shared error module.
+  - Kept `workspace_store.py` importing the shared exception so existing store-level imports remain
+    compatible while ownership is centralized.
+  - Added an internal guard that prevents the not-found exception class from returning to the store.
+- Consequence:
+  - Workspace error dependency flow is cleaner: storage raises a shared boundary exception instead
+    of owning the exception type consumed by route and service layers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    exception-ownership cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing service imports that rely on implementation modules solely for shared error
+    types.
+
+## LA-REV-407
+
+- Scope: Workspace assistant service exception ownership
+- Pattern: Workspace service-domain exceptions should live in the shared workspace error module
+  rather than being defined inside individual service implementations.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `WorkspaceAssistantUnavailableError` was defined in
+  `src/api/services/workspace_ai_service.py`, while related workspace service exceptions such as
+  evaluation unavailable, saved-version not found, and lifecycle handoff unavailable lived in
+  `src/api/services/workspace_errors.py`. That split error ownership made the workspace route and
+  tests import an exception from a concrete AI service implementation.
+- Evidence:
+  - Moved `WorkspaceAssistantUnavailableError` into `src/api/services/workspace_errors.py`.
+  - Updated workspace router, workspace API tests, and workspace AI service imports to use the
+    shared error module.
+  - Added an internal guard that prevents the assistant exception class from returning to
+    `workspace_ai_service.py`.
+- Consequence:
+  - Workspace AI service errors now follow the same dependency direction as the rest of the
+    workspace service boundary, reducing coupling from routes/tests to concrete service modules.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue consolidating service-domain exception ownership where concrete services still expose
+    errors that belong to shared boundary modules.
+
+## LA-REV-406
+
+- Scope: Advisory simulation API service error boundary
+- Pattern: API service modules should delegate HTTP exception construction to small error helpers
+  when status-code mapping repeats across validation, idempotency, and runtime-unavailable paths.
+- Status: Hardened
+- Finding Class: modularity problem and error-boundary consistency
+- Summary: `src/api/services/advisory_simulation_service.py` mixed simulation input resolution,
+  idempotency lookup/write, proposal evaluation, and repeated `HTTPException` construction. The
+  result made the service harder to read as workflow orchestration and left validation sanitization
+  coupled to multiple local raise sites.
+- Evidence:
+  - Moved advisory simulation HTTP error helpers into
+    `src/api/services/advisory_simulation_errors.py`.
+  - The simulation service now calls named helpers for validation, idempotency conflict, and
+    idempotency-store unavailable failures.
+  - Added an internal guard that keeps direct `HTTPException(...)` construction out of the
+    simulation service module.
+- Consequence:
+  - Advisory simulation orchestration is easier to audit for idempotency and lineage flow, while
+    HTTP status and sanitized-detail behavior is centralized for future hardening.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    API-service boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting repeated HTTP error construction from remaining API service modules where
+    focused tests can prove behavior stayed stable.
+
+## LA-REV-405
+
+- Scope: RFC-0028 bank-demo proof sensitive-detail boundary
+- Pattern: Sensitive-detail error mapping should call the shared detector directly when a local
+  helper only delegates and adds no route-specific semantics.
+- Status: Hardened
+- Finding Class: dead indirection and security-boundary clarity
+- Summary: `src/api/routers/bank_demo_proof.py` kept a private
+  `_contains_sensitive_error_detail` wrapper that only called
+  `contains_sensitive_error_detail`. This made the proof-pack sensitive-detail boundary look more
+  specialized than it was and added a route-local path with no behavior.
+- Evidence:
+  - Removed `_contains_sensitive_error_detail`.
+  - `_safe_proof_pack_error_detail` now calls the shared sensitive-detail detector directly while
+    preserving the RFC-0028 redacted 409 and 422 detail behavior.
+  - Extended the bank-demo proof internal guard to keep the dead wrapper from returning.
+- Consequence:
+  - RFC-0028 proof-pack error handling is easier to audit because the route visibly relies on the
+    platform shared sensitive-detail detector.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    security-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue removing route-local wrappers that duplicate shared security or error helpers.
+
+## LA-REV-404
+
+- Scope: Advisory workspace saved-version error boundary
+- Pattern: Route-local exception helpers should be removed when they only wrap the shared HTTP
+  mapper and obscure consistent exception chaining.
+- Status: Hardened
+- Finding Class: dead indirection and error-boundary consistency
+- Summary: `src/api/workspaces/router.py` had a private `_raise_saved_version_not_found` helper
+  that only returned `workspace_not_found_exception(exc)`. Saved-version routes then raised the
+  returned `HTTPException` without `from exc`, unlike the rest of the workspace router's
+  not-found and conflict handling.
+- Evidence:
+  - Removed `_raise_saved_version_not_found`.
+  - Saved-version replay, resume, and compare routes now raise the shared workspace not-found
+    exception directly with `from exc`.
+  - Extended the internal workspace router guard to keep the dead helper from returning.
+- Consequence:
+  - Workspace saved-version failures retain consistent exception chaining for diagnostics while the
+    router has one fewer local error-handling path.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    error-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue looking for thin route-local wrappers that duplicate shared error mappers.
+
+## LA-REV-403
+
+- Scope: RFC-0028 bank-demo proof API response metadata
+- Pattern: Proof-pack routers should keep governed error response examples and sanitized error
+  constants in a route-adjacent metadata module, leaving the endpoint focused on runtime metadata
+  normalization and safe exception mapping.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/routers/bank_demo_proof.py` still embedded the proof-pack 409 and 422 OpenAPI
+  response examples alongside live-runtime proof capture, sanitized detail handling, and material
+  review status selection. That mixed governed RFC-0028 documentation metadata into the route's
+  runtime error boundary.
+- Evidence:
+  - Moved bank-demo proof response metadata into
+    `src/api/routers/bank_demo_proof_responses.py`.
+  - The proof-pack decorator now references `BANK_DEMO_PROOF_PACK_RESPONSES`.
+  - The route imports the RFC-0028 sanitized error constants from the response metadata module so
+    OpenAPI examples and runtime error classification share the same governed vocabulary.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `src/api/routers/bank_demo_proof.py`.
+- Consequence:
+  - RFC-0028 proof routing is easier to audit for sensitive-detail handling while proof-pack error
+    documentation remains centralized and consistent.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - With route-local inline response maps removed from `src/api`, shift the next branch commits to
+    deeper service-boundary or duplicate-helper cleanup rather than more metadata extraction.
+
+## LA-REV-402
+
+- Scope: Integration capabilities API response metadata
+- Pattern: Platform capability route metadata should live outside the endpoint module even when
+  the response map is small, so capability contract wording is reusable and guarded consistently.
+- Status: Hardened
+- Finding Class: API documentation quality and consistency
+- Summary: `src/api/routers/integration_capabilities.py` kept its capability-contract response
+  descriptions inline while adjacent route families were moving response metadata behind named
+  modules. The route behavior already delegates to `build_integration_capabilities`, so the inline
+  response map was documentation metadata in the controller layer.
+- Evidence:
+  - Moved integration capability response metadata into
+    `src/api/routers/integration_capabilities_responses.py`.
+  - The `/platform/capabilities` decorator now references `INTEGRATION_CAPABILITIES_RESPONSES`.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `src/api/routers/integration_capabilities.py`.
+- Consequence:
+  - Platform capability API wording is centralized and follows the same route-boundary convention
+    as proposal, workspace, and simulation routes.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Finish the remaining bank-demo proof response metadata extraction before branch-level PR
+    readiness validation.
+
+## LA-REV-401
+
+- Scope: Advisory simulation API response metadata
+- Pattern: Simulation route modules should keep OpenAPI response examples and error maps separate
+  from deterministic simulation and artifact endpoint flow.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/routers/advisory_simulation.py` still owned sizeable response dictionaries for
+  proposal simulation and proposal artifact endpoints, including ready, pending-review, blocked,
+  and idempotency-conflict examples. The endpoint behavior already delegated simulation input
+  resolution and idempotency handling to the simulation service, so route-local response maps were
+  documentation metadata coupled to controller flow.
+- Evidence:
+  - Moved advisory simulation OpenAPI response maps into
+    `src/api/routers/advisory_simulation_responses.py`.
+  - Simulation and artifact decorators now reference named response maps while preserving existing
+    examples from `src/api/simulation_examples.py`.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `src/api/routers/advisory_simulation.py`.
+- Consequence:
+  - Advisory simulation routing is smaller and easier to review while the OpenAPI examples remain
+    reusable for contract tests and future documentation hardening.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue extracting the remaining small non-proposal response maps from proof and integration
+    capability routers before PR closure.
+
+## LA-REV-400
+
+- Scope: Advisory workspace API response metadata
+- Pattern: Workspace route modules should not own large OpenAPI example and response dictionaries
+  when those declarations can be isolated behind a reusable API metadata module.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/workspaces/router.py` mixed workspace endpoint flow with repeated response
+  dictionaries and sizeable request examples for create, draft action, save, resume, compare, AI
+  rationale, review-action, and lifecycle handoff endpoints. This made the router harder to scan
+  and kept documentation metadata coupled to workspace exception handling and service delegation.
+- Evidence:
+  - Moved workspace OpenAPI examples and response maps into
+    `src/api/workspaces/response_metadata.py`.
+  - Workspace decorators now reference named response maps for create, read, draft-action,
+    evaluation, saved-version, AI rationale, review-action, and lifecycle handoff behavior.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `src/api/workspaces/router.py`.
+- Consequence:
+  - Workspace routing is more focused on private-banking workspace flow while OpenAPI examples and
+    operational response wording stay centralized for future contract review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Review workspace route helpers for dependency and exception-boundary extraction once the
+    response metadata boundary has remained stable under OpenAPI contract tests.
+
+## LA-REV-399
+
+- Scope: Advisory proposal lifecycle API response metadata
+- Pattern: Large lifecycle route modules should keep OpenAPI response maps in a reusable metadata
+  module when several endpoints share not-found, idempotency, validation, and runtime persistence
+  semantics.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/proposals/routes_lifecycle.py` still repeated proposal-create, version-create,
+  narrative-regeneration, narrative-read, and narrative-review response dictionaries inline. The
+  lifecycle route handlers already delegated behavior to `ProposalWorkflowService`; keeping
+  response dictionaries in the route module made the largest proposal API boundary harder to scan
+  and increased the chance of wording drift across lifecycle OpenAPI docs.
+- Evidence:
+  - Moved lifecycle OpenAPI response metadata into
+    `src/api/proposals/lifecycle_responses.py`.
+  - Lifecycle decorators now reference named response maps for proposal creation, version creation,
+    narrative regeneration, narrative reads, and narrative reviews.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `routes_lifecycle.py`.
+- Consequence:
+  - Proposal lifecycle routing is more focused on HTTP parameters, feature gates, and service
+    delegation while shared response wording remains reusable and auditable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue reviewing lifecycle routes for dependency-flow and parameter consistency after the
+    response metadata boundary is stable.
+
+## LA-REV-398
+
+- Scope: Advisory operations support API response metadata
+- Pattern: Support and replay route families should share operational error response descriptions
+  instead of repeating not-found and runtime-unavailable maps inline.
+- Status: Hardened
+- Finding Class: duplication and API documentation quality
+- Summary: `src/api/proposals/routes_support.py` repeated proposal not-found, replay-evidence
+  not-found, async-operation not-found, and runtime persistence unavailable response maps across
+  lineage and replay support endpoints. These routes already delegated behavior to
+  `ProposalWorkflowService`, so the remaining inline response dictionaries were route metadata
+  duplication rather than endpoint logic.
+- Evidence:
+  - Moved support-route OpenAPI response metadata into
+    `src/api/proposals/support_responses.py`.
+  - Lineage, version replay-evidence, and async replay-evidence decorators now reference named
+    response maps.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `routes_support.py`.
+- Consequence:
+  - Advisory operations support routes keep operational diagnostics wording centralized while route
+    bodies remain focused on feature gates, dependency use, and service delegation.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue applying response-metadata extraction to the larger lifecycle route family in a
+    separate commit with focused OpenAPI and route-boundary coverage.
+
+## LA-REV-397
+
+- Scope: Advisory policy-pack API response metadata
+- Pattern: Route-family OpenAPI response metadata should be centralized when endpoints share
+  catalog, not-found, idempotency, and validation failure semantics.
+- Status: Hardened
+- Finding Class: duplication and API documentation quality
+- Summary: `src/api/proposals/routes_policy_packs.py` repeated RFC-0025 policy-pack response
+  dictionaries inline across catalog, detail, validation, and activation endpoints. The route
+  handlers already delegated behavior to the policy-pack domain layer, but route-local response
+  maps kept OpenAPI wording mixed into controller declarations and increased drift risk.
+- Evidence:
+  - Moved policy-pack OpenAPI response metadata into
+    `src/api/proposals/policy_pack_responses.py`.
+  - Policy-pack route decorators now reference named response maps for catalog, detail,
+    validation, and activation behavior.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `routes_policy_packs.py`.
+- Consequence:
+  - RFC-0025 policy-pack routes are easier to audit for endpoint flow while business-facing
+    OpenAPI response wording stays centralized for future documentation review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue applying this response-metadata extraction to lifecycle and support route families
+    when each slice can preserve public OpenAPI behavior and add focused tests.
+
 ## LA-REV-396
 
 - Scope: Proposal memo API response metadata

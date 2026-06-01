@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Header, Path, Query, status
 
 import src.api.proposals.router as shared
-from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.policy_evaluation_responses import (
     POLICY_AI_EVIDENCE_RESPONSES,
     POLICY_EVALUATION_CREATE_RESPONSES,
@@ -13,7 +13,7 @@ from src.api.proposals.policy_evaluation_responses import (
     POLICY_REVIEW_QUEUE_RESPONSES,
     POLICY_SIGN_OFF_DECISION_RESPONSES,
 )
-from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
+from src.api.proposals.report_errors import run_lotus_report_operation
 from src.core.policy_packs import (
     PolicyEvaluationAiEvidenceRequest,
     PolicyEvaluationAiEvidenceResponse,
@@ -44,13 +44,7 @@ from src.core.policy_packs import (
     request_policy_evaluation_ai_evidence,
     request_policy_evaluation_report_package,
 )
-from src.core.proposals.exceptions import (
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalValidationError,
-)
 from src.core.proposals.identifiers import new_report_request_id
-from src.integrations.lotus_report import LotusReportUnavailableError
 
 
 @shared.router.post(
@@ -92,8 +86,8 @@ def create_or_replay_policy_evaluation(
         ),
     ],
 ) -> PolicyEvaluationPersistenceResult:
-    try:
-        return finalize_policy_evaluation_record(
+    return run_proposal_operation(
+        lambda: finalize_policy_evaluation_record(
             evidence_bundle=payload.evidence_bundle,
             policy_pack_id=payload.policy_pack_id,
             policy_version=payload.policy_version,
@@ -103,12 +97,7 @@ def create_or_replay_policy_evaluation(
             idempotency_key=idempotency_key,
             reason=payload.reason,
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -171,10 +160,7 @@ def read_policy_evaluation(
         Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
     ],
 ) -> PolicyEvaluationRecord:
-    try:
-        return get_policy_evaluation_record(evaluation_id=evaluation_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(lambda: get_policy_evaluation_record(evaluation_id=evaluation_id))
 
 
 @shared.router.post(
@@ -197,13 +183,12 @@ def replay_policy_evaluation(
     ],
     payload: PolicyEvaluationReplayRequest,
 ) -> PolicyEvaluationReplayResponse:
-    try:
-        return replay_policy_evaluation_record(
+    return run_proposal_operation(
+        lambda: replay_policy_evaluation_record(
             evaluation_id=evaluation_id,
             evidence_bundle=payload.evidence_bundle,
         )
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -234,16 +219,15 @@ def record_policy_evaluation_event(
         ),
     ] = None,
 ) -> PolicyEvaluationAuditEvent:
-    try:
-        return append_policy_evaluation_event(
+    return run_proposal_operation(
+        lambda: append_policy_evaluation_event(
             evaluation_id=evaluation_id,
             event_type=payload.event_type,
             actor_id=payload.actor_id,
             reason=payload.reason,
             idempotency_key=idempotency_key,
         )
-    except (ProposalIdempotencyConflictError, ProposalNotFoundError) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -264,10 +248,9 @@ def read_policy_evaluation_lineage(
         Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
     ],
 ) -> PolicyEvaluationLineageResponse:
-    try:
-        return get_policy_evaluation_lineage(evaluation_id=evaluation_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+    )
 
 
 @shared.router.get(
@@ -289,10 +272,9 @@ def read_policy_sign_off_package(
         Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
     ],
 ) -> PolicyEvaluationSignOffPackageResponse:
-    try:
-        return get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
+    )
 
 
 @shared.router.get(
@@ -314,10 +296,9 @@ def read_policy_evaluation_workflow(
         Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
     ],
 ) -> PolicyEvaluationWorkflowResponse:
-    try:
-        return get_policy_evaluation_workflow(evaluation_id=evaluation_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: get_policy_evaluation_workflow(evaluation_id=evaluation_id)
+    )
 
 
 @shared.router.post(
@@ -348,18 +329,13 @@ def record_policy_sign_off_decision(
         ),
     ] = None,
 ) -> PolicyEvaluationSignOffDecisionResponse:
-    try:
-        return record_policy_evaluation_sign_off_decision(
+    return run_proposal_operation(
+        lambda: record_policy_evaluation_sign_off_decision(
             evaluation_id=evaluation_id,
             payload=payload,
             idempotency_key=idempotency_key,
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -391,21 +367,16 @@ def request_policy_report_package(
         ),
     ] = None,
 ) -> PolicyEvaluationReportPackageResponse:
-    try:
-        return request_policy_evaluation_report_package(
-            evaluation_id=evaluation_id,
-            payload=payload,
-            report_request_id=new_report_request_id(),
-            idempotency_key=idempotency_key,
+    return run_lotus_report_operation(
+        lambda: run_proposal_operation(
+            lambda: request_policy_evaluation_report_package(
+                evaluation_id=evaluation_id,
+                payload=payload,
+                report_request_id=new_report_request_id(),
+                idempotency_key=idempotency_key,
+            )
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
-    except LotusReportUnavailableError as exc:
-        raise_lotus_report_unavailable_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -438,15 +409,10 @@ def request_policy_ai_evidence(
         ),
     ] = None,
 ) -> PolicyEvaluationAiEvidenceResponse:
-    try:
-        return request_policy_evaluation_ai_evidence(
+    return run_proposal_operation(
+        lambda: request_policy_evaluation_ai_evidence(
             evaluation_id=evaluation_id,
             payload=payload,
             idempotency_key=idempotency_key,
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )

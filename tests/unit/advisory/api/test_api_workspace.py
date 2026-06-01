@@ -7,14 +7,16 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
-from src.api.services.workspace_ai_service import WorkspaceAssistantUnavailableError
-from src.api.services.workspace_service import (
+from src.api.services.workspace_errors import (
+    WorkspaceAssistantUnavailableError,
     WorkspaceEvaluationUnavailableError,
+    WorkspaceNotFoundError,
+)
+from src.api.services.workspace_service import (
     get_workspace_session,
     reevaluate_workspace_session,
     reset_workspace_sessions_for_tests,
 )
-from src.api.services.workspace_store import WorkspaceNotFoundError
 from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
 from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (
@@ -28,6 +30,7 @@ from tests.shared.stateful_context_builders import (
 
 workspace_router = importlib.import_module("src.api.workspaces.router")
 workspace_service_module = importlib.import_module("src.api.services.workspace_service")
+workspace_reevaluations_module = importlib.import_module("src.api.services.workspace_reevaluations")
 
 
 @pytest.fixture(autouse=True)
@@ -796,12 +799,12 @@ def test_workspace_service_redacts_sensitive_evaluation_context_errors(
         ]
 
     def _raise_sensitive_context_error(**_kwargs: Any) -> None:
-        raise workspace_service_module.WorkspaceReevaluationContextError(
+        raise workspace_reevaluations_module.WorkspaceReevaluationContextError(
             "raw payload includes Authorization Bearer token material"
         )
 
     monkeypatch.setattr(
-        workspace_service_module,
+        workspace_reevaluations_module,
         "build_workspace_evaluation_context",
         _raise_sensitive_context_error,
     )

@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from fastapi import Depends, Header, Path, Query, status
 
 import src.api.proposals.router as shared
-from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.memo_responses import (
     MEMO_AI_COMMENTARY_RESPONSES,
     MEMO_CREATE_RESPONSES,
@@ -14,7 +14,7 @@ from src.api.proposals.memo_responses import (
     MEMO_REPORT_PACKAGE_RESPONSES,
     MEMO_REVIEW_RESPONSES,
 )
-from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
+from src.api.proposals.report_errors import run_lotus_report_operation
 from src.core.proposals import (
     ProposalMemoAiCommentaryRequest,
     ProposalMemoAiCommentaryResponse,
@@ -30,11 +30,6 @@ from src.core.proposals import (
     ProposalMemoReviewRequest,
     ProposalMemoReviewResponse,
 )
-from src.core.proposals.exceptions import (
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalValidationError,
-)
 from src.core.proposals.identifiers import new_memo_event_id, new_report_request_id
 from src.core.proposals.memo_api import (
     create_or_replay_memo_response,
@@ -48,7 +43,6 @@ from src.core.proposals.memo_api import (
     request_memo_report_package_response,
 )
 from src.core.proposals.repository import ProposalRepository
-from src.integrations.lotus_report import LotusReportUnavailableError
 
 
 @shared.router.post(
@@ -88,8 +82,8 @@ def create_proposal_memo(
     ],
 ) -> ProposalMemoResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return create_or_replay_memo_response(
+    return run_proposal_operation(
+        lambda: create_or_replay_memo_response(
             repository=repository,
             proposal_id=proposal_id,
             version_no=version_no,
@@ -98,12 +92,7 @@ def create_proposal_memo(
             event_id=new_memo_event_id(),
             occurred_at=_utc_now(),
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -133,14 +122,13 @@ def get_proposal_memo(
     ],
 ) -> ProposalMemoResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return get_memo_response(
+    return run_proposal_operation(
+        lambda: get_memo_response(
             repository=repository,
             proposal_id=proposal_id,
             version_no=version_no,
         )
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -177,15 +165,14 @@ def get_proposal_memo_projection(
     ] = None,
 ) -> ProposalMemoProjectionResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return get_memo_projection_response(
+    return run_proposal_operation(
+        lambda: get_memo_projection_response(
             repository=repository,
             proposal_id=proposal_id,
             version_no=version_no,
             audience=audience,
         )
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -224,8 +211,8 @@ def review_proposal_memo(
     ] = None,
 ) -> ProposalMemoReviewResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return record_memo_review_response(
+    return run_proposal_operation(
+        lambda: record_memo_review_response(
             repository=repository,
             proposal_id=proposal_id,
             version_no=version_no,
@@ -234,12 +221,7 @@ def review_proposal_memo(
             event_id=new_memo_event_id(),
             occurred_at=_utc_now(),
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -280,8 +262,8 @@ def record_proposal_memo_report_package_event(
     ] = None,
 ) -> ProposalMemoReportPackageEventResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return record_memo_report_package_event_response(
+    return run_proposal_operation(
+        lambda: record_memo_report_package_event_response(
             repository=repository,
             proposal_id=proposal_id,
             version_no=version_no,
@@ -290,12 +272,7 @@ def record_proposal_memo_report_package_event(
             event_id=new_memo_event_id(),
             occurred_at=_utc_now(),
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -336,25 +313,20 @@ def request_proposal_memo_report_package(
     ] = None,
 ) -> ProposalMemoReportPackageResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return request_memo_report_package_response(
-            repository=repository,
-            proposal_id=proposal_id,
-            version_no=version_no,
-            payload=payload,
-            idempotency_key=idempotency_key,
-            report_request_id=new_report_request_id(),
-            event_id=new_memo_event_id(),
-            occurred_at=_utc_now(),
+    return run_lotus_report_operation(
+        lambda: run_proposal_operation(
+            lambda: request_memo_report_package_response(
+                repository=repository,
+                proposal_id=proposal_id,
+                version_no=version_no,
+                payload=payload,
+                idempotency_key=idempotency_key,
+                report_request_id=new_report_request_id(),
+                event_id=new_memo_event_id(),
+                occurred_at=_utc_now(),
+            )
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
-    except LotusReportUnavailableError as exc:
-        raise_lotus_report_unavailable_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -395,8 +367,8 @@ def request_proposal_memo_ai_commentary(
     ] = None,
 ) -> ProposalMemoAiCommentaryResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return request_memo_ai_commentary_response(
+    return run_proposal_operation(
+        lambda: request_memo_ai_commentary_response(
             repository=repository,
             proposal_id=proposal_id,
             version_no=version_no,
@@ -405,12 +377,7 @@ def request_proposal_memo_ai_commentary(
             event_id=new_memo_event_id(),
             occurred_at=_utc_now(),
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -436,10 +403,9 @@ def get_proposal_memo_lineage(
     ],
 ) -> ProposalMemoLineageResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return get_memo_lineage_response(repository=repository, proposal_id=proposal_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: get_memo_lineage_response(repository=repository, proposal_id=proposal_id)
+    )
 
 
 @shared.router.get(
@@ -469,14 +435,13 @@ def get_proposal_memo_replay_evidence(
     ],
 ) -> ProposalMemoReplayEvidenceResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return get_memo_replay_evidence_response(
+    return run_proposal_operation(
+        lambda: get_memo_replay_evidence_response(
             repository=repository,
             proposal_id=proposal_id,
             version_no=version_no,
         )
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 def _utc_now() -> datetime:

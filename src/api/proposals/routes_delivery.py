@@ -3,8 +3,8 @@ from typing import Annotated, Optional
 from fastapi import Depends, Header, Path, status
 
 import src.api.proposals.router as shared
-from src.api.proposals.errors import raise_proposal_http_exception
-from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
+from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.report_errors import run_lotus_report_operation
 from src.api.services.proposal_reporting_service import request_proposal_report
 from src.core.proposals import (
     ProposalDeliveryHistoryResponse,
@@ -17,13 +17,6 @@ from src.core.proposals import (
     ProposalReportResponse,
     ProposalWorkflowService,
 )
-from src.core.proposals.exceptions import (
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalStateConflictError,
-    ProposalValidationError,
-)
-from src.integrations.lotus_report import LotusReportUnavailableError
 
 
 @shared.router.post(
@@ -50,12 +43,15 @@ def create_proposal_report_request(
     ],
 ) -> ProposalReportResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return request_proposal_report(proposal_id=proposal_id, payload=payload, service=service)
-    except (ProposalNotFoundError, ProposalValidationError) as exc:
-        raise_proposal_http_exception(exc)
-    except LotusReportUnavailableError as exc:
-        raise_lotus_report_unavailable_http_exception(exc)
+    return run_lotus_report_operation(
+        lambda: run_proposal_operation(
+            lambda: request_proposal_report(
+                proposal_id=proposal_id,
+                payload=payload,
+                service=service,
+            )
+        )
+    )
 
 
 @shared.router.post(
@@ -89,14 +85,13 @@ def request_execution_handoff(
     ] = None,
 ) -> ProposalExecutionHandoffResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.request_execution_handoff(
+    return run_proposal_operation(
+        lambda: service.request_execution_handoff(
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
         )
-    except (ProposalNotFoundError, ProposalStateConflictError, ProposalValidationError) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -122,10 +117,7 @@ def get_delivery_summary(
 ) -> ProposalDeliverySummaryResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_delivery_summary(proposal_id=proposal_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(lambda: service.get_delivery_summary(proposal_id=proposal_id))
 
 
 @shared.router.get(
@@ -150,10 +142,7 @@ def get_delivery_history(
 ) -> ProposalDeliveryHistoryResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_delivery_history(proposal_id=proposal_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(lambda: service.get_delivery_history(proposal_id=proposal_id))
 
 
 @shared.router.get(
@@ -179,10 +168,7 @@ def get_execution_status(
 ) -> ProposalExecutionStatusResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_execution_status(proposal_id=proposal_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(lambda: service.get_execution_status(proposal_id=proposal_id))
 
 
 @shared.router.post(
@@ -208,12 +194,6 @@ def record_execution_update(
     ],
 ) -> ProposalExecutionStatusResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.record_execution_update(proposal_id=proposal_id, payload=payload)
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalStateConflictError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: service.record_execution_update(proposal_id=proposal_id, payload=payload)
+    )

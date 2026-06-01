@@ -3,8 +3,13 @@ from typing import Annotated
 from fastapi import Header, Path, status
 
 import src.api.proposals.router as shared
-from src.api.http_status import HTTP_422_UNPROCESSABLE
-from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.policy_pack_responses import (
+    POLICY_PACK_ACTIVATE_RESPONSES,
+    POLICY_PACK_LIST_RESPONSES,
+    POLICY_PACK_NOT_FOUND_RESPONSE,
+    POLICY_PACK_VALIDATE_RESPONSES,
+)
 from src.core.policy_packs import (
     PolicyPackActivationRequest,
     PolicyPackActivationResponse,
@@ -16,11 +21,6 @@ from src.core.policy_packs import (
     get_policy_pack_version,
     list_policy_pack_versions,
     validate_policy_pack_version,
-)
-from src.core.proposals.exceptions import (
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalValidationError,
 )
 
 
@@ -36,7 +36,7 @@ from src.core.proposals.exceptions import (
         "evidence are supported by the current RFC-0025 implementation; client-ready publication "
         "remains gated."
     ),
-    responses={200: {"description": "Policy-pack catalog metadata returned."}},
+    responses=POLICY_PACK_LIST_RESPONSES,
 )
 def list_advisory_policy_packs() -> PolicyPackListResponse:
     return list_policy_pack_versions()
@@ -53,7 +53,7 @@ def list_advisory_policy_packs() -> PolicyPackListResponse:
         "rule summaries, disclosure/consent template summaries, approval routes, sample fixtures, "
         "content hash, and append-only Slice 5 catalog audit events."
     ),
-    responses={status.HTTP_404_NOT_FOUND: {"description": "Policy-pack version was not found."}},
+    responses=POLICY_PACK_NOT_FOUND_RESPONSE,
 )
 def get_advisory_policy_pack_version(
     policy_pack_id: Annotated[
@@ -65,14 +65,12 @@ def get_advisory_policy_pack_version(
         Path(description="Policy pack version.", examples=["2026.05"]),
     ],
 ) -> PolicyPackDetailResponse:
-    try:
-        return get_policy_pack_version(
+    return run_proposal_operation(
+        lambda: get_policy_pack_version(
             policy_pack_id=policy_pack_id,
             policy_version=policy_version,
         )
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
-    raise AssertionError("unreachable")
+    )
 
 
 @shared.router.post(
@@ -86,13 +84,7 @@ def get_advisory_policy_pack_version(
         "audit event. Invalid source-controlled policy definitions fail with diagnostics rather "
         "than activating partially supported policy behavior."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Policy-pack version was not found."},
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused for a different validation request."
-        },
-        HTTP_422_UNPROCESSABLE: {"description": "Policy-pack validation failed with diagnostics."},
-    },
+    responses=POLICY_PACK_VALIDATE_RESPONSES,
 )
 def validate_advisory_policy_pack_version(
     policy_pack_id: Annotated[
@@ -113,21 +105,15 @@ def validate_advisory_policy_pack_version(
         ),
     ],
 ) -> PolicyPackValidationResponse:
-    try:
-        return validate_policy_pack_version(
+    return run_proposal_operation(
+        lambda: validate_policy_pack_version(
             policy_pack_id=policy_pack_id,
             policy_version=policy_version,
             requested_by=payload.requested_by,
             idempotency_key=idempotency_key,
             reason=payload.reason,
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
-    raise AssertionError("unreachable")
+    )
 
 
 @shared.router.post(
@@ -141,18 +127,7 @@ def validate_advisory_policy_pack_version(
         "hash and maker-checker control where configured. Activated versions are immutable. This "
         "does not evaluate proposals or approve client-ready publication."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Policy-pack version was not found."},
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused for a different activation request."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "Activation failed because validation is missing, hash mismatched, maker-checker "
-                "control failed, or the version is already active and immutable."
-            )
-        },
-    },
+    responses=POLICY_PACK_ACTIVATE_RESPONSES,
 )
 def activate_advisory_policy_pack_version(
     policy_pack_id: Annotated[
@@ -173,8 +148,8 @@ def activate_advisory_policy_pack_version(
         ),
     ],
 ) -> PolicyPackActivationResponse:
-    try:
-        return activate_policy_pack_version(
+    return run_proposal_operation(
+        lambda: activate_policy_pack_version(
             policy_pack_id=policy_pack_id,
             policy_version=policy_version,
             activated_by=payload.activated_by,
@@ -182,10 +157,4 @@ def activate_advisory_policy_pack_version(
             idempotency_key=idempotency_key,
             reason=payload.reason,
         )
-    except (
-        ProposalIdempotencyConflictError,
-        ProposalNotFoundError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
-    raise AssertionError("unreachable")
+    )

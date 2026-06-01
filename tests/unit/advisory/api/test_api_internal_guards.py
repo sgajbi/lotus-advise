@@ -1,9 +1,22 @@
+import importlib
 import inspect
+from pathlib import Path
 
 import pytest
 
 import src.api.main as api_main
-from src.api.proposals import routes_memo
+from src.api.proposals import (
+    router as proposal_router,
+)
+from src.api.proposals import (
+    routes_async,
+    routes_delivery,
+    routes_lifecycle,
+    routes_memo,
+    routes_policy_evaluations,
+    routes_policy_packs,
+    routes_support,
+)
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.routers.advisory_simulation import (
     build_proposal_artifact_endpoint,
@@ -13,6 +26,31 @@ from src.integrations.lotus_core.simulation import (
     LotusCoreSimulationUnavailableError,
     simulate_with_lotus_core,
 )
+
+workspace_router = importlib.import_module("src.api.workspaces.router")
+advisory_simulation_router = importlib.import_module("src.api.routers.advisory_simulation")
+integration_capabilities_router = importlib.import_module(
+    "src.api.routers.integration_capabilities"
+)
+bank_demo_proof_router = importlib.import_module("src.api.routers.bank_demo_proof")
+advisory_simulation_service = importlib.import_module(
+    "src.api.services.advisory_simulation_service"
+)
+copilot_dependencies = importlib.import_module("src.api.proposals.copilot_dependencies")
+workspace_ai_service = importlib.import_module("src.api.services.workspace_ai_service")
+workspace_store = importlib.import_module("src.api.services.workspace_store")
+workspace_service = importlib.import_module("src.api.services.workspace_service")
+
+HTTP_EXCEPTION_ALLOWED_FILES = {
+    Path("src/api/proposals/copilot_errors.py"),
+    Path("src/api/proposals/errors.py"),
+    Path("src/api/proposals/report_errors.py"),
+    Path("src/api/proposals/runtime_errors.py"),
+    Path("src/api/routers/bank_demo_proof_errors.py"),
+    Path("src/api/routers/runtime_utils.py"),
+    Path("src/api/services/advisory_simulation_errors.py"),
+    Path("src/api/workspaces/errors.py"),
+}
 
 
 def test_raise_proposal_http_exception_re_raises_unknown_exception():
@@ -82,3 +120,238 @@ def test_memo_routes_use_shared_response_metadata():
     assert "responses=MEMO_CREATE_RESPONSES" in source
     assert "responses=MEMO_REPORT_PACKAGE_RESPONSES" in source
     assert "responses=MEMO_AI_COMMENTARY_RESPONSES" in source
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert "LotusReportUnavailableError" not in source
+    assert "run_lotus_report_operation" in source
+    assert source.count("run_proposal_operation(") == 9
+
+
+def test_policy_pack_routes_use_shared_response_metadata():
+    source = inspect.getsource(routes_policy_packs)
+
+    assert "responses={" not in source
+    assert "responses=POLICY_PACK_LIST_RESPONSES" in source
+    assert "responses=POLICY_PACK_VALIDATE_RESPONSES" in source
+    assert "responses=POLICY_PACK_ACTIVATE_RESPONSES" in source
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert 'AssertionError("unreachable")' not in source
+    assert source.count("run_proposal_operation(") == 3
+
+
+def test_support_routes_use_shared_response_metadata():
+    source = inspect.getsource(routes_support)
+
+    assert "responses={" not in source
+    assert "responses=SUPPORT_LINEAGE_RESPONSES" in source
+    assert "responses=SUPPORT_VERSION_REPLAY_RESPONSES" in source
+    assert "responses=SUPPORT_ASYNC_REPLAY_RESPONSES" in source
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert source.count("run_proposal_operation(") == 6
+
+
+def test_lifecycle_routes_use_shared_response_metadata():
+    source = inspect.getsource(routes_lifecycle)
+
+    assert "responses={" not in source
+    assert "responses=PROPOSAL_CREATE_RESPONSES" in source
+    assert "responses=PROPOSAL_VERSION_CREATE_RESPONSES" in source
+    assert "responses=PROPOSAL_NARRATIVE_REVIEW_RESPONSES" in source
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert source.count("run_proposal_operation(") == 9
+
+
+def test_workspace_routes_use_shared_response_metadata():
+    source = inspect.getsource(workspace_router)
+
+    assert "responses={" not in source
+    assert "responses=WORKSPACE_CREATE_RESPONSES" in source
+    assert "responses=WORKSPACE_DRAFT_ACTION_RESPONSES" in source
+    assert "responses=WORKSPACE_HANDOFF_RESPONSES" in source
+    assert "_raise_saved_version_not_found" not in source
+    assert "from src.api.services.workspace_errors import" in source
+    assert "WorkspaceEvaluationUnavailableError" in source
+    assert "WorkspaceSavedVersionNotFoundError" in source
+    assert "from src.api.services.workspace_service import (\n    WorkspaceEvaluation" not in source
+
+
+def test_workspace_ai_service_uses_shared_workspace_exception_types():
+    source = inspect.getsource(workspace_ai_service)
+
+    assert "class WorkspaceAssistantUnavailableError" not in source
+    assert "from src.api.services.workspace_errors import" in source
+    assert "WorkspaceAssistantUnavailableError" in source
+    assert "LotusAIRationaleUnavailableError" not in source
+    assert "run_workspace_ai_operation" in source
+
+
+def test_workspace_store_uses_shared_workspace_exception_types():
+    source = inspect.getsource(workspace_store)
+
+    assert "class WorkspaceNotFoundError" not in source
+    assert "from src.api.services.workspace_errors import WorkspaceNotFoundError" in source
+
+
+def test_workspace_store_tests_import_shared_not_found_error():
+    source = Path("tests/unit/advisory/api/test_workspace_store.py").read_text()
+
+    assert "from src.api.services.workspace_errors import WorkspaceNotFoundError" in source
+    assert "from src.api.services.workspace_store import WorkspaceNotFoundError" not in source
+
+
+def test_workspace_service_uses_consolidated_workspace_imports():
+    source = inspect.getsource(workspace_service)
+
+    assert "WorkspaceLifecycleHandoffUnavailableError as" not in source
+    assert "from src.api.services.workspace_errors import" not in source
+    assert "workspace_store" in source
+    assert "from src.api.services.workspace_store import" not in source
+    assert "from src.core.workspace.versions import" not in source
+    assert "workspace_saved_versions" in source
+    assert "WorkspaceDraftActionError" not in source
+    assert "apply_workspace_draft_action_to_session" in source
+    assert "evaluate_advisory_proposal" not in source
+    assert "reevaluate_workspace_session_state" in source
+    assert "build_initial_workspace_context" not in source
+    assert "build_workspace_session(" not in source
+
+
+def test_workspace_lifecycle_handoff_uses_shared_idempotency_helper():
+    source = Path("src/api/services/workspace_lifecycle_handoff.py").read_text(encoding="utf-8")
+
+    assert "normalize_required_idempotency_key" not in source
+    assert "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED" not in source
+    assert "normalize_workspace_handoff_idempotency_key" in source
+    assert "WORKSPACE_LIFECYCLE_HANDOFF_UNAVAILABLE_DETAIL" not in source
+    assert "WorkspaceHandoffError" not in source
+    assert "run_workspace_handoff_operation" in source
+
+
+def test_proposal_router_uses_shared_runtime_error_helpers():
+    source = inspect.getsource(proposal_router)
+
+    assert "HTTPException(" not in source
+    assert "_backend_init_error_detail" not in source
+    assert "assert_feature_enabled(" not in source
+    assert "except RuntimeError as exc" not in source
+    assert "proposal_backend_unavailable_exception" not in source
+    assert "proposal_backend_connection_failed_exception" not in source
+    assert "resolve_proposal_runtime_dependency" in source
+    assert "assert_proposal_lifecycle_enabled" in source
+    assert source.count("importlib.import_module(") == 1
+    assert "_ROUTE_MODULES" in source
+
+
+def test_advisory_copilot_routes_use_shared_error_boundary():
+    source = Path("src/api/proposals/routes_advisory_copilot.py").read_text(encoding="utf-8")
+
+    assert "except ValueError as exc" not in source
+    assert source.count("run_copilot_operation(") == 7
+
+
+def test_advisor_cockpit_routes_use_shared_error_boundary():
+    source = Path("src/api/proposals/routes_advisor_cockpit.py").read_text(encoding="utf-8")
+
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert source.count("run_proposal_operation(") == 4
+
+
+def test_delivery_routes_use_shared_proposal_error_boundary():
+    source = inspect.getsource(routes_delivery)
+
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert "LotusReportUnavailableError" not in source
+    assert "run_lotus_report_operation" in source
+    assert source.count("run_proposal_operation(") == 6
+
+
+def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
+    source = inspect.getsource(routes_policy_evaluations)
+
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert "LotusReportUnavailableError" not in source
+    assert "run_lotus_report_operation" in source
+    assert source.count("run_proposal_operation(") == 10
+
+
+def test_async_routes_use_shared_proposal_error_boundary():
+    source = inspect.getsource(routes_async)
+
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert source.count("run_proposal_operation(") == 4
+
+
+def test_direct_http_exception_construction_stays_in_error_boundary_modules():
+    offenders = []
+    for path in Path("src/api").rglob("*.py"):
+        normalized = Path(path.as_posix())
+        source = path.read_text()
+        if "HTTPException(" in source and normalized not in HTTP_EXCEPTION_ALLOWED_FILES:
+            offenders.append(str(normalized))
+
+    assert offenders == []
+
+
+def test_copilot_dependencies_use_shared_repository_error_helper():
+    source = inspect.getsource(copilot_dependencies)
+
+    assert "HTTPException(" not in source
+    assert "safe_copilot_repository_error_detail" not in source
+    assert "copilot_repository_unavailable_exception" in source
+
+
+def test_advisory_simulation_routes_use_shared_response_metadata():
+    source = inspect.getsource(advisory_simulation_router)
+
+    assert "responses={" not in source
+    assert "responses=PROPOSAL_SIMULATION_RESPONSES" in source
+    assert "responses=PROPOSAL_ARTIFACT_RESPONSES" in source
+
+
+def test_advisory_simulation_service_uses_shared_error_helpers():
+    source = inspect.getsource(advisory_simulation_service)
+
+    assert "HTTPException(" not in source
+    assert "normalize_required_idempotency_key" not in source
+    assert "normalize_simulation_idempotency_key" in source
+    assert "ProposalSimulationGateError" not in source
+    assert "validate_simulation_request_enabled" in source
+    assert "ProposalContextResolutionError" not in source
+    assert "resolve_simulation_request" not in source
+    assert "resolve_simulation_input_with_validation" in source
+    assert "AlternativesRequestNormalizationError" not in source
+    assert "evaluate_advisory_proposal" not in source
+    assert "build_context_resolution_evidence" not in source
+    assert "evaluate_simulation_result" in source
+    assert "hash_canonical_payload" not in source
+    assert "canonicalize_simulation_request_payload" not in source
+    assert "build_simulation_request_hash" in source
+    assert "datetime.now" not in source
+    assert "ProposalSimulationIdempotencyRecord" not in source
+    assert "get_replayed_simulation_result" in source
+    assert "save_simulation_idempotency_result" in source
+
+
+def test_integration_capabilities_routes_use_shared_response_metadata():
+    source = inspect.getsource(integration_capabilities_router)
+
+    assert "responses={" not in source
+    assert "responses=INTEGRATION_CAPABILITIES_RESPONSES" in source
+
+
+def test_bank_demo_proof_routes_use_shared_response_metadata():
+    source = inspect.getsource(bank_demo_proof_router)
+
+    assert "responses={" not in source
+    assert "responses=BANK_DEMO_PROOF_PACK_RESPONSES" in source
+    assert "_contains_sensitive_error_detail" not in source
+    assert "HTTPException(" not in source
+    assert "except ValueError as exc" not in source
+    assert "run_bank_demo_proof_operation" in source

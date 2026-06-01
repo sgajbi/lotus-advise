@@ -5,6 +5,7 @@ from src.api.capabilities import (
     IntegrationCapabilitiesResponse,
     build_integration_capabilities,
 )
+from src.api.routers.integration_capabilities_responses import INTEGRATION_CAPABILITIES_RESPONSES
 
 router = APIRouter(tags=["Integration"])
 
@@ -17,14 +18,7 @@ router = APIRouter(tags=["Integration"])
         "Returns integration capability flags and workflow readiness metadata for "
         "the specified consumer system and tenant."
     ),
-    responses={
-        200: {
-            "description": (
-                "Lotus-branded advisory capability contract returned with readiness metadata."
-            )
-        },
-        500: {"description": "Unexpected service error while building capabilities."},
-    },
+    responses=INTEGRATION_CAPABILITIES_RESPONSES,
 )
 async def get_integration_capabilities(
     consumer_system: ConsumerSystem = Query(
