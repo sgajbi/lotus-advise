@@ -23,6 +23,18 @@ from src.core.proposals.models import (
 )
 from src.infrastructure.postgres_migrations import apply_postgres_migrations
 from src.infrastructure.proposals import postgres_mappers as _postgres_mappers
+from src.infrastructure.proposals.postgres_approvals import (
+    create_approval as _create_approval,
+)
+from src.infrastructure.proposals.postgres_approvals import (
+    insert_approval as _insert_approval,
+)
+from src.infrastructure.proposals.postgres_approvals import (
+    list_approvals as _list_approvals,
+)
+from src.infrastructure.proposals.postgres_approvals import (
+    list_approvals_for_proposals as _list_approvals_for_proposals,
+)
 from src.infrastructure.proposals.postgres_async_operations import (
     create_operation_if_absent_by_idempotency as _create_operation_if_absent_by_idempotency,
 )
@@ -114,8 +126,6 @@ from src.infrastructure.proposals.postgres_workflow_events import (
     list_events_for_proposals as _list_events_for_proposals,
 )
 
-_json_dump = _postgres_mappers.json_dump
-_to_approval = _postgres_mappers.to_approval
 _to_proposal = _postgres_mappers.to_proposal
 
 
@@ -416,59 +426,20 @@ class PostgresProposalRepository:
         )
 
     def create_approval(self, approval: ProposalApprovalRecordData) -> None:
-        with closing(self._connect()) as connection:
-            self._insert_approval(connection=connection, approval=approval)
-            connection.commit()
+        _create_approval(connect=self._connect, approval=approval)
 
     def list_approvals(self, *, proposal_id: str) -> list[ProposalApprovalRecordData]:
-        query = """
-            SELECT
-                approval_id,
-                proposal_id,
-                approval_type,
-                approved,
-                actor_id,
-                occurred_at,
-                details_json,
-                related_version_no
-            FROM proposal_approvals
-            WHERE proposal_id = %s
-            ORDER BY occurred_at ASC, approval_id ASC
-        """
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, (proposal_id,)).fetchall()
-        return [_to_approval(row) for row in rows]
+        return cast(
+            list[ProposalApprovalRecordData],
+            _list_approvals(connect=self._connect, proposal_id=proposal_id),
+        )
 
     def list_approvals_for_proposals(
         self, *, proposal_ids: list[str]
     ) -> list[ProposalApprovalRecordData]:
-        if not proposal_ids:
-            return []
-        query = """
-            SELECT
-                approval_id,
-                proposal_id,
-                approval_type,
-                approved,
-                actor_id,
-                occurred_at,
-                details_json,
-                related_version_no
-            FROM proposal_approvals
-            WHERE proposal_id = ANY(%s)
-            ORDER BY proposal_id ASC, occurred_at ASC, approval_id ASC
-        """
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, (proposal_ids,)).fetchall()
-        approval_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
-        approvals = [_to_approval(row) for row in rows]
-        return sorted(
-            approvals,
-            key=lambda approval: (
-                approval_order.get(approval.proposal_id, len(approval_order)),
-                approval.occurred_at,
-                approval.approval_id,
-            ),
+        return cast(
+            list[ProposalApprovalRecordData],
+            _list_approvals_for_proposals(connect=self._connect, proposal_ids=proposal_ids),
         )
 
     def transition_proposal(
@@ -481,7 +452,7 @@ class PostgresProposalRepository:
         with closing(self._connect()) as connection:
             _insert_workflow_event(connection=connection, event=event)
             if approval is not None:
-                self._insert_approval(connection=connection, approval=approval)
+                _insert_approval(connection=connection, approval=approval)
             self._upsert_proposal(connection=connection, proposal=proposal)
             connection.commit()
 
@@ -546,41 +517,6 @@ class PostgresProposalRepository:
                 proposal.advisor_notes,
                 proposal.lifecycle_origin,
                 proposal.source_workspace_id,
-            ),
-        )
-
-    def _insert_approval(self, *, connection: Any, approval: ProposalApprovalRecordData) -> None:
-        query = """
-            INSERT INTO proposal_approvals (
-                approval_id,
-                proposal_id,
-                approval_type,
-                approved,
-                actor_id,
-                occurred_at,
-                details_json,
-                related_version_no
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (approval_id) DO UPDATE SET
-                proposal_id=excluded.proposal_id,
-                approval_type=excluded.approval_type,
-                approved=excluded.approved,
-                actor_id=excluded.actor_id,
-                occurred_at=excluded.occurred_at,
-                details_json=excluded.details_json,
-                related_version_no=excluded.related_version_no
-        """
-        connection.execute(
-            query,
-            (
-                approval.approval_id,
-                approval.proposal_id,
-                approval.approval_type,
-                approval.approved,
-                approval.actor_id,
-                approval.occurred_at.isoformat(),
-                _json_dump(approval.details_json),
-                approval.related_version_no,
             ),
         )
 

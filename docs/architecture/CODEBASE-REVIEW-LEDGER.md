@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-486
+
+- Scope: Postgres proposal approval persistence
+- Pattern: Approval append/list/batch-list SQL and transaction-scoped approval insertion should live
+  in a focused infrastructure helper instead of remaining inline in the proposal Postgres repository
+  adapter.
+- Status: Hardened
+- Finding Class: modularity and approval audit persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned approval persistence directly,
+  including ordered approval reads, batch approval ordering, and the private insert routine reused by
+  transition writes. This kept risk/compliance approval audit persistence coupled to proposal record
+  persistence and transition orchestration in one adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_approvals.py` for approval persistence helpers.
+  - Updated `PostgresProposalRepository` approval methods and transition writes to delegate through
+    the helper while preserving the transaction boundary used by `transition_proposal`.
+  - Reused existing Postgres repository coverage for approval ordering, batch ordering, and
+    transition write behavior.
+- Consequence:
+  - Approval audit persistence now has explicit infrastructure ownership while preserving the atomic
+    proposal transition write path.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal record persistence after this helper is green locally and remotely.
+
 ## LA-REV-485
 
 - Scope: Postgres proposal workflow event persistence
