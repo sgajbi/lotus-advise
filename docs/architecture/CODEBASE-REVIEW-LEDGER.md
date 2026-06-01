@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-479
+
+- Scope: Postgres proposal repository mapping helpers
+- Pattern: Postgres row mapping and JSON/date serialization should live in a focused mapper module
+  instead of remaining embedded at the bottom of the oversized repository adapter.
+- Status: Hardened
+- Finding Class: modularity and infrastructure maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still bundled repository SQL methods with
+  JSON serialization helpers and row-to-domain mappers. That kept infrastructure conversion logic
+  inside the 1,400+ line repository adapter and made mapper behavior harder to test directly.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_mappers.py` for JSON/date helpers and Postgres
+    row-to-domain mappers.
+  - Updated `src/infrastructure/proposals/postgres.py` to import mapper helpers through its
+    existing private compatibility names, preserving current call sites and tests while removing
+    mapper implementations from the repository file.
+  - Added mapper-focused unit coverage for compatibility aliases, canonical JSON serialization,
+    list JSON filtering, optional datetime parsing, and missing-row handling.
+- Consequence:
+  - The Postgres proposal repository now has a narrower responsibility surface, and mapper behavior
+    can be hardened independently before larger SQL method extraction.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting Postgres repository method groups, starting with idempotency and async
+    operation persistence, once mapper extraction is green locally and remotely.
+
 ## LA-REV-478
 
 - Scope: Proposal async submission command orchestration
