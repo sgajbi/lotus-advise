@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-563
+
+- Scope: Advisory copilot user-instruction API validation
+- Pattern: User-instruction normalization and length enforcement should live in the focused API
+  validation module with the other request-boundary helpers.
+- Status: Hardened
+- Finding Class: API boundary modularity and validation reuse
+- Summary: After extracting actor, identifier, and bounded tuple validators,
+  `AdvisoryCopilotActionRequest` still normalized user instructions inline and carried the
+  long-instruction error condition inside the DTO module.
+- Evidence:
+  - Added `normalize_copilot_user_instruction` and the user-instruction length constant to
+    `src/core/advisory_copilot/api_validation.py`.
+  - Updated `AdvisoryCopilotActionRequest` to delegate instruction normalization to the focused
+    API validation module.
+  - Extended API validation coverage to prove whitespace normalization and removal of the inline
+    long-instruction error branch from `api_models.py`.
+- Consequence:
+  - Advisory-copilot request DTOs now consistently delegate reusable request-boundary validation to
+    a focused module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Review OpenAPI examples and error descriptions for advisory-copilot endpoints after the API
+    boundary validation cleanup stabilizes.
+
 ## LA-REV-562
 
 - Scope: Advisory copilot API request validation boundary

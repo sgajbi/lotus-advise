@@ -16,6 +16,7 @@ from src.core.advisory_copilot.api_models import (
 from src.core.advisory_copilot.api_validation import (
     normalize_bounded_copilot_string_tuple,
     normalize_copilot_actor_id,
+    normalize_copilot_user_instruction,
     normalize_optional_copilot_identifier,
     normalize_required_copilot_identifier,
 )
@@ -90,6 +91,11 @@ def test_copilot_api_validation_has_focused_owner() -> None:
         max_item_length=96,
         allow_empty=False,
     ) == ("advisor_review_summary", "risk_flags")
+    assert normalize_copilot_user_instruction("  Summarize\nadvisor evidence.  ") == (
+        "Summarize advisor evidence."
+    )
+    with pytest.raises(ValueError, match="COPILOT_USER_INSTRUCTION_TOO_LONG"):
+        normalize_copilot_user_instruction("x" * 1001)
 
     with pytest.raises(ValueError, match="COPILOT_IDENTIFIER_REQUIRED"):
         normalize_required_copilot_identifier(
@@ -107,6 +113,7 @@ def test_copilot_api_validation_has_focused_owner() -> None:
     assert "def _normalize_copilot_actor_id(value: str)" not in api_models_source
     assert "def _normalize_required_identifier(value: str" not in api_models_source
     assert "def _normalize_bounded_string_tuple(" not in api_models_source
+    assert "COPILOT_USER_INSTRUCTION_TOO_LONG" not in api_models_source
 
 
 def test_copilot_evidence_packet_requests_normalize_and_bound_identifiers() -> None:

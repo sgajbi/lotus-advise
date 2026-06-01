@@ -6,6 +6,7 @@ from src.core.common.actors import normalize_required_actor_id
 
 COPILOT_ACTOR_ID_MAX_LENGTH = 128
 COPILOT_IDENTIFIER_MAX_LENGTH = 160
+COPILOT_USER_INSTRUCTION_MAX_LENGTH = 1000
 
 
 def normalize_copilot_actor_id(value: str) -> str:
@@ -65,3 +66,10 @@ def normalize_bounded_copilot_string_tuple(
     if not normalized and not allow_empty:
         raise ValueError(error_code)
     return tuple(normalized)
+
+
+def normalize_copilot_user_instruction(value: str) -> str:
+    normalized = " ".join(value.split())
+    if len(normalized) > COPILOT_USER_INSTRUCTION_MAX_LENGTH:
+        raise ValueError("COPILOT_USER_INSTRUCTION_TOO_LONG")
+    return normalized

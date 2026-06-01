@@ -7,8 +7,10 @@ from pydantic import BaseModel, Field, field_validator
 from src.core.advisory_copilot.api_validation import (
     COPILOT_ACTOR_ID_MAX_LENGTH,
     COPILOT_IDENTIFIER_MAX_LENGTH,
+    COPILOT_USER_INSTRUCTION_MAX_LENGTH,
     normalize_bounded_copilot_string_tuple,
     normalize_copilot_actor_id,
+    normalize_copilot_user_instruction,
     normalize_optional_copilot_identifier,
     normalize_required_copilot_identifier,
 )
@@ -34,7 +36,7 @@ _COPILOT_REQUESTED_INTENT_MAX_LENGTH = 96
 _COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT = 12
 _COPILOT_SUPPORTABILITY_BOUNDARY_MAX_LENGTH = 160
 _COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH = 160
-_COPILOT_USER_INSTRUCTION_MAX_LENGTH = 1000
+_COPILOT_USER_INSTRUCTION_MAX_LENGTH = COPILOT_USER_INSTRUCTION_MAX_LENGTH
 
 
 class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
@@ -244,10 +246,7 @@ class AdvisoryCopilotActionRequest(BaseModel):
     @field_validator("user_instruction")
     @classmethod
     def _normalize_user_instruction(cls, value: str) -> str:
-        normalized = " ".join(value.split())
-        if len(normalized) > _COPILOT_USER_INSTRUCTION_MAX_LENGTH:
-            raise ValueError("COPILOT_USER_INSTRUCTION_TOO_LONG")
-        return normalized
+        return normalize_copilot_user_instruction(value)
 
 
 class AdvisoryCopilotRunResponse(BaseModel):
