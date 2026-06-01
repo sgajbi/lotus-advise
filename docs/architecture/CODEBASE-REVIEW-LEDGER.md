@@ -9519,6 +9519,34 @@
   - Keep future capability promotion tests paired with data-product posture tests so capability
     discovery and source-of-record declarations cannot drift.
 
+## LA-REV-391
+
+- Scope: RFC-0028 commercial material claim gate
+- Pattern: Client-facing commercial material should map only implementation-backed or deliberately
+  blocked-boundary claims
+- Status: Hardened
+- Finding Class: Product-claim correctness and commercial-proof safety
+- Summary: The commercial material validator rejected UI-pending claims in client-facing material,
+  but it still allowed generic planned or unsupported claims if they were present in the supported
+  claim register. That left room for retired RFP/security wording or roadmap-style attestations to
+  be mapped into demo/RFP material without an implementation-backed claim.
+- Evidence:
+  - Added a client-facing material guard that rejects `PLANNED_RFC` and generic `UNSUPPORTED`
+    claims.
+  - Kept the explicit `client_ready_publication_blocked` boundary claim available so demo/RFP
+    material can state blocked publication posture without implying support.
+  - Expanded commercial material tests to cover unknown, UI-pending, planned, and retired
+    unsupported claim mappings.
+- Consequence:
+  - RFC-0028 commercial material remains business-facing and claim-controlled while preserving the
+    required client-ready publication boundary language.
+- Documentation:
+  - Review ledger updated. README/wiki source does not need separate wording because the
+    supported-features and commercial material already state the blocked boundaries.
+- Follow-Up:
+  - Keep future commercial material pack changes validated against both supported-claim
+    classification and blocked-boundary wording.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

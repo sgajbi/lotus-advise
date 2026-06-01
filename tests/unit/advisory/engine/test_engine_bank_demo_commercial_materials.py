@@ -66,7 +66,7 @@ def test_commercial_material_pack_uses_bounded_business_safe_materials() -> None
     )
 
 
-def test_commercial_material_pack_alignment_rejects_unknown_or_ui_pending_claims() -> None:
+def test_commercial_material_pack_alignment_rejects_unknown_or_unpromoted_claims() -> None:
     register = build_default_supported_claim_register()
     ui_pending_claim = SupportedClaim(
         claim_id="partial_product_surface_pending",
@@ -131,6 +131,60 @@ def test_commercial_material_pack_alignment_rejects_unknown_or_ui_pending_claims
     )
     with pytest.raises(ValueError, match="UI-pending claims"):
         validate_commercial_material_pack_against_register(ui_pending_pack, ui_pending_register)
+
+    planned_claim = SupportedClaim(
+        claim_id="bank_specific_security_attestation_planned",
+        title="Bank-specific security attestation planned",
+        classification="PLANNED_RFC",
+        audiences=["PRE_SALES"],
+        allowed_materials=["WIKI"],
+        claim_text="Bank-specific security attestation is planned only.",
+        wording_rules=["Keep this claim out of client-facing material."],
+    )
+    unsupported_register = register.model_copy(update={"claims": [*register.claims, planned_claim]})
+    planned_pack = CommercialMaterialPack(
+        scenario_id=RFC28_CANONICAL_SCENARIO_ID,
+        primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
+        proof_marker=RFC28_CANONICAL_PROOF_MARKER,
+        publication_posture="CUSTOMER_CONSUMABLE_WITH_BOUNDARIES",
+        required_claim_ids=["bank_specific_security_attestation_planned"],
+        blocked_claims=["client_ready_publication"],
+        materials=[
+            CommercialMaterial(
+                material_id="planned_attestation_material",
+                title="Planned attestation material",
+                material_type="RFP_RESPONSE",
+                source_ref="docs/commercial/material.md",
+                mapped_claim_ids=["bank_specific_security_attestation_planned"],
+                allowed_audiences=["PRE_SALES"],
+                excluded_claims=["client_ready_publication"],
+            )
+        ],
+    )
+    with pytest.raises(ValueError, match="planned or unsupported claims"):
+        validate_commercial_material_pack_against_register(planned_pack, unsupported_register)
+
+    retired_pack = CommercialMaterialPack(
+        scenario_id=RFC28_CANONICAL_SCENARIO_ID,
+        primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
+        proof_marker=RFC28_CANONICAL_PROOF_MARKER,
+        publication_posture="CUSTOMER_CONSUMABLE_WITH_BOUNDARIES",
+        required_claim_ids=["rfp_security_package_pending"],
+        blocked_claims=["client_ready_publication"],
+        materials=[
+            CommercialMaterial(
+                material_id="retired_security_material",
+                title="Retired security material",
+                material_type="SECURITY_PACK",
+                source_ref="docs/commercial/material.md",
+                mapped_claim_ids=["rfp_security_package_pending"],
+                allowed_audiences=["PRE_SALES"],
+                excluded_claims=["client_ready_publication"],
+            )
+        ],
+    )
+    with pytest.raises(ValueError, match="planned or unsupported claims"):
+        validate_commercial_material_pack_against_register(retired_pack, register)
 
 
 def test_commercial_material_rejects_unsafe_source_refs_and_technical_copy() -> None:
