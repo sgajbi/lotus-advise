@@ -7,6 +7,39 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
+from src.core.diagnostics_models import (
+    CashLadderBreach as DiagnosticsCashLadderBreach,
+)
+from src.core.diagnostics_models import (
+    CashLadderPoint as DiagnosticsCashLadderPoint,
+)
+from src.core.diagnostics_models import (
+    DiagnosticsData as DiagnosticsDiagnosticsData,
+)
+from src.core.diagnostics_models import (
+    DroppedIntent as DiagnosticsDroppedIntent,
+)
+from src.core.diagnostics_models import (
+    FundingPlanEntry as DiagnosticsFundingPlanEntry,
+)
+from src.core.diagnostics_models import (
+    GroupConstraintEvent as DiagnosticsGroupConstraintEvent,
+)
+from src.core.diagnostics_models import (
+    InsufficientCashEntry as DiagnosticsInsufficientCashEntry,
+)
+from src.core.diagnostics_models import (
+    LineageData as DiagnosticsLineageData,
+)
+from src.core.diagnostics_models import (
+    RuleResult as DiagnosticsRuleResult,
+)
+from src.core.diagnostics_models import (
+    SuppressedIntent as DiagnosticsSuppressedIntent,
+)
+from src.core.diagnostics_models import (
+    TaxBudgetConstraintEvent as DiagnosticsTaxBudgetConstraintEvent,
+)
 from src.core.engine_options_models import (
     EngineOptions as OptionsEngineOptions,
 )
@@ -26,12 +59,19 @@ from src.core.models import (
     AllocationMetric,
     CashBalance,
     CashFlowIntent,
+    CashLadderBreach,
+    CashLadderPoint,
     DiagnosticsData,
+    DroppedIntent,
     EngineOptions,
     ExcludedInstrument,
+    FundingPlanEntry,
     FxSpotIntent,
     GroupConstraint,
+    GroupConstraintEvent,
+    InsufficientCashEntry,
     IntentRationale,
+    LineageData,
     MarketDataSnapshot,
     Money,
     OrderIntent,
@@ -44,13 +84,16 @@ from src.core.models import (
     ProposalAllocationView,
     ProposalOrderIntent,
     ProposedTrade,
+    RuleResult,
     SecurityTradeIntent,
     ShelfEntry,
     SimulatedState,
     SuitabilityThresholds,
+    SuppressedIntent,
     TargetData,
     TargetInstrument,
     TargetMethod,
+    TaxBudgetConstraintEvent,
     TaxLot,
     UniverseCoverage,
     UniverseData,
@@ -176,6 +219,20 @@ def test_core_models_preserves_order_intent_model_import_contract():
     assert SecurityTradeIntent is OrderSecurityTradeIntent
     assert OrderIntent == OrderOrderIntent
     assert ProposalOrderIntent == OrderProposalOrderIntent
+
+
+def test_core_models_preserves_diagnostics_model_import_contract():
+    assert CashLadderBreach is DiagnosticsCashLadderBreach
+    assert CashLadderPoint is DiagnosticsCashLadderPoint
+    assert DiagnosticsData is DiagnosticsDiagnosticsData
+    assert DroppedIntent is DiagnosticsDroppedIntent
+    assert FundingPlanEntry is DiagnosticsFundingPlanEntry
+    assert GroupConstraintEvent is DiagnosticsGroupConstraintEvent
+    assert InsufficientCashEntry is DiagnosticsInsufficientCashEntry
+    assert LineageData is DiagnosticsLineageData
+    assert RuleResult is DiagnosticsRuleResult
+    assert SuppressedIntent is DiagnosticsSuppressedIntent
+    assert TaxBudgetConstraintEvent is DiagnosticsTaxBudgetConstraintEvent
 
 
 def test_money_validation():
