@@ -1,4 +1,8 @@
 from src.core.policy_packs.ai import request_policy_evaluation_ai_evidence
+from src.core.policy_packs.ai_models import (
+    PolicyEvaluationAiEvidenceRequest,
+    PolicyEvaluationAiEvidenceResponse,
+)
 from src.core.policy_packs.catalog import (
     PolicyPackCatalogStore,
     activate_policy_pack_version,
@@ -24,8 +28,6 @@ from src.core.policy_packs.evaluation_models import (
     PolicyRuleEvaluationResult,
 )
 from src.core.policy_packs.models import (
-    PolicyEvaluationAiEvidenceRequest,
-    PolicyEvaluationAiEvidenceResponse,
     PolicyEvaluationLineageResponse,
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,

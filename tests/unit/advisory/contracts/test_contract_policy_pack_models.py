@@ -1,3 +1,9 @@
+from src.core.policy_packs.ai_models import (
+    PolicyEvaluationAiEvidenceRequest as AiPolicyEvaluationAiEvidenceRequest,
+)
+from src.core.policy_packs.ai_models import (
+    PolicyEvaluationAiEvidenceResponse as AiPolicyEvaluationAiEvidenceResponse,
+)
 from src.core.policy_packs.catalog_models import (
     PolicyPackActivationRequest as CatalogPolicyPackActivationRequest,
 )
@@ -32,6 +38,8 @@ from src.core.policy_packs.evaluation_models import (
     PolicyRuleEvaluationResult as EvaluationPolicyRuleEvaluationResult,
 )
 from src.core.policy_packs.models import (
+    PolicyEvaluationAiEvidenceRequest,
+    PolicyEvaluationAiEvidenceResponse,
     PolicyEvaluationAuditEvent,
     PolicyEvaluationCreateRequest,
     PolicyEvaluationEventRequest,
@@ -137,3 +145,8 @@ def test_policy_pack_models_preserves_workflow_model_import_contract():
 def test_policy_pack_models_preserves_reporting_model_import_contract():
     assert PolicyEvaluationReportPackageRequest is ReportingPolicyEvaluationReportPackageRequest
     assert PolicyEvaluationReportPackageResponse is ReportingPolicyEvaluationReportPackageResponse
+
+
+def test_policy_pack_models_preserves_ai_model_import_contract():
+    assert PolicyEvaluationAiEvidenceRequest is AiPolicyEvaluationAiEvidenceRequest
+    assert PolicyEvaluationAiEvidenceResponse is AiPolicyEvaluationAiEvidenceResponse

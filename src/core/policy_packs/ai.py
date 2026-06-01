@@ -5,7 +5,7 @@ from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
 from src.core.common.idempotency import normalize_optional_idempotency_key
-from src.core.policy_packs.models import (
+from src.core.policy_packs.ai_models import (
     PolicyEvaluationAiEvidenceRequest,
     PolicyEvaluationAiEvidenceResponse,
 )

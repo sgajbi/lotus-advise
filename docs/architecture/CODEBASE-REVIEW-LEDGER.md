@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-524
+
+- Scope: Policy evaluation AI evidence model ownership
+- Pattern: Bounded AI evidence request/response DTOs should live in a focused module instead of
+  remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and AI evidence boundary maintainability
+- Summary: `src/core/policy_packs/models.py` still owned RFC-0025 bounded AI evidence DTOs after
+  report-package model extraction. These DTOs are the lotus-ai evidence boundary and are distinct
+  from persistence, workflow, and report-package handoff DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/ai_models.py` for bounded AI evidence request and response DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated AI evidence runtime and package exports to import AI evidence DTOs from the focused
+    module.
+  - Extended policy-pack model contract coverage and RFC-0025 Slice 11 source-contract coverage to
+    prove the focused AI model ownership and compatibility import posture.
+- Consequence:
+  - Policy AI evidence code now depends on a narrow bounded-AI model boundary instead of the broader
+    policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Extract the remaining policy evaluation lineage/review/sign-off package projection DTOs from
+    `src/core/policy_packs/models.py`, then convert the module into a pure compatibility facade.
+
 ## LA-REV-523
 
 - Scope: Policy evaluation report-package model ownership
