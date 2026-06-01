@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-424
+
+- Scope: Policy evaluation route error boundary
+- Pattern: Policy evaluation routes should share proposal exception mapping while preserving the
+  dedicated lotus-report unavailable boundary for report-package materialization.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_policy_evaluations.py` repeated proposal exception imports
+  and local HTTP mapping across finalization, read, replay, event, lineage, workflow, sign-off,
+  report-package, and AI-evidence routes.
+- Evidence:
+  - Reused `run_proposal_operation` across ten policy-evaluation route service calls.
+  - Kept `raise_lotus_report_unavailable_http_exception` as the dedicated report integration
+    boundary for report-package failures.
+  - Added an internal guard preventing local proposal exception mapping from returning to policy
+    evaluation routes.
+- Consequence:
+  - Policy evaluation routes now use one proposal taxonomy-to-HTTP path and keep route handlers
+    focused on request binding, idempotency keys, and policy operation calls.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to lifecycle routes.
+
 ## LA-REV-423
 
 - Scope: Advisory delivery route error boundary
