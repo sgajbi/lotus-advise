@@ -109,6 +109,8 @@ Boundary rules that matter:
    PR #369 at `26d74e65e231ac3d62457187c6eb7f787a4d9f88`, Main Releasability Gate run
    `26574820026`, and
    `lotus-platform/thought-leadership/linkedin/drafts/LI-2026-05-28-043-demo-proof-should-show-the-boundary.md`.
+   Current proof capture also validates ready `/platform/capabilities` runtime evidence and blocks
+   stale proof reuse when `advisory.bank_demo_proof` or `advisory_bank_demo_proof` is missing.
 
 ## Architecture At A Glance
 
@@ -297,7 +299,9 @@ Contract rules that are easy to get wrong:
    sensitive access-token, credential, AI-input, or implementation-payload path material, redacts
    secrets, tokens, prompts, implementation payloads, trace IDs, and correlation IDs from
    summaries, does not echo rejected sensitive input in HTTP 422 validation responses, and records
-   bounded integer `latency_ms` endpoint evidence.
+   bounded integer `latency_ms` endpoint evidence. Ready `/platform/capabilities` runtime evidence
+   must include `advisory.bank_demo_proof` and `advisory_bank_demo_proof` before proof artifacts
+   are reused.
    These APIs do not approve
    client-ready publication, external client communication, bank-specific attestations,
    legal/regulatory advice, completed sign-off/approval, or OMS/order/fill/settlement.

@@ -1511,6 +1511,10 @@ Slice 17 implementation decision and evidence:
 4. Tests now prove both sides of the boundary: `/platform/capabilities` advertises the implemented
    proof capability and workflow, while data-product and trust-telemetry declarations do not
    promote the proof records as active data products.
+5. Proof capture now reviews ready `/platform/capabilities` runtime evidence and blocks proof-pack
+   creation when feature `advisory.bank_demo_proof` or workflow `advisory_bank_demo_proof` is
+   missing. This keeps repeatable automation aligned with the promoted capability posture and
+   catches stale live validation before demo/RFP evidence is reused.
 
 ---
 
@@ -1521,7 +1525,7 @@ Slice 17 implementation decision and evidence:
 | Canonical advisory demo scenario | Supported | Scenario contract, source prerequisites, proof expectations, canonical/degraded evidence, and Platform/Workbench scenario registration are implemented and validated. |
 | Advisory bank demo proof pack | Supported | Proof manifest captures backend, Gateway, Workbench, Platform, document, AI/model-risk, security/runtime, and commercial evidence where implemented; unsupported claims remain blocked. |
 | Supported-claim register | Supported | README, wiki, supported-features, demo scripts, and commercial assets use the governed taxonomy consistently. |
-| Demo proof capture automation | Supported | `scripts/capture_rfc0028_backend_proof.py` and the proof-pack API produce interpretable sanitized artifacts under `output/` and reject material drift. |
+| Demo proof capture automation | Supported | `scripts/capture_rfc0028_backend_proof.py` and the proof-pack API produce interpretable sanitized artifacts under `output/`, reject material drift, and block stale ready capability evidence that omits `advisory.bank_demo_proof` or `advisory_bank_demo_proof`. |
 | Demo scenario APIs | Supported | Advise-owned scenario, supported-claim, and proof-pack endpoints are implemented with certified OpenAPI, tests, idempotency-safe error posture, Gateway/Workbench consumers, and sanitized output. |
 | Gateway demo/proof integration | Supported | Gateway consumes canonical Advise contracts and preserves supportability, correlation evidence, and Advise-owned error semantics. |
 | Workbench end-to-end demo journey | Supported for the governed canonical proof surface | Browser validation through Gateway/BFF and screenshot privacy/supported-claim review are complete for `advisory.bank_demo_proof`. |
@@ -1571,7 +1575,8 @@ Current implementation note:
    post-completion communication truth through `lotus-platform` PR #369.
 9. Slice 17 promotes `/platform/capabilities` feature `advisory.bank_demo_proof` and workflow
    `advisory_bank_demo_proof` without turning the proof-pack, supported-claim register, or
-   scenario contract into standalone active data products.
+   scenario contract into standalone active data products. Proof capture now validates those keys
+   in ready runtime capability evidence so stale live surfaces fail before proof reuse.
 
 ---
 

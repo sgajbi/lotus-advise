@@ -9547,6 +9547,33 @@
   - Keep future commercial material pack changes validated against both supported-claim
     classification and blocked-boundary wording.
 
+## LA-REV-392
+
+- Scope: RFC-0028 runtime capability proof capture
+- Pattern: Repeatable proof capture should fail when ready capability evidence is stale
+- Status: Hardened
+- Finding Class: Automation repeatability and live-validation coverage
+- Summary: After promoting RFC-0028 capability discovery, proof capture still accepted a ready
+  `/platform/capabilities` runtime summary that omitted `advisory.bank_demo_proof` or
+  `advisory_bank_demo_proof`. That meant live runtime evidence could drift behind the promoted
+  proof posture without blocking proof-pack reuse.
+- Evidence:
+  - Added a runtime capability review gate in `src/core/bank_demo_proof/capture.py`.
+  - Ready `/platform/capabilities` evidence must include feature `advisory.bank_demo_proof` and
+    workflow `advisory_bank_demo_proof`.
+  - Added proof-capture regression tests for missing feature and missing workflow evidence.
+  - Updated script proof tests, README, RFC source, and operations wiki source to describe the
+    repeatability gate.
+- Consequence:
+  - RFC-0028 proof capture now catches stale capability discovery before demo, RFP, or commercial
+    proof material is reused.
+- Documentation:
+  - README, RFC source, operations wiki source, and review ledger updated. Wiki publication is
+    required after merge.
+- Follow-Up:
+  - Keep proof-capture runtime reviews aligned with future capability keys that are promoted into
+    RFC-0028 commercial proof.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

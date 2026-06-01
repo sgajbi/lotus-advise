@@ -81,16 +81,19 @@ Operational interpretation:
    around it in Workbench, Gateway, or documentation
 2. runtime posture must not contain credentials, query strings, fragments, unredacted AI inputs,
    unrestricted runtime payloads, trace identifiers, or correlation identifiers
-3. live-suite result refs, live-suite bundle refs, and output ref prefixes must be local relative
+3. ready `/platform/capabilities` runtime evidence must include feature
+   `advisory.bank_demo_proof` and workflow `advisory_bank_demo_proof`; missing keys indicate stale
+   capability discovery and block proof-pack reuse
+4. live-suite result refs, live-suite bundle refs, and output ref prefixes must be local relative
    artifact references; URL/query/fragment/traversal and sensitive credential or AI-input material
    is rejected
-4. HTTP 422 request-validation responses should name the invalid field and rule without echoing the
+5. HTTP 422 request-validation responses should name the invalid field and rule without echoing the
    rejected sensitive value
-5. endpoint posture should use bounded integer `latency_ms` values, not unrestricted traces or
+6. endpoint posture should use bounded integer `latency_ms` values, not unrestricted traces or
    request payloads
-6. local `output/` artifacts are evidence, not authored documentation source; README and wiki truth
+7. local `output/` artifacts are evidence, not authored documentation source; README and wiki truth
    must be updated separately when implementation posture changes
-7. client-ready publication, external client communication, bank-specific attestations,
+8. client-ready publication, external client communication, bank-specific attestations,
    legal/regulatory advice, completed policy sign-off/approval, and OMS/order/fill/settlement stay
    blocked unless separately implemented and proven
 

@@ -69,8 +69,14 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
                     posture="READY",
                     latency_ms=9,
                     summary={
-                        "feature_keys": ["advisory.proposals.lifecycle"],
-                        "workflow_keys": ["advisory_proposal_lifecycle"],
+                        "feature_keys": [
+                            "advisory.proposals.lifecycle",
+                            "advisory.bank_demo_proof",
+                        ],
+                        "workflow_keys": [
+                            "advisory_proposal_lifecycle",
+                            "advisory_bank_demo_proof",
+                        ],
                     },
                 ),
             ],

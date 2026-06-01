@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -41,6 +41,8 @@ from src.core.bank_demo_proof.validation import (
 )
 
 RFC28_DEFAULT_OUTPUT_REF_PREFIX = "output/rfc0028/backend-proof"
+_RFC28_REQUIRED_RUNTIME_FEATURE_KEYS = frozenset({"advisory.bank_demo_proof"})
+_RFC28_REQUIRED_RUNTIME_WORKFLOW_KEYS = frozenset({"advisory_bank_demo_proof"})
 _RFC28_CAPTURE_TOP_LEVEL_JSON_MAX_KEYS = 64
 _RFC28_CAPTURE_MATERIAL_REVIEWS_MAX_ITEMS = 64
 
@@ -93,15 +95,18 @@ class BackendProofCaptureMetadata(BaseModel):
     @field_validator("repository_sha", "correlation_id")
     @classmethod
     def _metadata_identifiers_must_be_bounded(cls, value: str) -> str:
-        return normalize_capture_text(value, field_name="proof metadata identifier")
+        return cast(str, normalize_capture_text(value, field_name="proof metadata identifier"))
 
     @field_validator("service_version", "environment")
     @classmethod
     def _metadata_labels_must_be_bounded(cls, value: str) -> str:
-        return normalize_capture_text(
-            value,
-            field_name="proof metadata label",
-            max_length=RFC28_CAPTURE_METADATA_LABEL_MAX_LENGTH,
+        return cast(
+            str,
+            normalize_capture_text(
+                value,
+                field_name="proof metadata label",
+                max_length=RFC28_CAPTURE_METADATA_LABEL_MAX_LENGTH,
+            ),
         )
 
 
@@ -142,6 +147,7 @@ def build_backend_proof_capture(
             if review.review_posture == "BLOCKED"
         )
         raise ValueError(f"RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: {blocked}")
+    _validate_runtime_capability_posture(runtime_posture)
     journey_integration_proof_summary = build_journey_integration_proof_summary(
         live_runtime_payload
     )
@@ -186,6 +192,50 @@ def build_backend_proof_capture(
         sanitized_runtime_summary=sanitized_summary,
         material_field_reviews=material_reviews,
     )
+
+
+def _validate_runtime_capability_posture(runtime_posture: BackendRuntimePosture) -> None:
+    capability_endpoint = next(
+        (
+            endpoint
+            for endpoint in runtime_posture.endpoints
+            if endpoint.endpoint == "/platform/capabilities"
+        ),
+        None,
+    )
+    if capability_endpoint is None:
+        raise ValueError(
+            "RFC0028_RUNTIME_CAPABILITY_PROOF_MISSING: /platform/capabilities was not captured"
+        )
+    if capability_endpoint.posture == "NOT_PROBED":
+        return
+    if capability_endpoint.posture != "READY":
+        raise ValueError(
+            "RFC0028_RUNTIME_CAPABILITY_PROOF_UNREADY: /platform/capabilities was not ready"
+        )
+
+    feature_keys = _summary_string_set(capability_endpoint.summary, "feature_keys")
+    missing_features = sorted(_RFC28_REQUIRED_RUNTIME_FEATURE_KEYS.difference(feature_keys))
+    if missing_features:
+        raise ValueError(
+            "RFC0028_RUNTIME_CAPABILITY_PROOF_MISSING: missing feature "
+            + ", ".join(missing_features)
+        )
+
+    workflow_keys = _summary_string_set(capability_endpoint.summary, "workflow_keys")
+    missing_workflows = sorted(_RFC28_REQUIRED_RUNTIME_WORKFLOW_KEYS.difference(workflow_keys))
+    if missing_workflows:
+        raise ValueError(
+            "RFC0028_RUNTIME_CAPABILITY_PROOF_MISSING: missing workflow "
+            + ", ".join(missing_workflows)
+        )
+
+
+def _summary_string_set(summary: dict[str, Any], key: str) -> set[str]:
+    values = summary.get(key)
+    if not isinstance(values, list):
+        return set()
+    return {item for item in values if isinstance(item, str)}
 
 
 def default_capture_metadata(
