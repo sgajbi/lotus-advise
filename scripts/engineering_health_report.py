@@ -168,6 +168,7 @@ def _gate_inventory(repo_root: Path) -> list[GateInventory]:
         "verify-dependencies",
         "security-audit",
         "coverage-combined",
+        "quality-baseline",
         "test-unit",
         "test-integration",
         "test-e2e",

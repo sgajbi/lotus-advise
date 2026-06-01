@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-01T23:51:32.591585+00:00`
+- Generated At: `2026-06-01T23:53:06.600264+00:00`
 - Branch: `advise-enterprise-hardening-slice-14`
-- Head: `0f6ffecc6af02481e4b72f9b720c85e18b9ffa16`
+- Head: `acc4e3bf23f3792b72b838659861471837b8bf3a`
 - Python Files: `753`
 - Packages: `37`
 - Modules: `716`
-- Total Python Lines: `129655`
+- Total Python Lines: `129665`
 
 ## Largest Files
 
@@ -18,7 +18,7 @@
 | 4 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2368 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
-| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1571 |
+| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1570 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 9 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 | 10 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
@@ -91,6 +91,7 @@
 | `api-vocabulary-gate` | `python scripts/api_vocabulary_inventory.py` |
 | `api-vocabulary-gate` | `python scripts/api_vocabulary_inventory.py --validate-only` |
 | `domain-data-products-gate` | `python scripts/validate_domain_data_product_declarations.py` |
+| `quality-baseline` | `python scripts/quality_baseline_report.py --output-dir quality` |
 | `lint` | `python -m ruff check .` |
 | `lint` | `python -m ruff format --check .` |
 | `lint` | `$(MAKE) monetary-float-guard` |

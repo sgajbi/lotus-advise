@@ -22,7 +22,16 @@ def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -
         encoding="utf-8",
     )
     (tmp_path / "Makefile").write_text(
-        "lint:\n\tpython -m ruff check .\ntypecheck:\n\tpython -m mypy --config-file mypy.ini\n",
+        "\n".join(
+            [
+                "lint:",
+                "\tpython -m ruff check .",
+                "typecheck:",
+                "\tpython -m mypy --config-file mypy.ini",
+                "quality-baseline:",
+                "\tpython scripts/quality_baseline_report.py --output-dir quality",
+            ]
+        ),
         encoding="utf-8",
     )
 
@@ -35,6 +44,7 @@ def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -
     assert report.router_hotspots[0].path == "src/api/routes_demo.py"
     assert report.router_hotspots[0].route_decorator_count == 1
     assert any(gate.make_target == "lint" for gate in report.gate_inventory)
+    assert any(gate.make_target == "quality-baseline" for gate in report.gate_inventory)
     assert "Largest Functions" in markdown
     assert "`demo_route`" in markdown
 
