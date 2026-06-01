@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-564
+
+- Scope: Advisory copilot correlation resolution boundary
+- Pattern: Correlation-id normalization and deterministic fallback resolution should live in a
+  focused domain helper instead of the application service orchestration module.
+- Status: Hardened
+- Finding Class: Service boundary modularity and auditability
+- Summary: `AdvisoryCopilotApplicationService` carried local correlation fallback hashing while
+  also orchestrating packet creation, run persistence, and review submission. That mixed
+  audit-lineage policy with workflow coordination.
+- Evidence:
+  - Added `src/core/advisory_copilot/correlation.py` with
+    `resolve_advisory_copilot_correlation_id`.
+  - Updated the application service to delegate packet, run, and review correlation resolution to
+    the focused helper.
+  - Added coverage proving shared correlation validation, valid fallback preservation, and stable
+    hashed fallback generation when the fallback identifier is invalid.
+- Consequence:
+  - Advisory-copilot audit correlation behavior is now reusable and independently testable across
+    packet, run, and review boundaries.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting application-service idempotency and lookup policies where they can be
+    tested without controller or repository coupling.
+
 ## LA-REV-563
 
 - Scope: Advisory copilot user-instruction API validation

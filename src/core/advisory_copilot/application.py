@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Protocol, Sequence, cast
 
 from src.core.advisory_copilot.api_models import (
@@ -15,6 +14,7 @@ from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotSupportabilityResponse,
 )
 from src.core.advisory_copilot.catalog import list_copilot_action_definitions
+from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
 from src.core.advisory_copilot.evidence_packets import build_copilot_evidence_packet
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
 from src.core.advisory_copilot.packet_persistence import (
@@ -40,7 +40,6 @@ from src.core.common.idempotency import (
     normalize_required_idempotency_key,
 )
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
-from src.core.proposals.correlation import normalize_optional_correlation_id
 from src.core.proposals.repository import ProposalRepository
 
 
@@ -107,7 +106,7 @@ class AdvisoryCopilotApplicationService:
             audience=payload.audience,
             created_by=payload.created_by,
             reason=payload.reason,
-            correlation_id=_resolve_copilot_correlation_id(
+            correlation_id=resolve_advisory_copilot_correlation_id(
                 correlation_id,
                 fallback=f"corr-{payload.evidence_packet_id}",
             ),
@@ -149,7 +148,7 @@ class AdvisoryCopilotApplicationService:
                 "proposal_id": payload.proposal_id,
                 "proposal_version_no": payload.proposal_version_no,
             },
-            correlation_id=_resolve_copilot_correlation_id(
+            correlation_id=resolve_advisory_copilot_correlation_id(
                 correlation_id,
                 fallback=f"corr-{packet.evidence_packet_id}",
             ),
@@ -222,7 +221,7 @@ class AdvisoryCopilotApplicationService:
             lineage=draft.lineage,
             review_guidance=draft.review_guidance,
             guardrail_reasons=cast(tuple[str, ...], draft.guardrail_reasons),
-            correlation_id=_resolve_copilot_correlation_id(
+            correlation_id=resolve_advisory_copilot_correlation_id(
                 correlation_id,
                 fallback=f"corr-{payload.evidence_packet_id}",
             ),
@@ -254,7 +253,7 @@ class AdvisoryCopilotApplicationService:
             action=cast(CopilotReviewAction, payload.action),
             actor_id=payload.actor_id,
             reason=payload.reason,
-            correlation_id=_resolve_copilot_correlation_id(
+            correlation_id=resolve_advisory_copilot_correlation_id(
                 correlation_id,
                 fallback=f"corr-{run_id}",
             ),
@@ -289,17 +288,6 @@ class AdvisoryCopilotApplicationService:
             items=tuple(runs),
             next_cursor=next_cursor,
         )
-
-
-def _resolve_copilot_correlation_id(correlation_id: str | None, *, fallback: str) -> str:
-    normalized = normalize_optional_correlation_id(correlation_id)
-    if normalized is not None:
-        return cast(str, normalized)
-    fallback_id = normalize_optional_correlation_id(fallback)
-    if fallback_id is not None:
-        return cast(str, fallback_id)
-    digest = hashlib.sha256(fallback.encode("utf-8")).hexdigest()[:24]
-    return f"corr-{digest}"
 
 
 def build_advisory_copilot_supportability_response() -> AdvisoryCopilotSupportabilityResponse:

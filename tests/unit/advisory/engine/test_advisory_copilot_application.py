@@ -21,6 +21,7 @@ from src.core.advisory_copilot.api_validation import (
     normalize_required_copilot_identifier,
 )
 from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
+from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
@@ -178,6 +179,31 @@ def test_copilot_review_request_bounds_actor_id() -> None:
             actor_id="x" * 129,
             reason={"decision": "Reviewed against cited source evidence."},
         )
+
+
+def test_copilot_correlation_resolution_uses_shared_validation_and_stable_fallback() -> None:
+    assert (
+        resolve_advisory_copilot_correlation_id(
+            "  corr-advisor-request-001  ",
+            fallback="corr-fallback",
+        )
+        == "corr-advisor-request-001"
+    )
+    assert (
+        resolve_advisory_copilot_correlation_id(
+            None,
+            fallback="corr-copilot_packet_pb_sg_001",
+        )
+        == "corr-copilot_packet_pb_sg_001"
+    )
+
+    resolved = resolve_advisory_copilot_correlation_id(
+        None,
+        fallback="x" * 129,
+    )
+
+    assert resolved.startswith("corr-")
+    assert len(resolved) == 29
 
 
 def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:
