@@ -8,7 +8,7 @@ from src.api.services.workspace_errors import (
     safe_workspace_error_detail,
 )
 from src.core.advisory.orchestration import evaluate_advisory_proposal
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals.correlation import resolve_correlation_id
 from src.core.workspace.evaluation import build_evaluation_summary
 from src.core.workspace.models import WorkspaceSession

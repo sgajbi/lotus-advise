@@ -6,7 +6,7 @@ from src.api.services.workspace_draft_actions import apply_workspace_draft_actio
 from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
 from src.api.services.workspace_reevaluations import reevaluate_workspace_session_state
 from src.api.services.workspace_session_creation import build_workspace_session_create_response
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.workspace.identifiers import new_workspace_id

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from typing import cast
+
 from src.api.services.advisory_simulation_errors import simulation_validation_exception
 from src.core.common.idempotency import normalize_required_idempotency_key
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals.context import (
     ProposalContextResolutionError,
     ResolvedSimulationContext,
@@ -17,7 +19,7 @@ from src.core.proposals.simulation_gate import (
 
 def normalize_simulation_idempotency_key(idempotency_key: str) -> str:
     try:
-        return normalize_required_idempotency_key(idempotency_key)
+        return cast(str, normalize_required_idempotency_key(idempotency_key))
     except ValueError as exc:
         raise simulation_validation_exception(str(exc)) from exc
 

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import NoReturn, TypeVar
+from typing import NoReturn, TypeVar, cast
 
 from fastapi import HTTPException, status
 
@@ -70,4 +70,4 @@ def safe_proposal_error_detail(error_detail: str, *, redacted_detail: str) -> st
 
 
 def contains_sensitive_proposal_error_detail(error_detail: str) -> bool:
-    return contains_sensitive_error_detail(error_detail)
+    return cast(bool, contains_sensitive_error_detail(error_detail))

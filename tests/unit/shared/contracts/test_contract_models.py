@@ -316,6 +316,19 @@ def test_proposal_workspace_modules_use_focused_model_imports():
     assert offenders == []
 
 
+def test_api_modules_use_focused_model_imports():
+    source_root = Path(__file__).resolve().parents[4] / "src"
+    api_root = source_root / "api"
+
+    offenders = sorted(
+        str(path.relative_to(source_root.parents[0]))
+        for path in api_root.rglob("*.py")
+        if "from src.core.models import" in path.read_text(encoding="utf-8")
+    )
+
+    assert offenders == []
+
+
 def test_core_models_preserves_portfolio_model_import_contract():
     assert Money is PortfolioMoney
     assert CashBalance is PortfolioCashBalance

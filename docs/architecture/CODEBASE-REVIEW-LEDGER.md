@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-507
+
+- Scope: Advisory simulation and workspace API model dependency direction
+- Pattern: API routers and services should depend on focused core model modules instead of the
+  `src/core/models.py` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency-flow and API boundary maintainability
+- Summary: Advisory simulation and workspace API modules still imported proposal request/result
+  DTOs from `src.core.models` after the core model split. That kept API implementation code coupled
+  to a public compatibility facade instead of the focused proposal model owners.
+- Evidence:
+  - Updated advisory simulation router/service modules to import `ProposalResult` from
+    `src.core.proposal_result_models`.
+  - Updated simulation validation and workspace service modules to import
+    `ProposalSimulateRequest` from `src.core.proposal_request_models`.
+  - Added a contract asserting `src/api` contains no `from src.core.models import` dependencies.
+- Consequence:
+  - API implementation dependency flow now points at owned proposal model modules while the
+    compatibility facade remains available for public and legacy imports.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior and
+    generated OpenAPI schema are unchanged.
+- Follow-Up:
+  - Continue migrating integration adapter imports away from the compatibility facade in the next
+    bounded slice.
+
 ## LA-REV-506
 
 - Scope: Monetary float guard allowlist matching
