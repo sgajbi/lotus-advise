@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-516
+
+- Scope: Workspace draft-action model ownership
+- Pattern: Workspace draft-action DTOs and validation should live in a focused module instead of
+  remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and draft-action validation maintainability
+- Summary: `src/core/workspace/models.py` still owned the draft-action type vocabulary, request
+  DTO, response DTO, and action-payload validator after session and save/resume extraction. These
+  schemas are used by draft-action service code and workspace routes and form a compact validation
+  boundary separate from session, saved-version, and handoff models.
+- Evidence:
+  - Added `src/core/workspace/action_models.py` for draft-action type vocabulary, request
+    validation, and response DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers and OpenAPI
+    schema names.
+  - Updated workspace route, service, and draft-action helper modules plus package exports to
+    import draft-action DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    draft-action model definitions.
+- Consequence:
+  - Draft-action validation logic now sits with the draft-action boundary instead of inside the
+    broad compatibility model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace lifecycle-handoff DTOs so `src/core/workspace/models.py` can
+    become a pure compatibility facade.
+
 ## LA-REV-515
 
 - Scope: Workspace save/resume model ownership

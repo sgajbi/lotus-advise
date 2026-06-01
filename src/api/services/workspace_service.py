@@ -10,12 +10,14 @@ from src.api.services.workspace_session_creation import build_workspace_session_
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
+from src.core.workspace.action_models import (
+    WorkspaceDraftActionRequest,
+    WorkspaceDraftActionResponse,
+)
 from src.core.workspace.identifiers import new_workspace_id
 from src.core.workspace.models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
-    WorkspaceDraftActionRequest,
-    WorkspaceDraftActionResponse,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
 )
@@ -97,17 +99,23 @@ def save_workspace_version(
     workspace_id: str,
     request: WorkspaceSaveRequest,
 ) -> WorkspaceSaveResponse:
-    return workspace_saved_versions.save_workspace_version(
-        workspace_id,
-        request,
-        saved_at=_utc_now_iso(),
+    return cast(
+        WorkspaceSaveResponse,
+        workspace_saved_versions.save_workspace_version(
+            workspace_id,
+            request,
+            saved_at=_utc_now_iso(),
+        ),
     )
 
 
 def list_workspace_saved_versions(
     workspace_id: str,
 ) -> WorkspaceSavedVersionListResponse:
-    return workspace_saved_versions.list_workspace_saved_versions(workspace_id)
+    return cast(
+        WorkspaceSavedVersionListResponse,
+        workspace_saved_versions.list_workspace_saved_versions(workspace_id),
+    )
 
 
 def get_workspace_saved_version_replay(
@@ -134,7 +142,10 @@ def compare_workspace_to_saved_version(
     workspace_id: str,
     request: WorkspaceCompareRequest,
 ) -> WorkspaceCompareResponse:
-    return workspace_saved_versions.compare_workspace_to_saved_version(workspace_id, request)
+    return cast(
+        WorkspaceCompareResponse,
+        workspace_saved_versions.compare_workspace_to_saved_version(workspace_id, request),
+    )
 
 
 def handoff_workspace_to_proposal_lifecycle(

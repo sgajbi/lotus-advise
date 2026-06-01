@@ -19,6 +19,12 @@ from src.core.models import (
 )
 from src.core.proposals.models import ProposalCreateResponse
 from src.core.workspace import assistant_models as assistant_model_module
+from src.core.workspace.action_models import (
+    WorkspaceDraftActionRequest as ActionWorkspaceDraftActionRequest,
+)
+from src.core.workspace.action_models import (
+    WorkspaceDraftActionResponse as ActionWorkspaceDraftActionResponse,
+)
 from src.core.workspace.compare_models import (
     WorkspaceCompareDiffSummary as CompareWorkspaceCompareDiffSummary,
 )
@@ -65,6 +71,7 @@ from src.core.workspace.models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
+    WorkspaceDraftActionResponse,
     WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
@@ -181,6 +188,11 @@ def test_workspace_models_preserves_save_model_import_contract():
     assert WorkspaceSavedVersionListResponse is SaveWorkspaceSavedVersionListResponse
     assert WorkspaceSaveRequest is SaveWorkspaceSaveRequest
     assert WorkspaceSaveResponse is SaveWorkspaceSaveResponse
+
+
+def test_workspace_models_preserves_action_model_import_contract():
+    assert WorkspaceDraftActionRequest is ActionWorkspaceDraftActionRequest
+    assert WorkspaceDraftActionResponse is ActionWorkspaceDraftActionResponse
 
 
 def _build_state() -> SimulatedState:

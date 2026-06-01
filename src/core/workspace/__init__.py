@@ -1,3 +1,7 @@
+from src.core.workspace.action_models import (
+    WorkspaceDraftActionRequest,
+    WorkspaceDraftActionResponse,
+)
 from src.core.workspace.assistant_models import (
     WorkspaceAssistantEvidence,
     WorkspaceAssistantRequest,
@@ -25,8 +29,6 @@ from src.core.workspace.input_models import (
     WorkspaceStatelessInput,
 )
 from src.core.workspace.models import (
-    WorkspaceDraftActionRequest,
-    WorkspaceDraftActionResponse,
     WorkspaceLifecycleHandoffMetadata,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
