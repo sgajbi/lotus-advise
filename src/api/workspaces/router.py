@@ -30,6 +30,19 @@ from src.api.workspaces.errors import (
     workspace_conflict_exception,
     workspace_not_found_exception,
 )
+from src.api.workspaces.response_metadata import (
+    WORKSPACE_COMPARE_RESPONSES,
+    WORKSPACE_CREATE_RESPONSES,
+    WORKSPACE_DRAFT_ACTION_RESPONSES,
+    WORKSPACE_EVALUATE_RESPONSES,
+    WORKSPACE_HANDOFF_RESPONSES,
+    WORKSPACE_NOT_FOUND_RESPONSE,
+    WORKSPACE_RATIONALE_RESPONSES,
+    WORKSPACE_RATIONALE_REVIEW_RESPONSES,
+    WORKSPACE_RESUME_RESPONSES,
+    WORKSPACE_SAVE_RESPONSES,
+    WORKSPACE_SAVED_VERSION_NOT_FOUND_RESPONSE,
+)
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
@@ -59,90 +72,6 @@ from src.core.workspace.models import (
 
 router = APIRouter()
 
-_WORKSPACE_CREATE_EXAMPLE = {
-    "summary": "Create a stateful advisory workspace",
-    "value": {
-        "workspace_name": "Q2 2026 growth reallocation draft",
-        "created_by": "advisor_123",
-        "input_mode": "stateful",
-        "stateful_input": {
-            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-            "household_id": "hh_001",
-            "as_of": "2026-03-25",
-            "mandate_id": "mandate_growth_01",
-        },
-    },
-}
-
-_WORKSPACE_ADD_TRADE_EXAMPLE = {
-    "summary": "Add a draft trade and re-evaluate the workspace",
-    "value": {
-        "actor_id": "advisor_123",
-        "action_type": "ADD_TRADE",
-        "trade": {
-            "intent_type": "SECURITY_TRADE",
-            "side": "BUY",
-            "instrument_id": "EQ_GROWTH",
-            "quantity": "25",
-        },
-    },
-}
-
-_WORKSPACE_SAVE_EXAMPLE = {
-    "summary": "Save the current advisory workspace draft",
-    "value": {
-        "saved_by": "advisor_123",
-        "version_label": "Initial sandbox draft",
-    },
-}
-
-_WORKSPACE_RESUME_EXAMPLE = {
-    "summary": "Resume a previously saved workspace version",
-    "value": {
-        "actor_id": "advisor_123",
-        "workspace_version_id": "awv_001",
-    },
-}
-
-_WORKSPACE_COMPARE_EXAMPLE = {
-    "summary": "Compare the current draft to a saved baseline",
-    "value": {
-        "workspace_version_id": "awv_001",
-    },
-}
-
-_WORKSPACE_HANDOFF_EXAMPLE = {
-    "summary": "Persist the current workspace into proposal lifecycle",
-    "value": {
-        "handoff_by": "advisor_123",
-        "metadata": {
-            "title": "Q2 2026 growth reallocation proposal",
-            "advisor_notes": "Prepared after client review call with growth tilt preference.",
-            "jurisdiction": "SG",
-            "mandate_id": "mandate_growth_01",
-        },
-    },
-}
-
-_WORKSPACE_AI_RATIONALE_EXAMPLE = {
-    "summary": "Generate an evidence-grounded workspace rationale",
-    "value": {
-        "requested_by": "advisor_123",
-        "instruction": "Summarize the proposal rationale for an advisor review note.",
-    },
-}
-
-_WORKSPACE_AI_REVIEW_ACTION_EXAMPLE = {
-    "summary": "Supersede a historical workspace rationale run with replacement lineage",
-    "value": {
-        "run_id": "packrun_workspace_rationale_req_001",
-        "action_type": "SUPERSEDE",
-        "reviewed_by": "advisor_123",
-        "reason": "A refreshed rationale run supersedes the earlier workspace draft.",
-        "replacement_run_id": "packrun_workspace_rationale_req_002",
-    },
-}
-
 
 def _resolve_workspace_or_404(workspace_id: str) -> WorkspaceSession:
     try:
@@ -166,15 +95,7 @@ def _raise_saved_version_not_found(exc: WorkspaceSavedVersionNotFoundError) -> H
         "The workspace contract supports both `stateless` and `stateful` operating modes and "
         "returns an initial resolved advisory context for replay and audit."
     ),
-    responses={
-        201: {
-            "description": "Advisory workspace session created successfully.",
-            "content": {
-                "application/json": {"examples": {"stateful_workspace": _WORKSPACE_CREATE_EXAMPLE}}
-            },
-        },
-        422: {"description": "Validation error for invalid workspace contract payloads."},
-    },
+    responses=WORKSPACE_CREATE_RESPONSES,
 )
 def create_workspace(
     request: WorkspaceSessionCreateRequest,
@@ -203,7 +124,7 @@ def create_workspace(
         "Returns the current advisory workspace session, including draft state and latest "
         "evaluation."
     ),
-    responses={404: {"description": "Workspace session not found."}},
+    responses=WORKSPACE_NOT_FOUND_RESPONSE,
 )
 def get_workspace(
     workspace_id: Annotated[
@@ -223,19 +144,7 @@ def get_workspace(
         "Applies one deterministic draft action to the advisory workspace and re-evaluates the "
         "workspace immediately when evaluation context is available."
     ),
-    responses={
-        200: {
-            "description": "Workspace draft action applied successfully.",
-            "content": {
-                "application/json": {"examples": {"add_trade": _WORKSPACE_ADD_TRADE_EXAMPLE}}
-            },
-        },
-        404: {"description": "Workspace session or targeted draft item not found."},
-        409: {
-            "description": "Workspace evaluation is not available for the current workspace mode."
-        },
-        422: {"description": "Validation error for invalid draft action payloads."},
-    },
+    responses=WORKSPACE_DRAFT_ACTION_RESPONSES,
 )
 def apply_draft_action(
     workspace_id: Annotated[
@@ -261,13 +170,7 @@ def apply_draft_action(
         "Runs deterministic re-evaluation for the current workspace draft and returns the updated "
         "workspace session with normalized evaluation outputs."
     ),
-    responses={
-        200: {"description": "Workspace re-evaluated successfully."},
-        404: {"description": "Workspace session not found."},
-        409: {
-            "description": "Workspace evaluation is not available for the current workspace mode."
-        },
-    },
+    responses=WORKSPACE_EVALUATE_RESPONSES,
 )
 def evaluate_workspace(
     workspace_id: Annotated[
@@ -292,15 +195,7 @@ def evaluate_workspace(
         "Captures the current advisory workspace draft as a saved version with replay-safe "
         "evidence for resume and compare workflows."
     ),
-    responses={
-        200: {
-            "description": "Workspace version saved successfully.",
-            "content": {
-                "application/json": {"examples": {"save_version": _WORKSPACE_SAVE_EXAMPLE}}
-            },
-        },
-        404: {"description": "Workspace session not found."},
-    },
+    responses=WORKSPACE_SAVE_RESPONSES,
 )
 def save_workspace(
     workspace_id: Annotated[
@@ -324,7 +219,7 @@ def save_workspace(
         "Returns saved advisory workspace versions available for support, compare, and resume "
         "workflows."
     ),
-    responses={404: {"description": "Workspace session not found."}},
+    responses=WORKSPACE_NOT_FOUND_RESPONSE,
 )
 def list_saved_workspace_versions(
     workspace_id: Annotated[
@@ -347,7 +242,7 @@ def list_saved_workspace_versions(
         "Returns normalized replay evidence for a saved workspace version so support and audit "
         "users can trace workspace evidence continuity into lifecycle flows."
     ),
-    responses={404: {"description": "Workspace session or saved workspace version not found."}},
+    responses=WORKSPACE_SAVED_VERSION_NOT_FOUND_RESPONSE,
 )
 def get_saved_workspace_version_replay_evidence(
     workspace_id: Annotated[
@@ -375,15 +270,7 @@ def get_saved_workspace_version_replay_evidence(
     description=(
         "Restores a saved advisory workspace version into the current editable draft session."
     ),
-    responses={
-        200: {
-            "description": "Workspace version resumed successfully.",
-            "content": {
-                "application/json": {"examples": {"resume_version": _WORKSPACE_RESUME_EXAMPLE}}
-            },
-        },
-        404: {"description": "Workspace session or saved workspace version not found."},
-    },
+    responses=WORKSPACE_RESUME_RESPONSES,
 )
 def resume_workspace(
     workspace_id: Annotated[
@@ -409,15 +296,7 @@ def resume_workspace(
         "Returns a deterministic comparison between the current advisory workspace draft and a "
         "saved workspace version baseline."
     ),
-    responses={
-        200: {
-            "description": "Workspace comparison created successfully.",
-            "content": {
-                "application/json": {"examples": {"compare_version": _WORKSPACE_COMPARE_EXAMPLE}}
-            },
-        },
-        404: {"description": "Workspace session or saved workspace version not found."},
-    },
+    responses=WORKSPACE_COMPARE_RESPONSES,
 )
 def compare_workspace(
     workspace_id: Annotated[
@@ -444,19 +323,7 @@ def compare_workspace(
         "current evaluated workspace state. The returned output always includes the deterministic "
         "evidence bundle that was supplied to the AI workflow."
     ),
-    responses={
-        200: {
-            "description": "Workspace rationale generated successfully.",
-            "content": {
-                "application/json": {
-                    "examples": {"workspace_rationale": _WORKSPACE_AI_RATIONALE_EXAMPLE}
-                }
-            },
-        },
-        404: {"description": "Workspace session not found."},
-        409: {"description": "Workspace is not yet ready for AI assistance."},
-        503: {"description": "Lotus AI assistance is unavailable for this runtime."},
-    },
+    responses=WORKSPACE_RATIONALE_RESPONSES,
 )
 def generate_workspace_rationale_endpoint(
     workspace_id: Annotated[
@@ -484,19 +351,7 @@ def generate_workspace_rationale_endpoint(
         "returned replacement lineage and supportability posture without rewriting the rationale "
         "narrative."
     ),
-    responses={
-        200: {
-            "description": "Workspace rationale review action applied successfully.",
-            "content": {
-                "application/json": {
-                    "examples": {"workspace_rationale_review": _WORKSPACE_AI_REVIEW_ACTION_EXAMPLE}
-                }
-            },
-        },
-        404: {"description": "Workspace session not found."},
-        409: {"description": "Review action conflicted with the Lotus AI run ledger state."},
-        503: {"description": "Lotus AI assistance is unavailable for this runtime."},
-    },
+    responses=WORKSPACE_RATIONALE_REVIEW_RESPONSES,
 )
 def apply_workspace_rationale_review_action_endpoint(
     workspace_id: Annotated[
@@ -523,15 +378,7 @@ def apply_workspace_rationale_review_action_endpoint(
         "lifecycle ownership. The first handoff creates a proposal; later handoffs create new "
         "versions."
     ),
-    responses={
-        200: {
-            "description": "Workspace handed off to proposal lifecycle successfully.",
-            "content": {"application/json": {"examples": {"handoff": _WORKSPACE_HANDOFF_EXAMPLE}}},
-        },
-        404: {"description": "Workspace session or linked proposal not found."},
-        409: {"description": "Workspace handoff is unavailable for the current workspace state."},
-        422: {"description": "Lifecycle validation failed for the current workspace draft."},
-    },
+    responses=WORKSPACE_HANDOFF_RESPONSES,
 )
 def handoff_workspace(
     workspace_id: Annotated[

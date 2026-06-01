@@ -1,3 +1,4 @@
+import importlib
 import inspect
 
 import pytest
@@ -18,6 +19,8 @@ from src.integrations.lotus_core.simulation import (
     LotusCoreSimulationUnavailableError,
     simulate_with_lotus_core,
 )
+
+workspace_router = importlib.import_module("src.api.workspaces.router")
 
 
 def test_raise_proposal_http_exception_re_raises_unknown_exception():
@@ -114,3 +117,12 @@ def test_lifecycle_routes_use_shared_response_metadata():
     assert "responses=PROPOSAL_CREATE_RESPONSES" in source
     assert "responses=PROPOSAL_VERSION_CREATE_RESPONSES" in source
     assert "responses=PROPOSAL_NARRATIVE_REVIEW_RESPONSES" in source
+
+
+def test_workspace_routes_use_shared_response_metadata():
+    source = inspect.getsource(workspace_router)
+
+    assert "responses={" not in source
+    assert "responses=WORKSPACE_CREATE_RESPONSES" in source
+    assert "responses=WORKSPACE_DRAFT_ACTION_RESPONSES" in source
+    assert "responses=WORKSPACE_HANDOFF_RESPONSES" in source

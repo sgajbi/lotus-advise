@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-400
+
+- Scope: Advisory workspace API response metadata
+- Pattern: Workspace route modules should not own large OpenAPI example and response dictionaries
+  when those declarations can be isolated behind a reusable API metadata module.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/workspaces/router.py` mixed workspace endpoint flow with repeated response
+  dictionaries and sizeable request examples for create, draft action, save, resume, compare, AI
+  rationale, review-action, and lifecycle handoff endpoints. This made the router harder to scan
+  and kept documentation metadata coupled to workspace exception handling and service delegation.
+- Evidence:
+  - Moved workspace OpenAPI examples and response maps into
+    `src/api/workspaces/response_metadata.py`.
+  - Workspace decorators now reference named response maps for create, read, draft-action,
+    evaluation, saved-version, AI rationale, review-action, and lifecycle handoff behavior.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `src/api/workspaces/router.py`.
+- Consequence:
+  - Workspace routing is more focused on private-banking workspace flow while OpenAPI examples and
+    operational response wording stay centralized for future contract review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Review workspace route helpers for dependency and exception-boundary extraction once the
+    response metadata boundary has remained stable under OpenAPI contract tests.
+
 ## LA-REV-399
 
 - Scope: Advisory proposal lifecycle API response metadata
