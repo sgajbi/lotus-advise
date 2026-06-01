@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-440
+
+- Scope: Advisory simulation context-resolution validation boundary
+- Pattern: Simulation context-resolution exception translation should live in the simulation
+  validation helper while preserving the public service wrapper used by routes.
+- Status: Hardened
+- Finding Class: modularity problem and validation-boundary consistency
+- Summary: `advisory_simulation_service.resolve_simulation_input` still imported
+  `ProposalContextResolutionError` and translated context-resolution failures inline. That kept core
+  context exception taxonomy in the orchestration service.
+- Evidence:
+  - Added `resolve_simulation_input` to `src/api/services/advisory_simulation_validation.py`.
+  - Kept the public service wrapper stable while delegating to the validation helper.
+  - Updated sensitive-context redaction coverage to patch the validation boundary and extended the
+    internal guard to keep core context-resolution exception imports out of the orchestration
+    service.
+- Consequence:
+  - Advisory simulation validation now owns idempotency-key normalization, simulation-gate
+    validation, and context-resolution error translation behind one module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting evaluation execution/enrichment from the orchestration service if future
+    changes touch simulation evaluation.
+
 ## LA-REV-439
 
 - Scope: Advisory simulation gate validation boundary

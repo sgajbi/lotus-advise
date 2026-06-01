@@ -11,16 +11,17 @@ from src.api.services.advisory_simulation_validation import (
     normalize_simulation_idempotency_key,
     validate_simulation_request_enabled,
 )
+from src.api.services.advisory_simulation_validation import (
+    resolve_simulation_input as resolve_simulation_input_with_validation,
+)
 from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult
 from src.core.proposals.context import (
-    ProposalContextResolutionError,
     ResolvedSimulationContext,
     build_context_resolution_evidence,
     canonicalize_simulation_request_payload,
-    resolve_simulation_request,
 )
 from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.models import ProposalSimulationRequest
@@ -81,7 +82,4 @@ def simulate_proposal_response(
 def resolve_simulation_input(
     request: ProposalSimulationRequest,
 ) -> ResolvedSimulationContext:
-    try:
-        return resolve_simulation_request(request)
-    except ProposalContextResolutionError as exc:
-        raise simulation_validation_exception(str(exc)) from exc
+    return resolve_simulation_input_with_validation(request)

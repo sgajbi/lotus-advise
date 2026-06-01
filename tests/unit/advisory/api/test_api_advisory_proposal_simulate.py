@@ -4,7 +4,6 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-import src.api.services.advisory_simulation_service as advisory_simulation_service
 import src.api.services.advisory_simulation_validation as advisory_simulation_validation
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
@@ -638,7 +637,7 @@ def test_advisory_proposal_simulate_redacts_sensitive_context_resolution_detail(
         raise ProposalContextResolutionError("raw payload includes secret client context")
 
     monkeypatch.setattr(
-        advisory_simulation_service,
+        advisory_simulation_validation,
         "resolve_simulation_request",
         _raise_sensitive_context_error,
     )
