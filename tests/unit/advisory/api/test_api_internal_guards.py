@@ -317,4 +317,5 @@ def test_bank_demo_proof_routes_use_shared_response_metadata():
     assert "responses=BANK_DEMO_PROOF_PACK_RESPONSES" in source
     assert "_contains_sensitive_error_detail" not in source
     assert "HTTPException(" not in source
-    assert "bank_demo_proof_pack_exception" in source
+    assert "except ValueError as exc" not in source
+    assert "run_bank_demo_proof_operation" in source

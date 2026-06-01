@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TypeVar
+
 from fastapi import HTTPException
 
 from src.api.routers.bank_demo_proof_responses import (
@@ -7,6 +10,17 @@ from src.api.routers.bank_demo_proof_responses import (
     RFC28_PROOF_VALIDATION_FAILED,
 )
 from src.api.sensitive_error_details import contains_sensitive_error_detail
+
+_ProofOperationResult = TypeVar("_ProofOperationResult")
+
+
+def run_bank_demo_proof_operation(
+    operation: Callable[[], _ProofOperationResult],
+) -> _ProofOperationResult:
+    try:
+        return operation()
+    except ValueError as exc:
+        raise bank_demo_proof_pack_exception(str(exc)) from exc
 
 
 def bank_demo_proof_pack_exception(error_detail: str) -> HTTPException:

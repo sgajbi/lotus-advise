@@ -1,5 +1,28 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-430
+
+- Scope: Bank demo proof route error boundary
+- Pattern: Bank-demo proof routes should delegate proof validation-to-HTTP mapping to the existing
+  proof error boundary.
+- Status: Hardened
+- Finding Class: API-boundary consistency
+- Summary: `src/api/routers/bank_demo_proof.py` still caught `ValueError` directly and translated
+  it with `bank_demo_proof_pack_exception` inside the route handler. The error classification logic
+  already lived in `bank_demo_proof_errors.py`.
+- Evidence:
+  - Added `run_bank_demo_proof_operation` to `src/api/routers/bank_demo_proof_errors.py`.
+  - Updated the proof-pack route to delegate proof capture execution through that boundary.
+  - Extended the internal route guard to prevent route-local `ValueError` mapping from returning.
+- Consequence:
+  - The proof route now focuses on request metadata and proof-pack capture, while validation,
+    material-review, and sensitive-detail redaction remain centralized.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue scanning non-proposal routers for route-local exception mapping.
+
 ## LA-REV-429
 
 - Scope: Advisory simulation idempotency service boundary

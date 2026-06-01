@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, status
 
-from src.api.routers.bank_demo_proof_errors import bank_demo_proof_pack_exception
+from src.api.routers.bank_demo_proof_errors import run_bank_demo_proof_operation
 from src.api.routers.bank_demo_proof_request import (
     RFC28_CORRELATION_ID_MAX_LENGTH,
     BankDemoProofCaptureRequest,
@@ -94,12 +94,11 @@ def build_bank_demo_proof_pack(
         live_suite_result_ref=request.live_suite_result_ref,
         live_suite_bundle_ref=request.live_suite_bundle_ref,
     )
-    try:
-        return build_backend_proof_capture(
+    return run_bank_demo_proof_operation(
+        lambda: build_backend_proof_capture(
             request.live_runtime_payload,
             metadata=metadata,
             runtime_posture=request.runtime_posture,
             output_ref_prefix=request.output_ref_prefix,
         )
-    except ValueError as exc:
-        raise bank_demo_proof_pack_exception(str(exc)) from exc
+    )
