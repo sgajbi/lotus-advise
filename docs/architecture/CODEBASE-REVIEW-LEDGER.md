@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-494
+
+- Scope: Core universe coverage and target-generation trace model ownership
+- Pattern: Universe eligibility, market-data coverage, and target-generation trace models should
+  live in a focused core model module instead of remaining inline in the broad `src/core/models.py`
+  compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and target-generation model maintainability
+- Summary: `src/core/models.py` still owned universe coverage and target trace models that serve the
+  advisory target-generation boundary, alongside unrelated simulation state, diagnostics, intents,
+  gates, and proposal result models.
+- Evidence:
+  - Added `src/core/universe_target_models.py` for excluded instruments, universe coverage/data, and
+    target-generation trace models.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    universe and target model definitions.
+- Consequence:
+  - Universe eligibility and target-generation trace definitions now have explicit ownership while
+    downstream callers can continue importing from `src.core.models` during the broader
+    modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting diagnostics, suitability output, intent, gate, and proposal-result model
+    groups from `src/core/models.py` in small compatibility-preserving slices.
+
 ## LA-REV-493
 
 - Scope: Core simulation state and allocation lens model ownership

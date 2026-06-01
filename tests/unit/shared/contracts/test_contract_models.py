@@ -27,6 +27,7 @@ from src.core.models import (
     CashBalance,
     DiagnosticsData,
     EngineOptions,
+    ExcludedInstrument,
     GroupConstraint,
     MarketDataSnapshot,
     Money,
@@ -41,8 +42,12 @@ from src.core.models import (
     ShelfEntry,
     SimulatedState,
     SuitabilityThresholds,
+    TargetData,
+    TargetInstrument,
     TargetMethod,
     TaxLot,
+    UniverseCoverage,
+    UniverseData,
     ValuationMode,
 )
 from src.core.portfolio_models import (
@@ -87,6 +92,21 @@ from src.core.simulation_state_models import (
 from src.core.simulation_state_models import (
     SimulatedState as SimulationSimulatedState,
 )
+from src.core.universe_target_models import (
+    ExcludedInstrument as UniverseExcludedInstrument,
+)
+from src.core.universe_target_models import (
+    TargetData as UniverseTargetData,
+)
+from src.core.universe_target_models import (
+    TargetInstrument as UniverseTargetInstrument,
+)
+from src.core.universe_target_models import (
+    UniverseCoverage as UniverseUniverseCoverage,
+)
+from src.core.universe_target_models import (
+    UniverseData as UniverseUniverseData,
+)
 
 
 def test_core_models_preserves_portfolio_model_import_contract():
@@ -115,6 +135,14 @@ def test_core_models_preserves_simulation_state_model_import_contract():
     assert ProposalAllocationLens is SimulationProposalAllocationLens
     assert ProposalAllocationView is SimulationProposalAllocationView
     assert SimulatedState is SimulationSimulatedState
+
+
+def test_core_models_preserves_universe_target_model_import_contract():
+    assert ExcludedInstrument is UniverseExcludedInstrument
+    assert TargetData is UniverseTargetData
+    assert TargetInstrument is UniverseTargetInstrument
+    assert UniverseCoverage is UniverseUniverseCoverage
+    assert UniverseData is UniverseUniverseData
 
 
 def test_money_validation():
