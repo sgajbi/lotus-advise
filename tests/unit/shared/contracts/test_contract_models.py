@@ -116,6 +116,11 @@ from src.core.models import (
     SecurityTradeIntent,
     ShelfEntry,
     SimulatedState,
+    SuitabilityEvidence,
+    SuitabilityEvidenceSnapshotIds,
+    SuitabilityIssue,
+    SuitabilityResult,
+    SuitabilitySummary,
     SuitabilityThresholds,
     SuppressedIntent,
     TargetData,
@@ -186,6 +191,21 @@ from src.core.simulation_state_models import (
 )
 from src.core.simulation_state_models import (
     SimulatedState as SimulationSimulatedState,
+)
+from src.core.suitability_models import (
+    SuitabilityEvidence as SuitabilitySuitabilityEvidence,
+)
+from src.core.suitability_models import (
+    SuitabilityEvidenceSnapshotIds as SuitabilitySuitabilityEvidenceSnapshotIds,
+)
+from src.core.suitability_models import (
+    SuitabilityIssue as SuitabilitySuitabilityIssue,
+)
+from src.core.suitability_models import (
+    SuitabilityResult as SuitabilitySuitabilityResult,
+)
+from src.core.suitability_models import (
+    SuitabilitySummary as SuitabilitySuitabilitySummary,
 )
 from src.core.universe_target_models import (
     ExcludedInstrument as UniverseExcludedInstrument,
@@ -271,6 +291,14 @@ def test_core_models_preserves_drift_model_import_contract():
     assert DriftHighlights is DriftDriftHighlights
     assert DriftReferenceModelSummary is DriftDriftReferenceModelSummary
     assert DriftUnmodeledExposure is DriftDriftUnmodeledExposure
+
+
+def test_core_models_preserves_suitability_model_import_contract():
+    assert SuitabilityEvidence is SuitabilitySuitabilityEvidence
+    assert SuitabilityEvidenceSnapshotIds is SuitabilitySuitabilityEvidenceSnapshotIds
+    assert SuitabilityIssue is SuitabilitySuitabilityIssue
+    assert SuitabilityResult is SuitabilitySuitabilityResult
+    assert SuitabilitySummary is SuitabilitySuitabilitySummary
 
 
 def test_money_validation():
