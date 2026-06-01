@@ -753,6 +753,114 @@ def test_service_delegates_activity_views(
     }
 
 
+@pytest.mark.parametrize(
+    ("service_method_name", "view_function_name", "call_kwargs", "expected_kwargs"),
+    [
+        (
+            "get_proposal",
+            "build_proposal_detail_view",
+            {"proposal_id": "pp_detail_view", "include_evidence": False},
+            {"proposal_id": "pp_detail_view", "include_evidence": False},
+        ),
+        (
+            "get_approvals",
+            "build_proposal_approvals_view",
+            {"proposal_id": "pp_approval_view"},
+            {"proposal_id": "pp_approval_view"},
+        ),
+        (
+            "get_lineage",
+            "build_proposal_lineage_view",
+            {"proposal_id": "pp_lineage_view"},
+            {"proposal_id": "pp_lineage_view"},
+        ),
+        (
+            "get_idempotency_lookup",
+            "build_idempotency_lookup_view",
+            {"idempotency_key": "idem-read-view"},
+            {"idempotency_key": "idem-read-view"},
+        ),
+        (
+            "get_version",
+            "build_proposal_version_view",
+            {
+                "proposal_id": "pp_version_view",
+                "version_no": 3,
+                "include_evidence": False,
+            },
+            {
+                "proposal_id": "pp_version_view",
+                "version_no": 3,
+                "include_evidence": False,
+            },
+        ),
+    ],
+)
+def test_service_delegates_simple_read_views(
+    monkeypatch,
+    service_method_name: str,
+    view_function_name: str,
+    call_kwargs: dict[str, object],
+    expected_kwargs: dict[str, object],
+):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+
+    response = getattr(service, service_method_name)(**call_kwargs)
+
+    assert response is sentinel
+    assert captured == {"repository": repo, **expected_kwargs}
+
+
+def test_service_delegates_proposal_list_view(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    created_from = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    created_to = datetime(2026, 1, 3, tzinfo=timezone.utc)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_build_proposal_list_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "build_proposal_list_view",
+        fake_build_proposal_list_view,
+    )
+
+    response = service.list_proposals(
+        portfolio_id="pf_read_view",
+        state="DRAFT",
+        created_by="advisor",
+        created_from=created_from,
+        created_to=created_to,
+        limit=25,
+        cursor="cursor-read-view",
+    )
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "portfolio_id": "pf_read_view",
+        "state": "DRAFT",
+        "created_by": "advisor",
+        "created_from": created_from,
+        "created_to": created_to,
+        "limit": 25,
+        "cursor": "cursor-read-view",
+    }
+
+
 def test_service_delegates_narrative_read_view(monkeypatch):
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

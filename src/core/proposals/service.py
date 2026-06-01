@@ -8,7 +8,6 @@ from src.core.proposals.activity_views import (
     build_execution_status_view,
     build_workflow_timeline_view,
 )
-from src.core.proposals.approval_read_model import load_proposal_approval_read_model
 from src.core.proposals.async_operation_execution import (
     execute_create_proposal_async_operation,
     execute_create_version_async_operation,
@@ -56,7 +55,6 @@ from src.core.proposals.create_persistence import (
     persist_created_proposal,
     persist_created_proposal_version,
 )
-from src.core.proposals.detail_read_model import load_proposal_detail_read_model
 from src.core.proposals.error_details import (
     PROPOSAL_CONTEXT_RESOLUTION_FAILED_DETAIL,
     safe_proposal_error_detail,
@@ -87,8 +85,6 @@ from src.core.proposals.lifecycle_command import (
     record_proposal_approval,
     transition_proposal_state,
 )
-from src.core.proposals.lineage_read_model import load_proposal_lineage_read_model
-from src.core.proposals.list_read_model import load_proposal_list_read_model
 from src.core.proposals.materialization import build_proposal_version_materialization
 from src.core.proposals.models import (
     ProposalApprovalRequest,
@@ -126,22 +122,23 @@ from src.core.proposals.narrative_views import (
     regenerate_narrative_view,
 )
 from src.core.proposals.projections import (
-    build_approvals_response,
     build_create_response_from_referents,
-    build_proposal_lineage_response,
-    build_proposal_list_response,
     to_async_accepted_response,
     to_create_response,
-    to_idempotency_lookup_response,
-    to_proposal_summary,
-    to_version_detail,
 )
 from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
+from src.core.proposals.read_views import (
+    build_idempotency_lookup_view,
+    build_proposal_approvals_view,
+    build_proposal_detail_view,
+    build_proposal_lineage_view,
+    build_proposal_list_view,
+    build_proposal_version_view,
+)
 from src.core.proposals.records import build_proposal_create_command_state
 from src.core.proposals.report_request_command import record_proposal_report_request
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
-from src.core.proposals.version_read_model import load_proposal_version_read_model
 from src.core.proposals.versions import (
     ProposalVersionConflictError,
     ProposalVersionPortfolioContextError,
@@ -358,22 +355,10 @@ class ProposalWorkflowService:
     def get_proposal(
         self, *, proposal_id: str, include_evidence: bool = True
     ) -> ProposalDetailResponse:
-        detail = load_proposal_detail_read_model(
+        return build_proposal_detail_view(
             repository=self._repository,
             proposal_id=proposal_id,
-        )
-        if detail.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        if detail.current_version is None:
-            raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        current_version = to_version_detail(
-            detail.current_version,
             include_evidence=include_evidence,
-        )
-        return ProposalDetailResponse(
-            proposal=to_proposal_summary(detail.proposal),
-            current_version=current_version,
-            last_gate_decision=current_version.gate_decision,
         )
 
     def list_proposals(
@@ -387,7 +372,7 @@ class ProposalWorkflowService:
         limit: int,
         cursor: Optional[str],
     ) -> ProposalListResponse:
-        read_model = load_proposal_list_read_model(
+        return build_proposal_list_view(
             repository=self._repository,
             portfolio_id=portfolio_id,
             state=state,
@@ -397,38 +382,15 @@ class ProposalWorkflowService:
             limit=limit,
             cursor=cursor,
         )
-        return build_proposal_list_response(
-            proposals=read_model.proposals,
-            next_cursor=read_model.next_cursor,
-        )
 
     def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:
         return build_workflow_timeline_view(repository=self._repository, proposal_id=proposal_id)
 
     def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
-        approval_read_model = load_proposal_approval_read_model(
-            repository=self._repository,
-            proposal_id=proposal_id,
-        )
-        if approval_read_model.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        return build_approvals_response(
-            proposal=approval_read_model.proposal,
-            approvals=approval_read_model.approvals,
-        )
+        return build_proposal_approvals_view(repository=self._repository, proposal_id=proposal_id)
 
     def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:
-        lineage = load_proposal_lineage_read_model(
-            repository=self._repository,
-            proposal_id=proposal_id,
-        )
-        if lineage.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-
-        return build_proposal_lineage_response(
-            proposal=lineage.proposal,
-            versions_by_number=lineage.versions_by_number,
-        )
+        return build_proposal_lineage_view(repository=self._repository, proposal_id=proposal_id)
 
     def request_execution_handoff(
         self,
@@ -473,13 +435,10 @@ class ProposalWorkflowService:
         return self.get_execution_status(proposal_id=proposal_id)
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
-        read_model = load_proposal_idempotency_read_model(
+        return build_idempotency_lookup_view(
             repository=self._repository,
             idempotency_key=idempotency_key,
         )
-        if read_model.record is None:
-            raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND")
-        return to_idempotency_lookup_response(read_model.record)
 
     def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
         return build_async_operation_status_view(
@@ -508,14 +467,12 @@ class ProposalWorkflowService:
         version_no: int,
         include_evidence: bool = True,
     ) -> ProposalVersionDetail:
-        read_model = load_proposal_version_read_model(
+        return build_proposal_version_view(
             repository=self._repository,
             proposal_id=proposal_id,
             version_no=version_no,
+            include_evidence=include_evidence,
         )
-        if read_model.version is None:
-            raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        return to_version_detail(read_model.version, include_evidence=include_evidence)
 
     def create_version(
         self,

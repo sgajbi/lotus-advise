@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-474
+
+- Scope: Proposal simple read-view orchestration
+- Pattern: Proposal detail, list, approval, lineage, idempotency lookup, and version detail reads
+  should share a read-view boundary instead of keeping read-model lookup and projection assembly in
+  `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and read-side maintainability
+- Summary: `src/core/proposals/service.py` still owned several simple read paths directly,
+  including repeated not-found translation and projection-builder calls. These methods widened the
+  workflow service with read-side concerns that did not need access to command orchestration.
+- Evidence:
+  - Added `src/core/proposals/read_views.py` for detail, list, approvals, lineage, idempotency
+    lookup, and version detail view assembly.
+  - Updated `ProposalWorkflowService` simple read methods to delegate to the read-view boundary
+    while preserving public method signatures.
+  - Added service-level guard coverage proving repository, filters, pagination cursor, evidence
+    flags, idempotency key, proposal identity, and version identity are passed through unchanged.
+- Consequence:
+  - Simple read behavior now has a module-level ownership point, reducing repeated read-model and
+    projection wiring in the workflow service and making future API response hardening easier to
+    localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting version replay/idempotency referent helpers and create-version command
+    orchestration where the workflow service still owns large command paths.
+
 ## LA-REV-473
 
 - Scope: Proposal async operation status and replay views
