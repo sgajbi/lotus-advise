@@ -22,6 +22,9 @@ from src.core.advisory_copilot.api_validation import (
 )
 from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
 from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
+from src.core.advisory_copilot.proposal_projection_persistence import (
+    save_proposal_version_advisory_copilot_evidence_packet,
+)
 from src.core.advisory_copilot.supportability import (
     build_advisory_copilot_supportability_response,
 )
@@ -388,6 +391,36 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
     assert response.record.reason_json["source_projection"] == "PROPOSAL_VERSION"
     assert response.record.correlation_id == "corr_projection_001"
     assert response.record.created_by == "advisor_123"
+
+
+def test_copilot_proposal_projection_persistence_has_focused_owner() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    application_source = Path("src/core/advisory_copilot/application.py").read_text(
+        encoding="utf-8"
+    )
+
+    response = save_proposal_version_advisory_copilot_evidence_packet(
+        repository=copilot_repository,
+        proposal_repository=proposal_repository,
+        payload=AdvisoryCopilotProposalVersionEvidenceRequest(
+            proposal_id="proposal_sg_structured_note_001",
+            proposal_version_no=1,
+            action_family="PROPOSAL_EXPLANATION",
+            audience="ADVISOR",
+            created_by="advisor_123",
+            reason={"business_reason": "Prepare advisor copilot review."},
+        ),
+        policy_evaluations=(_policy_evaluation(),),
+        correlation_id="corr_projection_owner_001",
+    )
+
+    assert response.record.reason_json["source_projection"] == "PROPOSAL_VERSION"
+    assert response.record.correlation_id == "corr_projection_owner_001"
+    assert response.evidence_packet.proposal_id == "proposal_sg_structured_note_001"
+    assert "build_proposal_version_copilot_evidence_packet" not in application_source
+    assert '"source_projection": "PROPOSAL_VERSION"' not in application_source
 
 
 def test_application_service_bounds_source_projection_evidence_text() -> None:

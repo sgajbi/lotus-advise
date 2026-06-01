@@ -21,6 +21,9 @@ from src.core.advisory_copilot.packet_persistence import (
     save_advisory_copilot_evidence_packet,
 )
 from src.core.advisory_copilot.pagination import normalize_copilot_run_page_size
+from src.core.advisory_copilot.proposal_projection_persistence import (
+    save_proposal_version_advisory_copilot_evidence_packet,
+)
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.request_hashing import build_advisory_copilot_run_request_hash
 from src.core.advisory_copilot.review import CopilotReviewAction
@@ -30,9 +33,6 @@ from src.core.advisory_copilot.review_persistence import (
 )
 from src.core.advisory_copilot.run_persistence import persist_advisory_copilot_run
 from src.core.advisory_copilot.run_replay_policy import resolve_advisory_copilot_run_replay
-from src.core.advisory_copilot.source_projection import (
-    build_proposal_version_copilot_evidence_packet,
-)
 from src.core.advisory_copilot.supportability import (
     build_advisory_copilot_supportability_response,
 )
@@ -125,37 +125,16 @@ class AdvisoryCopilotApplicationService:
         proposal = proposal_repository.get_proposal(proposal_id=payload.proposal_id)
         if proposal is None:
             raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
-        packet = build_proposal_version_copilot_evidence_packet(
-            repository=proposal_repository,
-            evidence_packet_id=payload.evidence_packet_id,
-            action_family=payload.action_family,
-            proposal_id=payload.proposal_id,
-            proposal_version_no=payload.proposal_version_no,
-            audience=payload.audience,
-            policy_evaluations=list(
-                self._policy_evaluation_loader(
-                    evaluation_status=None,
-                    portfolio_id=proposal.portfolio_id,
-                )
-            ),
-        )
-        record = save_advisory_copilot_evidence_packet(
+        return save_proposal_version_advisory_copilot_evidence_packet(
             repository=self._repository,
-            evidence_packet=packet,
-            audience=payload.audience,
-            created_by=payload.created_by,
-            reason={
-                **payload.reason,
-                "source_projection": "PROPOSAL_VERSION",
-                "proposal_id": payload.proposal_id,
-                "proposal_version_no": payload.proposal_version_no,
-            },
-            correlation_id=resolve_advisory_copilot_correlation_id(
-                correlation_id,
-                fallback=f"corr-{packet.evidence_packet_id}",
+            proposal_repository=proposal_repository,
+            payload=payload,
+            policy_evaluations=self._policy_evaluation_loader(
+                evaluation_status=None,
+                portfolio_id=proposal.portfolio_id,
             ),
+            correlation_id=correlation_id,
         )
-        return AdvisoryCopilotEvidencePacketResponse(evidence_packet=packet, record=record)
 
     def get_evidence_packet(
         self, *, evidence_packet_id: str

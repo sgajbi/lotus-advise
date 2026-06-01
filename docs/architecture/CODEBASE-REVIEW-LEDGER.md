@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-567
+
+- Scope: Advisory copilot proposal-version projection persistence
+- Pattern: Proposal-version evidence packet projection and persistence should live in a focused
+  helper instead of the application-service orchestration method.
+- Status: Hardened
+- Finding Class: Service boundary modularity and source-projection auditability
+- Summary: `AdvisoryCopilotApplicationService.create_proposal_version_evidence_packet` performed
+  proposal lookup, policy evaluation loading, source projection packet construction, persistence,
+  source-projection reason enrichment, and correlation fallback handling inline.
+- Evidence:
+  - Added `src/core/advisory_copilot/proposal_projection_persistence.py` with
+    `save_proposal_version_advisory_copilot_evidence_packet`.
+  - Updated the application service to retain proposal existence and portfolio-scoped policy
+    loading while delegating projection packet persistence to the focused helper.
+  - Added coverage proving persisted proposal-version reason/correlation behavior and preventing
+    source projection packet construction from returning to `application.py`.
+- Consequence:
+  - The application service is thinner, and proposal-version source projection persistence is now
+    reusable and independently testable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because endpoint behavior,
+    response shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Consider moving proposal existence and portfolio policy-loading preflight into a typed
+    projection context when the source-projection boundary is ready for a larger slice.
+
 ## LA-REV-566
 
 - Scope: Advisory copilot supportability response boundary
