@@ -40,6 +40,9 @@ from src.core.advisory_copilot.type_models import (
 from src.core.advisory_copilot.type_models import (
     CopilotUnsupportedEvidenceReason as CopilotUnsupportedEvidenceReason,
 )
+from src.core.advisory_copilot.unsupported_models import (
+    CopilotUnsupportedEvidence as CopilotUnsupportedEvidence,
+)
 
 _COPILOT_SECTION_KEY_MAX_LENGTH = 96
 _COPILOT_SECTION_TITLE_MAX_LENGTH = 160
@@ -50,7 +53,6 @@ _COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_HASH_MAX_LENGTH = 128
 _COPILOT_LINEAGE_REF_LIMIT = 16
 _COPILOT_UNSUPPORTED_EVIDENCE_LIMIT = 12
-_COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH = 500
 COPILOT_AUDIENCE_LIMIT = 5
 COPILOT_PACKET_SECTION_LIMIT = 12
 
@@ -135,35 +137,6 @@ class CopilotBusinessProjection(BaseModel):
             error_code="COPILOT_BUSINESS_PROJECTION_REQUIRED",
         )
         assert_copilot_business_safe_text(normalized)
-        return normalized
-
-
-class CopilotUnsupportedEvidence(BaseModel):
-    reason_code: CopilotUnsupportedEvidenceReason = Field(
-        description="Stable reason code for unsupported or unavailable evidence.",
-        examples=["SOURCE_NOT_AVAILABLE"],
-    )
-    source_dependency: CopilotSourceDependency | None = Field(
-        default=None,
-        description="Source dependency that prevented support when applicable.",
-        examples=["RFC0025_POLICY_EVALUATION"],
-    )
-    advisor_message: str = Field(
-        description="Business-facing explanation that avoids technical internals.",
-        examples=["Policy evidence is not available for this request."],
-        min_length=1,
-        max_length=_COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH,
-    )
-
-    @field_validator("advisor_message")
-    @classmethod
-    def _normalize_advisor_message(cls, value: str) -> str:
-        normalized = _normalize_required_text(
-            value,
-            error_code="COPILOT_UNSUPPORTED_MESSAGE_REQUIRED",
-        )
-        if contains_copilot_business_technical_detail(normalized):
-            raise ValueError("COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL")
         return normalized
 
 

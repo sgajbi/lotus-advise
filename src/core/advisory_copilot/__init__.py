@@ -23,7 +23,6 @@ from src.core.advisory_copilot.models import (
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
-    CopilotUnsupportedEvidence,
 )
 from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
@@ -65,6 +64,7 @@ from src.core.advisory_copilot.type_models import (
     CopilotSourceDependency,
     CopilotUnsupportedEvidenceReason,
 )
+from src.core.advisory_copilot.unsupported_models import CopilotUnsupportedEvidence
 from src.core.advisory_copilot.workflow_pack import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,

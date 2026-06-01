@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-535
+
+- Scope: Advisory copilot unsupported-evidence model
+- Pattern: Unsupported-evidence posture should have focused supportability ownership outside the
+  packet model module
+- Status: Hardened
+- Finding Class: Modularity and supportability boundary clarity
+- Summary: `CopilotUnsupportedEvidence` represents controlled missing, restricted, or unavailable
+  evidence posture, but it was still owned by the broad advisory-copilot model module. That coupled
+  packet construction and supportability handling to packet DTO ownership.
+- Evidence:
+  - Added `src/core/advisory_copilot/unsupported_models.py` for unsupported-evidence posture.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved evidence-packet helper imports to the focused unsupported-evidence model module.
+  - Added import-contract coverage proving package and compatibility imports resolve to the
+    focused unsupported-evidence class.
+- Consequence:
+  - Supportability posture is now reusable by packet builders, review surfaces, and future
+    integration boundaries without depending on the remaining advisory-copilot packet model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract packet section/input DTOs next, then isolate top-level packet DTO ownership.
+
 ## LA-REV-534
 
 - Scope: Advisory copilot evidence-reference models

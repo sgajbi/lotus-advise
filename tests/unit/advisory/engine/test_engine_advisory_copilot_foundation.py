@@ -60,6 +60,9 @@ from src.core.advisory_copilot.models import (
     CopilotSourceRef as CompatibilityCopilotSourceRef,
 )
 from src.core.advisory_copilot.models import (
+    CopilotUnsupportedEvidence as CompatibilityCopilotUnsupportedEvidence,
+)
+from src.core.advisory_copilot.models import (
     CopilotUnsupportedEvidenceReason as CompatibilityCopilotUnsupportedEvidenceReason,
 )
 from src.core.advisory_copilot.models import (
@@ -95,6 +98,9 @@ from src.core.advisory_copilot.type_models import (
 )
 from src.core.advisory_copilot.type_models import (
     CopilotUnsupportedEvidenceReason as FocusedCopilotUnsupportedEvidenceReason,
+)
+from src.core.advisory_copilot.unsupported_models import (
+    CopilotUnsupportedEvidence as FocusedCopilotUnsupportedEvidence,
 )
 
 ADVISORY_COPILOT_MODELS_PATH = Path("src/core/advisory_copilot/models.py")
@@ -168,6 +174,11 @@ def test_advisory_copilot_models_preserve_reference_import_contract() -> None:
     assert CopilotLineageRef is FocusedCopilotLineageRef
     assert CompatibilityCopilotSourceRef is FocusedCopilotSourceRef
     assert CompatibilityCopilotLineageRef is FocusedCopilotLineageRef
+
+
+def test_advisory_copilot_models_preserve_unsupported_evidence_import_contract() -> None:
+    assert CopilotUnsupportedEvidence is FocusedCopilotUnsupportedEvidence
+    assert CompatibilityCopilotUnsupportedEvidence is FocusedCopilotUnsupportedEvidence
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:

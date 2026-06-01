@@ -10,7 +10,6 @@ from src.core.advisory_copilot.models import (
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
-    CopilotUnsupportedEvidence,
 )
 from src.core.advisory_copilot.reference_models import CopilotLineageRef
 from src.core.advisory_copilot.type_models import (
@@ -18,6 +17,7 @@ from src.core.advisory_copilot.type_models import (
     CopilotAudience,
     CopilotSourceDependency,
 )
+from src.core.advisory_copilot.unsupported_models import CopilotUnsupportedEvidence
 
 CopilotEvidenceSectionKey = Literal[
     "PROPOSAL_CONTEXT",
