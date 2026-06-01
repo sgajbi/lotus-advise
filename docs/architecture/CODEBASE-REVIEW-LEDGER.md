@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-529
+
+- Scope: Advisor cockpit action-register model ownership
+- Pattern: Advisory action item and action page DTOs should live in a focused action model module
+  instead of remaining inline in the broad advisor cockpit model surface.
+- Status: Hardened
+- Finding Class: modularity and action-register maintainability
+- Summary: `src/core/advisor_cockpit/models.py` still owned action-register DTOs after reference
+  model extraction. These DTOs define the `AdvisoryActionItemRegister:v1` payload and are distinct
+  from caller/evidence/readiness references and the operating snapshot models.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_models.py` for `AdvisoryActionItem` and
+    `AdvisoryActionItemPage`.
+  - Kept compatibility imports from `src.core.advisor_cockpit.models` and package exports stable.
+  - Added contract coverage proving package-level and compatibility imports point at the focused
+    action model definitions.
+- Consequence:
+  - The action-register data-product model now has a focused owner, and the remaining cockpit model
+    surface is reduced to meeting-preparation and operating snapshot DTOs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Extract meeting-preparation and operating snapshot DTOs from
+    `src/core/advisor_cockpit/models.py`, then reserve it as a compatibility facade.
+
 ## LA-REV-528
 
 - Scope: Advisor cockpit reference model ownership

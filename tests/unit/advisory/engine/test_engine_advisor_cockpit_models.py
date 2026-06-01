@@ -22,6 +22,12 @@ from src.core.advisor_cockpit import (
     normalize_cockpit_page_size,
     sort_cockpit_action_items,
 )
+from src.core.advisor_cockpit.action_models import (
+    AdvisoryActionItem as FocusedAdvisoryActionItem,
+)
+from src.core.advisor_cockpit.action_models import (
+    AdvisoryActionItemPage as FocusedAdvisoryActionItemPage,
+)
 from src.core.advisor_cockpit.models import (
     AdvisorCockpitActionFamily as CompatibilityAdvisorCockpitActionFamily,
 )
@@ -33,6 +39,12 @@ from src.core.advisor_cockpit.models import (
 )
 from src.core.advisor_cockpit.models import (
     AdvisorCockpitOwnerRole as CompatibilityAdvisorCockpitOwnerRole,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisoryActionItem as CompatibilityAdvisoryActionItem,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisoryActionItemPage as CompatibilityAdvisoryActionItemPage,
 )
 from src.core.advisor_cockpit.models import (
     CockpitAcknowledgementState as CompatibilityCockpitAcknowledgementState,
@@ -129,6 +141,12 @@ def test_advisor_cockpit_models_preserve_reference_import_contract() -> None:
     assert CompatibilityCockpitAcknowledgementState is FocusedCockpitAcknowledgementState
     assert CompatibilityCockpitCallerContext is FocusedCockpitCallerContext
     assert CompatibilityCockpitEvidenceRef is FocusedCockpitEvidenceRef
+
+
+def test_advisor_cockpit_models_preserve_action_import_contract() -> None:
+    assert AdvisoryActionItem is FocusedAdvisoryActionItem
+    assert CompatibilityAdvisoryActionItem is FocusedAdvisoryActionItem
+    assert CompatibilityAdvisoryActionItemPage is FocusedAdvisoryActionItemPage
 
 
 def test_advisor_cockpit_sorting_matches_rfc0026_stable_order() -> None:
