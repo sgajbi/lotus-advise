@@ -4,14 +4,14 @@ from typing import Any, cast
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.core.advisor_cockpit.models import (
-    AdvisorCockpitOperatingSnapshot,
-    AdvisoryActionItem,
-    CockpitAcknowledgementState,
-    MeetingPreparationPacket,
-)
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 from src.core.advisor_cockpit.pagination import COCKPIT_ACTION_MAX_PAGE_SIZE
 from src.core.advisor_cockpit.projection_bounds import COCKPIT_IDENTIFIER_MAX_LENGTH
+from src.core.advisor_cockpit.reference_models import CockpitAcknowledgementState
+from src.core.advisor_cockpit.snapshot_models import (
+    AdvisorCockpitOperatingSnapshot,
+    MeetingPreparationPacket,
+)
 from src.core.common.actors import normalize_optional_support_note, normalize_required_actor_id
 
 _COCKPIT_API_LIST_MAX_ITEMS = 64

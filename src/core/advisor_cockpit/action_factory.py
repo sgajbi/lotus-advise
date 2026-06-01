@@ -14,6 +14,7 @@ from src.core.advisor_cockpit.action_execution import (
     build_execution_handoff_ready_action,
     build_execution_status_attention_action,
 )
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 from src.core.advisor_cockpit.action_policy import build_policy_review_required_action
 from src.core.advisor_cockpit.action_reporting import (
     build_memo_package_blocked_action,
@@ -34,7 +35,6 @@ from src.core.advisor_cockpit.action_sources import (
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
 )
-from src.core.advisor_cockpit.models import AdvisoryActionItem
 from src.core.advisor_cockpit.vocabulary import sort_cockpit_action_items
 
 LOTUS_ADVISE_SOURCE_SYSTEM = action_components.LOTUS_ADVISE_SOURCE_SYSTEM

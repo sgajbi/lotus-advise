@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.core.advisor_cockpit.models import AdvisoryActionItem
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 
 COCKPIT_PRIORITY_RANK: dict[str, int] = {
     "CRITICAL": 0,

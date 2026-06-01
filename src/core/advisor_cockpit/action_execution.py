@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from src.core.advisor_cockpit import action_components
 from src.core.advisor_cockpit.action_builder import build_source_backed_action
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 from src.core.advisor_cockpit.action_sources import (
     CockpitActionConstructionInput,
     CockpitActionSourceRefs,
     ExecutionHandoffReadyActionSource,
     ExecutionStatusAttentionActionSource,
 )
-from src.core.advisor_cockpit.models import AdvisoryActionItem
 
 
 def build_execution_handoff_ready_action(

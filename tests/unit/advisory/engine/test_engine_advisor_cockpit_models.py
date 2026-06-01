@@ -38,6 +38,9 @@ from src.core.advisor_cockpit.models import (
     AdvisorCockpitActionStatus as CompatibilityAdvisorCockpitActionStatus,
 )
 from src.core.advisor_cockpit.models import (
+    AdvisorCockpitOperatingSnapshot as CompatibilityAdvisorCockpitOperatingSnapshot,
+)
+from src.core.advisor_cockpit.models import (
     AdvisorCockpitOwnerRole as CompatibilityAdvisorCockpitOwnerRole,
 )
 from src.core.advisor_cockpit.models import (
@@ -55,6 +58,9 @@ from src.core.advisor_cockpit.models import (
 from src.core.advisor_cockpit.models import (
     CockpitEvidenceRef as CompatibilityCockpitEvidenceRef,
 )
+from src.core.advisor_cockpit.models import (
+    MeetingPreparationPacket as CompatibilityMeetingPreparationPacket,
+)
 from src.core.advisor_cockpit.reference_models import (
     CockpitAcknowledgementState as FocusedCockpitAcknowledgementState,
 )
@@ -63,6 +69,12 @@ from src.core.advisor_cockpit.reference_models import (
 )
 from src.core.advisor_cockpit.reference_models import (
     CockpitEvidenceRef as FocusedCockpitEvidenceRef,
+)
+from src.core.advisor_cockpit.snapshot_models import (
+    AdvisorCockpitOperatingSnapshot as FocusedAdvisorCockpitOperatingSnapshot,
+)
+from src.core.advisor_cockpit.snapshot_models import (
+    MeetingPreparationPacket as FocusedMeetingPreparationPacket,
 )
 from src.core.advisor_cockpit.type_models import (
     AdvisorCockpitActionFamily as FocusedAdvisorCockpitActionFamily,
@@ -147,6 +159,19 @@ def test_advisor_cockpit_models_preserve_action_import_contract() -> None:
     assert AdvisoryActionItem is FocusedAdvisoryActionItem
     assert CompatibilityAdvisoryActionItem is FocusedAdvisoryActionItem
     assert CompatibilityAdvisoryActionItemPage is FocusedAdvisoryActionItemPage
+
+
+def test_advisor_cockpit_models_preserve_snapshot_import_contract() -> None:
+    assert AdvisorCockpitOperatingSnapshot is FocusedAdvisorCockpitOperatingSnapshot
+    assert CompatibilityAdvisorCockpitOperatingSnapshot is FocusedAdvisorCockpitOperatingSnapshot
+    assert CompatibilityMeetingPreparationPacket is FocusedMeetingPreparationPacket
+
+
+def test_advisor_cockpit_models_is_pure_compatibility_facade() -> None:
+    tree = ast.parse(Path("src/core/advisor_cockpit/models.py").read_text(encoding="utf-8"))
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
 
 
 def test_advisor_cockpit_sorting_matches_rfc0026_stable_order() -> None:

@@ -14,6 +14,10 @@ from src.core.advisor_cockpit.action_factory import (
     build_supportability_degraded_action,
     build_unsupported_capability_action,
 )
+from src.core.advisor_cockpit.action_models import (
+    AdvisoryActionItem,
+    AdvisoryActionItemPage,
+)
 from src.core.advisor_cockpit.action_sources import (
     ApprovalDependencyActionSource,
     ClientFollowUpActionSource,
@@ -35,12 +39,6 @@ from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitPreparationPacketPage,
     AdvisorCockpitSnapshotResponse,
     AdvisorCockpitSupportabilityResponse,
-)
-from src.core.advisor_cockpit.models import (
-    AdvisorCockpitOperatingSnapshot,
-    AdvisoryActionItem,
-    AdvisoryActionItemPage,
-    MeetingPreparationPacket,
 )
 from src.core.advisor_cockpit.pagination import (
     COCKPIT_ACTION_DEFAULT_PAGE_SIZE,
@@ -75,6 +73,10 @@ from src.core.advisor_cockpit.service import (
     COCKPIT_CONTRACT_VERSION,
     COCKPIT_SOURCE_LIMIT,
     AdvisorCockpitService,
+)
+from src.core.advisor_cockpit.snapshot_models import (
+    AdvisorCockpitOperatingSnapshot,
+    MeetingPreparationPacket,
 )
 from src.core.advisor_cockpit.source_read_model import (
     ACTIVE_PROPOSAL_STATES,

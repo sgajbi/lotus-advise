@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-530
+
+- Scope: Advisor cockpit model compatibility facade closure
+- Pattern: The broad `src/core/advisor_cockpit/models.py` surface should be a pure compatibility
+  facade once focused cockpit model modules own each data-product boundary.
+- Status: Hardened
+- Finding Class: modularity and dependency boundary regression prevention
+- Summary: After type, reference, and action model extraction, `src/core/advisor_cockpit/models.py`
+  still owned meeting-preparation packet and operating snapshot DTOs. That prevented the cockpit
+  model file from being reserved as a narrow compatibility surface and kept production code
+  importing through the broad model module.
+- Evidence:
+  - Added `src/core/advisor_cockpit/snapshot_models.py` for meeting-preparation packet and
+    advisor cockpit operating snapshot DTOs.
+  - Updated advisor cockpit API, service, projection, rules, action builders, and source read-model
+    modules to import focused action, reference, snapshot, and type models directly.
+  - Converted `src/core/advisor_cockpit/models.py` into a pure compatibility facade with no class
+    or function definitions.
+  - Added contract coverage proving snapshot compatibility imports and preventing new classes or
+    functions from being reintroduced into the facade.
+- Consequence:
+  - RFC-0026 advisor cockpit model ownership is now split by type vocabulary, source/reference
+    readiness, action register, and operating snapshot boundaries instead of being concentrated in
+    a monolithic model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Add production-import guard coverage for the advisor cockpit compatibility facade, mirroring the
+    policy-pack facade guard.
+
 ## LA-REV-529
 
 - Scope: Advisor cockpit action-register model ownership

@@ -4,16 +4,16 @@ from typing import Literal
 
 from src.core.advisor_cockpit import action_components
 from src.core.advisor_cockpit.action_builder import build_source_backed_action
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 from src.core.advisor_cockpit.action_sources import (
     ApprovalDependencyActionSource,
     CockpitActionConstructionInput,
     CockpitActionSourceRefs,
 )
-from src.core.advisor_cockpit.models import (
+from src.core.advisor_cockpit.type_models import (
     AdvisorCockpitActionFamily,
     AdvisorCockpitOwnerRole,
     AdvisorCockpitUnsupportedCapability,
-    AdvisoryActionItem,
 )
 
 
