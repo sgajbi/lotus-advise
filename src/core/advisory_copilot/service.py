@@ -7,7 +7,6 @@ from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
-from src.core.advisory_copilot.business_text import contains_copilot_business_technical_detail
 from src.core.advisory_copilot.idempotency_records import AdvisoryCopilotRunIdempotencyRecord
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
 from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
@@ -19,6 +18,7 @@ from src.core.advisory_copilot.review import (
 )
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
+from src.core.advisory_copilot.structured_payload import assert_safe_structured_payload
 from src.core.advisory_copilot.type_models import CopilotAudience, CopilotReviewPosture
 from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_id_for_action,
@@ -26,31 +26,11 @@ from src.core.advisory_copilot.workflow_pack import (
 )
 from src.core.common.idempotency import normalize_optional_idempotency_key
 
-RAW_AI_STORAGE_KEYS = frozenset(
-    {
-        "prompt",
-        "raw_prompt",
-        "raw_output",
-        "unsafe_output",
-        "provider_response",
-        "model_response",
-        "provider_payload",
-        "instruction",
-        "raw_payload",
-        "raw_source",
-        "system_instruction",
-        "trace_id",
-    }
-)
-
 DEFAULT_CALLER_APP = "lotus-advise"
 DEFAULT_TENANT_ID = "tenant-sg-001"
 DEFAULT_PROMPT_TEMPLATE_VERSION = "advisory-copilot-prompt-template.v1"
 DEFAULT_OUTPUT_SCHEMA_VERSION = "advisory-copilot-output-schema.v1"
 DEFAULT_EVALUATION_PACK_REF = "advisory-copilot-eval-pack.v1"
-MAX_SAFE_STRUCTURED_PAYLOAD_DEPTH = 8
-MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS = 64
-MAX_SAFE_STRUCTURED_PAYLOAD_TEXT_LENGTH = 4000
 
 
 class AdvisoryCopilotRunPersistenceResult(BaseModel):
@@ -80,7 +60,7 @@ def save_advisory_copilot_evidence_packet(
     correlation_id: str,
     created_at: datetime | None = None,
 ) -> AdvisoryCopilotEvidencePacketRecord:
-    _assert_safe_structured_payload(reason)
+    assert_safe_structured_payload(reason)
     record = AdvisoryCopilotEvidencePacketRecord(
         evidence_packet_id=evidence_packet.evidence_packet_id,
         evidence_packet_hash=evidence_packet.evidence_packet_hash,
@@ -128,10 +108,10 @@ def persist_advisory_copilot_run(
     created_at: datetime | None = None,
 ) -> AdvisoryCopilotRunPersistenceResult:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    _assert_safe_structured_payload(reason)
-    _assert_safe_structured_payload(lineage)
+    assert_safe_structured_payload(reason)
+    assert_safe_structured_payload(lineage)
     for section in output_sections:
-        _assert_safe_structured_payload(section)
+        assert_safe_structured_payload(section)
 
     now = created_at or datetime.now(timezone.utc)
     request_summary = _safe_run_request_summary(
@@ -246,7 +226,7 @@ def build_advisory_copilot_run_request_hash(
     requested_intents: tuple[str, ...],
     user_instruction: str,
 ) -> str:
-    _assert_safe_structured_payload(reason)
+    assert_safe_structured_payload(reason)
     return canonical_json_hash(
         _safe_run_request_summary(
             evidence_packet=evidence_packet,
@@ -272,7 +252,7 @@ def record_advisory_copilot_review(
     occurred_at: datetime | None = None,
 ) -> AdvisoryCopilotReviewResult:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    _assert_safe_structured_payload(reason)
+    assert_safe_structured_payload(reason)
     run = repository.get_run(run_id=run_id)
     if run is None:
         raise ValueError("COPILOT_RUN_NOT_FOUND")
@@ -413,34 +393,8 @@ def can_attempt_advisory_copilot_run_refresh(existing_run: AdvisoryCopilotRunRec
     )
 
 
-def _assert_safe_structured_payload(value: Any, *, depth: int = 0) -> None:
-    if depth > MAX_SAFE_STRUCTURED_PAYLOAD_DEPTH:
-        raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
-    if isinstance(value, dict):
-        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS:
-            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
-        for key, nested in value.items():
-            if _normalize_structured_payload_key(key) in RAW_AI_STORAGE_KEYS:
-                raise ValueError("COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED")
-            _assert_safe_structured_payload(nested, depth=depth + 1)
-    elif isinstance(value, list | tuple):
-        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS:
-            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
-        for item in value:
-            _assert_safe_structured_payload(item, depth=depth + 1)
-    elif isinstance(value, str):
-        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_TEXT_LENGTH:
-            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
-        if contains_copilot_business_technical_detail(value):
-            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TECHNICAL_DETAIL")
-
-
 def _optional_str(value: Any) -> str | None:
     return value.strip() if isinstance(value, str) and value.strip() else None
-
-
-def _normalize_structured_payload_key(value: Any) -> str:
-    return str(value).strip().lower().replace("-", "_").replace(" ", "_")
 
 
 def _stable_id(*, prefix: str, value: str) -> str:

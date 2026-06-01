@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-546
+
+- Scope: Advisory copilot structured payload safety boundary
+- Pattern: Sensitive-payload rejection rules should have a focused domain owner instead of living
+  inside the workflow persistence service.
+- Status: Hardened
+- Finding Class: Sensitive-data handling modularity and regression prevention
+- Summary: `src/core/advisory_copilot/service.py` owned public persistence workflows and the
+  recursive structured-payload safety rules that reject raw AI payloads, provider traces, oversized
+  payloads, and technical leakage. That made sensitive-data policy harder to reuse and review.
+- Evidence:
+  - Added `src/core/advisory_copilot/structured_payload.py` for raw AI key rejection, payload size
+    limits, and technical-detail checks.
+  - Updated the advisory-copilot service to call the focused payload-safety helper.
+  - Added coverage proving the service no longer owns raw AI key constants or private payload
+    safety helpers, while the focused helper still rejects raw-prompt payload keys.
+- Consequence:
+  - Advisory-copilot sensitive-data retention policy now has a focused module that can be reused
+    by future run, review, or API boundary hardening without expanding the service module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract request-hash and run-request-summary assembly from the advisory-copilot service.
+
 ## LA-REV-545
 
 - Scope: Advisory copilot records facade production import boundary

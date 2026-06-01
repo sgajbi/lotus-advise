@@ -53,6 +53,7 @@ from src.core.advisory_copilot.review_records import (
 from src.core.advisory_copilot.run_records import (
     AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
 )
+from src.core.advisory_copilot.structured_payload import assert_safe_structured_payload
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
 from src.infrastructure.advisory_copilot.postgres import PostgresAdvisoryCopilotRepository
 
@@ -215,6 +216,16 @@ def test_production_code_uses_focused_advisory_copilot_record_imports() -> None:
     )
 
     assert compatibility_importers == []
+
+
+def test_advisory_copilot_structured_payload_safety_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "RAW_AI_STORAGE_KEYS" not in service_source
+    assert "_assert_safe_structured_payload" not in service_source
+    assert_safe_structured_payload({"business_reason": "Prepare advisor review."})
+    with pytest.raises(ValueError, match="COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED"):
+        assert_safe_structured_payload({"raw-prompt": "provider payload"})
 
 
 class _FakePostgresConnection:
