@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-397
+
+- Scope: Advisory policy-pack API response metadata
+- Pattern: Route-family OpenAPI response metadata should be centralized when endpoints share
+  catalog, not-found, idempotency, and validation failure semantics.
+- Status: Hardened
+- Finding Class: duplication and API documentation quality
+- Summary: `src/api/proposals/routes_policy_packs.py` repeated RFC-0025 policy-pack response
+  dictionaries inline across catalog, detail, validation, and activation endpoints. The route
+  handlers already delegated behavior to the policy-pack domain layer, but route-local response
+  maps kept OpenAPI wording mixed into controller declarations and increased drift risk.
+- Evidence:
+  - Moved policy-pack OpenAPI response metadata into
+    `src/api/proposals/policy_pack_responses.py`.
+  - Policy-pack route decorators now reference named response maps for catalog, detail,
+    validation, and activation behavior.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `routes_policy_packs.py`.
+- Consequence:
+  - RFC-0025 policy-pack routes are easier to audit for endpoint flow while business-facing
+    OpenAPI response wording stays centralized for future documentation review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue applying this response-metadata extraction to lifecycle and support route families
+    when each slice can preserve public OpenAPI behavior and add focused tests.
+
 ## LA-REV-396
 
 - Scope: Proposal memo API response metadata
