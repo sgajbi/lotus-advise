@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Protocol, Sequence, cast
 
-from src.core.advisory_copilot.api_models import (
+from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
-    AdvisoryCopilotEvidencePacketResponse,
     AdvisoryCopilotProposalVersionEvidenceRequest,
     AdvisoryCopilotReviewRequest,
+)
+from src.core.advisory_copilot.api_response_models import (
+    AdvisoryCopilotEvidencePacketResponse,
     AdvisoryCopilotReviewResponse,
     AdvisoryCopilotRunPage,
     AdvisoryCopilotRunResponse,

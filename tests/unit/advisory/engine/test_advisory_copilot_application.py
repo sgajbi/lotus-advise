@@ -12,7 +12,7 @@ from src.core.advisory_copilot.api_limits import (
     COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
     COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
 )
-from src.core.advisory_copilot.api_models import (
+from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
     AdvisoryCopilotProposalVersionEvidenceRequest,
@@ -166,6 +166,23 @@ def test_copilot_api_request_models_have_focused_owner() -> None:
     assert "class AdvisoryCopilotEvidencePacketCreateRequest" not in api_models_source
     assert "field_validator" not in api_models_source
     assert "class AdvisoryCopilotActionRequest" in request_models_source
+
+
+def test_copilot_api_models_facade_is_not_used_by_production_code() -> None:
+    production_sources = [
+        path
+        for root in (Path("src/api"), Path("src/core"))
+        for path in root.rglob("*.py")
+        if path.as_posix() != "src/core/advisory_copilot/api_models.py"
+    ]
+
+    offenders = [
+        path.as_posix()
+        for path in production_sources
+        if "src.core.advisory_copilot.api_models import" in path.read_text(encoding="utf-8")
+    ]
+
+    assert offenders == []
 
 
 def test_copilot_evidence_packet_requests_normalize_and_bound_identifiers() -> None:

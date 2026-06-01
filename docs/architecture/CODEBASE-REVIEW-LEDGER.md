@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-577
+
+- Scope: Advisory copilot focused API model imports
+- Pattern: Production code should depend on focused request and response DTO modules rather than a
+  legacy compatibility facade once ownership has been split.
+- Status: Hardened
+- Finding Class: Dependency-flow clarity and API boundary modularity
+- Summary: After extracting request and response DTO modules, routes, application services,
+  supportability builders, persistence helpers, and tests still imported through `api_models.py`.
+  That preserved compatibility but kept production dependency flow pointed at the legacy facade
+  instead of the focused API boundary modules.
+- Evidence:
+  - Updated advisory-copilot routes and application/persistence/supportability modules to import
+    request DTOs from `api_request_models.py` and response DTOs from `api_response_models.py`.
+  - Updated advisory-copilot API and application tests to use focused DTO modules directly.
+  - Added source-level coverage proving no production `src/api` or `src/core` module imports from
+    the `api_models.py` compatibility facade.
+- Consequence:
+  - `api_models.py` is now a true compatibility facade, while production code follows explicit
+    request/response dependency boundaries.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior,
+    OpenAPI shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Keep the facade only for backward-compatible imports; remove it only if a future governed API
+    cleanup deliberately retires that import path.
+
 ## LA-REV-576
 
 - Scope: Advisory copilot API request DTO ownership

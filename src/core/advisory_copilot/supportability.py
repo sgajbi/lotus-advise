@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.core.advisory_copilot.api_models import AdvisoryCopilotSupportabilityResponse
+from src.core.advisory_copilot.api_response_models import AdvisoryCopilotSupportabilityResponse
 from src.core.advisory_copilot.catalog import list_copilot_action_definitions
 
 

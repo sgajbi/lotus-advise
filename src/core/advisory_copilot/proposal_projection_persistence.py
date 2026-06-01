@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from src.core.advisory_copilot.api_models import (
-    AdvisoryCopilotEvidencePacketResponse,
+from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotProposalVersionEvidenceRequest,
 )
+from src.core.advisory_copilot.api_response_models import AdvisoryCopilotEvidencePacketResponse
 from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
 from src.core.advisory_copilot.packet_persistence import save_advisory_copilot_evidence_packet
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
