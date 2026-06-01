@@ -4,13 +4,13 @@ from typing import Any, Optional, cast
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
-from src.core.proposals.async_operation_persistence import persist_async_operation_failed
 from src.core.proposals.async_operation_read_model import (
     load_proposal_async_operation_by_correlation_read_model,
     load_proposal_async_operation_read_model,
 )
-from src.core.proposals.async_operation_recovery_read_model import (
-    load_recoverable_async_operation_read_models,
+from src.core.proposals.async_operation_recovery import (
+    ASYNC_RECOVERY_BATCH_SIZE,
+    recover_async_operation_batch,
 )
 from src.core.proposals.async_operation_runner import run_async_operation_until_terminal
 from src.core.proposals.async_operation_submission import (
@@ -164,7 +164,6 @@ from src.core.replay.service import (
 )
 
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
-ASYNC_RECOVERY_BATCH_SIZE = 50
 
 __all__ = [
     "ProposalIdempotencyConflictError",
@@ -768,29 +767,13 @@ class ProposalWorkflowService:
         )
 
     def recover_async_operations(self, *, max_operations: int = ASYNC_RECOVERY_BATCH_SIZE) -> int:
-        recovered = 0
-        for read_model in load_recoverable_async_operation_read_models(
+        return recover_async_operation_batch(
             repository=self._repository,
-            as_of=_utc_now(),
-            limit=max_operations,
-        ):
-            operation = read_model.operation
-            if read_model.operation_kind == "CREATE_PROPOSAL":
-                self.execute_create_proposal_async(operation_id=operation.operation_id)
-                recovered += 1
-                continue
-            if read_model.operation_kind == "CREATE_PROPOSAL_VERSION":
-                self.execute_create_version_async(operation_id=operation.operation_id)
-                recovered += 1
-                continue
-            persist_async_operation_failed(
-                repository=self._repository,
-                operation=operation,
-                code="ProposalLifecycleError",
-                message="PROPOSAL_ASYNC_OPERATION_TYPE_UNSUPPORTED",
-                finished_at=_utc_now(),
-            )
-        return recovered
+            max_operations=max_operations,
+            utc_now=_utc_now,
+            execute_create_proposal_async=self.execute_create_proposal_async,
+            execute_create_version_async=self.execute_create_version_async,
+        )
 
     def transition_state(
         self,

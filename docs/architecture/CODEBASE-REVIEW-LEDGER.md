@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-469
+
+- Scope: Proposal async recovery orchestration
+- Pattern: Proposal workflow service should delegate async recovery batch orchestration to a
+  focused module instead of owning recovery scanning, dispatch, and unsupported-operation failure
+  handling inline.
+- Status: Hardened
+- Finding Class: modularity and async operational maintainability
+- Summary: `src/core/proposals/service.py` still contained the async recovery loop, including
+  recoverable-operation loading, operation-kind dispatch, and unsupported operation failure
+  persistence. That kept operational retry/recovery behavior inside the already large workflow
+  service.
+- Evidence:
+  - Added `src/core/proposals/async_operation_recovery.py` with the recovery batch boundary and
+    recovery batch-size constant.
+  - Updated `ProposalWorkflowService.recover_async_operations()` to delegate to the recovery
+    boundary while preserving create/version execution callbacks.
+  - Added service-level guard coverage proving the workflow service delegates recovery orchestration
+    instead of owning the recovery loop.
+- Consequence:
+  - Async recovery behavior is now isolated for future operational diagnostics and retry hardening,
+    and the proposal workflow service has a narrower responsibility surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal service read-model and narrative/replay convenience methods into
+    focused service modules where tests show clear boundaries.
+
 ## LA-REV-468
 
 - Scope: Capability workflow catalog assembly

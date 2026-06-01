@@ -1178,6 +1178,30 @@ def test_service_recover_async_operations_replays_expired_running_version_operat
     assert status.result is not None
 
 
+def test_service_delegates_async_recovery_batch(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    captured: dict[str, object] = {}
+
+    def fake_recover_async_operation_batch(**kwargs):
+        captured.update(kwargs)
+        return 7
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "recover_async_operation_batch",
+        fake_recover_async_operation_batch,
+    )
+
+    recovered = service.recover_async_operations(max_operations=3)
+
+    assert recovered == 7
+    assert captured["repository"] is repo
+    assert captured["max_operations"] == 3
+    assert captured["execute_create_proposal_async"] == service.execute_create_proposal_async
+    assert captured["execute_create_version_async"] == service.execute_create_version_async
+
+
 def test_service_expected_state_can_be_optional_when_disabled():
     service = ProposalWorkflowService(
         repository=InMemoryProposalRepository(),
