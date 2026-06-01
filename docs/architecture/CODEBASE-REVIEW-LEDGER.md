@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-441
+
+- Scope: Advisory simulation evaluation boundary
+- Pattern: Simulation orchestration should delegate core proposal evaluation, correlation
+  resolution, context-resolution enrichment, and alternatives validation translation to a focused
+  evaluation helper.
+- Status: Hardened
+- Finding Class: modularity problem and error-boundary consistency
+- Summary: `simulate_proposal_response` still imported the core advisory evaluator, correlation
+  resolver, context-resolution evidence builder, and alternatives normalization exception taxonomy
+  directly. That kept evaluation execution and error translation mixed with replay/persistence
+  orchestration.
+- Evidence:
+  - Added `src/api/services/advisory_simulation_evaluation.py` with
+    `evaluate_simulation_result`.
+  - Updated `simulate_proposal_response` to delegate evaluation execution and context-resolution
+    enrichment to the helper after replay checks.
+  - Extended the internal guard to keep core evaluation and alternatives-normalization exception
+    imports out of the orchestration service.
+- Consequence:
+  - The advisory simulation service now coordinates validation, replay, evaluation, and
+    persistence through focused helper boundaries instead of owning core evaluation details.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing orchestration responsibilities around request hashing or persistence only if
+    later changes expose meaningful duplication.
+
 ## LA-REV-440
 
 - Scope: Advisory simulation context-resolution validation boundary

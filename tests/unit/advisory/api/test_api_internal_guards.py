@@ -319,7 +319,6 @@ def test_advisory_simulation_service_uses_shared_error_helpers():
     source = inspect.getsource(advisory_simulation_service)
 
     assert "HTTPException(" not in source
-    assert "simulation_validation_exception" in source
     assert "normalize_required_idempotency_key" not in source
     assert "normalize_simulation_idempotency_key" in source
     assert "ProposalSimulationGateError" not in source
@@ -327,6 +326,10 @@ def test_advisory_simulation_service_uses_shared_error_helpers():
     assert "ProposalContextResolutionError" not in source
     assert "resolve_simulation_request" not in source
     assert "resolve_simulation_input_with_validation" in source
+    assert "AlternativesRequestNormalizationError" not in source
+    assert "evaluate_advisory_proposal" not in source
+    assert "build_context_resolution_evidence" not in source
+    assert "evaluate_simulation_result" in source
     assert "ProposalSimulationIdempotencyRecord" not in source
     assert "get_replayed_simulation_result" in source
     assert "save_simulation_idempotency_result" in source
