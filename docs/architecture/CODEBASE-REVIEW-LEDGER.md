@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-519
+
+- Scope: Policy-pack catalog model ownership
+- Pattern: Policy-pack catalog request/response DTOs should live in a focused module instead of
+  remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and policy-pack catalog maintainability
+- Summary: `src/core/policy_packs/models.py` mixed catalog audit, summary, list/detail,
+  validation, activation, policy evaluation, workflow, report-package, and AI evidence DTOs in one
+  800-line module. The catalog DTOs are a distinct policy-pack administration boundary used by the
+  catalog store and policy-pack routes.
+- Evidence:
+  - Added `src/core/policy_packs/catalog_models.py` for policy-pack catalog literals, audit events,
+    summary, list/detail, validation, and activation DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI schema names.
+  - Updated catalog runtime and package exports to import catalog DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    catalog model definitions.
+- Consequence:
+  - Policy-pack catalog code now depends on a narrow catalog model boundary, reducing coupling with
+    policy evaluation workflow/report/AI evidence schemas.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation persistence, workflow, report-package, and AI evidence
+    DTO groups from `src/core/policy_packs/models.py`.
+
 ## LA-REV-518
 
 - Scope: Workspace compatibility import boundary

@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
-from src.core.policy_packs.models import (
+from src.core.policy_packs.catalog_models import (
     PolicyPackActivationResponse,
     PolicyPackAuditEvent,
     PolicyPackDetailResponse,

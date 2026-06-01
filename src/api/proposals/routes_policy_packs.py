@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi import status
 
 import src.api.proposals.router as shared
@@ -63,11 +65,14 @@ def get_advisory_policy_pack_version(
     policy_pack_id: PolicyPackIdPath,
     policy_version: PolicyPackVersionPath,
 ) -> PolicyPackDetailResponse:
-    return run_proposal_operation(
-        lambda: get_policy_pack_version(
-            policy_pack_id=policy_pack_id,
-            policy_version=policy_version,
-        )
+    return cast(
+        PolicyPackDetailResponse,
+        run_proposal_operation(
+            lambda: get_policy_pack_version(
+                policy_pack_id=policy_pack_id,
+                policy_version=policy_version,
+            )
+        ),
     )
 
 
@@ -90,14 +95,17 @@ def validate_advisory_policy_pack_version(
     payload: PolicyPackValidationRequest,
     idempotency_key: PolicyPackValidationIdempotencyKeyHeader,
 ) -> PolicyPackValidationResponse:
-    return run_proposal_operation(
-        lambda: validate_policy_pack_version(
-            policy_pack_id=policy_pack_id,
-            policy_version=policy_version,
-            requested_by=payload.requested_by,
-            idempotency_key=idempotency_key,
-            reason=payload.reason,
-        )
+    return cast(
+        PolicyPackValidationResponse,
+        run_proposal_operation(
+            lambda: validate_policy_pack_version(
+                policy_pack_id=policy_pack_id,
+                policy_version=policy_version,
+                requested_by=payload.requested_by,
+                idempotency_key=idempotency_key,
+                reason=payload.reason,
+            )
+        ),
     )
 
 
@@ -120,13 +128,16 @@ def activate_advisory_policy_pack_version(
     payload: PolicyPackActivationRequest,
     idempotency_key: PolicyPackActivationIdempotencyKeyHeader,
 ) -> PolicyPackActivationResponse:
-    return run_proposal_operation(
-        lambda: activate_policy_pack_version(
-            policy_pack_id=policy_pack_id,
-            policy_version=policy_version,
-            activated_by=payload.activated_by,
-            source_content_hash=payload.source_content_hash,
-            idempotency_key=idempotency_key,
-            reason=payload.reason,
-        )
+    return cast(
+        PolicyPackActivationResponse,
+        run_proposal_operation(
+            lambda: activate_policy_pack_version(
+                policy_pack_id=policy_pack_id,
+                policy_version=policy_version,
+                activated_by=payload.activated_by,
+                source_content_hash=payload.source_content_hash,
+                idempotency_key=idempotency_key,
+                reason=payload.reason,
+            )
+        ),
     )
