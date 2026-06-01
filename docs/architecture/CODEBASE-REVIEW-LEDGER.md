@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-418
+
+- Scope: Workspace re-evaluation service boundary
+- Pattern: Proposal evaluation, context-resolution evidence, and replay evidence assembly should
+  live behind a focused API service helper rather than in the broad workspace orchestration module.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `workspace_service.reevaluate_workspace_session` still contained proposal evaluation
+  orchestration, error translation, evaluation summary mutation, and replay evidence assembly. That
+  made the central workspace service harder to scan and coupled it directly to proposal evaluation
+  internals.
+- Evidence:
+  - Added `src/api/services/workspace_reevaluations.py` with
+    `reevaluate_workspace_session_state`.
+  - Kept `workspace_service.reevaluate_workspace_session` as the stable public wrapper that loads
+    the session, delegates re-evaluation, persists the result, and returns the updated session.
+  - Extended the internal workspace service guard so direct proposal evaluation calls stay out of
+    `workspace_service.py`.
+- Consequence:
+  - Workspace re-evaluation now has a named API service boundary, reducing direct dependency spread
+    in the main workspace orchestration module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue moving workspace creation and handoff orchestration behind focused service helpers.
+
 ## LA-REV-417
 
 - Scope: Workspace draft-action service boundary

@@ -30,6 +30,9 @@ from tests.shared.stateful_context_builders import (
 
 workspace_router = importlib.import_module("src.api.workspaces.router")
 workspace_service_module = importlib.import_module("src.api.services.workspace_service")
+workspace_reevaluations_module = importlib.import_module(
+    "src.api.services.workspace_reevaluations"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -798,12 +801,12 @@ def test_workspace_service_redacts_sensitive_evaluation_context_errors(
         ]
 
     def _raise_sensitive_context_error(**_kwargs: Any) -> None:
-        raise workspace_service_module.WorkspaceReevaluationContextError(
+        raise workspace_reevaluations_module.WorkspaceReevaluationContextError(
             "raw payload includes Authorization Bearer token material"
         )
 
     monkeypatch.setattr(
-        workspace_service_module,
+        workspace_reevaluations_module,
         "build_workspace_evaluation_context",
         _raise_sensitive_context_error,
     )

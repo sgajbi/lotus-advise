@@ -7,10 +7,12 @@ from src.api.proposals.router import (
     reset_proposal_workflow_service_for_tests,
 )
 from src.api.services import workspace_service
-from src.api.services.workspace_errors import WorkspaceNotFoundError
+from src.api.services.workspace_errors import (
+    WorkspaceEvaluationUnavailableError,
+    WorkspaceNotFoundError,
+)
 from src.api.services.workspace_service import (
     WorkspaceDraftActionRequest,
-    WorkspaceEvaluationUnavailableError,
     WorkspaceSessionCreateRequest,
     create_workspace_session,
     get_workspace_session,

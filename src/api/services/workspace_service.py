@@ -6,18 +6,11 @@ from src.api.services.workspace_context_resolution import (
     build_workspace_simulate_request,
 )
 from src.api.services.workspace_draft_actions import apply_workspace_draft_action_to_session
-from src.api.services.workspace_errors import (
-    WORKSPACE_EVALUATION_UNAVAILABLE_DETAIL,
-    WorkspaceEvaluationUnavailableError,
-    safe_workspace_error_detail,
-)
 from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
-from src.core.advisory.orchestration import evaluate_advisory_proposal
+from src.api.services.workspace_reevaluations import reevaluate_workspace_session_state
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
-from src.core.proposals.correlation import resolve_correlation_id
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-from src.core.workspace.evaluation import build_evaluation_summary
 from src.core.workspace.identifiers import new_workspace_id
 from src.core.workspace.models import (
     WorkspaceCompareRequest,
@@ -34,11 +27,6 @@ from src.core.workspace.models import (
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
 )
-from src.core.workspace.reevaluation import (
-    WorkspaceReevaluationContextError,
-    build_workspace_evaluation_context,
-)
-from src.core.workspace.replay import build_replay_evidence
 from src.core.workspace.sessions import build_workspace_session
 
 MAX_WORKSPACE_SESSION_CACHE_SIZE = workspace_store.DEFAULT_WORKSPACE_SESSION_CACHE_SIZE
@@ -58,38 +46,12 @@ def _build_simulate_request_for_workspace(session: WorkspaceSession) -> Proposal
 
 def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     session = get_workspace_session(workspace_id)
-    simulate_request = _build_simulate_request_for_workspace(session)
-    try:
-        evaluation_context = build_workspace_evaluation_context(
-            session=session,
-            simulate_request=simulate_request,
-        )
-    except WorkspaceReevaluationContextError as exc:
-        raise WorkspaceEvaluationUnavailableError(
-            safe_workspace_error_detail(
-                str(exc),
-                fallback=WORKSPACE_EVALUATION_UNAVAILABLE_DETAIL,
-            )
-        ) from exc
-    correlation_id = resolve_correlation_id(None)
-    result = evaluate_advisory_proposal(
-        request=simulate_request,
-        request_hash=evaluation_context.request_hash,
-        idempotency_key=None,
-        correlation_id=correlation_id,
-        resolved_as_of=evaluation_context.resolved_request.resolved_context.as_of,
-        input_mode=evaluation_context.resolved_request.input_mode,
-        policy_context=evaluation_context.context_resolution["advisory_policy_context"],
+    reevaluated_session = reevaluate_workspace_session_state(
+        session=session,
+        simulate_request_builder=_build_simulate_request_for_workspace,
     )
-    result.explanation["context_resolution"] = evaluation_context.context_resolution
-    session.latest_proposal_result = result
-    session.evaluation_summary = build_evaluation_summary(result, session)
-    session.latest_replay_evidence = build_replay_evidence(
-        session,
-        evaluation_request_hash=evaluation_context.request_hash,
-    )
-    _save_workspace_session(session)
-    return session
+    _save_workspace_session(reevaluated_session)
+    return reevaluated_session
 
 
 def _save_workspace_session(session: WorkspaceSession) -> None:
