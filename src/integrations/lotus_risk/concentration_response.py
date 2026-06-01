@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from src.core.models import ProposalResult
+from src.core.proposal_result_models import ProposalResult
 
 
 class LotusRiskConcentrationRiskProxy(BaseModel):

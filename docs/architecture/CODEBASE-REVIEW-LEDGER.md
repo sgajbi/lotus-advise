@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-508
+
+- Scope: Lotus Core and Lotus Risk integration model dependency direction
+- Pattern: Integration adapters should import owned DTOs from focused model modules rather than
+  depending on the `src/core/models.py` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency-flow and integration adapter maintainability
+- Summary: Lotus Core stateful-context/simulation adapters and Lotus Risk concentration enrichment
+  adapters still imported portfolio, proposal, simulation-state, engine-option, and order-intent
+  models from `src.core.models`. That left infrastructure-facing adapters coupled to the broad
+  compatibility surface after core ownership had been split.
+- Evidence:
+  - Updated Lotus Core adapters to import portfolio, proposal request, proposal result, and engine
+    option DTOs from focused modules.
+  - Updated Lotus Risk adapters to import proposal request/result, position summary, shelf entry,
+    and security-trade intent DTOs from focused modules.
+  - Added a contract asserting `src/integrations` contains no `from src.core.models import`
+    dependencies.
+- Consequence:
+  - Integration adapter dependency flow now points at explicit core model owners, reducing accidental
+    coupling to the compatibility facade while preserving adapter behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because external integration
+    contracts and product behavior are unchanged.
+- Follow-Up:
+  - Keep tests and public compatibility imports separate: tests may continue exercising the facade,
+    but production code should avoid new dependencies on it.
+
 ## LA-REV-507
 
 - Scope: Advisory simulation and workspace API model dependency direction

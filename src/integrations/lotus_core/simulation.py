@@ -4,7 +4,8 @@ from typing import Any, cast
 import httpx
 
 from src.core.common.idempotency import normalize_optional_idempotency_key
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.correlation import resolve_correlation_id
 from src.integrations.base import sanitized_http_base_url
 from src.integrations.lotus_core.contracts import (
