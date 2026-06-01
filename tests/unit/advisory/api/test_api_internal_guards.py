@@ -338,6 +338,16 @@ def test_delivery_routes_use_shared_proposal_error_boundary():
     assert source.count("run_proposal_operation(") == 6
 
 
+def test_delivery_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_delivery.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "ProposalIdPath" in source
+    assert "ProposalExecutionHandoffIdempotencyKeyHeader" in source
+
+
 def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
     source = inspect.getsource(routes_policy_evaluations)
 

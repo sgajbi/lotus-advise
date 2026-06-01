@@ -1,9 +1,9 @@
-from typing import Annotated, Optional
-
-from fastapi import Depends, Header, Path, status
+from fastapi import Depends, status
 
 import src.api.proposals.router as shared
+from src.api.proposals.delivery_parameters import ProposalExecutionHandoffIdempotencyKeyHeader
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.lifecycle_parameters import ProposalIdPath
 from src.api.proposals.report_errors import run_lotus_report_operation
 from src.api.services.proposal_reporting_service import request_proposal_report
 from src.core.proposals import (
@@ -32,15 +32,9 @@ from src.core.proposals import (
     ),
 )
 def create_proposal_report_request(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
+    proposal_id: ProposalIdPath,
     payload: ProposalReportRequest,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalReportResponse:
     shared._assert_lifecycle_enabled()
     return run_lotus_report_operation(
@@ -66,23 +60,10 @@ def create_proposal_report_request(
     ),
 )
 def request_execution_handoff(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
+    proposal_id: ProposalIdPath,
     payload: ProposalExecutionHandoffRequest,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
-    idempotency_key: Annotated[
-        Optional[str],
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe execution handoff writes.",
-            examples=["proposal-execution-handoff-idem-001"],
-        ),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
+    idempotency_key: ProposalExecutionHandoffIdempotencyKeyHeader = None,
 ) -> ProposalExecutionHandoffResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
@@ -106,14 +87,8 @@ def request_execution_handoff(
     ),
 )
 def get_delivery_summary(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    proposal_id: ProposalIdPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalDeliverySummaryResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -131,14 +106,8 @@ def get_delivery_summary(
     ),
 )
 def get_delivery_history(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    proposal_id: ProposalIdPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalDeliveryHistoryResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -157,14 +126,8 @@ def get_delivery_history(
     ),
 )
 def get_execution_status(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    proposal_id: ProposalIdPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalExecutionStatusResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -183,15 +146,9 @@ def get_execution_status(
     ),
 )
 def record_execution_update(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
+    proposal_id: ProposalIdPath,
     payload: ProposalExecutionUpdateRequest,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalExecutionStatusResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(

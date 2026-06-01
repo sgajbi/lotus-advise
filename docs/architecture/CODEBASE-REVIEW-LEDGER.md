@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-451
+
+- Scope: Advisory proposal delivery route parameter contracts
+- Pattern: Delivery routes should share lifecycle proposal identifier contracts and isolate
+  delivery-specific idempotency metadata outside the router.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_delivery.py` repeated proposal id path declarations across
+  report, execution handoff, delivery summary/history, execution status, and execution update
+  endpoints. The execution handoff route also carried an inline idempotency header declaration in
+  the controller module.
+- Evidence:
+  - Added `src/api/proposals/delivery_parameters.py` for execution handoff idempotency metadata.
+  - Reused lifecycle `ProposalIdPath` for delivery routes.
+  - Updated delivery route dependencies to direct `Depends(...)` declarations.
+  - Extended internal guards so delivery routes do not reintroduce inline `Header` or `Path`
+    contracts.
+- Consequence:
+  - Delivery route handlers are thinner and delivery-specific idempotency metadata now has a
+    route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Continue consolidating memo and policy route parameters, then reassess whether shared proposal
+    parameter modules should be grouped by lifecycle, support, delivery, and memo domains.
+
 ## LA-REV-450
 
 - Scope: Advisory proposal support route parameter contracts
