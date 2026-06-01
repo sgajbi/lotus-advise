@@ -3,11 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import cast
 
-from src.core.advisor_cockpit.models import (
-    AdvisorCockpitSlaAgeBand,
-    AdvisoryActionItem,
-    CockpitAcknowledgementState,
-)
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
+from src.core.advisor_cockpit.reference_models import CockpitAcknowledgementState
+from src.core.advisor_cockpit.type_models import AdvisorCockpitSlaAgeBand
 
 DUE_SOON_WINDOW = timedelta(hours=24)
 DUE_NOW_GRACE_WINDOW = timedelta(hours=1)

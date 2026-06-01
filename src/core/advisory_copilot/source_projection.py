@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 from src.core.advisory_copilot.evidence_packets import build_copilot_evidence_packet
-from src.core.advisory_copilot.models import (
-    CopilotActionFamily,
-    CopilotAudience,
-    CopilotEvidencePacket,
-    CopilotLineageRef,
-)
+from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
+from src.core.advisory_copilot.reference_models import CopilotLineageRef
 from src.core.advisory_copilot.source_projection_sections import (
     EVIDENCE_PACKET_ID_MAX_LENGTH,
     LINEAGE_REF_ID_MAX_LENGTH,
@@ -14,7 +10,8 @@ from src.core.advisory_copilot.source_projection_sections import (
     build_proposal_version_source_sections,
     default_proposal_version_packet_id,
 )
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.advisory_copilot.type_models import CopilotActionFamily, CopilotAudience
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.repository import ProposalRepository
 
 

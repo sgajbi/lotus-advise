@@ -4,19 +4,21 @@ from collections.abc import Sequence
 from typing import Literal, TypeVar, cast
 
 from src.core.advisor_cockpit.action_sources import CockpitActionSourceRefs
-from src.core.advisor_cockpit.models import (
-    AdvisorCockpitOwnerRole,
-    AdvisorCockpitSlaAgeBand,
-    CockpitDependencyReadiness,
-    CockpitEvidenceRef,
-    CockpitLineageRef,
-    CockpitSourceReadinessGap,
-)
 from src.core.advisor_cockpit.projection_bounds import (
     bounded_content_hash,
     bounded_optional_reference,
     bounded_reference,
     bounded_summary,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitDependencyReadiness,
+    CockpitEvidenceRef,
+    CockpitLineageRef,
+    CockpitSourceReadinessGap,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitOwnerRole,
+    AdvisorCockpitSlaAgeBand,
 )
 
 LOTUS_ADVISE_SOURCE_SYSTEM = "lotus-advise"

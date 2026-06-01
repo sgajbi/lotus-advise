@@ -1,5 +1,1379 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-539
+
+- Scope: Advisory copilot compatibility facade production import boundary
+- Pattern: Production code should import focused advisory-copilot model modules directly instead of
+  importing from the legacy `src.core.advisory_copilot.models` compatibility facade
+- Status: Hardened
+- Finding Class: Dependency flow and modularity regression prevention
+- Summary: After `src/core/advisory_copilot/models.py` became a pure compatibility facade, there was
+  no source-level guard preventing production code from reintroducing imports from the broad facade.
+- Evidence:
+  - Added contract coverage that scans production source and rejects imports from
+    `src.core.advisory_copilot.models` outside the compatibility facade itself.
+  - Confirmed current production advisory-copilot modules import focused catalog, packet, section,
+    reference, unsupported-evidence, business-text, and type modules directly.
+- Consequence:
+  - The advisory-copilot model facade is now protected from becoming a production dependency again.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    runtime capability truth are unchanged.
+- Follow-Up:
+  - Apply the same import-boundary pattern to the next broad model or service surface selected for
+    hardening.
+
+## LA-REV-538
+
+- Scope: Advisory copilot packet model facade closure
+- Pattern: The broad advisory-copilot model module should become a compatibility facade once focused
+  model modules own each domain boundary
+- Status: Hardened
+- Finding Class: Modularity and dependency boundary regression prevention
+- Summary: After extracting advisory-copilot vocabulary, business-text safety, references,
+  unsupported-evidence posture, section DTOs, and catalog DTOs, `CopilotEvidencePacket` was the last
+  real model still defined in `src/core/advisory_copilot/models.py`. That kept production code
+  importing through the broad model surface and prevented facade closure.
+- Evidence:
+  - Added `src/core/advisory_copilot/packet_models.py` for the top-level evidence packet DTO and
+    packet section limit.
+  - Converted `src/core/advisory_copilot/models.py` into a compatibility facade with no class or
+    function definitions.
+  - Moved advisory-copilot API models, application, service, source projection, and evidence-packet
+    builders to focused packet model imports.
+  - Added import-contract coverage proving package and compatibility imports resolve to the focused
+    packet class, plus AST coverage preventing class/function definitions from returning to the
+    facade.
+- Consequence:
+  - Advisory-copilot model ownership is now split across focused catalog, packet, section,
+    reference, unsupported-evidence, business-text, and type modules instead of being concentrated
+    in a broad monolithic model file.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Add production-import guard coverage preventing new imports from the compatibility facade.
+
+## LA-REV-537
+
+- Scope: Advisory copilot catalog model ownership
+- Pattern: Action definition and business projection DTOs should be owned by catalog-facing model
+  modules instead of the packet model module
+- Status: Hardened
+- Finding Class: Modularity and domain model ownership
+- Summary: `CopilotActionDefinition` and `CopilotBusinessProjection` describe supported action
+  catalog metadata and business-facing labels, but they were still defined in the broad
+  advisory-copilot packet model module. That kept catalog and projection services coupled to packet
+  DTO ownership.
+- Evidence:
+  - Added `src/core/advisory_copilot/catalog_models.py` for action definition and business
+    projection DTOs.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved catalog and business projection imports to the focused catalog model module.
+  - Added import-contract coverage proving package and compatibility imports resolve to the
+    focused catalog model classes.
+- Consequence:
+  - Advisory-copilot action catalog vocabulary and business-facing projection metadata now have a
+    focused owner, leaving the broad model module with top-level packet DTO ownership only.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract the top-level evidence packet DTO and convert `src/core/advisory_copilot/models.py` to
+    a pure compatibility facade.
+
+## LA-REV-536
+
+- Scope: Advisory copilot evidence section models
+- Pattern: Evidence section DTOs and audience/summary validation should live outside the top-level
+  packet model module
+- Status: Hardened
+- Finding Class: Modularity and evidence projection boundary ownership
+- Summary: `CopilotEvidencePacketSection` and `CopilotEvidenceSectionInput` carried section-key,
+  summary, source-ref, and audience filtering validation inside `src/core/advisory_copilot/models.py`.
+  That mixed projection-section validation with top-level packet ownership and kept builders and API
+  models tied to the broad model surface.
+- Evidence:
+  - Added `src/core/advisory_copilot/section_models.py` for packet section and source-section input
+    DTOs.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved evidence-packet builder, source-projection, API model, and package exports to the focused
+    section model module.
+  - Added import-contract coverage proving package and compatibility imports resolve to the focused
+    section classes.
+- Consequence:
+  - Advisory-copilot section projection and audience filtering now have a focused model boundary,
+    reducing the remaining model module to action definition, business projection, and top-level
+    evidence packet ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract action catalog/business projection DTOs and the top-level evidence packet DTO, then
+    convert `src/core/advisory_copilot/models.py` to a pure compatibility facade.
+
+## LA-REV-535
+
+- Scope: Advisory copilot unsupported-evidence model
+- Pattern: Unsupported-evidence posture should have focused supportability ownership outside the
+  packet model module
+- Status: Hardened
+- Finding Class: Modularity and supportability boundary clarity
+- Summary: `CopilotUnsupportedEvidence` represents controlled missing, restricted, or unavailable
+  evidence posture, but it was still owned by the broad advisory-copilot model module. That coupled
+  packet construction and supportability handling to packet DTO ownership.
+- Evidence:
+  - Added `src/core/advisory_copilot/unsupported_models.py` for unsupported-evidence posture.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved evidence-packet helper imports to the focused unsupported-evidence model module.
+  - Added import-contract coverage proving package and compatibility imports resolve to the
+    focused unsupported-evidence class.
+- Consequence:
+  - Supportability posture is now reusable by packet builders, review surfaces, and future
+    integration boundaries without depending on the remaining advisory-copilot packet model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract packet section/input DTOs next, then isolate top-level packet DTO ownership.
+
+## LA-REV-534
+
+- Scope: Advisory copilot evidence-reference models
+- Pattern: Source and lineage reference DTOs should live outside the broad advisory-copilot packet
+  model module
+- Status: Hardened
+- Finding Class: Modularity and auditability boundary ownership
+- Summary: `CopilotSourceRef` and `CopilotLineageRef` are reusable audit/evidence reference models,
+  but they were owned by `src/core/advisory_copilot/models.py` alongside packet and section DTOs.
+  That kept source projection, packet building, and package exports coupled to the broad model
+  surface for reference-only concerns.
+- Evidence:
+  - Added `src/core/advisory_copilot/reference_models.py` for source and lineage reference DTOs.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved source-projection and evidence-packet helper imports to the focused reference model
+    module.
+  - Added import-contract coverage proving package and compatibility imports resolve to the
+    focused reference classes.
+- Consequence:
+  - Advisory-copilot evidence references now have an auditable, reusable owner that can be shared by
+    packet, persistence, and integration layers without importing the remaining model monolith.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting unsupported-evidence and packet-section models, then convert the broad
+    advisory-copilot model module into a compatibility facade.
+
+## LA-REV-533
+
+- Scope: Advisory copilot business-text safety boundary
+- Pattern: Business-copy safety checks should be reusable outside the broad advisory-copilot model
+  module
+- Status: Hardened
+- Finding Class: Modularity and sensitive-detail handling
+- Summary: Advisory-copilot evidence builders and run-review service logic imported business-copy
+  safety helpers through `src/core/advisory_copilot/models.py`. That kept sensitive-detail
+  detection coupled to the model monolith even though the helpers are a cross-cutting evidence and
+  API-boundary concern.
+- Evidence:
+  - Added `src/core/advisory_copilot/business_text.py` for copilot business-copy sensitive-detail
+    detection and assertion helpers.
+  - Kept compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved evidence-packet and service imports to the focused business-text helper module.
+  - Added import-contract and behavior coverage proving compatibility imports still point at the
+    focused helpers and still reject technical detail such as raw prompt or provider-response copy.
+- Consequence:
+  - Subsequent advisory-copilot model extraction can reuse sensitive-detail handling without
+    preserving a dependency on the broad model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because runtime capability
+    truth did not change.
+- Follow-Up:
+  - Extract source, lineage, unsupported-evidence, and packet-section models into focused modules
+    now that shared vocabulary and business-text helpers are independent.
+
+## LA-REV-532
+
+- Scope: Advisory copilot model vocabulary
+- Pattern: Stable advisory-copilot literal vocabularies should live in focused type modules instead
+  of the evidence-packet model surface
+- Status: Hardened
+- Finding Class: Modularity and service boundary maintainability
+- Summary: `src/core/advisory_copilot/models.py` mixed copilot action, audience, review posture,
+  retention, access-class, source-dependency, and unsupported-evidence vocabulary with evidence
+  packet Pydantic models. That kept type-only consumers coupled to the largest advisory-copilot
+  model module and made subsequent decomposition riskier than necessary.
+- Evidence:
+  - Added `src/core/advisory_copilot/type_models.py` as the focused owner for advisory-copilot
+    literal vocabulary.
+  - Kept compatibility re-exports from `src/core/advisory_copilot/models.py` and package-level
+    exports so existing callers retain the same import contract.
+  - Moved type-only internal imports for catalog, projection, review, workflow-pack, records,
+    API models, application, and evidence packet helpers to the focused type module.
+  - Added model import-contract tests proving package and compatibility imports point at the
+    focused type aliases, plus an AST guard that prevents new `Copilot*` literal assignments from
+    returning to the model module.
+- Consequence:
+  - Advisory-copilot vocabulary now has a smaller, reusable ownership boundary, reducing coupling
+    before extracting evidence, reference, and packet models from the remaining model surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because runtime behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue decomposing `src/core/advisory_copilot/models.py` into focused reference and evidence
+    packet model modules, then convert it to a pure compatibility facade once production imports
+    are migrated.
+
+## LA-REV-531
+
+- Scope: Advisor cockpit compatibility facade production import boundary
+- Pattern: Production code should import focused advisor cockpit model modules directly instead of
+  importing from the legacy `src.core.advisor_cockpit.models` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency flow and modularity regression prevention
+- Summary: After `src/core/advisor_cockpit/models.py` became a pure compatibility facade, there was
+  no source-level guard preventing production code from reintroducing imports from the broad facade.
+- Evidence:
+  - Added contract coverage that scans production source and rejects imports from
+    `src.core.advisor_cockpit.models` outside the compatibility facade itself.
+  - Confirmed current production advisor cockpit modules import focused action, reference,
+    snapshot, and type model modules directly.
+- Consequence:
+  - The advisor cockpit model facade is now protected from becoming a production dependency again.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue applying model-boundary decomposition and production-import guards to the next largest
+    active model surface.
+
+## LA-REV-530
+
+- Scope: Advisor cockpit model compatibility facade closure
+- Pattern: The broad `src/core/advisor_cockpit/models.py` surface should be a pure compatibility
+  facade once focused cockpit model modules own each data-product boundary.
+- Status: Hardened
+- Finding Class: modularity and dependency boundary regression prevention
+- Summary: After type, reference, and action model extraction, `src/core/advisor_cockpit/models.py`
+  still owned meeting-preparation packet and operating snapshot DTOs. That prevented the cockpit
+  model file from being reserved as a narrow compatibility surface and kept production code
+  importing through the broad model module.
+- Evidence:
+  - Added `src/core/advisor_cockpit/snapshot_models.py` for meeting-preparation packet and
+    advisor cockpit operating snapshot DTOs.
+  - Updated advisor cockpit API, service, projection, rules, action builders, and source read-model
+    modules to import focused action, reference, snapshot, and type models directly.
+  - Converted `src/core/advisor_cockpit/models.py` into a pure compatibility facade with no class
+    or function definitions.
+  - Added contract coverage proving snapshot compatibility imports and preventing new classes or
+    functions from being reintroduced into the facade.
+- Consequence:
+  - RFC-0026 advisor cockpit model ownership is now split by type vocabulary, source/reference
+    readiness, action register, and operating snapshot boundaries instead of being concentrated in
+    a monolithic model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Add production-import guard coverage for the advisor cockpit compatibility facade, mirroring the
+    policy-pack facade guard.
+
+## LA-REV-529
+
+- Scope: Advisor cockpit action-register model ownership
+- Pattern: Advisory action item and action page DTOs should live in a focused action model module
+  instead of remaining inline in the broad advisor cockpit model surface.
+- Status: Hardened
+- Finding Class: modularity and action-register maintainability
+- Summary: `src/core/advisor_cockpit/models.py` still owned action-register DTOs after reference
+  model extraction. These DTOs define the `AdvisoryActionItemRegister:v1` payload and are distinct
+  from caller/evidence/readiness references and the operating snapshot models.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_models.py` for `AdvisoryActionItem` and
+    `AdvisoryActionItemPage`.
+  - Kept compatibility imports from `src.core.advisor_cockpit.models` and package exports stable.
+  - Added contract coverage proving package-level and compatibility imports point at the focused
+    action model definitions.
+- Consequence:
+  - The action-register data-product model now has a focused owner, and the remaining cockpit model
+    surface is reduced to meeting-preparation and operating snapshot DTOs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Extract meeting-preparation and operating snapshot DTOs from
+    `src/core/advisor_cockpit/models.py`, then reserve it as a compatibility facade.
+
+## LA-REV-528
+
+- Scope: Advisor cockpit reference model ownership
+- Pattern: Caller context, evidence refs, lineage refs, source readiness gaps, dependency readiness,
+  and acknowledgement state should live in a focused reference model module instead of remaining
+  inline in the broad advisor cockpit model surface.
+- Status: Hardened
+- Finding Class: modularity and cockpit source-readiness maintainability
+- Summary: `src/core/advisor_cockpit/models.py` still mixed shared source/reference/readiness DTOs
+  with action item, preparation packet, and operating snapshot DTOs. These reference DTOs are used
+  by action construction and service boundaries and are distinct from the action register and
+  snapshot data-product models.
+- Evidence:
+  - Added `src/core/advisor_cockpit/reference_models.py` for caller context, evidence references,
+    lineage references, source-readiness gaps, dependency readiness, and acknowledgement state.
+  - Kept compatibility imports from `src.core.advisor_cockpit.models` and package exports stable.
+  - Updated action source/construction modules to import reference DTOs directly from the focused
+    module.
+  - Added contract coverage proving package-level and compatibility imports point at the focused
+    reference model definitions.
+- Consequence:
+  - Cockpit action construction now depends on a narrow source/reference/readiness model boundary,
+    reducing coupling to the remaining action/snapshot model surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Extract action register DTOs and operating snapshot DTOs from
+    `src/core/advisor_cockpit/models.py`, then reserve it as a compatibility facade.
+
+## LA-REV-527
+
+- Scope: Advisor cockpit type vocabulary ownership
+- Pattern: Advisor cockpit literal vocabulary should live in a focused type module before DTO
+  classes are split from the broad cockpit model surface.
+- Status: Hardened
+- Finding Class: modularity and private-banking vocabulary maintainability
+- Summary: `src/core/advisor_cockpit/models.py` owned both DTO classes and shared literal
+  vocabulary for action status, priority, owner roles, caller roles, SLA bands, action families,
+  evidence access classes, dependency states, and unsupported capabilities. That made later DTO
+  extraction harder and kept private-banking cockpit vocabulary coupled to the model monolith.
+- Evidence:
+  - Added `src/core/advisor_cockpit/type_models.py` for shared advisor cockpit literal vocabulary.
+  - Kept compatibility imports from `src.core.advisor_cockpit.models` and package exports stable.
+  - Added contract coverage proving package-level and compatibility imports point at the focused
+    type definitions.
+- Consequence:
+  - Cockpit DTO modules can now depend on a narrow vocabulary module instead of duplicating or
+    importing through the broad model surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Extract cockpit source/reference/readiness DTOs and then action/snapshot DTOs from
+    `src/core/advisor_cockpit/models.py`.
+
+## LA-REV-526
+
+- Scope: Policy-pack compatibility facade production import boundary
+- Pattern: Production code should import focused policy-pack model modules directly instead of
+  importing from the legacy `src.core.policy_packs.models` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency flow and modularity regression prevention
+- Summary: After `src/core/policy_packs/models.py` became a pure compatibility facade, advisor
+  cockpit and advisory copilot production modules still imported `PolicyEvaluationRecord` from the
+  facade. That kept product-facing source projection code coupled to the broad legacy model surface.
+- Evidence:
+  - Updated advisor cockpit and advisory copilot source projection/application modules to import
+    `PolicyEvaluationRecord` from `src.core.policy_packs.persistence_models`.
+  - Updated related unit tests to use the focused persistence model import.
+  - Added contract coverage that scans production source and rejects imports from
+    `src.core.policy_packs.models` outside the compatibility facade itself.
+- Consequence:
+  - Product-facing source projections now depend on the durable policy evaluation record boundary
+    directly, and new production code is protected from reintroducing the broad compatibility
+    dependency.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Apply the same focused-import pattern to other compatibility facades when they are reduced.
+
+## LA-REV-525
+
+- Scope: Policy-pack model compatibility facade closure
+- Pattern: The broad `src/core/policy_packs/models.py` surface should be a pure compatibility
+  facade once focused model modules own each domain boundary.
+- Status: Hardened
+- Finding Class: modularity and dependency boundary regression prevention
+- Summary: After catalog, evaluation, persistence, workflow, report-package, and AI model
+  extraction, `src/core/policy_packs/models.py` still owned lineage, review-queue, and sign-off
+  package projection DTOs. That prevented the file from becoming a narrow legacy import surface.
+- Evidence:
+  - Added `src/core/policy_packs/projection_models.py` for policy evaluation lineage, review-queue,
+    and sign-off package projection DTOs.
+  - Updated persistence runtime and package exports to import projection DTOs from the focused
+    module.
+  - Converted `src/core/policy_packs/models.py` into a pure compatibility facade with no class or
+    function definitions.
+  - Extended policy-pack model contract coverage to prove projection compatibility imports and to
+    prevent future class/function definitions from being reintroduced into the facade.
+- Consequence:
+  - RFC-0025 policy-pack model ownership is now split by catalog, evaluation, persistence,
+    projection, workflow, reporting, and AI evidence boundaries instead of being concentrated in a
+    monolithic model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue moving production imports away from the compatibility facade where any remain, then
+    add dependency contract coverage that keeps new production code on focused model modules.
+
+## LA-REV-524
+
+- Scope: Policy evaluation AI evidence model ownership
+- Pattern: Bounded AI evidence request/response DTOs should live in a focused module instead of
+  remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and AI evidence boundary maintainability
+- Summary: `src/core/policy_packs/models.py` still owned RFC-0025 bounded AI evidence DTOs after
+  report-package model extraction. These DTOs are the lotus-ai evidence boundary and are distinct
+  from persistence, workflow, and report-package handoff DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/ai_models.py` for bounded AI evidence request and response DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated AI evidence runtime and package exports to import AI evidence DTOs from the focused
+    module.
+  - Extended policy-pack model contract coverage and RFC-0025 Slice 11 source-contract coverage to
+    prove the focused AI model ownership and compatibility import posture.
+- Consequence:
+  - Policy AI evidence code now depends on a narrow bounded-AI model boundary instead of the broader
+    policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Extract the remaining policy evaluation lineage/review/sign-off package projection DTOs from
+    `src/core/policy_packs/models.py`, then convert the module into a pure compatibility facade.
+
+## LA-REV-523
+
+- Scope: Policy evaluation report-package model ownership
+- Pattern: Policy report-package request/response DTOs should live in a focused module instead of
+  remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and report-package handoff maintainability
+- Summary: `src/core/policy_packs/models.py` still owned RFC-0025 report-package DTOs after the
+  workflow model extraction. These DTOs are the lotus-report handoff boundary for signed-off policy
+  evaluation packages and are distinct from maker-checker workflow and bounded AI evidence DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/reporting_models.py` for policy report-package request and
+    response DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated reporting runtime and package exports to import report-package DTOs from the focused
+    module.
+  - Extended policy-pack model contract coverage and RFC-0025 Slice 10 source-contract coverage to
+    prove the focused reporting model ownership and compatibility import posture.
+- Consequence:
+  - Policy report-package code now depends on a narrow lotus-report handoff model boundary instead
+    of the broader policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation lineage/review projections and AI evidence DTOs from
+    `src/core/policy_packs/models.py`.
+
+## LA-REV-522
+
+- Scope: Policy evaluation workflow model ownership
+- Pattern: Policy evaluation workflow and sign-off DTOs should live in a focused module instead of
+  remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and policy workflow maintainability
+- Summary: `src/core/policy_packs/models.py` still owned the RFC-0025 workflow projection,
+  requirement projection, sign-off decision request, and sign-off decision response DTOs after
+  persistence model extraction. These DTOs are the maker-checker workflow boundary and are distinct
+  from durable record persistence, report-package handoff, and AI evidence DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/workflow_models.py` for workflow requirement status, sign-off
+    status, sign-off decision literals, workflow projection, and sign-off command/response DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated workflow runtime and package exports to import workflow DTOs from the focused module.
+  - Extended policy-pack model contract coverage and RFC-0025 Slice 9 source-contract coverage to
+    prove the focused workflow model ownership and compatibility import posture.
+- Consequence:
+  - Policy evaluation workflow code now depends on a narrow maker-checker workflow model boundary
+    instead of the broader policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation lineage/review projections, report-package DTOs, and AI
+    evidence DTOs from `src/core/policy_packs/models.py`.
+
+## LA-REV-521
+
+- Scope: Policy evaluation persistence model ownership
+- Pattern: Durable policy evaluation record, audit event, persistence result, replay response, and
+  request DTOs should live in a focused module instead of remaining inline in the broad policy-pack
+  model surface.
+- Status: Hardened
+- Finding Class: modularity and policy evaluation persistence maintainability
+- Summary: `src/core/policy_packs/models.py` still owned durable RFC-0025 policy evaluation
+  persistence DTOs after catalog and evaluation model extraction. These DTOs are the persistence
+  boundary for finalized records, append-only events, replay proof, and API command payloads, and
+  are distinct from workflow, report-package, and AI evidence DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_models.py` for policy evaluation event types, audit
+    events, durable records, persistence results, replay responses, and API command request DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated persistence, workflow, reporting, AI evidence, route, and package exports to import
+    persistence DTOs from the focused module.
+  - Extended policy-pack model contract coverage to prove compatibility imports point at the
+    extracted persistence model definitions.
+  - Tightened `routes_policy_evaluations.py` return typing around shared error wrappers so the API
+    boundary remains explicit under strict mypy checks.
+- Consequence:
+  - Policy evaluation persistence code now depends on a narrow durable-record model boundary
+    instead of the broader policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation workflow, report-package, and AI evidence DTO groups from
+    `src/core/policy_packs/models.py`.
+
+## LA-REV-520
+
+- Scope: Policy-pack evaluation engine model ownership
+- Pattern: Policy-pack applicability, rule-result, and evaluation-response DTOs should live in a
+  focused module instead of remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and policy evaluation maintainability
+- Summary: `src/core/policy_packs/models.py` still owned the internal RFC-0025 policy evaluation
+  engine DTOs after catalog model extraction. These DTOs are used by the policy evaluation engine
+  and persistence summarization paths and are distinct from catalog administration, durable record,
+  workflow, report-package, and AI evidence DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/evaluation_models.py` for policy applicability status,
+    evaluation status, applicability result, rule result, and evaluation response DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated evaluation engine, persistence, and package exports to import evaluation DTOs from the
+    focused module.
+  - Extended policy-pack model contract coverage to prove compatibility imports point at the
+    extracted evaluation model definitions.
+- Consequence:
+  - Policy evaluation engine code now depends on a narrow model boundary instead of the broader
+    policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation persistence, workflow, report-package, and AI evidence
+    DTO groups from `src/core/policy_packs/models.py`.
+
+## LA-REV-519
+
+- Scope: Policy-pack catalog model ownership
+- Pattern: Policy-pack catalog request/response DTOs should live in a focused module instead of
+  remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and policy-pack catalog maintainability
+- Summary: `src/core/policy_packs/models.py` mixed catalog audit, summary, list/detail,
+  validation, activation, policy evaluation, workflow, report-package, and AI evidence DTOs in one
+  800-line module. The catalog DTOs are a distinct policy-pack administration boundary used by the
+  catalog store and policy-pack routes.
+- Evidence:
+  - Added `src/core/policy_packs/catalog_models.py` for policy-pack catalog literals, audit events,
+    summary, list/detail, validation, and activation DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI schema names.
+  - Updated catalog runtime and package exports to import catalog DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    catalog model definitions.
+- Consequence:
+  - Policy-pack catalog code now depends on a narrow catalog model boundary, reducing coupling with
+    policy evaluation workflow/report/AI evidence schemas.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation persistence, workflow, report-package, and AI evidence
+    DTO groups from `src/core/policy_packs/models.py`.
+
+## LA-REV-518
+
+- Scope: Workspace compatibility import boundary
+- Pattern: Production workspace code should import focused model modules directly instead of using
+  the `src.core.workspace.models` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency flow and modularity regression prevention
+- Summary: After `src/core/workspace/models.py` became a pure compatibility facade, the workspace
+  router and workspace service still imported compare DTOs from the facade. That kept new
+  production code dependent on the broad compatibility surface instead of the focused compare
+  model boundary.
+- Evidence:
+  - Updated `src/api/workspaces/router.py` and `src/api/services/workspace_service.py` to import
+    compare DTOs from `src.core.workspace.compare_models`.
+  - Added contract coverage preventing production modules, outside the compatibility facade itself,
+    from importing `src.core.workspace.models`.
+- Consequence:
+  - The compatibility facade is now reserved for legacy/import-contract support and tests, while
+    production code follows focused workspace model ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue applying focused-import contracts to other extracted model facades where production
+    code still depends on compatibility surfaces.
+
+## LA-REV-517
+
+- Scope: Workspace lifecycle-handoff model ownership
+- Pattern: Workspace lifecycle-handoff DTOs should live in a focused module, leaving
+  `src/core/workspace/models.py` as a compatibility facade.
+- Status: Hardened
+- Finding Class: modularity and lifecycle-boundary maintainability
+- Summary: After the session, save/resume, and draft-action extractions,
+  `src/core/workspace/models.py` still owned lifecycle-handoff metadata, request, and response
+  DTOs. These schemas are used by route, service, replay, and handoff orchestration code and
+  represent the workspace-to-proposal lifecycle boundary rather than generic workspace model
+  ownership.
+- Evidence:
+  - Added `src/core/workspace/handoff_models.py` for lifecycle-handoff metadata, request, and
+    response DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers and OpenAPI
+    schema names.
+  - Updated workspace route, service, handoff orchestration, replay helper, and package exports to
+    import lifecycle-handoff DTOs from the focused module.
+  - Added contract coverage proving compatibility imports point at the extracted handoff model
+    definitions and that `src/core/workspace/models.py` has no inline class or function
+    definitions.
+- Consequence:
+  - The workspace model compatibility file is now a facade over focused model modules, reducing the
+    risk of unrelated advisory workspace schema changes colliding in one monolithic file.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue replacing remaining production imports from `src.core.workspace.models` with focused
+    modules where ownership is now clear.
+
+## LA-REV-516
+
+- Scope: Workspace draft-action model ownership
+- Pattern: Workspace draft-action DTOs and validation should live in a focused module instead of
+  remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and draft-action validation maintainability
+- Summary: `src/core/workspace/models.py` still owned the draft-action type vocabulary, request
+  DTO, response DTO, and action-payload validator after session and save/resume extraction. These
+  schemas are used by draft-action service code and workspace routes and form a compact validation
+  boundary separate from session, saved-version, and handoff models.
+- Evidence:
+  - Added `src/core/workspace/action_models.py` for draft-action type vocabulary, request
+    validation, and response DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers and OpenAPI
+    schema names.
+  - Updated workspace route, service, and draft-action helper modules plus package exports to
+    import draft-action DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    draft-action model definitions.
+- Consequence:
+  - Draft-action validation logic now sits with the draft-action boundary instead of inside the
+    broad compatibility model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace lifecycle-handoff DTOs so `src/core/workspace/models.py` can
+    become a pure compatibility facade.
+
+## LA-REV-515
+
+- Scope: Workspace save/resume model ownership
+- Pattern: Workspace save, saved-version list, and resume DTOs should live in a focused module
+  instead of remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and replay/audit workflow maintainability
+- Summary: `src/core/workspace/models.py` still owned save request/response, saved-version list,
+  and resume request DTOs after session model extraction. These schemas belong to the
+  saved-version workflow boundary and are used by API routes, saved-version services, versioning
+  helpers, and OpenAPI documentation.
+- Evidence:
+  - Added `src/core/workspace/save_models.py` for workspace save, saved-version list, and resume
+    DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers and OpenAPI
+    schema names.
+  - Updated workspace route, API service, saved-version service, versioning helper, and package
+    exports to import save/resume DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    save/resume model definitions.
+- Consequence:
+  - Saved-version workflow code now depends on a narrow save/resume model boundary instead of the
+    broad workspace compatibility model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace draft-action and lifecycle-handoff DTOs in small
+    compatibility-preserving slices.
+
+## LA-REV-514
+
+- Scope: Workspace session model ownership
+- Pattern: Workspace session creation and session-state DTOs should live in a focused module instead
+  of remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and workspace lifecycle maintainability
+- Summary: `src/core/workspace/models.py` still owned `WorkspaceSessionCreateRequest`,
+  `WorkspaceSession`, and `WorkspaceSessionCreateResponse` after the input, draft,
+  saved-version, compare, and assistant model extractions. These DTOs define the session boundary
+  used by workspace creation, context resolution, reevaluation, persistence, replay, handoff, and
+  route response typing, making them a distinct ownership unit.
+- Evidence:
+  - Added `src/core/workspace/session_models.py` for workspace session lifecycle state, create
+    request, session state, and create response DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers and OpenAPI
+    schema names.
+  - Updated workspace runtime, API service, route, replay, evaluation, comparison, store, and
+    handoff modules to import session DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    session model definitions.
+- Consequence:
+  - Session-oriented workspace code now depends on a narrow session model boundary instead of the
+    broad compatibility model module, reducing coupling before save/action/handoff DTO extraction.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace save/resume, draft-action, and lifecycle-handoff DTOs in small
+    compatibility-preserving slices.
+
+## LA-REV-513
+
+- Scope: Workspace assistant model ownership
+- Pattern: Workspace assistant and workflow-pack DTOs should live in a focused module instead of
+  remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and AI-boundary maintainability
+- Summary: `src/core/workspace/models.py` still owned the workspace assistant request, evidence,
+  response, workflow-pack run, finding, and review-action DTOs. These schemas are used by the
+  workspace AI service, Lotus AI rationale integration, and workspace routes, making them a distinct
+  AI-boundary model group separate from workspace session and lifecycle handoff models.
+- Evidence:
+  - Added `src/core/workspace/assistant_models.py` for workspace assistant and workflow-pack DTOs
+    plus their bounded validation helpers.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated workspace AI, assistant evidence, Lotus AI rationale, and workspace route modules to
+    import assistant DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    assistant model definitions.
+- Consequence:
+  - Workspace AI-boundary code now depends on a narrow assistant model module instead of the broad
+    workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting lifecycle handoff and session DTOs without introducing circular model
+    dependencies.
+
+## LA-REV-512
+
+- Scope: Workspace compare model ownership
+- Pattern: Workspace compare request and response DTOs should live in a focused module instead of
+  remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and workspace compare maintainability
+- Summary: `src/core/workspace/models.py` still owned compare request, diff summary, and response
+  DTOs after the draft and saved-version model extractions. These schemas are used by compare
+  service and saved-version API flow, making them a compact boundary separate from session,
+  assistant, and handoff DTOs.
+- Evidence:
+  - Added `src/core/workspace/compare_models.py` for compare request, diff summary, and response
+    DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated compare and saved-version service helpers to import compare DTOs from the focused
+    module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    compare model definitions.
+- Consequence:
+  - Workspace compare code now depends on a narrow compare model boundary instead of the broad
+    workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace assistant and lifecycle handoff DTOs in small
+    compatibility-preserving slices.
+
+## LA-REV-511
+
+- Scope: Workspace saved-version and replay model ownership
+- Pattern: Workspace saved-version, replay evidence, and lifecycle-link DTOs should live in a
+  focused module instead of remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and replay/audit lineage maintainability
+- Summary: `src/core/workspace/models.py` still owned replay evidence, saved-version summaries,
+  full saved versions, and lifecycle links after the input and draft model extractions. These DTOs
+  are used directly by workspace replay, saved-version, compare, lifecycle handoff, and replay
+  service code, making them a separate audit-lineage ownership boundary.
+- Evidence:
+  - Added `src/core/workspace/version_models.py` for replay evidence, saved-version, saved-version
+    summary, and lifecycle-link DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated replay, versioning, compare, handoff, API saved-version, and replay-service helpers to
+    import saved-version and replay DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    version model definitions.
+- Consequence:
+  - Workspace replay, saved-version, and lifecycle lineage code now depends on a narrow audit model
+    boundary instead of the broad workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace assistant, compare, and lifecycle request/response DTOs in small
+    compatibility-preserving slices.
+
+## LA-REV-510
+
+- Scope: Workspace draft and evaluation model ownership
+- Pattern: Workspace draft state and evaluation summary DTOs should live in a focused module instead
+  of remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and workspace draft maintainability
+- Summary: After extracting input/context DTOs, `src/core/workspace/models.py` still owned draft
+  trade/cash-flow containers, workspace draft state, and evaluation summary DTOs. These models are
+  used directly by draft application, session creation, and evaluation helpers, making them a
+  bounded ownership group separate from assistant, compare, and lifecycle handoff schemas.
+- Evidence:
+  - Added `src/core/workspace/draft_models.py` for draft item, draft state, and evaluation summary
+    DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated draft/evaluation/session/context-resolution helpers to import draft DTOs from the
+    focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    draft model definitions.
+- Consequence:
+  - Draft-state mutation and evaluation code now depends on a narrow workspace draft model boundary
+    instead of the broad workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace assistant, compare, saved-version, and lifecycle handoff DTOs in
+    small compatibility-preserving slices.
+
+## LA-REV-509
+
+- Scope: Workspace input and resolved-context model ownership
+- Pattern: Workspace input DTOs shared by API and integration adapters should live in a focused
+  module instead of the broad `src/core/workspace/models.py` surface.
+- Status: Hardened
+- Finding Class: modularity and workspace boundary maintainability
+- Summary: `src/core/workspace/models.py` remained the largest model module and owned both input
+  context DTOs and unrelated workspace session, draft, assistant, compare, and handoff models. The
+  stateful/stateless input and resolved-context DTOs are used independently by Lotus Core adapters,
+  API bootstrap code, and workspace session helpers, making them a clean first extraction boundary.
+- Evidence:
+  - Added `src/core/workspace/input_models.py` for `WorkspaceInputMode`,
+    `WorkspaceStatelessInput`, `WorkspaceStatefulInput`, and `WorkspaceResolvedContext`.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated API, Lotus Core integration, and workspace session helpers to import input/context DTOs
+    from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    input model definitions.
+- Consequence:
+  - Workspace context resolution and stateful integration code now depend on the narrow input-model
+    boundary rather than the monolithic workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace session/draft, assistant, compare, and lifecycle handoff DTOs in
+    small compatibility-preserving slices.
+
+## LA-REV-508
+
+- Scope: Lotus Core and Lotus Risk integration model dependency direction
+- Pattern: Integration adapters should import owned DTOs from focused model modules rather than
+  depending on the `src/core/models.py` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency-flow and integration adapter maintainability
+- Summary: Lotus Core stateful-context/simulation adapters and Lotus Risk concentration enrichment
+  adapters still imported portfolio, proposal, simulation-state, engine-option, and order-intent
+  models from `src.core.models`. That left infrastructure-facing adapters coupled to the broad
+  compatibility surface after core ownership had been split.
+- Evidence:
+  - Updated Lotus Core adapters to import portfolio, proposal request, proposal result, and engine
+    option DTOs from focused modules.
+  - Updated Lotus Risk adapters to import proposal request/result, position summary, shelf entry,
+    and security-trade intent DTOs from focused modules.
+  - Added a contract asserting `src/integrations` contains no `from src.core.models import`
+    dependencies.
+- Consequence:
+  - Integration adapter dependency flow now points at explicit core model owners, reducing accidental
+    coupling to the compatibility facade while preserving adapter behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because external integration
+    contracts and product behavior are unchanged.
+- Follow-Up:
+  - Keep tests and public compatibility imports separate: tests may continue exercising the facade,
+    but production code should avoid new dependencies on it.
+
+## LA-REV-507
+
+- Scope: Advisory simulation and workspace API model dependency direction
+- Pattern: API routers and services should depend on focused core model modules instead of the
+  `src/core/models.py` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency-flow and API boundary maintainability
+- Summary: Advisory simulation and workspace API modules still imported proposal request/result
+  DTOs from `src.core.models` after the core model split. That kept API implementation code coupled
+  to a public compatibility facade instead of the focused proposal model owners.
+- Evidence:
+  - Updated advisory simulation router/service modules to import `ProposalResult` from
+    `src.core.proposal_result_models`.
+  - Updated simulation validation and workspace service modules to import
+    `ProposalSimulateRequest` from `src.core.proposal_request_models`.
+  - Added a contract asserting `src/api` contains no `from src.core.models import` dependencies.
+- Consequence:
+  - API implementation dependency flow now points at owned proposal model modules while the
+    compatibility facade remains available for public and legacy imports.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior and
+    generated OpenAPI schema are unchanged.
+- Follow-Up:
+  - Continue migrating integration adapter imports away from the compatibility facade in the next
+    bounded slice.
+
+## LA-REV-506
+
+- Scope: Monetary float guard allowlist matching
+- Pattern: Governance checks should fail on new or changed monetary float usage without failing on
+  line-number drift caused by unrelated modularization.
+- Status: Hardened
+- Finding Class: CI governance brittleness and monetary-control maintainability
+- Summary: The monetary float guard compared findings against the allowlist using full
+  `path:line:code` strings. The core model import refactor moved approved target-generation
+  optimizer findings by a few lines, causing Feature Lane lint to fail even though no monetary float
+  code had changed.
+- Evidence:
+  - Added stable monetary-float finding keys that ignore line-number movement while preserving path
+    and source-code text.
+  - Added unit coverage proving line drift remains allowlisted and code-text changes remain
+    detectable.
+  - `python scripts/check_monetary_float_usage.py` passed with the existing six findings matched to
+    the governed allowlist.
+  - `make lint` passed locally after the guard hardening.
+- Consequence:
+  - Feature Lane remains sensitive to new or changed monetary float usage while no longer blocking
+    unrelated refactors that only shift approved findings to different line numbers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this changes CI guard
+    matching behavior only; it does not change product behavior or published operator guidance.
+- Follow-Up:
+  - Continue reducing the allowlisted monetary float baseline rather than refreshing approvals for
+    convenience.
+
+## LA-REV-505
+
+- Scope: Proposal, workspace, and advisory service model dependency direction
+- Pattern: Internal proposal, workspace, and advisory service modules should import focused model
+  modules directly instead of depending on the `src/core/models.py` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency-flow and modularity maintainability
+- Summary: After core runtime modules moved off the compatibility facade, proposal/workspace service
+  modules and advisory projection/artifact helpers still depended on `src.core.models`. That kept
+  internal service boundaries coupled to a public compatibility layer instead of explicit model
+  owners.
+- Evidence:
+  - Updated proposal, workspace, and advisory service modules to import proposal request/result,
+    gate, suitability, portfolio, simulation, and engine option models from their focused modules.
+  - Added a contract asserting `src/core/advisory`, `src/core/proposals`, and `src/core/workspace`
+    contain no `from src.core.models import` dependencies.
+- Consequence:
+  - Internal proposal/workspace/advisory service layers now depend on owned model modules, while the
+    compatibility facade remains available for public and legacy callers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue migrating API service/router and integration adapter imports away from the
+    compatibility facade in bounded slices.
+
+## LA-REV-504
+
+- Scope: Core engine model dependency direction after facade extraction
+- Pattern: Engine, valuation, compliance, target-generation, funding, and shared computation
+  modules should import focused model modules directly instead of depending on the
+  `src/core/models.py` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency-flow and modularity maintainability
+- Summary: After `src/core/models.py` became a re-export facade, several core computation modules
+  still imported runtime DTOs from the facade. That preserved unnecessary internal coupling and made
+  the compatibility module look like a normal implementation dependency.
+- Evidence:
+  - Updated valuation, compliance, target generation, advisory engine, funding, intent generation,
+    drift analytics, suitability, workflow gates, diagnostics, intent dependency, and shared
+    simulation modules to import from focused model modules directly.
+  - Kept external/public import compatibility through `src.core.models` unchanged.
+  - Added a contract asserting these core runtime modules do not import from the compatibility
+    facade.
+- Consequence:
+  - Core runtime dependency flow now points toward owned model modules, while the compatibility
+    facade remains available for downstream callers and legacy surfaces.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue migrating API, integration, workspace, and proposal service imports away from the
+    compatibility facade in small bounded slices.
+
+## LA-REV-503
+
+- Scope: Core model compatibility facade regression guard
+- Pattern: `src/core/models.py` should remain a compatibility re-export facade after model ownership
+  has been split into focused modules.
+- Status: Hardened
+- Finding Class: architecture regression test gap
+- Summary: After extracting the remaining proposal result model, the compatibility module no longer
+  owns inline classes or helper functions. Without a direct contract, future changes could quietly
+  reintroduce unrelated model ownership into the facade.
+- Evidence:
+  - Added an AST-based contract in `tests/unit/shared/contracts/test_contract_models.py` asserting
+    that `src/core/models.py` contains no inline class, function, or async function definitions.
+  - Existing import-identity contracts continue proving the re-exported public symbols point to the
+    focused implementation modules.
+- Consequence:
+  - The facade boundary is now pinned by a fast unit contract, making future monolith regression
+    visible before broader gates.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue modularization outside `src/core/models.py`, especially service boundaries, mapper
+    duplication, and infrastructure adapter seams.
+
+## LA-REV-502
+
+- Scope: Core proposal result model ownership
+- Pattern: Proposal result output DTOs should live in a focused core model module instead of
+  remaining inline in the broad `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and proposal result model maintainability
+- Summary: `src/core/models.py` still owned the proposal result DTO after the surrounding domain
+  model groups had been extracted, leaving the compatibility module as an implementation owner
+  instead of a stable import facade.
+- Evidence:
+  - Added `src/core/proposal_result_models.py` for the proposal result DTO and its composed output
+    model dependencies.
+  - Updated `src/core/models.py` to re-export `ProposalResult` so existing public imports remain
+    stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    proposal result model definition.
+- Consequence:
+  - `src/core/models.py` now acts as a compatibility facade over focused model modules instead of
+    owning proposal domain model implementation directly.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Add an architecture contract that keeps `src/core/models.py` as a re-export facade and prevents
+    future inline model ownership from returning.
+
+## LA-REV-501
+
+- Scope: Core proposal request model ownership
+- Pattern: Advisor-entered proposal cash flows, manual trades, and proposal simulation request
+  models should live in a focused core model module instead of remaining inline in the broad
+  `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and proposal input validation maintainability
+- Summary: `src/core/models.py` still owned proposal request DTOs and manual-trade validation logic
+  used by advisory simulation, workspace drafts, context hydration, and integration adapters
+  alongside the remaining proposal result model.
+- Evidence:
+  - Added `src/core/proposal_request_models.py` for proposed cash-flow, proposed trade, and proposal
+    simulation request DTOs.
+  - Moved decimal-string float rejection and quantity/notional validation into the request model
+    module.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    proposal request model definitions.
+- Consequence:
+  - Proposal input validation now has explicit ownership while downstream callers can continue
+    importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Extract the remaining proposal-result model from `src/core/models.py` and preserve the same
+    compatibility contract.
+
+## LA-REV-500
+
+- Scope: Core proposal reconciliation and tax-impact model ownership
+- Pattern: Proposal financial effect DTOs should live in a focused core model module instead of
+  remaining inline in the broad `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and proposal financial effect model maintainability
+- Summary: `src/core/models.py` still owned reconciliation and tax-impact DTOs used by proposal
+  result assembly alongside unrelated proposal-input and proposal-result models.
+- Evidence:
+  - Added `src/core/proposal_effect_models.py` for reconciliation and tax-impact DTOs.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    proposal effect model definitions.
+- Consequence:
+  - Proposal financial effect definitions now have explicit ownership while downstream callers can
+    continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal-input and proposal-result model groups from `src/core/models.py` in
+    small compatibility-preserving slices.
+
+## LA-REV-499
+
+- Scope: Core workflow gate model ownership
+- Pattern: Workflow gate reasons, summary counters, and deterministic gate decisions should live in
+  a focused core model module instead of remaining inline in the broad `src/core/models.py`
+  compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and workflow decision model maintainability
+- Summary: `src/core/models.py` still owned advisory workflow gate DTOs used by gate policy and
+  proposal simulation alongside unrelated proposal-input and proposal-result models.
+- Evidence:
+  - Added `src/core/gate_models.py` for gate reasons, gate summary counters, and gate decisions.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    gate model definitions.
+- Consequence:
+  - Advisory workflow gate output vocabulary now has explicit ownership while downstream callers can
+    continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal-input, reconciliation/tax, and proposal-result model groups from
+    `src/core/models.py` in small compatibility-preserving slices.
+
+## LA-REV-498
+
+- Scope: Core suitability output model ownership
+- Pattern: Suitability evidence, issue classification, summary, and recommended-gate models should
+  live in a focused core model module instead of remaining inline in the broad `src/core/models.py`
+  compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and private-banking suitability model maintainability
+- Summary: `src/core/models.py` still owned suitability output DTOs used by advisory simulation,
+  workflow gate policy, and suitability scanner evidence alongside unrelated gate, proposal-input,
+  and proposal-result models.
+- Evidence:
+  - Added `src/core/suitability_models.py` for suitability evidence lineage, issue classification,
+    summary counts, and suitability result DTOs.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    suitability model definitions.
+- Consequence:
+  - Suitability output vocabulary now has explicit ownership while downstream callers can continue
+    importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting gate, proposal-input, reconciliation/tax, and proposal-result model groups
+    from `src/core/models.py` in small compatibility-preserving slices.
+
+## LA-REV-497
+
+- Scope: Core drift analytics model ownership
+- Pattern: Advisory drift reference, bucket, dimension, highlight, and unmodeled-exposure models
+  should live in a focused core model module instead of remaining inline in the broad
+  `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and drift analytics model maintainability
+- Summary: `src/core/models.py` still owned drift analytics output DTOs used by advisory proposal
+  simulation and drift calculators alongside unrelated suitability, gate, proposal-input, and
+  proposal-result models.
+- Evidence:
+  - Added `src/core/drift_models.py` for reference model summaries, drift bucket/dimension
+    analytics, advisory highlights, unmodeled exposure, and the drift analysis container.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    drift model definitions.
+- Consequence:
+  - Drift analytics output definitions now have explicit ownership while downstream callers can
+    continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting suitability output, gate, proposal-input, and proposal-result model groups
+    from `src/core/models.py` in small compatibility-preserving slices.
+
+## LA-REV-496
+
+- Scope: Core diagnostics and lineage model ownership
+- Pattern: Rule results, suppression/drop diagnostics, settlement cash ladder diagnostics, funding
+  diagnostics, and lineage evidence should live in a focused core model module instead of remaining
+  inline in the broad `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and operational diagnostics maintainability
+- Summary: `src/core/models.py` still owned operational diagnostics and lineage DTOs used by
+  compliance, funding, advisory simulation, and proposal result assembly alongside unrelated drift,
+  suitability, gate, proposal-input, and proposal-result models.
+- Evidence:
+  - Added `src/core/diagnostics_models.py` for rule results, diagnostic events, funding and cash
+    ladder diagnostics, diagnostics containers, and lineage data.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    diagnostics model definitions.
+- Consequence:
+  - Operational diagnostics and lineage evidence now have explicit ownership while downstream
+    callers can continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting drift, suitability output, gate, proposal-input, and proposal-result model
+    groups from `src/core/models.py` in small compatibility-preserving slices.
+
+## LA-REV-495
+
+- Scope: Core advisory order intent model ownership
+- Pattern: Generated advisory security, FX, and cash-flow order intents should live in a focused
+  core model module instead of remaining inline in the broad `src/core/models.py` compatibility
+  surface.
+- Status: Hardened
+- Finding Class: modularity and intent model maintainability
+- Summary: `src/core/models.py` still owned generated order intent DTOs and intent-union aliases
+  used by funding, advisory intent generation, simulation shared logic, and risk integration
+  alongside unrelated diagnostics, gates, and proposal result models.
+- Evidence:
+  - Added `src/core/order_intent_models.py` for intent rationale, security trade intents, FX spot
+    intents, cash-flow intents, and order intent union aliases.
+  - Updated `src/core/models.py` to re-export those models and aliases so existing public imports
+    remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    order intent model definitions.
+- Consequence:
+  - Advisory order intent definitions now have explicit ownership while downstream callers can
+    continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting diagnostics, suitability output, gate, proposal-input, and proposal-result
+    model groups from `src/core/models.py` in small compatibility-preserving slices.
+
+## LA-REV-494
+
+- Scope: Core universe coverage and target-generation trace model ownership
+- Pattern: Universe eligibility, market-data coverage, and target-generation trace models should
+  live in a focused core model module instead of remaining inline in the broad `src/core/models.py`
+  compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and target-generation model maintainability
+- Summary: `src/core/models.py` still owned universe coverage and target trace models that serve the
+  advisory target-generation boundary, alongside unrelated simulation state, diagnostics, intents,
+  gates, and proposal result models.
+- Evidence:
+  - Added `src/core/universe_target_models.py` for excluded instruments, universe coverage/data, and
+    target-generation trace models.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    universe and target model definitions.
+- Consequence:
+  - Universe eligibility and target-generation trace definitions now have explicit ownership while
+    downstream callers can continue importing from `src.core.models` during the broader
+    modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting diagnostics, suitability output, intent, gate, and proposal-result model
+    groups from `src/core/models.py` in small compatibility-preserving slices.
+
+## LA-REV-493
+
+- Scope: Core simulation state and allocation lens model ownership
+- Pattern: Valuation outputs, allocation metrics, proposal allocation lens models, and simulated
+  state snapshots should live in a focused core model module instead of remaining inline in the
+  broad `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and valuation/simulation model maintainability
+- Summary: `src/core/models.py` still owned the valuation/simulation state models used by proposal
+  simulation, suitability scanning, drift analytics, and risk integration alongside unrelated
+  diagnostics, intents, gates, and proposal result models.
+- Evidence:
+  - Added `src/core/simulation_state_models.py` for allocation metrics, proposal allocation lens
+    models, position summaries, and simulated state snapshots.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    simulation state model definitions.
+- Consequence:
+  - Valuation and simulation state definitions now have explicit ownership while downstream callers
+    can continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting diagnostics, suitability output, intent, gate, and proposal-result model
+    groups from `src/core/models.py` in small compatibility-preserving slices.
+
+## LA-REV-492
+
+- Scope: Core engine option and suitability threshold model ownership
+- Pattern: Engine configuration, target/valuation modes, group constraints, and suitability
+  thresholds should live in a focused core model module instead of remaining inline in the broad
+  `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and engine configuration maintainability
+- Summary: `src/core/models.py` still mixed runtime engine configuration with portfolio primitives,
+  diagnostics, suitability outputs, intents, gates, and proposal result models. That made advisory
+  tuning and suitability threshold definitions harder to reason about and test as a cohesive unit.
+- Evidence:
+  - Added `src/core/engine_options_models.py` for engine options, valuation/target modes, group
+    constraints, and suitability threshold definitions.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    engine option model definitions.
+- Consequence:
+  - Engine tuning and suitability threshold definitions now have explicit ownership while downstream
+    callers can continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting diagnostics, suitability output, intent, gate, and proposal-result model
+    groups from `src/core/models.py` in small compatibility-preserving slices.
+
+## LA-REV-491
+
+- Scope: Core portfolio and market data model ownership
+- Pattern: Portfolio snapshots, cash balances, tax lots, market data, reference models, and product
+  shelf entries should live in a focused core model module instead of remaining inline in the broad
+  `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and domain model maintainability
+- Summary: `src/core/models.py` still mixed portfolio/market-data primitives with engine options,
+  diagnostics, suitability, intents, gates, and proposal result models. That made a heavily imported
+  compatibility module the owner of unrelated private-banking data concepts.
+- Evidence:
+  - Added `src/core/portfolio_models.py` for portfolio, market-data, reference-model, tax-lot, and
+    product-shelf model definitions.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    portfolio model definitions.
+- Consequence:
+  - Portfolio and market-data primitives now have explicit domain ownership while downstream callers
+    can continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting engine-option, diagnostics, suitability, and proposal-result model groups
+    from `src/core/models.py` in small compatibility-preserving slices.
+
 ## LA-REV-490
 
 - Scope: Postgres proposal persistence helper dependency direction

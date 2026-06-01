@@ -3,19 +3,13 @@ FILE: src/core/simulation_shared.py
 """
 
 from decimal import Decimal
-from typing import Literal
+from typing import Literal, cast
 
-from src.core.models import (
-    CashBalance,
-    Money,
-    PortfolioSnapshot,
-    Position,
-    ProposalOrderIntent,
-    Reconciliation,
-    RuleResult,
-    SecurityTradeIntent,
-)
+from src.core.diagnostics_models import RuleResult
+from src.core.order_intent_models import ProposalOrderIntent, SecurityTradeIntent
+from src.core.portfolio_models import CashBalance, Money, PortfolioSnapshot, Position
 from src.core.precision_policy import to_decimal
+from src.core.proposal_effect_models import Reconciliation
 
 _CURRENCY_MINOR_UNITS = {
     "BHD": 3,
@@ -73,7 +67,7 @@ def apply_fx_spot_to_portfolio(portfolio: PortfolioSnapshot, intent: ProposalOrd
 def quantize_amount_for_currency(amount: Decimal, currency: str) -> Decimal:
     digits = _CURRENCY_MINOR_UNITS.get(currency, 2)
     quantum = Decimal("1") if digits == 0 else Decimal(f"1e-{digits}")
-    return to_decimal(amount).quantize(quantum)
+    return cast(Decimal, to_decimal(amount).quantize(quantum))
 
 
 def sort_execution_intents(intents: list[ProposalOrderIntent]) -> list[ProposalOrderIntent]:

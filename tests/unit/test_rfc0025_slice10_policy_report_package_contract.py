@@ -9,6 +9,7 @@ WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_evaluations.py")
 REPORTING_SOURCE_PATH = Path("src/core/policy_packs/reporting.py")
+REPORTING_MODELS_SOURCE_PATH = Path("src/core/policy_packs/reporting_models.py")
 REPORT_ADAPTER_SOURCE_PATH = Path("src/integrations/lotus_report/adapter.py")
 REPORT_MAPPING_SOURCE_PATH = Path("src/integrations/lotus_report/request_mapping.py")
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
@@ -52,16 +53,19 @@ def test_rfc0025_slice10_records_report_refs_without_product_surface_promotion()
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     reporting_source = REPORTING_SOURCE_PATH.read_text(encoding="utf-8")
+    reporting_models_source = REPORTING_MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     adapter_source = REPORT_ADAPTER_SOURCE_PATH.read_text(encoding="utf-8")
     mapping_source = REPORT_MAPPING_SOURCE_PATH.read_text(encoding="utf-8")
-    models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
+    compatibility_models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     declaration_source = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry_source = TELEMETRY_PATH.read_text(encoding="utf-8")
     capabilities_source = read_capability_source()
 
     assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in routes_source
-    assert "PolicyEvaluationReportPackageRequest" in models_source
-    assert "PolicyEvaluationReportPackageResponse" in models_source
+    assert "PolicyEvaluationReportPackageRequest" in reporting_models_source
+    assert "PolicyEvaluationReportPackageResponse" in reporting_models_source
+    assert "PolicyEvaluationReportPackageRequest" in compatibility_models_source
+    assert "PolicyEvaluationReportPackageResponse" in compatibility_models_source
     assert "rfc0025.policy-report-package-realization.v1" in reporting_source
     assert "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED" in reporting_source
     assert "POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED" in reporting_source

@@ -5,7 +5,7 @@ from src.api.services.workspace_handoff_errors import run_workspace_handoff_oper
 from src.api.services.workspace_handoff_idempotency import (
     normalize_workspace_handoff_idempotency_key,
 )
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.models import ProposalCreateMetadata, ProposalCreateResponse
 from src.core.workspace.handoff import (
@@ -15,12 +15,12 @@ from src.core.workspace.handoff import (
     complete_workspace_lifecycle_handoff,
     require_handoff_simulate_request,
 )
-from src.core.workspace.models import (
+from src.core.workspace.handoff_models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
-    WorkspaceSession,
 )
 from src.core.workspace.replay import build_workspace_handoff_replay_lineage
+from src.core.workspace.session_models import WorkspaceSession
 
 WorkspaceSimulateRequestBuilder = Callable[[WorkspaceSession], ProposalSimulateRequest]
 WorkspaceLifecycleHandoffExecution = tuple[

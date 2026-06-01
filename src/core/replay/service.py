@@ -15,7 +15,8 @@ from src.core.replay.models import (
     AdvisoryReplayResolvedContext,
     AdvisoryReplaySubject,
 )
-from src.core.workspace.models import WorkspaceSavedVersion, WorkspaceSession
+from src.core.workspace.session_models import WorkspaceSession
+from src.core.workspace.version_models import WorkspaceSavedVersion
 
 
 def build_workspace_saved_version_replay_response(

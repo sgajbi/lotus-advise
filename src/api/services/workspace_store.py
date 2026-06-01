@@ -2,7 +2,7 @@ from collections import OrderedDict
 from typing import OrderedDict as OrderedDictType
 
 from src.api.services.workspace_errors import WorkspaceNotFoundError
-from src.core.workspace.models import WorkspaceSession
+from src.core.workspace.session_models import WorkspaceSession
 
 DEFAULT_WORKSPACE_SESSION_CACHE_SIZE = 500
 

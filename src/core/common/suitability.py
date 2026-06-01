@@ -6,10 +6,10 @@ from src.core.advisory.policy_context import (
     client_context_available,
     mandate_context_available,
 )
-from src.core.models import (
-    EngineOptions,
-    ShelfEntry,
-    SimulatedState,
+from src.core.engine_options_models import EngineOptions
+from src.core.portfolio_models import ShelfEntry
+from src.core.simulation_state_models import SimulatedState
+from src.core.suitability_models import (
     SuitabilityEvidence,
     SuitabilityEvidenceSnapshotIds,
     SuitabilityIssue,

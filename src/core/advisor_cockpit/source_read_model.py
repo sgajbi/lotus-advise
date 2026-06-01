@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from src.core.advisor_cockpit.action_factory import build_source_backed_cockpit_actions
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 from src.core.advisor_cockpit.action_sources import (
     ApprovalDependencyActionSource,
     ClientFollowUpActionSource,
@@ -16,8 +17,7 @@ from src.core.advisor_cockpit.action_sources import (
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
 )
-from src.core.advisor_cockpit.models import AdvisoryActionItem
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalType,

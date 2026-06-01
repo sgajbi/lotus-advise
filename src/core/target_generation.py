@@ -1,7 +1,10 @@
 from decimal import Decimal
 from typing import Any
 
-from src.core.models import DiagnosticsData, EngineOptions, Money, ShelfEntry, TargetInstrument
+from src.core.diagnostics_models import DiagnosticsData
+from src.core.engine_options_models import EngineOptions
+from src.core.portfolio_models import Money, ShelfEntry
+from src.core.universe_target_models import TargetInstrument
 
 _SOLVER_STATUS_OPTIMAL = {"optimal", "optimal_inaccurate"}
 _SOLVER_STATUS_INFEASIBLE = {"infeasible", "infeasible_inaccurate"}

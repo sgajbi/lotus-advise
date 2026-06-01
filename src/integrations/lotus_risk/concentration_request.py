@@ -3,13 +3,11 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from src.core.models import (
-    PositionSummary,
-    ProposalResult,
-    ProposalSimulateRequest,
-    SecurityTradeIntent,
-    ShelfEntry,
-)
+from src.core.order_intent_models import SecurityTradeIntent
+from src.core.portfolio_models import ShelfEntry
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposal_result_models import ProposalResult
+from src.core.simulation_state_models import PositionSummary
 
 
 def build_concentration_request(

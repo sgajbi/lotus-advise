@@ -4,6 +4,10 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import cast
 
+from src.core.advisor_cockpit.action_models import (
+    AdvisoryActionItem,
+    AdvisoryActionItemPage,
+)
 from src.core.advisor_cockpit.action_sources import HouseViewImpactActionSource
 from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
@@ -11,13 +15,6 @@ from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitPreparationPacketPage,
     AdvisorCockpitSnapshotResponse,
     AdvisorCockpitSupportabilityResponse,
-)
-from src.core.advisor_cockpit.models import (
-    AdvisorCockpitOperatingSnapshot,
-    AdvisoryActionItem,
-    AdvisoryActionItemPage,
-    CockpitAcknowledgementState,
-    CockpitCallerContext,
 )
 from src.core.advisor_cockpit.pagination import (
     cockpit_cursor_start,
@@ -30,6 +27,10 @@ from src.core.advisor_cockpit.persistence import (
 from src.core.advisor_cockpit.projection_bounds import (
     bounded_reference,
 )
+from src.core.advisor_cockpit.reference_models import (
+    CockpitAcknowledgementState,
+    CockpitCallerContext,
+)
 from src.core.advisor_cockpit.repository import AdvisorCockpitRepository
 from src.core.advisor_cockpit.rules import (
     apply_cockpit_acknowledgement_state,
@@ -41,6 +42,7 @@ from src.core.advisor_cockpit.service_projection import (
     project_actions_for_caller,
     supportability,
 )
+from src.core.advisor_cockpit.snapshot_models import AdvisorCockpitOperatingSnapshot
 from src.core.advisor_cockpit.source_read_model import (
     COCKPIT_SOURCE_BATCH_MAX_ITEMS,
     AdvisorCockpitSourceBatch,

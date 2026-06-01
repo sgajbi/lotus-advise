@@ -22,20 +22,17 @@ from src.core.common.simulation_shared import (
 from src.core.common.suitability import compute_suitability_result
 from src.core.common.workflow_gates import evaluate_gate_decision
 from src.core.compliance import RuleEngine
-from src.core.models import (
-    CashFlowIntent,
-    EngineOptions,
-    LineageData,
+from src.core.diagnostics_models import LineageData, RuleResult
+from src.core.engine_options_models import EngineOptions, ValuationMode
+from src.core.order_intent_models import CashFlowIntent
+from src.core.portfolio_models import (
     MarketDataSnapshot,
     PortfolioSnapshot,
-    ProposalResult,
-    ProposedCashFlow,
-    ProposedTrade,
     ReferenceModel,
-    RuleResult,
     ShelfEntry,
-    ValuationMode,
 )
+from src.core.proposal_request_models import ProposedCashFlow, ProposedTrade
+from src.core.proposal_result_models import ProposalResult
 from src.core.valuation import build_simulated_state
 
 

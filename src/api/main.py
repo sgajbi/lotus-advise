@@ -36,7 +36,7 @@ from src.api.routers.tactical_house_view import router as tactical_house_view_ro
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.api.workspaces.router import router as workspace_router
-from src.core.workspace.models import WorkspaceStatefulInput
+from src.core.workspace.input_models import WorkspaceStatefulInput
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
 from src.integrations.lotus_core.stateful_context import resolve_stateful_context_with_lotus_core

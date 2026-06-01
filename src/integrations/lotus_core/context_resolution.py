@@ -1,8 +1,8 @@
 import sys
 from dataclasses import dataclass
 
-from src.core.models import ProposalSimulateRequest
-from src.core.workspace.models import WorkspaceResolvedContext, WorkspaceStatefulInput
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.workspace.input_models import WorkspaceResolvedContext, WorkspaceStatefulInput
 
 
 class LotusCoreContextResolutionError(Exception):

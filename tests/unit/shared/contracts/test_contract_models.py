@@ -2,27 +2,442 @@
 FILE: tests/contracts/test_contract_models.py
 """
 
+import ast
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
+from src.core.diagnostics_models import (
+    CashLadderBreach as DiagnosticsCashLadderBreach,
+)
+from src.core.diagnostics_models import (
+    CashLadderPoint as DiagnosticsCashLadderPoint,
+)
+from src.core.diagnostics_models import (
+    DiagnosticsData as DiagnosticsDiagnosticsData,
+)
+from src.core.diagnostics_models import (
+    DroppedIntent as DiagnosticsDroppedIntent,
+)
+from src.core.diagnostics_models import (
+    FundingPlanEntry as DiagnosticsFundingPlanEntry,
+)
+from src.core.diagnostics_models import (
+    GroupConstraintEvent as DiagnosticsGroupConstraintEvent,
+)
+from src.core.diagnostics_models import (
+    InsufficientCashEntry as DiagnosticsInsufficientCashEntry,
+)
+from src.core.diagnostics_models import (
+    LineageData as DiagnosticsLineageData,
+)
+from src.core.diagnostics_models import (
+    RuleResult as DiagnosticsRuleResult,
+)
+from src.core.diagnostics_models import (
+    SuppressedIntent as DiagnosticsSuppressedIntent,
+)
+from src.core.diagnostics_models import (
+    TaxBudgetConstraintEvent as DiagnosticsTaxBudgetConstraintEvent,
+)
+from src.core.drift_models import (
+    DriftAnalysis as DriftDriftAnalysis,
+)
+from src.core.drift_models import (
+    DriftBucketDetail as DriftDriftBucketDetail,
+)
+from src.core.drift_models import (
+    DriftDimensionAnalysis as DriftDriftDimensionAnalysis,
+)
+from src.core.drift_models import (
+    DriftHighlightEntry as DriftDriftHighlightEntry,
+)
+from src.core.drift_models import (
+    DriftHighlights as DriftDriftHighlights,
+)
+from src.core.drift_models import (
+    DriftReferenceModelSummary as DriftDriftReferenceModelSummary,
+)
+from src.core.drift_models import (
+    DriftUnmodeledExposure as DriftDriftUnmodeledExposure,
+)
+from src.core.engine_options_models import (
+    EngineOptions as OptionsEngineOptions,
+)
+from src.core.engine_options_models import (
+    GroupConstraint as OptionsGroupConstraint,
+)
+from src.core.engine_options_models import (
+    SuitabilityThresholds as OptionsSuitabilityThresholds,
+)
+from src.core.engine_options_models import (
+    TargetMethod as OptionsTargetMethod,
+)
+from src.core.engine_options_models import (
+    ValuationMode as OptionsValuationMode,
+)
+from src.core.gate_models import (
+    GateDecision as GateGateDecision,
+)
+from src.core.gate_models import (
+    GateDecisionSummary as GateGateDecisionSummary,
+)
+from src.core.gate_models import (
+    GateReason as GateGateReason,
+)
 from src.core.models import (
     AllocationMetric,
+    CashBalance,
+    CashFlowIntent,
+    CashLadderBreach,
+    CashLadderPoint,
     DiagnosticsData,
+    DriftAnalysis,
+    DriftBucketDetail,
+    DriftDimensionAnalysis,
+    DriftHighlightEntry,
+    DriftHighlights,
+    DriftReferenceModelSummary,
+    DriftUnmodeledExposure,
+    DroppedIntent,
     EngineOptions,
+    ExcludedInstrument,
+    FundingPlanEntry,
+    FxSpotIntent,
+    GateDecision,
+    GateDecisionSummary,
+    GateReason,
     GroupConstraint,
+    GroupConstraintEvent,
+    InsufficientCashEntry,
+    IntentRationale,
+    LineageData,
     MarketDataSnapshot,
     Money,
+    OrderIntent,
     PortfolioSnapshot,
     Position,
+    PositionSummary,
     Price,
+    ProposalAllocationBucket,
+    ProposalAllocationLens,
+    ProposalAllocationView,
+    ProposalOrderIntent,
+    ProposalResult,
+    ProposalSimulateRequest,
+    ProposedCashFlow,
     ProposedTrade,
+    Reconciliation,
+    RuleResult,
+    SecurityTradeIntent,
     ShelfEntry,
     SimulatedState,
+    SuitabilityEvidence,
+    SuitabilityEvidenceSnapshotIds,
+    SuitabilityIssue,
+    SuitabilityResult,
+    SuitabilitySummary,
+    SuitabilityThresholds,
+    SuppressedIntent,
+    TargetData,
+    TargetInstrument,
     TargetMethod,
+    TaxBudgetConstraintEvent,
+    TaxImpact,
     TaxLot,
+    UniverseCoverage,
+    UniverseData,
+    ValuationMode,
 )
+from src.core.order_intent_models import (
+    CashFlowIntent as OrderCashFlowIntent,
+)
+from src.core.order_intent_models import (
+    FxSpotIntent as OrderFxSpotIntent,
+)
+from src.core.order_intent_models import (
+    IntentRationale as OrderIntentRationale,
+)
+from src.core.order_intent_models import (
+    OrderIntent as OrderOrderIntent,
+)
+from src.core.order_intent_models import (
+    ProposalOrderIntent as OrderProposalOrderIntent,
+)
+from src.core.order_intent_models import (
+    SecurityTradeIntent as OrderSecurityTradeIntent,
+)
+from src.core.portfolio_models import (
+    CashBalance as PortfolioCashBalance,
+)
+from src.core.portfolio_models import (
+    MarketDataSnapshot as PortfolioMarketDataSnapshot,
+)
+from src.core.portfolio_models import (
+    Money as PortfolioMoney,
+)
+from src.core.portfolio_models import (
+    PortfolioSnapshot as PortfolioPortfolioSnapshot,
+)
+from src.core.portfolio_models import (
+    Position as PortfolioPosition,
+)
+from src.core.portfolio_models import (
+    Price as PortfolioPrice,
+)
+from src.core.portfolio_models import (
+    ShelfEntry as PortfolioShelfEntry,
+)
+from src.core.portfolio_models import (
+    TaxLot as PortfolioTaxLot,
+)
+from src.core.proposal_effect_models import (
+    Reconciliation as EffectsReconciliation,
+)
+from src.core.proposal_effect_models import (
+    TaxImpact as EffectsTaxImpact,
+)
+from src.core.proposal_request_models import (
+    ProposalSimulateRequest as RequestProposalSimulateRequest,
+)
+from src.core.proposal_request_models import (
+    ProposedCashFlow as RequestProposedCashFlow,
+)
+from src.core.proposal_request_models import (
+    ProposedTrade as RequestProposedTrade,
+)
+from src.core.proposal_result_models import (
+    ProposalResult as ResultProposalResult,
+)
+from src.core.simulation_state_models import (
+    AllocationMetric as SimulationAllocationMetric,
+)
+from src.core.simulation_state_models import (
+    PositionSummary as SimulationPositionSummary,
+)
+from src.core.simulation_state_models import (
+    ProposalAllocationBucket as SimulationProposalAllocationBucket,
+)
+from src.core.simulation_state_models import (
+    ProposalAllocationLens as SimulationProposalAllocationLens,
+)
+from src.core.simulation_state_models import (
+    ProposalAllocationView as SimulationProposalAllocationView,
+)
+from src.core.simulation_state_models import (
+    SimulatedState as SimulationSimulatedState,
+)
+from src.core.suitability_models import (
+    SuitabilityEvidence as SuitabilitySuitabilityEvidence,
+)
+from src.core.suitability_models import (
+    SuitabilityEvidenceSnapshotIds as SuitabilitySuitabilityEvidenceSnapshotIds,
+)
+from src.core.suitability_models import (
+    SuitabilityIssue as SuitabilitySuitabilityIssue,
+)
+from src.core.suitability_models import (
+    SuitabilityResult as SuitabilitySuitabilityResult,
+)
+from src.core.suitability_models import (
+    SuitabilitySummary as SuitabilitySuitabilitySummary,
+)
+from src.core.universe_target_models import (
+    ExcludedInstrument as UniverseExcludedInstrument,
+)
+from src.core.universe_target_models import (
+    TargetData as UniverseTargetData,
+)
+from src.core.universe_target_models import (
+    TargetInstrument as UniverseTargetInstrument,
+)
+from src.core.universe_target_models import (
+    UniverseCoverage as UniverseUniverseCoverage,
+)
+from src.core.universe_target_models import (
+    UniverseData as UniverseUniverseData,
+)
+
+
+def test_core_models_remains_compatibility_reexport_facade():
+    source_path = Path(__file__).resolve().parents[4] / "src" / "core" / "models.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"))
+    inline_definitions = [
+        node.name
+        for node in tree.body
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    assert inline_definitions == []
+
+
+def test_core_runtime_modules_use_focused_model_imports():
+    source_root = Path(__file__).resolve().parents[4] / "src" / "core"
+    runtime_modules = [
+        source_root / "advisory_engine.py",
+        source_root / "compliance.py",
+        source_root / "target_generation.py",
+        source_root / "valuation.py",
+        source_root / "advisory" / "funding.py",
+        source_root / "advisory" / "intents.py",
+        source_root / "common" / "diagnostics.py",
+        source_root / "common" / "drift_analytics.py",
+        source_root / "common" / "intent_dependencies.py",
+        source_root / "common" / "simulation_shared.py",
+        source_root / "common" / "suitability.py",
+        source_root / "common" / "workflow_gates.py",
+    ]
+
+    offenders = [
+        str(path.relative_to(source_root.parents[1]))
+        for path in runtime_modules
+        if "from src.core.models import" in path.read_text(encoding="utf-8")
+    ]
+
+    assert offenders == []
+
+
+def test_proposal_workspace_modules_use_focused_model_imports():
+    source_root = Path(__file__).resolve().parents[4] / "src" / "core"
+    scan_roots = [
+        source_root / "advisory",
+        source_root / "proposals",
+        source_root / "workspace",
+    ]
+
+    offenders = sorted(
+        str(path.relative_to(source_root.parents[1]))
+        for scan_root in scan_roots
+        for path in scan_root.rglob("*.py")
+        if "from src.core.models import" in path.read_text(encoding="utf-8")
+    )
+
+    assert offenders == []
+
+
+def test_api_modules_use_focused_model_imports():
+    source_root = Path(__file__).resolve().parents[4] / "src"
+    api_root = source_root / "api"
+
+    offenders = sorted(
+        str(path.relative_to(source_root.parents[0]))
+        for path in api_root.rglob("*.py")
+        if "from src.core.models import" in path.read_text(encoding="utf-8")
+    )
+
+    assert offenders == []
+
+
+def test_integration_modules_use_focused_model_imports():
+    source_root = Path(__file__).resolve().parents[4] / "src"
+    integrations_root = source_root / "integrations"
+
+    offenders = sorted(
+        str(path.relative_to(source_root.parents[0]))
+        for path in integrations_root.rglob("*.py")
+        if "from src.core.models import" in path.read_text(encoding="utf-8")
+    )
+
+    assert offenders == []
+
+
+def test_core_models_preserves_portfolio_model_import_contract():
+    assert Money is PortfolioMoney
+    assert CashBalance is PortfolioCashBalance
+    assert PortfolioSnapshot is PortfolioPortfolioSnapshot
+    assert Position is PortfolioPosition
+    assert Price is PortfolioPrice
+    assert MarketDataSnapshot is PortfolioMarketDataSnapshot
+    assert ShelfEntry is PortfolioShelfEntry
+    assert TaxLot is PortfolioTaxLot
+
+
+def test_core_models_preserves_engine_options_model_import_contract():
+    assert EngineOptions is OptionsEngineOptions
+    assert GroupConstraint is OptionsGroupConstraint
+    assert SuitabilityThresholds is OptionsSuitabilityThresholds
+    assert TargetMethod is OptionsTargetMethod
+    assert ValuationMode is OptionsValuationMode
+
+
+def test_core_models_preserves_simulation_state_model_import_contract():
+    assert AllocationMetric is SimulationAllocationMetric
+    assert PositionSummary is SimulationPositionSummary
+    assert ProposalAllocationBucket is SimulationProposalAllocationBucket
+    assert ProposalAllocationLens is SimulationProposalAllocationLens
+    assert ProposalAllocationView is SimulationProposalAllocationView
+    assert SimulatedState is SimulationSimulatedState
+
+
+def test_core_models_preserves_universe_target_model_import_contract():
+    assert ExcludedInstrument is UniverseExcludedInstrument
+    assert TargetData is UniverseTargetData
+    assert TargetInstrument is UniverseTargetInstrument
+    assert UniverseCoverage is UniverseUniverseCoverage
+    assert UniverseData is UniverseUniverseData
+
+
+def test_core_models_preserves_order_intent_model_import_contract():
+    assert CashFlowIntent is OrderCashFlowIntent
+    assert FxSpotIntent is OrderFxSpotIntent
+    assert IntentRationale is OrderIntentRationale
+    assert SecurityTradeIntent is OrderSecurityTradeIntent
+    assert OrderIntent == OrderOrderIntent
+    assert ProposalOrderIntent == OrderProposalOrderIntent
+
+
+def test_core_models_preserves_diagnostics_model_import_contract():
+    assert CashLadderBreach is DiagnosticsCashLadderBreach
+    assert CashLadderPoint is DiagnosticsCashLadderPoint
+    assert DiagnosticsData is DiagnosticsDiagnosticsData
+    assert DroppedIntent is DiagnosticsDroppedIntent
+    assert FundingPlanEntry is DiagnosticsFundingPlanEntry
+    assert GroupConstraintEvent is DiagnosticsGroupConstraintEvent
+    assert InsufficientCashEntry is DiagnosticsInsufficientCashEntry
+    assert LineageData is DiagnosticsLineageData
+    assert RuleResult is DiagnosticsRuleResult
+    assert SuppressedIntent is DiagnosticsSuppressedIntent
+    assert TaxBudgetConstraintEvent is DiagnosticsTaxBudgetConstraintEvent
+
+
+def test_core_models_preserves_drift_model_import_contract():
+    assert DriftAnalysis is DriftDriftAnalysis
+    assert DriftBucketDetail is DriftDriftBucketDetail
+    assert DriftDimensionAnalysis is DriftDriftDimensionAnalysis
+    assert DriftHighlightEntry is DriftDriftHighlightEntry
+    assert DriftHighlights is DriftDriftHighlights
+    assert DriftReferenceModelSummary is DriftDriftReferenceModelSummary
+    assert DriftUnmodeledExposure is DriftDriftUnmodeledExposure
+
+
+def test_core_models_preserves_suitability_model_import_contract():
+    assert SuitabilityEvidence is SuitabilitySuitabilityEvidence
+    assert SuitabilityEvidenceSnapshotIds is SuitabilitySuitabilityEvidenceSnapshotIds
+    assert SuitabilityIssue is SuitabilitySuitabilityIssue
+    assert SuitabilityResult is SuitabilitySuitabilityResult
+    assert SuitabilitySummary is SuitabilitySuitabilitySummary
+
+
+def test_core_models_preserves_gate_model_import_contract():
+    assert GateDecision is GateGateDecision
+    assert GateDecisionSummary is GateGateDecisionSummary
+    assert GateReason is GateGateReason
+
+
+def test_core_models_preserves_proposal_effect_model_import_contract():
+    assert Reconciliation is EffectsReconciliation
+    assert TaxImpact is EffectsTaxImpact
+
+
+def test_core_models_preserves_proposal_request_model_import_contract():
+    assert ProposalSimulateRequest is RequestProposalSimulateRequest
+    assert ProposedCashFlow is RequestProposedCashFlow
+    assert ProposedTrade is RequestProposedTrade
+
+
+def test_core_models_preserves_proposal_result_model_import_contract():
+    assert ProposalResult is ResultProposalResult
 
 
 def test_money_validation():

@@ -13,7 +13,7 @@ from src.api.routers.advisory_simulation_responses import (
 from src.api.services import advisory_simulation_service as service
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.artifact_models import ProposalArtifact
-from src.core.models import ProposalResult
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals import ProposalSimulationRequest
 
 router = APIRouter()

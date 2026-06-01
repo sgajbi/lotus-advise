@@ -4,7 +4,8 @@ from typing import Any, Callable, cast
 
 import httpx
 
-from src.core.models import FxRate, Price, ProposalSimulateRequest, ShelfEntry
+from src.core.portfolio_models import FxRate, Price, ShelfEntry
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.integrations.lotus_core.classification import (
     ClassificationTaxonomy,
     classification_supportability_attributes,

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload, strip_keys
-from src.core.models import ProposalResult
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.lifecycle_events import build_new_version_created_event
 from src.core.proposals.models import (
     ProposalRecord,

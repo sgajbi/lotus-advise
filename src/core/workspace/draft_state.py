@@ -1,12 +1,12 @@
-from src.core.models import ProposalSimulateRequest
-from src.core.workspace.identifiers import (
-    new_workspace_cash_flow_id,
-    new_workspace_trade_id,
-)
-from src.core.workspace.models import (
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.workspace.draft_models import (
     WorkspaceCashFlowDraft,
     WorkspaceDraftState,
     WorkspaceTradeDraft,
+)
+from src.core.workspace.identifiers import (
+    new_workspace_cash_flow_id,
+    new_workspace_trade_id,
 )
 
 

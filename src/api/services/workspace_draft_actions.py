@@ -5,11 +5,12 @@ from src.api.services.workspace_errors import (
     WorkspaceNotFoundError,
     safe_workspace_error_detail,
 )
+from src.core.workspace.action_models import WorkspaceDraftActionRequest
 from src.core.workspace.draft_actions import (
     WorkspaceDraftActionError,
     apply_workspace_draft_action_to_state,
 )
-from src.core.workspace.models import WorkspaceDraftActionRequest, WorkspaceSession
+from src.core.workspace.session_models import WorkspaceSession
 
 
 def apply_workspace_draft_action_to_session(

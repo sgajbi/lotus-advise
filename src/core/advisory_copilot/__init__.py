@@ -3,6 +3,10 @@ from src.core.advisory_copilot.catalog import (
     get_copilot_action_definition,
     list_copilot_action_definitions,
 )
+from src.core.advisory_copilot.catalog_models import (
+    CopilotActionDefinition,
+    CopilotBusinessProjection,
+)
 from src.core.advisory_copilot.evidence_packets import (
     ACTION_REQUIRED_EVIDENCE_SECTIONS,
     SOURCE_EVIDENCE_SECTIONS,
@@ -17,24 +21,7 @@ from src.core.advisory_copilot.guardrails import (
     evaluate_copilot_guardrails,
     guardrail_reason_for_intent,
 )
-from src.core.advisory_copilot.models import (
-    CopilotActionDefinition,
-    CopilotActionFamily,
-    CopilotAudience,
-    CopilotBusinessProjection,
-    CopilotClientReadyPosture,
-    CopilotEvidenceAccessClass,
-    CopilotEvidencePacket,
-    CopilotEvidencePacketSection,
-    CopilotEvidenceSectionInput,
-    CopilotLineageRef,
-    CopilotRetentionClass,
-    CopilotReviewPosture,
-    CopilotSourceDependency,
-    CopilotSourceRef,
-    CopilotUnsupportedEvidence,
-    CopilotUnsupportedEvidenceReason,
-)
+from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
 from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
     business_projection_for_action,
@@ -45,6 +32,7 @@ from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunIdempotencyRecord,
     AdvisoryCopilotRunRecord,
 )
+from src.core.advisory_copilot.reference_models import CopilotLineageRef, CopilotSourceRef
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import (
     REVIEW_ACTION_TO_POSTURE,
@@ -52,6 +40,10 @@ from src.core.advisory_copilot.review import (
     CopilotReviewAction,
     is_terminal_review_posture,
     review_posture_for_action,
+)
+from src.core.advisory_copilot.section_models import (
+    CopilotEvidencePacketSection,
+    CopilotEvidenceSectionInput,
 )
 from src.core.advisory_copilot.service import (
     AdvisoryCopilotReviewResult,
@@ -64,6 +56,17 @@ from src.core.advisory_copilot.service import (
     retention_expires_at,
     save_advisory_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.type_models import (
+    CopilotActionFamily,
+    CopilotAudience,
+    CopilotClientReadyPosture,
+    CopilotEvidenceAccessClass,
+    CopilotRetentionClass,
+    CopilotReviewPosture,
+    CopilotSourceDependency,
+    CopilotUnsupportedEvidenceReason,
+)
+from src.core.advisory_copilot.unsupported_models import CopilotUnsupportedEvidence
 from src.core.advisory_copilot.workflow_pack import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,

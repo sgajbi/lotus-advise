@@ -17,7 +17,8 @@ from src.core.advisory.alternatives_strategies import (
     StrategyTradeIntent,
     build_candidate_plan,
 )
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposal_result_models import ProposalResult
 
 _READY_STATUSES = {"FEASIBLE", "FEASIBLE_WITH_REVIEW"}
 _RANKING_POLICY_VERSION = "advisory-ranking.2026-04"

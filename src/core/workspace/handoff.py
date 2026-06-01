@@ -1,7 +1,7 @@
 from typing import Any, cast
 
 from src.core.advisory.policy_context import ProposalPolicySelectors
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals.context import (
     ResolvedProposalContext,
     build_context_resolution_evidence,
@@ -13,13 +13,13 @@ from src.core.proposals.models import (
     ProposalResolvedContext,
     ProposalVersionRequest,
 )
-from src.core.workspace.models import (
+from src.core.workspace.handoff_models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
-    WorkspaceLifecycleLink,
-    WorkspaceSession,
 )
 from src.core.workspace.replay import apply_workspace_handoff_replay_lineage
+from src.core.workspace.session_models import WorkspaceSession
+from src.core.workspace.version_models import WorkspaceLifecycleLink
 
 
 class WorkspaceHandoffError(ValueError):

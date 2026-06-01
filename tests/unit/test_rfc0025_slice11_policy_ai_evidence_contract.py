@@ -9,6 +9,7 @@ WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_evaluations.py")
 AI_SOURCE_PATH = Path("src/core/policy_packs/ai.py")
+AI_MODELS_SOURCE_PATH = Path("src/core/policy_packs/ai_models.py")
 AI_ADAPTER_SOURCE_PATH = Path("src/integrations/lotus_ai/policy_evidence.py")
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
 DECLARATION_PATH = Path("contracts/domain-data-products/lotus-advise-products.v1.json")
@@ -51,15 +52,18 @@ def test_rfc0025_slice11_records_ai_lineage_without_product_surface_promotion() 
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     ai_source = AI_SOURCE_PATH.read_text(encoding="utf-8")
+    ai_models_source = AI_MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     adapter_source = AI_ADAPTER_SOURCE_PATH.read_text(encoding="utf-8")
-    models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
+    compatibility_models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     declaration_source = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry_source = TELEMETRY_PATH.read_text(encoding="utf-8")
     capabilities_source = read_capability_source()
 
     assert "/advisory/policy-evaluations/{evaluation_id}/ai-evidence" in routes_source
-    assert "PolicyEvaluationAiEvidenceRequest" in models_source
-    assert "PolicyEvaluationAiEvidenceResponse" in models_source
+    assert "PolicyEvaluationAiEvidenceRequest" in ai_models_source
+    assert "PolicyEvaluationAiEvidenceResponse" in ai_models_source
+    assert "PolicyEvaluationAiEvidenceRequest" in compatibility_models_source
+    assert "PolicyEvaluationAiEvidenceResponse" in compatibility_models_source
     assert "rfc0025.policy-ai-evidence-boundary.v1" in ai_source
     assert "POLICY_EVALUATION_AI_EVIDENCE_RECORDED" in ai_source
     assert "POLICY_AI_EVIDENCE_FORBIDDEN_ACTION" in ai_source

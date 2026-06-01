@@ -1,15 +1,10 @@
 from collections.abc import Iterable
 from typing import Literal
 
-from src.core.models import (
-    DiagnosticsData,
-    EngineOptions,
-    GateDecision,
-    GateDecisionSummary,
-    GateReason,
-    RuleResult,
-    SuitabilityResult,
-)
+from src.core.diagnostics_models import DiagnosticsData, RuleResult
+from src.core.engine_options_models import EngineOptions
+from src.core.gate_models import GateDecision, GateDecisionSummary, GateReason
+from src.core.suitability_models import SuitabilityResult
 
 _SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 

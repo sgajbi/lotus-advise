@@ -9,7 +9,8 @@ from src.core.advisory.alternatives_models import (
 from src.core.advisory.alternatives_normalizer import NormalizedProposalAlternativesRequest
 from src.core.advisory.alternatives_strategies import AlternativeCandidateSeed
 from src.core.common.canonical import hash_canonical_payload
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposal_result_models import ProposalResult
 
 _SIMULATION_AUTHORITY = "lotus_core"
 _RISK_AUTHORITY = "lotus_risk"

@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from src.core.advisory_copilot import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,
+    CopilotActionDefinition,
+    CopilotActionFamily,
+    CopilotAudience,
+    CopilotBusinessProjection,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
@@ -23,6 +30,113 @@ from src.core.advisory_copilot import (
     review_posture_for_action,
     workflow_pack_id_for_action,
 )
+from src.core.advisory_copilot.business_text import (
+    assert_copilot_business_safe_text as FocusedAssertCopilotBusinessSafeText,
+)
+from src.core.advisory_copilot.business_text import (
+    contains_copilot_business_technical_detail as focused_contains_technical_detail,
+)
+from src.core.advisory_copilot.catalog_models import (
+    CopilotActionDefinition as FocusedCopilotActionDefinition,
+)
+from src.core.advisory_copilot.catalog_models import (
+    CopilotBusinessProjection as FocusedCopilotBusinessProjection,
+)
+from src.core.advisory_copilot.models import (
+    CopilotActionDefinition as CompatibilityCopilotActionDefinition,
+)
+from src.core.advisory_copilot.models import (
+    CopilotActionFamily as CompatibilityCopilotActionFamily,
+)
+from src.core.advisory_copilot.models import CopilotAudience as CompatibilityCopilotAudience
+from src.core.advisory_copilot.models import (
+    CopilotBusinessProjection as CompatibilityCopilotBusinessProjection,
+)
+from src.core.advisory_copilot.models import (
+    CopilotClientReadyPosture as CompatibilityCopilotClientReadyPosture,
+)
+from src.core.advisory_copilot.models import (
+    CopilotEvidenceAccessClass as CompatibilityCopilotEvidenceAccessClass,
+)
+from src.core.advisory_copilot.models import (
+    CopilotEvidencePacket as CompatibilityCopilotEvidencePacket,
+)
+from src.core.advisory_copilot.models import (
+    CopilotEvidencePacketSection as CompatibilityCopilotEvidencePacketSection,
+)
+from src.core.advisory_copilot.models import (
+    CopilotEvidenceSectionInput as CompatibilityCopilotEvidenceSectionInput,
+)
+from src.core.advisory_copilot.models import (
+    CopilotLineageRef as CompatibilityCopilotLineageRef,
+)
+from src.core.advisory_copilot.models import (
+    CopilotRetentionClass as CompatibilityCopilotRetentionClass,
+)
+from src.core.advisory_copilot.models import (
+    CopilotReviewPosture as CompatibilityCopilotReviewPosture,
+)
+from src.core.advisory_copilot.models import (
+    CopilotSourceDependency as CompatibilityCopilotSourceDependency,
+)
+from src.core.advisory_copilot.models import (
+    CopilotSourceRef as CompatibilityCopilotSourceRef,
+)
+from src.core.advisory_copilot.models import (
+    CopilotUnsupportedEvidence as CompatibilityCopilotUnsupportedEvidence,
+)
+from src.core.advisory_copilot.models import (
+    CopilotUnsupportedEvidenceReason as CompatibilityCopilotUnsupportedEvidenceReason,
+)
+from src.core.advisory_copilot.models import (
+    assert_copilot_business_safe_text as CompatibilityAssertCopilotBusinessSafeText,
+)
+from src.core.advisory_copilot.models import (
+    contains_copilot_business_technical_detail as compatibility_contains_technical_detail,
+)
+from src.core.advisory_copilot.packet_models import (
+    CopilotEvidencePacket as FocusedCopilotEvidencePacket,
+)
+from src.core.advisory_copilot.reference_models import (
+    CopilotLineageRef as FocusedCopilotLineageRef,
+)
+from src.core.advisory_copilot.reference_models import (
+    CopilotSourceRef as FocusedCopilotSourceRef,
+)
+from src.core.advisory_copilot.section_models import (
+    CopilotEvidencePacketSection as FocusedCopilotEvidencePacketSection,
+)
+from src.core.advisory_copilot.section_models import (
+    CopilotEvidenceSectionInput as FocusedCopilotEvidenceSectionInput,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotActionFamily as FocusedCopilotActionFamily,
+)
+from src.core.advisory_copilot.type_models import CopilotAudience as FocusedCopilotAudience
+from src.core.advisory_copilot.type_models import (
+    CopilotClientReadyPosture as FocusedCopilotClientReadyPosture,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotEvidenceAccessClass as FocusedCopilotEvidenceAccessClass,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotRetentionClass as FocusedCopilotRetentionClass,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotReviewPosture as FocusedCopilotReviewPosture,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotSourceDependency as FocusedCopilotSourceDependency,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotUnsupportedEvidenceReason as FocusedCopilotUnsupportedEvidenceReason,
+)
+from src.core.advisory_copilot.unsupported_models import (
+    CopilotUnsupportedEvidence as FocusedCopilotUnsupportedEvidence,
+)
+
+ADVISORY_COPILOT_MODELS_PATH = Path("src/core/advisory_copilot/models.py")
+SRC_ROOT = Path("src")
 
 
 def test_copilot_catalog_defines_supported_actions_without_client_ready_claims() -> None:
@@ -46,6 +160,95 @@ def test_copilot_catalog_defines_supported_actions_without_client_ready_claims()
         assert definition.workbench_surface_key.startswith("advisory_copilot.")
         assert definition.required_source_dependencies
         assert definition.output_evidence_classes
+
+
+def test_advisory_copilot_models_preserve_type_import_contract() -> None:
+    assert CopilotActionFamily is FocusedCopilotActionFamily
+    assert CopilotAudience is FocusedCopilotAudience
+    assert CompatibilityCopilotActionFamily is FocusedCopilotActionFamily
+    assert CompatibilityCopilotAudience is FocusedCopilotAudience
+    assert CompatibilityCopilotClientReadyPosture is FocusedCopilotClientReadyPosture
+    assert CompatibilityCopilotEvidenceAccessClass is FocusedCopilotEvidenceAccessClass
+    assert CompatibilityCopilotRetentionClass is FocusedCopilotRetentionClass
+    assert CompatibilityCopilotReviewPosture is FocusedCopilotReviewPosture
+    assert CompatibilityCopilotSourceDependency is FocusedCopilotSourceDependency
+    assert CompatibilityCopilotUnsupportedEvidenceReason is (
+        FocusedCopilotUnsupportedEvidenceReason
+    )
+
+
+def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_MODELS_PATH.read_text(encoding="utf-8"))
+    literal_assignments = [
+        node.targets[0].id
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id.startswith("Copilot")
+    ]
+
+    assert literal_assignments == []
+
+
+def test_advisory_copilot_business_text_import_contract() -> None:
+    assert CompatibilityAssertCopilotBusinessSafeText is FocusedAssertCopilotBusinessSafeText
+    assert compatibility_contains_technical_detail is focused_contains_technical_detail
+
+    FocusedAssertCopilotBusinessSafeText("Review policy evidence for advisor use.")
+    assert focused_contains_technical_detail("raw prompt must not be exposed") is True
+
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        FocusedAssertCopilotBusinessSafeText("Provider response must not appear.")
+
+
+def test_advisory_copilot_models_preserve_reference_import_contract() -> None:
+    assert CopilotSourceRef is FocusedCopilotSourceRef
+    assert CopilotLineageRef is FocusedCopilotLineageRef
+    assert CompatibilityCopilotSourceRef is FocusedCopilotSourceRef
+    assert CompatibilityCopilotLineageRef is FocusedCopilotLineageRef
+
+
+def test_advisory_copilot_models_preserve_unsupported_evidence_import_contract() -> None:
+    assert CopilotUnsupportedEvidence is FocusedCopilotUnsupportedEvidence
+    assert CompatibilityCopilotUnsupportedEvidence is FocusedCopilotUnsupportedEvidence
+
+
+def test_advisory_copilot_models_preserve_section_import_contract() -> None:
+    assert CopilotEvidencePacketSection is FocusedCopilotEvidencePacketSection
+    assert CopilotEvidenceSectionInput is FocusedCopilotEvidenceSectionInput
+    assert CompatibilityCopilotEvidencePacketSection is FocusedCopilotEvidencePacketSection
+    assert CompatibilityCopilotEvidenceSectionInput is FocusedCopilotEvidenceSectionInput
+
+
+def test_advisory_copilot_models_preserve_catalog_import_contract() -> None:
+    assert CopilotActionDefinition is FocusedCopilotActionDefinition
+    assert CopilotBusinessProjection is FocusedCopilotBusinessProjection
+    assert CompatibilityCopilotActionDefinition is FocusedCopilotActionDefinition
+    assert CompatibilityCopilotBusinessProjection is FocusedCopilotBusinessProjection
+
+
+def test_advisory_copilot_models_preserve_packet_import_contract() -> None:
+    assert CopilotEvidencePacket is FocusedCopilotEvidencePacket
+    assert CompatibilityCopilotEvidencePacket is FocusedCopilotEvidencePacket
+
+
+def test_advisory_copilot_models_is_pure_compatibility_facade() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_MODELS_PATH.read_text(encoding="utf-8"))
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+
+def test_production_code_uses_focused_advisory_copilot_model_imports() -> None:
+    compatibility_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != ADVISORY_COPILOT_MODELS_PATH.as_posix()
+        and "src.core.advisory_copilot.models" in path.read_text(encoding="utf-8")
+    )
+
+    assert compatibility_importers == []
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:

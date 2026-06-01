@@ -7,7 +7,7 @@ from src.api.services.advisory_simulation_errors import (
     simulation_idempotency_conflict_exception,
     simulation_idempotency_store_unavailable_exception,
 )
-from src.core.models import ProposalResult
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.models import ProposalSimulationIdempotencyRecord
 from src.core.proposals.repository import ProposalRepository
 

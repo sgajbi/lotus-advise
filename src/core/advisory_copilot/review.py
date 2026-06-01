@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from src.core.advisory_copilot.models import CopilotReviewPosture
+from src.core.advisory_copilot.type_models import CopilotReviewPosture
 
 CopilotReviewAction = Literal["APPROVE_FOR_INTERNAL_USE", "REJECT", "SUPERSEDE", "EXPIRE"]
 

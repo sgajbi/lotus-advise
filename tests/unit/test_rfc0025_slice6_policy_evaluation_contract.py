@@ -6,6 +6,7 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 EVALUATION_SOURCE_PATH = Path("src/core/policy_packs/evaluation.py")
+EVALUATION_MODELS_SOURCE_PATH = Path("src/core/policy_packs/evaluation_models.py")
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
 READINESS_SOURCE_PATH = Path("src/core/proposals/policy_source_readiness.py")
 SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
@@ -40,6 +41,7 @@ def test_rfc0025_slice6_keeps_product_surface_and_persistence_gated() -> None:
     slice6_text = SLICE6_PATH.read_text(encoding="utf-8")
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
     supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
+    evaluation_models_source = EVALUATION_MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     readiness_source = READINESS_SOURCE_PATH.read_text(encoding="utf-8")
 
@@ -61,7 +63,7 @@ def test_rfc0025_slice6_keeps_product_surface_and_persistence_gated() -> None:
         supportability_source
     )
     assert "PolicyRuleEvaluationResult" in models_source
-    assert "source_authority_refs" in models_source
+    assert "source_authority_refs" in evaluation_models_source
     assert "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE" in readiness_source
     assert "INTERNAL_ENGINE_ONLY_NO_PERSISTED_API" in readiness_source
     assert "certified APIs" in supported_features

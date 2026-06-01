@@ -1,10 +1,9 @@
-from src.core.workspace.models import (
-    WorkspaceDraftState,
+from src.core.workspace.draft_models import WorkspaceDraftState
+from src.core.workspace.input_models import (
     WorkspaceResolvedContext,
-    WorkspaceSession,
-    WorkspaceSessionCreateRequest,
     WorkspaceStatelessInput,
 )
+from src.core.workspace.session_models import WorkspaceSession, WorkspaceSessionCreateRequest
 
 
 def build_stateless_workspace_resolved_context(

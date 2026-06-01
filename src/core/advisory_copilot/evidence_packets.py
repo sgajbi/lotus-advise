@@ -5,17 +5,19 @@ import json
 from types import MappingProxyType
 from typing import Literal
 
-from src.core.advisory_copilot.models import (
-    CopilotActionFamily,
-    CopilotAudience,
-    CopilotEvidencePacket,
+from src.core.advisory_copilot.business_text import assert_copilot_business_safe_text
+from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
+from src.core.advisory_copilot.reference_models import CopilotLineageRef
+from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
-    CopilotLineageRef,
-    CopilotSourceDependency,
-    CopilotUnsupportedEvidence,
-    assert_copilot_business_safe_text,
 )
+from src.core.advisory_copilot.type_models import (
+    CopilotActionFamily,
+    CopilotAudience,
+    CopilotSourceDependency,
+)
+from src.core.advisory_copilot.unsupported_models import CopilotUnsupportedEvidence
 
 CopilotEvidenceSectionKey = Literal[
     "PROPOSAL_CONTEXT",

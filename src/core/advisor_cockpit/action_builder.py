@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from src.core.advisor_cockpit import action_components
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 from src.core.advisor_cockpit.action_sources import CockpitActionConstructionInput
-from src.core.advisor_cockpit.models import AdvisoryActionItem
 from src.core.advisor_cockpit.projection_bounds import bounded_optional_reference
 
 LOTUS_ADVISE_SOURCE_SYSTEM = action_components.LOTUS_ADVISE_SOURCE_SYSTEM

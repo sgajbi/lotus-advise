@@ -33,7 +33,8 @@ from src.core.advisory.narrative import build_deterministic_proposal_narrative
 from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.common.workflow_gates import evaluate_gate_decision
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposal_result_models import ProposalResult
 
 _ZERO = Decimal("0")
 

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import cast
 
 from src.api.services import workspace_saved_versions, workspace_store
 from src.api.services.workspace_context_resolution import build_workspace_simulate_request
@@ -6,21 +7,29 @@ from src.api.services.workspace_draft_actions import apply_workspace_draft_actio
 from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
 from src.api.services.workspace_reevaluations import reevaluate_workspace_session_state
 from src.api.services.workspace_session_creation import build_workspace_session_create_response
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-from src.core.workspace.identifiers import new_workspace_id
-from src.core.workspace.models import (
-    WorkspaceCompareRequest,
-    WorkspaceCompareResponse,
+from src.core.workspace.action_models import (
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
+)
+from src.core.workspace.compare_models import (
+    WorkspaceCompareRequest,
+    WorkspaceCompareResponse,
+)
+from src.core.workspace.handoff_models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
+)
+from src.core.workspace.identifiers import new_workspace_id
+from src.core.workspace.save_models import (
     WorkspaceResumeRequest,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
+)
+from src.core.workspace.session_models import (
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
@@ -48,7 +57,7 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
         simulate_request_builder=_build_simulate_request_for_workspace,
     )
     _save_workspace_session(reevaluated_session)
-    return reevaluated_session
+    return cast(WorkspaceSession, reevaluated_session)
 
 
 def _save_workspace_session(session: WorkspaceSession) -> None:
@@ -57,7 +66,7 @@ def _save_workspace_session(session: WorkspaceSession) -> None:
 
 
 def get_workspace_session(workspace_id: str) -> WorkspaceSession:
-    return workspace_store.get_workspace_session(workspace_id)
+    return cast(WorkspaceSession, workspace_store.get_workspace_session(workspace_id))
 
 
 def reset_workspace_sessions_for_tests() -> None:
@@ -74,7 +83,7 @@ def create_workspace_session(
         fallback_as_of=_current_business_date_iso(),
     )
     _save_workspace_session(response.workspace)
-    return response
+    return cast(WorkspaceSessionCreateResponse, response)
 
 
 def apply_workspace_draft_action(
@@ -92,17 +101,23 @@ def save_workspace_version(
     workspace_id: str,
     request: WorkspaceSaveRequest,
 ) -> WorkspaceSaveResponse:
-    return workspace_saved_versions.save_workspace_version(
-        workspace_id,
-        request,
-        saved_at=_utc_now_iso(),
+    return cast(
+        WorkspaceSaveResponse,
+        workspace_saved_versions.save_workspace_version(
+            workspace_id,
+            request,
+            saved_at=_utc_now_iso(),
+        ),
     )
 
 
 def list_workspace_saved_versions(
     workspace_id: str,
 ) -> WorkspaceSavedVersionListResponse:
-    return workspace_saved_versions.list_workspace_saved_versions(workspace_id)
+    return cast(
+        WorkspaceSavedVersionListResponse,
+        workspace_saved_versions.list_workspace_saved_versions(workspace_id),
+    )
 
 
 def get_workspace_saved_version_replay(
@@ -119,14 +134,20 @@ def resume_workspace_version(
     workspace_id: str,
     request: WorkspaceResumeRequest,
 ) -> WorkspaceSession:
-    return workspace_saved_versions.resume_workspace_version(workspace_id, request)
+    return cast(
+        WorkspaceSession,
+        workspace_saved_versions.resume_workspace_version(workspace_id, request),
+    )
 
 
 def compare_workspace_to_saved_version(
     workspace_id: str,
     request: WorkspaceCompareRequest,
 ) -> WorkspaceCompareResponse:
-    return workspace_saved_versions.compare_workspace_to_saved_version(workspace_id, request)
+    return cast(
+        WorkspaceCompareResponse,
+        workspace_saved_versions.compare_workspace_to_saved_version(workspace_id, request),
+    )
 
 
 def handoff_workspace_to_proposal_lifecycle(
@@ -148,4 +169,4 @@ def handoff_workspace_to_proposal_lifecycle(
         completed_at=_utc_now_iso(),
     )
     _save_workspace_session(session)
-    return response
+    return cast(WorkspaceLifecycleHandoffResponse, response)

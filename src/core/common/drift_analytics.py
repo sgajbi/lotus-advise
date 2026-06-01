@@ -1,8 +1,7 @@
 from collections.abc import Iterable, Sequence
 from decimal import Decimal
 
-from src.core.models import (
-    AllocationMetric,
+from src.core.drift_models import (
     DriftAnalysis,
     DriftBucketDetail,
     DriftDimensionAnalysis,
@@ -10,10 +9,15 @@ from src.core.models import (
     DriftHighlights,
     DriftReferenceModelSummary,
     DriftUnmodeledExposure,
-    EngineOptions,
+)
+from src.core.engine_options_models import EngineOptions
+from src.core.portfolio_models import (
     ReferenceAssetClassTarget,
     ReferenceInstrumentTarget,
     ReferenceModel,
+)
+from src.core.simulation_state_models import (
+    AllocationMetric,
     SimulatedState,
 )
 

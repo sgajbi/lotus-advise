@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from src.core.models import CashBalance, FxRate, Money, Position, Price, ShelfEntry
+from src.core.portfolio_models import CashBalance, FxRate, Money, Position, Price, ShelfEntry
 from src.integrations.lotus_core.classification import (
     ClassificationTaxonomy,
     classification_supportability_attributes,

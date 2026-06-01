@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from decimal import Decimal
+from typing import cast
 
 from src.core.advisory.decision_summary_models import (
     ProposalDecisionApprovalRequirement,
     ProposalDecisionMaterialChange,
     ProposalDecisionMissingEvidence,
 )
-from src.core.models import AllocationMetric, ProposalResult, SimulatedState
+from src.core.proposal_result_models import ProposalResult
+from src.core.simulation_state_models import AllocationMetric, SimulatedState
 
 _ZERO = Decimal("0")
 _ASSET_CLASS_DELTA_THRESHOLD = Decimal("0.05")
@@ -277,7 +279,7 @@ def _weight_map(rows: Sequence[AllocationMetric]) -> dict[str, Decimal]:
 def _cash_weight(state: SimulatedState) -> Decimal:
     for row in state.allocation_by_asset_class:
         if row.key == "CASH":
-            return row.weight
+            return cast(Decimal, row.weight)
     return _ZERO
 
 

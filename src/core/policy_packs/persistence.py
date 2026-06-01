@@ -8,16 +8,18 @@ from src.core.common.canonical import hash_canonical_payload
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.policy_packs.catalog import get_policy_pack_version
 from src.core.policy_packs.evaluation import evaluate_policy_pack_version
-from src.core.policy_packs.models import (
+from src.core.policy_packs.evaluation_models import PolicyPackEvaluationResponse
+from src.core.policy_packs.persistence_models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationEventType,
-    PolicyEvaluationLineageResponse,
     PolicyEvaluationPersistenceResult,
     PolicyEvaluationRecord,
     PolicyEvaluationReplayResponse,
+)
+from src.core.policy_packs.projection_models import (
+    PolicyEvaluationLineageResponse,
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,
-    PolicyPackEvaluationResponse,
 )
 from src.core.policy_packs.supportability import (
     POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION,

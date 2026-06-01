@@ -5,14 +5,16 @@ from typing import Any
 
 import httpx
 
-from src.core.models import (
+from src.core.engine_options_models import (
     EngineOptions,
-    MarketDataSnapshot,
-    PortfolioSnapshot,
-    ProposalSimulateRequest,
     ValuationMode,
 )
-from src.core.workspace.models import WorkspaceResolvedContext, WorkspaceStatefulInput
+from src.core.portfolio_models import (
+    MarketDataSnapshot,
+    PortfolioSnapshot,
+)
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.workspace.input_models import WorkspaceResolvedContext, WorkspaceStatefulInput
 from src.integrations.lotus_core import classification as _classification
 from src.integrations.lotus_core import stateful_context_hydration as _hydration
 from src.integrations.lotus_core.context_resolution import (

@@ -1,4 +1,4 @@
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 
 PROPOSAL_SIMULATION_DISABLED_MESSAGE = (
     "PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true"

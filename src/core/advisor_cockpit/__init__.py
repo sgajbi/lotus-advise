@@ -14,6 +14,10 @@ from src.core.advisor_cockpit.action_factory import (
     build_supportability_degraded_action,
     build_unsupported_capability_action,
 )
+from src.core.advisor_cockpit.action_models import (
+    AdvisoryActionItem,
+    AdvisoryActionItemPage,
+)
 from src.core.advisor_cockpit.action_sources import (
     ApprovalDependencyActionSource,
     ClientFollowUpActionSource,
@@ -36,26 +40,6 @@ from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitSnapshotResponse,
     AdvisorCockpitSupportabilityResponse,
 )
-from src.core.advisor_cockpit.models import (
-    AdvisorCockpitActionFamily,
-    AdvisorCockpitActionPriority,
-    AdvisorCockpitActionStatus,
-    AdvisorCockpitCallerRole,
-    AdvisorCockpitOperatingSnapshot,
-    AdvisorCockpitOwnerRole,
-    AdvisorCockpitSlaAgeBand,
-    AdvisorCockpitUnsupportedCapability,
-    AdvisoryActionItem,
-    AdvisoryActionItemPage,
-    CockpitAcknowledgementState,
-    CockpitCallerContext,
-    CockpitDependencyReadiness,
-    CockpitEvidenceAccessClass,
-    CockpitEvidenceRef,
-    CockpitLineageRef,
-    CockpitSourceReadinessGap,
-    MeetingPreparationPacket,
-)
 from src.core.advisor_cockpit.pagination import (
     COCKPIT_ACTION_DEFAULT_PAGE_SIZE,
     COCKPIT_ACTION_MAX_PAGE_SIZE,
@@ -65,6 +49,14 @@ from src.core.advisor_cockpit.pagination import (
 from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitAcknowledgementState,
+    CockpitCallerContext,
+    CockpitDependencyReadiness,
+    CockpitEvidenceRef,
+    CockpitLineageRef,
+    CockpitSourceReadinessGap,
 )
 from src.core.advisor_cockpit.repository import AdvisorCockpitRepository
 from src.core.advisor_cockpit.rules import (
@@ -82,6 +74,10 @@ from src.core.advisor_cockpit.service import (
     COCKPIT_SOURCE_LIMIT,
     AdvisorCockpitService,
 )
+from src.core.advisor_cockpit.snapshot_models import (
+    AdvisorCockpitOperatingSnapshot,
+    MeetingPreparationPacket,
+)
 from src.core.advisor_cockpit.source_read_model import (
     ACTIVE_PROPOSAL_STATES,
     APPROVAL_DEPENDENCY_STATES,
@@ -91,6 +87,16 @@ from src.core.advisor_cockpit.source_read_model import (
     AdvisorCockpitSourceBatch,
     AdvisorCockpitSourceReadModel,
     build_advisor_cockpit_source_read_model,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionFamily,
+    AdvisorCockpitActionPriority,
+    AdvisorCockpitActionStatus,
+    AdvisorCockpitCallerRole,
+    AdvisorCockpitOwnerRole,
+    AdvisorCockpitSlaAgeBand,
+    AdvisorCockpitUnsupportedCapability,
+    CockpitEvidenceAccessClass,
 )
 from src.core.advisor_cockpit.vocabulary import (
     cockpit_action_sort_key,

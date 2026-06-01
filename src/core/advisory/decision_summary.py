@@ -1,3 +1,5 @@
+from typing import cast
+
 from src.core.advisory.decision_material_changes import build_material_changes
 from src.core.advisory.decision_requirements import build_approval_requirements
 from src.core.advisory.decision_summary_models import (
@@ -12,7 +14,8 @@ from src.core.advisory.decision_summary_models import (
     ProposalDecisionSummary,
 )
 from src.core.advisory.policy_context import client_context_available, mandate_context_available
-from src.core.models import ProposalResult, SuitabilityResult
+from src.core.proposal_result_models import ProposalResult
+from src.core.suitability_models import SuitabilityResult
 
 _DECISION_POLICY_VERSION = "advisory-decision-policy.2026-04"
 
@@ -98,7 +101,7 @@ def _primary_reason_code(
     if decision_status == "INSUFFICIENT_EVIDENCE" and missing_evidence:
         return missing_evidence[0].reason_code
     if result.gate_decision is not None and result.gate_decision.reasons:
-        return result.gate_decision.reasons[0].reason_code
+        return cast(str, result.gate_decision.reasons[0].reason_code)
     if missing_evidence:
         return missing_evidence[0].reason_code
     if decision_status == "READY_FOR_CLIENT_REVIEW":

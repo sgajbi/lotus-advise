@@ -9,7 +9,11 @@ from pydantic import ValidationError
 from src.core.advisor_cockpit import (
     COCKPIT_ACTION_DEFAULT_PAGE_SIZE,
     COCKPIT_ACTION_MAX_PAGE_SIZE,
+    AdvisorCockpitActionFamily,
+    AdvisorCockpitActionPriority,
+    AdvisorCockpitActionStatus,
     AdvisorCockpitOperatingSnapshot,
+    AdvisorCockpitOwnerRole,
     AdvisoryActionItem,
     CockpitAcknowledgementState,
     CockpitCallerContext,
@@ -18,7 +22,76 @@ from src.core.advisor_cockpit import (
     normalize_cockpit_page_size,
     sort_cockpit_action_items,
 )
+from src.core.advisor_cockpit.action_models import (
+    AdvisoryActionItem as FocusedAdvisoryActionItem,
+)
+from src.core.advisor_cockpit.action_models import (
+    AdvisoryActionItemPage as FocusedAdvisoryActionItemPage,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitActionFamily as CompatibilityAdvisorCockpitActionFamily,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitActionPriority as CompatibilityAdvisorCockpitActionPriority,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitActionStatus as CompatibilityAdvisorCockpitActionStatus,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitOperatingSnapshot as CompatibilityAdvisorCockpitOperatingSnapshot,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisorCockpitOwnerRole as CompatibilityAdvisorCockpitOwnerRole,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisoryActionItem as CompatibilityAdvisoryActionItem,
+)
+from src.core.advisor_cockpit.models import (
+    AdvisoryActionItemPage as CompatibilityAdvisoryActionItemPage,
+)
+from src.core.advisor_cockpit.models import (
+    CockpitAcknowledgementState as CompatibilityCockpitAcknowledgementState,
+)
+from src.core.advisor_cockpit.models import (
+    CockpitCallerContext as CompatibilityCockpitCallerContext,
+)
+from src.core.advisor_cockpit.models import (
+    CockpitEvidenceRef as CompatibilityCockpitEvidenceRef,
+)
+from src.core.advisor_cockpit.models import (
+    MeetingPreparationPacket as CompatibilityMeetingPreparationPacket,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitAcknowledgementState as FocusedCockpitAcknowledgementState,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitCallerContext as FocusedCockpitCallerContext,
+)
+from src.core.advisor_cockpit.reference_models import (
+    CockpitEvidenceRef as FocusedCockpitEvidenceRef,
+)
+from src.core.advisor_cockpit.snapshot_models import (
+    AdvisorCockpitOperatingSnapshot as FocusedAdvisorCockpitOperatingSnapshot,
+)
+from src.core.advisor_cockpit.snapshot_models import (
+    MeetingPreparationPacket as FocusedMeetingPreparationPacket,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionFamily as FocusedAdvisorCockpitActionFamily,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionPriority as FocusedAdvisorCockpitActionPriority,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitActionStatus as FocusedAdvisorCockpitActionStatus,
+)
+from src.core.advisor_cockpit.type_models import (
+    AdvisorCockpitOwnerRole as FocusedAdvisorCockpitOwnerRole,
+)
 from src.core.proposals.exceptions import ProposalValidationError
+
+SRC_ROOT = Path("src")
+COMPATIBILITY_FACADE_PATH = Path("src/core/advisor_cockpit/models.py")
 
 
 def _action(
@@ -63,6 +136,56 @@ def test_advisor_cockpit_models_expose_private_banking_contract_vocabulary() -> 
     unsupported = schema["properties"]["unsupported_capabilities"]["items"]["enum"]
     assert "CLIENT_READY_PUBLICATION" in unsupported
     assert "FULL_RFC0028_DEMO_RFP_PACKAGE" in unsupported
+
+
+def test_advisor_cockpit_models_preserve_type_import_contract() -> None:
+    assert AdvisorCockpitActionFamily is FocusedAdvisorCockpitActionFamily
+    assert AdvisorCockpitActionPriority is FocusedAdvisorCockpitActionPriority
+    assert AdvisorCockpitActionStatus is FocusedAdvisorCockpitActionStatus
+    assert AdvisorCockpitOwnerRole is FocusedAdvisorCockpitOwnerRole
+    assert CompatibilityAdvisorCockpitActionFamily is FocusedAdvisorCockpitActionFamily
+    assert CompatibilityAdvisorCockpitActionPriority is FocusedAdvisorCockpitActionPriority
+    assert CompatibilityAdvisorCockpitActionStatus is FocusedAdvisorCockpitActionStatus
+    assert CompatibilityAdvisorCockpitOwnerRole is FocusedAdvisorCockpitOwnerRole
+
+
+def test_advisor_cockpit_models_preserve_reference_import_contract() -> None:
+    assert CockpitAcknowledgementState is FocusedCockpitAcknowledgementState
+    assert CockpitCallerContext is FocusedCockpitCallerContext
+    assert CockpitEvidenceRef is FocusedCockpitEvidenceRef
+    assert CompatibilityCockpitAcknowledgementState is FocusedCockpitAcknowledgementState
+    assert CompatibilityCockpitCallerContext is FocusedCockpitCallerContext
+    assert CompatibilityCockpitEvidenceRef is FocusedCockpitEvidenceRef
+
+
+def test_advisor_cockpit_models_preserve_action_import_contract() -> None:
+    assert AdvisoryActionItem is FocusedAdvisoryActionItem
+    assert CompatibilityAdvisoryActionItem is FocusedAdvisoryActionItem
+    assert CompatibilityAdvisoryActionItemPage is FocusedAdvisoryActionItemPage
+
+
+def test_advisor_cockpit_models_preserve_snapshot_import_contract() -> None:
+    assert AdvisorCockpitOperatingSnapshot is FocusedAdvisorCockpitOperatingSnapshot
+    assert CompatibilityAdvisorCockpitOperatingSnapshot is FocusedAdvisorCockpitOperatingSnapshot
+    assert CompatibilityMeetingPreparationPacket is FocusedMeetingPreparationPacket
+
+
+def test_advisor_cockpit_models_is_pure_compatibility_facade() -> None:
+    tree = ast.parse(COMPATIBILITY_FACADE_PATH.read_text(encoding="utf-8"))
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+
+def test_production_code_uses_focused_advisor_cockpit_model_imports() -> None:
+    compatibility_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != COMPATIBILITY_FACADE_PATH.as_posix()
+        and "src.core.advisor_cockpit.models" in path.read_text(encoding="utf-8")
+    )
+
+    assert compatibility_importers == []
 
 
 def test_advisor_cockpit_sorting_matches_rfc0026_stable_order() -> None:

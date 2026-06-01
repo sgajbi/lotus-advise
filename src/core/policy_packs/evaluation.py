@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Any, cast
 
 from src.core.policy_packs.catalog import get_policy_pack_version
-from src.core.policy_packs.models import (
+from src.core.policy_packs.evaluation_models import (
     PolicyPackApplicabilityResult,
     PolicyPackEvaluationResponse,
     PolicyRuleEvaluationResult,

@@ -18,7 +18,7 @@ from src.core.advisor_cockpit import (
     UnsupportedCapabilityActionSource,
     build_advisor_cockpit_source_read_model,
 )
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalMemoRecord,

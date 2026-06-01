@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from src.core.advisory.artifact_models import ProposalArtifact
-from src.core.models import GateDecision, ProposalResult
+from src.core.gate_models import GateDecision
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.contract_types import (
     ProposalApprovalType,
     ProposalCreationStatus,

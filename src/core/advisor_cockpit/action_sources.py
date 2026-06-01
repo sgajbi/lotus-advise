@@ -4,17 +4,19 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from src.core.advisor_cockpit.models import (
+from src.core.advisor_cockpit.reference_models import (
+    CockpitDependencyReadiness,
+    CockpitEvidenceRef,
+    CockpitLineageRef,
+    CockpitSourceReadinessGap,
+)
+from src.core.advisor_cockpit.type_models import (
     AdvisorCockpitActionFamily,
     AdvisorCockpitActionPriority,
     AdvisorCockpitActionStatus,
     AdvisorCockpitOwnerRole,
     AdvisorCockpitSlaAgeBand,
     AdvisorCockpitUnsupportedCapability,
-    CockpitDependencyReadiness,
-    CockpitEvidenceRef,
-    CockpitLineageRef,
-    CockpitSourceReadinessGap,
 )
 
 

@@ -4,17 +4,14 @@ from collections import Counter
 from typing import Any
 
 from src.core.advisor_cockpit.action_components import LOTUS_ADVISE_SOURCE_SYSTEM
-from src.core.advisor_cockpit.models import (
-    AdvisoryActionItem,
-    CockpitCallerContext,
-    CockpitEvidenceRef,
-    MeetingPreparationPacket,
-)
+from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 from src.core.advisor_cockpit.projection_bounds import (
     bounded_optional_reference,
     bounded_reference,
     bounded_summary,
 )
+from src.core.advisor_cockpit.reference_models import CockpitCallerContext, CockpitEvidenceRef
+from src.core.advisor_cockpit.snapshot_models import MeetingPreparationPacket
 from src.core.advisor_cockpit.source_read_model import AdvisorCockpitSourceReadModel
 
 

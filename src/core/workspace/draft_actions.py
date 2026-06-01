@@ -1,14 +1,13 @@
+from src.core.proposal_request_models import ProposedCashFlow, ProposedTrade
+from src.core.workspace.action_models import WorkspaceDraftActionRequest
+from src.core.workspace.draft_models import (
+    WorkspaceCashFlowDraft,
+    WorkspaceDraftState,
+    WorkspaceTradeDraft,
+)
 from src.core.workspace.identifiers import (
     new_workspace_cash_flow_id,
     new_workspace_trade_id,
-)
-from src.core.workspace.models import (
-    ProposedCashFlow,
-    ProposedTrade,
-    WorkspaceCashFlowDraft,
-    WorkspaceDraftActionRequest,
-    WorkspaceDraftState,
-    WorkspaceTradeDraft,
 )
 
 

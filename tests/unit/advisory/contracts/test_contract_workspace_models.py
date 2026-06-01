@@ -1,4 +1,6 @@
+import ast
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -18,28 +20,221 @@ from src.core.models import (
     SimulatedState,
 )
 from src.core.proposals.models import ProposalCreateResponse
+from src.core.workspace import assistant_models as assistant_model_module
+from src.core.workspace.action_models import (
+    WorkspaceDraftActionRequest as ActionWorkspaceDraftActionRequest,
+)
+from src.core.workspace.action_models import (
+    WorkspaceDraftActionResponse as ActionWorkspaceDraftActionResponse,
+)
+from src.core.workspace.compare_models import (
+    WorkspaceCompareDiffSummary as CompareWorkspaceCompareDiffSummary,
+)
+from src.core.workspace.compare_models import (
+    WorkspaceCompareRequest as CompareWorkspaceCompareRequest,
+)
+from src.core.workspace.compare_models import (
+    WorkspaceCompareResponse as CompareWorkspaceCompareResponse,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceCashFlowDraft as DraftWorkspaceCashFlowDraft,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceDraftState as DraftWorkspaceDraftState,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceEvaluationImpactSummary as DraftWorkspaceEvaluationImpactSummary,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceEvaluationSummary as DraftWorkspaceEvaluationSummary,
+)
+from src.core.workspace.draft_models import (
+    WorkspaceTradeDraft as DraftWorkspaceTradeDraft,
+)
+from src.core.workspace.handoff_models import (
+    WorkspaceLifecycleHandoffMetadata as HandoffWorkspaceLifecycleHandoffMetadata,
+)
+from src.core.workspace.handoff_models import (
+    WorkspaceLifecycleHandoffRequest as HandoffWorkspaceLifecycleHandoffRequest,
+)
+from src.core.workspace.handoff_models import (
+    WorkspaceLifecycleHandoffResponse as HandoffWorkspaceLifecycleHandoffResponse,
+)
+from src.core.workspace.input_models import (
+    WorkspaceResolvedContext as InputWorkspaceResolvedContext,
+)
+from src.core.workspace.input_models import (
+    WorkspaceStatefulInput as InputWorkspaceStatefulInput,
+)
+from src.core.workspace.input_models import (
+    WorkspaceStatelessInput as InputWorkspaceStatelessInput,
+)
 from src.core.workspace.models import (
+    WorkspaceAssistantEvidence,
     WorkspaceAssistantRequest,
+    WorkspaceAssistantResponse,
+    WorkspaceAssistantWorkflowPackRun,
+    WorkspaceAssistantWorkflowPackRunFinding,
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    WorkspaceAssistantWorkflowPackRunReviewActionResponse,
+    WorkspaceCashFlowDraft,
+    WorkspaceCompareDiffSummary,
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
+    WorkspaceDraftActionResponse,
     WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
+    WorkspaceLifecycleHandoffMetadata,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
     WorkspaceLifecycleLink,
     WorkspaceReplayEvidence,
     WorkspaceResolvedContext,
+    WorkspaceResumeRequest,
     WorkspaceSavedVersion,
+    WorkspaceSavedVersionListResponse,
     WorkspaceSavedVersionSummary,
     WorkspaceSaveRequest,
+    WorkspaceSaveResponse,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
+    WorkspaceSessionCreateResponse,
     WorkspaceStatefulInput,
     WorkspaceStatelessInput,
+    WorkspaceTradeDraft,
 )
+from src.core.workspace.save_models import (
+    WorkspaceResumeRequest as SaveWorkspaceResumeRequest,
+)
+from src.core.workspace.save_models import (
+    WorkspaceSavedVersionListResponse as SaveWorkspaceSavedVersionListResponse,
+)
+from src.core.workspace.save_models import (
+    WorkspaceSaveRequest as SaveWorkspaceSaveRequest,
+)
+from src.core.workspace.save_models import (
+    WorkspaceSaveResponse as SaveWorkspaceSaveResponse,
+)
+from src.core.workspace.session_models import (
+    WorkspaceSession as SessionWorkspaceSession,
+)
+from src.core.workspace.session_models import (
+    WorkspaceSessionCreateRequest as SessionWorkspaceSessionCreateRequest,
+)
+from src.core.workspace.session_models import (
+    WorkspaceSessionCreateResponse as SessionWorkspaceSessionCreateResponse,
+)
+from src.core.workspace.version_models import (
+    WorkspaceLifecycleLink as VersionWorkspaceLifecycleLink,
+)
+from src.core.workspace.version_models import (
+    WorkspaceReplayEvidence as VersionWorkspaceReplayEvidence,
+)
+from src.core.workspace.version_models import (
+    WorkspaceSavedVersion as VersionWorkspaceSavedVersion,
+)
+from src.core.workspace.version_models import (
+    WorkspaceSavedVersionSummary as VersionWorkspaceSavedVersionSummary,
+)
+
+
+def test_workspace_models_preserves_input_model_import_contract():
+    assert WorkspaceResolvedContext is InputWorkspaceResolvedContext
+    assert WorkspaceStatefulInput is InputWorkspaceStatefulInput
+    assert WorkspaceStatelessInput is InputWorkspaceStatelessInput
+
+
+def test_workspace_models_preserves_draft_model_import_contract():
+    assert WorkspaceCashFlowDraft is DraftWorkspaceCashFlowDraft
+    assert WorkspaceDraftState is DraftWorkspaceDraftState
+    assert WorkspaceEvaluationImpactSummary is DraftWorkspaceEvaluationImpactSummary
+    assert WorkspaceEvaluationSummary is DraftWorkspaceEvaluationSummary
+    assert WorkspaceTradeDraft is DraftWorkspaceTradeDraft
+
+
+def test_workspace_models_preserves_version_model_import_contract():
+    assert WorkspaceLifecycleLink is VersionWorkspaceLifecycleLink
+    assert WorkspaceReplayEvidence is VersionWorkspaceReplayEvidence
+    assert WorkspaceSavedVersion is VersionWorkspaceSavedVersion
+    assert WorkspaceSavedVersionSummary is VersionWorkspaceSavedVersionSummary
+
+
+def test_workspace_models_preserves_compare_model_import_contract():
+    assert WorkspaceCompareDiffSummary is CompareWorkspaceCompareDiffSummary
+    assert WorkspaceCompareRequest is CompareWorkspaceCompareRequest
+    assert WorkspaceCompareResponse is CompareWorkspaceCompareResponse
+
+
+def test_workspace_models_preserves_assistant_model_import_contract():
+    assert WorkspaceAssistantEvidence is assistant_model_module.WorkspaceAssistantEvidence
+    assert WorkspaceAssistantRequest is assistant_model_module.WorkspaceAssistantRequest
+    assert WorkspaceAssistantResponse is assistant_model_module.WorkspaceAssistantResponse
+    assert (
+        WorkspaceAssistantWorkflowPackRun
+        is assistant_model_module.WorkspaceAssistantWorkflowPackRun
+    )
+    assert (
+        WorkspaceAssistantWorkflowPackRunFinding
+        is assistant_model_module.WorkspaceAssistantWorkflowPackRunFinding
+    )
+    assert (
+        WorkspaceAssistantWorkflowPackRunReviewActionRequest
+        is assistant_model_module.WorkspaceAssistantWorkflowPackRunReviewActionRequest
+    )
+    assert (
+        WorkspaceAssistantWorkflowPackRunReviewActionResponse
+        is assistant_model_module.WorkspaceAssistantWorkflowPackRunReviewActionResponse
+    )
+
+
+def test_workspace_models_preserves_session_model_import_contract():
+    assert WorkspaceSession is SessionWorkspaceSession
+    assert WorkspaceSessionCreateRequest is SessionWorkspaceSessionCreateRequest
+    assert WorkspaceSessionCreateResponse is SessionWorkspaceSessionCreateResponse
+
+
+def test_workspace_models_preserves_save_model_import_contract():
+    assert WorkspaceResumeRequest is SaveWorkspaceResumeRequest
+    assert WorkspaceSavedVersionListResponse is SaveWorkspaceSavedVersionListResponse
+    assert WorkspaceSaveRequest is SaveWorkspaceSaveRequest
+    assert WorkspaceSaveResponse is SaveWorkspaceSaveResponse
+
+
+def test_workspace_models_preserves_action_model_import_contract():
+    assert WorkspaceDraftActionRequest is ActionWorkspaceDraftActionRequest
+    assert WorkspaceDraftActionResponse is ActionWorkspaceDraftActionResponse
+
+
+def test_workspace_models_preserves_handoff_model_import_contract():
+    assert WorkspaceLifecycleHandoffMetadata is HandoffWorkspaceLifecycleHandoffMetadata
+    assert WorkspaceLifecycleHandoffRequest is HandoffWorkspaceLifecycleHandoffRequest
+    assert WorkspaceLifecycleHandoffResponse is HandoffWorkspaceLifecycleHandoffResponse
+
+
+def test_workspace_models_remains_compatibility_reexport_facade():
+    source_path = Path(__file__).resolve().parents[4] / "src" / "core" / "workspace" / "models.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"))
+    inline_definitions = [
+        node.name
+        for node in tree.body
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+
+    assert inline_definitions == []
+
+
+def test_production_code_uses_focused_workspace_model_imports():
+    source_root = Path(__file__).resolve().parents[4] / "src"
+    offenders = sorted(
+        str(path.relative_to(source_root.parents[0]))
+        for path in source_root.rglob("*.py")
+        if path != source_root / "core" / "workspace" / "models.py"
+        and "from src.core.workspace.models import" in path.read_text(encoding="utf-8")
+    )
+
+    assert offenders == []
 
 
 def _build_state() -> SimulatedState:
