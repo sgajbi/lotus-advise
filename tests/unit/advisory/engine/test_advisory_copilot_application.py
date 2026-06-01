@@ -22,6 +22,9 @@ from src.core.advisory_copilot.api_validation import (
 )
 from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
 from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
+from src.core.advisory_copilot.supportability import (
+    build_advisory_copilot_supportability_response,
+)
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
@@ -204,6 +207,22 @@ def test_copilot_correlation_resolution_uses_shared_validation_and_stable_fallba
 
     assert resolved.startswith("corr-")
     assert len(resolved) == 29
+
+
+def test_copilot_supportability_response_has_focused_owner() -> None:
+    application_source = Path("src/core/advisory_copilot/application.py").read_text(
+        encoding="utf-8"
+    )
+    route_source = Path("src/api/proposals/routes_advisory_copilot.py").read_text(encoding="utf-8")
+
+    response = build_advisory_copilot_supportability_response()
+
+    assert response.support_status == "ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
+    assert response.client_ready_publication == "BLOCKED"
+    assert response.supported_action_families
+    assert "CLIENT_READY_PUBLICATION is blocked" in response.boundaries
+    assert "def build_advisory_copilot_supportability_response" not in application_source
+    assert "from src.core.advisory_copilot.supportability import" in route_source
 
 
 def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:

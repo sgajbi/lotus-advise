@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-566
+
+- Scope: Advisory copilot supportability response boundary
+- Pattern: Static supportability posture construction should live in a focused domain module
+  instead of the application-service orchestration module.
+- Status: Hardened
+- Finding Class: Service boundary modularity and API contract clarity
+- Summary: `AdvisoryCopilotApplicationService` and the advisory-copilot route depended on a
+  supportability response builder housed in `application.py`, even though supportability posture is
+  static API contract truth rather than workflow orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/supportability.py` with
+    `build_advisory_copilot_supportability_response`.
+  - Updated the application service and FastAPI route to import supportability posture from the
+    focused module.
+  - Added coverage proving the response preserves blocked client-ready posture and explicit
+    unsupported-boundary text while preventing the builder from returning to `application.py`.
+- Consequence:
+  - Advisory-copilot supportability posture is now independently reusable by service and route
+    layers without coupling static contract truth to application orchestration.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because endpoint behavior,
+    response shape, and operator-facing posture truth did not change.
+- Follow-Up:
+  - Review OpenAPI supportability examples after the service-boundary cleanup stabilizes.
+
 ## LA-REV-565
 
 - Scope: Advisory copilot run idempotency replay preflight

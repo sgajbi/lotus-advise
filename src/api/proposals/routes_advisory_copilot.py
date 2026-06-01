@@ -35,6 +35,8 @@ from src.core.advisory_copilot.api_models import (
 )
 from src.core.advisory_copilot.application import (
     AdvisoryCopilotApplicationService,
+)
+from src.core.advisory_copilot.supportability import (
     build_advisory_copilot_supportability_response,
 )
 from src.core.proposals.repository import ProposalRepository

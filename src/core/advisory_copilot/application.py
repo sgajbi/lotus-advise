@@ -13,7 +13,6 @@ from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotRunResponse,
     AdvisoryCopilotSupportabilityResponse,
 )
-from src.core.advisory_copilot.catalog import list_copilot_action_definitions
 from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
 from src.core.advisory_copilot.evidence_packets import build_copilot_evidence_packet
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
@@ -33,6 +32,9 @@ from src.core.advisory_copilot.run_persistence import persist_advisory_copilot_r
 from src.core.advisory_copilot.run_replay_policy import resolve_advisory_copilot_run_replay
 from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,
+)
+from src.core.advisory_copilot.supportability import (
+    build_advisory_copilot_supportability_response,
 )
 from src.core.advisory_copilot.type_models import CopilotAudience
 from src.core.common.idempotency import (
@@ -284,19 +286,3 @@ class AdvisoryCopilotApplicationService:
             items=tuple(runs),
             next_cursor=next_cursor,
         )
-
-
-def build_advisory_copilot_supportability_response() -> AdvisoryCopilotSupportabilityResponse:
-    return AdvisoryCopilotSupportabilityResponse(
-        support_status="ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
-        client_ready_publication="BLOCKED",
-        supported_action_families=tuple(
-            definition.action_family for definition in list_copilot_action_definitions()
-        ),
-        boundaries=(
-            "CLIENT_READY_PUBLICATION is blocked",
-            "POLICY_APPROVAL_OR_SIGN_OFF is not delegated to copilot",
-            "OMS_ORDER_LIFECYCLE is not delegated to copilot",
-            "CLIENT_COMMUNICATION_DELIVERY is not delegated to copilot",
-        ),
-    )
