@@ -1,4 +1,5 @@
-from src.core.workspace.models import WorkspaceAssistantEvidence, WorkspaceSession
+from src.core.workspace.assistant_models import WorkspaceAssistantEvidence
+from src.core.workspace.models import WorkspaceSession
 
 
 def build_workspace_assistant_evidence(

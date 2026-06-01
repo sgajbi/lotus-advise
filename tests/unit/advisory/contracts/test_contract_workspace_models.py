@@ -18,6 +18,7 @@ from src.core.models import (
     SimulatedState,
 )
 from src.core.proposals.models import ProposalCreateResponse
+from src.core.workspace import assistant_models as assistant_model_module
 from src.core.workspace.compare_models import (
     WorkspaceCompareDiffSummary as CompareWorkspaceCompareDiffSummary,
 )
@@ -52,8 +53,13 @@ from src.core.workspace.input_models import (
     WorkspaceStatelessInput as InputWorkspaceStatelessInput,
 )
 from src.core.workspace.models import (
+    WorkspaceAssistantEvidence,
     WorkspaceAssistantRequest,
+    WorkspaceAssistantResponse,
+    WorkspaceAssistantWorkflowPackRun,
+    WorkspaceAssistantWorkflowPackRunFinding,
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    WorkspaceAssistantWorkflowPackRunReviewActionResponse,
     WorkspaceCashFlowDraft,
     WorkspaceCompareDiffSummary,
     WorkspaceCompareRequest,
@@ -115,6 +121,28 @@ def test_workspace_models_preserves_compare_model_import_contract():
     assert WorkspaceCompareDiffSummary is CompareWorkspaceCompareDiffSummary
     assert WorkspaceCompareRequest is CompareWorkspaceCompareRequest
     assert WorkspaceCompareResponse is CompareWorkspaceCompareResponse
+
+
+def test_workspace_models_preserves_assistant_model_import_contract():
+    assert WorkspaceAssistantEvidence is assistant_model_module.WorkspaceAssistantEvidence
+    assert WorkspaceAssistantRequest is assistant_model_module.WorkspaceAssistantRequest
+    assert WorkspaceAssistantResponse is assistant_model_module.WorkspaceAssistantResponse
+    assert (
+        WorkspaceAssistantWorkflowPackRun
+        is assistant_model_module.WorkspaceAssistantWorkflowPackRun
+    )
+    assert (
+        WorkspaceAssistantWorkflowPackRunFinding
+        is assistant_model_module.WorkspaceAssistantWorkflowPackRunFinding
+    )
+    assert (
+        WorkspaceAssistantWorkflowPackRunReviewActionRequest
+        is assistant_model_module.WorkspaceAssistantWorkflowPackRunReviewActionRequest
+    )
+    assert (
+        WorkspaceAssistantWorkflowPackRunReviewActionResponse
+        is assistant_model_module.WorkspaceAssistantWorkflowPackRunReviewActionResponse
+    )
 
 
 def _build_state() -> SimulatedState:

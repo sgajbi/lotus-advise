@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-513
+
+- Scope: Workspace assistant model ownership
+- Pattern: Workspace assistant and workflow-pack DTOs should live in a focused module instead of
+  remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and AI-boundary maintainability
+- Summary: `src/core/workspace/models.py` still owned the workspace assistant request, evidence,
+  response, workflow-pack run, finding, and review-action DTOs. These schemas are used by the
+  workspace AI service, Lotus AI rationale integration, and workspace routes, making them a distinct
+  AI-boundary model group separate from workspace session and lifecycle handoff models.
+- Evidence:
+  - Added `src/core/workspace/assistant_models.py` for workspace assistant and workflow-pack DTOs
+    plus their bounded validation helpers.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated workspace AI, assistant evidence, Lotus AI rationale, and workspace route modules to
+    import assistant DTOs from the focused module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    assistant model definitions.
+- Consequence:
+  - Workspace AI-boundary code now depends on a narrow assistant model module instead of the broad
+    workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting lifecycle handoff and session DTOs without introducing circular model
+    dependencies.
+
 ## LA-REV-512
 
 - Scope: Workspace compare model ownership

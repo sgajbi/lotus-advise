@@ -46,11 +46,13 @@ from src.core.proposals.exceptions import (
     ProposalValidationError,
 )
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-from src.core.workspace.models import (
+from src.core.workspace.assistant_models import (
     WorkspaceAssistantRequest,
     WorkspaceAssistantResponse,
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionResponse,
+)
+from src.core.workspace.models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,

@@ -4,7 +4,7 @@ from typing import Any, cast
 
 import httpx
 
-from src.core.workspace.models import (
+from src.core.workspace.assistant_models import (
     WorkspaceAssistantEvidence,
     WorkspaceAssistantRequest,
     WorkspaceAssistantResponse,
@@ -140,20 +140,23 @@ def _build_workflow_pack_request(
     request: WorkspaceAssistantRequest,
     evidence: WorkspaceAssistantEvidence,
 ) -> dict[str, object]:
-    return build_workflow_pack_execute_request(
-        pack_id=_WORKFLOW_PACK_ID,
-        version=_WORKFLOW_PACK_VERSION,
-        workflow_surface=_WORKFLOW_SURFACE,
-        task_id="explain.v1",
-        correlation_id=f"workspace-rationale-{evidence.workspace_id}",
-        requested_by=request.requested_by,
-        context_summary=(
-            f"Advisory workspace rationale for {evidence.workspace_id} with proposal "
-            f"status {evidence.proposal_status}."
+    return cast(
+        dict[str, object],
+        build_workflow_pack_execute_request(
+            pack_id=_WORKFLOW_PACK_ID,
+            version=_WORKFLOW_PACK_VERSION,
+            workflow_surface=_WORKFLOW_SURFACE,
+            task_id="explain.v1",
+            correlation_id=f"workspace-rationale-{evidence.workspace_id}",
+            requested_by=request.requested_by,
+            context_summary=(
+                f"Advisory workspace rationale for {evidence.workspace_id} with proposal "
+                f"status {evidence.proposal_status}."
+            ),
+            context_payload=_build_task_payload(request=request, evidence=evidence),
+            source_refs=_build_source_refs(evidence=evidence),
+            expected_output_label="EXPLANATION_ONLY",
         ),
-        context_payload=_build_task_payload(request=request, evidence=evidence),
-        source_refs=_build_source_refs(evidence=evidence),
-        expected_output_label="EXPLANATION_ONLY",
     )
 
 
@@ -215,7 +218,7 @@ def _build_source_refs(*, evidence: WorkspaceAssistantEvidence) -> list[str]:
 
 
 def _extract_detail(payload: dict[str, Any]) -> str:
-    return extract_error_detail(payload, default="LOTUS_AI_RATIONALE_UNAVAILABLE")
+    return cast(str, extract_error_detail(payload, default="LOTUS_AI_RATIONALE_UNAVAILABLE"))
 
 
 def _normalize_optional_text(value: Any) -> str | None:

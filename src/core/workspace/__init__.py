@@ -1,3 +1,12 @@
+from src.core.workspace.assistant_models import (
+    WorkspaceAssistantEvidence,
+    WorkspaceAssistantRequest,
+    WorkspaceAssistantResponse,
+    WorkspaceAssistantWorkflowPackRun,
+    WorkspaceAssistantWorkflowPackRunFinding,
+    WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    WorkspaceAssistantWorkflowPackRunReviewActionResponse,
+)
 from src.core.workspace.compare_models import (
     WorkspaceCompareDiffSummary,
     WorkspaceCompareRequest,
@@ -16,9 +25,6 @@ from src.core.workspace.input_models import (
     WorkspaceStatelessInput,
 )
 from src.core.workspace.models import (
-    WorkspaceAssistantEvidence,
-    WorkspaceAssistantRequest,
-    WorkspaceAssistantResponse,
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
     WorkspaceLifecycleHandoffMetadata,
@@ -43,6 +49,10 @@ __all__ = [
     "WorkspaceAssistantEvidence",
     "WorkspaceAssistantRequest",
     "WorkspaceAssistantResponse",
+    "WorkspaceAssistantWorkflowPackRun",
+    "WorkspaceAssistantWorkflowPackRunFinding",
+    "WorkspaceAssistantWorkflowPackRunReviewActionRequest",
+    "WorkspaceAssistantWorkflowPackRunReviewActionResponse",
     "WorkspaceCashFlowDraft",
     "WorkspaceCompareDiffSummary",
     "WorkspaceCompareRequest",

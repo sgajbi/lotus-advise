@@ -1,8 +1,10 @@
+from typing import cast
+
 from src.api.services.workspace_ai_errors import run_workspace_ai_operation
 from src.api.services.workspace_errors import WorkspaceAssistantUnavailableError
 from src.api.services.workspace_service import get_workspace_session
 from src.core.workspace.assistant_evidence import build_workspace_assistant_evidence
-from src.core.workspace.models import (
+from src.core.workspace.assistant_models import (
     WorkspaceAssistantRequest,
     WorkspaceAssistantResponse,
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
@@ -23,11 +25,14 @@ def generate_workspace_rationale(
     if evidence is None:
         raise WorkspaceAssistantUnavailableError("WORKSPACE_AI_REQUIRES_EVALUATED_WORKSPACE")
 
-    return run_workspace_ai_operation(
-        lambda: generate_workspace_rationale_with_lotus_ai(
-            request=request,
-            evidence=evidence,
-        )
+    return cast(
+        WorkspaceAssistantResponse,
+        run_workspace_ai_operation(
+            lambda: generate_workspace_rationale_with_lotus_ai(
+                request=request,
+                evidence=evidence,
+            )
+        ),
     )
 
 
@@ -37,9 +42,12 @@ def apply_workspace_rationale_review_action(
 ) -> WorkspaceAssistantWorkflowPackRunReviewActionResponse:
     get_workspace_session(workspace_id)
 
-    return run_workspace_ai_operation(
-        lambda: apply_workspace_rationale_review_action_with_lotus_ai(
-            request,
-            workspace_id=workspace_id,
-        )
+    return cast(
+        WorkspaceAssistantWorkflowPackRunReviewActionResponse,
+        run_workspace_ai_operation(
+            lambda: apply_workspace_rationale_review_action_with_lotus_ai(
+                request,
+                workspace_id=workspace_id,
+            )
+        ),
     )
