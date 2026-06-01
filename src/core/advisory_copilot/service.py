@@ -8,9 +8,7 @@ from typing import Any, cast
 from pydantic import BaseModel, Field
 
 from src.core.advisory_copilot.models import (
-    CopilotAudience,
     CopilotEvidencePacket,
-    CopilotReviewPosture,
     contains_copilot_business_technical_detail,
 )
 from src.core.advisory_copilot.records import (
@@ -25,6 +23,7 @@ from src.core.advisory_copilot.review import (
     is_terminal_review_posture,
     review_posture_for_action,
 )
+from src.core.advisory_copilot.type_models import CopilotAudience, CopilotReviewPosture
 from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,

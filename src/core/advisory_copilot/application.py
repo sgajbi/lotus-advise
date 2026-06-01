@@ -16,7 +16,7 @@ from src.core.advisory_copilot.api_models import (
 )
 from src.core.advisory_copilot.catalog import list_copilot_action_definitions
 from src.core.advisory_copilot.evidence_packets import build_copilot_evidence_packet
-from src.core.advisory_copilot.models import CopilotAudience, CopilotEvidencePacket
+from src.core.advisory_copilot.models import CopilotEvidencePacket
 from src.core.advisory_copilot.pagination import normalize_copilot_run_page_size
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import CopilotReviewAction
@@ -32,6 +32,7 @@ from src.core.advisory_copilot.service import (
 from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.type_models import CopilotAudience
 from src.core.common.idempotency import (
     normalize_optional_idempotency_key,
     normalize_required_idempotency_key,

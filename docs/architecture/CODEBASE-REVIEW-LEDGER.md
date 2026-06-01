@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-532
+
+- Scope: Advisory copilot model vocabulary
+- Pattern: Stable advisory-copilot literal vocabularies should live in focused type modules instead
+  of the evidence-packet model surface
+- Status: Hardened
+- Finding Class: Modularity and service boundary maintainability
+- Summary: `src/core/advisory_copilot/models.py` mixed copilot action, audience, review posture,
+  retention, access-class, source-dependency, and unsupported-evidence vocabulary with evidence
+  packet Pydantic models. That kept type-only consumers coupled to the largest advisory-copilot
+  model module and made subsequent decomposition riskier than necessary.
+- Evidence:
+  - Added `src/core/advisory_copilot/type_models.py` as the focused owner for advisory-copilot
+    literal vocabulary.
+  - Kept compatibility re-exports from `src/core/advisory_copilot/models.py` and package-level
+    exports so existing callers retain the same import contract.
+  - Moved type-only internal imports for catalog, projection, review, workflow-pack, records,
+    API models, application, and evidence packet helpers to the focused type module.
+  - Added model import-contract tests proving package and compatibility imports point at the
+    focused type aliases, plus an AST guard that prevents new `Copilot*` literal assignments from
+    returning to the model module.
+- Consequence:
+  - Advisory-copilot vocabulary now has a smaller, reusable ownership boundary, reducing coupling
+    before extracting evidence, reference, and packet models from the remaining model surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because runtime behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue decomposing `src/core/advisory_copilot/models.py` into focused reference and evidence
+    packet model modules, then convert it to a pure compatibility facade once production imports
+    are migrated.
+
 ## LA-REV-531
 
 - Scope: Advisor cockpit compatibility facade production import boundary

@@ -6,15 +6,17 @@ from types import MappingProxyType
 from typing import Literal
 
 from src.core.advisory_copilot.models import (
-    CopilotActionFamily,
-    CopilotAudience,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
     CopilotLineageRef,
-    CopilotSourceDependency,
     CopilotUnsupportedEvidence,
     assert_copilot_business_safe_text,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotActionFamily,
+    CopilotAudience,
+    CopilotSourceDependency,
 )
 
 CopilotEvidenceSectionKey = Literal[

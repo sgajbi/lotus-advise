@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from src.core.advisory_copilot import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,
+    CopilotActionFamily,
+    CopilotAudience,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
@@ -23,6 +28,52 @@ from src.core.advisory_copilot import (
     review_posture_for_action,
     workflow_pack_id_for_action,
 )
+from src.core.advisory_copilot.models import (
+    CopilotActionFamily as CompatibilityCopilotActionFamily,
+)
+from src.core.advisory_copilot.models import CopilotAudience as CompatibilityCopilotAudience
+from src.core.advisory_copilot.models import (
+    CopilotClientReadyPosture as CompatibilityCopilotClientReadyPosture,
+)
+from src.core.advisory_copilot.models import (
+    CopilotEvidenceAccessClass as CompatibilityCopilotEvidenceAccessClass,
+)
+from src.core.advisory_copilot.models import (
+    CopilotRetentionClass as CompatibilityCopilotRetentionClass,
+)
+from src.core.advisory_copilot.models import (
+    CopilotReviewPosture as CompatibilityCopilotReviewPosture,
+)
+from src.core.advisory_copilot.models import (
+    CopilotSourceDependency as CompatibilityCopilotSourceDependency,
+)
+from src.core.advisory_copilot.models import (
+    CopilotUnsupportedEvidenceReason as CompatibilityCopilotUnsupportedEvidenceReason,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotActionFamily as FocusedCopilotActionFamily,
+)
+from src.core.advisory_copilot.type_models import CopilotAudience as FocusedCopilotAudience
+from src.core.advisory_copilot.type_models import (
+    CopilotClientReadyPosture as FocusedCopilotClientReadyPosture,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotEvidenceAccessClass as FocusedCopilotEvidenceAccessClass,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotRetentionClass as FocusedCopilotRetentionClass,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotReviewPosture as FocusedCopilotReviewPosture,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotSourceDependency as FocusedCopilotSourceDependency,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotUnsupportedEvidenceReason as FocusedCopilotUnsupportedEvidenceReason,
+)
+
+ADVISORY_COPILOT_MODELS_PATH = Path("src/core/advisory_copilot/models.py")
 
 
 def test_copilot_catalog_defines_supported_actions_without_client_ready_claims() -> None:
@@ -46,6 +97,35 @@ def test_copilot_catalog_defines_supported_actions_without_client_ready_claims()
         assert definition.workbench_surface_key.startswith("advisory_copilot.")
         assert definition.required_source_dependencies
         assert definition.output_evidence_classes
+
+
+def test_advisory_copilot_models_preserve_type_import_contract() -> None:
+    assert CopilotActionFamily is FocusedCopilotActionFamily
+    assert CopilotAudience is FocusedCopilotAudience
+    assert CompatibilityCopilotActionFamily is FocusedCopilotActionFamily
+    assert CompatibilityCopilotAudience is FocusedCopilotAudience
+    assert CompatibilityCopilotClientReadyPosture is FocusedCopilotClientReadyPosture
+    assert CompatibilityCopilotEvidenceAccessClass is FocusedCopilotEvidenceAccessClass
+    assert CompatibilityCopilotRetentionClass is FocusedCopilotRetentionClass
+    assert CompatibilityCopilotReviewPosture is FocusedCopilotReviewPosture
+    assert CompatibilityCopilotSourceDependency is FocusedCopilotSourceDependency
+    assert CompatibilityCopilotUnsupportedEvidenceReason is (
+        FocusedCopilotUnsupportedEvidenceReason
+    )
+
+
+def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_MODELS_PATH.read_text(encoding="utf-8"))
+    literal_assignments = [
+        node.targets[0].id
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id.startswith("Copilot")
+    ]
+
+    assert literal_assignments == []
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:

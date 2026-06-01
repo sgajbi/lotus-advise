@@ -1,71 +1,33 @@
 from __future__ import annotations
 
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from pydantic import BaseModel, Field, field_validator
 
-CopilotActionFamily = Literal[
-    "PROPOSAL_EXPLANATION",
-    "EVIDENCE_QA",
-    "MEETING_PREPARATION",
-    "COMPLIANCE_REVIEW_SUMMARY",
-    "OPERATIONS_REPORT_HANDOFF",
-    "CLIENT_FOLLOW_UP_DRAFT",
-]
-
-CopilotAudience = Literal[
-    "ADVISOR",
-    "DESK_HEAD",
-    "COMPLIANCE_REVIEWER",
-    "OPERATIONS_SUPPORT",
-    "MODEL_RISK_OPERATOR",
-]
-
-CopilotSourceDependency = Literal[
-    "RFC0023_PROPOSAL_NARRATIVE",
-    "RFC0024_PROPOSAL_MEMO",
-    "RFC0025_POLICY_EVALUATION",
-    "RFC0026_ADVISOR_COCKPIT",
-    "REPORT_READINESS",
-    "OPERATIONS_HANDOFF",
-]
-
-CopilotEvidenceAccessClass = Literal[
-    "ADVISOR_USE_SUMMARY",
-    "COMPLIANCE_REVIEW_EVIDENCE",
-    "OPERATIONS_HANDOFF_EVIDENCE",
-    "MODEL_RISK_AUDIT",
-    "INTERNAL_SUPPORTABILITY",
-]
-
-CopilotReviewPosture = Literal[
-    "REVIEW_REQUIRED",
-    "APPROVED_FOR_INTERNAL_USE",
-    "REJECTED",
-    "SUPERSEDED",
-    "EXPIRED",
-    "UNSUPPORTED",
-    "GUARDRAIL_REJECTED",
-    "UNAVAILABLE",
-]
-
-CopilotClientReadyPosture = Literal["BLOCKED"]
-
-CopilotRetentionClass = Literal[
-    "ADVISORY_REVIEW_RECORD",
-    "MODEL_RISK_AUDIT",
-    "SUPPORTABILITY_DIAGNOSTIC",
-]
-
-CopilotUnsupportedEvidenceReason = Literal[
-    "SOURCE_NOT_IMPLEMENTED",
-    "SOURCE_NOT_AVAILABLE",
-    "RESTRICTED_BY_ROLE",
-    "QUESTION_OUT_OF_SCOPE",
-    "CLIENT_READY_PUBLICATION_BLOCKED",
-    "POLICY_APPROVAL_NOT_AVAILABLE",
-    "AI_UNAVAILABLE",
-]
+from src.core.advisory_copilot.type_models import (
+    CopilotActionFamily as CopilotActionFamily,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotAudience as CopilotAudience,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotClientReadyPosture as CopilotClientReadyPosture,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotEvidenceAccessClass as CopilotEvidenceAccessClass,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotRetentionClass as CopilotRetentionClass,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotReviewPosture as CopilotReviewPosture,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotSourceDependency as CopilotSourceDependency,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotUnsupportedEvidenceReason as CopilotUnsupportedEvidenceReason,
+)
 
 _COPILOT_SOURCE_SYSTEM_MAX_LENGTH = 64
 _COPILOT_SOURCE_TYPE_MAX_LENGTH = 96

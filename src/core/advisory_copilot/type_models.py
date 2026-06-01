@@ -1,0 +1,66 @@
+from __future__ import annotations
+
+from typing import Literal
+
+CopilotActionFamily = Literal[
+    "PROPOSAL_EXPLANATION",
+    "EVIDENCE_QA",
+    "MEETING_PREPARATION",
+    "COMPLIANCE_REVIEW_SUMMARY",
+    "OPERATIONS_REPORT_HANDOFF",
+    "CLIENT_FOLLOW_UP_DRAFT",
+]
+
+CopilotAudience = Literal[
+    "ADVISOR",
+    "DESK_HEAD",
+    "COMPLIANCE_REVIEWER",
+    "OPERATIONS_SUPPORT",
+    "MODEL_RISK_OPERATOR",
+]
+
+CopilotSourceDependency = Literal[
+    "RFC0023_PROPOSAL_NARRATIVE",
+    "RFC0024_PROPOSAL_MEMO",
+    "RFC0025_POLICY_EVALUATION",
+    "RFC0026_ADVISOR_COCKPIT",
+    "REPORT_READINESS",
+    "OPERATIONS_HANDOFF",
+]
+
+CopilotEvidenceAccessClass = Literal[
+    "ADVISOR_USE_SUMMARY",
+    "COMPLIANCE_REVIEW_EVIDENCE",
+    "OPERATIONS_HANDOFF_EVIDENCE",
+    "MODEL_RISK_AUDIT",
+    "INTERNAL_SUPPORTABILITY",
+]
+
+CopilotReviewPosture = Literal[
+    "REVIEW_REQUIRED",
+    "APPROVED_FOR_INTERNAL_USE",
+    "REJECTED",
+    "SUPERSEDED",
+    "EXPIRED",
+    "UNSUPPORTED",
+    "GUARDRAIL_REJECTED",
+    "UNAVAILABLE",
+]
+
+CopilotClientReadyPosture = Literal["BLOCKED"]
+
+CopilotRetentionClass = Literal[
+    "ADVISORY_REVIEW_RECORD",
+    "MODEL_RISK_AUDIT",
+    "SUPPORTABILITY_DIAGNOSTIC",
+]
+
+CopilotUnsupportedEvidenceReason = Literal[
+    "SOURCE_NOT_IMPLEMENTED",
+    "SOURCE_NOT_AVAILABLE",
+    "RESTRICTED_BY_ROLE",
+    "QUESTION_OUT_OF_SCOPE",
+    "CLIENT_READY_PUBLICATION_BLOCKED",
+    "POLICY_APPROVAL_NOT_AVAILABLE",
+    "AI_UNAVAILABLE",
+]

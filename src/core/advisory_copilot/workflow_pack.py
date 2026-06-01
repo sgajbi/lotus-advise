@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.core.advisory_copilot.catalog import get_copilot_action_definition
-from src.core.advisory_copilot.models import CopilotActionFamily
+from src.core.advisory_copilot.type_models import CopilotActionFamily
 
 WORKFLOW_PACK_EXECUTION_AUTHORITY = "lotus-ai"
 WORKFLOW_PACK_CALLER_APP = "lotus-advise"

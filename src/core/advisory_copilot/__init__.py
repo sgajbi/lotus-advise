@@ -19,21 +19,13 @@ from src.core.advisory_copilot.guardrails import (
 )
 from src.core.advisory_copilot.models import (
     CopilotActionDefinition,
-    CopilotActionFamily,
-    CopilotAudience,
     CopilotBusinessProjection,
-    CopilotClientReadyPosture,
-    CopilotEvidenceAccessClass,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
     CopilotLineageRef,
-    CopilotRetentionClass,
-    CopilotReviewPosture,
-    CopilotSourceDependency,
     CopilotSourceRef,
     CopilotUnsupportedEvidence,
-    CopilotUnsupportedEvidenceReason,
 )
 from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
@@ -63,6 +55,16 @@ from src.core.advisory_copilot.service import (
     record_advisory_copilot_review,
     retention_expires_at,
     save_advisory_copilot_evidence_packet,
+)
+from src.core.advisory_copilot.type_models import (
+    CopilotActionFamily,
+    CopilotAudience,
+    CopilotClientReadyPosture,
+    CopilotEvidenceAccessClass,
+    CopilotRetentionClass,
+    CopilotReviewPosture,
+    CopilotSourceDependency,
+    CopilotUnsupportedEvidenceReason,
 )
 from src.core.advisory_copilot.workflow_pack import (
     WORKFLOW_PACK_CALLER_APP,

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from types import MappingProxyType
 
-from src.core.advisory_copilot.models import CopilotActionDefinition, CopilotActionFamily
+from src.core.advisory_copilot.models import CopilotActionDefinition
+from src.core.advisory_copilot.type_models import CopilotActionFamily
 
 _ACTION_DEFINITIONS: dict[CopilotActionFamily, CopilotActionDefinition] = {
     "PROPOSAL_EXPLANATION": CopilotActionDefinition(

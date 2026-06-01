@@ -5,14 +5,14 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.core.advisory_copilot.models import (
+from src.core.advisory_copilot.review import CopilotReviewAction
+from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,
     CopilotAudience,
     CopilotClientReadyPosture,
     CopilotRetentionClass,
     CopilotReviewPosture,
 )
-from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
 from src.core.proposals.correlation import MAX_CORRELATION_ID_LENGTH
 
