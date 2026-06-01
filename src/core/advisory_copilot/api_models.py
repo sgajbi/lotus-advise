@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.core.advisory_copilot.models import (
+from src.core.advisory_copilot.packet_models import (
     COPILOT_PACKET_SECTION_LIMIT,
     CopilotEvidencePacket,
 )

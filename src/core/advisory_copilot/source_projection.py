@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.core.advisory_copilot.evidence_packets import build_copilot_evidence_packet
-from src.core.advisory_copilot.models import CopilotEvidencePacket
+from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
 from src.core.advisory_copilot.reference_models import CopilotLineageRef
 from src.core.advisory_copilot.source_projection_sections import (
     EVIDENCE_PACKET_ID_MAX_LENGTH,

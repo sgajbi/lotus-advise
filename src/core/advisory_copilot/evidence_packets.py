@@ -6,9 +6,7 @@ from types import MappingProxyType
 from typing import Literal
 
 from src.core.advisory_copilot.business_text import assert_copilot_business_safe_text
-from src.core.advisory_copilot.models import (
-    CopilotEvidencePacket,
-)
+from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
 from src.core.advisory_copilot.reference_models import CopilotLineageRef
 from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection,

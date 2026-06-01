@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-538
+
+- Scope: Advisory copilot packet model facade closure
+- Pattern: The broad advisory-copilot model module should become a compatibility facade once focused
+  model modules own each domain boundary
+- Status: Hardened
+- Finding Class: Modularity and dependency boundary regression prevention
+- Summary: After extracting advisory-copilot vocabulary, business-text safety, references,
+  unsupported-evidence posture, section DTOs, and catalog DTOs, `CopilotEvidencePacket` was the last
+  real model still defined in `src/core/advisory_copilot/models.py`. That kept production code
+  importing through the broad model surface and prevented facade closure.
+- Evidence:
+  - Added `src/core/advisory_copilot/packet_models.py` for the top-level evidence packet DTO and
+    packet section limit.
+  - Converted `src/core/advisory_copilot/models.py` into a compatibility facade with no class or
+    function definitions.
+  - Moved advisory-copilot API models, application, service, source projection, and evidence-packet
+    builders to focused packet model imports.
+  - Added import-contract coverage proving package and compatibility imports resolve to the focused
+    packet class, plus AST coverage preventing class/function definitions from returning to the
+    facade.
+- Consequence:
+  - Advisory-copilot model ownership is now split across focused catalog, packet, section,
+    reference, unsupported-evidence, business-text, and type modules instead of being concentrated
+    in a broad monolithic model file.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Add production-import guard coverage preventing new imports from the compatibility facade.
+
 ## LA-REV-537
 
 - Scope: Advisory copilot catalog model ownership

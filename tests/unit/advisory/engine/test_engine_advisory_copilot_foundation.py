@@ -59,6 +59,9 @@ from src.core.advisory_copilot.models import (
     CopilotEvidenceAccessClass as CompatibilityCopilotEvidenceAccessClass,
 )
 from src.core.advisory_copilot.models import (
+    CopilotEvidencePacket as CompatibilityCopilotEvidencePacket,
+)
+from src.core.advisory_copilot.models import (
     CopilotEvidencePacketSection as CompatibilityCopilotEvidencePacketSection,
 )
 from src.core.advisory_copilot.models import (
@@ -90,6 +93,9 @@ from src.core.advisory_copilot.models import (
 )
 from src.core.advisory_copilot.models import (
     contains_copilot_business_technical_detail as compatibility_contains_technical_detail,
+)
+from src.core.advisory_copilot.packet_models import (
+    CopilotEvidencePacket as FocusedCopilotEvidencePacket,
 )
 from src.core.advisory_copilot.reference_models import (
     CopilotLineageRef as FocusedCopilotLineageRef,
@@ -219,6 +225,18 @@ def test_advisory_copilot_models_preserve_catalog_import_contract() -> None:
     assert CopilotBusinessProjection is FocusedCopilotBusinessProjection
     assert CompatibilityCopilotActionDefinition is FocusedCopilotActionDefinition
     assert CompatibilityCopilotBusinessProjection is FocusedCopilotBusinessProjection
+
+
+def test_advisory_copilot_models_preserve_packet_import_contract() -> None:
+    assert CopilotEvidencePacket is FocusedCopilotEvidencePacket
+    assert CompatibilityCopilotEvidencePacket is FocusedCopilotEvidencePacket
+
+
+def test_advisory_copilot_models_is_pure_compatibility_facade() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_MODELS_PATH.read_text(encoding="utf-8"))
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:
