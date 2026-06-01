@@ -135,6 +135,9 @@ def test_support_routes_use_shared_response_metadata():
     assert "responses=SUPPORT_LINEAGE_RESPONSES" in source
     assert "responses=SUPPORT_VERSION_REPLAY_RESPONSES" in source
     assert "responses=SUPPORT_ASYNC_REPLAY_RESPONSES" in source
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert source.count("run_proposal_operation(") == 6
 
 
 def test_lifecycle_routes_use_shared_response_metadata():

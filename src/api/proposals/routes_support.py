@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, Path, status
 
 import src.api.proposals.router as shared
-from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.support_responses import (
     SUPPORT_ASYNC_REPLAY_RESPONSES,
     SUPPORT_LINEAGE_RESPONSES,
@@ -16,7 +16,6 @@ from src.core.proposals import (
     ProposalWorkflowService,
     ProposalWorkflowTimelineResponse,
 )
-from src.core.proposals.exceptions import ProposalNotFoundError
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 
 
@@ -42,10 +41,7 @@ def get_proposal_workflow_timeline(
 ) -> ProposalWorkflowTimelineResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_workflow_timeline(proposal_id=proposal_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(lambda: service.get_workflow_timeline(proposal_id=proposal_id))
 
 
 @shared.router.get(
@@ -70,10 +66,7 @@ def get_proposal_approvals(
 ) -> ProposalApprovalsResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_approvals(proposal_id=proposal_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(lambda: service.get_approvals(proposal_id=proposal_id))
 
 
 @shared.router.get(
@@ -100,10 +93,7 @@ def get_proposal_lineage(
 ) -> ProposalLineageResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_lineage(proposal_id=proposal_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(lambda: service.get_lineage(proposal_id=proposal_id))
 
 
 @shared.router.get(
@@ -134,10 +124,9 @@ def get_proposal_version_replay_evidence(
 ) -> AdvisoryReplayEvidenceResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_version_replay(proposal_id=proposal_id, version_no=version_no)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: service.get_version_replay(proposal_id=proposal_id, version_no=version_no)
+    )
 
 
 @shared.router.get(
@@ -165,10 +154,9 @@ def get_proposal_idempotency_lookup(
 ) -> ProposalIdempotencyLookupResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_idempotency_lookup(idempotency_key=idempotency_key)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: service.get_idempotency_lookup(idempotency_key=idempotency_key)
+    )
 
 
 @shared.router.get(
@@ -195,7 +183,6 @@ def get_proposal_async_replay_evidence(
 ) -> AdvisoryReplayEvidenceResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
-    try:
-        return service.get_async_operation_replay(operation_id=operation_id)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: service.get_async_operation_replay(operation_id=operation_id)
+    )

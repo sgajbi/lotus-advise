@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-422
+
+- Scope: Advisory support route error boundary
+- Pattern: Support routes should use the shared proposal operation boundary instead of repeating
+  not-found exception handling.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_support.py` repeated six local `ProposalNotFoundError`
+  wrappers around support read operations. This coupled the support route module directly to
+  proposal exception taxonomy and repeated the same HTTP mapping.
+- Evidence:
+  - Reused `run_proposal_operation` across workflow timeline, approvals, lineage, replay evidence,
+    idempotency lookup, and async replay support routes.
+  - Removed route-local proposal exception imports and `raise_proposal_http_exception` calls.
+  - Extended the support route guard to prevent local exception mapping from returning.
+- Consequence:
+  - Support endpoints now inherit one consistent not-found mapping path and keep route handlers
+    focused on feature gates, request binding, and service calls.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue applying the shared proposal operation boundary to lifecycle and delivery routes.
+
 ## LA-REV-421
 
 - Scope: Advisor Cockpit route error boundary
