@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-393
+
+- Scope: Advisory copilot API route boundary
+- Pattern: Route modules should not own repository startup, application-service wiring, and
+  sensitive error classification when those concerns can be isolated behind reusable API helpers.
+- Status: Hardened
+- Finding Class: modularity problem and security posture
+- Summary: `src/api/proposals/routes_advisory_copilot.py` still mixed endpoint definitions with
+  copilot repository initialization, application-service dependency construction, response metadata,
+  and sensitive error mapping. That made the route module larger than needed and kept the copilot
+  error-boundary logic less reusable than the proposal and workspace route families.
+- Evidence:
+  - Moved copilot HTTP response/error mapping into
+    `src/api/proposals/copilot_errors.py`.
+  - Moved copilot repository and application-service dependency construction into
+    `src/api/proposals/copilot_dependencies.py`.
+  - Route handlers now depend on the extracted helpers and only translate domain `ValueError`
+    failures through the shared copilot mapper.
+  - Added regression coverage proving trace-id and correlation-id bearing copilot failures are
+    redacted to `ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED`.
+  - Focused `ruff`, format check, and advisory copilot API tests passed with 18 tests.
+- Consequence:
+  - Advisory copilot API routing is smaller, easier to review, and better aligned with the existing
+    Lotus pattern of keeping business logic and sensitive-detail handling out of endpoint bodies.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    modularity and defensive error-boundary hardening for existing behavior.
+- Follow-Up:
+  - Continue extracting route-local dependency/error helpers from the remaining large proposal API
+    route families when the change can be pinned by meaningful behavior tests.
+
 ## LA-REV-001
 
 - Scope: Product surface, ecosystem fit, and architecture posture

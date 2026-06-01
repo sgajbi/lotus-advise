@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-from typing import Annotated, NoReturn, cast
+from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, Path, Query, status
+from fastapi import Depends, Header, Path, Query, status
 
-from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals import router as shared
-from src.api.proposals.router import get_proposal_repository
-from src.api.proposals.runtime import proposal_postgres_dsn
-from src.api.sensitive_error_details import contains_sensitive_error_detail
+from src.api.proposals.copilot_dependencies import (
+    get_advisory_copilot_application_service,
+    get_advisory_proposal_repository,
+)
+from src.api.proposals.copilot_errors import (
+    ADVISORY_COPILOT_RESPONSES,
+    raise_copilot_http_exception,
+)
 from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -22,65 +26,14 @@ from src.core.advisory_copilot.api_models import (
 )
 from src.core.advisory_copilot.application import (
     AdvisoryCopilotApplicationService,
-    AdvisoryCopilotDraftGenerator,
     build_advisory_copilot_supportability_response,
 )
-from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
-from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.repository import ProposalRepository
-from src.infrastructure.advisory_copilot import PostgresAdvisoryCopilotRepository
-from src.integrations.lotus_ai import generate_advisory_copilot_draft_with_lotus_ai
-
-ADVISORY_COPILOT_RESPONSES = {
-    status.HTTP_404_NOT_FOUND: {"description": "Copilot evidence packet or run was not found."},
-    status.HTTP_409_CONFLICT: {
-        "description": "Idempotency key or evidence-packet identifier conflicts with prior data."
-    },
-    HTTP_422_UNPROCESSABLE: {
-        "description": "Copilot request failed validation or guardrail-safe persistence checks."
-    },
-}
 
 _COPILOT_CORRELATION_ID_MAX_LENGTH = 128
 _COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_IDEMPOTENCY_KEY_MAX_LENGTH = 128
 _COPILOT_CURSOR_MAX_LENGTH = 512
-_COPILOT_REPOSITORY_UNAVAILABLE = "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
-_COPILOT_VALIDATION_FAILED = "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
-
-_COPILOT_REPOSITORY: AdvisoryCopilotRepository | None = None
-
-
-def get_advisory_copilot_repository() -> AdvisoryCopilotRepository:
-    global _COPILOT_REPOSITORY
-    if _COPILOT_REPOSITORY is None:
-        dsn = _advisory_copilot_postgres_dsn()
-        try:
-            _COPILOT_REPOSITORY = PostgresAdvisoryCopilotRepository(dsn=dsn)
-        except RuntimeError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=_safe_copilot_repository_error_detail(str(exc)),
-            ) from exc
-    return _COPILOT_REPOSITORY
-
-
-def reset_advisory_copilot_repository_for_tests() -> None:
-    global _COPILOT_REPOSITORY
-    _COPILOT_REPOSITORY = None
-
-
-def get_advisory_copilot_application_service(
-    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
-) -> AdvisoryCopilotApplicationService:
-    return AdvisoryCopilotApplicationService(
-        repository=repository,
-        draft_generator=cast(
-            AdvisoryCopilotDraftGenerator,
-            generate_advisory_copilot_draft_with_lotus_ai,
-        ),
-        policy_evaluation_loader=list_policy_evaluation_records,
-    )
 
 
 @shared.router.post(
@@ -114,7 +67,7 @@ def create_advisory_copilot_evidence_packet(
             correlation_id=correlation_id,
         )
     except ValueError as exc:
-        _raise_copilot_http_exception(exc)
+        raise_copilot_http_exception(exc)
 
 
 @shared.router.post(
@@ -143,7 +96,7 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
         ),
     ] = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
-    proposal_repository: ProposalRepository = Depends(get_proposal_repository),
+    proposal_repository: ProposalRepository = Depends(get_advisory_proposal_repository),
 ) -> AdvisoryCopilotEvidencePacketResponse:
     try:
         return service.create_proposal_version_evidence_packet(
@@ -152,7 +105,7 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
             correlation_id=correlation_id,
         )
     except ValueError as exc:
-        _raise_copilot_http_exception(exc)
+        raise_copilot_http_exception(exc)
 
 
 @shared.router.get(
@@ -178,7 +131,7 @@ def get_advisory_copilot_evidence_packet(
     try:
         return service.get_evidence_packet(evidence_packet_id=evidence_packet_id)
     except ValueError as exc:
-        _raise_copilot_http_exception(exc)
+        raise_copilot_http_exception(exc)
 
 
 @shared.router.post(
@@ -221,7 +174,7 @@ def run_advisory_copilot_action(
             idempotency_key=idempotency_key,
         )
     except ValueError as exc:
-        _raise_copilot_http_exception(exc)
+        raise_copilot_http_exception(exc)
 
 
 @shared.router.get(
@@ -247,7 +200,7 @@ def get_advisory_copilot_run(
     try:
         return service.get_run(run_id=run_id)
     except ValueError as exc:
-        _raise_copilot_http_exception(exc)
+        raise_copilot_http_exception(exc)
 
 
 @shared.router.post(
@@ -300,7 +253,7 @@ def review_advisory_copilot_run(
             correlation_id=correlation_id,
         )
     except ValueError as exc:
-        _raise_copilot_http_exception(exc)
+        raise_copilot_http_exception(exc)
 
 
 @shared.router.get(
@@ -369,35 +322,4 @@ def list_proposal_version_copilot_runs(
             cursor=cursor,
         )
     except ValueError as exc:
-        _raise_copilot_http_exception(exc)
-
-
-def _advisory_copilot_postgres_dsn() -> str:
-    import os
-
-    return os.getenv("ADVISORY_COPILOT_POSTGRES_DSN", "").strip() or proposal_postgres_dsn()
-
-
-def _raise_copilot_http_exception(exc: ValueError) -> NoReturn:
-    detail = _safe_copilot_error_detail(str(exc))
-    if detail.endswith("_NOT_FOUND"):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail) from exc
-    if "CONFLICT" in detail or "TERMINAL" in detail:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
-    raise HTTPException(status_code=HTTP_422_UNPROCESSABLE, detail=detail) from exc
-
-
-def _safe_copilot_error_detail(error_detail: str) -> str:
-    if not _contains_sensitive_copilot_error_detail(error_detail):
-        return error_detail
-    return _COPILOT_VALIDATION_FAILED
-
-
-def _contains_sensitive_copilot_error_detail(error_detail: str) -> bool:
-    return contains_sensitive_error_detail(error_detail)
-
-
-def _safe_copilot_repository_error_detail(error_detail: str) -> str:
-    if contains_sensitive_error_detail(error_detail):
-        return _COPILOT_REPOSITORY_UNAVAILABLE
-    return error_detail
+        raise_copilot_http_exception(exc)
