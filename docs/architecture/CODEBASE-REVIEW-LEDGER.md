@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-455
+
+- Scope: Advisory simulation route parameter contracts
+- Pattern: Simulation and artifact routes should share idempotency and correlation header contracts
+  outside the router module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/routers/advisory_simulation.py` repeated `Idempotency-Key` and
+  `X-Correlation-Id` header declarations for simulation and artifact endpoints. This duplicated
+  OpenAPI metadata inside the router while the endpoints already delegate behavior to the
+  simulation service.
+- Evidence:
+  - Added `src/api/routers/advisory_simulation_parameters.py` for simulation and artifact
+    idempotency/correlation headers.
+  - Updated simulation routes to use named aliases while preserving existing descriptions and
+    examples.
+  - Extended internal guards so advisory simulation routes cannot reintroduce inline `Header`
+    declarations.
+- Consequence:
+  - Advisory simulation route handlers are thinner and header metadata now has a route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Apply the same pattern to the remaining small non-proposal routers with inline parameter
+    contracts.
+
 ## LA-REV-454
 
 - Scope: Advisory policy pack route parameter contracts

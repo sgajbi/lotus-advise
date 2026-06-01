@@ -446,6 +446,17 @@ def test_advisory_simulation_routes_use_shared_response_metadata():
     assert "responses=PROPOSAL_ARTIFACT_RESPONSES" in source
 
 
+def test_advisory_simulation_routes_use_shared_parameter_contracts():
+    source = Path("src/api/routers/advisory_simulation.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import APIRouter, status" in source
+    assert "Header(" not in source
+    assert "ProposalSimulationIdempotencyKeyHeader" in source
+    assert "ProposalArtifactIdempotencyKeyHeader" in source
+    assert "ProposalSimulationCorrelationIdHeader" in source
+    assert "ProposalArtifactCorrelationIdHeader" in source
+
+
 def test_advisory_simulation_service_uses_shared_error_helpers():
     source = inspect.getsource(advisory_simulation_service)
 
