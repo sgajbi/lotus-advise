@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-488
+
+- Scope: Postgres proposal repository helper imports
+- Pattern: The proposal Postgres repository adapter should depend on cohesive helper modules instead
+  of dozens of single-function helper imports that make the orchestration boundary difficult to
+  scan.
+- Status: Hardened
+- Finding Class: readability and dependency-flow maintainability
+- Summary: After extracting persistence helpers, `src/infrastructure/proposals/postgres.py` imported
+  each helper function individually. That reduced SQL size but left a noisy adapter-level dependency
+  surface and made it harder to see the intended module boundaries.
+- Evidence:
+  - Collapsed persistence helper imports to module-level aliases for approvals, async operations,
+    cockpit acknowledgements, idempotency, memos, records, versions, and workflow events.
+  - Updated repository delegation calls to use those module aliases, making ownership boundaries
+    visible at call sites.
+- Consequence:
+  - The repository adapter now reads as orchestration across cohesive infrastructure modules rather
+    than a flat list of imported functions.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because behavior and public API
+    contracts are unchanged.
+- Follow-Up:
+  - Continue with broad proposal persistence validation and PR-readiness checks after the commit
+    batch reaches the requested size.
+
 ## LA-REV-487
 
 - Scope: Postgres proposal record persistence
