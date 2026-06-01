@@ -39,7 +39,9 @@ BANNED_CURRENT_STATE_PHRASES = (
     "later implementation slices",
     "second wave",
     "day-2",
+    "day 2",
     "wave-2",
+    "wave 2",
     "placeholder task",
     "future scope for rfc-0024 through rfc-0028",
 )
