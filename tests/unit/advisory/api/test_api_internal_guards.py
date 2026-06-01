@@ -191,6 +191,8 @@ def test_workspace_service_uses_consolidated_workspace_imports():
     assert "from src.api.services.workspace_store import" not in source
     assert "from src.core.workspace.versions import" not in source
     assert "workspace_saved_versions" in source
+    assert "WorkspaceDraftActionError" not in source
+    assert "apply_workspace_draft_action_to_session" in source
 
 
 def test_proposal_router_uses_shared_runtime_error_helpers():

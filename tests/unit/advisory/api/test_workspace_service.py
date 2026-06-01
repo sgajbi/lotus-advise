@@ -7,6 +7,7 @@ from src.api.proposals.router import (
     reset_proposal_workflow_service_for_tests,
 )
 from src.api.services import workspace_service
+from src.api.services.workspace_errors import WorkspaceNotFoundError
 from src.api.services.workspace_service import (
     WorkspaceDraftActionRequest,
     WorkspaceEvaluationUnavailableError,
@@ -64,7 +65,7 @@ def test_workspace_session_cache_evicts_oldest_entry() -> None:
             )
         ).workspace
 
-        with pytest.raises(workspace_service.WorkspaceNotFoundError):
+        with pytest.raises(WorkspaceNotFoundError):
             get_workspace_session(first.workspace_id)
 
         assert get_workspace_session(second.workspace_id).workspace_name == "Second workspace"
@@ -189,7 +190,7 @@ def test_workspace_service_trade_and_cash_flow_not_found_guards() -> None:
     ).workspace
 
     with pytest.raises(
-        workspace_service.WorkspaceNotFoundError,
+        WorkspaceNotFoundError,
         match="WORKSPACE_CASH_FLOW_NOT_FOUND",
     ):
         workspace_service.apply_workspace_draft_action(
@@ -203,7 +204,7 @@ def test_workspace_service_trade_and_cash_flow_not_found_guards() -> None:
             ),
         )
 
-    with pytest.raises(workspace_service.WorkspaceNotFoundError, match="WORKSPACE_TRADE_NOT_FOUND"):
+    with pytest.raises(WorkspaceNotFoundError, match="WORKSPACE_TRADE_NOT_FOUND"):
         workspace_service.apply_workspace_draft_action(
             session.workspace_id,
             WorkspaceDraftActionRequest.model_validate(

@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-417
+
+- Scope: Workspace draft-action service boundary
+- Pattern: Draft-action mutation and error translation should live in a focused API service helper,
+  leaving the main workspace service to orchestrate session load/save and re-evaluation.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `src/api/services/workspace_service.py` still imported core draft-action mutation
+  functions and translated `WorkspaceDraftActionError` directly into API-facing
+  `WorkspaceNotFoundError`. That mixed draft-action error-boundary details into the broader
+  workspace orchestration module.
+- Evidence:
+  - Added `src/api/services/workspace_draft_actions.py` with
+    `apply_workspace_draft_action_to_session`.
+  - Updated `workspace_service.apply_workspace_draft_action` to delegate mutation/error mapping to
+    the focused helper, then continue handling save and re-evaluation orchestration.
+  - Extended the internal workspace service guard to keep direct `WorkspaceDraftActionError`
+    handling out of `workspace_service.py`.
+- Consequence:
+  - Workspace service responsibilities are narrower: draft-action mutation has its own API service
+    boundary while evaluation orchestration remains explicit in the main service.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting focused workspace subdomain helpers where orchestration and domain mutation
+    remain mixed.
+
 ## LA-REV-416
 
 - Scope: Workspace saved-version service boundary

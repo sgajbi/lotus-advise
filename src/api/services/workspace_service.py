@@ -5,11 +5,10 @@ from src.api.services.workspace_context_resolution import (
     build_initial_workspace_context,
     build_workspace_simulate_request,
 )
+from src.api.services.workspace_draft_actions import apply_workspace_draft_action_to_session
 from src.api.services.workspace_errors import (
-    WORKSPACE_DRAFT_ACTION_INVALID_DETAIL,
     WORKSPACE_EVALUATION_UNAVAILABLE_DETAIL,
     WorkspaceEvaluationUnavailableError,
-    WorkspaceNotFoundError,
     safe_workspace_error_detail,
 )
 from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
@@ -18,10 +17,6 @@ from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.correlation import resolve_correlation_id
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-from src.core.workspace.draft_actions import (
-    WorkspaceDraftActionError,
-    apply_workspace_draft_action_to_state,
-)
 from src.core.workspace.evaluation import build_evaluation_summary
 from src.core.workspace.identifiers import new_workspace_id
 from src.core.workspace.models import (
@@ -134,19 +129,7 @@ def apply_workspace_draft_action(
     request: WorkspaceDraftActionRequest,
 ) -> WorkspaceDraftActionResponse:
     session = get_workspace_session(workspace_id)
-    try:
-        apply_workspace_draft_action_to_state(
-            draft_state=session.draft_state,
-            request=request,
-        )
-    except WorkspaceDraftActionError as exc:
-        raise WorkspaceNotFoundError(
-            safe_workspace_error_detail(
-                str(exc),
-                fallback=WORKSPACE_DRAFT_ACTION_INVALID_DETAIL,
-            )
-        ) from exc
-
+    apply_workspace_draft_action_to_session(session=session, request=request)
     _save_workspace_session(session)
     updated_session = reevaluate_workspace_session(workspace_id)
     return WorkspaceDraftActionResponse(workspace=updated_session)
