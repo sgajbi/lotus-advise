@@ -14,15 +14,15 @@ from src.core.workspace.action_models import (
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
 )
+from src.core.workspace.compare_models import (
+    WorkspaceCompareRequest,
+    WorkspaceCompareResponse,
+)
 from src.core.workspace.handoff_models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
 )
 from src.core.workspace.identifiers import new_workspace_id
-from src.core.workspace.models import (
-    WorkspaceCompareRequest,
-    WorkspaceCompareResponse,
-)
 from src.core.workspace.save_models import (
     WorkspaceResumeRequest,
     WorkspaceSavedVersionListResponse,

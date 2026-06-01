@@ -225,6 +225,18 @@ def test_workspace_models_remains_compatibility_reexport_facade():
     assert inline_definitions == []
 
 
+def test_production_code_uses_focused_workspace_model_imports():
+    source_root = Path(__file__).resolve().parents[4] / "src"
+    offenders = sorted(
+        str(path.relative_to(source_root.parents[0]))
+        for path in source_root.rglob("*.py")
+        if path != source_root / "core" / "workspace" / "models.py"
+        and "from src.core.workspace.models import" in path.read_text(encoding="utf-8")
+    )
+
+    assert offenders == []
+
+
 def _build_state() -> SimulatedState:
     return SimulatedState(
         total_value=Money(amount=Decimal("1000"), currency="USD"),

@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-518
+
+- Scope: Workspace compatibility import boundary
+- Pattern: Production workspace code should import focused model modules directly instead of using
+  the `src.core.workspace.models` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency flow and modularity regression prevention
+- Summary: After `src/core/workspace/models.py` became a pure compatibility facade, the workspace
+  router and workspace service still imported compare DTOs from the facade. That kept new
+  production code dependent on the broad compatibility surface instead of the focused compare
+  model boundary.
+- Evidence:
+  - Updated `src/api/workspaces/router.py` and `src/api/services/workspace_service.py` to import
+    compare DTOs from `src.core.workspace.compare_models`.
+  - Added contract coverage preventing production modules, outside the compatibility facade itself,
+    from importing `src.core.workspace.models`.
+- Consequence:
+  - The compatibility facade is now reserved for legacy/import-contract support and tests, while
+    production code follows focused workspace model ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue applying focused-import contracts to other extracted model facades where production
+    code still depends on compatibility surfaces.
+
 ## LA-REV-517
 
 - Scope: Workspace lifecycle-handoff model ownership
