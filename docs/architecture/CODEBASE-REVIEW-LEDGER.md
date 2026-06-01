@@ -9270,6 +9270,35 @@
 - Follow-Up:
   - Keep the `models.py` facade thin; do not add new implementation logic there.
 
+## LA-REV-383
+
+- Scope: RFC-0028 proof-pack request metadata sensitivity guard
+- Pattern: Runtime metadata that enters proof artifacts must reject the same high-risk technical
+  terms used by proof summaries, not only generic token/secret wording
+- Status: Hardened
+- Finding Class: Security posture and proof-artifact hygiene
+- Summary: The bank-demo proof capture request rejected secrets, tokens, credentials, and prompts
+  in repository/service/environment/correlation metadata, but did not reject provider output,
+  provider response, raw payload/source/prompt, or trace-id wording. Those values are not expected
+  in proof metadata and can leak operational or AI/provider detail into customer-consumable proof
+  artifacts if copied from diagnostics.
+- Evidence:
+  - Expanded metadata normalization to detect hyphen, space, and underscore variants of provider
+    output/response, raw payload/prompt/source, and trace id.
+  - Added request-boundary tests for correlation id, environment, service version, and repository
+    SHA rejection.
+  - Focused `ruff`, format check, bank-demo proof API request tests, and RFC-0028 bank-demo/API
+    selected tests passed with 88 tests.
+- Consequence:
+  - RFC-0028 API proof capture now has a stronger guard against accidental technical leakage in
+    metadata fields that are repeated in proof-pack artifacts.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this tightens existing
+    sensitive-data handling without changing the public proof workflow.
+- Follow-Up:
+  - Keep live-validation defects and sensitive-leak findings covered at the lowest request/model
+    boundary where they can recur.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

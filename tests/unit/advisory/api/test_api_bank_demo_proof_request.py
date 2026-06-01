@@ -62,5 +62,18 @@ def test_bank_demo_proof_correlation_uses_request_context_without_sensitive_mate
         assert runtime_correlation_id(" corr-request-456 ") == "corr-request-456"
         with pytest.raises(ValueError, match="sensitive material"):
             runtime_correlation_id("corr-token-should-not-leak")
+        with pytest.raises(ValueError, match="sensitive material"):
+            runtime_correlation_id("trace id trace-should-not-leak")
     finally:
         correlation_id_var.reset(token)
+
+
+def test_bank_demo_proof_runtime_metadata_rejects_provider_and_raw_payload_terms() -> None:
+    with pytest.raises(ValueError, match="sensitive material"):
+        runtime_environment("provider output included internal model detail")
+
+    with pytest.raises(ValueError, match="sensitive material"):
+        runtime_service_version("raw-payload-build")
+
+    with pytest.raises(ValueError, match="sensitive material"):
+        runtime_repository_sha("raw source sha")
