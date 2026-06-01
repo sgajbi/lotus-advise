@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, Header, status
+from fastapi import APIRouter, status
 
 from src.api.routers.bank_demo_proof_errors import run_bank_demo_proof_operation
+from src.api.routers.bank_demo_proof_parameters import BankDemoProofCorrelationIdHeader
 from src.api.routers.bank_demo_proof_request import (
-    RFC28_CORRELATION_ID_MAX_LENGTH,
     BankDemoProofCaptureRequest,
     runtime_correlation_id,
     runtime_environment,
@@ -75,15 +73,7 @@ def get_bank_demo_supported_claim_register() -> AdvisorySupportedClaimRegister:
 )
 def build_bank_demo_proof_pack(
     request: BankDemoProofCaptureRequest,
-    x_correlation_id: Annotated[
-        str | None,
-        Header(
-            alias="X-Correlation-ID",
-            title="X-Correlation-ID",
-            description="Optional caller correlation id propagated into proof metadata.",
-            max_length=RFC28_CORRELATION_ID_MAX_LENGTH,
-        ),
-    ] = None,
+    x_correlation_id: BankDemoProofCorrelationIdHeader = None,
 ) -> BackendProofCaptureBundle:
     correlation_id = runtime_correlation_id(x_correlation_id)
     metadata = default_capture_metadata(

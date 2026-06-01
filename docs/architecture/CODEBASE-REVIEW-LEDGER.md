@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-456
+
+- Scope: Bank demo proof route parameter contract
+- Pattern: Bank demo proof capture routes should keep proof correlation header metadata outside
+  the router module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/routers/bank_demo_proof.py` owned the RFC-0028 proof-pack correlation header
+  contract inline, including the governed maximum length. This kept OpenAPI metadata in the router
+  even though request/runtime metadata normalization already lives in dedicated modules.
+- Evidence:
+  - Added `src/api/routers/bank_demo_proof_parameters.py` for the proof-pack correlation header.
+  - Updated the proof-pack route to use the named parameter alias while preserving the governed
+    header name, title, description, and maximum length.
+  - Extended internal guards so bank-demo-proof routes cannot reintroduce inline `Header`
+    declarations.
+- Consequence:
+  - RFC-0028 proof-pack route orchestration is separated from proof capture header metadata.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Review `integration_capabilities.py` query parameter declarations separately because its enum
+    defaults and generated OpenAPI shape should be verified carefully.
+
 ## LA-REV-455
 
 - Scope: Advisory simulation route parameter contracts

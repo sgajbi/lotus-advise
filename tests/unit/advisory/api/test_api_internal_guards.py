@@ -497,3 +497,11 @@ def test_bank_demo_proof_routes_use_shared_response_metadata():
     assert "HTTPException(" not in source
     assert "except ValueError as exc" not in source
     assert "run_bank_demo_proof_operation" in source
+
+
+def test_bank_demo_proof_routes_use_shared_parameter_contracts():
+    source = Path("src/api/routers/bank_demo_proof.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import APIRouter, status" in source
+    assert "Header(" not in source
+    assert "BankDemoProofCorrelationIdHeader" in source
