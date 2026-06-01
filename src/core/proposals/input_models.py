@@ -40,7 +40,7 @@ class ProposalStatelessInput(BaseModel):
         examples=[
             {
                 "portfolio_snapshot": {
-                    "portfolio_id": "pf_advisory_01",
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                     "base_currency": "USD",
                 },
                 "market_data_snapshot": {"prices": [], "fx_rates": []},
@@ -56,7 +56,7 @@ class ProposalStatelessInput(BaseModel):
 class ProposalStatefulInput(BaseModel):
     portfolio_id: str = Field(
         description="Canonical Lotus portfolio identifier resolved through upstream services.",
-        examples=["pf_advisory_01"],
+        examples=["PB_SG_GLOBAL_BAL_001"],
     )
     as_of: str = Field(
         description="Business date or timestamp used to resolve the authoritative source context.",
@@ -89,7 +89,7 @@ class ProposalStatefulInput(BaseModel):
 class ProposalResolvedContext(BaseModel):
     portfolio_id: str = Field(
         description="Resolved portfolio identifier used by proposal evaluation.",
-        examples=["pf_advisory_01"],
+        examples=["PB_SG_GLOBAL_BAL_001"],
     )
     as_of: str = Field(
         description="Resolved business date or timestamp used during evaluation.",
@@ -137,7 +137,7 @@ class ProposalSimulationRequest(BaseModel):
         examples=[
             {
                 "portfolio_snapshot": {
-                    "portfolio_id": "pf_advisory_01",
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                     "base_currency": "USD",
                 },
                 "market_data_snapshot": {"prices": [], "fx_rates": []},
@@ -155,7 +155,7 @@ class ProposalSimulationRequest(BaseModel):
             {
                 "simulate_request": {
                     "portfolio_snapshot": {
-                        "portfolio_id": "pf_advisory_01",
+                        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                         "base_currency": "USD",
                     },
                     "market_data_snapshot": {"prices": [], "fx_rates": []},
@@ -175,7 +175,7 @@ class ProposalSimulationRequest(BaseModel):
         ),
         examples=[
             {
-                "portfolio_id": "pf_advisory_01",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                 "as_of": "2026-03-25",
                 "mandate_id": "mandate_growth_01",
             }
@@ -255,7 +255,7 @@ class ProposalCreateRequest(BaseModel):
         examples=[
             {
                 "portfolio_snapshot": {
-                    "portfolio_id": "pf_advisory_01",
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                     "base_currency": "USD",
                 },
                 "market_data_snapshot": {"prices": [], "fx_rates": []},
@@ -357,7 +357,7 @@ class ProposalVersionRequest(BaseModel):
         examples=[
             {
                 "portfolio_snapshot": {
-                    "portfolio_id": "pf_advisory_01",
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                     "base_currency": "USD",
                 },
                 "market_data_snapshot": {"prices": [], "fx_rates": []},

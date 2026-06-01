@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Any, cast
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
@@ -30,6 +31,12 @@ SENSITIVE_METADATA_FRAGMENTS = (
     "api_key",
     "apikey",
     "prompt",
+    "provider_output",
+    "provider_response",
+    "raw_payload",
+    "raw_prompt",
+    "raw_source",
+    "trace_id",
 )
 
 
@@ -174,7 +181,7 @@ def normalize_runtime_metadata(value: str, *, field_name: str, max_length: int) 
         raise ValueError(f"{field_name} is required")
     if len(normalized) > max_length:
         raise ValueError(f"{field_name} is too long")
-    lowered = normalized.lower().replace("-", "_")
+    lowered = re.sub(r"[-\s]+", "_", normalized.lower())
     if any(fragment in lowered for fragment in SENSITIVE_METADATA_FRAGMENTS):
         raise ValueError(f"{field_name} cannot contain sensitive material")
     return normalized

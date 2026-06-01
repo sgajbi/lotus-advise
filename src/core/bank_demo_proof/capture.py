@@ -12,6 +12,7 @@ from src.core.bank_demo_proof.artifact_refs import (
 from src.core.bank_demo_proof.commercial_materials import (
     CommercialMaterialPack,
     build_commercial_material_pack,
+    validate_commercial_material_pack_against_register,
 )
 from src.core.bank_demo_proof.document_proof import (
     AdvisoryDocumentProofSummary,
@@ -22,16 +23,14 @@ from src.core.bank_demo_proof.integration_proof import (
     build_journey_integration_proof_summary,
 )
 from src.core.bank_demo_proof.material_review import MaterialFieldReview, review_material_fields
-from src.core.bank_demo_proof.models import (
-    AdvisoryBankDemoProofPack,
-    AdvisoryDemoScenarioContract,
-    AdvisorySupportedClaimRegister,
-)
 from src.core.bank_demo_proof.proof_assets import build_backend_proof_assets
 from src.core.bank_demo_proof.proof_pack import build_backend_proof_pack
+from src.core.bank_demo_proof.proof_pack_models import AdvisoryBankDemoProofPack
 from src.core.bank_demo_proof.runtime_posture import BackendRuntimePosture
 from src.core.bank_demo_proof.runtime_summary import sanitize_live_runtime_summary
 from src.core.bank_demo_proof.scenario_contract import build_default_scenario_contract
+from src.core.bank_demo_proof.scenario_models import AdvisoryDemoScenarioContract
+from src.core.bank_demo_proof.supported_claim_models import AdvisorySupportedClaimRegister
 from src.core.bank_demo_proof.supported_claim_register import (
     build_default_supported_claim_register,
 )
@@ -135,7 +134,6 @@ def build_backend_proof_capture(
     output_ref_prefix = normalize_output_ref_prefix(output_ref_prefix)
     sanitized_summary = sanitize_live_runtime_summary(live_runtime_payload)
     document_proof_summary = build_document_proof_summary(live_runtime_payload)
-    commercial_material_pack = build_commercial_material_pack()
     material_reviews = review_material_fields(live_runtime_payload)
     if any(review.review_posture == "BLOCKED" for review in material_reviews):
         blocked = ", ".join(
@@ -150,6 +148,10 @@ def build_backend_proof_capture(
 
     scenario_contract = build_default_scenario_contract()
     supported_claim_register = build_default_supported_claim_register()
+    commercial_material_pack = validate_commercial_material_pack_against_register(
+        build_commercial_material_pack(),
+        supported_claim_register,
+    )
     runtime_posture_payload = runtime_posture.model_dump(mode="json")
     document_proof_payload = document_proof_summary.model_dump(mode="json")
     integration_proof_payload = journey_integration_proof_summary.model_dump(mode="json")

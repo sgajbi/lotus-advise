@@ -14,7 +14,12 @@ _SENSITIVE_REF_FRAGMENTS = (
     "apikey",
     "prompt",
     "raw_payload",
+    "raw_prompt",
     "raw_source",
+    "provider_output",
+    "provider_response",
+    "trace_id",
+    "correlation_id",
 )
 _WINDOWS_DRIVE_REF = re.compile(r"^[A-Za-z]:")
 
@@ -49,5 +54,5 @@ def normalize_local_artifact_ref(value: str, *, field_name: str) -> str:
 
 
 def _is_sensitive_fragment(value: str) -> bool:
-    normalized = value.lower().replace("-", "_")
+    normalized = re.sub(r"[-\s]+", "_", value.lower())
     return any(fragment in normalized for fragment in _SENSITIVE_REF_FRAGMENTS)

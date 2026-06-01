@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -193,6 +194,18 @@ def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> No
             claim_text="This should not be promotable.",
         )
 
+    with pytest.raises(ValidationError, match="proof requirements must use declared evidence refs"):
+        SupportedClaim(
+            claim_id="invalid_requirement_ref",
+            title="Invalid requirement ref",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["WIKI"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.material_field_review"],
+            proof_requirements=[_proof_requirement()],
+        )
+
     with pytest.raises(ValidationError, match="claim_id values must be unique"):
         AdvisorySupportedClaimRegister(
             scenario_id=RFC28_CANONICAL_SCENARIO_ID,
@@ -229,6 +242,18 @@ def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> No
             proof_requirements=[_proof_requirement()],
         )
 
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        SupportedClaim(
+            claim_id="unsafe_provider_output",
+            title="Unsafe provider output",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Provider_output and trace_id evidence are available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
     with pytest.raises(ValidationError):
         SupportedClaim(
             claim_id="x" * 161,
@@ -250,6 +275,30 @@ def test_supported_claim_register_bounds_taxonomy_and_policy_lists() -> None:
             classification="IMPLEMENTATION_BACKED",
             audiences=["SALES", "SALES"],
             allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
+    with pytest.raises(ValidationError, match="cannot target client demos"):
+        SupportedClaim(
+            claim_id="ui_pending_client_demo",
+            title="UI pending client demo",
+            classification="BACKEND_BACKED_UI_PENDING",
+            audiences=["CLIENT_DEMO"],
+            allowed_materials=["WIKI"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
+    with pytest.raises(ValidationError, match="cannot use client-facing materials"):
+        SupportedClaim(
+            claim_id="ui_pending_product_one_pager",
+            title="UI pending product one pager",
+            classification="BACKEND_BACKED_UI_PENDING",
+            audiences=["PRE_SALES"],
+            allowed_materials=["PRODUCT_ONE_PAGER"],
             claim_text="Advisor proof evidence is available for review.",
             evidence_refs=["proof.assets.backend_summary"],
             proof_requirements=[_proof_requirement()],
@@ -539,6 +588,8 @@ def test_runtime_posture_blocks_secret_urls_and_sanitizes_probe_summaries() -> N
                     ],
                     "diagnostics": {
                         "trace_id": "trace-123",
+                        "trace id": "trace-456",
+                        "correlation-id": "corr-789",
                         "safe": "runtime capability summary",
                     },
                 },
@@ -551,6 +602,8 @@ def test_runtime_posture_blocks_secret_urls_and_sanitizes_probe_summaries() -> N
     assert endpoint.latency_ms == 12
     assert endpoint.summary["Authorization"] == "[REDACTED]"
     assert endpoint.summary["diagnostics"]["trace_id"] == "[REDACTED]"
+    assert endpoint.summary["diagnostics"]["trace id"] == "[REDACTED]"
+    assert endpoint.summary["diagnostics"]["correlation-id"] == "[REDACTED]"
     assert "token" not in endpoint.summary["degraded_reasons"][0]
     assert endpoint.summary["diagnostics"]["safe"] == "runtime capability summary"
 
@@ -573,6 +626,7 @@ def test_runtime_posture_redacts_sensitive_values_in_neutral_summary_fields() ->
         summary={
             "detail": "Dependency returned Authorization: Bearer should-not-leak",
             "message": "token=should-not-leak",
+            "provider": "Provider output included internal model detail.",
             "error": "Traceback (most recent call last): File C:/Users/local/app.py",
             "safe": "readiness check degraded",
         },
@@ -580,5 +634,28 @@ def test_runtime_posture_redacts_sensitive_values_in_neutral_summary_fields() ->
 
     assert endpoint.summary["detail"] == "[REDACTED]"
     assert endpoint.summary["message"] == "[REDACTED]"
+    assert endpoint.summary["provider"] == "[REDACTED]"
     assert endpoint.summary["error"] == "[REDACTED]"
     assert endpoint.summary["safe"] == "readiness check degraded"
+
+
+def test_bank_demo_model_facade_preserves_focused_model_ownership() -> None:
+    assert AdvisoryDemoScenarioContract.__module__.endswith(".scenario_models")
+    assert DemoScenarioStep.__module__.endswith(".scenario_models")
+    assert AdvisorySupportedClaimRegister.__module__.endswith(".supported_claim_models")
+    assert SupportedClaim.__module__.endswith(".supported_claim_models")
+    assert ArtifactPolicy.__module__.endswith(".supported_claim_models")
+    assert ProofAsset.__module__.endswith(".proof_asset_models")
+    assert AdvisoryBankDemoProofPack.__module__.endswith(".proof_pack_models")
+
+
+def test_bank_demo_internal_modules_import_focused_models_not_facade() -> None:
+    bank_demo_dir = Path("src/core/bank_demo_proof")
+    internal_modules = [
+        path for path in bank_demo_dir.glob("*.py") if path.name not in {"__init__.py", "models.py"}
+    ]
+
+    for path in internal_modules:
+        assert "from src.core.bank_demo_proof.models import" not in path.read_text(
+            encoding="utf-8"
+        ), path

@@ -55,12 +55,27 @@ def test_raise_proposal_http_exception_reraises_unknown_error() -> None:
             "PROPOSAL_CONFLICT",
         ),
         (
+            ProposalStateConflictError("STATE_CONFLICT provider_output leaked"),
+            409,
+            "PROPOSAL_CONFLICT",
+        ),
+        (
             ProposalTransitionError("TRANSITION_INVALID secret leaked"),
             HTTP_422_UNPROCESSABLE,
             "PROPOSAL_REQUEST_VALIDATION_FAILED",
         ),
         (
             ProposalValidationError("VALIDATION_INVALID api_key leaked"),
+            HTTP_422_UNPROCESSABLE,
+            "PROPOSAL_REQUEST_VALIDATION_FAILED",
+        ),
+        (
+            ProposalValidationError("VALIDATION_INVALID trace_id=trace-should-not-leak"),
+            HTTP_422_UNPROCESSABLE,
+            "PROPOSAL_REQUEST_VALIDATION_FAILED",
+        ),
+        (
+            ProposalValidationError("VALIDATION_INVALID correlation-id=corr-should-not-leak"),
             HTTP_422_UNPROCESSABLE,
             "PROPOSAL_REQUEST_VALIDATION_FAILED",
         ),
@@ -80,5 +95,8 @@ def test_raise_proposal_http_exception_redacts_sensitive_detail(
     assert "should-not-leak" not in detail_text
     assert "raw prompt" not in detail_text
     assert "provider_response" not in detail_text
+    assert "provider_output" not in detail_text
+    assert "trace" not in detail_text
+    assert "correlation" not in detail_text
     assert "secret" not in detail_text
     assert "api_key" not in detail_text

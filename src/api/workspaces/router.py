@@ -66,7 +66,7 @@ _WORKSPACE_CREATE_EXAMPLE = {
         "created_by": "advisor_123",
         "input_mode": "stateful",
         "stateful_input": {
-            "portfolio_id": "pf_advisory_01",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
             "household_id": "hh_001",
             "as_of": "2026-03-25",
             "mandate_id": "mandate_growth_01",

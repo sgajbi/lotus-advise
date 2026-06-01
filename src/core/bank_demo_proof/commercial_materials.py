@@ -6,12 +6,13 @@ from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from src.core.bank_demo_proof.models import (
+from src.core.bank_demo_proof.model_common import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
     RFC28_CANONICAL_SCENARIO_ID,
     SupportedClaimAudience,
 )
+from src.core.bank_demo_proof.supported_claim_models import AdvisorySupportedClaimRegister
 from src.core.bank_demo_proof.validation import (
     contains_sensitive_rfc28_term,
     normalize_required_rfc28_text,
@@ -28,6 +29,15 @@ _RFC28_MATERIAL_TITLE_MAX_LENGTH = 160
 _RFC28_MATERIAL_SOURCE_REF_MAX_LENGTH = 512
 _RFC28_MATERIAL_LIST_MAX_ITEMS = 64
 _RFC28_WINDOWS_DRIVE_REF = re.compile(r"^[A-Za-z]:")
+_CLIENT_FACING_MATERIAL_TYPES = {
+    "PRODUCT_ONE_PAGER",
+    "RFP_RESPONSE",
+    "SECURITY_PACK",
+    "DEMO_SCRIPT",
+    "ROI_STORY",
+    "FEATURE_MATRIX",
+    "DEMO_BOUNDARY",
+}
 
 
 class CommercialMaterial(BaseModel):
@@ -152,14 +162,22 @@ class CommercialMaterialPack(BaseModel):
     @model_validator(mode="after")
     def _materials_must_map_to_required_claims(self) -> CommercialMaterialPack:
         required = set(self.required_claim_ids)
+        blocked = set(self.blocked_claims)
+        if required.intersection(blocked):
+            raise ValueError("commercial material required and blocked claims must be distinct")
         material_ids = [material.material_id for material in self.materials]
         if len(set(material_ids)) != len(material_ids):
             raise ValueError("commercial material ids must be unique")
+        mapped: set[str] = set()
         for material in self.materials:
-            if not set(material.mapped_claim_ids).issubset(required):
+            mapped_claims = set(material.mapped_claim_ids)
+            if not mapped_claims.issubset(required):
                 raise ValueError("commercial material maps to an unsupported claim id")
-            if not set(self.blocked_claims).issubset(material.excluded_claims):
+            mapped.update(mapped_claims)
+            if not blocked.issubset(material.excluded_claims):
                 raise ValueError("commercial material must exclude every blocked claim")
+        if not required.issubset(mapped):
+            raise ValueError("commercial material required claims must all be mapped")
         return self
 
 
@@ -204,10 +222,39 @@ def _normalize_repository_source_ref(value: str) -> str:
     return urlunsplit(("", "", path, "", fragment))
 
 
+def validate_commercial_material_pack_against_register(
+    pack: CommercialMaterialPack,
+    register: AdvisorySupportedClaimRegister,
+) -> CommercialMaterialPack:
+    claim_by_id = {claim.claim_id: claim for claim in register.claims}
+    referenced_claim_ids = set(pack.required_claim_ids)
+    for material in pack.materials:
+        referenced_claim_ids.update(material.mapped_claim_ids)
+
+    missing = sorted(referenced_claim_ids.difference(claim_by_id))
+    if missing:
+        raise ValueError(f"commercial material references unknown supported claims: {missing}")
+
+    for material in pack.materials:
+        is_client_facing = (
+            "CLIENT_DEMO" in material.allowed_audiences
+            or material.material_type in _CLIENT_FACING_MATERIAL_TYPES
+        )
+        if not is_client_facing:
+            continue
+        for claim_id in material.mapped_claim_ids:
+            claim = claim_by_id[claim_id]
+            if claim.classification == "BACKEND_BACKED_UI_PENDING":
+                raise ValueError(
+                    "commercial material cannot map client-facing assets to UI-pending claims"
+                )
+    return pack
+
+
 def build_commercial_material_pack() -> CommercialMaterialPack:
     claim_ids = [
         "backend_proof_capture_repeatable",
-        "advisor_journey_backend_evidence_available",
+        "advisor_journey_product_surface_proven",
         "advisor_use_document_proof_available",
         "degraded_runtime_boundary_evidence_available",
         "ai_policy_cockpit_proof_integrated",
@@ -238,7 +285,7 @@ def build_commercial_material_pack() -> CommercialMaterialPack:
                 source_ref=source_ref,
                 mapped_claim_ids=[
                     "commercial_rfp_security_material_available",
-                    "advisor_journey_backend_evidence_available",
+                    "advisor_journey_product_surface_proven",
                     "client_ready_publication_blocked",
                 ],
                 allowed_audiences=["SALES", "PRE_SALES", "CLIENT_DEMO"],
@@ -318,7 +365,7 @@ def build_commercial_material_pack() -> CommercialMaterialPack:
                 source_ref=source_ref,
                 mapped_claim_ids=[
                     "commercial_rfp_security_material_available",
-                    "advisor_journey_backend_evidence_available",
+                    "advisor_journey_product_surface_proven",
                     "client_ready_publication_blocked",
                 ],
                 allowed_audiences=["SALES", "PRE_SALES"],

@@ -8846,6 +8846,646 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-369
+
+- Scope: RFC-0026 advisor cockpit business-copy leakage guard
+- Pattern: Advisor-facing cockpit models should reject sensitive operational terminology even when
+  it appears in underscore-delimited form
+- Status: Hardened
+- Finding Class: Security posture and sensitive-data handling
+- Summary: The cockpit model validator blocked sensitive terms such as `raw prompt` and
+  `raw payload` when written with spaces or hyphens, but underscore-delimited forms such as
+  `raw_payload`, `trace_id`, or `correlation_id` could still pass into business-facing evidence
+  summaries, action titles, and next-action copy. That is an avoidable leakage risk for Gateway and
+  Workbench consumers of RFC-0026 cockpit payloads.
+- Evidence:
+  - Hardened `src/core/advisor_cockpit/model_validation.py` to normalize underscores before
+    sensitive-term matching.
+  - Added `provider output`, `trace id`, and `correlation id` to the cockpit sensitive-term guard.
+  - Added model-boundary regression tests proving `raw_payload`, `trace_id`, and related technical
+    copy are rejected before API or UI projection.
+  - Focused advisor-cockpit model tests passed with 9 tests.
+- Consequence:
+  - RFC-0026 cockpit payloads fail closed if source-readiness, acknowledgement, or action-building
+    paths accidentally try to expose raw runtime or observability identifiers in advisor-facing
+    copy.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    model-boundary hardening for an existing supported contract.
+- Follow-Up:
+  - Continue aligning RFC-0026 and RFC-0027 leakage guards so business-facing payloads reject both
+    natural-language and identifier-shaped technical details.
+
+## LA-REV-370
+
+- Scope: RFC-0027 advisory copilot evidence and persistence leakage guards
+- Pattern: Copilot evidence packets and persisted structured payloads should reject sensitive AI
+  and operational material in both text values and key names
+- Status: Hardened
+- Finding Class: Security posture and sensitive-data handling
+- Summary: RFC-0027 copilot business-copy validation blocked some technical phrases, but it did
+  not reject common sensitive terms such as `token`, `secret`, `credential`, or
+  `provider output`. The persistence structured-payload guard also checked raw AI key names by
+  exact lower-case match, so hyphenated or space-delimited variants such as `raw-payload` and
+  `raw payload` could bypass the raw-payload key guard.
+- Evidence:
+  - Expanded `src/core/advisory_copilot/models.py` business-copy technical terms to cover
+    credentials, tokens, provider output, and raw source wording.
+  - Normalized structured payload keys in `src/core/advisory_copilot/service.py` so
+    hyphen-delimited and space-delimited raw AI key variants are blocked before persistence.
+  - Added evidence-packet and persistence regression tests for `raw_payload`, `raw-payload`,
+    `raw payload`, `token`, and `secret` leakage attempts.
+  - Focused copilot foundation and persistence tests passed with 30 tests; focused `ruff` and
+    format checks also passed.
+- Consequence:
+  - RFC-0027 copilot payloads and persisted audit records are less likely to retain or project raw
+    AI/provider material or secret-bearing operational detail while preserving source-backed
+    advisor/reviewer business evidence.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    model and persistence hardening for an existing supported contract.
+- Follow-Up:
+  - Consider extracting a shared advisory safe-copy vocabulary only if another RFC surface needs
+    the same guard; avoid premature abstraction while the current domains still have different
+    allowable identifier fields.
+
+## LA-REV-371
+
+- Scope: RFC-0028 bank-demo proof runtime and claim sanitization
+- Pattern: Proof material must sanitize technical identifiers and provider-output wording without
+  blocking controlled internal proof-review identifiers
+- Status: Hardened
+- Finding Class: Security posture and proof-artifact hygiene
+- Summary: RFC-0028 proof material validation blocked raw prompt, raw payload, and provider
+  response wording, but not provider-output or trace/correlation wording in supported-claim copy.
+  Runtime summary key sanitization also normalized hyphenated sensitive keys but not
+  space-delimited variants such as `trace id`. A first tightening attempt also showed that
+  `raw_source` is a legitimate internal material-review identifier used to prove raw-source
+  exclusion, so the final change keeps that identifier allowed in proof-review metadata while
+  still redacting raw-source runtime fields.
+- Evidence:
+  - Added `provider output`, `trace id`, and `correlation id` to RFC-0028 business-text sensitive
+    term validation.
+  - Hardened runtime summary key sanitization to normalize spaces as well as hyphens before
+    matching sensitive key fragments.
+  - Added runtime value redaction for provider response/output wording.
+  - Added model regression tests for supported-claim provider-output/trace-id wording and runtime
+    summary `trace id`/`correlation-id` key redaction.
+  - Focused bank-demo proof model and capture-writer tests passed with 18 tests after correcting
+    the internal `raw_source` proof-review identifier over-tightening.
+- Consequence:
+  - RFC-0028 sanitized proof packs and commercial-support material have stronger protection
+    against leaking observability or provider-output details while preserving implementation-backed
+    proof fields that demonstrate exclusion of raw source material.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    proof-artifact validation and sanitizer hardening for the existing RFC-0028 contract.
+- Follow-Up:
+  - Keep RFC-0028 proof-material guards split between public/business copy and internal proof
+    metadata so exclusion evidence can be recorded without becoming client-facing material.
+
+## LA-REV-372
+
+- Scope: Shared API sensitive-error detail detector
+- Pattern: Route-level error mappers should share one conservative detector for provider,
+  observability, and secret-bearing details
+- Status: Hardened
+- Finding Class: API error handling and sensitive-data posture
+- Summary: Proposal, workspace, copilot, health/readiness, and bank-demo API boundaries already
+  used the shared sensitive-error detector, but the detector did not classify provider-output,
+  trace-id, or correlation-id fragments as sensitive. Those details are support/observability
+  material, not client-facing API error detail.
+- Evidence:
+  - Added `provider output`, `trace id`, and `correlation id` to
+    `src/core/common/sensitive_error_details.py`.
+  - Extended proposal API error regression coverage to prove provider-output, trace-id, and
+    correlation-id details are redacted while status-code mapping remains intact.
+  - Focused proposal/workspace/copilot/bank-demo API tests passed with 79 tests; focused `ruff`
+    and format checks passed.
+- Consequence:
+  - Existing route-level mappers inherit stronger fail-closed behavior without duplicating
+    route-local sensitive-fragment lists.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is shared
+    defensive API error-boundary hardening for existing contracts.
+- Follow-Up:
+  - Keep new API route error mapping wired to the shared detector instead of adding local sensitive
+    term lists.
+
+## LA-REV-373
+
+- Scope: Active API/model portfolio example vocabulary
+- Pattern: Current OpenAPI examples should use the governed private-banking canonical portfolio
+  instead of legacy advisory demo identifiers
+- Status: Hardened
+- Finding Class: API documentation quality and private-banking vocabulary
+- Summary: Active source model and router examples still used `pf_advisory_01` and related legacy
+  demo identifiers even though RFC-0023 through RFC-0028 canonical proof uses
+  `PB_SG_GLOBAL_BAL_001`. These are examples rather than runtime behavior, but they feed OpenAPI
+  and API-vocabulary artifacts used by Gateway, Workbench, operators, and sales/pre-sales readers.
+- Evidence:
+  - Updated active `src/api` and `src/core` examples to use `PB_SG_GLOBAL_BAL_001`.
+  - Regenerated `docs/standards/api-vocabulary/lotus-advise-api-vocabulary.v1.json`.
+  - Added a source-example vocabulary regression test that rejects stale active-source portfolio
+    examples such as `pf_advisory_01`, `pf_advisory_demo`, and `DEMO_DPM`.
+  - Focused OpenAPI contract tests, OpenAPI quality gate, API vocabulary validation, `ruff`, and
+    format checks passed.
+- Consequence:
+  - Generated API documentation now aligns with the governed canonical private-banking proof
+    dataset and is less likely to leak older demo vocabulary into client-facing or integrator
+    material.
+- Documentation:
+  - Generated API vocabulary source changed. No README/wiki source change is required because this
+    updates API example truth without changing supported feature posture.
+- Follow-Up:
+  - Keep historical RFC/demo fixtures separate from active API source examples; update generated
+    vocabulary whenever source examples change.
+
+## LA-REV-374
+
+- Scope: Proposal lifecycle response model modularity and API error-code precision
+- Pattern: Lifecycle DTOs should be isolated from memo/report/delivery DTOs, and shared
+  sensitive-error detection should not redact stable Lotus domain codes
+- Status: Hardened
+- Finding Class: Modularity problem and API error handling
+- Summary: `src/core/proposals/response_models.py` still mixed lifecycle aggregate DTOs with
+  narrative, memo, policy, report, execution, and delivery response models. During the lifecycle
+  route validation for the split, the broader test pack also exposed an over-tightened
+  sensitive-error detector that redacted `CORRELATION_ID_CONFLICT` even though it is a stable
+  domain conflict code and does not expose an identifier value.
+- Evidence:
+  - Extracted lifecycle response DTOs into
+    `src/core/proposals/lifecycle_response_models.py` while keeping the existing
+    `response_models.py` import surface as a compatibility facade.
+  - Refined shared API sensitive-error detection so actual `trace_id=<value>` and
+    `correlation-id=<value>` details redact, while stable error codes such as
+    `CORRELATION_ID_CONFLICT` and `TRACE_ID_REQUIRED` remain visible.
+  - Added focused shared-detector tests for identifier-value redaction and stable-code
+    preservation.
+  - Focused lifecycle boundary/API tests, proposal HTTP error tests, shared-detector tests,
+    `ruff`, format check, and `mypy` passed with 106 behavior tests.
+- Consequence:
+  - Proposal lifecycle API contracts are easier to maintain independently from other proposal
+    surfaces, and API consumers retain useful idempotency/correlation conflict diagnostics without
+    leaking observability identifiers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization plus defensive API-boundary precision for existing contracts.
+- Follow-Up:
+  - Continue splitting `response_models.py` only along stable API surface boundaries, preserving
+    backwards-compatible imports until route modules are intentionally migrated.
+
+## LA-REV-375
+
+- Scope: Proposal report, execution, and delivery response model modularity
+- Pattern: Downstream delivery-boundary DTOs should be isolated from lifecycle, memo, timeline,
+  approval, and async DTOs without breaking existing public imports
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: After lifecycle DTO extraction, `src/core/proposals/response_models.py` still mixed
+  report-request, execution-handoff, execution-status, and delivery-summary contracts with memo
+  and workflow operations. Those contracts represent the downstream delivery boundary with
+  lotus-report and execution providers, and they have different ownership and supportability
+  semantics from memo and lifecycle DTOs.
+- Evidence:
+  - Extracted report, execution, and delivery response DTOs into
+    `src/core/proposals/delivery_response_models.py`.
+  - Kept `src/core/proposals/response_models.py` as a backwards-compatible facade for existing
+    route, service, and integration imports.
+  - Added a module-boundary contract assertion proving `models.ProposalReportResponse` still
+    resolves through the existing facade while the implementation lives in the delivery module.
+  - Focused lifecycle API, OpenAPI lifecycle docs, report projection, reporting engine, execution
+    handoff, `ruff`, format check, and `mypy` passed with 120 behavior tests.
+- Consequence:
+  - Report/execution/delivery API contracts are easier to review and evolve without coupling them
+    to memo or workflow DTOs, while Gateway and downstream integration imports remain stable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing contracts.
+- Follow-Up:
+  - Continue modularizing the remaining response facade around memo and operational-read surfaces,
+    and migrate direct imports only when a full route-module slice makes that change worthwhile.
+
+## LA-REV-376
+
+- Scope: Proposal memo response model modularity
+- Pattern: Memo DTOs should be owned by the memo surface instead of sharing a monolithic proposal
+  response module with lifecycle, delivery, timeline, approval, and async DTOs
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: RFC-0024 memo DTOs remained embedded in `response_models.py`, even though memo create,
+  projection, review, report-package, AI-commentary, lineage, and replay-evidence contracts are a
+  coherent proposal-memo API surface with separate supportability and client-ready-publication
+  boundaries.
+- Evidence:
+  - Extracted memo request/response DTOs and memo-specific literal vocabulary into
+    `src/core/proposals/memo_response_models.py`.
+  - Kept `src/core/proposals/response_models.py` as a backwards-compatible facade for existing
+    API route and service imports.
+  - Added a module-boundary contract assertion proving `models.ProposalMemoResponse` still
+    resolves through the existing facade while the implementation lives in the memo module.
+  - Focused memo API, OpenAPI lifecycle docs, module-boundary tests, `ruff`, format check, and
+    `mypy` passed with 24 behavior tests.
+- Consequence:
+  - Memo contracts can now evolve with RFC-0024-specific review, report-package, and AI-commentary
+    semantics without increasing coupling to unrelated proposal response DTOs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing memo API contracts.
+- Follow-Up:
+  - Continue reviewing the remaining response facade for operational-read DTOs and consider moving
+    route imports to owning modules in a later bounded slice after compatibility is proven.
+
+## LA-REV-377
+
+- Scope: Proposal narrative response model modularity
+- Pattern: Narrative read, regeneration, and review DTOs should be owned by the narrative surface
+  instead of sharing the remaining proposal response facade
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: RFC-0023/RFC-0024 narrative DTOs remained in `response_models.py` alongside lineage,
+  timeline, approval, async, and transition DTOs. Narrative read, regeneration, and review
+  contracts have distinct source-hash, review-gating, and client-ready-publication semantics that
+  are easier to maintain in a dedicated module.
+- Evidence:
+  - Extracted narrative read, regeneration, and review DTOs into
+    `src/core/proposals/narrative_response_models.py`.
+  - Kept `src/core/proposals/response_models.py` as a backwards-compatible facade for existing
+    route and service imports.
+  - Added a module-boundary contract assertion proving `models.ProposalNarrativeReviewResponse`
+    still resolves through the existing facade while the implementation lives in the narrative
+    module.
+  - Focused lifecycle API, OpenAPI lifecycle docs, proposal workflow service, module-boundary
+    tests, `ruff`, format check, and `mypy` passed with 151 behavior tests.
+- Consequence:
+  - Narrative API contracts are easier to review against source-hash, review, and publication
+    guardrails without increasing coupling to operational proposal DTOs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing narrative API contracts.
+- Follow-Up:
+  - Continue leaving `response_models.py` as a stable facade until route modules are intentionally
+    migrated to direct owner-module imports.
+
+## LA-REV-378
+
+- Scope: Proposal async operation and idempotency response model modularity
+- Pattern: Operational async and idempotency DTOs should be isolated from workflow-state mutation
+  DTOs and proposal lineage read models
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: Async operation acceptance/status DTOs and idempotency lookup DTOs remained in the
+  remaining proposal response facade even though they model the operational command boundary for
+  queued proposal creation/versioning and replay diagnostics.
+- Evidence:
+  - Extracted async operation and idempotency response DTOs into
+    `src/core/proposals/operation_response_models.py`.
+  - Kept `src/core/proposals/response_models.py` as a backwards-compatible facade for existing
+    route and service imports.
+  - Added a module-boundary contract assertion proving
+    `models.ProposalAsyncOperationStatusResponse` still resolves through the existing facade while
+    the implementation lives in the operation module.
+  - Focused lifecycle API, OpenAPI lifecycle docs, module-boundary tests, `ruff`, format check, and
+    `mypy` passed with 103 behavior tests.
+- Consequence:
+  - Async operation contracts are easier to review against idempotency, correlation, retry, and
+    replay semantics without coupling them to workflow transition DTOs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing operation API contracts.
+- Follow-Up:
+  - Keep async/idempotency model changes aligned with operation persistence and recovery tests.
+
+## LA-REV-379
+
+- Scope: Proposal workflow response model modularity and facade completion
+- Pattern: Workflow read/command DTOs should live with workflow response models, leaving
+  `response_models.py` as a compatibility facade rather than a renewed monolith
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: After extracting lifecycle, delivery, memo, narrative, and operation DTOs, the remaining
+  `response_models.py` still owned workflow lineage, timeline, approval-read, transition, and
+  approval command DTOs. Keeping those classes in the facade would preserve a smaller but still
+  mixed-purpose module.
+- Evidence:
+  - Extracted workflow lineage, timeline, approvals, transition, and approval request/response DTOs
+    into `src/core/proposals/workflow_response_models.py`.
+  - Converted `src/core/proposals/response_models.py` into a compatibility facade that re-exports
+    the focused response-model modules.
+  - Added a module-boundary contract assertion proving `models.ProposalWorkflowTimelineResponse`
+    still resolves through the existing facade while the implementation lives in the workflow
+    module.
+  - Focused lifecycle API, OpenAPI lifecycle docs, proposal workflow service, module-boundary
+    tests, `ruff`, format check, and `mypy` passed with 151 behavior tests.
+- Consequence:
+  - The proposal response-model surface now has clear ownership modules while preserving
+    downstream route, service, Gateway, and OpenAPI import compatibility.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing workflow API contracts.
+- Follow-Up:
+  - Treat `response_models.py` as a compatibility facade; add new DTOs to owning modules first and
+    re-export them only when backwards compatibility requires it.
+
+## LA-REV-380
+
+- Scope: Supported-features RFC delivery wording
+- Pattern: Wiki source-of-truth pages should distinguish implemented RFC support from gated or
+  planned claims without leaving implemented capabilities under a future-work banner
+- Status: Hardened
+- Finding Class: Documentation truth and product-claim governance
+- Summary: `wiki/Supported-Features.md` listed RFC-0023 through RFC-0028 under an "Active Roadmap
+  RFCs" heading with future-work wording even though the table rows now record implemented support
+  for RFC-0023 through RFC-0028 and explicit gated boundaries. That made the page harder for
+  business, pre-sales, operations, and engineering users to interpret accurately.
+- Evidence:
+  - Reworded the heading to `RFC Delivery Status And Guarded Boundaries`.
+  - Replaced the future-work lead-in with claim-control wording that allows implemented rows to be
+    presented only within their stated evidence and gated exclusions.
+  - Ran `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise`; it correctly reported
+    `Supported-Features.md` drift because repo-authored wiki source now intentionally differs from
+    the published wiki pending merge and post-merge publication.
+- Consequence:
+  - Supported-features wiki truth is now aligned with the implemented RFC 23-28 posture while still
+    blocking unsupported client-ready publication, external communication, completed sign-off,
+    bank-specific attestation, and OMS/order/fill/settlement claims.
+- Documentation:
+  - Wiki source updated. Post-merge wiki publication is required for `lotus-advise`.
+- Follow-Up:
+  - Publish the `lotus-advise` wiki after this branch merges to `main`.
+
+## LA-REV-381
+
+- Scope: RFC-0028 bank-demo proof model modularity
+- Pattern: Scenario contracts, supported-claim registers, proof assets, and proof packs should have
+  focused model ownership while preserving the existing public import facade
+- Status: Hardened
+- Finding Class: Modularity problem and API contract maintainability
+- Summary: `src/core/bank_demo_proof/models.py` mixed all RFC-0028 proof model families in one
+  module. The file remained correct, but it was becoming a renewed domain-model monolith as bank
+  demo proof added scenario, commercial, runtime, asset, and claim-governance concerns.
+- Evidence:
+  - Added focused modules for shared constants/helpers, scenario models, supported-claim models,
+    proof-asset models, and proof-pack models.
+  - Converted `src/core/bank_demo_proof/models.py` into a compatibility facade so existing API,
+    tests, scripts, and downstream imports continue to resolve unchanged.
+  - Added a model-facade contract assertion proving each exported model class still lives in its
+    owning module.
+  - Focused `ruff`, format check, `mypy src/core/bank_demo_proof`, and RFC-0028 proof
+    model/capture/register tests passed with 23 tests.
+- Consequence:
+  - RFC-0028 model ownership is easier to extend without coupling claim taxonomy, asset retention,
+    scenario contract, and proof-pack validation logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the public API contract
+    and product truth are unchanged.
+- Follow-Up:
+  - Add new RFC-0028 DTOs to the owning focused module first; use the facade only for stable import
+    compatibility.
+
+## LA-REV-382
+
+- Scope: RFC-0028 proof model internal dependency direction
+- Pattern: Compatibility facades are for public import stability; internal modules should depend on
+  focused owning modules to keep dependency flow explicit
+- Status: Hardened
+- Finding Class: Dependency-flow and modularity hardening
+- Summary: After splitting the bank-demo proof model families, several internal RFC-0028 modules
+  still imported types and constants from `src.core.bank_demo_proof.models`. That kept behavior
+  correct, but it made the facade a hidden internal dependency and weakened the model-ownership
+  boundary.
+- Evidence:
+  - Repointed internal bank-demo proof modules to `model_common`, `scenario_models`,
+    `supported_claim_models`, `proof_asset_models`, and `proof_pack_models`.
+  - Added a contract test that prevents internal `src/core/bank_demo_proof/*.py` modules from
+    importing the compatibility facade.
+  - Focused `ruff`, format check, `mypy src/core/bank_demo_proof`, and RFC-0028 bank-demo/API
+    selected tests passed with 87 tests.
+- Consequence:
+  - The facade remains available for route, script, test, and downstream compatibility, while
+    implementation modules now follow the focused dependency direction.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because runtime behavior and
+    product truth are unchanged.
+- Follow-Up:
+  - Keep the `models.py` facade thin; do not add new implementation logic there.
+
+## LA-REV-383
+
+- Scope: RFC-0028 proof-pack request metadata sensitivity guard
+- Pattern: Runtime metadata that enters proof artifacts must reject the same high-risk technical
+  terms used by proof summaries, not only generic token/secret wording
+- Status: Hardened
+- Finding Class: Security posture and proof-artifact hygiene
+- Summary: The bank-demo proof capture request rejected secrets, tokens, credentials, and prompts
+  in repository/service/environment/correlation metadata, but did not reject provider output,
+  provider response, raw payload/source/prompt, or trace-id wording. Those values are not expected
+  in proof metadata and can leak operational or AI/provider detail into customer-consumable proof
+  artifacts if copied from diagnostics.
+- Evidence:
+  - Expanded metadata normalization to detect hyphen, space, and underscore variants of provider
+    output/response, raw payload/prompt/source, and trace id.
+  - Added request-boundary tests for correlation id, environment, service version, and repository
+    SHA rejection.
+  - Focused `ruff`, format check, bank-demo proof API request tests, and RFC-0028 bank-demo/API
+    selected tests passed with 88 tests.
+- Consequence:
+  - RFC-0028 API proof capture now has a stronger guard against accidental technical leakage in
+    metadata fields that are repeated in proof-pack artifacts.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this tightens existing
+    sensitive-data handling without changing the public proof workflow.
+- Follow-Up:
+  - Keep live-validation defects and sensitive-leak findings covered at the lowest request/model
+    boundary where they can recur.
+
+## LA-REV-384
+
+- Scope: RFC-0028 commercial material claim mapping completeness
+- Pattern: Claim-controlled commercial material packs must prove every required supported claim is
+  mapped to at least one governed material, not only that each material uses allowed claims
+- Status: Hardened
+- Finding Class: Documentation/product-claim correctness and test quality
+- Summary: `CommercialMaterialPack` validated that each material mapped only to required claim ids
+  and excluded blocked claims, but it did not reject a pack where a required claim id was declared
+  and never used by any material. That could let claim-control coverage appear complete while
+  leaving a product, RFP, security, ROI, or demo material family unmapped.
+- Evidence:
+  - Added a completeness validator requiring every `required_claim_id` to appear in at least one
+    material's `mapped_claim_ids`.
+  - Added a distinctness guard so a claim cannot be both required and blocked in the same material
+    pack.
+  - Added behavior tests for missing required-claim mapping and overlapping required/blocked
+    claim sets.
+  - Focused `ruff`, format check, commercial material/API proof tests, and RFC-0028 bank-demo/API
+    selected tests passed with 89 tests.
+- Consequence:
+  - RFC-0028 commercial/RFP/security/demo material packs now fail closed when claim-control
+    coverage is incomplete or internally contradictory.
+- Documentation:
+  - Review ledger updated. README/wiki source already describes claim-controlled commercial
+    material; no source-truth change is required for this stricter validator.
+- Follow-Up:
+  - Keep commercial material additions tied to supported-claim tests so new claims cannot become
+    decorative metadata.
+
+## LA-REV-385
+
+- Scope: RFC-0028 supported-claim proof requirement consistency
+- Pattern: A supported claim's proof requirements must reference evidence declared on that same
+  claim so commercial and demo claim gates cannot depend on hidden evidence
+- Status: Hardened
+- Finding Class: Product-claim correctness and contract validation
+- Summary: The default `backend_proof_capture_repeatable` claim required
+  `proof.assets.document_proof_summary`, but that evidence ref was not listed in the claim's
+  `evidence_refs`. The register still built successfully because the model validated
+  implementation-backed claims had some evidence and proof requirements, not that the requirement
+  evidence was declared.
+- Evidence:
+  - Added a `SupportedClaim` validator requiring every proof requirement `evidence_ref` to appear
+    in the claim's declared `evidence_refs`.
+  - Added `proof.assets.document_proof_summary` to the default backend proof capture claim evidence.
+  - Added model and default-register tests proving requirement refs cannot be hidden.
+  - Focused `ruff`, format check, supported-claim/proof-model/API tests, and RFC-0028
+    bank-demo/API selected tests passed with 89 tests.
+- Consequence:
+  - Supported-claim promotion is now more auditable because proof requirements and evidence refs
+    cannot drift apart.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this corrects the
+    implementation-backed register contract without changing product wording.
+- Follow-Up:
+  - Treat any future required evidence addition as a model-test change and a supported-claim
+    register update in the same slice.
+
+## LA-REV-386
+
+- Scope: RFC-0028 supported-claim taxonomy after Workbench proof promotion
+- Pattern: Backend-only or UI-pending claims must not be used for client-demo/product material
+  after Gateway and Workbench proof is implementation-backed
+- Status: Hardened
+- Finding Class: Product-claim correctness and commercial material governance
+- Summary: The supported-claim register still used `advisor_journey_backend_evidence_available`
+  in client-demo/product one-pager and ROI material even though RFC-0028 later slices completed
+  Gateway and Workbench proof for `advisory.bank_demo_proof`. The claim remained correctly useful
+  as backend evidence, but it was no longer the right client-facing claim. The adjacent
+  advisor-use document proof claim also still carried a UI-pending classification despite being
+  supported with boundaries.
+- Evidence:
+  - Added implementation-backed claim `advisor_journey_product_surface_proven` for the governed
+    Advise/Gateway/Workbench proof surface.
+  - Moved product one-pager and ROI commercial material mappings from the backend/UI-pending claim
+    to the product-surface claim.
+  - Promoted `advisor_use_document_proof_available` to implementation-backed advisor-use proof
+    while preserving blocked client-ready publication wording.
+  - Hardened `BACKEND_BACKED_UI_PENDING` validation so those claims cannot target client demos or
+    client-facing material types.
+  - Updated proof assets, commercial guide claim mapping, and tests for API/register/capture/model
+    behavior.
+  - Focused `ruff`, format check, targeted bank-demo proof tests, and RFC-0028 bank-demo/API
+    selected tests passed with 89 tests.
+- Consequence:
+  - Client-facing RFC-0028 commercial material now maps to implementation-backed product-surface
+    proof, while backend-only claims remain internal/pre-sales guarded evidence.
+- Documentation:
+  - Commercial guide source updated because product/RFP/demo claim ids changed. Wiki source did not
+    require a separate wording change for this narrower register taxonomy correction.
+- Follow-Up:
+  - Publish `lotus-advise` wiki after merge because this branch already carries wiki source
+    changes from LA-REV-380.
+
+## LA-REV-387
+
+- Scope: RFC-0028 commercial material/register alignment guard
+- Pattern: Proof capture should validate commercial material packs against the active
+  supported-claim register before returning customer-consumable material
+- Status: Hardened
+- Finding Class: Contract consistency and product-claim governance
+- Summary: `build_commercial_material_pack()` and `build_default_supported_claim_register()` were
+  independently valid, but the capture path did not enforce cross-object alignment. A future
+  commercial material could reference an unknown claim id or map client-facing material to a
+  backend/UI-pending claim without failing proof capture.
+- Evidence:
+  - Added `validate_commercial_material_pack_against_register`.
+  - The validator rejects commercial material packs that reference unknown supported claims or map
+    client-facing material to `BACKEND_BACKED_UI_PENDING` claims.
+  - The RFC-0028 proof capture path now validates the commercial material pack against the default
+    supported-claim register before hashing and returning proof artifacts.
+  - Added focused tests for unknown claim ids, UI-pending client-facing mappings, API proof
+    capture, and commercial pack/register success.
+  - Focused `ruff`, format check, targeted bank-demo proof tests, and RFC-0028 bank-demo/API
+    selected tests passed with 90 tests.
+- Consequence:
+  - Commercial/RFP/demo material now fails closed if claim-register truth and material mappings
+    drift apart.
+- Documentation:
+  - Review ledger updated. Existing commercial guide and wiki source already describe
+    supported-claim governance; no additional wording change is required.
+- Follow-Up:
+  - Keep new commercial material families validated against the active register in proof capture,
+    not only in documentation tests.
+
+## LA-REV-388
+
+- Scope: RFC-0028 local proof artifact reference sensitivity guard
+- Pattern: Local artifact references used in proof packs must reject provider, raw-payload, trace,
+  and correlation wording with the same rigor as runtime metadata and summaries
+- Status: Hardened
+- Finding Class: Security posture and proof-artifact hygiene
+- Summary: `normalize_local_artifact_ref` rejected URLs, traversal, tokens, secrets, prompts, and
+  raw payload/source fragments, but it did not reject provider output/response or trace/correlation
+  path wording. Those strings are not appropriate in proof artifact references and could leak
+  operational diagnostic intent into sanitized artifacts.
+- Evidence:
+  - Expanded artifact-reference sensitive fragments to include raw prompt, provider output,
+    provider response, trace id, and correlation id.
+  - Normalized spaces and hyphens before fragment matching so `provider output` and `trace-id`
+    variants are rejected.
+  - Added API request-boundary tests for sensitive live-suite bundle refs and output prefixes.
+  - Focused `ruff`, format check, and bank-demo proof API/capture tests passed with 22 tests.
+- Consequence:
+  - RFC-0028 proof artifact refs now fail closed on sensitive diagnostic/provider path fragments
+    before proof capture can proceed.
+- Documentation:
+  - Review ledger updated. Existing README/commercial wording already describes sensitive artifact
+    reference rejection, so no source-truth wording change is required.
+- Follow-Up:
+  - Keep artifact-ref, runtime metadata, and runtime summary sensitive-term guards aligned.
+
+## LA-REV-389
+
+- Scope: RFC-0028 supported-claim register after product-surface proof promotion
+- Pattern: The active supported-claim register should not keep canonical proven advisor-journey
+  claims in a UI-pending posture after Gateway/Workbench proof is available
+- Status: Hardened
+- Finding Class: Product-claim correctness and documentation truth
+- Summary: The register had already added an implementation-backed product-surface claim, but the
+  canonical backend advisor-journey evidence claim still used `BACKEND_BACKED_UI_PENDING` and the
+  RFC text still described that stale pending state. That made the active source-owned claim
+  register less truthful than the implementation evidence produced by later RFC-0028 slices.
+- Evidence:
+  - Promoted `advisor_journey_backend_evidence_available` to `IMPLEMENTATION_BACKED` for
+    internal/backend evidence while keeping client-demo and commercial journey material mapped to
+    `advisor_journey_product_surface_proven`.
+  - Updated wording rules so backend-evidence material remains internal/operator-focused and
+    product-surface claims use the dedicated product-surface claim.
+  - Kept the `BACKEND_BACKED_UI_PENDING` taxonomy and commercial material guard for future partial
+    claims by testing a synthetic UI-pending claim instead of relying on stale default-register
+    state.
+  - Updated RFC-0028 implementation evidence notes for Slice 5 and Slice 6 so they no longer
+    describe proven advisor-use and advisor-journey proof as pending.
+- Consequence:
+  - The default RFC-0028 supported-claim register now aligns with the current proof posture:
+    canonical backend evidence, product-surface proof, advisor-use document proof, AI/policy/cockpit
+    integration, and commercial material are implementation-backed; client-ready publication and
+    retired pending RFP/security wording remain unsupported.
+- Documentation:
+  - RFC source updated because implementation-truth wording changed. Wiki source already carries
+    supported-feature posture updates from this branch and still requires post-merge publication.
+- Follow-Up:
+  - Continue rejecting future commercial material that maps client-facing assets to UI-pending
+    claims.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

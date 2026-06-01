@@ -379,10 +379,9 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
         claim.claim_id: claim.classification for claim in bundle.supported_claim_register.claims
     }
     assert claim_postures["backend_proof_capture_repeatable"] == "IMPLEMENTATION_BACKED"
-    assert (
-        claim_postures["advisor_journey_backend_evidence_available"] == "BACKEND_BACKED_UI_PENDING"
-    )
-    assert claim_postures["advisor_use_document_proof_available"] == "BACKEND_BACKED_UI_PENDING"
+    assert claim_postures["advisor_journey_backend_evidence_available"] == "IMPLEMENTATION_BACKED"
+    assert claim_postures["advisor_journey_product_surface_proven"] == "IMPLEMENTATION_BACKED"
+    assert claim_postures["advisor_use_document_proof_available"] == "IMPLEMENTATION_BACKED"
     assert claim_postures["ai_policy_cockpit_proof_integrated"] == "IMPLEMENTATION_BACKED"
     assert claim_postures["commercial_rfp_security_material_available"] == "IMPLEMENTATION_BACKED"
     assert claim_postures["rfp_security_package_pending"] == "UNSUPPORTED"

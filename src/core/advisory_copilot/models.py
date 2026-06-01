@@ -83,12 +83,22 @@ _COPILOT_LINEAGE_REF_LIMIT = 16
 _COPILOT_UNSUPPORTED_EVIDENCE_LIMIT = 12
 _COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH = 500
 _COPILOT_BUSINESS_COPY_TECHNICAL_TERMS = (
+    "authorization",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "api key",
+    "apikey",
     "raw prompt",
     "provider response",
+    "provider output",
     "trace id",
     "correlation id",
     "run ledger",
     "raw payload",
+    "raw source",
 )
 COPILOT_AUDIENCE_LIMIT = 5
 COPILOT_PACKET_SECTION_LIMIT = 12

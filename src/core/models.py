@@ -1081,7 +1081,7 @@ class DriftAnalysis(BaseModel):
 class SuitabilityEvidenceSnapshotIds(BaseModel):
     portfolio_snapshot_id: str = Field(
         description="Portfolio snapshot id used as evidence source.",
-        examples=["pf_advisory_01"],
+        examples=["PB_SG_GLOBAL_BAL_001"],
     )
     market_data_snapshot_id: str = Field(
         description="Market-data snapshot id used as evidence source.",
@@ -1358,7 +1358,7 @@ class ProposalSimulateRequest(BaseModel):
         "json_schema_extra": {
             "example": {
                 "portfolio_snapshot": {
-                    "portfolio_id": "pf_advisory_01",
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                     "base_currency": "USD",
                     "positions": [{"instrument_id": "EQ_LEGACY", "quantity": "100"}],
                     "cash_balances": [{"currency": "USD", "amount": "5000.00"}],
@@ -1405,7 +1405,7 @@ class ProposalSimulateRequest(BaseModel):
         description="Current portfolio holdings and cash balances.",
         examples=[
             {
-                "portfolio_id": "pf_advisory_01",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                 "base_currency": "USD",
                 "positions": [{"instrument_id": "EQ_LEGACY", "quantity": "100"}],
                 "cash_balances": [{"currency": "USD", "amount": "5000.00"}],

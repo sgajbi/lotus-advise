@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.bank_demo_proof.models import ProofAsset
+from src.core.bank_demo_proof.proof_asset_models import ProofAsset
 from src.core.common.canonical import hash_canonical_payload
 
 
@@ -29,6 +29,7 @@ def build_backend_proof_assets(
             evidence_refs=[
                 "backend_proof_capture_repeatable",
                 "advisor_journey_backend_evidence_available",
+                "advisor_journey_product_surface_proven",
             ],
             content_hash=hash_canonical_payload(sanitized_summary),
             commit_allowed=False,
@@ -57,6 +58,7 @@ def build_backend_proof_assets(
             evidence_refs=[
                 "backend_proof_capture_repeatable",
                 "ai_policy_cockpit_proof_integrated",
+                "advisor_journey_product_surface_proven",
             ],
             content_hash=hash_canonical_payload(integration_proof_payload),
             commit_allowed=False,
@@ -71,6 +73,7 @@ def build_backend_proof_assets(
             evidence_refs=[
                 "backend_proof_capture_repeatable",
                 "advisor_journey_backend_evidence_available",
+                "advisor_journey_product_surface_proven",
                 "ai_policy_cockpit_proof_integrated",
                 "degraded_runtime_boundary_evidence_available",
             ],

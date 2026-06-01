@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import date
 
-from src.core.bank_demo_proof.models import (
+from src.core.bank_demo_proof.model_common import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
     RFC28_CANONICAL_SCENARIO_ID,
+)
+from src.core.bank_demo_proof.scenario_models import (
     AdvisoryDemoScenarioContract,
     DemoScenarioStep,
 )
