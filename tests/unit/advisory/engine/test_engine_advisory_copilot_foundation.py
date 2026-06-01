@@ -36,6 +36,9 @@ from src.core.advisory_copilot.business_text import (
 from src.core.advisory_copilot.business_text import (
     contains_copilot_business_technical_detail as focused_contains_technical_detail,
 )
+from src.core.advisory_copilot.business_text import (
+    normalize_required_copilot_business_text,
+)
 from src.core.advisory_copilot.catalog_models import (
     CopilotActionDefinition as FocusedCopilotActionDefinition,
 )
@@ -175,6 +178,30 @@ def test_advisory_copilot_models_preserve_type_import_contract() -> None:
     assert CompatibilityCopilotUnsupportedEvidenceReason is (
         FocusedCopilotUnsupportedEvidenceReason
     )
+
+
+def test_advisory_copilot_business_text_normalizer_owns_required_business_copy() -> None:
+    section_source = Path("src/core/advisory_copilot/section_models.py").read_text(encoding="utf-8")
+
+    assert (
+        normalize_required_copilot_business_text(
+            "  Policy\nposture  ",
+            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        )
+        == "Policy posture"
+    )
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_SECTION_REQUIRED"):
+        normalize_required_copilot_business_text(
+            "   ",
+            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        )
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        normalize_required_copilot_business_text(
+            "raw prompt detail",
+            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        )
+    assert "def _normalize_required_text" not in section_source
+    assert "contains_copilot_business_technical_detail" not in section_source
 
 
 def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:

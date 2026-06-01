@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-556
+
+- Scope: Advisory copilot evidence section business-text normalization
+- Pattern: Required business-copy normalization and technical-leak rejection should be centralized
+  in the business-text boundary instead of repeated inside each DTO module.
+- Status: Hardened
+- Finding Class: Duplication reduction and sensitive-data handling
+- Summary: `src/core/advisory_copilot/section_models.py` carried its own required-text normalizer
+  and direct technical-detail checks for section keys, titles, and summary items. That duplicated
+  business-copy policy already owned by `business_text.py`.
+- Evidence:
+  - Added `normalize_required_copilot_business_text` to
+    `src/core/advisory_copilot/business_text.py`.
+  - Updated evidence section models to use the focused business-text normalizer for required
+    section text and summary items.
+  - Added coverage proving blank values, technical leakage, whitespace normalization, and removal
+    of the section-local required-text helper.
+- Consequence:
+  - Evidence section DTOs now delegate business-safe copy policy to a reusable domain helper,
+    reducing duplicate validation logic and tightening sensitive-data handling ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Migrate packet, catalog, and reference model required-text normalization to the same helper
+    where business-safety semantics match.
+
 ## LA-REV-555
 
 - Scope: Advisory copilot service facade regression guard
