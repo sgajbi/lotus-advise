@@ -9452,6 +9452,40 @@
 - Follow-Up:
   - Keep artifact-ref, runtime metadata, and runtime summary sensitive-term guards aligned.
 
+## LA-REV-389
+
+- Scope: RFC-0028 supported-claim register after product-surface proof promotion
+- Pattern: The active supported-claim register should not keep canonical proven advisor-journey
+  claims in a UI-pending posture after Gateway/Workbench proof is available
+- Status: Hardened
+- Finding Class: Product-claim correctness and documentation truth
+- Summary: The register had already added an implementation-backed product-surface claim, but the
+  canonical backend advisor-journey evidence claim still used `BACKEND_BACKED_UI_PENDING` and the
+  RFC text still described that stale pending state. That made the active source-owned claim
+  register less truthful than the implementation evidence produced by later RFC-0028 slices.
+- Evidence:
+  - Promoted `advisor_journey_backend_evidence_available` to `IMPLEMENTATION_BACKED` for
+    internal/backend evidence while keeping client-demo and commercial journey material mapped to
+    `advisor_journey_product_surface_proven`.
+  - Updated wording rules so backend-evidence material remains internal/operator-focused and
+    product-surface claims use the dedicated product-surface claim.
+  - Kept the `BACKEND_BACKED_UI_PENDING` taxonomy and commercial material guard for future partial
+    claims by testing a synthetic UI-pending claim instead of relying on stale default-register
+    state.
+  - Updated RFC-0028 implementation evidence notes for Slice 5 and Slice 6 so they no longer
+    describe proven advisor-use and advisor-journey proof as pending.
+- Consequence:
+  - The default RFC-0028 supported-claim register now aligns with the current proof posture:
+    canonical backend evidence, product-surface proof, advisor-use document proof, AI/policy/cockpit
+    integration, and commercial material are implementation-backed; client-ready publication and
+    retired pending RFP/security wording remain unsupported.
+- Documentation:
+  - RFC source updated because implementation-truth wording changed. Wiki source already carries
+    supported-feature posture updates from this branch and still requires post-merge publication.
+- Follow-Up:
+  - Continue rejecting future commercial material that maps client-facing assets to UI-pending
+    claims.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

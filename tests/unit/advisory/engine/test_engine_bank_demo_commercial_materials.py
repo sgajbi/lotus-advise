@@ -14,6 +14,10 @@ from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PROOF_MARKER,
     RFC28_CANONICAL_SCENARIO_ID,
 )
+from src.core.bank_demo_proof.supported_claim_models import (
+    SupportedClaim,
+    SupportedClaimProofRequirement,
+)
 from src.core.bank_demo_proof.supported_claim_register import (
     build_default_supported_claim_register,
 )
@@ -64,6 +68,25 @@ def test_commercial_material_pack_uses_bounded_business_safe_materials() -> None
 
 def test_commercial_material_pack_alignment_rejects_unknown_or_ui_pending_claims() -> None:
     register = build_default_supported_claim_register()
+    ui_pending_claim = SupportedClaim(
+        claim_id="partial_product_surface_pending",
+        title="Partial product surface pending",
+        classification="BACKEND_BACKED_UI_PENDING",
+        audiences=["DEVELOPER", "PRE_SALES"],
+        allowed_materials=["WIKI"],
+        claim_text="The backend evidence exists, but product-surface proof is not complete.",
+        evidence_refs=["proof.assets.sanitized_runtime_summary"],
+        proof_requirements=[
+            SupportedClaimProofRequirement(
+                requirement_id="partial-product-surface-proof",
+                evidence_ref="proof.assets.sanitized_runtime_summary",
+            )
+        ],
+        wording_rules=["Use internal wording only."],
+    )
+    ui_pending_register = register.model_copy(
+        update={"claims": [*register.claims, ui_pending_claim]}
+    )
 
     unknown_pack = CommercialMaterialPack(
         scenario_id=RFC28_CANONICAL_SCENARIO_ID,
@@ -92,7 +115,7 @@ def test_commercial_material_pack_alignment_rejects_unknown_or_ui_pending_claims
         primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
         proof_marker=RFC28_CANONICAL_PROOF_MARKER,
         publication_posture="CUSTOMER_CONSUMABLE_WITH_BOUNDARIES",
-        required_claim_ids=["advisor_journey_backend_evidence_available"],
+        required_claim_ids=["partial_product_surface_pending"],
         blocked_claims=["client_ready_publication"],
         materials=[
             CommercialMaterial(
@@ -100,14 +123,14 @@ def test_commercial_material_pack_alignment_rejects_unknown_or_ui_pending_claims
                 title="UI pending material",
                 material_type="DEMO_SCRIPT",
                 source_ref="docs/commercial/material.md",
-                mapped_claim_ids=["advisor_journey_backend_evidence_available"],
+                mapped_claim_ids=["partial_product_surface_pending"],
                 allowed_audiences=["SALES"],
                 excluded_claims=["client_ready_publication"],
             )
         ],
     )
     with pytest.raises(ValueError, match="UI-pending claims"):
-        validate_commercial_material_pack_against_register(ui_pending_pack, register)
+        validate_commercial_material_pack_against_register(ui_pending_pack, ui_pending_register)
 
 
 def test_commercial_material_rejects_unsafe_source_refs_and_technical_copy() -> None:

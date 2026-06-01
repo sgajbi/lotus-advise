@@ -19,7 +19,7 @@ def test_default_supported_claim_register_pins_canonical_claims() -> None:
     assert register.proof_marker == RFC28_CANONICAL_PROOF_MARKER
     assert claim_postures == {
         "backend_proof_capture_repeatable": "IMPLEMENTATION_BACKED",
-        "advisor_journey_backend_evidence_available": "BACKEND_BACKED_UI_PENDING",
+        "advisor_journey_backend_evidence_available": "IMPLEMENTATION_BACKED",
         "advisor_journey_product_surface_proven": "IMPLEMENTATION_BACKED",
         "advisor_use_document_proof_available": "IMPLEMENTATION_BACKED",
         "degraded_runtime_boundary_evidence_available": "DEGRADED_SUPPORTED",
@@ -35,14 +35,10 @@ def test_default_supported_claim_register_pins_canonical_claims() -> None:
             assert requirement.evidence_ref in evidence_refs, claim.claim_id
 
 
-def test_default_supported_claim_register_keeps_ui_pending_claims_off_screenshots() -> None:
+def test_default_supported_claim_register_promotes_product_surface_claims() -> None:
     register = build_default_supported_claim_register()
 
-    for claim in register.claims:
-        if claim.classification == "BACKEND_BACKED_UI_PENDING":
-            assert "SCREENSHOT" not in claim.allowed_materials
-            assert "CLIENT_DEMO" not in claim.audiences
-            assert claim.proof_requirements
+    assert all(claim.classification != "BACKEND_BACKED_UI_PENDING" for claim in register.claims)
 
     product_surface_claim = next(
         claim

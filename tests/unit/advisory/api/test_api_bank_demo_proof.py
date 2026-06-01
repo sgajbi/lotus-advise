@@ -24,9 +24,7 @@ def test_bank_demo_proof_contract_endpoints_expose_source_owned_truth() -> None:
 
     claim_postures = {claim["claim_id"]: claim["classification"] for claim in register["claims"]}
     assert claim_postures["backend_proof_capture_repeatable"] == "IMPLEMENTATION_BACKED"
-    assert (
-        claim_postures["advisor_journey_backend_evidence_available"] == "BACKEND_BACKED_UI_PENDING"
-    )
+    assert claim_postures["advisor_journey_backend_evidence_available"] == "IMPLEMENTATION_BACKED"
     assert claim_postures["advisor_journey_product_surface_proven"] == "IMPLEMENTATION_BACKED"
     assert claim_postures["advisor_use_document_proof_available"] == "IMPLEMENTATION_BACKED"
     assert claim_postures["ai_policy_cockpit_proof_integrated"] == "IMPLEMENTATION_BACKED"

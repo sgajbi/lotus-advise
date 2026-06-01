@@ -77,8 +77,8 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 ],
                 wording_rules=[
                     (
-                        "State that this is backend proof until Gateway and Workbench validation "
-                        "is complete."
+                        "State when material is limited to backend proof and route "
+                        "product-surface claims through the product-surface proof claim."
                     ),
                     "Do not imply client-ready approval or external client communication.",
                 ],
@@ -86,13 +86,13 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
             SupportedClaim(
                 claim_id="advisor_journey_backend_evidence_available",
                 title="Advisor journey backend evidence available",
-                classification="BACKEND_BACKED_UI_PENDING",
+                classification="IMPLEMENTATION_BACKED",
                 audiences=["DEVELOPER", "OPERATIONS", "PRE_SALES"],
                 allowed_materials=["WIKI", "OPERATOR_RUNBOOK"],
                 claim_text=(
                     "The advisory backend can prove the advisor journey evidence for proposal "
                     "lifecycle, narrative, memo, policy, report-package handoff, and execution "
-                    "boundary review before product-surface promotion."
+                    "boundary review as internal implementation evidence."
                 ),
                 evidence_refs=[backend_summary_ref, field_review_ref],
                 proof_requirements=[
@@ -102,13 +102,10 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                     )
                 ],
                 wording_rules=[
+                    ("Use backend-evidence wording only for internal or operator material."),
                     (
-                        "Use 'backend evidence available' until Gateway and Workbench validation "
-                        "is complete."
-                    ),
-                    (
-                        "Do not use screenshots for this claim until product-surface proof is "
-                        "complete."
+                        "Use advisor_journey_product_surface_proven for client-demo, product, "
+                        "and commercial journey material."
                     ),
                 ],
             ),

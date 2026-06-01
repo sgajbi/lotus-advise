@@ -829,8 +829,9 @@ Slice 3 implementation decision and evidence:
    pack: `ProposalNarrativeEvidence`, `AdvisoryProposalMemoEvidencePack`,
    `AdvisoryPolicyEvaluationRecord`, `AdvisorCockpitOperatingSnapshot`,
    `AdvisoryActionItemRegister`, and `AdvisoryCopilotInteractionRecord`.
-4. `/platform/capabilities` must not advertise bank-demo proof or supported-claim support until
-   Slice 5 plus the Gateway and Workbench proof slices promote the capability with evidence.
+4. `/platform/capabilities` must not advertise bank-demo proof or supported-claim support before
+   the Advise proof API and the Gateway/Workbench proof slices promote the capability with
+   evidence.
 5. No `contracts/domain-data-products/`, `contracts/trust-telemetry/`, or capabilities code change
    is made in Slice 3 because the correct hardening is a regression guard against premature
    promotion.
@@ -942,9 +943,10 @@ Slice 5 implementation decision and evidence:
 6. Sanitization deliberately omits raw hashes and raw runtime payloads from
    `sanitized-runtime-summary.json`; the source live-suite bundle remains local-only runtime
    evidence and is indexed as non-committable.
-7. Slice 5 does not promote Gateway, Workbench, screenshot, RFP/security, product one-pager, or
-   client-ready publication claims. The backend-supported advisor-journey claim remains
-   `BACKEND_BACKED_UI_PENDING` until the Gateway and Workbench proof slices pass.
+7. Slice 5 alone did not promote Gateway, Workbench, screenshot, RFP/security, product one-pager,
+   or client-ready publication claims. After the Gateway and Workbench proof slices passed, the
+   canonical advisor-journey backend evidence claim and product-surface claim are both
+   `IMPLEMENTATION_BACKED`, while client-ready publication remains `UNSUPPORTED`.
 8. Lowest-layer test coverage:
    1. `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` covers sanitized
       summary projection, material-field drift blocking, claim classifications, evidence markers,
@@ -996,8 +998,8 @@ Slice 6 implementation decision and evidence:
    in `proof-pack.json` as a `REPORT_PACKAGE_SUMMARY` asset, and includes
    `RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED` in proof-pack evidence markers.
 6. The supported-claim register adds `advisor_use_document_proof_available` as
-   `BACKEND_BACKED_UI_PENDING`. It is deliberately not a screenshot, RFP/security, product
-   one-pager, or client-ready publication claim.
+   `IMPLEMENTATION_BACKED` advisor-use document proof. It deliberately blocks client-ready
+   publication and external client distribution.
 7. Client-ready memo and policy document requests remain blocked through
    `MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED` and `POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED`.
    Slice 6 does not promote client-ready proposal packs, external client communication, completed
