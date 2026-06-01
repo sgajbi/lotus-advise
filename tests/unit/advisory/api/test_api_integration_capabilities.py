@@ -4,6 +4,7 @@ from src.api.capabilities.dependencies import (
     bank_demo_proof_readiness,
     dependency_map,
 )
+from src.api.capabilities.runtime_flags import resolve_capability_runtime_flags
 from src.api.capabilities.service import build_integration_capabilities
 from src.api.capabilities.supportability import build_advisory_supportability
 from src.api.main import app
@@ -661,6 +662,18 @@ def test_capability_dependency_helpers_fail_closed_for_missing_proof_dependency(
     assert "malformed-row" not in dependencies
     assert ready is False
     assert reason == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+
+
+def test_capability_runtime_flags_resolve_shared_boolean_environment(monkeypatch):
+    monkeypatch.setenv("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", "off")
+    monkeypatch.setenv("PROPOSAL_ASYNC_OPERATIONS_ENABLED", "YES")
+    monkeypatch.setenv("LOTUS_AI_WORKSPACE_RATIONALE_ENABLED", "0")
+
+    flags = resolve_capability_runtime_flags()
+
+    assert flags.lifecycle_enabled is False
+    assert flags.async_enabled is True
+    assert flags.ai_rationale_enabled is False
 
 
 def test_integration_capabilities_service_fails_closed_for_missing_dependency():

@@ -536,6 +536,17 @@ def test_capabilities_service_delegates_dependency_readiness_helpers():
     assert "BANK_DEMO_PROOF_DEPENDENCY_KEYS" not in source
 
 
+def test_capabilities_service_delegates_runtime_flag_resolution():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+
+    assert (
+        "from src.api.capabilities.runtime_flags import resolve_capability_runtime_flags" in source
+    )
+    assert "import os" not in source
+    assert "def _env_bool(" not in source
+    assert "os.getenv(" not in source
+
+
 def test_bank_demo_proof_routes_use_shared_response_metadata():
     source = inspect.getsource(bank_demo_proof_router)
 

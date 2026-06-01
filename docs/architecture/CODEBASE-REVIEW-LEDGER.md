@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-464
+
+- Scope: Capabilities runtime flag resolution
+- Pattern: Runtime environment flag parsing should live in a shared, typed boundary instead of
+  service-local helpers.
+- Status: Hardened
+- Finding Class: service-boundary maintainability and duplication reduction
+- Summary: `src/api/capabilities/service.py` still parsed environment booleans directly, while
+  proposal runtime code used a separate router utility for the same boolean semantics. That kept
+  environment access inside capability catalog assembly and duplicated feature-flag parsing.
+- Evidence:
+  - Added `src/api/runtime_flags.py` as the shared environment boolean parser.
+  - Added `src/api/capabilities/runtime_flags.py` with a typed `CapabilityRuntimeFlags` projection.
+  - Updated capabilities service, proposal router construction, and router runtime utilities to use
+    the shared parser.
+  - Added guard coverage preventing `capabilities.service` from reintroducing direct `os.getenv`
+    flag parsing.
+  - Added direct capability runtime flag coverage for true/false environment values.
+- Consequence:
+  - Capability catalog assembly is now driven by explicit runtime flag inputs, and boolean parsing
+    semantics are shared across proposal runtime and capabilities reporting.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Consider moving proposal workflow construction flags into a typed proposal runtime flag
+    projection once the proposal router is decomposed further.
+
 ## LA-REV-463
 
 - Scope: Integration capability dependency readiness helpers

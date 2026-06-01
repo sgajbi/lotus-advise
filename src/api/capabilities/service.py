@@ -1,4 +1,3 @@
-import os
 from datetime import UTC, date, datetime
 
 from src.api.capabilities.dependencies import (
@@ -16,15 +15,9 @@ from src.api.capabilities.models import (
     WorkflowCapability,
 )
 from src.api.capabilities.readiness import build_operational_readiness
+from src.api.capabilities.runtime_flags import resolve_capability_runtime_flags
 from src.api.capabilities.supportability import build_advisory_supportability
 from src.integrations.lotus_core import lotus_core_fallback_mode
-
-
-def _env_bool(name: str, default: bool) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def build_feature_capabilities(
@@ -452,15 +445,13 @@ def build_integration_capabilities(
     tenant_id: str,
     readiness: dict[str, object] | None = None,
 ) -> IntegrationCapabilitiesResponse:
-    lifecycle_enabled = _env_bool("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True)
-    async_enabled = _env_bool("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True)
-    ai_rationale_enabled = _env_bool("LOTUS_AI_WORKSPACE_RATIONALE_ENABLED", True)
+    runtime_flags = resolve_capability_runtime_flags()
     readiness_payload = readiness if readiness is not None else build_operational_readiness()
     dependencies = dependency_map(readiness_payload)
     features = build_feature_capabilities(
-        lifecycle_enabled=lifecycle_enabled,
-        async_enabled=async_enabled,
-        ai_rationale_enabled=ai_rationale_enabled,
+        lifecycle_enabled=runtime_flags.lifecycle_enabled,
+        async_enabled=runtime_flags.async_enabled,
+        ai_rationale_enabled=runtime_flags.ai_rationale_enabled,
         dependencies=dependencies,
     )
 
@@ -475,14 +466,14 @@ def build_integration_capabilities(
         supported_input_modes=["stateless", "stateful"],
         features=features,
         workflows=build_workflow_capabilities(
-            lifecycle_enabled=lifecycle_enabled,
-            ai_rationale_enabled=ai_rationale_enabled,
+            lifecycle_enabled=runtime_flags.lifecycle_enabled,
+            ai_rationale_enabled=runtime_flags.ai_rationale_enabled,
             dependencies=dependencies,
         ),
         readiness=OperationalReadiness.model_validate(readiness_payload),
         supportability=build_advisory_supportability(
             readiness=readiness_payload,
-            lifecycle_enabled=lifecycle_enabled,
+            lifecycle_enabled=runtime_flags.lifecycle_enabled,
             features=features,
         ),
     )
