@@ -1,3 +1,8 @@
+from src.core.workspace.compare_models import (
+    WorkspaceCompareDiffSummary,
+    WorkspaceCompareRequest,
+    WorkspaceCompareResponse,
+)
 from src.core.workspace.draft_models import (
     WorkspaceCashFlowDraft,
     WorkspaceDraftState,
@@ -14,9 +19,6 @@ from src.core.workspace.models import (
     WorkspaceAssistantEvidence,
     WorkspaceAssistantRequest,
     WorkspaceAssistantResponse,
-    WorkspaceCompareDiffSummary,
-    WorkspaceCompareRequest,
-    WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
     WorkspaceLifecycleHandoffMetadata,

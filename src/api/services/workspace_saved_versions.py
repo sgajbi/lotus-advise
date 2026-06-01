@@ -7,10 +7,9 @@ from src.api.services.workspace_errors import WorkspaceSavedVersionNotFoundError
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import build_workspace_saved_version_replay_response
 from src.core.workspace.compare import build_workspace_compare_response
+from src.core.workspace.compare_models import WorkspaceCompareRequest, WorkspaceCompareResponse
 from src.core.workspace.identifiers import new_workspace_version_id
 from src.core.workspace.models import (
-    WorkspaceCompareRequest,
-    WorkspaceCompareResponse,
     WorkspaceResumeRequest,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,

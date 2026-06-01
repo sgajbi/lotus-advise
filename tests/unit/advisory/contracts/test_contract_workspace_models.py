@@ -18,6 +18,15 @@ from src.core.models import (
     SimulatedState,
 )
 from src.core.proposals.models import ProposalCreateResponse
+from src.core.workspace.compare_models import (
+    WorkspaceCompareDiffSummary as CompareWorkspaceCompareDiffSummary,
+)
+from src.core.workspace.compare_models import (
+    WorkspaceCompareRequest as CompareWorkspaceCompareRequest,
+)
+from src.core.workspace.compare_models import (
+    WorkspaceCompareResponse as CompareWorkspaceCompareResponse,
+)
 from src.core.workspace.draft_models import (
     WorkspaceCashFlowDraft as DraftWorkspaceCashFlowDraft,
 )
@@ -46,6 +55,7 @@ from src.core.workspace.models import (
     WorkspaceAssistantRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
     WorkspaceCashFlowDraft,
+    WorkspaceCompareDiffSummary,
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
@@ -99,6 +109,12 @@ def test_workspace_models_preserves_version_model_import_contract():
     assert WorkspaceReplayEvidence is VersionWorkspaceReplayEvidence
     assert WorkspaceSavedVersion is VersionWorkspaceSavedVersion
     assert WorkspaceSavedVersionSummary is VersionWorkspaceSavedVersionSummary
+
+
+def test_workspace_models_preserves_compare_model_import_contract():
+    assert WorkspaceCompareDiffSummary is CompareWorkspaceCompareDiffSummary
+    assert WorkspaceCompareRequest is CompareWorkspaceCompareRequest
+    assert WorkspaceCompareResponse is CompareWorkspaceCompareResponse
 
 
 def _build_state() -> SimulatedState:

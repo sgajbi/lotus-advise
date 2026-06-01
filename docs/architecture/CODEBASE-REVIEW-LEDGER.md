@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-512
+
+- Scope: Workspace compare model ownership
+- Pattern: Workspace compare request and response DTOs should live in a focused module instead of
+  remaining inline in the broad workspace model surface.
+- Status: Hardened
+- Finding Class: modularity and workspace compare maintainability
+- Summary: `src/core/workspace/models.py` still owned compare request, diff summary, and response
+  DTOs after the draft and saved-version model extractions. These schemas are used by compare
+  service and saved-version API flow, making them a compact boundary separate from session,
+  assistant, and handoff DTOs.
+- Evidence:
+  - Added `src/core/workspace/compare_models.py` for compare request, diff summary, and response
+    DTOs.
+  - Kept `src.core.workspace.models` compatibility imports intact for existing callers.
+  - Updated compare and saved-version service helpers to import compare DTOs from the focused
+    module.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    compare model definitions.
+- Consequence:
+  - Workspace compare code now depends on a narrow compare model boundary instead of the broad
+    workspace model module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting workspace assistant and lifecycle handoff DTOs in small
+    compatibility-preserving slices.
+
 ## LA-REV-511
 
 - Scope: Workspace saved-version and replay model ownership

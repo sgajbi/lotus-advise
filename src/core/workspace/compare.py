@@ -1,6 +1,8 @@
-from src.core.workspace.models import (
+from src.core.workspace.compare_models import (
     WorkspaceCompareDiffSummary,
     WorkspaceCompareResponse,
+)
+from src.core.workspace.models import (
     WorkspaceSession,
 )
 from src.core.workspace.version_models import WorkspaceSavedVersion
