@@ -654,9 +654,11 @@ posture and hash continuity are sufficient, and the package can now flow through
 `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, and `lotus-workbench` as
 advisor-use product content and posture. Advisor-review narrative evidence now has data-product,
 trust telemetry, platform catalog/certification, capability-discovery posture, live validation, and
-governed canonical Workbench proof. Compliance-review, client-draft, client-ready artifact
-publication, and client communication remain gated future scope for RFC-0024 through RFC-0028 or a
-future explicitly approved implementation RFC; they are not supported RFC-0023 closure claims.
+governed canonical Workbench proof. Later RFC-0024 through RFC-0028 capabilities add advisor-use
+memo evidence, policy review posture, cockpit workflow, governed copilot support, and bank-demo
+proof. Compliance-review, client-draft, client-ready artifact publication, and external client
+communication remain blocked unless a separately approved implementation explicitly supports and
+proves those controls; they are not supported RFC-0023 closure claims.
 
 ## Source Index
 
