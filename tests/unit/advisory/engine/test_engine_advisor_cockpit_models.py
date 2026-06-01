@@ -90,6 +90,9 @@ from src.core.advisor_cockpit.type_models import (
 )
 from src.core.proposals.exceptions import ProposalValidationError
 
+SRC_ROOT = Path("src")
+COMPATIBILITY_FACADE_PATH = Path("src/core/advisor_cockpit/models.py")
+
 
 def _action(
     action_item_id: str,
@@ -168,10 +171,21 @@ def test_advisor_cockpit_models_preserve_snapshot_import_contract() -> None:
 
 
 def test_advisor_cockpit_models_is_pure_compatibility_facade() -> None:
-    tree = ast.parse(Path("src/core/advisor_cockpit/models.py").read_text(encoding="utf-8"))
+    tree = ast.parse(COMPATIBILITY_FACADE_PATH.read_text(encoding="utf-8"))
 
     assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
     assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+
+def test_production_code_uses_focused_advisor_cockpit_model_imports() -> None:
+    compatibility_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != COMPATIBILITY_FACADE_PATH.as_posix()
+        and "src.core.advisor_cockpit.models" in path.read_text(encoding="utf-8")
+    )
+
+    assert compatibility_importers == []
 
 
 def test_advisor_cockpit_sorting_matches_rfc0026_stable_order() -> None:

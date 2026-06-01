@@ -1,5 +1,28 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-531
+
+- Scope: Advisor cockpit compatibility facade production import boundary
+- Pattern: Production code should import focused advisor cockpit model modules directly instead of
+  importing from the legacy `src.core.advisor_cockpit.models` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency flow and modularity regression prevention
+- Summary: After `src/core/advisor_cockpit/models.py` became a pure compatibility facade, there was
+  no source-level guard preventing production code from reintroducing imports from the broad facade.
+- Evidence:
+  - Added contract coverage that scans production source and rejects imports from
+    `src.core.advisor_cockpit.models` outside the compatibility facade itself.
+  - Confirmed current production advisor cockpit modules import focused action, reference,
+    snapshot, and type model modules directly.
+- Consequence:
+  - The advisor cockpit model facade is now protected from becoming a production dependency again.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue applying model-boundary decomposition and production-import guards to the next largest
+    active model surface.
+
 ## LA-REV-530
 
 - Scope: Advisor cockpit model compatibility facade closure
