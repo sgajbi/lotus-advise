@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.unit.capability_source_helpers import read_capability_source
+
 SLICE13_PATH = Path("docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md")
 COMMERCIAL_GUIDE_PATH = Path(
     "docs/commercial/RFC-0025-enterprise-policy-pack-commercial-support.md"
@@ -56,7 +58,7 @@ def test_rfc0025_slice13_supported_features_do_not_overclaim() -> None:
         "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
     )
     declaration_text = _read("contracts/domain-data-products/lotus-advise-products.v1.json")
-    capability_text = _read("src/api/capabilities/service.py")
+    capability_text = read_capability_source()
 
     assert "Slice 13 is complete for policy-pack-specific commercial support material" in (
         supported_features
