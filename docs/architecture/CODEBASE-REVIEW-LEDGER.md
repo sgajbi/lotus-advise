@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-425
+
+- Scope: Proposal lifecycle route error boundary
+- Pattern: Lifecycle route handlers should delegate proposal exception classification to the
+  shared proposal operation boundary.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_lifecycle.py` repeated proposal exception imports and local
+  HTTP mapping across create, read, version, transition, approval, and narrative routes. As the
+  largest proposal API surface, this made lifecycle handlers noisy and increased mapping drift risk.
+- Evidence:
+  - Reused `run_proposal_operation` across nine lifecycle route service calls.
+  - Removed route-local proposal exception imports and `raise_proposal_http_exception` calls.
+  - Extended the lifecycle route guard to keep proposal exception mapping in the shared boundary.
+- Consequence:
+  - Lifecycle routes now focus on request binding, feature gating, and service calls while sharing
+    consistent not-found, conflict, transition, and validation HTTP mapping.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing duplicated proposal route boundaries where specialized modules still perform
+    local mapping.
+
 ## LA-REV-424
 
 - Scope: Policy evaluation route error boundary

@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from fastapi import Depends, Header, Path, Query, status
 
 import src.api.proposals.router as shared
-from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.lifecycle_responses import (
     PROPOSAL_CREATE_RESPONSES,
     PROPOSAL_NARRATIVE_READ_RESPONSES,
@@ -22,13 +22,6 @@ from src.core.proposals import (
     ProposalVersionDetail,
     ProposalVersionRequest,
     ProposalWorkflowService,
-)
-from src.core.proposals.exceptions import (
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalStateConflictError,
-    ProposalTransitionError,
-    ProposalValidationError,
 )
 from src.core.proposals.models import (
     ProposalApprovalRequest,
@@ -74,14 +67,13 @@ def create_proposal(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalCreateResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.create_proposal(
+    return run_proposal_operation(
+        lambda: service.create_proposal(
             payload=payload,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
-    except (ProposalIdempotencyConflictError, ProposalValidationError) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -107,10 +99,9 @@ def get_proposal(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalDetailResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.get_proposal(proposal_id=proposal_id, include_evidence=include_evidence)
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: service.get_proposal(proposal_id=proposal_id, include_evidence=include_evidence)
+    )
 
 
 @shared.router.get(
@@ -194,14 +185,13 @@ def get_proposal_version(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalVersionDetail:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.get_version(
+    return run_proposal_operation(
+        lambda: service.get_version(
             proposal_id=proposal_id,
             version_no=version_no,
             include_evidence=include_evidence,
         )
-    except ProposalNotFoundError as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -234,14 +224,13 @@ def create_proposal_version(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalCreateResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.create_version(
+    return run_proposal_operation(
+        lambda: service.create_version(
             proposal_id=proposal_id,
             payload=payload,
             correlation_id=correlation_id,
         )
-    except (ProposalNotFoundError, ProposalStateConflictError, ProposalValidationError) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -271,19 +260,13 @@ def transition_proposal_state(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.transition_state(
+    return run_proposal_operation(
+        lambda: service.transition_state(
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
         )
-    except (
-        ProposalNotFoundError,
-        ProposalIdempotencyConflictError,
-        ProposalStateConflictError,
-        ProposalTransitionError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -315,19 +298,13 @@ def record_proposal_approval(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.record_approval(
+    return run_proposal_operation(
+        lambda: service.record_approval(
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
         )
-    except (
-        ProposalNotFoundError,
-        ProposalIdempotencyConflictError,
-        ProposalStateConflictError,
-        ProposalTransitionError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.post(
@@ -356,14 +333,13 @@ def regenerate_proposal_narrative(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalNarrativeRegenerationResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.regenerate_narrative(
+    return run_proposal_operation(
+        lambda: service.regenerate_narrative(
             proposal_id=proposal_id,
             version_no=version_no,
             payload=payload,
         )
-    except (ProposalNotFoundError, ProposalValidationError) as exc:
-        raise_proposal_http_exception(exc)
+    )
 
 
 @shared.router.get(
@@ -391,10 +367,9 @@ def get_proposal_narrative(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalNarrativeReadResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.get_narrative(proposal_id=proposal_id, version_no=version_no)
-    except (ProposalNotFoundError, ProposalValidationError) as exc:
-        raise_proposal_http_exception(exc)
+    return run_proposal_operation(
+        lambda: service.get_narrative(proposal_id=proposal_id, version_no=version_no)
+    )
 
 
 @shared.router.post(
@@ -431,16 +406,11 @@ def review_proposal_narrative(
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalNarrativeReviewResponse:
     shared._assert_lifecycle_enabled()
-    try:
-        return service.record_narrative_review(
+    return run_proposal_operation(
+        lambda: service.record_narrative_review(
             proposal_id=proposal_id,
             version_no=version_no,
             payload=payload,
             idempotency_key=idempotency_key,
         )
-    except (
-        ProposalNotFoundError,
-        ProposalIdempotencyConflictError,
-        ProposalValidationError,
-    ) as exc:
-        raise_proposal_http_exception(exc)
+    )

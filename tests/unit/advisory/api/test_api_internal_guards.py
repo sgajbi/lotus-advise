@@ -149,6 +149,9 @@ def test_lifecycle_routes_use_shared_response_metadata():
     assert "responses=PROPOSAL_CREATE_RESPONSES" in source
     assert "responses=PROPOSAL_VERSION_CREATE_RESPONSES" in source
     assert "responses=PROPOSAL_NARRATIVE_REVIEW_RESPONSES" in source
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert source.count("run_proposal_operation(") == 9
 
 
 def test_workspace_routes_use_shared_response_metadata():
