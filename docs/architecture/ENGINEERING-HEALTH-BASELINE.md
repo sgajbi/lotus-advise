@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-01T23:22:15.876680+00:00`
+- Generated At: `2026-06-01T23:34:43.541077+00:00`
 - Branch: `advise-enterprise-hardening-slice-14`
-- Head: `50e4c2bba84f2348f05a20e580c9ff8a7b9ecdad`
-- Python Files: `744`
+- Head: `efd1432cd79753be5419f4b9f3e06a56849c45ab`
+- Python Files: `747`
 - Packages: `37`
-- Modules: `707`
-- Total Python Lines: `128920`
+- Modules: `710`
+- Total Python Lines: `129094`
 
 ## Largest Files
 
@@ -26,9 +26,9 @@
 | 12 | `src/core/proposals/memo_api.py` | 884 |
 | 13 | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 860 |
 | 14 | `src/core/advisory/alternatives_strategies.py` | 859 |
-| 15 | `tests/unit/advisory/api/test_api_advisory_copilot.py` | 827 |
-| 16 | `tests/unit/advisory/api/test_api_integration_capabilities.py` | 812 |
-| 17 | `tests/unit/advisory/engine/test_advisory_copilot_application.py` | 755 |
+| 15 | `tests/unit/advisory/api/test_api_advisory_copilot.py` | 829 |
+| 16 | `tests/unit/advisory/engine/test_advisory_copilot_application.py` | 817 |
+| 17 | `tests/unit/advisory/api/test_api_integration_capabilities.py` | 812 |
 | 18 | `src/core/common/suitability.py` | 739 |
 | 19 | `tests/unit/advisory/engine/test_engine_proposal_alternatives.py` | 733 |
 | 20 | `tests/unit/advisory/contracts/test_contract_workspace_models.py` | 727 |
@@ -66,7 +66,7 @@
 | 2 | `src/api/proposals/routes_policy_evaluations.py` | 11 | 364 |
 | 3 | `src/api/proposals/routes_lifecycle.py` | 10 | 319 |
 | 4 | `src/api/proposals/routes_memo.py` | 9 | 338 |
-| 5 | `src/api/proposals/routes_advisory_copilot.py` | 8 | 235 |
+| 5 | `src/api/proposals/routes_advisory_copilot.py` | 8 | 260 |
 | 6 | `src/api/proposals/routes_advisor_cockpit.py` | 6 | 230 |
 | 7 | `src/api/proposals/routes_delivery.py` | 6 | 156 |
 | 8 | `src/api/proposals/routes_support.py` | 6 | 147 |
