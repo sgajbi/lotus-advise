@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-445
+
+- Scope: Proposal lifecycle route parameter contracts
+- Pattern: Proposal lifecycle route parameter metadata should be centralized where repeated
+  path, header, pagination, filter, and evidence-toggle contracts recur across endpoints.
+- Status: Hardened
+- Finding Class: OpenAPI duplication and route-boundary maintainability
+- Summary: `src/api/proposals/routes_lifecycle.py` repeated proposal-id, version number,
+  idempotency, correlation-id, include-evidence, list-filter, and pagination parameter
+  declarations inline across the lifecycle route family. That increased drift risk for Swagger
+  descriptions and route bounds.
+- Evidence:
+  - Added `src/api/proposals/lifecycle_parameters.py` with reusable annotated FastAPI parameter
+    contracts.
+  - Updated lifecycle routes to consume the shared parameter aliases while preserving existing
+    endpoint signatures and OpenAPI metadata intent.
+  - Added an internal guard so the lifecycle route module no longer owns raw `Query`, `Header`, or
+    `Path` declarations for these shared contracts.
+- Consequence:
+  - Proposal lifecycle routes now keep business behavior visible while parameter bounds and usage
+    guidance live in one route-family contract module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while reducing internal route duplication.
+- Follow-Up:
+  - Review remaining proposal route families for parameter metadata duplication after this pattern
+    proves stable under OpenAPI and lifecycle contract tests.
+
 ## LA-REV-444
 
 - Scope: Advisor Cockpit route parameter contracts

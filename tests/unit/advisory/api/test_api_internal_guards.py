@@ -164,6 +164,20 @@ def test_lifecycle_routes_use_shared_response_metadata():
     assert source.count("run_proposal_operation(") == 9
 
 
+def test_lifecycle_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_lifecycle.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Query(" not in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "ProposalIdPath" in source
+    assert "ProposalCreateIdempotencyKeyHeader" in source
+    assert "ProposalVersionCorrelationIdHeader" in source
+    assert "ProposalListLimitQuery" in source
+    assert "ProposalOptionalNarrativeReviewIdempotencyKeyHeader" in source
+
+
 def test_workspace_routes_use_shared_response_metadata():
     source = inspect.getsource(workspace_router)
 
