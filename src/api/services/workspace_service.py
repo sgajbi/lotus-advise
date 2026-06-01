@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from src.api.services import workspace_store
 from src.api.services.workspace_context_resolution import (
     build_initial_workspace_context,
     build_workspace_simulate_request,
@@ -12,23 +13,7 @@ from src.api.services.workspace_errors import (
     WorkspaceSavedVersionNotFoundError,
     safe_workspace_error_detail,
 )
-from src.api.services.workspace_errors import (
-    WorkspaceLifecycleHandoffUnavailableError as WorkspaceLifecycleHandoffUnavailableError,
-)
 from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
-from src.api.services.workspace_store import (
-    DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
-    set_workspace_session_cache_size,
-)
-from src.api.services.workspace_store import (
-    get_workspace_session as _get_workspace_session_from_store,
-)
-from src.api.services.workspace_store import (
-    reset_workspace_sessions as _reset_workspace_sessions_in_store,
-)
-from src.api.services.workspace_store import (
-    save_workspace_session as _save_workspace_session_to_store,
-)
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
@@ -76,7 +61,7 @@ from src.core.workspace.versions import (
     refresh_saved_version_metadata,
 )
 
-MAX_WORKSPACE_SESSION_CACHE_SIZE = DEFAULT_WORKSPACE_SESSION_CACHE_SIZE
+MAX_WORKSPACE_SESSION_CACHE_SIZE = workspace_store.DEFAULT_WORKSPACE_SESSION_CACHE_SIZE
 
 
 def _utc_now_iso() -> str:
@@ -128,16 +113,16 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
 
 
 def _save_workspace_session(session: WorkspaceSession) -> None:
-    set_workspace_session_cache_size(MAX_WORKSPACE_SESSION_CACHE_SIZE)
-    _save_workspace_session_to_store(session)
+    workspace_store.set_workspace_session_cache_size(MAX_WORKSPACE_SESSION_CACHE_SIZE)
+    workspace_store.save_workspace_session(session)
 
 
 def get_workspace_session(workspace_id: str) -> WorkspaceSession:
-    return _get_workspace_session_from_store(workspace_id)
+    return workspace_store.get_workspace_session(workspace_id)
 
 
 def reset_workspace_sessions_for_tests() -> None:
-    _reset_workspace_sessions_in_store()
+    workspace_store.reset_workspace_sessions()
 
 
 def _find_saved_version(

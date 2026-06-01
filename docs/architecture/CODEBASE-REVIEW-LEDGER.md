@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-409
+
+- Scope: Workspace service dependency imports
+- Pattern: Service modules should use consolidated imports from shared boundary modules rather
+  than repeated import blocks or self-aliases that obscure dependency flow.
+- Status: Hardened
+- Finding Class: readability and dependency-flow consistency
+- Summary: `src/api/services/workspace_service.py` imported workspace errors through two separate
+  blocks, including `WorkspaceLifecycleHandoffUnavailableError as
+  WorkspaceLifecycleHandoffUnavailableError`, and imported store helpers through multiple adjacent
+  blocks. This made the module's dependency boundary noisier than necessary.
+- Evidence:
+  - Consolidated workspace error imports into one block.
+  - Consolidated workspace store helper imports into one block.
+  - Added an internal guard that prevents the self-alias and repeated import blocks from returning.
+- Consequence:
+  - Workspace service dependencies are easier to scan, which matters as the module remains a key
+    orchestration boundary for workspace evaluation, saved-version, replay, and handoff flows.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service readability cleanup for existing behavior.
+- Follow-Up:
+  - Continue removing dependency-flow noise before deeper service extraction.
+
 ## LA-REV-408
 
 - Scope: Workspace not-found exception ownership
