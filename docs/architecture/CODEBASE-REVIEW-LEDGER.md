@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-475
+
+- Scope: Proposal replay referent view assembly
+- Pattern: Proposal replay referent reconstruction should live in a focused replay-view boundary
+  instead of keeping idempotency replay reconstruction and version replay assembly in
+  `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and replay evidence maintainability
+- Summary: `src/core/proposals/service.py` still owned create-response reconstruction for
+  idempotency replay and version replay evidence assembly directly. Both paths shared proposal
+  version replay referents and not-found translation, keeping replay evidence details in the
+  workflow service.
+- Evidence:
+  - Added `src/core/proposals/replay_views.py` for create-response reconstruction from replay
+    referents and proposal version replay evidence assembly.
+  - Updated idempotent create replay and `ProposalWorkflowService.get_version_replay()` to delegate
+    to the replay-view boundary.
+  - Updated tests to exercise replay referent reconstruction through the new boundary and added
+    service-level guard coverage for version replay delegation.
+- Consequence:
+  - Replay evidence assembly now has explicit module ownership, reducing private helper surface in
+    the workflow service and making replay/idempotency hardening easier to review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting create-version command orchestration and async submission helpers where
+    the workflow service still owns larger command paths.
+
 ## LA-REV-474
 
 - Scope: Proposal simple read-view orchestration

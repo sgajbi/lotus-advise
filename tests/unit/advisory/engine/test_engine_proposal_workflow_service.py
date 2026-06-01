@@ -24,6 +24,7 @@ from src.core.proposals.models import (
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
 )
+from src.core.proposals.replay_views import build_create_response_from_replay_referents
 from src.core.proposals.service import (
     ProposalIdempotencyConflictError,
     ProposalLifecycleError,
@@ -861,6 +862,32 @@ def test_service_delegates_proposal_list_view(monkeypatch):
     }
 
 
+def test_service_delegates_version_replay_view(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_build_proposal_version_replay_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "build_proposal_version_replay_view",
+        fake_build_proposal_version_replay_view,
+    )
+
+    response = service.get_version_replay(proposal_id="pp_replay_view", version_no=5)
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_replay_view",
+        "version_no": 5,
+    }
+
+
 def test_service_delegates_narrative_read_view(monkeypatch):
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)
@@ -1019,7 +1046,11 @@ def test_service_missing_version_paths_and_helper_branches():
         )
     )
     try:
-        service._read_create_response(proposal_id="pp_missing", version_no=1)
+        build_create_response_from_replay_referents(
+            repository=repo,
+            proposal_id="pp_missing",
+            version_no=1,
+        )
     except ProposalNotFoundError as exc:
         assert str(exc) == "PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND"
     else:

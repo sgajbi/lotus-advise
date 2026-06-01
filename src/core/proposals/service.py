@@ -122,11 +122,9 @@ from src.core.proposals.narrative_views import (
     regenerate_narrative_view,
 )
 from src.core.proposals.projections import (
-    build_create_response_from_referents,
     to_async_accepted_response,
     to_create_response,
 )
-from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
 from src.core.proposals.read_views import (
     build_idempotency_lookup_view,
     build_proposal_approvals_view,
@@ -136,6 +134,10 @@ from src.core.proposals.read_views import (
     build_proposal_version_view,
 )
 from src.core.proposals.records import build_proposal_create_command_state
+from src.core.proposals.replay_views import (
+    build_create_response_from_replay_referents,
+    build_proposal_version_replay_view,
+)
 from src.core.proposals.report_request_command import record_proposal_report_request
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
@@ -150,7 +152,6 @@ from src.core.proposals.versions import (
 )
 from src.core.proposals.workflow_rules import TERMINAL_STATES
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-from src.core.replay.service import build_proposal_version_replay_response
 
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
 
@@ -220,7 +221,8 @@ class ProposalWorkflowService:
                 raise ProposalIdempotencyConflictError(
                     "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
                 )
-            return self._read_create_response(
+            return build_create_response_from_replay_referents(
+                repository=self._repository,
                 proposal_id=existing.proposal_id,
                 version_no=existing.proposal_version_no,
             )
@@ -682,21 +684,6 @@ class ProposalWorkflowService:
             occurred_at=_utc_now(),
         )
 
-    def _read_create_response(self, *, proposal_id: str, version_no: int) -> ProposalCreateResponse:
-        referents = load_proposal_version_replay_referents(
-            repository=self._repository,
-            proposal_id=proposal_id,
-            version_no=version_no,
-        )
-        response = build_create_response_from_referents(
-            proposal=referents.proposal,
-            version=referents.version,
-            events=referents.events,
-        )
-        if response is None:
-            raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
-        return response
-
     def _validate_lifecycle_origin(
         self,
         *,
@@ -717,19 +704,10 @@ class ProposalWorkflowService:
         proposal_id: str,
         version_no: int,
     ) -> AdvisoryReplayEvidenceResponse:
-        referents = load_proposal_version_replay_referents(
+        return build_proposal_version_replay_view(
             repository=self._repository,
             proposal_id=proposal_id,
             version_no=version_no,
-        )
-        if referents.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        if referents.version is None:
-            raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        return build_proposal_version_replay_response(
-            proposal=referents.proposal,
-            version=referents.version,
-            events=referents.events,
         )
 
     def get_narrative(
