@@ -224,6 +224,9 @@ def test_workspace_lifecycle_handoff_uses_shared_idempotency_helper():
     assert "normalize_required_idempotency_key" not in source
     assert "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED" not in source
     assert "normalize_workspace_handoff_idempotency_key" in source
+    assert "WORKSPACE_LIFECYCLE_HANDOFF_UNAVAILABLE_DETAIL" not in source
+    assert "WorkspaceHandoffError" not in source
+    assert "run_workspace_handoff_operation" in source
 
 
 def test_proposal_router_uses_shared_runtime_error_helpers():

@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-433
+
+- Scope: Workspace handoff execution error boundary
+- Pattern: Workspace handoff execution should use a shared error-boundary helper for domain and
+  evaluation failures.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `execute_workspace_lifecycle_handoff` still wrapped create-versus-version execution in a
+  broad `try` block and translated `WorkspaceHandoffError`, evaluation errors, and `ValueError`
+  inline. That made the main executor harder to scan.
+- Evidence:
+  - Added `src/api/services/workspace_handoff_errors.py` with `run_workspace_handoff_operation`.
+  - Split execution selection into `_build_workspace_lifecycle_handoff_execution`.
+  - Extended the handoff guard to keep low-level handoff error taxonomy and fallback literals out of
+    the executor module.
+- Consequence:
+  - The lifecycle handoff executor now reads as execute-and-complete orchestration, with domain
+    error translation isolated behind a named helper.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting create/version handoff assembly only if future lifecycle changes touch that
+    behavior.
+
 ## LA-REV-432
 
 - Scope: Workspace handoff idempotency boundary

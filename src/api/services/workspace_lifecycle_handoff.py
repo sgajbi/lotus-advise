@@ -1,11 +1,7 @@
 from collections.abc import Callable
 
-from src.api.services.workspace_errors import (
-    WORKSPACE_LIFECYCLE_HANDOFF_UNAVAILABLE_DETAIL,
-    WorkspaceEvaluationUnavailableError,
-    WorkspaceLifecycleHandoffUnavailableError,
-    safe_workspace_error_detail,
-)
+from src.api.services.workspace_errors import WorkspaceLifecycleHandoffUnavailableError
+from src.api.services.workspace_handoff_errors import run_workspace_handoff_operation
 from src.api.services.workspace_handoff_idempotency import (
     normalize_workspace_handoff_idempotency_key,
 )
@@ -13,7 +9,6 @@ from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.models import ProposalCreateMetadata, ProposalCreateResponse
 from src.core.workspace.handoff import (
-    WorkspaceHandoffError,
     build_proposal_create_request,
     build_proposal_version_request,
     build_workspace_handoff_context_resolution,
@@ -46,36 +41,17 @@ def execute_workspace_lifecycle_handoff(
     simulate_request_builder: WorkspaceSimulateRequestBuilder,
     completed_at: str,
 ) -> WorkspaceLifecycleHandoffResponse:
-    try:
-        if session.lifecycle_link is None:
-            proposal_response, replay_lineage, handoff_action = _create_proposal_from_workspace(
-                workspace_id=workspace_id,
-                session=session,
-                request=request,
-                proposal_service=proposal_service,
-                idempotency_key=idempotency_key,
-                correlation_id=correlation_id,
-                simulate_request_builder=simulate_request_builder,
-            )
-        else:
-            (
-                proposal_response,
-                replay_lineage,
-                handoff_action,
-            ) = _create_proposal_version_from_workspace(
-                session=session,
-                request=request,
-                proposal_service=proposal_service,
-                correlation_id=correlation_id,
-                simulate_request_builder=simulate_request_builder,
-            )
-    except (ValueError, WorkspaceEvaluationUnavailableError, WorkspaceHandoffError) as exc:
-        raise WorkspaceLifecycleHandoffUnavailableError(
-            safe_workspace_error_detail(
-                str(exc),
-                fallback=WORKSPACE_LIFECYCLE_HANDOFF_UNAVAILABLE_DETAIL,
-            )
-        ) from exc
+    proposal_response, replay_lineage, handoff_action = run_workspace_handoff_operation(
+        lambda: _build_workspace_lifecycle_handoff_execution(
+            workspace_id=workspace_id,
+            session=session,
+            request=request,
+            proposal_service=proposal_service,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            simulate_request_builder=simulate_request_builder,
+        )
+    )
 
     return complete_workspace_lifecycle_handoff(
         session=session,
@@ -84,6 +60,35 @@ def execute_workspace_lifecycle_handoff(
         replay_lineage=replay_lineage,
         handoff_action=handoff_action,
         completed_at=completed_at,
+    )
+
+
+def _build_workspace_lifecycle_handoff_execution(
+    *,
+    workspace_id: str,
+    session: WorkspaceSession,
+    request: WorkspaceLifecycleHandoffRequest,
+    proposal_service: ProposalWorkflowService,
+    idempotency_key: str | None,
+    correlation_id: str | None,
+    simulate_request_builder: WorkspaceSimulateRequestBuilder,
+) -> WorkspaceLifecycleHandoffExecution:
+    if session.lifecycle_link is None:
+        return _create_proposal_from_workspace(
+            workspace_id=workspace_id,
+            session=session,
+            request=request,
+            proposal_service=proposal_service,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            simulate_request_builder=simulate_request_builder,
+        )
+    return _create_proposal_version_from_workspace(
+        session=session,
+        request=request,
+        proposal_service=proposal_service,
+        correlation_id=correlation_id,
+        simulate_request_builder=simulate_request_builder,
     )
 
 
