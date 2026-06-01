@@ -8,6 +8,7 @@ from src.api.services.workspace_errors import (
     WORKSPACE_DRAFT_ACTION_INVALID_DETAIL,
     WORKSPACE_EVALUATION_UNAVAILABLE_DETAIL,
     WorkspaceEvaluationUnavailableError,
+    WorkspaceNotFoundError,
     WorkspaceSavedVersionNotFoundError,
     safe_workspace_error_detail,
 )
@@ -17,7 +18,6 @@ from src.api.services.workspace_errors import (
 from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
 from src.api.services.workspace_store import (
     DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
-    WorkspaceNotFoundError,
     set_workspace_session_cache_size,
 )
 from src.api.services.workspace_store import (

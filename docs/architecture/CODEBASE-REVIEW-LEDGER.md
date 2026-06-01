@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-408
+
+- Scope: Workspace not-found exception ownership
+- Pattern: Boundary-level workspace exceptions should live in the shared workspace error module,
+  not in the concrete in-memory store implementation.
+- Status: Hardened
+- Finding Class: modularity problem and dependency-flow consistency
+- Summary: `WorkspaceNotFoundError` was defined in `src/api/services/workspace_store.py`, while
+  API routes and higher-level workspace services treated it as a workspace boundary error. This
+  made route and service exception handling depend on a storage implementation for a domain-level
+  not-found signal.
+- Evidence:
+  - Moved `WorkspaceNotFoundError` into `src/api/services/workspace_errors.py`.
+  - Updated workspace service, workspace router, and workspace API tests to import the not-found
+    exception from the shared error module.
+  - Kept `workspace_store.py` importing the shared exception so existing store-level imports remain
+    compatible while ownership is centralized.
+  - Added an internal guard that prevents the not-found exception class from returning to the store.
+- Consequence:
+  - Workspace error dependency flow is cleaner: storage raises a shared boundary exception instead
+    of owning the exception type consumed by route and service layers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    exception-ownership cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing service imports that rely on implementation modules solely for shared error
+    types.
+
 ## LA-REV-407
 
 - Scope: Workspace assistant service exception ownership

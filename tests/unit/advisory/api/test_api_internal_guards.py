@@ -30,6 +30,7 @@ advisory_simulation_service = importlib.import_module(
     "src.api.services.advisory_simulation_service"
 )
 workspace_ai_service = importlib.import_module("src.api.services.workspace_ai_service")
+workspace_store = importlib.import_module("src.api.services.workspace_store")
 
 
 def test_raise_proposal_http_exception_re_raises_unknown_exception():
@@ -144,6 +145,13 @@ def test_workspace_ai_service_uses_shared_workspace_exception_types():
     assert "class WorkspaceAssistantUnavailableError" not in source
     assert "from src.api.services.workspace_errors import" in source
     assert "WorkspaceAssistantUnavailableError" in source
+
+
+def test_workspace_store_uses_shared_workspace_exception_types():
+    source = inspect.getsource(workspace_store)
+
+    assert "class WorkspaceNotFoundError" not in source
+    assert "from src.api.services.workspace_errors import WorkspaceNotFoundError" in source
 
 
 def test_advisory_simulation_routes_use_shared_response_metadata():

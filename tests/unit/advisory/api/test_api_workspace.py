@@ -7,14 +7,16 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
-from src.api.services.workspace_errors import WorkspaceAssistantUnavailableError
+from src.api.services.workspace_errors import (
+    WorkspaceAssistantUnavailableError,
+    WorkspaceNotFoundError,
+)
 from src.api.services.workspace_service import (
     WorkspaceEvaluationUnavailableError,
     get_workspace_session,
     reevaluate_workspace_session,
     reset_workspace_sessions_for_tests,
 )
-from src.api.services.workspace_store import WorkspaceNotFoundError
 from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
 from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (

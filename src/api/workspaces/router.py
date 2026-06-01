@@ -8,11 +8,13 @@ from src.api.services.workspace_ai_service import (
     apply_workspace_rationale_review_action,
     generate_workspace_rationale,
 )
-from src.api.services.workspace_errors import WorkspaceAssistantUnavailableError
+from src.api.services.workspace_errors import (
+    WorkspaceAssistantUnavailableError,
+    WorkspaceNotFoundError,
+)
 from src.api.services.workspace_service import (
     WorkspaceEvaluationUnavailableError,
     WorkspaceLifecycleHandoffUnavailableError,
-    WorkspaceNotFoundError,
     WorkspaceSavedVersionNotFoundError,
     apply_workspace_draft_action,
     compare_workspace_to_saved_version,
