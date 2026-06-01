@@ -4,11 +4,13 @@ from typing import Optional, cast
 from fastapi import APIRouter
 
 from src.api.proposals import runtime
-from src.api.proposals.runtime_errors import resolve_proposal_runtime_dependency
-from src.api.routers.runtime_utils import (
-    assert_feature_enabled,
-    env_flag,
+from src.api.proposals.feature_gates import (
+    assert_proposal_async_operations_enabled,
+    assert_proposal_lifecycle_enabled,
+    assert_proposal_support_apis_enabled,
 )
+from src.api.proposals.runtime_errors import resolve_proposal_runtime_dependency
+from src.api.routers.runtime_utils import env_flag
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.repository import ProposalRepository
 
@@ -67,27 +69,15 @@ def reset_proposal_workflow_service_for_tests() -> None:
 
 
 def _assert_lifecycle_enabled() -> None:
-    assert_feature_enabled(
-        name="PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED",
-        default=True,
-        detail="PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED",
-    )
+    assert_proposal_lifecycle_enabled()
 
 
 def _assert_support_apis_enabled() -> None:
-    assert_feature_enabled(
-        name="PROPOSAL_SUPPORT_APIS_ENABLED",
-        default=True,
-        detail="PROPOSAL_SUPPORT_APIS_DISABLED",
-    )
+    assert_proposal_support_apis_enabled()
 
 
 def _assert_async_operations_enabled() -> None:
-    assert_feature_enabled(
-        name="PROPOSAL_ASYNC_OPERATIONS_ENABLED",
-        default=True,
-        detail="PROPOSAL_ASYNC_OPERATIONS_DISABLED",
-    )
+    assert_proposal_async_operations_enabled()
 
 
 importlib.import_module("src.api.proposals.routes_lifecycle")

@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-436
+
+- Scope: Proposal feature-gate boundary
+- Pattern: Proposal feature flag details should live in a focused feature-gates module while route
+  modules continue to use stable router wrappers.
+- Status: Hardened
+- Finding Class: modularity problem and API-boundary consistency
+- Summary: `src/api/proposals/router.py` still owned the concrete lifecycle, support API, and async
+  operation feature-flag names/details inline. That mixed dependency construction with route
+  feature-gate policy.
+- Evidence:
+  - Added `src/api/proposals/feature_gates.py` with lifecycle, support, and async feature-gate
+    helpers.
+  - Updated router `_assert_*` wrappers to delegate to the feature-gate module, preserving route
+    call sites.
+  - Extended the internal router guard so direct `assert_feature_enabled` calls stay out of
+    `router.py`.
+- Consequence:
+  - Proposal router responsibilities are narrower: dependency construction remains in the router,
+    while feature-gate policy has a named module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Move additional proposal router runtime concerns only when route registration or dependency
+    construction changes require it.
+
 ## LA-REV-435
 
 - Scope: Proposal runtime dependency error boundary
