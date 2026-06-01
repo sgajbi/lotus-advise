@@ -1,5 +1,28 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-539
+
+- Scope: Advisory copilot compatibility facade production import boundary
+- Pattern: Production code should import focused advisory-copilot model modules directly instead of
+  importing from the legacy `src.core.advisory_copilot.models` compatibility facade
+- Status: Hardened
+- Finding Class: Dependency flow and modularity regression prevention
+- Summary: After `src/core/advisory_copilot/models.py` became a pure compatibility facade, there was
+  no source-level guard preventing production code from reintroducing imports from the broad facade.
+- Evidence:
+  - Added contract coverage that scans production source and rejects imports from
+    `src.core.advisory_copilot.models` outside the compatibility facade itself.
+  - Confirmed current production advisory-copilot modules import focused catalog, packet, section,
+    reference, unsupported-evidence, business-text, and type modules directly.
+- Consequence:
+  - The advisory-copilot model facade is now protected from becoming a production dependency again.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    runtime capability truth are unchanged.
+- Follow-Up:
+  - Apply the same import-boundary pattern to the next broad model or service surface selected for
+    hardening.
+
 ## LA-REV-538
 
 - Scope: Advisory copilot packet model facade closure

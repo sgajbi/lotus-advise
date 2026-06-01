@@ -136,6 +136,7 @@ from src.core.advisory_copilot.unsupported_models import (
 )
 
 ADVISORY_COPILOT_MODELS_PATH = Path("src/core/advisory_copilot/models.py")
+SRC_ROOT = Path("src")
 
 
 def test_copilot_catalog_defines_supported_actions_without_client_ready_claims() -> None:
@@ -237,6 +238,17 @@ def test_advisory_copilot_models_is_pure_compatibility_facade() -> None:
 
     assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
     assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+
+def test_production_code_uses_focused_advisory_copilot_model_imports() -> None:
+    compatibility_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != ADVISORY_COPILOT_MODELS_PATH.as_posix()
+        and "src.core.advisory_copilot.models" in path.read_text(encoding="utf-8")
+    )
+
+    assert compatibility_importers == []
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:
