@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ast
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -26,6 +28,12 @@ from src.core.advisory_copilot.record_text import (
     normalize_bounded_record_text_list,
     normalize_optional_record_text,
     normalize_required_record_text,
+)
+from src.core.advisory_copilot.records import (
+    AdvisoryCopilotRunRecord as CompatibilityAdvisoryCopilotRunRecord,
+)
+from src.core.advisory_copilot.run_records import (
+    AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
 )
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
 from src.infrastructure.advisory_copilot.postgres import PostgresAdvisoryCopilotRepository
@@ -99,11 +107,14 @@ _REVIEW_COLUMNS = (
     "correlation_id",
 )
 
+ADVISORY_COPILOT_RECORDS_PATH = Path("src/core/advisory_copilot/records.py")
+
 
 def test_advisory_copilot_record_text_helpers_normalize_audit_text() -> None:
-    assert normalize_required_record_text(
-        "  advisor\nreview  ", error_code="COPILOT_RECORD_REQUIRED"
-    ) == "advisor review"
+    assert (
+        normalize_required_record_text("  advisor\nreview  ", error_code="COPILOT_RECORD_REQUIRED")
+        == "advisor review"
+    )
     assert normalize_optional_record_text(None, error_code="COPILOT_RECORD_REQUIRED") is None
     assert normalize_bounded_record_text_list(
         ["  first\nitem  ", "second item"],
@@ -121,6 +132,16 @@ def test_advisory_copilot_record_text_helpers_normalize_audit_text() -> None:
             max_item_length=20,
             error_code="COPILOT_RECORD_LIST_INVALID",
         )
+
+
+def test_advisory_copilot_records_preserve_run_record_import_contract() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert AdvisoryCopilotRunRecord is FocusedAdvisoryCopilotRunRecord
+    assert CompatibilityAdvisoryCopilotRunRecord is FocusedAdvisoryCopilotRunRecord
+    assert "AdvisoryCopilotRunRecord" not in [
+        node.name for node in tree.body if isinstance(node, ast.ClassDef)
+    ]
 
 
 class _FakePostgresConnection:

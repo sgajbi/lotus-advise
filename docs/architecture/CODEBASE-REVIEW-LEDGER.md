@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-541
+
+- Scope: Advisory copilot run persistence record
+- Pattern: Long-running advisory-copilot run records should have focused model ownership outside
+  the broad persistence record module
+- Status: Hardened
+- Finding Class: Modularity and audit record boundary ownership
+- Summary: `AdvisoryCopilotRunRecord` is the largest advisory-copilot persistence record and carries
+  workflow-pack lineage, request/output hashes, retention posture, correlation id, and guarded
+  review guidance. Keeping it in `src/core/advisory_copilot/records.py` mixed run audit ownership
+  with evidence-packet, idempotency, and review record models.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_records.py` for the run record DTO and schema version.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/records.py` and the package
+    surface.
+  - Moved run-cursor pagination and package exports to the focused run record module.
+  - Added import-contract and AST coverage proving compatibility imports resolve to the focused run
+    record class and the broad records module no longer defines `AdvisoryCopilotRunRecord`.
+- Consequence:
+  - Advisory-copilot run audit records now have a focused owner, reducing the remaining persistence
+    record module to packet, idempotency, and review event ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract advisory-copilot evidence-packet, idempotency, and review record DTOs into focused
+    modules, then convert `records.py` to a compatibility facade.
+
 ## LA-REV-540
 
 - Scope: Advisory copilot persistence record text validation

@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 
-from src.core.advisory_copilot.records import AdvisoryCopilotRunRecord
+from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 
 _INVALID_CURSOR = "COPILOT_RUN_CURSOR_INVALID"
 COPILOT_RUN_DEFAULT_PAGE_SIZE = 25
