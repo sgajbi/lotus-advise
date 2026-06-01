@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-402
+
+- Scope: Integration capabilities API response metadata
+- Pattern: Platform capability route metadata should live outside the endpoint module even when
+  the response map is small, so capability contract wording is reusable and guarded consistently.
+- Status: Hardened
+- Finding Class: API documentation quality and consistency
+- Summary: `src/api/routers/integration_capabilities.py` kept its capability-contract response
+  descriptions inline while adjacent route families were moving response metadata behind named
+  modules. The route behavior already delegates to `build_integration_capabilities`, so the inline
+  response map was documentation metadata in the controller layer.
+- Evidence:
+  - Moved integration capability response metadata into
+    `src/api/routers/integration_capabilities_responses.py`.
+  - The `/platform/capabilities` decorator now references `INTEGRATION_CAPABILITIES_RESPONSES`.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `src/api/routers/integration_capabilities.py`.
+- Consequence:
+  - Platform capability API wording is centralized and follows the same route-boundary convention
+    as proposal, workspace, and simulation routes.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Finish the remaining bank-demo proof response metadata extraction before branch-level PR
+    readiness validation.
+
 ## LA-REV-401
 
 - Scope: Advisory simulation API response metadata
