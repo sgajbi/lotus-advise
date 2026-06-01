@@ -1,5 +1,27 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-461
+
+- Scope: Enterprise audit redaction configuration
+- Pattern: Sensitive audit-field matching should use one maintained marker catalog rather than
+  overlapping exact-match and marker lists.
+- Status: Hardened
+- Finding Class: duplication and sensitive-data handling maintainability
+- Summary: `src/api/enterprise_readiness.py` maintained `_REDACT_FIELDS` and
+  `_REDACT_FIELD_MARKERS`, but the marker catalog already covered the exact names and broader key
+  variants. Keeping both lists created a drift risk for future sensitive field additions.
+- Evidence:
+  - Removed the redundant exact-match `_REDACT_FIELDS` catalog.
+  - Kept `_REDACT_FIELD_MARKERS` as the single redaction source for exact and variant matching.
+  - Added test coverage pinning critical markers for password, account number, and client email.
+- Consequence:
+  - Enterprise audit redaction configuration has a single owner while preserving existing redaction
+    behavior for current tests and metadata key variants.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because behavior is unchanged.
+- Follow-Up:
+  - Extend `_REDACT_FIELD_MARKERS` directly when new sensitive metadata keys are introduced.
+
 ## LA-REV-460
 
 - Scope: API problem-detail response construction
