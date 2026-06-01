@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-403
+
+- Scope: RFC-0028 bank-demo proof API response metadata
+- Pattern: Proof-pack routers should keep governed error response examples and sanitized error
+  constants in a route-adjacent metadata module, leaving the endpoint focused on runtime metadata
+  normalization and safe exception mapping.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/routers/bank_demo_proof.py` still embedded the proof-pack 409 and 422 OpenAPI
+  response examples alongside live-runtime proof capture, sanitized detail handling, and material
+  review status selection. That mixed governed RFC-0028 documentation metadata into the route's
+  runtime error boundary.
+- Evidence:
+  - Moved bank-demo proof response metadata into
+    `src/api/routers/bank_demo_proof_responses.py`.
+  - The proof-pack decorator now references `BANK_DEMO_PROOF_PACK_RESPONSES`.
+  - The route imports the RFC-0028 sanitized error constants from the response metadata module so
+    OpenAPI examples and runtime error classification share the same governed vocabulary.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `src/api/routers/bank_demo_proof.py`.
+- Consequence:
+  - RFC-0028 proof routing is easier to audit for sensitive-detail handling while proof-pack error
+    documentation remains centralized and consistent.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - With route-local inline response maps removed from `src/api`, shift the next branch commits to
+    deeper service-boundary or duplicate-helper cleanup rather than more metadata extraction.
+
 ## LA-REV-402
 
 - Scope: Integration capabilities API response metadata

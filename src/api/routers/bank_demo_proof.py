@@ -12,6 +12,11 @@ from src.api.routers.bank_demo_proof_request import (
     runtime_repository_sha,
     runtime_service_version,
 )
+from src.api.routers.bank_demo_proof_responses import (
+    BANK_DEMO_PROOF_PACK_RESPONSES,
+    RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX,
+    RFC28_PROOF_VALIDATION_FAILED,
+)
 from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.core.bank_demo_proof import (
     AdvisoryDemoScenarioContract,
@@ -22,9 +27,6 @@ from src.core.bank_demo_proof import (
     build_default_supported_claim_register,
     default_capture_metadata,
 )
-
-RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX = "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED"
-RFC28_PROOF_VALIDATION_FAILED = "RFC0028_PROOF_PACK_VALIDATION_FAILED"
 
 router = APIRouter(prefix="/advisory/bank-demo-proof", tags=["Bank Demo Proof"])
 
@@ -71,33 +73,7 @@ def get_bank_demo_supported_claim_register() -> AdvisorySupportedClaimRegister:
         "artifacts can be reused. Unredacted live runtime payloads are not persisted by this "
         "endpoint."
     ),
-    responses={
-        status.HTTP_409_CONFLICT: {
-            "description": (
-                "Material proof evidence is missing or does not match the canonical scenario."
-            ),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": (
-                            "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: "
-                            "policy_evaluation expected PENDING_REVIEW"
-                        )
-                    }
-                }
-            },
-        },
-        422: {
-            "description": ("Request shape, proof metadata, or source evidence validation failed."),
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": ("RFC0028_INTEGRATION_PROOF_FIELD_MISSING: policy_pack_id")
-                    }
-                }
-            },
-        },
-    },
+    responses=BANK_DEMO_PROOF_PACK_RESPONSES,
 )
 def build_bank_demo_proof_pack(
     request: BankDemoProofCaptureRequest,
