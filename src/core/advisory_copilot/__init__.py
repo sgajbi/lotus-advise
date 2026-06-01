@@ -52,6 +52,10 @@ from src.core.advisory_copilot.review import (
     is_terminal_review_posture,
     review_posture_for_action,
 )
+from src.core.advisory_copilot.review_persistence import (
+    list_advisory_copilot_reviews,
+    record_advisory_copilot_review,
+)
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 from src.core.advisory_copilot.run_review_policy import (
@@ -62,9 +66,7 @@ from src.core.advisory_copilot.section_models import (
     CopilotEvidenceSectionInput,
 )
 from src.core.advisory_copilot.service import (
-    list_advisory_copilot_reviews,
     persist_advisory_copilot_run,
-    record_advisory_copilot_review,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,

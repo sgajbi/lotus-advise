@@ -66,6 +66,12 @@ from src.core.advisory_copilot.request_hashing import (
     canonical_json_hash,
 )
 from src.core.advisory_copilot.retention_policy import retention_expires_at
+from src.core.advisory_copilot.review_persistence import (
+    list_advisory_copilot_reviews as focused_list_advisory_copilot_reviews,
+)
+from src.core.advisory_copilot.review_persistence import (
+    record_advisory_copilot_review as focused_record_advisory_copilot_review,
+)
 from src.core.advisory_copilot.review_records import (
     AdvisoryCopilotReviewRecord as FocusedAdvisoryCopilotReviewRecord,
 )
@@ -371,6 +377,15 @@ def test_advisory_copilot_persistence_results_have_focused_owner() -> None:
         ).review
         == review_record
     )
+
+
+def test_advisory_copilot_review_persistence_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "def record_advisory_copilot_review" not in service_source
+    assert "def list_advisory_copilot_reviews" not in service_source
+    assert record_advisory_copilot_review is focused_record_advisory_copilot_review
+    assert list_advisory_copilot_reviews is focused_list_advisory_copilot_reviews
 
 
 class _FakePostgresConnection:

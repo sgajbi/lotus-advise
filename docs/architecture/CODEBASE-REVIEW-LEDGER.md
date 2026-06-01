@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-553
+
+- Scope: Advisory copilot review persistence workflow boundary
+- Pattern: Human-review append/list workflows should have a focused persistence owner instead of
+  living inside run persistence orchestration.
+- Status: Hardened
+- Finding Class: Service decomposition and review auditability
+- Summary: `src/core/advisory_copilot/service.py` still owned review idempotency replay, terminal
+  posture checks, review event construction, run posture updates, and review listing. That kept
+  human-review mutation logic coupled to copilot run persistence.
+- Evidence:
+  - Added `src/core/advisory_copilot/review_persistence.py` for review append and review listing
+    workflows.
+  - Updated the application service and package export to import review workflows from the focused
+    module while preserving service compatibility imports.
+  - Added coverage proving `service.py` no longer defines review persistence functions and public
+    imports resolve to the focused implementations.
+- Consequence:
+  - Human-review audit behavior now has a focused workflow owner, leaving the service module closer
+    to a run-persistence compatibility boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract run persistence construction into a focused workflow module.
+
 ## LA-REV-552
 
 - Scope: Advisory copilot persistence result DTO boundary
