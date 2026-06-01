@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-562
+
+- Scope: Advisory copilot API request validation boundary
+- Pattern: API request DTOs should delegate reusable actor, identifier, and bounded tuple
+  normalization to a focused validation module.
+- Status: Hardened
+- Finding Class: API boundary modularity and validation reuse
+- Summary: `src/core/advisory_copilot/api_models.py` carried local actor-id, identifier, optional
+  identifier, and bounded string tuple helpers. That mixed request schema declarations with
+  reusable API-boundary validation policy.
+- Evidence:
+  - Added `src/core/advisory_copilot/api_validation.py` for copilot actor IDs, required/optional
+    identifiers, and bounded string tuples.
+  - Updated API request/response models to consume focused validation helpers.
+  - Added coverage proving helper behavior and removal of local helper definitions from
+    `api_models.py`.
+- Consequence:
+  - Advisory-copilot API DTOs are more declarative, and future API request models can reuse the
+    same normalization and bounds policy.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API shape and external
+    capability truth did not change.
+- Follow-Up:
+  - Continue reviewing API DTO modules for repeated validation helpers and OpenAPI example gaps.
+
 ## LA-REV-561
 
 - Scope: Advisory copilot reference text normalization

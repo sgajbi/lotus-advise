@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -11,6 +12,12 @@ from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotEvidencePacketCreateRequest,
     AdvisoryCopilotProposalVersionEvidenceRequest,
     AdvisoryCopilotReviewRequest,
+)
+from src.core.advisory_copilot.api_validation import (
+    normalize_bounded_copilot_string_tuple,
+    normalize_copilot_actor_id,
+    normalize_optional_copilot_identifier,
+    normalize_required_copilot_identifier,
 )
 from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
@@ -62,6 +69,44 @@ def test_copilot_action_request_normalizes_and_bounds_advisor_input() -> None:
             requested_by="advisor_123",
             user_instruction="x" * 1001,
         )
+
+
+def test_copilot_api_validation_has_focused_owner() -> None:
+    api_models_source = Path("src/core/advisory_copilot/api_models.py").read_text(encoding="utf-8")
+
+    assert normalize_copilot_actor_id("  advisor_123  ") == "advisor_123"
+    assert (
+        normalize_required_copilot_identifier(
+            "  copilot_packet_pb_sg_001  ",
+            error_code="COPILOT_IDENTIFIER_REQUIRED",
+        )
+        == "copilot_packet_pb_sg_001"
+    )
+    assert normalize_optional_copilot_identifier(None) is None
+    assert normalize_bounded_copilot_string_tuple(
+        [" advisor_review_summary ", "advisor_review_summary", "risk_flags"],
+        error_code="COPILOT_REQUESTED_OUTPUT_REQUIRED",
+        max_items=8,
+        max_item_length=96,
+        allow_empty=False,
+    ) == ("advisor_review_summary", "risk_flags")
+
+    with pytest.raises(ValueError, match="COPILOT_IDENTIFIER_REQUIRED"):
+        normalize_required_copilot_identifier(
+            "   ",
+            error_code="COPILOT_IDENTIFIER_REQUIRED",
+        )
+    with pytest.raises(ValueError, match="COPILOT_REQUESTED_OUTPUT_REQUIRED"):
+        normalize_bounded_copilot_string_tuple(
+            [],
+            error_code="COPILOT_REQUESTED_OUTPUT_REQUIRED",
+            max_items=8,
+            max_item_length=96,
+            allow_empty=False,
+        )
+    assert "def _normalize_copilot_actor_id(value: str)" not in api_models_source
+    assert "def _normalize_required_identifier(value: str" not in api_models_source
+    assert "def _normalize_bounded_string_tuple(" not in api_models_source
 
 
 def test_copilot_evidence_packet_requests_normalize_and_bound_identifiers() -> None:
