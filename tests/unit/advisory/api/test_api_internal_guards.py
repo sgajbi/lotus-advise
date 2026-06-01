@@ -322,6 +322,8 @@ def test_advisory_simulation_service_uses_shared_error_helpers():
     assert "simulation_validation_exception" in source
     assert "normalize_required_idempotency_key" not in source
     assert "normalize_simulation_idempotency_key" in source
+    assert "ProposalSimulationGateError" not in source
+    assert "validate_simulation_request_enabled" in source
     assert "ProposalSimulationIdempotencyRecord" not in source
     assert "get_replayed_simulation_result" in source
     assert "save_simulation_idempotency_result" in source

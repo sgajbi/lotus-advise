@@ -9,6 +9,7 @@ from src.api.services.advisory_simulation_idempotency import (
 )
 from src.api.services.advisory_simulation_validation import (
     normalize_simulation_idempotency_key,
+    validate_simulation_request_enabled,
 )
 from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
 from src.core.advisory.orchestration import evaluate_advisory_proposal
@@ -23,10 +24,6 @@ from src.core.proposals.context import (
 )
 from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.models import ProposalSimulationRequest
-from src.core.proposals.simulation_gate import (
-    ProposalSimulationGateError,
-    validate_proposal_simulation_enabled,
-)
 
 
 def simulate_proposal_response(
@@ -39,10 +36,7 @@ def simulate_proposal_response(
     idempotency_key = normalize_simulation_idempotency_key(idempotency_key)
     resolved_request = resolved_request or resolve_simulation_input(request)
 
-    try:
-        validate_proposal_simulation_enabled(request=resolved_request.simulate_request)
-    except ProposalSimulationGateError as exc:
-        raise simulation_validation_exception(str(exc)) from exc
+    validate_simulation_request_enabled(resolved_request.simulate_request)
 
     request_payload = canonicalize_simulation_request_payload(
         resolved=resolved_request,

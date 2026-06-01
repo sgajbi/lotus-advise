@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-439
+
+- Scope: Advisory simulation gate validation boundary
+- Pattern: Proposal-simulation gate validation should share the simulation validation helper rather
+  than being translated inline by the orchestration service.
+- Status: Hardened
+- Finding Class: modularity problem and validation-boundary consistency
+- Summary: `simulate_proposal_response` still imported `ProposalSimulationGateError` and translated
+  disabled-simulation failures directly. That mixed business gate validation with simulation
+  orchestration.
+- Evidence:
+  - Added `validate_simulation_request_enabled` to
+    `src/api/services/advisory_simulation_validation.py`.
+  - Updated `simulate_proposal_response` to delegate simulation-gate validation to that helper.
+  - Extended the internal service guard to keep `ProposalSimulationGateError` out of the
+    orchestration service.
+- Consequence:
+  - Advisory simulation validation responsibilities are grouped behind one helper module, and the
+    orchestration service has fewer direct dependencies on core validation exception taxonomy.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting context-resolution validation from the orchestration service.
+
 ## LA-REV-438
 
 - Scope: Advisory simulation idempotency-key validation boundary
