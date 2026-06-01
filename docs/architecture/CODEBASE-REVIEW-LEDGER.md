@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-444
+
+- Scope: Advisor Cockpit route parameter contracts
+- Pattern: Repeated route parameter metadata for the same cockpit caller-context contract should
+  live in a shared API parameter module rather than being copied into each route signature.
+- Status: Hardened
+- Finding Class: OpenAPI duplication and route-boundary maintainability
+- Summary: `src/api/proposals/routes_advisor_cockpit.py` repeated the same portfolio, advisor,
+  caller-role, correlation-id, action-id, limit, cursor, and acknowledgement idempotency parameter
+  declarations across multiple endpoints. That made Swagger wording and bounds easier to drift
+  across the Advisor Cockpit surface.
+- Evidence:
+  - Added `src/api/proposals/cockpit_parameters.py` with reusable annotated FastAPI parameter
+    contracts.
+  - Updated Advisor Cockpit routes to consume the shared parameter aliases while preserving the
+    public endpoint behavior and OpenAPI metadata.
+  - Added an internal guard so the route module no longer owns raw `Query`, `Header`, or `Path`
+    parameter definitions for the shared cockpit contract.
+- Consequence:
+  - The Advisor Cockpit route family now has one source for caller-context and pagination parameter
+    documentation, reducing OpenAPI drift risk.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    contract maintainability with preserved route behavior.
+- Follow-Up:
+  - Apply the same parameter-contract extraction pattern to other route families only where the
+    repeated OpenAPI metadata is materially at risk of drift.
+
 ## LA-REV-443
 
 - Scope: Simulation idempotency persistence timestamp boundary

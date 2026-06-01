@@ -260,6 +260,19 @@ def test_advisor_cockpit_routes_use_shared_error_boundary():
     assert source.count("run_proposal_operation(") == 4
 
 
+def test_advisor_cockpit_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_advisor_cockpit.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Query(" not in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "AdvisorCockpitPortfolioIdQuery" in source
+    assert "AdvisorCockpitCallerRoleQuery" in source
+    assert "AdvisorCockpitCorrelationIdHeader" in source
+    assert "AdvisorCockpitAcknowledgementIdempotencyKeyHeader" in source
+
+
 def test_delivery_routes_use_shared_proposal_error_boundary():
     source = inspect.getsource(routes_delivery)
 
