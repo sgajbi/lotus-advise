@@ -68,19 +68,32 @@ from src.infrastructure.proposals.postgres_idempotency import (
 from src.infrastructure.proposals.postgres_idempotency import (
     save_simulation_idempotency as _save_simulation_idempotency,
 )
+from src.infrastructure.proposals.postgres_memos import (
+    append_memo_event as _append_memo_event,
+)
+from src.infrastructure.proposals.postgres_memos import (
+    create_memo as _create_memo,
+)
+from src.infrastructure.proposals.postgres_memos import (
+    get_memo as _get_memo,
+)
+from src.infrastructure.proposals.postgres_memos import (
+    get_memo_by_proposal_version as _get_memo_by_proposal_version,
+)
+from src.infrastructure.proposals.postgres_memos import (
+    list_memo_events as _list_memo_events,
+)
+from src.infrastructure.proposals.postgres_memos import (
+    list_memos as _list_memos,
+)
+from src.infrastructure.proposals.postgres_memos import (
+    list_memos_for_proposals as _list_memos_for_proposals,
+)
 
 _json_dump = _postgres_mappers.json_dump
-_json_dump_list = _postgres_mappers.json_dump_list
-_json_load_list = _postgres_mappers.json_load_list
-_optional_datetime = _postgres_mappers.optional_datetime
-_optional_iso = _postgres_mappers.optional_iso
 _optional_json = _postgres_mappers.optional_json
-_optional_load_json = _postgres_mappers.optional_load_json
 _to_approval = _postgres_mappers.to_approval
 _to_event = _postgres_mappers.to_event
-_to_memo = _postgres_mappers.to_memo
-_to_memo_event = _postgres_mappers.to_memo_event
-_to_operation = _postgres_mappers.to_operation
 _to_proposal = _postgres_mappers.to_proposal
 _to_version = _postgres_mappers.to_version
 
@@ -126,236 +139,40 @@ class PostgresProposalRepository:
         _save_memo_idempotency(connect=self._connect, record=record)
 
     def create_memo(self, memo: ProposalMemoRecord) -> None:
-        query = """
-            INSERT INTO proposal_memos (
-                memo_id,
-                proposal_id,
-                proposal_version_no,
-                proposal_version_id,
-                artifact_id,
-                memo_version,
-                memo_status,
-                lifecycle_status,
-                created_by,
-                created_at,
-                source_input_hash,
-                memo_hash,
-                memo_json,
-                projection_json,
-                review_events_json,
-                report_package_events_json,
-                archive_refs_json,
-                ai_refs_json,
-                replay_metadata_json
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        with closing(self._connect()) as connection:
-            connection.execute(
-                query,
-                (
-                    memo.memo_id,
-                    memo.proposal_id,
-                    memo.proposal_version_no,
-                    memo.proposal_version_id,
-                    memo.artifact_id,
-                    memo.memo_version,
-                    memo.memo_status,
-                    memo.lifecycle_status,
-                    memo.created_by,
-                    memo.created_at.isoformat(),
-                    memo.source_input_hash,
-                    memo.memo_hash,
-                    _json_dump(memo.memo_json),
-                    _json_dump(memo.projection_json),
-                    _json_dump_list(memo.review_events_json),
-                    _json_dump_list(memo.report_package_events_json),
-                    _json_dump_list(memo.archive_refs_json),
-                    _json_dump_list(memo.ai_refs_json),
-                    _json_dump(memo.replay_metadata_json),
-                ),
-            )
-            connection.commit()
+        _create_memo(connect=self._connect, memo=memo)
 
     def get_memo(self, *, memo_id: str) -> Optional[ProposalMemoRecord]:
-        query = """
-            SELECT
-                memo_id,
-                proposal_id,
-                proposal_version_no,
-                proposal_version_id,
-                artifact_id,
-                memo_version,
-                memo_status,
-                lifecycle_status,
-                created_by,
-                created_at,
-                source_input_hash,
-                memo_hash,
-                memo_json,
-                projection_json,
-                review_events_json,
-                report_package_events_json,
-                archive_refs_json,
-                ai_refs_json,
-                replay_metadata_json
-            FROM proposal_memos
-            WHERE memo_id = %s
-        """
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, (memo_id,)).fetchone()
-        return _to_memo(row)
+        return _get_memo(connect=self._connect, memo_id=memo_id)
 
     def get_memo_by_proposal_version(
         self, *, proposal_id: str, proposal_version_no: int
     ) -> Optional[ProposalMemoRecord]:
-        query = """
-            SELECT
-                memo_id,
-                proposal_id,
-                proposal_version_no,
-                proposal_version_id,
-                artifact_id,
-                memo_version,
-                memo_status,
-                lifecycle_status,
-                created_by,
-                created_at,
-                source_input_hash,
-                memo_hash,
-                memo_json,
-                projection_json,
-                review_events_json,
-                report_package_events_json,
-                archive_refs_json,
-                ai_refs_json,
-                replay_metadata_json
-            FROM proposal_memos
-            WHERE proposal_id = %s AND proposal_version_no = %s
-        """
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, (proposal_id, proposal_version_no)).fetchone()
-        return _to_memo(row)
+        return _get_memo_by_proposal_version(
+            connect=self._connect,
+            proposal_id=proposal_id,
+            proposal_version_no=proposal_version_no,
+        )
 
     def list_memos(self, *, proposal_id: str) -> list[ProposalMemoRecord]:
-        query = """
-            SELECT
-                memo_id,
-                proposal_id,
-                proposal_version_no,
-                proposal_version_id,
-                artifact_id,
-                memo_version,
-                memo_status,
-                lifecycle_status,
-                created_by,
-                created_at,
-                source_input_hash,
-                memo_hash,
-                memo_json,
-                projection_json,
-                review_events_json,
-                report_package_events_json,
-                archive_refs_json,
-                ai_refs_json,
-                replay_metadata_json
-            FROM proposal_memos
-            WHERE proposal_id = %s
-            ORDER BY proposal_version_no ASC, created_at ASC, memo_id ASC
-        """
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, (proposal_id,)).fetchall()
-        return [memo for row in rows if (memo := _to_memo(row)) is not None]
+        return cast(
+            list[ProposalMemoRecord],
+            _list_memos(connect=self._connect, proposal_id=proposal_id),
+        )
 
     def list_memos_for_proposals(self, *, proposal_ids: list[str]) -> list[ProposalMemoRecord]:
-        if not proposal_ids:
-            return []
-        query = """
-            SELECT
-                memo_id,
-                proposal_id,
-                proposal_version_no,
-                proposal_version_id,
-                artifact_id,
-                memo_version,
-                memo_status,
-                lifecycle_status,
-                created_by,
-                created_at,
-                source_input_hash,
-                memo_hash,
-                memo_json,
-                projection_json,
-                review_events_json,
-                report_package_events_json,
-                archive_refs_json,
-                ai_refs_json,
-                replay_metadata_json
-            FROM proposal_memos
-            WHERE proposal_id = ANY(%s)
-            ORDER BY proposal_id ASC, proposal_version_no ASC, created_at ASC, memo_id ASC
-        """
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, (proposal_ids,)).fetchall()
-        memo_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
-        memos = [memo for row in rows if (memo := _to_memo(row)) is not None]
-        return sorted(
-            memos,
-            key=lambda memo: (
-                memo_order.get(memo.proposal_id, len(memo_order)),
-                memo.proposal_version_no,
-                memo.created_at,
-                memo.memo_id,
-            ),
+        return cast(
+            list[ProposalMemoRecord],
+            _list_memos_for_proposals(connect=self._connect, proposal_ids=proposal_ids),
         )
 
     def append_memo_event(self, event: ProposalMemoEventRecord) -> None:
-        query = """
-            INSERT INTO proposal_memo_events (
-                event_id,
-                memo_id,
-                proposal_id,
-                proposal_version_no,
-                event_type,
-                actor_id,
-                occurred_at,
-                reason_json
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (event_id) DO NOTHING
-        """
-        with closing(self._connect()) as connection:
-            connection.execute(
-                query,
-                (
-                    event.event_id,
-                    event.memo_id,
-                    event.proposal_id,
-                    event.proposal_version_no,
-                    event.event_type,
-                    event.actor_id,
-                    event.occurred_at.isoformat(),
-                    _json_dump(event.reason_json),
-                ),
-            )
-            connection.commit()
+        _append_memo_event(connect=self._connect, event=event)
 
     def list_memo_events(self, *, memo_id: str) -> list[ProposalMemoEventRecord]:
-        query = """
-            SELECT
-                event_id,
-                memo_id,
-                proposal_id,
-                proposal_version_no,
-                event_type,
-                actor_id,
-                occurred_at,
-                reason_json
-            FROM proposal_memo_events
-            WHERE memo_id = %s
-            ORDER BY occurred_at ASC, event_id ASC
-        """
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, (memo_id,)).fetchall()
-        return [_to_memo_event(row) for row in rows]
+        return cast(
+            list[ProposalMemoEventRecord],
+            _list_memo_events(connect=self._connect, memo_id=memo_id),
+        )
 
     def get_cockpit_acknowledgement(
         self, *, action_item_id: str

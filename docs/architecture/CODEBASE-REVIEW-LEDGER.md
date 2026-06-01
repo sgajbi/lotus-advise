@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-483
+
+- Scope: Postgres proposal memo persistence
+- Pattern: Memo insert/read/list and memo-event append/list SQL should live in a focused
+  infrastructure helper instead of remaining inline in the proposal Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and proposal evidence persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned proposal memo persistence directly,
+  including the full memo column projection, memo-event writes, batch proposal memo lookup ordering,
+  and memo row mapping. This kept advisory memo evidence-pack persistence coupled to unrelated
+  proposal lifecycle and approval persistence concerns.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_memos.py` for proposal memo and memo-event
+    persistence helpers.
+  - Updated `PostgresProposalRepository` memo methods to delegate through `_connect` while
+    preserving existing repository method signatures.
+  - Reused existing Postgres repository roundtrip coverage for memo persistence, version lookup,
+    batch ordering, memo idempotency preservation, and memo-event ordering.
+- Consequence:
+  - Advisory memo evidence-pack persistence now has explicit infrastructure ownership, reducing the
+    proposal repository adapter surface and making future memo query hardening easier to localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal/version/event/approval persistence groups after this helper is
+    green locally and remotely.
+
 ## LA-REV-482
 
 - Scope: Postgres advisor cockpit acknowledgement persistence

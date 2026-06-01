@@ -4,19 +4,11 @@ from src.infrastructure.proposals import postgres as postgres_module
 from src.infrastructure.proposals import postgres_mappers
 
 
-def test_postgres_mapper_compatibility_aliases_match_extracted_module() -> None:
+def test_postgres_mapper_aliases_cover_remaining_inline_persistence() -> None:
     assert postgres_module._json_dump is postgres_mappers.json_dump
-    assert postgres_module._json_dump_list is postgres_mappers.json_dump_list
-    assert postgres_module._json_load_list is postgres_mappers.json_load_list
-    assert postgres_module._optional_datetime is postgres_mappers.optional_datetime
-    assert postgres_module._optional_iso is postgres_mappers.optional_iso
     assert postgres_module._optional_json is postgres_mappers.optional_json
-    assert postgres_module._optional_load_json is postgres_mappers.optional_load_json
-    assert postgres_module._to_operation is postgres_mappers.to_operation
     assert postgres_module._to_proposal is postgres_mappers.to_proposal
     assert postgres_module._to_version is postgres_mappers.to_version
-    assert postgres_module._to_memo is postgres_mappers.to_memo
-    assert postgres_module._to_memo_event is postgres_mappers.to_memo_event
     assert postgres_module._to_event is postgres_mappers.to_event
     assert postgres_module._to_approval is postgres_mappers.to_approval
 
