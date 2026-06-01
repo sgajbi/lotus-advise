@@ -26,6 +26,9 @@ from src.core.advisory_copilot import (
     record_advisory_copilot_review,
     save_advisory_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.idempotency_record_limits import (
+    COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH,
+)
 from src.core.advisory_copilot.idempotency_records import (
     AdvisoryCopilotRunIdempotencyRecord as FocusedAdvisoryCopilotRunIdempotencyRecord,
 )
@@ -814,7 +817,7 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
         AdvisoryCopilotRunIdempotencyRecord(
             idempotency_key="x" * 129,
             request_hash=result.run.request_hash,
-            run_id=result.run.run_id,
+            run_id="x" * (COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH + 1),
             created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
         )
 
@@ -891,6 +894,16 @@ def test_copilot_review_record_limits_have_focused_owner() -> None:
     assert COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS == 64
     assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in review_records_source
     assert "_COPILOT_ACTOR_ID_MAX_LENGTH = 128" not in review_records_source
+
+
+def test_copilot_idempotency_record_limits_have_focused_owner() -> None:
+    idempotency_records_source = Path(
+        "src/core/advisory_copilot/idempotency_records.py"
+    ).read_text(encoding="utf-8")
+
+    assert COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH == 160
+    assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in idempotency_records_source
+    assert "_COPILOT_HASH_MAX_LENGTH = 128" not in idempotency_records_source
 
 
 def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:

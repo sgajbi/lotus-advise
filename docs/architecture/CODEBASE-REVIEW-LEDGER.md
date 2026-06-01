@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-582
+
+- Scope: Advisory copilot idempotency-record limit ownership
+- Pattern: Persisted idempotency-record schema limits should be owned by a focused module rather
+  than embedded as private constants inside the idempotency-record DTO.
+- Status: Hardened
+- Finding Class: Persistence model modularity and validation consistency
+- Summary: `idempotency_records.py` still carried local `_COPILOT_*` limits for request hashes and
+  run identifiers. This duplicated the record-limit pattern already extracted for run, packet, and
+  review records.
+- Evidence:
+  - Added `src/core/advisory_copilot/idempotency_record_limits.py` for idempotency-record schema
+    limits.
+  - Updated `idempotency_records.py` to consume named constants from the focused owner module.
+  - Updated persistence boundary tests to use named idempotency-record limits instead of magic
+    numbers.
+  - Added coverage proving idempotency-record limits have a focused owner and preventing the
+    private limit block from returning to `idempotency_records.py`.
+- Consequence:
+  - Advisory-copilot idempotency mapping validation limits are now reusable and auditable
+    independently from the persisted idempotency record DTO.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because persistence behavior,
+    API behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue record-model cleanup only where it reduces duplication and stays backed by focused
+    persistence tests.
+
 ## LA-REV-581
 
 - Scope: Advisory copilot review-record limit ownership
