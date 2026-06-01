@@ -7,6 +7,11 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from src.core.advisory_copilot.api_limits import (
+    COPILOT_REQUESTED_OUTPUT_LIMIT,
+    COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
+    COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
+)
 from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -121,6 +126,17 @@ def test_copilot_api_validation_has_focused_owner() -> None:
     assert "def _normalize_required_identifier(value: str" not in api_models_source
     assert "def _normalize_bounded_string_tuple(" not in api_models_source
     assert "COPILOT_USER_INSTRUCTION_TOO_LONG" not in api_models_source
+
+
+def test_copilot_api_limits_have_focused_owner() -> None:
+    api_models_source = Path("src/core/advisory_copilot/api_models.py").read_text(encoding="utf-8")
+
+    assert COPILOT_REQUESTED_OUTPUT_LIMIT == 8
+    assert COPILOT_REQUESTED_OUTPUT_MAX_LENGTH == 96
+    assert COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT == 12
+    assert "_COPILOT_REQUESTED_OUTPUT_LIMIT" not in api_models_source
+    assert "_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT" not in api_models_source
+    assert "COPILOT_REQUESTED_OUTPUT_LIMIT = 8" not in api_models_source
 
 
 def test_copilot_evidence_packet_requests_normalize_and_bound_identifiers() -> None:

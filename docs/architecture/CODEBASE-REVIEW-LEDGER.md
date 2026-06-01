@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-574
+
+- Scope: Advisory copilot API model limit ownership
+- Pattern: API request and response DTOs should consume named limit constants from a focused API
+  limits module instead of carrying local numeric aliases.
+- Status: Hardened
+- Finding Class: API boundary modularity and validation consistency
+- Summary: `api_models.py` still owned local `_COPILOT_*` numeric aliases for cursor length,
+  requested output limits, requested intent limits, supportability boundary limits, and status
+  lengths. That mixed schema declarations with reusable API boundary limits.
+- Evidence:
+  - Added `src/core/advisory_copilot/api_limits.py` for advisory-copilot API field limits.
+  - Updated `api_models.py` to consume focused API limit constants directly.
+  - Added coverage proving API limit values and preventing local `_COPILOT_*` aliases from
+    returning to `api_models.py`.
+- Consequence:
+  - Advisory-copilot API schema limits are now reusable and easier to audit independently from DTO
+    declarations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior,
+    response shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue splitting request and response DTOs if `api_models.py` remains a top hotspot after the
+    next engineering-health comparison.
+
 ## LA-REV-573
 
 - Scope: Engineering health phase comparison support

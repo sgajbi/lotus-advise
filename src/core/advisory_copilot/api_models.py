@@ -4,10 +4,20 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.core.advisory_copilot.api_validation import (
+from src.core.advisory_copilot.api_limits import (
     COPILOT_ACTOR_ID_MAX_LENGTH,
+    COPILOT_CURSOR_MAX_LENGTH,
     COPILOT_IDENTIFIER_MAX_LENGTH,
+    COPILOT_REQUESTED_INTENT_LIMIT,
+    COPILOT_REQUESTED_INTENT_MAX_LENGTH,
+    COPILOT_REQUESTED_OUTPUT_LIMIT,
+    COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
+    COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
+    COPILOT_SUPPORTABILITY_BOUNDARY_MAX_LENGTH,
+    COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH,
     COPILOT_USER_INSTRUCTION_MAX_LENGTH,
+)
+from src.core.advisory_copilot.api_validation import (
     normalize_bounded_copilot_string_tuple,
     normalize_copilot_actor_id,
     normalize_copilot_user_instruction,
@@ -26,25 +36,13 @@ from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 from src.core.advisory_copilot.section_models import CopilotEvidenceSectionInput
 from src.core.advisory_copilot.type_models import CopilotActionFamily, CopilotAudience
 
-_COPILOT_ACTOR_ID_MAX_LENGTH = COPILOT_ACTOR_ID_MAX_LENGTH
-_COPILOT_CURSOR_MAX_LENGTH = 512
-_COPILOT_IDENTIFIER_MAX_LENGTH = COPILOT_IDENTIFIER_MAX_LENGTH
-_COPILOT_REQUESTED_OUTPUT_LIMIT = 8
-_COPILOT_REQUESTED_OUTPUT_MAX_LENGTH = 96
-_COPILOT_REQUESTED_INTENT_LIMIT = 12
-_COPILOT_REQUESTED_INTENT_MAX_LENGTH = 96
-_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT = 12
-_COPILOT_SUPPORTABILITY_BOUNDARY_MAX_LENGTH = 160
-_COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH = 160
-_COPILOT_USER_INSTRUCTION_MAX_LENGTH = COPILOT_USER_INSTRUCTION_MAX_LENGTH
-
 
 class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     evidence_packet_id: str = Field(
         description="Stable evidence-packet identifier supplied by the caller.",
         examples=["copilot_packet_pb_sg_001"],
         min_length=1,
-        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        max_length=COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     action_family: CopilotActionFamily = Field(
         description="Governed copilot action family the packet supports.",
@@ -54,14 +52,14 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
         description="Portfolio identifier for source-scoped advisory evidence.",
         examples=["PB_SG_GLOBAL_BAL_001"],
         min_length=1,
-        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        max_length=COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     proposal_id: str | None = Field(
         default=None,
         description="Proposal identifier when the packet is proposal-scoped.",
         examples=["proposal_sg_structured_note_001"],
         min_length=1,
-        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        max_length=COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     audience: CopilotAudience = Field(
         description="Audience projection used for source-section filtering.",
@@ -105,7 +103,7 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
         description="Proposal identifier whose source-owned evidence should be projected.",
         examples=["proposal_sg_structured_note_001"],
         min_length=1,
-        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        max_length=COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     proposal_version_no: int = Field(
         ge=1,
@@ -120,7 +118,7 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
         ),
         examples=["copilot_packet_pb_sg_001"],
         min_length=1,
-        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        max_length=COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     action_family: CopilotActionFamily = Field(
         description="Governed copilot action family the source projection supports.",
@@ -173,7 +171,7 @@ class AdvisoryCopilotActionRequest(BaseModel):
         description="Persisted evidence packet to use for copilot action execution.",
         examples=["copilot_packet_pb_sg_001"],
         min_length=1,
-        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
+        max_length=COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     audience: CopilotAudience = Field(
         description="Audience projection requested for the action.",
@@ -183,12 +181,12 @@ class AdvisoryCopilotActionRequest(BaseModel):
         description="Named business output sections requested from the governed action.",
         examples=[["advisor_review_summary"]],
         min_length=1,
-        max_length=_COPILOT_REQUESTED_OUTPUT_LIMIT,
+        max_length=COPILOT_REQUESTED_OUTPUT_LIMIT,
     )
     requested_by: str = Field(
         description="Actor requesting the copilot action.",
         examples=["advisor_123"],
-        max_length=_COPILOT_ACTOR_ID_MAX_LENGTH,
+        max_length=COPILOT_ACTOR_ID_MAX_LENGTH,
     )
     reason: dict[str, Any] = Field(
         default_factory=dict,
@@ -199,13 +197,13 @@ class AdvisoryCopilotActionRequest(BaseModel):
         default=(),
         description="Bounded requested intents used by guardrails before execution.",
         examples=[["explain_policy_posture"]],
-        max_length=_COPILOT_REQUESTED_INTENT_LIMIT,
+        max_length=COPILOT_REQUESTED_INTENT_LIMIT,
     )
     user_instruction: str = Field(
         default="",
         description="Optional user instruction used only for guardrail evaluation and hashing.",
         examples=["Summarize advisor-use evidence."],
-        max_length=_COPILOT_USER_INSTRUCTION_MAX_LENGTH,
+        max_length=COPILOT_USER_INSTRUCTION_MAX_LENGTH,
     )
 
     @field_validator("requested_outputs", mode="before")
@@ -214,8 +212,8 @@ class AdvisoryCopilotActionRequest(BaseModel):
         return normalize_bounded_copilot_string_tuple(
             value,
             error_code="COPILOT_REQUESTED_OUTPUT_REQUIRED",
-            max_items=_COPILOT_REQUESTED_OUTPUT_LIMIT,
-            max_item_length=_COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
+            max_items=COPILOT_REQUESTED_OUTPUT_LIMIT,
+            max_item_length=COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
             allow_empty=False,
         )
 
@@ -238,8 +236,8 @@ class AdvisoryCopilotActionRequest(BaseModel):
         return normalize_bounded_copilot_string_tuple(
             value,
             error_code="COPILOT_REQUESTED_INTENT_INVALID",
-            max_items=_COPILOT_REQUESTED_INTENT_LIMIT,
-            max_item_length=_COPILOT_REQUESTED_INTENT_MAX_LENGTH,
+            max_items=COPILOT_REQUESTED_INTENT_LIMIT,
+            max_item_length=COPILOT_REQUESTED_INTENT_MAX_LENGTH,
             allow_empty=True,
         )
 
@@ -293,21 +291,21 @@ class AdvisoryCopilotSupportabilityResponse(BaseModel):
         description="Current support posture for the Advise copilot API surface.",
         examples=["ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"],
         min_length=1,
-        max_length=_COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH,
+        max_length=COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH,
     )
     client_ready_publication: str = Field(
         description="Client-ready publication posture for supported copilot output.",
         examples=["BLOCKED"],
         min_length=1,
-        max_length=_COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH,
+        max_length=COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH,
     )
     supported_action_families: tuple[CopilotActionFamily, ...] = Field(
         description="Action families exposed by the Advise copilot API.",
-        max_length=_COPILOT_REQUESTED_INTENT_LIMIT,
+        max_length=COPILOT_REQUESTED_INTENT_LIMIT,
     )
     boundaries: tuple[str, ...] = Field(
         description="Unsupported claims and system-of-record boundaries.",
-        max_length=_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
+        max_length=COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
     )
 
     @field_validator("boundaries", mode="before")
@@ -316,8 +314,8 @@ class AdvisoryCopilotSupportabilityResponse(BaseModel):
         return normalize_bounded_copilot_string_tuple(
             value,
             error_code="COPILOT_SUPPORTABILITY_BOUNDARY_INVALID",
-            max_items=_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
-            max_item_length=_COPILOT_SUPPORTABILITY_BOUNDARY_MAX_LENGTH,
+            max_items=COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
+            max_item_length=COPILOT_SUPPORTABILITY_BOUNDARY_MAX_LENGTH,
             allow_empty=True,
         )
 
@@ -333,5 +331,5 @@ class AdvisoryCopilotRunPage(BaseModel):
     next_cursor: str | None = Field(
         default=None,
         description="Opaque cursor to request the next page, or null when the page is complete.",
-        max_length=_COPILOT_CURSOR_MAX_LENGTH,
+        max_length=COPILOT_CURSOR_MAX_LENGTH,
     )
