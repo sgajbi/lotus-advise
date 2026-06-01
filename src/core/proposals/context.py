@@ -339,6 +339,13 @@ def canonicalize_simulation_request_payload(
     }
 
 
+def build_simulation_request_hash(*, resolved: ResolvedSimulationContext) -> str:
+    return cast(
+        str,
+        hash_canonical_payload(canonicalize_simulation_request_payload(resolved=resolved)),
+    )
+
+
 def canonicalize_version_request_payload(
     *,
     payload: ProposalVersionRequest,

@@ -2,12 +2,11 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from src.core.advisory.policy_context import ProposalPolicySelectors
-from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.context import (
     ResolvedSimulationContext,
     build_context_resolution_evidence,
-    canonicalize_simulation_request_payload,
+    build_simulation_request_hash,
 )
 from src.core.proposals.models import ProposalResolvedContext
 from src.core.workspace.models import WorkspaceSession
@@ -56,10 +55,7 @@ def build_workspace_evaluation_context(
         dict[str, Any],
         build_context_resolution_evidence(resolved_request),
     )
-    request_hash = cast(
-        str,
-        hash_canonical_payload(canonicalize_simulation_request_payload(resolved=resolved_request)),
-    )
+    request_hash = build_simulation_request_hash(resolved=resolved_request)
     return WorkspaceEvaluationContext(
         resolved_request=resolved_request,
         context_resolution=context_resolution,

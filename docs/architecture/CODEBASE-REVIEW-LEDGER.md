@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-442
+
+- Scope: Simulation request-hash lineage boundary
+- Pattern: Simulation request-hash construction should live beside canonical simulation payload
+  construction so API simulation and workspace reevaluation share one lineage contract.
+- Status: Hardened
+- Finding Class: duplication and lineage consistency
+- Summary: The advisory simulation service and workspace reevaluation path both assembled
+  `canonicalize_simulation_request_payload` plus `hash_canonical_payload` directly. That duplicated
+  the canonical request-hash recipe across API and workspace service boundaries.
+- Evidence:
+  - Added `build_simulation_request_hash` to `src/core/proposals/context.py`.
+  - Updated `src/api/services/advisory_simulation_service.py` and
+    `src/core/workspace/reevaluation.py` to use the shared helper.
+  - Extended the internal service guard to keep raw canonical hash construction out of the API
+    simulation orchestration service.
+- Consequence:
+  - Simulation lineage hashes now have a single core helper used by both direct simulation and
+    workspace reevaluation flows.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves existing
+    behavior while consolidating internal lineage construction.
+- Follow-Up:
+  - Consider moving other proposal hash recipes behind named helpers when duplicated across API and
+    workspace paths.
+
 ## LA-REV-441
 
 - Scope: Advisory simulation evaluation boundary

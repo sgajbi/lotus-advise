@@ -330,6 +330,9 @@ def test_advisory_simulation_service_uses_shared_error_helpers():
     assert "evaluate_advisory_proposal" not in source
     assert "build_context_resolution_evidence" not in source
     assert "evaluate_simulation_result" in source
+    assert "hash_canonical_payload" not in source
+    assert "canonicalize_simulation_request_payload" not in source
+    assert "build_simulation_request_hash" in source
     assert "ProposalSimulationIdempotencyRecord" not in source
     assert "get_replayed_simulation_result" in source
     assert "save_simulation_idempotency_result" in source

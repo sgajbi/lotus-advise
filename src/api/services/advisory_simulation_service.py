@@ -14,11 +14,10 @@ from src.api.services.advisory_simulation_validation import (
 from src.api.services.advisory_simulation_validation import (
     resolve_simulation_input as resolve_simulation_input_with_validation,
 )
-from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult
 from src.core.proposals.context import (
     ResolvedSimulationContext,
-    canonicalize_simulation_request_payload,
+    build_simulation_request_hash,
 )
 from src.core.proposals.models import ProposalSimulationRequest
 
@@ -35,10 +34,7 @@ def simulate_proposal_response(
 
     validate_simulation_request_enabled(resolved_request.simulate_request)
 
-    request_payload = canonicalize_simulation_request_payload(
-        resolved=resolved_request,
-    )
-    request_hash = hash_canonical_payload(request_payload)
+    request_hash = build_simulation_request_hash(resolved=resolved_request)
     repository = get_proposal_repository()
 
     replayed_result = get_replayed_simulation_result(
