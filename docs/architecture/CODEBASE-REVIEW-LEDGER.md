@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-477
+
+- Scope: Proposal create command orchestration
+- Pattern: Initial proposal creation should live in a command boundary instead of keeping
+  idempotency replay, lifecycle-origin validation, context resolution, simulation,
+  materialization, persistence, and response projection inline in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and command-boundary maintainability
+- Summary: After create-version extraction, `src/core/proposals/service.py` still owned the full
+  initial create command path. That path mixed idempotency conflict/replay handling, lifecycle
+  validation, advisory simulation, materialization, command-state creation, and persistence inside
+  the service facade.
+- Evidence:
+  - Added `src/core/proposals/create_command.py` with the initial create command boundary and
+    explicit dependencies for repository, lifecycle origin, replay lineage, context override,
+    evidence-storage flag, simulation flag, and clock source.
+  - Updated `ProposalWorkflowService.create_proposal()` to delegate to the command boundary while
+    preserving public method signatures.
+  - Added service-level guard coverage proving the command receives repository, payload,
+    idempotency key, correlation ID, lifecycle origin, workspace source, replay lineage, context
+    override, evidence-storage flag, simulation flag, and clock dependency unchanged.
+- Consequence:
+  - The workflow service no longer owns proposal create command internals, leaving command behavior
+    in focused modules and making future idempotency, lineage, and validation hardening easier to
+    localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting async submission command helpers and then run a broader service regression
+    pack before PR preparation.
+
 ## LA-REV-476
 
 - Scope: Proposal create-version command orchestration
