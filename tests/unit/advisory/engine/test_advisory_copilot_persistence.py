@@ -47,6 +47,10 @@ from src.core.advisory_copilot.records import (
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunRecord as CompatibilityAdvisoryCopilotRunRecord,
 )
+from src.core.advisory_copilot.request_hashing import (
+    build_advisory_copilot_run_request_hash,
+    canonical_json_hash,
+)
 from src.core.advisory_copilot.review_records import (
     AdvisoryCopilotReviewRecord as FocusedAdvisoryCopilotReviewRecord,
 )
@@ -226,6 +230,23 @@ def test_advisory_copilot_structured_payload_safety_has_focused_owner() -> None:
     assert_safe_structured_payload({"business_reason": "Prepare advisor review."})
     with pytest.raises(ValueError, match="COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED"):
         assert_safe_structured_payload({"raw-prompt": "provider payload"})
+
+
+def test_advisory_copilot_run_request_hashing_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "def canonical_json_hash" not in service_source
+    assert "def build_advisory_copilot_run_request_hash" not in service_source
+    assert canonical_json_hash({"b": 2, "a": 1}) == canonical_json_hash({"a": 1, "b": 2})
+    assert build_advisory_copilot_run_request_hash(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=("advisor_review_summary",),
+        requested_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+        requested_intents=("explain_policy_posture",),
+        user_instruction="Summarize the advisory evidence for internal review.",
+    ).startswith("sha256:")
 
 
 class _FakePostgresConnection:

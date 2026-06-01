@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-547
+
+- Scope: Advisory copilot run request hashing boundary
+- Pattern: Canonical request hashing and run-request summary assembly should be owned by a focused
+  idempotency-support module instead of the workflow persistence service.
+- Status: Hardened
+- Finding Class: Idempotency and lineage modularity
+- Summary: `src/core/advisory_copilot/service.py` still owned canonical JSON hashing and copilot
+  run request-summary construction even though those functions are reused by application-level
+  idempotency replay checks before a run is persisted.
+- Evidence:
+  - Added `src/core/advisory_copilot/request_hashing.py` for canonical JSON hashes, user
+    instruction hashing, run request summaries, and advisory-copilot run request hashes.
+  - Updated the application service and package exports to import request hashing from the focused
+    module.
+  - Added coverage proving service no longer defines the public request-hashing helpers and the
+    focused hash function remains order-stable.
+- Consequence:
+  - Advisory-copilot idempotency and lineage hash behavior now has a reusable owner outside the
+    persistence workflow service.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting retention and retryability policy helpers from the advisory-copilot
+    service.
+
 ## LA-REV-546
 
 - Scope: Advisory copilot structured payload safety boundary

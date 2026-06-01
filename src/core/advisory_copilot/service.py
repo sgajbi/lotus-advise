@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
@@ -11,6 +10,10 @@ from src.core.advisory_copilot.idempotency_records import AdvisoryCopilotRunIdem
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
 from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
+from src.core.advisory_copilot.request_hashing import (
+    build_advisory_copilot_run_request_summary,
+    canonical_json_hash,
+)
 from src.core.advisory_copilot.review import (
     CopilotReviewAction,
     is_terminal_review_posture,
@@ -114,7 +117,7 @@ def persist_advisory_copilot_run(
         assert_safe_structured_payload(section)
 
     now = created_at or datetime.now(timezone.utc)
-    request_summary = _safe_run_request_summary(
+    request_summary = build_advisory_copilot_run_request_summary(
         evidence_packet=evidence_packet,
         audience=audience,
         requested_outputs=requested_outputs,
@@ -216,30 +219,6 @@ def persist_advisory_copilot_run(
     return AdvisoryCopilotRunPersistenceResult(run=saved_run, replayed=False)
 
 
-def build_advisory_copilot_run_request_hash(
-    *,
-    evidence_packet: CopilotEvidencePacket,
-    audience: CopilotAudience,
-    requested_outputs: tuple[str, ...],
-    requested_by: str,
-    reason: dict[str, Any],
-    requested_intents: tuple[str, ...],
-    user_instruction: str,
-) -> str:
-    assert_safe_structured_payload(reason)
-    return canonical_json_hash(
-        _safe_run_request_summary(
-            evidence_packet=evidence_packet,
-            audience=audience,
-            requested_outputs=requested_outputs,
-            requested_by=requested_by,
-            reason=reason,
-            requested_intents=requested_intents,
-            user_instruction=user_instruction,
-        )
-    )
-
-
 def record_advisory_copilot_review(
     *,
     repository: AdvisoryCopilotRepository,
@@ -311,47 +290,10 @@ def list_advisory_copilot_reviews(
     return tuple(repository.list_reviews(run_id=run_id))
 
 
-def canonical_json_hash(value: Any) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
-    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
-
-
 def retention_expires_at(*, retention_class: str, created_at: datetime) -> datetime:
     if retention_class == "SUPPORTABILITY_DIAGNOSTIC":
         return created_at + timedelta(days=90)
     return created_at + timedelta(days=365 * 7)
-
-
-def _safe_run_request_summary(
-    *,
-    evidence_packet: CopilotEvidencePacket,
-    audience: CopilotAudience,
-    requested_outputs: tuple[str, ...],
-    requested_by: str,
-    reason: dict[str, Any],
-    requested_intents: tuple[str, ...],
-    user_instruction: str,
-) -> dict[str, Any]:
-    return {
-        "action_family": evidence_packet.action_family,
-        "audience": audience,
-        "portfolio_id": evidence_packet.portfolio_id,
-        "proposal_id": evidence_packet.proposal_id,
-        "evidence_packet_id": evidence_packet.evidence_packet_id,
-        "evidence_packet_hash": evidence_packet.evidence_packet_hash,
-        "requested_outputs": list(requested_outputs),
-        "requested_by": requested_by,
-        "reason": reason,
-        "requested_intents": list(requested_intents),
-        "user_instruction_hash": _optional_user_instruction_hash(user_instruction),
-    }
-
-
-def _optional_user_instruction_hash(value: str) -> str | None:
-    stripped = value.strip()
-    if not stripped:
-        return None
-    return canonical_json_hash({"user_instruction": stripped})
 
 
 def _review_posture_from_draft(status: str) -> CopilotReviewPosture:

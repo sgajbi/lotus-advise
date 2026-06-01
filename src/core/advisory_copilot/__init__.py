@@ -32,6 +32,10 @@ from src.core.advisory_copilot.projection import (
 )
 from src.core.advisory_copilot.reference_models import CopilotLineageRef, CopilotSourceRef
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
+from src.core.advisory_copilot.request_hashing import (
+    build_advisory_copilot_run_request_hash,
+    canonical_json_hash,
+)
 from src.core.advisory_copilot.review import (
     REVIEW_ACTION_TO_POSTURE,
     TERMINAL_REVIEW_POSTURES,
@@ -48,7 +52,6 @@ from src.core.advisory_copilot.section_models import (
 from src.core.advisory_copilot.service import (
     AdvisoryCopilotReviewResult,
     AdvisoryCopilotRunPersistenceResult,
-    canonical_json_hash,
     list_advisory_copilot_reviews,
     load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
@@ -112,6 +115,7 @@ __all__ = [
     "CopilotUnsupportedEvidence",
     "CopilotUnsupportedEvidenceReason",
     "business_projection_for_action",
+    "build_advisory_copilot_run_request_hash",
     "build_copilot_evidence_packet",
     "canonical_json_hash",
     "evaluate_copilot_guardrails",
