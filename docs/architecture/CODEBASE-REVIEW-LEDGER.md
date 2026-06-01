@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-449
+
+- Scope: Advisory proposal async route parameter contracts
+- Pattern: Async proposal lifecycle routes should share idempotency, correlation, operation, and
+  proposal identifier parameter contracts instead of repeating FastAPI declarations inline.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_async.py` repeated `Header` and `Path` declarations for async
+  create idempotency, correlation tracking, proposal ids, operation ids, and correlation lookups.
+  This duplicated lifecycle vocabulary that already belongs in shared route parameter modules.
+- Evidence:
+  - Added `src/api/proposals/async_parameters.py` for async idempotency, correlation, and operation
+    identifiers.
+  - Reused `ProposalIdPath` from lifecycle parameters for the async version route.
+  - Extended internal guards so async routes cannot reintroduce inline `Header` or `Path`
+    contracts.
+- Consequence:
+  - Async proposal route handlers are thinner, and async OpenAPI/validation metadata now has a
+    clear owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving internals.
+- Follow-Up:
+  - Align remaining support and delivery route parameter contracts with the lifecycle aliases where
+    the semantics match.
+
 ## LA-REV-448
 
 - Scope: Advisory Copilot route parameter contracts

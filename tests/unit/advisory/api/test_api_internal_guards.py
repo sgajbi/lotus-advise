@@ -345,6 +345,19 @@ def test_async_routes_use_shared_proposal_error_boundary():
     assert source.count("run_proposal_operation(") == 4
 
 
+def test_async_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_async.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import BackgroundTasks, Depends, status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "ProposalAsyncCreateIdempotencyKeyHeader" in source
+    assert "ProposalAsyncCorrelationIdHeader" in source
+    assert "ProposalAsyncOperationIdPath" in source
+    assert "ProposalAsyncCorrelationIdPath" in source
+    assert "ProposalIdPath" in source
+
+
 def test_direct_http_exception_construction_stays_in_error_boundary_modules():
     offenders = []
     for path in Path("src/api").rglob("*.py"):
