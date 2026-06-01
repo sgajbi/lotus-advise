@@ -4,10 +4,7 @@ from typing import Optional, cast
 from fastapi import APIRouter
 
 from src.api.proposals import runtime
-from src.api.proposals.runtime_errors import (
-    proposal_backend_connection_failed_exception,
-    proposal_backend_unavailable_exception,
-)
+from src.api.proposals.runtime_errors import resolve_proposal_runtime_dependency
 from src.api.routers.runtime_utils import (
     assert_feature_enabled,
     env_flag,
@@ -35,8 +32,8 @@ def _resolve_repository() -> ProposalRepository:
 def get_proposal_workflow_service() -> ProposalWorkflowService:
     global _SERVICE
     if _SERVICE is None:
-        try:
-            _SERVICE = ProposalWorkflowService(
+        _SERVICE = resolve_proposal_runtime_dependency(
+            lambda: ProposalWorkflowService(
                 repository=_resolve_repository(),
                 store_evidence_bundle=env_flag("PROPOSAL_STORE_EVIDENCE_BUNDLE", True),
                 require_expected_state=env_flag("PROPOSAL_REQUIRE_EXPECTED_STATE", True),
@@ -46,20 +43,12 @@ def get_proposal_workflow_service() -> ProposalWorkflowService:
                 ),
                 require_proposal_simulation_flag=env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
             )
-        except RuntimeError as exc:
-            raise proposal_backend_unavailable_exception(str(exc)) from exc
-        except (TypeError, ValueError) as exc:
-            raise proposal_backend_connection_failed_exception() from exc
+        )
     return _SERVICE
 
 
 def get_proposal_repository() -> ProposalRepository:
-    try:
-        return _resolve_repository()
-    except RuntimeError as exc:
-        raise proposal_backend_unavailable_exception(str(exc)) from exc
-    except (TypeError, ValueError) as exc:
-        raise proposal_backend_connection_failed_exception() from exc
+    return resolve_proposal_runtime_dependency(_resolve_repository)
 
 
 def ensure_proposal_runtime_ready() -> None:

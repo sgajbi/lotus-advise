@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-435
+
+- Scope: Proposal runtime dependency error boundary
+- Pattern: Proposal runtime dependency resolution should share one backend-error translation helper
+  for repository and workflow service construction.
+- Status: Hardened
+- Finding Class: duplication and runtime-boundary consistency
+- Summary: `src/api/proposals/router.py` repeated `RuntimeError`, `TypeError`, and `ValueError`
+  handling in both repository and workflow service dependency paths. Runtime exception mapping
+  already belonged to `runtime_errors.py`.
+- Evidence:
+  - Added `resolve_proposal_runtime_dependency` to `src/api/proposals/runtime_errors.py`.
+  - Updated `get_proposal_workflow_service` and `get_proposal_repository` to delegate runtime
+    exception mapping through the shared helper.
+  - Strengthened the internal router guard so runtime exception handling stays out of
+    `router.py`.
+- Consequence:
+  - Proposal dependency construction now has a single backend-unavailable/backend-connection-failed
+    translation path, reducing drift between repository and service dependency behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    runtime-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing runtime dependency construction noise when new proposal runtime dependencies
+    are introduced.
+
 ## LA-REV-434
 
 - Scope: Lotus Report route error boundary

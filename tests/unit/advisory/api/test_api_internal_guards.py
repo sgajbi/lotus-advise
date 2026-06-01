@@ -235,8 +235,10 @@ def test_proposal_router_uses_shared_runtime_error_helpers():
 
     assert "HTTPException(" not in source
     assert "_backend_init_error_detail" not in source
-    assert "proposal_backend_unavailable_exception" in source
-    assert "proposal_backend_connection_failed_exception" in source
+    assert "except RuntimeError as exc" not in source
+    assert "proposal_backend_unavailable_exception" not in source
+    assert "proposal_backend_connection_failed_exception" not in source
+    assert "resolve_proposal_runtime_dependency" in source
 
 
 def test_advisory_copilot_routes_use_shared_error_boundary():
