@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-471
+
+- Scope: Proposal activity view assembly
+- Pattern: Workflow timeline, execution status, delivery summary, and delivery history should share
+  a focused activity-view boundary instead of repeating activity read-model loading and not-found
+  guards in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and read-side maintainability
+- Summary: `src/core/proposals/service.py` repeated the same proposal activity read-model access
+  and `PROPOSAL_NOT_FOUND` handling across four read-side methods before calling projection
+  builders. The duplication made the workflow service responsible for projection setup rather than
+  command/read orchestration.
+- Evidence:
+  - Added `src/core/proposals/activity_views.py` to own activity-backed workflow timeline,
+    execution status, delivery summary, and delivery history response construction.
+  - Updated `ProposalWorkflowService` activity read methods to delegate to the activity-view
+    boundary.
+  - Added parameterized service-level guard coverage proving all four methods delegate repository
+    and proposal identity into the activity-view boundary.
+- Consequence:
+  - Activity-backed read behavior has one module-level ownership point, reducing repeated guards in
+    the workflow service and making future projection changes easier to test.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting remaining idempotency, async-status, and replay read helpers where repeated
+    service-level read-model handling remains.
+
 ## LA-REV-470
 
 - Scope: Proposal async operation execution orchestration

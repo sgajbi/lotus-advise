@@ -719,6 +719,40 @@ def test_service_get_proposal_and_version_raise_not_found_paths():
         raise AssertionError("Expected PROPOSAL_VERSION_NOT_FOUND")
 
 
+@pytest.mark.parametrize(
+    ("service_method_name", "view_function_name"),
+    [
+        ("get_workflow_timeline", "build_workflow_timeline_view"),
+        ("get_execution_status", "build_execution_status_view"),
+        ("get_delivery_summary", "build_delivery_summary_view"),
+        ("get_delivery_history", "build_delivery_history_view"),
+    ],
+)
+def test_service_delegates_activity_views(
+    monkeypatch,
+    service_method_name: str,
+    view_function_name: str,
+):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+
+    response = getattr(service, service_method_name)(proposal_id="pp_activity_view")
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_activity_view",
+    }
+
+
 def test_service_missing_version_paths_and_helper_branches():
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

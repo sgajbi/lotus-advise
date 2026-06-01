@@ -2,7 +2,12 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
-from src.core.proposals.activity_read_model import load_proposal_activity_read_model
+from src.core.proposals.activity_views import (
+    build_delivery_history_view,
+    build_delivery_summary_view,
+    build_execution_status_view,
+    build_workflow_timeline_view,
+)
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
 from src.core.proposals.async_operation_execution import (
     execute_create_proposal_async_operation,
@@ -48,10 +53,6 @@ from src.core.proposals.create_persistence import (
     persist_created_proposal,
     persist_created_proposal_version,
 )
-from src.core.proposals.delivery_summary import (
-    build_delivery_history_response,
-    build_delivery_summary_response,
-)
 from src.core.proposals.detail_read_model import load_proposal_detail_read_model
 from src.core.proposals.error_details import (
     PROPOSAL_CONTEXT_RESOLUTION_FAILED_DETAIL,
@@ -66,7 +67,6 @@ from src.core.proposals.exceptions import (
     ProposalValidationError,
 )
 from src.core.proposals.execution_handoff_command import request_proposal_execution_handoff
-from src.core.proposals.execution_status import build_execution_status_response
 from src.core.proposals.execution_update_command import record_proposal_execution_update
 from src.core.proposals.idempotency_read_model import load_proposal_idempotency_read_model
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
@@ -130,7 +130,6 @@ from src.core.proposals.projections import (
     build_create_response_from_referents,
     build_proposal_lineage_response,
     build_proposal_list_response,
-    build_workflow_timeline_response,
     to_async_accepted_response,
     to_async_status_response,
     to_create_response,
@@ -408,13 +407,7 @@ class ProposalWorkflowService:
         )
 
     def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:
-        activity = load_proposal_activity_read_model(
-            repository=self._repository,
-            proposal_id=proposal_id,
-        )
-        if activity.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        return build_workflow_timeline_response(proposal=activity.proposal, events=activity.events)
+        return build_workflow_timeline_view(repository=self._repository, proposal_id=proposal_id)
 
     def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
         approval_read_model = load_proposal_approval_read_model(
@@ -458,32 +451,13 @@ class ProposalWorkflowService:
         )
 
     def get_execution_status(self, *, proposal_id: str) -> ProposalExecutionStatusResponse:
-        activity = load_proposal_activity_read_model(
-            repository=self._repository,
-            proposal_id=proposal_id,
-        )
-        if activity.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-
-        return build_execution_status_response(proposal=activity.proposal, events=activity.events)
+        return build_execution_status_view(repository=self._repository, proposal_id=proposal_id)
 
     def get_delivery_summary(self, *, proposal_id: str) -> ProposalDeliverySummaryResponse:
-        activity = load_proposal_activity_read_model(
-            repository=self._repository,
-            proposal_id=proposal_id,
-        )
-        if activity.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        return build_delivery_summary_response(proposal=activity.proposal, events=activity.events)
+        return build_delivery_summary_view(repository=self._repository, proposal_id=proposal_id)
 
     def get_delivery_history(self, *, proposal_id: str) -> ProposalDeliveryHistoryResponse:
-        activity = load_proposal_activity_read_model(
-            repository=self._repository,
-            proposal_id=proposal_id,
-        )
-        if activity.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        return build_delivery_history_response(proposal=activity.proposal, events=activity.events)
+        return build_delivery_history_view(repository=self._repository, proposal_id=proposal_id)
 
     def record_execution_update(
         self,
