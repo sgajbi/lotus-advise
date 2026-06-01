@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-570
+
+- Scope: Advisory copilot source projection cockpit action section
+- Pattern: Advisor cockpit read-model projection should live in a focused source-projection module
+  instead of the main proposal-version section assembly file.
+- Status: Hardened
+- Finding Class: Source projection modularity and dependency-flow clarity
+- Summary: `source_projection_sections.py` still imported the advisor cockpit source read model and
+  converted cockpit actions into copilot evidence sections inline. That coupled proposal-version
+  section assembly to the cockpit read-model dependency.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_cockpit.py` with
+    `build_cockpit_actions_section`.
+  - Updated `source_projection_sections.py` to delegate cockpit action section construction to the
+    focused cockpit projection helper.
+  - Added coverage proving the cockpit fallback source scope and preventing the local cockpit
+    builder/read-model dependency from returning to the main section assembly file.
+- Consequence:
+  - Proposal-version source projection now delegates policy, operational, and cockpit evidence
+    construction to focused modules, leaving the main file closer to orchestration.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because packet behavior,
+    endpoint behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting proposal context, narrative posture, and memo evidence into focused source
+    projection helpers if the next slice remains in advisory-copilot.
+
 ## LA-REV-569
 
 - Scope: Advisory copilot source projection policy posture section

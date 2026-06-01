@@ -117,6 +117,7 @@ from src.core.advisory_copilot.section_models import (
 from src.core.advisory_copilot.section_models import (
     CopilotEvidenceSectionInput as FocusedCopilotEvidenceSectionInput,
 )
+from src.core.advisory_copilot.source_projection_cockpit import build_cockpit_actions_section
 from src.core.advisory_copilot.source_projection_operations import (
     build_operations_handoff_section,
     build_report_readiness_section,
@@ -375,7 +376,7 @@ def test_copilot_source_projection_operations_have_focused_owner() -> None:
         created_by="advisor_123",
         created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
         last_event_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
-        current_state="EXECUTION_READY",
+        current_state="DRAFT",
         current_version_no=1,
         title="Structured note proposal review",
     )
@@ -459,6 +460,38 @@ def test_copilot_source_projection_policy_has_focused_owner() -> None:
     assert "PENDING_REVIEW" in section.summary_items[0]
     assert any("COMPLIANCE_REVIEW" in item for item in section.summary_items)
     assert "def _policy_posture_section" not in section_source
+
+
+def test_copilot_source_projection_cockpit_has_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+    proposal = ProposalRecord(
+        proposal_id="proposal_sg_structured_note_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        last_event_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        current_state="DRAFT",
+        current_version_no=1,
+        title="Structured note proposal review",
+    )
+
+    section = build_cockpit_actions_section(
+        proposal=proposal,
+        memos=[],
+        approvals=[],
+        events=[],
+        policy_evaluations=[],
+    )
+
+    assert section.section_key == "COCKPIT_ACTIONS"
+    assert section.source_refs[0].source_type == "ADVISOR_COCKPIT_ACTION"
+    assert section.source_refs[0].source_id.startswith("aci_")
+    assert section.summary_items
+    assert "owner is" in section.summary_items[0]
+    assert "def _cockpit_actions_section" not in section_source
+    assert "AdvisorCockpitSourceBatch" not in section_source
 
 
 def test_copilot_reference_models_use_reference_text_helpers() -> None:
