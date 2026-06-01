@@ -848,6 +848,69 @@ def test_service_execute_async_returns_when_operation_missing():
     )
 
 
+def test_service_delegates_create_proposal_async_execution(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+    captured: dict[str, object] = {}
+
+    def fake_execute_create_proposal_async_operation(**kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "execute_create_proposal_async_operation",
+        fake_execute_create_proposal_async_operation,
+    )
+
+    service.execute_create_proposal_async(
+        operation_id="pop_delegate_create",
+        payload=payload,
+        idempotency_key="idem-delegate-create",
+        correlation_id="corr-delegate-create",
+    )
+
+    assert captured["repository"] is repo
+    assert captured["operation_id"] == "pop_delegate_create"
+    assert captured["fallback_payload"] is payload
+    assert captured["fallback_idempotency_key"] == "idem-delegate-create"
+    assert captured["fallback_correlation_id"] == "corr-delegate-create"
+    assert captured["create_proposal"] == service.create_proposal
+
+
+def test_service_delegates_create_version_async_execution(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    captured: dict[str, object] = {}
+
+    def fake_execute_create_version_async_operation(**kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "execute_create_version_async_operation",
+        fake_execute_create_version_async_operation,
+    )
+
+    service.execute_create_version_async(
+        operation_id="pop_delegate_version",
+        proposal_id="pp_delegate_version",
+        payload=payload,
+        correlation_id="corr-delegate-version",
+    )
+
+    assert captured["repository"] is repo
+    assert captured["operation_id"] == "pop_delegate_version"
+    assert captured["fallback_proposal_id"] == "pp_delegate_version"
+    assert captured["fallback_payload"] is payload
+    assert captured["fallback_correlation_id"] == "corr-delegate-version"
+    assert captured["create_version"] == service.create_version
+
+
 def test_service_execute_create_proposal_async_marks_failed_on_lifecycle_error():
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

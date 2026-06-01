@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-470
+
+- Scope: Proposal async operation execution orchestration
+- Pattern: Proposal workflow service should delegate persisted async-operation execution to a
+  focused boundary instead of owning payload recovery, replay-lineage construction, and terminal
+  execution inline.
+- Status: Hardened
+- Finding Class: modularity and async operational maintainability
+- Summary: `src/core/proposals/service.py` still contained create-proposal and create-version
+  async execution orchestration, including persisted payload recovery and terminal operation
+  runner wiring. That kept retry/replay mechanics embedded in the large workflow service.
+- Evidence:
+  - Added `src/core/proposals/async_operation_execution.py` with create and version async
+    execution boundaries.
+  - Updated `ProposalWorkflowService.execute_create_proposal_async()` and
+    `execute_create_version_async()` to delegate execution while preserving public method
+    signatures.
+  - Added service-level guard coverage proving both async execution methods pass repository,
+    fallback payloads, correlation IDs, and create/version callbacks into the execution boundary.
+- Consequence:
+  - Async execution behavior is now isolated beside recovery and runner modules, giving future
+    retry, diagnostics, and lineage hardening a narrower module to test and review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal read-model and narrative/replay convenience methods into focused
+    boundaries where tests show clear ownership.
+
 ## LA-REV-469
 
 - Scope: Proposal async recovery orchestration

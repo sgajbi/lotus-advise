@@ -1,9 +1,13 @@
 from datetime import datetime, timezone
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
+from src.core.proposals.async_operation_execution import (
+    execute_create_proposal_async_operation,
+    execute_create_version_async_operation,
+)
 from src.core.proposals.async_operation_read_model import (
     load_proposal_async_operation_by_correlation_read_model,
     load_proposal_async_operation_read_model,
@@ -12,7 +16,6 @@ from src.core.proposals.async_operation_recovery import (
     ASYNC_RECOVERY_BATCH_SIZE,
     recover_async_operation_batch,
 )
-from src.core.proposals.async_operation_runner import run_async_operation_until_terminal
 from src.core.proposals.async_operation_submission import (
     persist_create_proposal_async_submission,
     persist_create_version_async_submission,
@@ -20,13 +23,8 @@ from src.core.proposals.async_operation_submission import (
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
-    build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
-)
-from src.core.proposals.async_payload_resolution import (
-    resolve_create_async_payload_or_fail,
-    resolve_version_async_payload_or_fail,
 )
 from src.core.proposals.async_payloads import (
     hash_async_create_submission,
@@ -93,7 +91,6 @@ from src.core.proposals.models import (
     ProposalApprovalRequest,
     ProposalApprovalsResponse,
     ProposalAsyncAcceptedResponse,
-    ProposalAsyncOperationRecord,
     ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
@@ -353,29 +350,14 @@ class ProposalWorkflowService:
         idempotency_key: Optional[str] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
-        read_model = load_proposal_async_operation_read_model(
+        execute_create_proposal_async_operation(
             repository=self._repository,
             operation_id=operation_id,
-        )
-        if read_model.operation is None:
-            return
-        operation = read_model.operation
-        recovered_payload = self._resolve_create_async_payload(
-            operation=operation,
             fallback_payload=payload,
             fallback_idempotency_key=idempotency_key,
-        )
-        if recovered_payload is None:
-            return
-        request_payload, resolved_idempotency_key = recovered_payload
-        self._run_async_operation(
-            operation_id=operation_id,
-            executor=lambda: self.create_proposal(
-                payload=request_payload,
-                idempotency_key=resolved_idempotency_key,
-                correlation_id=correlation_id or operation.correlation_id,
-                replay_lineage=build_async_replay_lineage(operation),
-            ),
+            fallback_correlation_id=correlation_id,
+            utc_now=_utc_now,
+            create_proposal=self.create_proposal,
         )
 
     def get_proposal(
@@ -741,29 +723,14 @@ class ProposalWorkflowService:
         payload: Optional[ProposalVersionRequest] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
-        read_model = load_proposal_async_operation_read_model(
+        execute_create_version_async_operation(
             repository=self._repository,
             operation_id=operation_id,
-        )
-        if read_model.operation is None:
-            return
-        operation = read_model.operation
-        recovered_payload = self._resolve_version_async_payload(
-            operation=operation,
             fallback_proposal_id=proposal_id,
             fallback_payload=payload,
-        )
-        if recovered_payload is None:
-            return
-        resolved_proposal_id, request_payload = recovered_payload
-        self._run_async_operation(
-            operation_id=operation_id,
-            executor=lambda: self.create_version(
-                proposal_id=resolved_proposal_id,
-                payload=request_payload,
-                correlation_id=correlation_id or operation.correlation_id,
-                replay_lineage=build_async_replay_lineage(operation),
-            ),
+            fallback_correlation_id=correlation_id,
+            utc_now=_utc_now,
+            create_version=self.create_version,
         )
 
     def recover_async_operations(self, *, max_operations: int = ASYNC_RECOVERY_BATCH_SIZE) -> int:
@@ -963,57 +930,8 @@ class ProposalWorkflowService:
             proposal_narrative_package=proposal_narrative_package,
         )
 
-    def _resolve_create_async_payload(
-        self,
-        *,
-        operation: ProposalAsyncOperationRecord,
-        fallback_payload: Optional[ProposalCreateRequest],
-        fallback_idempotency_key: Optional[str],
-    ) -> tuple[ProposalCreateRequest, str] | None:
-        return cast(
-            tuple[ProposalCreateRequest, str] | None,
-            resolve_create_async_payload_or_fail(
-                repository=self._repository,
-                operation=operation,
-                fallback_payload=fallback_payload,
-                fallback_idempotency_key=fallback_idempotency_key,
-                failed_at=_utc_now(),
-            ),
-        )
-
     def get_async_create_submission_stats_for_tests(self) -> AsyncCreateSubmissionStats:
         return self._async_create_submission_stats.snapshot()
-
-    def _resolve_version_async_payload(
-        self,
-        *,
-        operation: ProposalAsyncOperationRecord,
-        fallback_proposal_id: Optional[str],
-        fallback_payload: Optional[ProposalVersionRequest],
-    ) -> tuple[str, ProposalVersionRequest] | None:
-        return cast(
-            tuple[str, ProposalVersionRequest] | None,
-            resolve_version_async_payload_or_fail(
-                repository=self._repository,
-                operation=operation,
-                fallback_proposal_id=fallback_proposal_id,
-                fallback_payload=fallback_payload,
-                failed_at=_utc_now(),
-            ),
-        )
-
-    def _run_async_operation(
-        self,
-        *,
-        operation_id: str,
-        executor: Any,
-    ) -> None:
-        run_async_operation_until_terminal(
-            repository=self._repository,
-            operation_id=operation_id,
-            executor=executor,
-            utc_now=_utc_now,
-        )
 
 
 def _utc_now() -> datetime:
