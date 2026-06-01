@@ -32,7 +32,11 @@ from src.core.models import (
     Money,
     PortfolioSnapshot,
     Position,
+    PositionSummary,
     Price,
+    ProposalAllocationBucket,
+    ProposalAllocationLens,
+    ProposalAllocationView,
     ProposedTrade,
     ShelfEntry,
     SimulatedState,
@@ -65,6 +69,24 @@ from src.core.portfolio_models import (
 from src.core.portfolio_models import (
     TaxLot as PortfolioTaxLot,
 )
+from src.core.simulation_state_models import (
+    AllocationMetric as SimulationAllocationMetric,
+)
+from src.core.simulation_state_models import (
+    PositionSummary as SimulationPositionSummary,
+)
+from src.core.simulation_state_models import (
+    ProposalAllocationBucket as SimulationProposalAllocationBucket,
+)
+from src.core.simulation_state_models import (
+    ProposalAllocationLens as SimulationProposalAllocationLens,
+)
+from src.core.simulation_state_models import (
+    ProposalAllocationView as SimulationProposalAllocationView,
+)
+from src.core.simulation_state_models import (
+    SimulatedState as SimulationSimulatedState,
+)
 
 
 def test_core_models_preserves_portfolio_model_import_contract():
@@ -84,6 +106,15 @@ def test_core_models_preserves_engine_options_model_import_contract():
     assert SuitabilityThresholds is OptionsSuitabilityThresholds
     assert TargetMethod is OptionsTargetMethod
     assert ValuationMode is OptionsValuationMode
+
+
+def test_core_models_preserves_simulation_state_model_import_contract():
+    assert AllocationMetric is SimulationAllocationMetric
+    assert PositionSummary is SimulationPositionSummary
+    assert ProposalAllocationBucket is SimulationProposalAllocationBucket
+    assert ProposalAllocationLens is SimulationProposalAllocationLens
+    assert ProposalAllocationView is SimulationProposalAllocationView
+    assert SimulatedState is SimulationSimulatedState
 
 
 def test_money_validation():

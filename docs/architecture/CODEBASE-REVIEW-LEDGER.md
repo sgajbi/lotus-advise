@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-493
+
+- Scope: Core simulation state and allocation lens model ownership
+- Pattern: Valuation outputs, allocation metrics, proposal allocation lens models, and simulated
+  state snapshots should live in a focused core model module instead of remaining inline in the
+  broad `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and valuation/simulation model maintainability
+- Summary: `src/core/models.py` still owned the valuation/simulation state models used by proposal
+  simulation, suitability scanning, drift analytics, and risk integration alongside unrelated
+  diagnostics, intents, gates, and proposal result models.
+- Evidence:
+  - Added `src/core/simulation_state_models.py` for allocation metrics, proposal allocation lens
+    models, position summaries, and simulated state snapshots.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    simulation state model definitions.
+- Consequence:
+  - Valuation and simulation state definitions now have explicit ownership while downstream callers
+    can continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting diagnostics, suitability output, intent, gate, and proposal-result model
+    groups from `src/core/models.py` in small compatibility-preserving slices.
+
 ## LA-REV-492
 
 - Scope: Core engine option and suitability threshold model ownership
