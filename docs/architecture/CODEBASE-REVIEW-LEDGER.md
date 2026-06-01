@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-412
+
+- Scope: RFC-0028 bank-demo proof API error mapping
+- Pattern: Proof-pack routes should delegate HTTP exception construction and sensitive-detail
+  redaction to a route-adjacent error module.
+- Status: Hardened
+- Finding Class: modularity problem and security-boundary clarity
+- Summary: `src/api/routers/bank_demo_proof.py` still constructed `HTTPException` directly and
+  carried private proof-pack status/detail helpers after response metadata extraction. That left
+  RFC-0028 proof runtime flow mixed with HTTP status mapping and sensitive-detail redaction.
+- Evidence:
+  - Moved proof-pack HTTP exception construction and redacted detail mapping into
+    `src/api/routers/bank_demo_proof_errors.py`.
+  - The proof route now raises `bank_demo_proof_pack_exception(str(exc))` from the caught
+    validation error.
+  - Extended the internal guard to keep direct `HTTPException(...)` construction out of
+    `bank_demo_proof.py`.
+- Consequence:
+  - RFC-0028 proof routing is focused on metadata normalization and proof capture invocation, while
+    security-sensitive error mapping is centralized for audit.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    route/error-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting direct HTTP exception construction from service/route modules where the
+    mapping is reusable and behavior can be pinned by focused tests.
+
 ## LA-REV-411
 
 - Scope: Workspace store test exception imports
