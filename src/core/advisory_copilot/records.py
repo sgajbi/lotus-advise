@@ -5,6 +5,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.core.advisory_copilot.record_text import (
+    normalize_bounded_record_text_list,
+    normalize_optional_record_text,
+    normalize_required_record_text,
+)
 from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,
@@ -241,7 +246,9 @@ class AdvisoryCopilotRunRecord(BaseModel):
     )
     @classmethod
     def _normalize_required_run_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_RUN_RECORD_REQUIRED")
+        return normalize_required_record_text(
+            value, error_code="COPILOT_RUN_RECORD_REQUIRED"
+        )
 
     @field_validator(
         "proposal_id",
@@ -251,12 +258,14 @@ class AdvisoryCopilotRunRecord(BaseModel):
     )
     @classmethod
     def _normalize_optional_run_text(cls, value: str | None) -> str | None:
-        return _normalize_optional_text(value, error_code="COPILOT_RUN_RECORD_REQUIRED")
+        return normalize_optional_record_text(
+            value, error_code="COPILOT_RUN_RECORD_REQUIRED"
+        )
 
     @field_validator("review_guidance_json", mode="before")
     @classmethod
     def _normalize_review_guidance(cls, value: Any) -> list[str]:
-        return _normalize_bounded_text_list(
+        return normalize_bounded_record_text_list(
             value,
             max_items=_COPILOT_REVIEW_GUIDANCE_LIMIT,
             max_item_length=_COPILOT_REVIEW_GUIDANCE_MAX_LENGTH,
@@ -266,7 +275,7 @@ class AdvisoryCopilotRunRecord(BaseModel):
     @field_validator("guardrail_results_json", mode="before")
     @classmethod
     def _normalize_guardrail_results(cls, value: Any) -> list[str]:
-        return _normalize_bounded_text_list(
+        return normalize_bounded_record_text_list(
             value,
             max_items=_COPILOT_GUARDRAIL_REASON_LIMIT,
             max_item_length=_COPILOT_GUARDRAIL_REASON_MAX_LENGTH,
@@ -343,12 +352,16 @@ class AdvisoryCopilotEvidencePacketRecord(BaseModel):
     )
     @classmethod
     def _normalize_required_packet_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_PACKET_RECORD_REQUIRED")
+        return normalize_required_record_text(
+            value, error_code="COPILOT_PACKET_RECORD_REQUIRED"
+        )
 
     @field_validator("proposal_id")
     @classmethod
     def _normalize_optional_packet_text(cls, value: str | None) -> str | None:
-        return _normalize_optional_text(value, error_code="COPILOT_PACKET_RECORD_REQUIRED")
+        return normalize_optional_record_text(
+            value, error_code="COPILOT_PACKET_RECORD_REQUIRED"
+        )
 
 
 class AdvisoryCopilotRunIdempotencyRecord(BaseModel):
@@ -372,7 +385,9 @@ class AdvisoryCopilotRunIdempotencyRecord(BaseModel):
     @field_validator("idempotency_key", "request_hash", "run_id")
     @classmethod
     def _normalize_required_idempotency_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_IDEMPOTENCY_RECORD_REQUIRED")
+        return normalize_required_record_text(
+            value, error_code="COPILOT_IDEMPOTENCY_RECORD_REQUIRED"
+        )
 
 
 class AdvisoryCopilotReviewRecord(BaseModel):
@@ -445,44 +460,13 @@ class AdvisoryCopilotReviewRecord(BaseModel):
     @field_validator("review_id", "run_id", "actor_id", "request_hash", "correlation_id")
     @classmethod
     def _normalize_required_review_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_REVIEW_RECORD_REQUIRED")
+        return normalize_required_record_text(
+            value, error_code="COPILOT_REVIEW_RECORD_REQUIRED"
+        )
 
     @field_validator("idempotency_key")
     @classmethod
     def _normalize_optional_review_text(cls, value: str | None) -> str | None:
-        return _normalize_optional_text(value, error_code="COPILOT_REVIEW_RECORD_REQUIRED")
-
-
-def _normalize_required_text(value: str, *, error_code: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(error_code)
-    return normalized
-
-
-def _normalize_optional_text(value: str | None, *, error_code: str) -> str | None:
-    if value is None:
-        return None
-    return _normalize_required_text(value, error_code=error_code)
-
-
-def _normalize_bounded_text_list(
-    value: Any,
-    *,
-    max_items: int,
-    max_item_length: int,
-    error_code: str,
-) -> list[str]:
-    if not isinstance(value, list):
-        raise ValueError(error_code)
-    normalized: list[str] = []
-    for item in value:
-        if len(normalized) >= max_items:
-            raise ValueError(error_code)
-        if not isinstance(item, str):
-            raise ValueError(error_code)
-        text = _normalize_required_text(item, error_code=error_code)
-        if len(text) > max_item_length:
-            raise ValueError(error_code)
-        normalized.append(text)
-    return normalized
+        return normalize_optional_record_text(
+            value, error_code="COPILOT_REVIEW_RECORD_REQUIRED"
+        )

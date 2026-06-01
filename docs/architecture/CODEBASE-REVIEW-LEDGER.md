@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-540
+
+- Scope: Advisory copilot persistence record text validation
+- Pattern: Shared persistence-record text normalization should live in a focused helper module
+  rather than remaining embedded in the broad record DTO module
+- Status: Hardened
+- Finding Class: Modularity and persistence validation reuse
+- Summary: `src/core/advisory_copilot/records.py` still owned all string normalization and bounded
+  review-guidance/guardrail-list validation helpers inline. That kept every future record DTO split
+  coupled to private helper functions in the broad record module and encouraged duplicated
+  validation logic when extracting run, packet, idempotency, and review record models.
+- Evidence:
+  - Added `src/core/advisory_copilot/record_text.py` for required, optional, and bounded-list record
+    text normalization.
+  - Updated advisory-copilot persistence record validators to use the focused helpers.
+  - Added focused unit coverage for whitespace normalization, optional text handling, bounded list
+    normalization, and invalid empty/oversized input rejection.
+- Consequence:
+  - Advisory-copilot persistence validation now has a reusable boundary that can support subsequent
+    record model extraction without duplicating helper logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because runtime behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract advisory-copilot run, evidence-packet, idempotency, and review record models into
+    focused modules while preserving package and compatibility import contracts.
+
 ## LA-REV-539
 
 - Scope: Advisory copilot compatibility facade production import boundary

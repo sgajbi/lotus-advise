@@ -22,6 +22,11 @@ from src.core.advisory_copilot import (
     record_advisory_copilot_review,
     save_advisory_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.record_text import (
+    normalize_bounded_record_text_list,
+    normalize_optional_record_text,
+    normalize_required_record_text,
+)
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
 from src.infrastructure.advisory_copilot.postgres import PostgresAdvisoryCopilotRepository
 
@@ -93,6 +98,29 @@ _REVIEW_COLUMNS = (
     "idempotency_key",
     "correlation_id",
 )
+
+
+def test_advisory_copilot_record_text_helpers_normalize_audit_text() -> None:
+    assert normalize_required_record_text(
+        "  advisor\nreview  ", error_code="COPILOT_RECORD_REQUIRED"
+    ) == "advisor review"
+    assert normalize_optional_record_text(None, error_code="COPILOT_RECORD_REQUIRED") is None
+    assert normalize_bounded_record_text_list(
+        ["  first\nitem  ", "second item"],
+        max_items=2,
+        max_item_length=20,
+        error_code="COPILOT_RECORD_LIST_INVALID",
+    ) == ["first item", "second item"]
+
+    with pytest.raises(ValueError, match="COPILOT_RECORD_REQUIRED"):
+        normalize_required_record_text("   ", error_code="COPILOT_RECORD_REQUIRED")
+    with pytest.raises(ValueError, match="COPILOT_RECORD_LIST_INVALID"):
+        normalize_bounded_record_text_list(
+            ["first", "second", "third"],
+            max_items=2,
+            max_item_length=20,
+            error_code="COPILOT_RECORD_LIST_INVALID",
+        )
 
 
 class _FakePostgresConnection:
