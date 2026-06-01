@@ -87,6 +87,14 @@ from src.core.advisory_copilot.run_lineage import (
 from src.core.advisory_copilot.run_persistence import (
     persist_advisory_copilot_run as focused_persist_advisory_copilot_run,
 )
+from src.core.advisory_copilot.run_record_limits import (
+    COPILOT_RUN_GUARDRAIL_REASON_LIMIT,
+    COPILOT_RUN_GUARDRAIL_REASON_MAX_LENGTH,
+    COPILOT_RUN_IDENTIFIER_MAX_LENGTH,
+    COPILOT_RUN_JSON_FIELD_MAX_ITEMS,
+    COPILOT_RUN_OUTPUT_SECTION_LIMIT,
+    COPILOT_RUN_REVIEW_GUIDANCE_LIMIT,
+)
 from src.core.advisory_copilot.run_records import (
     AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
 )
@@ -718,7 +726,8 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
             **{
                 **result.run.model_dump(),
                 "output_sections_json": [
-                    {"section_key": f"SECTION_{index}"} for index in range(65)
+                    {"section_key": f"SECTION_{index}"}
+                    for index in range(COPILOT_RUN_OUTPUT_SECTION_LIMIT + 1)
                 ],
             }
         )
@@ -726,21 +735,25 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
         AdvisoryCopilotRunRecord(
             **{
                 **result.run.model_dump(),
-                "review_guidance_json": [f"Guidance {index}" for index in range(17)],
+                "review_guidance_json": [
+                    f"Guidance {index}" for index in range(COPILOT_RUN_REVIEW_GUIDANCE_LIMIT + 1)
+                ],
             }
         )
     with pytest.raises(ValidationError):
         AdvisoryCopilotRunRecord(
             **{
                 **result.run.model_dump(),
-                "guardrail_results_json": ["x" * 161],
+                "guardrail_results_json": ["x" * (COPILOT_RUN_GUARDRAIL_REASON_MAX_LENGTH + 1)],
             }
         )
     with pytest.raises(ValidationError):
         AdvisoryCopilotRunRecord(
             **{
                 **result.run.model_dump(),
-                "lineage_json": {f"key_{index}": index for index in range(65)},
+                "lineage_json": {
+                    f"key_{index}": index for index in range(COPILOT_RUN_JSON_FIELD_MAX_ITEMS + 1)
+                },
             }
         )
 
@@ -817,6 +830,20 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
                 "reason_json": {f"key_{index}": index for index in range(65)},
             }
         )
+
+
+def test_copilot_run_record_limits_have_focused_owner() -> None:
+    run_records_source = Path("src/core/advisory_copilot/run_records.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert COPILOT_RUN_IDENTIFIER_MAX_LENGTH == 160
+    assert COPILOT_RUN_OUTPUT_SECTION_LIMIT == 64
+    assert COPILOT_RUN_REVIEW_GUIDANCE_LIMIT == 16
+    assert COPILOT_RUN_GUARDRAIL_REASON_LIMIT == 16
+    assert "_COPILOT_OUTPUT_SECTION_LIMIT = 64" not in run_records_source
+    assert "_COPILOT_REVIEW_GUIDANCE_LIMIT = 16" not in run_records_source
+    assert "_COPILOT_GUARDRAIL_REASON_LIMIT = 16" not in run_records_source
 
 
 def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:

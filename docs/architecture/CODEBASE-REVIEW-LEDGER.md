@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-578
+
+- Scope: Advisory copilot run-record limit ownership
+- Pattern: Persisted run-record schema limits should be owned by a focused module rather than
+  embedded as private constants inside the run-record DTO.
+- Status: Hardened
+- Finding Class: Persistence model modularity and validation consistency
+- Summary: `run_records.py` still carried a local `_COPILOT_*` limit block for actor ids, app ids,
+  identifiers, hashes, JSON field sizes, output sections, review guidance, guardrail reasons, and
+  lineage version refs. That mixed durable schema definitions with field declarations and made
+  future persistence/replay modules harder to audit.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_record_limits.py` for advisory-copilot run-record schema
+    limits.
+  - Updated `run_records.py` to consume named run-record constants from the focused owner module.
+  - Updated persistence boundary tests to use named limits instead of magic numbers for run output,
+    review guidance, guardrail reason, and lineage bounds.
+  - Added coverage proving run-record limits have a focused owner and preventing the private limit
+    block from returning to `run_records.py`.
+- Consequence:
+  - Run-record validation limits are now reusable and easier to audit independently from persisted
+    record field declarations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because persistence behavior,
+    API behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue converging packet, review, idempotency, section, and reference model limit constants
+    into focused owner modules where reuse or auditability benefits are concrete.
+
 ## LA-REV-577
 
 - Scope: Advisory copilot focused API model imports
