@@ -35,6 +35,10 @@ from src.core.advisory_copilot.packet_persistence import (
 from src.core.advisory_copilot.packet_persistence import (
     save_advisory_copilot_evidence_packet as focused_save_advisory_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.packet_record_limits import (
+    COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH,
+    COPILOT_PACKET_RECORD_JSON_FIELD_MAX_ITEMS,
+)
 from src.core.advisory_copilot.packet_records import (
     AdvisoryCopilotEvidencePacketRecord as FocusedAdvisoryCopilotEvidencePacketRecord,
 )
@@ -777,13 +781,20 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
     assert normalized_packet.proposal_id == "proposal_trimmed"
     with pytest.raises(ValidationError):
         AdvisoryCopilotEvidencePacketRecord(
-            **{**packet_record.model_dump(), "evidence_packet_id": "x" * 161}
+            **{
+                **packet_record.model_dump(),
+                "evidence_packet_id": "x"
+                * (COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH + 1),
+            }
         )
     with pytest.raises(ValidationError):
         AdvisoryCopilotEvidencePacketRecord(
             **{
                 **packet_record.model_dump(),
-                "reason_json": {f"key_{index}": index for index in range(65)},
+                "reason_json": {
+                    f"key_{index}": index
+                    for index in range(COPILOT_PACKET_RECORD_JSON_FIELD_MAX_ITEMS + 1)
+                },
             }
         )
 
@@ -844,6 +855,17 @@ def test_copilot_run_record_limits_have_focused_owner() -> None:
     assert "_COPILOT_OUTPUT_SECTION_LIMIT = 64" not in run_records_source
     assert "_COPILOT_REVIEW_GUIDANCE_LIMIT = 16" not in run_records_source
     assert "_COPILOT_GUARDRAIL_REASON_LIMIT = 16" not in run_records_source
+
+
+def test_copilot_packet_record_limits_have_focused_owner() -> None:
+    packet_records_source = Path("src/core/advisory_copilot/packet_records.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH == 160
+    assert COPILOT_PACKET_RECORD_JSON_FIELD_MAX_ITEMS == 64
+    assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in packet_records_source
+    assert "_COPILOT_JSON_FIELD_MAX_ITEMS = 64" not in packet_records_source
 
 
 def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:

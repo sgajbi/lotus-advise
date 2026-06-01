@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-580
+
+- Scope: Advisory copilot packet-record limit ownership
+- Pattern: Persisted evidence-packet record schema limits should be owned by a focused module
+  rather than embedded as private constants inside the packet-record DTO.
+- Status: Hardened
+- Finding Class: Persistence model modularity and validation consistency
+- Summary: `packet_records.py` still carried local `_COPILOT_*` limits for actor ids, hashes,
+  identifiers, and bounded JSON fields. This duplicated the run-record limit pattern and kept
+  durable packet-record schema limits mixed with field declarations.
+- Evidence:
+  - Added `src/core/advisory_copilot/packet_record_limits.py` for packet-record schema limits.
+  - Updated `packet_records.py` to consume named packet-record constants from the focused owner
+    module.
+  - Updated persistence boundary tests to use named packet-record limits instead of magic numbers.
+  - Added coverage proving packet-record limits have a focused owner and preventing the private
+    limit block from returning to `packet_records.py`.
+- Consequence:
+  - Evidence-packet record validation limits are now reusable and auditable independently from the
+    persisted packet record DTO.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because persistence behavior,
+    API behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue converging review and idempotency record limit constants into focused owner modules
+    where tests can prove the extraction is behavior-preserving.
+
 ## LA-REV-579
 
 - Scope: Quality baseline and progressive governance reporting
