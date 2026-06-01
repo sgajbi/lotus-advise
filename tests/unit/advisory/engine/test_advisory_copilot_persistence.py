@@ -171,6 +171,7 @@ _REVIEW_COLUMNS = (
 )
 
 ADVISORY_COPILOT_RECORDS_PATH = Path("src/core/advisory_copilot/records.py")
+ADVISORY_COPILOT_SERVICE_PATH = Path("src/core/advisory_copilot/service.py")
 SRC_ROOT = Path("src")
 
 
@@ -395,12 +396,26 @@ def test_advisory_copilot_review_persistence_has_focused_owner() -> None:
 
 
 def test_advisory_copilot_run_persistence_has_focused_owner() -> None:
-    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+    service_source = ADVISORY_COPILOT_SERVICE_PATH.read_text(encoding="utf-8")
 
     assert "def persist_advisory_copilot_run" not in service_source
     assert "__all__" in service_source
     assert persist_advisory_copilot_run is focused_persist_advisory_copilot_run
     assert service_persist_advisory_copilot_run is focused_persist_advisory_copilot_run
+
+
+def test_advisory_copilot_service_is_pure_compatibility_facade() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_SERVICE_PATH.read_text(encoding="utf-8"))
+    production_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != ADVISORY_COPILOT_SERVICE_PATH.as_posix()
+        and "src.core.advisory_copilot.service" in path.read_text(encoding="utf-8")
+    )
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+    assert production_importers == []
 
 
 class _FakePostgresConnection:

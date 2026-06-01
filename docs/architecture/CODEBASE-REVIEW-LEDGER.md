@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-555
+
+- Scope: Advisory copilot service facade regression guard
+- Pattern: Once the broad service module becomes a compatibility facade, production code should use
+  focused workflow modules directly and tests should guard against reintroducing implementation
+  logic.
+- Status: Hardened
+- Finding Class: Dependency boundary regression prevention
+- Summary: After extracting advisory-copilot packet, run, and review persistence workflows, the
+  broad service module became a compatibility surface. Without an explicit guard, future changes
+  could silently add workflow logic back to the facade or route production dependencies through it.
+- Evidence:
+  - Added AST coverage proving `src/core/advisory_copilot/service.py` defines no classes or
+    functions.
+  - Added source-scan coverage proving production code no longer imports
+    `src.core.advisory_copilot.service`.
+  - Kept explicit service compatibility import coverage for callers that still rely on the old
+    module path.
+- Consequence:
+  - Advisory-copilot workflow ownership is now protected at the module-boundary level, not only by
+    convention.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Apply the same pattern to adjacent oversized advisory workflow modules where compatibility
+    facades would reduce coupling.
+
 ## LA-REV-554
 
 - Scope: Advisory copilot run persistence workflow boundary
