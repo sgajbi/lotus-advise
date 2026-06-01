@@ -12,7 +12,7 @@ from src.core.advisor_cockpit import (
     CockpitAcknowledgementRecord,
     CockpitCallerContext,
 )
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
 from src.core.tactical_house_view import (

@@ -14,7 +14,7 @@ from src.core.advisory_copilot.source_projection_sections import (
     build_proposal_version_source_sections,
     default_proposal_version_packet_id,
 )
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.repository import ProposalRepository
 
 

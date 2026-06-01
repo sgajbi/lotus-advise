@@ -13,7 +13,7 @@ from src.core.advisory_copilot.models import (
     CopilotEvidenceSectionInput,
     CopilotSourceRef,
 )
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalMemoRecord,

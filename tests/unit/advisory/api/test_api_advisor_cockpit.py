@@ -20,7 +20,7 @@ from src.core.advisor_cockpit import (
     AdvisorCockpitSupportabilityResponse,
     MeetingPreparationPacket,
 )
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
 from src.core.tactical_house_view import clear_tactical_house_view_affected_cohorts_for_tests
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository

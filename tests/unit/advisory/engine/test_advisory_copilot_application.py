@@ -13,7 +13,7 @@ from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotReviewRequest,
 )
 from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository

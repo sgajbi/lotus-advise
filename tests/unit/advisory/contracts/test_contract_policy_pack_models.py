@@ -121,6 +121,7 @@ from src.core.policy_packs.workflow_models import (
 )
 
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
+SRC_ROOT = Path("src")
 
 
 def test_policy_pack_models_preserves_catalog_model_import_contract():
@@ -182,3 +183,14 @@ def test_policy_pack_models_is_pure_compatibility_facade():
 
     assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
     assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+
+def test_production_code_uses_focused_policy_pack_model_imports():
+    compatibility_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != "src/core/policy_packs/models.py"
+        and "src.core.policy_packs.models" in path.read_text(encoding="utf-8")
+    )
+
+    assert compatibility_importers == []

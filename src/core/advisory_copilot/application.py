@@ -36,7 +36,7 @@ from src.core.common.idempotency import (
     normalize_optional_idempotency_key,
     normalize_required_idempotency_key,
 )
-from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.correlation import normalize_optional_correlation_id
 from src.core.proposals.repository import ProposalRepository
 

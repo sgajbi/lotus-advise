@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-526
+
+- Scope: Policy-pack compatibility facade production import boundary
+- Pattern: Production code should import focused policy-pack model modules directly instead of
+  importing from the legacy `src.core.policy_packs.models` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency flow and modularity regression prevention
+- Summary: After `src/core/policy_packs/models.py` became a pure compatibility facade, advisor
+  cockpit and advisory copilot production modules still imported `PolicyEvaluationRecord` from the
+  facade. That kept product-facing source projection code coupled to the broad legacy model surface.
+- Evidence:
+  - Updated advisor cockpit and advisory copilot source projection/application modules to import
+    `PolicyEvaluationRecord` from `src.core.policy_packs.persistence_models`.
+  - Updated related unit tests to use the focused persistence model import.
+  - Added contract coverage that scans production source and rejects imports from
+    `src.core.policy_packs.models` outside the compatibility facade itself.
+- Consequence:
+  - Product-facing source projections now depend on the durable policy evaluation record boundary
+    directly, and new production code is protected from reintroducing the broad compatibility
+    dependency.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Apply the same focused-import pattern to other compatibility facades when they are reduced.
+
 ## LA-REV-525
 
 - Scope: Policy-pack model compatibility facade closure
