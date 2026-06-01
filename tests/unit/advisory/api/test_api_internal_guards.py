@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 import src.api.main as api_main
+from src.api.openapi_tags import OPENAPI_TAGS
 from src.api.proposals import (
     router as proposal_router,
 )
@@ -115,6 +116,14 @@ def test_api_main_does_not_export_router_or_engine_internals():
 
 def test_deprecated_core_engine_shim_is_removed():
     assert not Path("src/core/engine.py").exists()
+
+
+def test_api_main_uses_shared_openapi_tag_catalog():
+    source = Path("src/api/main.py").read_text(encoding="utf-8")
+
+    assert "from src.api.openapi_tags import OPENAPI_TAGS" in source
+    assert "openapi_tags=OPENAPI_TAGS" in source
+    assert api_main.app.openapi_tags == OPENAPI_TAGS
 
 
 def test_memo_routes_use_shared_response_metadata():

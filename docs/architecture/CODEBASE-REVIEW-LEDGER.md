@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-459
+
+- Scope: FastAPI OpenAPI tag catalog
+- Pattern: Static API documentation metadata should be owned by a dedicated module rather than
+  embedded in application wiring.
+- Status: Hardened
+- Finding Class: modularity and API documentation maintainability
+- Summary: `src/api/main.py` included the full OpenAPI tag catalog inline, mixing static API
+  documentation metadata with app construction, router inclusion, middleware, health checks, and
+  exception handlers.
+- Evidence:
+  - Added `src/api/openapi_tags.py` with the governed tag catalog.
+  - Updated `src/api/main.py` to pass `OPENAPI_TAGS` to FastAPI.
+  - Added an internal guard that verifies app wiring uses the shared tag catalog.
+- Consequence:
+  - App assembly is smaller and OpenAPI tag metadata now has a single focused owner for future API
+    documentation changes.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because generated OpenAPI truth
+    is unchanged.
+- Follow-Up:
+  - Consider moving health/readiness problem-detail helpers out of `main.py` if future health
+    checks grow beyond the current bounded logic.
+
 ## LA-REV-458
 
 - Scope: Deprecated advisory engine compatibility shim
