@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-542
+
+- Scope: Advisory copilot evidence-packet persistence record
+- Pattern: Evidence-packet persistence records should have focused model ownership outside the broad
+  advisory-copilot record module
+- Status: Hardened
+- Finding Class: Modularity and evidence audit boundary ownership
+- Summary: `AdvisoryCopilotEvidencePacketRecord` stores source-scoped evidence packet identity,
+  hash, packet JSON, creation reason, actor, and correlation evidence. Keeping it inside the broad
+  `records.py` module mixed evidence-packet audit ownership with run, idempotency, and review event
+  records.
+- Evidence:
+  - Added `src/core/advisory_copilot/packet_records.py` for evidence-packet persistence records.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/records.py` and the package
+    surface.
+  - Moved package-level exports to the focused packet record module.
+  - Added import-contract and AST coverage proving compatibility imports resolve to the focused
+    packet record class and `records.py` no longer defines `AdvisoryCopilotEvidencePacketRecord`.
+- Consequence:
+  - Advisory-copilot evidence-packet audit records now have a focused owner, leaving the broad
+    record module with idempotency and review event ownership only.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract advisory-copilot run idempotency and review record DTOs, then convert `records.py` to a
+    pure compatibility facade.
+
 ## LA-REV-541
 
 - Scope: Advisory copilot run persistence record

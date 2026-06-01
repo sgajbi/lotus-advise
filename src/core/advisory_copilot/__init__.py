@@ -22,12 +22,12 @@ from src.core.advisory_copilot.guardrails import (
     guardrail_reason_for_intent,
 )
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
+from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
 from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
     business_projection_for_action,
 )
 from src.core.advisory_copilot.records import (
-    AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
     AdvisoryCopilotRunIdempotencyRecord,
 )
