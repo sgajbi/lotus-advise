@@ -51,6 +51,7 @@ from src.core.advisory_copilot.request_hashing import (
     build_advisory_copilot_run_request_hash,
     canonical_json_hash,
 )
+from src.core.advisory_copilot.retention_policy import retention_expires_at
 from src.core.advisory_copilot.review_records import (
     AdvisoryCopilotReviewRecord as FocusedAdvisoryCopilotReviewRecord,
 )
@@ -247,6 +248,21 @@ def test_advisory_copilot_run_request_hashing_has_focused_owner() -> None:
         requested_intents=("explain_policy_posture",),
         user_instruction="Summarize the advisory evidence for internal review.",
     ).startswith("sha256:")
+
+
+def test_advisory_copilot_retention_policy_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+    created_at = datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc)
+
+    assert "def retention_expires_at" not in service_source
+    assert retention_expires_at(
+        retention_class="SUPPORTABILITY_DIAGNOSTIC",
+        created_at=created_at,
+    ) == datetime(2026, 8, 26, 9, 0, tzinfo=timezone.utc)
+    assert retention_expires_at(
+        retention_class="STANDARD_ADVISORY_RECORD",
+        created_at=created_at,
+    ) == datetime(2033, 5, 26, 9, 0, tzinfo=timezone.utc)
 
 
 class _FakePostgresConnection:

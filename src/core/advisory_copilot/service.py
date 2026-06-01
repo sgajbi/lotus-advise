@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, cast
 
 from pydantic import BaseModel, Field
@@ -14,6 +14,7 @@ from src.core.advisory_copilot.request_hashing import (
     build_advisory_copilot_run_request_summary,
     canonical_json_hash,
 )
+from src.core.advisory_copilot.retention_policy import retention_expires_at
 from src.core.advisory_copilot.review import (
     CopilotReviewAction,
     is_terminal_review_posture,
@@ -288,12 +289,6 @@ def list_advisory_copilot_reviews(
     *, repository: AdvisoryCopilotRepository, run_id: str
 ) -> tuple[AdvisoryCopilotReviewRecord, ...]:
     return tuple(repository.list_reviews(run_id=run_id))
-
-
-def retention_expires_at(*, retention_class: str, created_at: datetime) -> datetime:
-    if retention_class == "SUPPORTABILITY_DIAGNOSTIC":
-        return created_at + timedelta(days=90)
-    return created_at + timedelta(days=365 * 7)
 
 
 def _review_posture_from_draft(status: str) -> CopilotReviewPosture:

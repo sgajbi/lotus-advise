@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-548
+
+- Scope: Advisory copilot retention expiry policy boundary
+- Pattern: Advisory-copilot retention windows should have a focused policy owner instead of living
+  in the workflow persistence service.
+- Status: Hardened
+- Finding Class: Domain policy modularity and auditability
+- Summary: `src/core/advisory_copilot/service.py` still owned retention-expiry calculation for
+  standard advisory records and supportability diagnostics. That buried an audit-relevant data
+  retention rule inside persistence orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/retention_policy.py` for advisory-copilot retention expiry
+    calculation.
+  - Updated the service and package export to use the focused retention policy module.
+  - Added coverage proving service no longer defines the retention helper and validating both the
+    90-day diagnostic and seven-year standard advisory retention windows.
+- Consequence:
+  - Advisory-copilot retention policy is now isolated for audit review and future retention-class
+    expansion.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract retryability/review-posture policy helpers from the advisory-copilot service.
+
 ## LA-REV-547
 
 - Scope: Advisory copilot run request hashing boundary

@@ -36,6 +36,7 @@ from src.core.advisory_copilot.request_hashing import (
     build_advisory_copilot_run_request_hash,
     canonical_json_hash,
 )
+from src.core.advisory_copilot.retention_policy import retention_expires_at
 from src.core.advisory_copilot.review import (
     REVIEW_ACTION_TO_POSTURE,
     TERMINAL_REVIEW_POSTURES,
@@ -56,7 +57,6 @@ from src.core.advisory_copilot.service import (
     load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
     record_advisory_copilot_review,
-    retention_expires_at,
     save_advisory_copilot_evidence_packet,
 )
 from src.core.advisory_copilot.type_models import (
