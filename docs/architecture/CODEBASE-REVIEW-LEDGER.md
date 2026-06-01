@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-458
+
+- Scope: Deprecated advisory engine compatibility shim
+- Pattern: Dead deprecated import shims should be removed once internal callers use the canonical
+  module.
+- Status: Removed
+- Finding Class: dead code and import boundary hygiene
+- Summary: `src/core/engine.py` only re-exported `run_proposal_simulation` from
+  `src.core.advisory_engine` and emitted a deprecation warning at import time. Repository code and
+  tests now import the canonical module directly, leaving the shim as a stale parallel import path.
+- Evidence:
+  - Removed `src/core/engine.py`.
+  - Added an internal guard that prevents the deprecated shim from being reintroduced.
+  - Verified repository references use `src.core.advisory_engine` rather than the shim.
+- Consequence:
+  - Advisory engine imports now have a single canonical module, reducing compatibility clutter and
+    warning side effects during accidental imports.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public documentation
+    already points to `src/core/advisory_engine.py`.
+- Follow-Up:
+  - Continue removing deprecated compatibility paths when reference scans show no remaining
+    internal consumers.
+
 ## LA-REV-457
 
 - Scope: Integration capabilities route parameter contracts

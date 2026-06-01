@@ -113,6 +113,10 @@ def test_api_main_does_not_export_router_or_engine_internals():
         assert not hasattr(api_main, export_name)
 
 
+def test_deprecated_core_engine_shim_is_removed():
+    assert not Path("src/core/engine.py").exists()
+
+
 def test_memo_routes_use_shared_response_metadata():
     source = inspect.getsource(routes_memo)
 
