@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-520
+
+- Scope: Policy-pack evaluation engine model ownership
+- Pattern: Policy-pack applicability, rule-result, and evaluation-response DTOs should live in a
+  focused module instead of remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and policy evaluation maintainability
+- Summary: `src/core/policy_packs/models.py` still owned the internal RFC-0025 policy evaluation
+  engine DTOs after catalog model extraction. These DTOs are used by the policy evaluation engine
+  and persistence summarization paths and are distinct from catalog administration, durable record,
+  workflow, report-package, and AI evidence DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/evaluation_models.py` for policy applicability status,
+    evaluation status, applicability result, rule result, and evaluation response DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated evaluation engine, persistence, and package exports to import evaluation DTOs from the
+    focused module.
+  - Extended policy-pack model contract coverage to prove compatibility imports point at the
+    extracted evaluation model definitions.
+- Consequence:
+  - Policy evaluation engine code now depends on a narrow model boundary instead of the broader
+    policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation persistence, workflow, report-package, and AI evidence
+    DTO groups from `src/core/policy_packs/models.py`.
+
 ## LA-REV-519
 
 - Scope: Policy-pack catalog model ownership

@@ -22,15 +22,27 @@ from src.core.policy_packs.catalog_models import (
 from src.core.policy_packs.catalog_models import (
     PolicyPackValidationResponse as CatalogPolicyPackValidationResponse,
 )
+from src.core.policy_packs.evaluation_models import (
+    PolicyPackApplicabilityResult as EvaluationPolicyPackApplicabilityResult,
+)
+from src.core.policy_packs.evaluation_models import (
+    PolicyPackEvaluationResponse as EvaluationPolicyPackEvaluationResponse,
+)
+from src.core.policy_packs.evaluation_models import (
+    PolicyRuleEvaluationResult as EvaluationPolicyRuleEvaluationResult,
+)
 from src.core.policy_packs.models import (
     PolicyPackActivationRequest,
     PolicyPackActivationResponse,
+    PolicyPackApplicabilityResult,
     PolicyPackAuditEvent,
     PolicyPackDetailResponse,
+    PolicyPackEvaluationResponse,
     PolicyPackListResponse,
     PolicyPackSummary,
     PolicyPackValidationRequest,
     PolicyPackValidationResponse,
+    PolicyRuleEvaluationResult,
 )
 
 
@@ -43,3 +55,9 @@ def test_policy_pack_models_preserves_catalog_model_import_contract():
     assert PolicyPackSummary is CatalogPolicyPackSummary
     assert PolicyPackValidationRequest is CatalogPolicyPackValidationRequest
     assert PolicyPackValidationResponse is CatalogPolicyPackValidationResponse
+
+
+def test_policy_pack_models_preserves_evaluation_model_import_contract():
+    assert PolicyPackApplicabilityResult is EvaluationPolicyPackApplicabilityResult
+    assert PolicyPackEvaluationResponse is EvaluationPolicyPackEvaluationResponse
+    assert PolicyRuleEvaluationResult is EvaluationPolicyRuleEvaluationResult
