@@ -26,6 +26,9 @@ integration_capabilities_router = importlib.import_module(
     "src.api.routers.integration_capabilities"
 )
 bank_demo_proof_router = importlib.import_module("src.api.routers.bank_demo_proof")
+advisory_simulation_service = importlib.import_module(
+    "src.api.services.advisory_simulation_service"
+)
 
 
 def test_raise_proposal_http_exception_re_raises_unknown_exception():
@@ -140,6 +143,15 @@ def test_advisory_simulation_routes_use_shared_response_metadata():
     assert "responses={" not in source
     assert "responses=PROPOSAL_SIMULATION_RESPONSES" in source
     assert "responses=PROPOSAL_ARTIFACT_RESPONSES" in source
+
+
+def test_advisory_simulation_service_uses_shared_error_helpers():
+    source = inspect.getsource(advisory_simulation_service)
+
+    assert "HTTPException(" not in source
+    assert "simulation_validation_exception" in source
+    assert "simulation_idempotency_conflict_exception" in source
+    assert "simulation_idempotency_store_unavailable_exception" in source
 
 
 def test_integration_capabilities_routes_use_shared_response_metadata():

@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-406
+
+- Scope: Advisory simulation API service error boundary
+- Pattern: API service modules should delegate HTTP exception construction to small error helpers
+  when status-code mapping repeats across validation, idempotency, and runtime-unavailable paths.
+- Status: Hardened
+- Finding Class: modularity problem and error-boundary consistency
+- Summary: `src/api/services/advisory_simulation_service.py` mixed simulation input resolution,
+  idempotency lookup/write, proposal evaluation, and repeated `HTTPException` construction. The
+  result made the service harder to read as workflow orchestration and left validation sanitization
+  coupled to multiple local raise sites.
+- Evidence:
+  - Moved advisory simulation HTTP error helpers into
+    `src/api/services/advisory_simulation_errors.py`.
+  - The simulation service now calls named helpers for validation, idempotency conflict, and
+    idempotency-store unavailable failures.
+  - Added an internal guard that keeps direct `HTTPException(...)` construction out of the
+    simulation service module.
+- Consequence:
+  - Advisory simulation orchestration is easier to audit for idempotency and lineage flow, while
+    HTTP status and sanitized-detail behavior is centralized for future hardening.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    API-service boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting repeated HTTP error construction from remaining API service modules where
+    focused tests can prove behavior stayed stable.
+
 ## LA-REV-405
 
 - Scope: RFC-0028 bank-demo proof sensitive-detail boundary

@@ -1,14 +1,12 @@
 from datetime import datetime, timezone
 from typing import Optional, cast
 
-from fastapi import HTTPException, status
-
-from src.api.http_status import HTTP_422_UNPROCESSABLE
-from src.api.proposals.errors import (
-    PROPOSAL_REQUEST_VALIDATION_FAILED_DETAIL,
-    safe_proposal_error_detail,
-)
 from src.api.proposals.router import get_proposal_repository
+from src.api.services.advisory_simulation_errors import (
+    simulation_idempotency_conflict_exception,
+    simulation_idempotency_store_unavailable_exception,
+    simulation_validation_exception,
+)
 from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
@@ -32,13 +30,6 @@ from src.core.proposals.simulation_gate import (
 )
 
 
-def _safe_simulation_validation_detail(error_detail: str) -> str:
-    return safe_proposal_error_detail(
-        error_detail,
-        redacted_detail=PROPOSAL_REQUEST_VALIDATION_FAILED_DETAIL,
-    )
-
-
 def simulate_proposal_response(
     *,
     request: ProposalSimulationRequest,
@@ -49,19 +40,13 @@ def simulate_proposal_response(
     try:
         idempotency_key = normalize_required_idempotency_key(idempotency_key)
     except ValueError as exc:
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE,
-            detail=_safe_simulation_validation_detail(str(exc)),
-        ) from exc
+        raise simulation_validation_exception(str(exc)) from exc
     resolved_request = resolved_request or resolve_simulation_input(request)
 
     try:
         validate_proposal_simulation_enabled(request=resolved_request.simulate_request)
     except ProposalSimulationGateError as exc:
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE,
-            detail=_safe_simulation_validation_detail(str(exc)),
-        ) from exc
+        raise simulation_validation_exception(str(exc)) from exc
 
     request_payload = canonicalize_simulation_request_payload(
         resolved=resolved_request,
@@ -71,10 +56,7 @@ def simulate_proposal_response(
 
     existing = repository.get_simulation_idempotency(idempotency_key=idempotency_key)
     if existing is not None and existing.request_hash != request_hash:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
-        )
+        raise simulation_idempotency_conflict_exception()
     if existing is not None:
         return cast(ProposalResult, ProposalResult.model_validate(existing.response_json))
 
@@ -91,10 +73,7 @@ def simulate_proposal_response(
             policy_context=context_resolution["advisory_policy_context"],
         )
     except AlternativesRequestNormalizationError as exc:
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE,
-            detail=_safe_simulation_validation_detail(f"{exc.reason_code}: {exc}"),
-        ) from exc
+        raise simulation_validation_exception(f"{exc.reason_code}: {exc}") from exc
     result.explanation["context_resolution"] = context_resolution
 
     try:
@@ -107,10 +86,7 @@ def simulate_proposal_response(
             )
         )
     except (RuntimeError, ValueError, TypeError, ConnectionError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="PROPOSAL_IDEMPOTENCY_STORE_WRITE_FAILED",
-        ) from exc
+        raise simulation_idempotency_store_unavailable_exception() from exc
     return result
 
 
@@ -120,7 +96,4 @@ def resolve_simulation_input(
     try:
         return resolve_simulation_request(request)
     except ProposalContextResolutionError as exc:
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE,
-            detail=_safe_simulation_validation_detail(str(exc)),
-        ) from exc
+        raise simulation_validation_exception(str(exc)) from exc
