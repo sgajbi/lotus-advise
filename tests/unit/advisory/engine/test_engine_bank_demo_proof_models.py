@@ -194,6 +194,18 @@ def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> No
             claim_text="This should not be promotable.",
         )
 
+    with pytest.raises(ValidationError, match="proof requirements must use declared evidence refs"):
+        SupportedClaim(
+            claim_id="invalid_requirement_ref",
+            title="Invalid requirement ref",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["WIKI"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.material_field_review"],
+            proof_requirements=[_proof_requirement()],
+        )
+
     with pytest.raises(ValidationError, match="claim_id values must be unique"):
         AdvisorySupportedClaimRegister(
             scenario_id=RFC28_CANONICAL_SCENARIO_ID,

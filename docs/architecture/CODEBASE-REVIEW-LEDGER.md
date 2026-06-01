@@ -9329,6 +9329,35 @@
   - Keep commercial material additions tied to supported-claim tests so new claims cannot become
     decorative metadata.
 
+## LA-REV-385
+
+- Scope: RFC-0028 supported-claim proof requirement consistency
+- Pattern: A supported claim's proof requirements must reference evidence declared on that same
+  claim so commercial and demo claim gates cannot depend on hidden evidence
+- Status: Hardened
+- Finding Class: Product-claim correctness and contract validation
+- Summary: The default `backend_proof_capture_repeatable` claim required
+  `proof.assets.document_proof_summary`, but that evidence ref was not listed in the claim's
+  `evidence_refs`. The register still built successfully because the model validated
+  implementation-backed claims had some evidence and proof requirements, not that the requirement
+  evidence was declared.
+- Evidence:
+  - Added a `SupportedClaim` validator requiring every proof requirement `evidence_ref` to appear
+    in the claim's declared `evidence_refs`.
+  - Added `proof.assets.document_proof_summary` to the default backend proof capture claim evidence.
+  - Added model and default-register tests proving requirement refs cannot be hidden.
+  - Focused `ruff`, format check, supported-claim/proof-model/API tests, and RFC-0028
+    bank-demo/API selected tests passed with 89 tests.
+- Consequence:
+  - Supported-claim promotion is now more auditable because proof requirements and evidence refs
+    cannot drift apart.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this corrects the
+    implementation-backed register contract without changing product wording.
+- Follow-Up:
+  - Treat any future required evidence addition as a model-test change and a supported-claim
+    register update in the same slice.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

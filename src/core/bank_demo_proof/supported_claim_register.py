@@ -51,7 +51,12 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                     "lotus-advise can generate a sanitized RFC-0028 backend proof pack from the "
                     "governed live runtime suite for the canonical private-banking scenario."
                 ),
-                evidence_refs=[backend_summary_ref, field_review_ref, runtime_posture_ref],
+                evidence_refs=[
+                    backend_summary_ref,
+                    document_proof_ref,
+                    field_review_ref,
+                    runtime_posture_ref,
+                ],
                 proof_requirements=[
                     SupportedClaimProofRequirement(
                         requirement_id="rfc0028-live-runtime-suite-result",

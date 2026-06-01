@@ -28,6 +28,11 @@ def test_default_supported_claim_register_pins_canonical_claims() -> None:
         "rfp_security_package_pending": "UNSUPPORTED",
     }
 
+    for claim in register.claims:
+        evidence_refs = set(claim.evidence_refs)
+        for requirement in claim.proof_requirements:
+            assert requirement.evidence_ref in evidence_refs, claim.claim_id
+
 
 def test_default_supported_claim_register_keeps_ui_pending_claims_off_screenshots() -> None:
     register = build_default_supported_claim_register()

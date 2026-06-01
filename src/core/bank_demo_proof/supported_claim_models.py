@@ -106,6 +106,14 @@ class SupportedClaim(BaseModel):
             not self.evidence_refs or not self.proof_requirements
         ):
             raise ValueError("IMPLEMENTATION_BACKED claims require evidence and proof requirements")
+        evidence_refs = set(self.evidence_refs)
+        missing_requirement_refs = [
+            requirement.evidence_ref
+            for requirement in self.proof_requirements
+            if requirement.evidence_ref not in evidence_refs
+        ]
+        if missing_requirement_refs:
+            raise ValueError("supported claim proof requirements must use declared evidence refs")
         if self.classification in {"PLANNED_RFC", "UNSUPPORTED"}:
             forbidden_materials = {"SCREENSHOT", "PRODUCT_ONE_PAGER", "RFP_RESPONSE"}
             if forbidden_materials.intersection(self.allowed_materials):
