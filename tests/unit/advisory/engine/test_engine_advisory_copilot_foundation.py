@@ -106,6 +106,10 @@ from src.core.advisory_copilot.reference_models import (
 from src.core.advisory_copilot.reference_models import (
     CopilotSourceRef as FocusedCopilotSourceRef,
 )
+from src.core.advisory_copilot.reference_text import (
+    normalize_optional_copilot_reference_text,
+    normalize_required_copilot_reference_text,
+)
 from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection as FocusedCopilotEvidencePacketSection,
 )
@@ -325,6 +329,40 @@ def test_copilot_source_projection_text_helpers_have_focused_owner() -> None:
     assert "def _summary_item" not in section_source
     assert "def _bounded_content_hash" not in section_source
     assert "def _safe_nested_string" not in section_source
+
+
+def test_copilot_reference_models_use_reference_text_helpers() -> None:
+    reference_source = Path("src/core/advisory_copilot/reference_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        normalize_required_copilot_reference_text(
+            "  POLICY_EVALUATION  ",
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
+        == "POLICY_EVALUATION"
+    )
+    assert (
+        normalize_optional_copilot_reference_text(
+            "  sha256:source  ",
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
+        == "sha256:source"
+    )
+    assert (
+        normalize_optional_copilot_reference_text(
+            None,
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
+        is None
+    )
+    with pytest.raises(ValueError, match="COPILOT_SOURCE_REF_REQUIRED"):
+        normalize_required_copilot_reference_text(
+            "   ",
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
+    assert "def _normalize_required_text" not in reference_source
 
 
 def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:

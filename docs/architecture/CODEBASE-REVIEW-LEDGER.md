@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-561
+
+- Scope: Advisory copilot reference text normalization
+- Pattern: Source and lineage reference identifiers should use a focused reference-text normalizer
+  instead of local helper functions or business-copy validation.
+- Status: Hardened
+- Finding Class: Duplication reduction and domain modeling
+- Summary: `src/core/advisory_copilot/reference_models.py` carried the last local required-text
+  helper in the advisory-copilot model layer. Reference fields are identifiers and lineage values,
+  so forcing them through business-copy safety rules would over-constrain legitimate audit refs.
+- Evidence:
+  - Added `src/core/advisory_copilot/reference_text.py` with required and optional reference text
+    normalizers.
+  - Updated source and lineage reference models to use the focused helper.
+  - Added coverage proving required/optional normalization and removal of the reference-model local
+    helper.
+- Consequence:
+  - Advisory-copilot model text normalization now distinguishes business copy from audit/reference
+    identifiers while still removing duplicate helper logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue scanning adjacent advisory modules for repeated DTO validators and mapper helpers.
+
 ## LA-REV-560
 
 - Scope: Advisory copilot source-projection text helper boundary
