@@ -537,6 +537,10 @@ def test_capabilities_service_delegates_dependency_readiness_helpers():
     assert "bank_demo_proof_readiness" not in source
     assert "resolve_capability_dependency_status" in source
     assert "BANK_DEMO_PROOF_DEPENDENCY_KEYS" not in source
+    assert '"LOTUS_CORE_DEPENDENCY_UNAVAILABLE"' not in source
+    assert '"LOTUS_AI_DEPENDENCY_UNAVAILABLE"' not in source
+    assert '"LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"' not in source
+    assert '"ADVISORY_LIFECYCLE_DISABLED"' not in source
 
 
 def test_capabilities_service_delegates_runtime_flag_resolution():

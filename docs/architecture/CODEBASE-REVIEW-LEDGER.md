@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-466
+
+- Scope: Capability degraded-reason code selection
+- Pattern: Public degraded-reason codes should be centralized constants with reusable selection
+  helpers rather than raw strings repeated inside capability catalog assembly.
+- Status: Hardened
+- Finding Class: duplication reduction and API consistency
+- Summary: `src/api/capabilities/service.py` repeated dependency-unavailable and lifecycle-disabled
+  reason strings across feature and workflow catalog rows. This increased drift risk for a public
+  API field consumed by Gateway, Workbench, and operations diagnostics.
+- Evidence:
+  - Added `src/api/capabilities/degraded_reasons.py` with public reason constants and small
+    selection helpers.
+  - Updated dependency proof readiness and capability service assembly to use those constants and
+    helpers.
+  - Added direct coverage proving helper outputs preserve the public reason values.
+  - Tightened internal guard coverage preventing raw degraded-reason strings from returning to
+    `capabilities.service`.
+- Consequence:
+  - Capability degraded-reason semantics are now centralized while preserving the response contract.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting the remaining capability catalog rows into smaller catalog modules after
+    reason-code and dependency-status boundaries are stable.
+
 ## LA-REV-465
 
 - Scope: Capability dependency status projection

@@ -1,5 +1,11 @@
 from fastapi.testclient import TestClient
 
+from src.api.capabilities.degraded_reasons import (
+    LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+    dependency_unavailable_reason,
+    gated_dependency_unavailable_reason,
+    lifecycle_disabled_reason,
+)
 from src.api.capabilities.dependencies import (
     bank_demo_proof_readiness,
     dependency_map,
@@ -688,6 +694,40 @@ def test_capability_dependency_status_projects_common_readiness_once():
     assert status.lotus_report_ready is False
     assert status.bank_demo_operational_ready is False
     assert status.bank_demo_degraded_reason == "RFC0028_PROOF_DEPENDENCY_UNAVAILABLE"
+
+
+def test_capability_degraded_reason_helpers_preserve_public_reason_values():
+    assert (
+        dependency_unavailable_reason(
+            ready=False,
+            reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+        )
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
+    assert (
+        dependency_unavailable_reason(
+            ready=True,
+            reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+        )
+        is None
+    )
+    assert (
+        gated_dependency_unavailable_reason(
+            enabled=False,
+            ready=False,
+            reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+        )
+        is None
+    )
+    assert (
+        gated_dependency_unavailable_reason(
+            enabled=True,
+            ready=False,
+            reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+        )
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
+    assert lifecycle_disabled_reason(lifecycle_enabled=False) == "ADVISORY_LIFECYCLE_DISABLED"
 
 
 def test_capability_runtime_flags_resolve_shared_boolean_environment(monkeypatch):

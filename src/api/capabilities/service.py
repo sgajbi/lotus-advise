@@ -1,5 +1,14 @@
 from datetime import UTC, date, datetime
 
+from src.api.capabilities.degraded_reasons import (
+    LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+    LOTUS_CORE_DEPENDENCY_UNAVAILABLE,
+    LOTUS_REPORT_DEPENDENCY_UNAVAILABLE,
+    LOTUS_RISK_DEPENDENCY_UNAVAILABLE,
+    dependency_unavailable_reason,
+    gated_dependency_unavailable_reason,
+    lifecycle_disabled_reason,
+)
 from src.api.capabilities.dependencies import (
     DependencyMap,
     bank_demo_proof_dependency_keys,
@@ -42,8 +51,9 @@ def build_feature_capabilities(
                 "lotus-advise remains the workflow and API owner."
             ),
             fallback_mode=lotus_core_fallback_mode(),
-            degraded_reason=(
-                None if dependency_status.lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=dependency_unavailable_reason(
+                ready=dependency_status.lotus_core_ready,
+                reason=LOTUS_CORE_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         FeatureCapability(
@@ -73,8 +83,9 @@ def build_feature_capabilities(
                 "Stateful advisory workspace evaluation through Lotus Core context resolution."
             ),
             fallback_mode=lotus_core_fallback_mode(),
-            degraded_reason=(
-                None if dependency_status.lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=dependency_unavailable_reason(
+                ready=dependency_status.lotus_core_ready,
+                reason=LOTUS_CORE_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         FeatureCapability(
@@ -84,10 +95,10 @@ def build_feature_capabilities(
             owner_service="ADVISORY",
             description="Evidence-grounded advisory workspace rationale through Lotus AI.",
             fallback_mode="NONE",
-            degraded_reason=(
-                None
-                if not ai_rationale_enabled or dependency_status.lotus_ai_ready
-                else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=ai_rationale_enabled,
+                ready=dependency_status.lotus_ai_ready,
+                reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         FeatureCapability(
@@ -97,8 +108,9 @@ def build_feature_capabilities(
             owner_service="LOTUS_RISK",
             description="Proposal before/after concentration risk lens through lotus-risk.",
             fallback_mode="LOCAL_RISK_FALLBACK",
-            degraded_reason=(
-                None if dependency_status.lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=dependency_unavailable_reason(
+                ready=dependency_status.lotus_risk_ready,
+                reason=LOTUS_RISK_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         FeatureCapability(
@@ -110,10 +122,10 @@ def build_feature_capabilities(
                 "Advisory proposal report-request integration boundary through lotus-report."
             ),
             fallback_mode="NONE",
-            degraded_reason=(
-                None
-                if not lifecycle_enabled or dependency_status.lotus_report_ready
-                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=lifecycle_enabled,
+                ready=dependency_status.lotus_report_ready,
+                reason=LOTUS_REPORT_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         FeatureCapability(
@@ -128,7 +140,7 @@ def build_feature_capabilities(
                 "publication, and canonical demo proof remain gated."
             ),
             fallback_mode="NONE",
-            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+            degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         FeatureCapability(
             key="advisory.proposals.memo_evidence_pack",
@@ -142,10 +154,10 @@ def build_feature_capabilities(
                 "communication, and full bank-demo/RFP package claims remain gated."
             ),
             fallback_mode="NONE",
-            degraded_reason=(
-                None
-                if not lifecycle_enabled or dependency_status.lotus_report_ready
-                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=lifecycle_enabled,
+                ready=dependency_status.lotus_report_ready,
+                reason=LOTUS_REPORT_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         FeatureCapability(
@@ -159,7 +171,7 @@ def build_feature_capabilities(
                 "catalog audit events."
             ),
             fallback_mode="NONE",
-            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+            degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         FeatureCapability(
             key="advisory.proposals.policy_evaluation",
@@ -175,10 +187,10 @@ def build_feature_capabilities(
                 "gated."
             ),
             fallback_mode="NONE",
-            degraded_reason=(
-                None
-                if not lifecycle_enabled or dependency_status.lotus_report_ready
-                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=lifecycle_enabled,
+                ready=dependency_status.lotus_report_ready,
+                reason=LOTUS_REPORT_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         FeatureCapability(
@@ -195,7 +207,7 @@ def build_feature_capabilities(
                 "demo/RFP package claims remain gated."
             ),
             fallback_mode="NONE",
-            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+            degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         FeatureCapability(
             key="advisory.advisory_copilot",
@@ -212,10 +224,10 @@ def build_feature_capabilities(
                 "claims remain gated."
             ),
             fallback_mode="NONE",
-            degraded_reason=(
-                None
-                if not lifecycle_enabled or dependency_status.lotus_ai_ready
-                else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=lifecycle_enabled,
+                ready=dependency_status.lotus_ai_ready,
+                reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         FeatureCapability(
@@ -251,7 +263,7 @@ def build_feature_capabilities(
                 "Source-backed advisory supportability posture for Gateway and Workbench consumers."
             ),
             fallback_mode="NONE",
-            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+            degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
     ]
 
@@ -274,8 +286,9 @@ def build_workflow_capabilities(
             operational_ready=dependency_status.lotus_core_ready,
             required_features=["advisory.proposals.simulation"],
             dependency_keys=["lotus_core"],
-            degraded_reason=(
-                None if dependency_status.lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=dependency_unavailable_reason(
+                ready=dependency_status.lotus_core_ready,
+                reason=LOTUS_CORE_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         WorkflowCapability(
@@ -292,8 +305,9 @@ def build_workflow_capabilities(
             operational_ready=dependency_status.lotus_core_ready,
             required_features=["advisory.workspaces.stateful"],
             dependency_keys=["lotus_core"],
-            degraded_reason=(
-                None if dependency_status.lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=dependency_unavailable_reason(
+                ready=dependency_status.lotus_core_ready,
+                reason=LOTUS_CORE_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         WorkflowCapability(
@@ -302,10 +316,10 @@ def build_workflow_capabilities(
             operational_ready=ai_rationale_enabled and dependency_status.lotus_ai_ready,
             required_features=["advisory.workspaces.ai_rationale"],
             dependency_keys=["lotus_ai"],
-            degraded_reason=(
-                None
-                if not ai_rationale_enabled or dependency_status.lotus_ai_ready
-                else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=ai_rationale_enabled,
+                ready=dependency_status.lotus_ai_ready,
+                reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         WorkflowCapability(
@@ -314,8 +328,9 @@ def build_workflow_capabilities(
             operational_ready=dependency_status.lotus_risk_ready,
             required_features=["advisory.proposals.risk_lens"],
             dependency_keys=["lotus_risk"],
-            degraded_reason=(
-                None if dependency_status.lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=dependency_unavailable_reason(
+                ready=dependency_status.lotus_risk_ready,
+                reason=LOTUS_RISK_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         WorkflowCapability(
@@ -324,10 +339,10 @@ def build_workflow_capabilities(
             operational_ready=lifecycle_enabled and dependency_status.lotus_report_ready,
             required_features=["advisory.proposals.reporting"],
             dependency_keys=["lotus_report"],
-            degraded_reason=(
-                None
-                if not lifecycle_enabled or dependency_status.lotus_report_ready
-                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=lifecycle_enabled,
+                ready=dependency_status.lotus_report_ready,
+                reason=LOTUS_REPORT_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         WorkflowCapability(
@@ -339,7 +354,7 @@ def build_workflow_capabilities(
                 "advisory.proposals.reviewed_narrative_evidence",
             ],
             dependency_keys=[],
-            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+            degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_memo_evidence_pack",
@@ -351,10 +366,10 @@ def build_workflow_capabilities(
                 "advisory.proposals.reporting",
             ],
             dependency_keys=["lotus_report"],
-            degraded_reason=(
-                None
-                if not lifecycle_enabled or dependency_status.lotus_report_ready
-                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=lifecycle_enabled,
+                ready=dependency_status.lotus_report_ready,
+                reason=LOTUS_REPORT_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         WorkflowCapability(
@@ -366,7 +381,7 @@ def build_workflow_capabilities(
                 "advisory.policy_pack_catalog",
             ],
             dependency_keys=[],
-            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+            degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         WorkflowCapability(
             workflow_key="advisory_policy_evaluation",
@@ -379,10 +394,10 @@ def build_workflow_capabilities(
                 "advisory.proposals.reporting",
             ],
             dependency_keys=["lotus_report"],
-            degraded_reason=(
-                None
-                if not lifecycle_enabled or dependency_status.lotus_report_ready
-                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=lifecycle_enabled,
+                ready=dependency_status.lotus_report_ready,
+                reason=LOTUS_REPORT_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         WorkflowCapability(
@@ -397,7 +412,7 @@ def build_workflow_capabilities(
                 "advisory.advisor_cockpit",
             ],
             dependency_keys=[],
-            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+            degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         WorkflowCapability(
             workflow_key="advisory_copilot_interaction",
@@ -408,10 +423,10 @@ def build_workflow_capabilities(
                 "advisory.advisory_copilot",
             ],
             dependency_keys=["lotus_ai"],
-            degraded_reason=(
-                None
-                if not lifecycle_enabled or dependency_status.lotus_ai_ready
-                else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+            degraded_reason=gated_dependency_unavailable_reason(
+                enabled=lifecycle_enabled,
+                ready=dependency_status.lotus_ai_ready,
+                reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
             ),
         ),
         WorkflowCapability(

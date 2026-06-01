@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.api.capabilities.degraded_reasons import (
+    ADVISORY_LIFECYCLE_DISABLED,
+    RFC0028_PROOF_DEPENDENCY_UNAVAILABLE,
+)
+
 DependencyMap = dict[str, dict[str, object]]
 
 BANK_DEMO_PROOF_DEPENDENCY_KEYS = ("lotus_core", "lotus_risk", "lotus_ai", "lotus_report")
@@ -71,11 +76,11 @@ def bank_demo_proof_readiness(
     if operational_ready:
         return True, None
     if not lifecycle_enabled:
-        return False, "ADVISORY_LIFECYCLE_DISABLED"
+        return False, ADVISORY_LIFECYCLE_DISABLED
     return False, first_unready_dependency_reason(
         dependencies,
         BANK_DEMO_PROOF_DEPENDENCY_KEYS,
-        fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
+        fallback_reason=RFC0028_PROOF_DEPENDENCY_UNAVAILABLE,
     )
 
 
