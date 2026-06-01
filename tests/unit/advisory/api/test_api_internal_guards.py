@@ -218,6 +218,14 @@ def test_workspace_service_uses_consolidated_workspace_imports():
     assert "build_workspace_session(" not in source
 
 
+def test_workspace_lifecycle_handoff_uses_shared_idempotency_helper():
+    source = Path("src/api/services/workspace_lifecycle_handoff.py").read_text(encoding="utf-8")
+
+    assert "normalize_required_idempotency_key" not in source
+    assert "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED" not in source
+    assert "normalize_workspace_handoff_idempotency_key" in source
+
+
 def test_proposal_router_uses_shared_runtime_error_helpers():
     source = inspect.getsource(proposal_router)
 

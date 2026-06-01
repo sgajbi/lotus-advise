@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-432
+
+- Scope: Workspace handoff idempotency boundary
+- Pattern: First-handoff idempotency-key normalization and missing-key translation should live in a
+  focused helper rather than inside the lifecycle handoff executor.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `src/api/services/workspace_lifecycle_handoff.py` normalized the required first-create
+  idempotency key inline and translated the missing-key error directly. That mixed replay-safety
+  validation with the broader create-versus-version handoff executor.
+- Evidence:
+  - Added `src/api/services/workspace_handoff_idempotency.py` with
+    `normalize_workspace_handoff_idempotency_key`.
+  - Updated `_create_proposal_from_workspace` to delegate idempotency normalization to that helper.
+  - Added an internal guard keeping core idempotency normalization and the handoff missing-key
+    literal out of the lifecycle handoff executor.
+- Consequence:
+  - Workspace lifecycle handoff orchestration is narrower, and first-handoff replay-safety
+    validation has a named API service boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal service
+    modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting handoff create/version assembly if future changes touch lifecycle handoff
+    behavior.
+
 ## LA-REV-431
 
 - Scope: Workspace AI service error boundary
