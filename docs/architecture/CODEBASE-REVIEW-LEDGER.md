@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-447
+
+- Scope: Advisory workspace route exception boundary
+- Pattern: Workspace route functions should delegate workspace exception translation to a shared
+  API error boundary instead of importing service exception taxonomy and repeating try/except
+  blocks.
+- Status: Hardened
+- Finding Class: error-boundary duplication and route-layer coupling
+- Summary: `src/api/workspaces/router.py` still imported workspace service exception classes and
+  repeated not-found, conflict, saved-version-not-found, assistant-unavailable, and handoff
+  unavailable mappings across route handlers. That kept service exception taxonomy coupled to the
+  route module.
+- Evidence:
+  - Added `run_workspace_operation` to `src/api/workspaces/errors.py`.
+  - Updated workspace routes to delegate workspace exception translation to the shared boundary
+    while preserving proposal lifecycle exception mapping for handoff.
+  - Extended the internal guard to keep workspace service exception imports out of the router and
+    require the shared workspace operation boundary.
+- Consequence:
+  - Workspace route handlers now focus on request orchestration while workspace HTTP error
+    semantics live in the workspace API error module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while reducing route-layer coupling.
+- Follow-Up:
+  - Add lower-level tests for `run_workspace_operation` if future workspace exception categories
+    are added beyond the current route-covered mappings.
+
 ## LA-REV-446
 
 - Scope: Advisory workspace route parameter contracts

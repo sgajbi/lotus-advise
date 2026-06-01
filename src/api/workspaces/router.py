@@ -6,13 +6,6 @@ from src.api.services.workspace_ai_service import (
     apply_workspace_rationale_review_action,
     generate_workspace_rationale,
 )
-from src.api.services.workspace_errors import (
-    WorkspaceAssistantUnavailableError,
-    WorkspaceEvaluationUnavailableError,
-    WorkspaceLifecycleHandoffUnavailableError,
-    WorkspaceNotFoundError,
-    WorkspaceSavedVersionNotFoundError,
-)
 from src.api.services.workspace_service import (
     apply_workspace_draft_action,
     compare_workspace_to_saved_version,
@@ -25,11 +18,7 @@ from src.api.services.workspace_service import (
     resume_workspace_version,
     save_workspace_version,
 )
-from src.api.workspaces.errors import (
-    workspace_assistant_unavailable_exception,
-    workspace_conflict_exception,
-    workspace_not_found_exception,
-)
+from src.api.workspaces.errors import run_workspace_operation
 from src.api.workspaces.parameters import (
     WorkspaceCreateCorrelationIdHeader,
     WorkspaceHandoffCorrelationIdHeader,
@@ -81,10 +70,7 @@ router = APIRouter()
 
 
 def _resolve_workspace_or_404(workspace_id: str) -> WorkspaceSession:
-    try:
-        return get_workspace_session(workspace_id)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
+    return run_workspace_operation(lambda: get_workspace_session(workspace_id))
 
 
 @router.post(
@@ -140,12 +126,7 @@ def apply_draft_action(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceDraftActionRequest,
 ) -> WorkspaceDraftActionResponse:
-    try:
-        return apply_workspace_draft_action(workspace_id, request)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
-    except WorkspaceEvaluationUnavailableError as exc:
-        raise workspace_conflict_exception(exc) from exc
+    return run_workspace_operation(lambda: apply_workspace_draft_action(workspace_id, request))
 
 
 @router.post(
@@ -162,12 +143,7 @@ def apply_draft_action(
 def evaluate_workspace(
     workspace_id: WorkspaceIdPath,
 ) -> WorkspaceSession:
-    try:
-        return reevaluate_workspace_session(workspace_id)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
-    except WorkspaceEvaluationUnavailableError as exc:
-        raise workspace_conflict_exception(exc) from exc
+    return run_workspace_operation(lambda: reevaluate_workspace_session(workspace_id))
 
 
 @router.post(
@@ -185,10 +161,7 @@ def save_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceSaveRequest,
 ) -> WorkspaceSaveResponse:
-    try:
-        return save_workspace_version(workspace_id, request)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
+    return run_workspace_operation(lambda: save_workspace_version(workspace_id, request))
 
 
 @router.get(
@@ -205,10 +178,7 @@ def save_workspace(
 def list_saved_workspace_versions(
     workspace_id: WorkspaceIdPath,
 ) -> WorkspaceSavedVersionListResponse:
-    try:
-        return list_workspace_saved_versions(workspace_id)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
+    return run_workspace_operation(lambda: list_workspace_saved_versions(workspace_id))
 
 
 @router.get(
@@ -226,12 +196,9 @@ def get_saved_workspace_version_replay_evidence(
     workspace_id: WorkspaceIdPath,
     workspace_version_id: WorkspaceVersionIdPath,
 ) -> AdvisoryReplayEvidenceResponse:
-    try:
-        return get_workspace_saved_version_replay(workspace_id, workspace_version_id)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
-    except WorkspaceSavedVersionNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
+    return run_workspace_operation(
+        lambda: get_workspace_saved_version_replay(workspace_id, workspace_version_id)
+    )
 
 
 @router.post(
@@ -248,12 +215,7 @@ def resume_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceResumeRequest,
 ) -> WorkspaceSession:
-    try:
-        return resume_workspace_version(workspace_id, request)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
-    except WorkspaceSavedVersionNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
+    return run_workspace_operation(lambda: resume_workspace_version(workspace_id, request))
 
 
 @router.post(
@@ -271,12 +233,9 @@ def compare_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceCompareRequest,
 ) -> WorkspaceCompareResponse:
-    try:
-        return compare_workspace_to_saved_version(workspace_id, request)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
-    except WorkspaceSavedVersionNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
+    return run_workspace_operation(
+        lambda: compare_workspace_to_saved_version(workspace_id, request)
+    )
 
 
 @router.post(
@@ -295,12 +254,7 @@ def generate_workspace_rationale_endpoint(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceAssistantRequest,
 ) -> WorkspaceAssistantResponse:
-    try:
-        return generate_workspace_rationale(workspace_id, request)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
-    except WorkspaceAssistantUnavailableError as exc:
-        raise workspace_assistant_unavailable_exception(exc) from exc
+    return run_workspace_operation(lambda: generate_workspace_rationale(workspace_id, request))
 
 
 @router.post(
@@ -320,12 +274,9 @@ def apply_workspace_rationale_review_action_endpoint(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
 ) -> WorkspaceAssistantWorkflowPackRunReviewActionResponse:
-    try:
-        return apply_workspace_rationale_review_action(workspace_id, request)
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
-    except WorkspaceAssistantUnavailableError as exc:
-        raise workspace_assistant_unavailable_exception(exc) from exc
+    return run_workspace_operation(
+        lambda: apply_workspace_rationale_review_action(workspace_id, request)
+    )
 
 
 @router.post(
@@ -351,17 +302,15 @@ def handoff_workspace(
 ) -> WorkspaceLifecycleHandoffResponse:
     proposal_shared._assert_lifecycle_enabled()
     try:
-        return handoff_workspace_to_proposal_lifecycle(
-            workspace_id=workspace_id,
-            request=request,
-            proposal_service=proposal_service,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
+        return run_workspace_operation(
+            lambda: handoff_workspace_to_proposal_lifecycle(
+                workspace_id=workspace_id,
+                request=request,
+                proposal_service=proposal_service,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            )
         )
-    except WorkspaceNotFoundError as exc:
-        raise workspace_not_found_exception(exc) from exc
-    except WorkspaceLifecycleHandoffUnavailableError as exc:
-        raise workspace_conflict_exception(exc) from exc
     except (
         ProposalIdempotencyConflictError,
         ProposalNotFoundError,
