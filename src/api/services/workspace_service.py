@@ -1,13 +1,11 @@
 from datetime import datetime, timezone
 
 from src.api.services import workspace_saved_versions, workspace_store
-from src.api.services.workspace_context_resolution import (
-    build_initial_workspace_context,
-    build_workspace_simulate_request,
-)
+from src.api.services.workspace_context_resolution import build_workspace_simulate_request
 from src.api.services.workspace_draft_actions import apply_workspace_draft_action_to_session
 from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
 from src.api.services.workspace_reevaluations import reevaluate_workspace_session_state
+from src.api.services.workspace_session_creation import build_workspace_session_create_response
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
@@ -27,7 +25,6 @@ from src.core.workspace.models import (
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
 )
-from src.core.workspace.sessions import build_workspace_session
 
 MAX_WORKSPACE_SESSION_CACHE_SIZE = workspace_store.DEFAULT_WORKSPACE_SESSION_CACHE_SIZE
 
@@ -70,20 +67,14 @@ def reset_workspace_sessions_for_tests() -> None:
 def create_workspace_session(
     request: WorkspaceSessionCreateRequest,
 ) -> WorkspaceSessionCreateResponse:
-    resolved_context, draft_state = build_initial_workspace_context(
-        request=request,
-        fallback_as_of=_current_business_date_iso(),
-    )
-
-    session = build_workspace_session(
+    response = build_workspace_session_create_response(
         request=request,
         workspace_id=new_workspace_id(),
         created_at=_utc_now_iso(),
-        draft_state=draft_state,
-        resolved_context=resolved_context,
+        fallback_as_of=_current_business_date_iso(),
     )
-    _save_workspace_session(session)
-    return WorkspaceSessionCreateResponse(workspace=session)
+    _save_workspace_session(response.workspace)
+    return response
 
 
 def apply_workspace_draft_action(

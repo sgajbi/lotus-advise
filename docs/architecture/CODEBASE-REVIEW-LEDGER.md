@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-419
+
+- Scope: Workspace session creation service boundary
+- Pattern: Workspace creation assembly should have a focused API helper that owns initial context
+  construction and session model creation.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `workspace_service.create_workspace_session` still performed initial context resolution
+  and session construction inline. That kept creation details in the broad workspace façade even
+  after saved-version, draft-action, and re-evaluation logic had moved behind focused helpers.
+- Evidence:
+  - Added `src/api/services/workspace_session_creation.py` with
+    `build_workspace_session_create_response`.
+  - Updated `workspace_service.create_workspace_session` to provide identity/time inputs, persist
+    the created session, and return the helper response.
+  - Extended the internal workspace service guard to keep initial context and session construction
+    out of `workspace_service.py`.
+- Consequence:
+  - Workspace creation now has a named service boundary while the central service remains a stable
+    public wrapper around persistence and route-facing operations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue reducing shared clock and persistence concerns in the remaining workspace wrappers.
+
 ## LA-REV-418
 
 - Scope: Workspace re-evaluation service boundary

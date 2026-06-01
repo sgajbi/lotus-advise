@@ -30,9 +30,7 @@ from tests.shared.stateful_context_builders import (
 
 workspace_router = importlib.import_module("src.api.workspaces.router")
 workspace_service_module = importlib.import_module("src.api.services.workspace_service")
-workspace_reevaluations_module = importlib.import_module(
-    "src.api.services.workspace_reevaluations"
-)
+workspace_reevaluations_module = importlib.import_module("src.api.services.workspace_reevaluations")
 
 
 @pytest.fixture(autouse=True)

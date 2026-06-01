@@ -195,6 +195,8 @@ def test_workspace_service_uses_consolidated_workspace_imports():
     assert "apply_workspace_draft_action_to_session" in source
     assert "evaluate_advisory_proposal" not in source
     assert "reevaluate_workspace_session_state" in source
+    assert "build_initial_workspace_context" not in source
+    assert "build_workspace_session(" not in source
 
 
 def test_proposal_router_uses_shared_runtime_error_helpers():
