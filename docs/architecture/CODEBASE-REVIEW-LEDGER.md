@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-421
+
+- Scope: Advisor Cockpit route error boundary
+- Pattern: Proposal-backed route modules should delegate proposal exception classification to a
+  shared operation boundary.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_advisor_cockpit.py` repeated proposal exception imports and
+  `raise_proposal_http_exception` blocks across cockpit routes. This increased route-module
+  coupling to proposal exception taxonomy and created drift risk as more cockpit endpoints are
+  added.
+- Evidence:
+  - Added `run_proposal_operation` to `src/api/proposals/errors.py`.
+  - Replaced four cockpit route-local exception mapping blocks with the shared proposal boundary.
+  - Added an internal guard preventing cockpit routes from reintroducing local proposal exception
+    mapping.
+- Consequence:
+  - Advisor Cockpit routes remain focused on request binding and service calls, with consistent
+    not-found, conflict, and validation HTTP mapping inherited from one boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Reuse `run_proposal_operation` in lifecycle, delivery, support, and policy-evaluation route
+    modules where the same mapping appears.
+
 ## LA-REV-420
 
 - Scope: Advisory Copilot route error boundary

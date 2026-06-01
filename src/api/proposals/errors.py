@@ -1,4 +1,5 @@
-from typing import NoReturn
+from collections.abc import Callable
+from typing import NoReturn, TypeVar
 
 from fastapi import HTTPException, status
 
@@ -15,6 +16,23 @@ from src.core.proposals.exceptions import (
 PROPOSAL_NOT_FOUND_DETAIL = "PROPOSAL_NOT_FOUND"
 PROPOSAL_CONFLICT_DETAIL = "PROPOSAL_CONFLICT"
 PROPOSAL_REQUEST_VALIDATION_FAILED_DETAIL = "PROPOSAL_REQUEST_VALIDATION_FAILED"
+
+_ProposalOperationResult = TypeVar("_ProposalOperationResult")
+
+
+def run_proposal_operation(
+    operation: Callable[[], _ProposalOperationResult],
+) -> _ProposalOperationResult:
+    try:
+        return operation()
+    except (
+        ProposalIdempotencyConflictError,
+        ProposalNotFoundError,
+        ProposalStateConflictError,
+        ProposalTransitionError,
+        ProposalValidationError,
+    ) as exc:
+        raise_proposal_http_exception(exc)
 
 
 def raise_proposal_http_exception(exc: Exception) -> NoReturn:

@@ -215,6 +215,14 @@ def test_advisory_copilot_routes_use_shared_error_boundary():
     assert source.count("run_copilot_operation(") == 7
 
 
+def test_advisor_cockpit_routes_use_shared_error_boundary():
+    source = Path("src/api/proposals/routes_advisor_cockpit.py").read_text(encoding="utf-8")
+
+    assert "raise_proposal_http_exception" not in source
+    assert "ProposalNotFoundError" not in source
+    assert source.count("run_proposal_operation(") == 4
+
+
 def test_direct_http_exception_construction_stays_in_error_boundary_modules():
     offenders = []
     for path in Path("src/api").rglob("*.py"):
