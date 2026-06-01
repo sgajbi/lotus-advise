@@ -38,6 +38,7 @@ _CLIENT_FACING_MATERIAL_TYPES = {
     "FEATURE_MATRIX",
     "DEMO_BOUNDARY",
 }
+_CLIENT_FACING_BOUNDARY_CLAIM_IDS = {"client_ready_publication_blocked"}
 
 
 class CommercialMaterial(BaseModel):
@@ -244,6 +245,13 @@ def validate_commercial_material_pack_against_register(
             continue
         for claim_id in material.mapped_claim_ids:
             claim = claim_by_id[claim_id]
+            if claim.classification in {"PLANNED_RFC", "UNSUPPORTED"} and (
+                claim_id not in _CLIENT_FACING_BOUNDARY_CLAIM_IDS
+            ):
+                raise ValueError(
+                    "commercial material cannot map client-facing assets to planned or "
+                    "unsupported claims"
+                )
             if claim.classification == "BACKEND_BACKED_UI_PENDING":
                 raise ValueError(
                     "commercial material cannot map client-facing assets to UI-pending claims"

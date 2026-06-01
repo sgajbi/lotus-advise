@@ -9486,6 +9486,94 @@
   - Continue rejecting future commercial material that maps client-facing assets to UI-pending
     claims.
 
+## LA-REV-390
+
+- Scope: RFC-0028 capability discovery after implementation proof
+- Pattern: `/platform/capabilities` should advertise implemented proof capabilities once source
+  APIs, Gateway, Workbench, platform registration, and canonical evidence exist
+- Status: Hardened
+- Finding Class: Capability posture and documentation truth
+- Summary: RFC-0028 implementation truth and supported-features material described the bank-demo
+  proof surface as implemented, but the Advise capability source still carried the early Slice 3
+  non-promotion posture. That made Gateway/platform capability discovery less complete than the
+  source-owned proof API and product-surface evidence.
+- Evidence:
+  - Added feature `advisory.bank_demo_proof` and workflow `advisory_bank_demo_proof` to
+    `/platform/capabilities`.
+  - Capability readiness is dependency-aware across `lotus_core`, `lotus_risk`, `lotus_ai`, and
+    `lotus_report` because the promoted proof journey composes proposal source evidence, degraded
+    source posture, governed AI/model-risk evidence, and report/render/archive document proof.
+  - Updated tests so the RFC-0028 data-product posture guard still prevents proof records from
+    becoming active standalone data products while allowing capability discovery to advertise the
+    implemented proof feature.
+  - Updated RFC and supported-features source to record the Slice 17 capability discovery
+    promotion and the remaining blocked boundaries.
+- Consequence:
+  - Capability consumers can now discover the implemented RFC-0028 proof surface without implying
+    active proof-record data products, client-ready publication, external client communication,
+    completed sign-off authority, or OMS/order/fill/settlement.
+- Documentation:
+  - RFC index, RFC source, supported-features wiki source, and review ledger updated. Wiki
+    publication is required after this branch merges.
+- Follow-Up:
+  - Keep future capability promotion tests paired with data-product posture tests so capability
+    discovery and source-of-record declarations cannot drift.
+
+## LA-REV-391
+
+- Scope: RFC-0028 commercial material claim gate
+- Pattern: Client-facing commercial material should map only implementation-backed or deliberately
+  blocked-boundary claims
+- Status: Hardened
+- Finding Class: Product-claim correctness and commercial-proof safety
+- Summary: The commercial material validator rejected UI-pending claims in client-facing material,
+  but it still allowed generic planned or unsupported claims if they were present in the supported
+  claim register. That left room for retired RFP/security wording or roadmap-style attestations to
+  be mapped into demo/RFP material without an implementation-backed claim.
+- Evidence:
+  - Added a client-facing material guard that rejects `PLANNED_RFC` and generic `UNSUPPORTED`
+    claims.
+  - Kept the explicit `client_ready_publication_blocked` boundary claim available so demo/RFP
+    material can state blocked publication posture without implying support.
+  - Expanded commercial material tests to cover unknown, UI-pending, planned, and retired
+    unsupported claim mappings.
+- Consequence:
+  - RFC-0028 commercial material remains business-facing and claim-controlled while preserving the
+    required client-ready publication boundary language.
+- Documentation:
+  - Review ledger updated. README/wiki source does not need separate wording because the
+    supported-features and commercial material already state the blocked boundaries.
+- Follow-Up:
+  - Keep future commercial material pack changes validated against both supported-claim
+    classification and blocked-boundary wording.
+
+## LA-REV-392
+
+- Scope: RFC-0028 runtime capability proof capture
+- Pattern: Repeatable proof capture should fail when ready capability evidence is stale
+- Status: Hardened
+- Finding Class: Automation repeatability and live-validation coverage
+- Summary: After promoting RFC-0028 capability discovery, proof capture still accepted a ready
+  `/platform/capabilities` runtime summary that omitted `advisory.bank_demo_proof` or
+  `advisory_bank_demo_proof`. That meant live runtime evidence could drift behind the promoted
+  proof posture without blocking proof-pack reuse.
+- Evidence:
+  - Added a runtime capability review gate in `src/core/bank_demo_proof/capture.py`.
+  - Ready `/platform/capabilities` evidence must include feature `advisory.bank_demo_proof` and
+    workflow `advisory_bank_demo_proof`.
+  - Added proof-capture regression tests for missing feature and missing workflow evidence.
+  - Updated script proof tests, README, RFC source, and operations wiki source to describe the
+    repeatability gate.
+- Consequence:
+  - RFC-0028 proof capture now catches stale capability discovery before demo, RFP, or commercial
+    proof material is reused.
+- Documentation:
+  - README, RFC source, operations wiki source, and review ledger updated. Wiki publication is
+    required after merge.
+- Follow-Up:
+  - Keep proof-capture runtime reviews aligned with future capability keys that are promoted into
+    RFC-0028 commercial proof.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

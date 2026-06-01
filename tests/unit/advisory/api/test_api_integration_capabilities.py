@@ -158,6 +158,47 @@ def test_rfc0027_capabilities_advertise_copilot_after_canonical_proof():
     assert "policy approval/sign-off authority" in payload_text
 
 
+def test_rfc0028_capabilities_advertise_bank_demo_proof_after_canonical_proof():
+    with TestClient(app) as client:
+        response = client.get(
+            "/platform/capabilities",
+            params={"consumer_system": "lotus-gateway", "tenant_id": "default"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    feature_keys = {item["key"] for item in payload["features"]}
+    workflow_keys = {item["workflow_key"] for item in payload["workflows"]}
+    feature_by_key = {item["key"]: item for item in payload["features"]}
+    workflow_by_key = {item["workflow_key"]: item for item in payload["workflows"]}
+    payload_text = str(payload).lower()
+
+    assert "advisory.bank_demo_proof" in feature_keys
+    assert "advisory_bank_demo_proof" in workflow_keys
+    assert feature_by_key["advisory.bank_demo_proof"]["owner_service"] == "ADVISORY"
+    assert feature_by_key["advisory.bank_demo_proof"]["enabled"] is True
+    assert workflow_by_key["advisory_bank_demo_proof"]["required_features"] == [
+        "advisory.proposals.lifecycle",
+        "advisory.proposals.reviewed_narrative_evidence",
+        "advisory.proposals.memo_evidence_pack",
+        "advisory.policy_pack_catalog",
+        "advisory.proposals.policy_evaluation",
+        "advisory.advisor_cockpit",
+        "advisory.advisory_copilot",
+        "advisory.bank_demo_proof",
+    ]
+    assert workflow_by_key["advisory_bank_demo_proof"]["dependency_keys"] == [
+        "lotus_core",
+        "lotus_risk",
+        "lotus_ai",
+        "lotus_report",
+    ]
+    assert "supported-claim register" in payload_text
+    assert "gateway/workbench canonical proof" in payload_text
+    assert "client-ready publication" in payload_text
+    assert "oms order lifecycle" in payload_text
+
+
 def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
     openapi = app.openapi()
     operation = openapi["paths"]["/platform/capabilities"]["get"]
@@ -245,6 +286,12 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         features["advisory.advisory_copilot"]["degraded_reason"]
         == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
     )
+    assert features["advisory.bank_demo_proof"]["enabled"] is True
+    assert features["advisory.bank_demo_proof"]["operational_ready"] is False
+    assert features["advisory.bank_demo_proof"]["owner_service"] == "ADVISORY"
+    assert (
+        features["advisory.bank_demo_proof"]["degraded_reason"] == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
     assert features["advisory.proposals.execution_handoff"]["operational_ready"] is True
     assert features["advise.observability.advisory_supportability"]["enabled"] is True
     assert features["advise.observability.advisory_supportability"]["owner_service"] == "ADVISORY"
@@ -291,6 +338,12 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "advisory.advisory_copilot",
     ]
     assert workflows["advisory_copilot_interaction"]["dependency_keys"] == ["lotus_ai"]
+    assert workflows["advisory_bank_demo_proof"]["enabled"] is True
+    assert workflows["advisory_bank_demo_proof"]["operational_ready"] is False
+    assert (
+        workflows["advisory_bank_demo_proof"]["degraded_reason"]
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
     assert payload["supportability"] == {
         "state": "degraded",
@@ -300,7 +353,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "dependency_count": 5,
         "ready_dependency_count": 2,
         "degraded_dependency_count": 3,
-        "enabled_feature_count": 15,
+        "enabled_feature_count": 16,
         "ready_feature_count": 10,
     }
 
@@ -528,8 +581,8 @@ def test_integration_capabilities_reports_ready_advisory_supportability(monkeypa
         "dependency_count": 5,
         "ready_dependency_count": 5,
         "degraded_dependency_count": 0,
-        "enabled_feature_count": 15,
-        "ready_feature_count": 15,
+        "enabled_feature_count": 16,
+        "ready_feature_count": 16,
     }
 
 

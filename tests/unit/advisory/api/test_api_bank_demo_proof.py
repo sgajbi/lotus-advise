@@ -219,6 +219,8 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
 
     assert operation["tags"] == ["Bank Demo Proof"]
     assert "Gateway and Workbench cannot promote stale" in operation["description"]
+    assert "advisory.bank_demo_proof" in operation["description"]
+    assert "advisory_bank_demo_proof" in operation["description"]
     assert "Unredacted live runtime payloads are not persisted" in operation["description"]
     assert "Raw live runtime payloads" not in operation["description"]
     parameter_by_name = {parameter["name"]: parameter for parameter in operation["parameters"]}

@@ -1485,6 +1485,37 @@ Slice 16 post-completion communication decision and evidence:
    investment, legal, regulatory, bank-adoption, client-ready publication, AI-authority, and
    execution/OMS claims.
 
+### Slice 17 - Capability Discovery Promotion
+
+Outcome:
+
+1. make `/platform/capabilities` match the implemented RFC-0028 proof posture,
+2. keep proof records internal unless they are deliberately promoted as active data products,
+3. publish dependency-aware readiness for the implemented bank-demo proof workflow,
+4. keep client-ready publication, external client communication, sign-off authority, and
+   OMS/order/fill/settlement blocked.
+
+Slice 17 implementation decision and evidence:
+
+1. The Advise capability source now advertises feature `advisory.bank_demo_proof` and workflow
+   `advisory_bank_demo_proof` after the source-owned proof APIs, Gateway route, Workbench proof
+   surface, platform canonical registration, supported-claim register, commercial material pack,
+   and canonical proof evidence are implemented.
+2. Operational readiness is dependency-aware across `lotus_core`, `lotus_risk`, `lotus_ai`, and
+   `lotus_report`, because the promoted proof journey composes proposal source evidence, degraded
+   source posture, governed AI/model-risk evidence, and report/render/archive document proof.
+3. `AdvisoryBankDemoProofPack`, `AdvisorySupportedClaimRegister`, and
+   `AdvisoryDemoScenarioContract` remain internal proof records rather than active standalone data
+   products. RFC-0028 composes active advisory evidence products instead of creating a new
+   source-of-record domain product.
+4. Tests now prove both sides of the boundary: `/platform/capabilities` advertises the implemented
+   proof capability and workflow, while data-product and trust-telemetry declarations do not
+   promote the proof records as active data products.
+5. Proof capture now reviews ready `/platform/capabilities` runtime evidence and blocks proof-pack
+   creation when feature `advisory.bank_demo_proof` or workflow `advisory_bank_demo_proof` is
+   missing. This keeps repeatable automation aligned with the promoted capability posture and
+   catches stale live validation before demo/RFP evidence is reused.
+
 ---
 
 ## 17. Supported-Features Ledger
@@ -1494,7 +1525,7 @@ Slice 16 post-completion communication decision and evidence:
 | Canonical advisory demo scenario | Supported | Scenario contract, source prerequisites, proof expectations, canonical/degraded evidence, and Platform/Workbench scenario registration are implemented and validated. |
 | Advisory bank demo proof pack | Supported | Proof manifest captures backend, Gateway, Workbench, Platform, document, AI/model-risk, security/runtime, and commercial evidence where implemented; unsupported claims remain blocked. |
 | Supported-claim register | Supported | README, wiki, supported-features, demo scripts, and commercial assets use the governed taxonomy consistently. |
-| Demo proof capture automation | Supported | `scripts/capture_rfc0028_backend_proof.py` and the proof-pack API produce interpretable sanitized artifacts under `output/` and reject material drift. |
+| Demo proof capture automation | Supported | `scripts/capture_rfc0028_backend_proof.py` and the proof-pack API produce interpretable sanitized artifacts under `output/`, reject material drift, and block stale ready capability evidence that omits `advisory.bank_demo_proof` or `advisory_bank_demo_proof`. |
 | Demo scenario APIs | Supported | Advise-owned scenario, supported-claim, and proof-pack endpoints are implemented with certified OpenAPI, tests, idempotency-safe error posture, Gateway/Workbench consumers, and sanitized output. |
 | Gateway demo/proof integration | Supported | Gateway consumes canonical Advise contracts and preserves supportability, correlation evidence, and Advise-owned error semantics. |
 | Workbench end-to-end demo journey | Supported for the governed canonical proof surface | Browser validation through Gateway/BFF and screenshot privacy/supported-claim review are complete for `advisory.bank_demo_proof`. |
@@ -1510,11 +1541,12 @@ Slice 16 post-completion communication decision and evidence:
 
 Current implementation note:
 
-1. Slices 0-16 are implementation-backed for the source scenario contract, supported-claim
+1. Slices 0-17 are implementation-backed for the source scenario contract, supported-claim
    register, proof-pack capture, document proof summary, AI/model-risk/policy/cockpit integration
    proof summary, claim-controlled commercial material pack, Gateway publication, Platform
    canonical contract registration, Workbench proof surface, sanitized runtime/security posture,
-   artifact-reference hardening, final closure truth, and post-completion communication evidence.
+   artifact-reference hardening, dependency-aware `/platform/capabilities` discovery, final
+   closure truth, and post-completion communication evidence.
 2. The canonical Workbench proof path is `advisory.bank_demo_proof` at
    `/recommendations?portfolioId=PB_SG_GLOBAL_BAL_001&mode=proof`; live validation records
    `BANK_DEMO_PROOF_PACK_CREATED` for scenario
@@ -1541,6 +1573,10 @@ Current implementation note:
    normalization plus safe request-validation error responses.
 8. Slice 15/16 closes durable RFC, README, wiki, repository-context, supported-features, and
    post-completion communication truth through `lotus-platform` PR #369.
+9. Slice 17 promotes `/platform/capabilities` feature `advisory.bank_demo_proof` and workflow
+   `advisory_bank_demo_proof` without turning the proof-pack, supported-claim register, or
+   scenario contract into standalone active data products. Proof capture now validates those keys
+   in ready runtime capability evidence so stale live surfaces fail before proof reuse.
 
 ---
 

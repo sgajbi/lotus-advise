@@ -225,8 +225,14 @@ def _runtime_posture() -> BackendRuntimePosture:
                 http_status=200,
                 posture="READY",
                 summary={
-                    "feature_keys": ["advisory.proposals.lifecycle"],
-                    "workflow_keys": ["advisory_proposal_lifecycle"],
+                    "feature_keys": [
+                        "advisory.proposals.lifecycle",
+                        "advisory.bank_demo_proof",
+                    ],
+                    "workflow_keys": [
+                        "advisory_proposal_lifecycle",
+                        "advisory_bank_demo_proof",
+                    ],
                     "operational_ready": True,
                     "degraded": False,
                     "degraded_reasons": [],
@@ -412,6 +418,60 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
         document.archive_retention_posture == "OWNED_BY_LOTUS_ARCHIVE"
         for document in bundle.document_proof_summary.documents
     )
+
+
+def test_backend_proof_capture_requires_promoted_runtime_capability_evidence() -> None:
+    stale_capabilities = _runtime_posture().model_copy(
+        update={
+            "endpoints": [
+                RuntimeEndpointEvidence(
+                    endpoint="/platform/capabilities",
+                    http_status=200,
+                    posture="READY",
+                    summary={
+                        "feature_keys": ["advisory.proposals.lifecycle"],
+                        "workflow_keys": ["advisory_proposal_lifecycle"],
+                        "operational_ready": True,
+                        "degraded": False,
+                        "degraded_reasons": [],
+                    },
+                )
+            ]
+        }
+    )
+
+    with pytest.raises(ValueError, match="missing feature advisory.bank_demo_proof"):
+        build_backend_proof_capture(
+            _live_runtime_payload(),
+            metadata=_metadata(),
+            runtime_posture=stale_capabilities,
+        )
+
+    missing_workflow = _runtime_posture().model_copy(
+        update={
+            "endpoints": [
+                RuntimeEndpointEvidence(
+                    endpoint="/platform/capabilities",
+                    http_status=200,
+                    posture="READY",
+                    summary={
+                        "feature_keys": ["advisory.bank_demo_proof"],
+                        "workflow_keys": ["advisory_proposal_lifecycle"],
+                        "operational_ready": True,
+                        "degraded": False,
+                        "degraded_reasons": [],
+                    },
+                )
+            ]
+        }
+    )
+
+    with pytest.raises(ValueError, match="missing workflow advisory_bank_demo_proof"):
+        build_backend_proof_capture(
+            _live_runtime_payload(),
+            metadata=_metadata(),
+            runtime_posture=missing_workflow,
+        )
 
 
 def test_backend_proof_capture_rejects_sensitive_artifact_reference_prefixes() -> None:
