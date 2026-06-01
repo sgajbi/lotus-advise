@@ -27,8 +27,6 @@ from src.core.policy_packs.models import (
     PolicyEvaluationAiEvidenceRequest,
     PolicyEvaluationAiEvidenceResponse,
     PolicyEvaluationLineageResponse,
-    PolicyEvaluationReportPackageRequest,
-    PolicyEvaluationReportPackageResponse,
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,
 )
@@ -55,6 +53,10 @@ from src.core.policy_packs.persistence_models import (
     PolicyEvaluationReplayResponse,
 )
 from src.core.policy_packs.reporting import request_policy_evaluation_report_package
+from src.core.policy_packs.reporting_models import (
+    PolicyEvaluationReportPackageRequest,
+    PolicyEvaluationReportPackageResponse,
+)
 from src.core.policy_packs.workflow import (
     get_policy_evaluation_workflow,
     record_policy_evaluation_sign_off_decision,

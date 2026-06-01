@@ -39,6 +39,8 @@ from src.core.policy_packs.models import (
     PolicyEvaluationRecord,
     PolicyEvaluationReplayRequest,
     PolicyEvaluationReplayResponse,
+    PolicyEvaluationReportPackageRequest,
+    PolicyEvaluationReportPackageResponse,
     PolicyEvaluationRequirementProjection,
     PolicyEvaluationSignOffDecisionRequest,
     PolicyEvaluationSignOffDecisionResponse,
@@ -75,6 +77,12 @@ from src.core.policy_packs.persistence_models import (
 )
 from src.core.policy_packs.persistence_models import (
     PolicyEvaluationReplayResponse as PersistencePolicyEvaluationReplayResponse,
+)
+from src.core.policy_packs.reporting_models import (
+    PolicyEvaluationReportPackageRequest as ReportingPolicyEvaluationReportPackageRequest,
+)
+from src.core.policy_packs.reporting_models import (
+    PolicyEvaluationReportPackageResponse as ReportingPolicyEvaluationReportPackageResponse,
 )
 from src.core.policy_packs.workflow_models import (
     PolicyEvaluationRequirementProjection as WorkflowPolicyEvaluationRequirementProjection,
@@ -124,3 +132,8 @@ def test_policy_pack_models_preserves_workflow_model_import_contract():
         PolicyEvaluationSignOffDecisionResponse is WorkflowPolicyEvaluationSignOffDecisionResponse
     )
     assert PolicyEvaluationWorkflowResponse is WorkflowPolicyEvaluationWorkflowResponse
+
+
+def test_policy_pack_models_preserves_reporting_model_import_contract():
+    assert PolicyEvaluationReportPackageRequest is ReportingPolicyEvaluationReportPackageRequest
+    assert PolicyEvaluationReportPackageResponse is ReportingPolicyEvaluationReportPackageResponse

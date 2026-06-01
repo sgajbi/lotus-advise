@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-523
+
+- Scope: Policy evaluation report-package model ownership
+- Pattern: Policy report-package request/response DTOs should live in a focused module instead of
+  remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and report-package handoff maintainability
+- Summary: `src/core/policy_packs/models.py` still owned RFC-0025 report-package DTOs after the
+  workflow model extraction. These DTOs are the lotus-report handoff boundary for signed-off policy
+  evaluation packages and are distinct from maker-checker workflow and bounded AI evidence DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/reporting_models.py` for policy report-package request and
+    response DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated reporting runtime and package exports to import report-package DTOs from the focused
+    module.
+  - Extended policy-pack model contract coverage and RFC-0025 Slice 10 source-contract coverage to
+    prove the focused reporting model ownership and compatibility import posture.
+- Consequence:
+  - Policy report-package code now depends on a narrow lotus-report handoff model boundary instead
+    of the broader policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation lineage/review projections and AI evidence DTOs from
+    `src/core/policy_packs/models.py`.
+
 ## LA-REV-522
 
 - Scope: Policy evaluation workflow model ownership
