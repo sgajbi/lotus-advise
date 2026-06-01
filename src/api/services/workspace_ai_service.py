@@ -1,5 +1,6 @@
 from src.api.services.workspace_errors import (
     WORKSPACE_AI_UNAVAILABLE_DETAIL,
+    WorkspaceAssistantUnavailableError,
     safe_workspace_error_detail,
 )
 from src.api.services.workspace_service import get_workspace_session
@@ -15,10 +16,6 @@ from src.integrations.lotus_ai import (
     apply_workspace_rationale_review_action_with_lotus_ai,
     generate_workspace_rationale_with_lotus_ai,
 )
-
-
-class WorkspaceAssistantUnavailableError(Exception):
-    pass
 
 
 def generate_workspace_rationale(

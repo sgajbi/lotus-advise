@@ -29,6 +29,7 @@ bank_demo_proof_router = importlib.import_module("src.api.routers.bank_demo_proo
 advisory_simulation_service = importlib.import_module(
     "src.api.services.advisory_simulation_service"
 )
+workspace_ai_service = importlib.import_module("src.api.services.workspace_ai_service")
 
 
 def test_raise_proposal_http_exception_re_raises_unknown_exception():
@@ -135,6 +136,14 @@ def test_workspace_routes_use_shared_response_metadata():
     assert "responses=WORKSPACE_DRAFT_ACTION_RESPONSES" in source
     assert "responses=WORKSPACE_HANDOFF_RESPONSES" in source
     assert "_raise_saved_version_not_found" not in source
+
+
+def test_workspace_ai_service_uses_shared_workspace_exception_types():
+    source = inspect.getsource(workspace_ai_service)
+
+    assert "class WorkspaceAssistantUnavailableError" not in source
+    assert "from src.api.services.workspace_errors import" in source
+    assert "WorkspaceAssistantUnavailableError" in source
 
 
 def test_advisory_simulation_routes_use_shared_response_metadata():

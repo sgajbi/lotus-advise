@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, Header, Path, status
 import src.api.proposals.router as proposal_shared
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.services.workspace_ai_service import (
-    WorkspaceAssistantUnavailableError,
     apply_workspace_rationale_review_action,
     generate_workspace_rationale,
 )
+from src.api.services.workspace_errors import WorkspaceAssistantUnavailableError
 from src.api.services.workspace_service import (
     WorkspaceEvaluationUnavailableError,
     WorkspaceLifecycleHandoffUnavailableError,

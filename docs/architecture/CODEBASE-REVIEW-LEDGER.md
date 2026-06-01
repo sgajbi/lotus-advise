@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-407
+
+- Scope: Workspace assistant service exception ownership
+- Pattern: Workspace service-domain exceptions should live in the shared workspace error module
+  rather than being defined inside individual service implementations.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `WorkspaceAssistantUnavailableError` was defined in
+  `src/api/services/workspace_ai_service.py`, while related workspace service exceptions such as
+  evaluation unavailable, saved-version not found, and lifecycle handoff unavailable lived in
+  `src/api/services/workspace_errors.py`. That split error ownership made the workspace route and
+  tests import an exception from a concrete AI service implementation.
+- Evidence:
+  - Moved `WorkspaceAssistantUnavailableError` into `src/api/services/workspace_errors.py`.
+  - Updated workspace router, workspace API tests, and workspace AI service imports to use the
+    shared error module.
+  - Added an internal guard that prevents the assistant exception class from returning to
+    `workspace_ai_service.py`.
+- Consequence:
+  - Workspace AI service errors now follow the same dependency direction as the rest of the
+    workspace service boundary, reducing coupling from routes/tests to concrete service modules.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue consolidating service-domain exception ownership where concrete services still expose
+    errors that belong to shared boundary modules.
+
 ## LA-REV-406
 
 - Scope: Advisory simulation API service error boundary
