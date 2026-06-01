@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import cast
 
 from src.api.services.advisory_simulation_errors import (
@@ -32,7 +32,7 @@ def save_simulation_idempotency_result(
     idempotency_key: str,
     request_hash: str,
     result: ProposalResult,
-    created_at: datetime,
+    created_at: datetime | None = None,
 ) -> None:
     try:
         repository.save_simulation_idempotency(
@@ -40,7 +40,7 @@ def save_simulation_idempotency_result(
                 idempotency_key=idempotency_key,
                 request_hash=request_hash,
                 response_json=result.model_dump(mode="json"),
-                created_at=created_at,
+                created_at=created_at or datetime.now(timezone.utc),
             )
         )
     except (RuntimeError, ValueError, TypeError, ConnectionError) as exc:

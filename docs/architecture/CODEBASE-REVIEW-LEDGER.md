@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-443
+
+- Scope: Simulation idempotency persistence timestamp boundary
+- Pattern: Idempotency persistence helpers should construct persistence records, including UTC
+  creation timestamps, while preserving an override for deterministic tests.
+- Status: Hardened
+- Finding Class: service-boundary leakage
+- Summary: `simulate_proposal_response` still imported wall-clock utilities and supplied
+  `created_at` only to build the simulation idempotency persistence record. That made the API
+  orchestration service responsible for a persistence-detail timestamp.
+- Evidence:
+  - Updated `save_simulation_idempotency_result` to default `created_at` to current UTC when no
+    explicit timestamp is supplied.
+  - Removed direct timestamp construction from `src/api/services/advisory_simulation_service.py`.
+  - Extended the internal service guard to keep `datetime.now` out of the API simulation
+    orchestration service.
+- Consequence:
+  - Simulation idempotency replay/save details, including record timestamp construction, are owned
+    by the idempotency helper while the public service keeps replay orchestration readable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves existing
+    API behavior and internal persistence semantics.
+- Follow-Up:
+  - Keep explicit timestamp parameters on lower-level helpers where tests or replay import jobs need
+    deterministic event times.
+
 ## LA-REV-442
 
 - Scope: Simulation request-hash lineage boundary

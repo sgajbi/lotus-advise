@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import Optional
 
 from src.api.proposals.router import get_proposal_repository
@@ -57,7 +56,6 @@ def simulate_proposal_response(
         idempotency_key=idempotency_key,
         request_hash=request_hash,
         result=result,
-        created_at=datetime.now(timezone.utc),
     )
     return result
 
