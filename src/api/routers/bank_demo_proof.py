@@ -66,7 +66,9 @@ def get_bank_demo_supported_claim_register() -> AdvisorySupportedClaimRegister:
     description=(
         "Builds a sanitized RFC-0028 backend proof pack from governed live runtime evidence. "
         "Material-field drift returns HTTP 409 so Gateway and Workbench cannot promote stale or "
-        "incomplete proof state. Unredacted live runtime payloads are not persisted by this "
+        "incomplete proof state. Ready /platform/capabilities runtime evidence must include "
+        "feature advisory.bank_demo_proof and workflow advisory_bank_demo_proof before proof "
+        "artifacts can be reused. Unredacted live runtime payloads are not persisted by this "
         "endpoint."
     ),
     responses={
