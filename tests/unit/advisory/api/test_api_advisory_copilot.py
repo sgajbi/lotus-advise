@@ -10,9 +10,11 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+import src.api.proposals.copilot_dependencies as copilot_dependencies
 import src.api.proposals.router as proposals_router
 import src.api.proposals.routes_advisory_copilot as copilot_routes
 from src.api.main import app
+from src.api.proposals.copilot_errors import raise_copilot_http_exception
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -33,12 +35,14 @@ NOW = datetime(2026, 5, 28, 9, 0, tzinfo=UTC)
 def copilot_repository(monkeypatch: pytest.MonkeyPatch) -> InMemoryAdvisoryCopilotRepository:
     reset_proposal_workflow_service_for_tests()
     repository = InMemoryAdvisoryCopilotRepository()
-    app.dependency_overrides[copilot_routes.get_advisory_copilot_repository] = lambda: repository
+    app.dependency_overrides[copilot_dependencies.get_advisory_copilot_repository] = lambda: (
+        repository
+    )
     monkeypatch.setattr(proposals_router.runtime, "build_repository", InMemoryProposalRepository)
     yield repository
-    app.dependency_overrides.pop(copilot_routes.get_advisory_copilot_repository, None)
+    app.dependency_overrides.pop(copilot_dependencies.get_advisory_copilot_repository, None)
     reset_proposal_workflow_service_for_tests()
-    copilot_routes.reset_advisory_copilot_repository_for_tests()
+    copilot_dependencies.reset_advisory_copilot_repository_for_tests()
 
 
 def _evidence_packet_payload() -> dict[str, Any]:
@@ -177,7 +181,7 @@ def test_advisory_copilot_evidence_packet_from_proposal_version_is_source_owned(
     monkeypatch.setattr(proposals_router.runtime, "build_repository", lambda: proposal_repository)
     reset_proposal_workflow_service_for_tests()
     monkeypatch.setattr(
-        copilot_routes,
+        copilot_dependencies,
         "list_policy_evaluation_records",
         lambda **_: [_policy_evaluation()],
     )
@@ -224,7 +228,7 @@ def test_proposal_version_copilot_packet_preserves_version_lineage_for_every_act
     monkeypatch.setattr(proposals_router.runtime, "build_repository", lambda: proposal_repository)
     reset_proposal_workflow_service_for_tests()
     monkeypatch.setattr(
-        copilot_routes,
+        copilot_dependencies,
         "list_policy_evaluation_records",
         lambda **_: [_policy_evaluation()],
     )
@@ -264,7 +268,7 @@ def test_proposal_version_copilot_packet_refreshes_same_projection_when_hash_cha
     reset_proposal_workflow_service_for_tests()
     policy_record = _policy_evaluation()
     monkeypatch.setattr(
-        copilot_routes,
+        copilot_dependencies,
         "list_policy_evaluation_records",
         lambda **_: [policy_record],
     )
@@ -335,7 +339,11 @@ def test_advisory_copilot_action_persists_review_gated_run(
             guardrail_reasons=(),
         )
 
-    monkeypatch.setattr(copilot_routes, "generate_advisory_copilot_draft_with_lotus_ai", _draft)
+    monkeypatch.setattr(
+        copilot_dependencies,
+        "generate_advisory_copilot_draft_with_lotus_ai",
+        _draft,
+    )
 
     with TestClient(app) as client:
         client.post("/advisory/copilot/evidence-packets", json=_evidence_packet_payload())
@@ -391,7 +399,7 @@ def test_proposal_version_copilot_runs_are_paginated(
 ) -> None:
     _ = copilot_repository
     monkeypatch.setattr(
-        copilot_routes,
+        copilot_dependencies,
         "generate_advisory_copilot_draft_with_lotus_ai",
         lambda **_: AdvisoryCopilotAiDraft(
             status="REVIEW_REQUIRED",
@@ -477,7 +485,7 @@ def test_advisory_copilot_review_api_is_idempotent(
 ) -> None:
     _ = copilot_repository
     monkeypatch.setattr(
-        copilot_routes,
+        copilot_dependencies,
         "generate_advisory_copilot_draft_with_lotus_ai",
         lambda **_: AdvisoryCopilotAiDraft(
             status="REVIEW_REQUIRED",
@@ -668,29 +676,33 @@ def test_advisory_copilot_evidence_packet_request_bounds_source_sections() -> No
 def test_advisory_copilot_repository_dependency_maps_startup_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    copilot_routes.reset_advisory_copilot_repository_for_tests()
-    monkeypatch.setattr(copilot_routes, "proposal_postgres_dsn", lambda: "postgres://advise")
+    copilot_dependencies.reset_advisory_copilot_repository_for_tests()
+    monkeypatch.setattr(copilot_dependencies, "proposal_postgres_dsn", lambda: "postgres://advise")
 
     class _UnavailableRepository:
         def __init__(self, *, dsn: str) -> None:
             assert dsn == "postgres://advise"
             raise RuntimeError("ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE")
 
-    monkeypatch.setattr(copilot_routes, "PostgresAdvisoryCopilotRepository", _UnavailableRepository)
+    monkeypatch.setattr(
+        copilot_dependencies,
+        "PostgresAdvisoryCopilotRepository",
+        _UnavailableRepository,
+    )
 
     with pytest.raises(HTTPException) as exc:
-        copilot_routes.get_advisory_copilot_repository()
+        copilot_dependencies.get_advisory_copilot_repository()
 
     assert exc.value.status_code == 503
     assert exc.value.detail == "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
-    copilot_routes.reset_advisory_copilot_repository_for_tests()
+    copilot_dependencies.reset_advisory_copilot_repository_for_tests()
 
 
 def test_advisory_copilot_repository_dependency_redacts_sensitive_startup_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    copilot_routes.reset_advisory_copilot_repository_for_tests()
-    monkeypatch.setattr(copilot_routes, "proposal_postgres_dsn", lambda: "postgres://advise")
+    copilot_dependencies.reset_advisory_copilot_repository_for_tests()
+    monkeypatch.setattr(copilot_dependencies, "proposal_postgres_dsn", lambda: "postgres://advise")
 
     class _SensitiveUnavailableRepository:
         def __init__(self, *, dsn: str) -> None:
@@ -698,17 +710,17 @@ def test_advisory_copilot_repository_dependency_redacts_sensitive_startup_failur
             raise RuntimeError("postgres password secret leaked from driver")
 
     monkeypatch.setattr(
-        copilot_routes,
+        copilot_dependencies,
         "PostgresAdvisoryCopilotRepository",
         _SensitiveUnavailableRepository,
     )
 
     with pytest.raises(HTTPException) as exc:
-        copilot_routes.get_advisory_copilot_repository()
+        copilot_dependencies.get_advisory_copilot_repository()
 
     assert exc.value.status_code == 503
     assert exc.value.detail == "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
-    copilot_routes.reset_advisory_copilot_repository_for_tests()
+    copilot_dependencies.reset_advisory_copilot_repository_for_tests()
 
 
 def test_advisory_copilot_application_dependency_wires_policy_loader(
@@ -801,3 +813,15 @@ def test_advisory_copilot_route_errors_redact_sensitive_detail() -> None:
     assert exc.value.detail == "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
     assert "token" not in repr(exc.value.detail).lower()
     assert "raw prompt" not in repr(exc.value.detail).lower()
+
+
+def test_advisory_copilot_error_mapper_redacts_trace_and_correlation_details() -> None:
+    for detail in (
+        "COPILOT_PROVIDER_FAILURE trace_id=trace-secret-001",
+        "COPILOT_PROVIDER_FAILURE correlation-id: corr-secret-001",
+    ):
+        with pytest.raises(HTTPException) as exc:
+            raise_copilot_http_exception(ValueError(detail))
+
+        assert exc.value.status_code == 422
+        assert exc.value.detail == "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"

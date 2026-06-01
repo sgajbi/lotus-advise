@@ -7,6 +7,11 @@ from fastapi.testclient import TestClient
 import src.api.main as api_main
 import src.core.policy_packs.ai as policy_ai
 from src.api.main import app
+from src.api.proposals.policy_evaluation_responses import (
+    POLICY_AI_EVIDENCE_RESPONSES,
+    POLICY_EVALUATION_CREATE_RESPONSES,
+    POLICY_REPORT_PACKAGE_RESPONSES,
+)
 from src.core.policy_packs import (
     get_policy_pack_version,
     reset_policy_evaluation_store_for_tests,
@@ -682,3 +687,17 @@ def test_policy_evaluation_openapi_registers_certified_advise_routes() -> None:
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/ai-evidence" in paths
+    assert (
+        paths[create_path]["post"]["responses"]["422"]["description"]
+        == (POLICY_EVALUATION_CREATE_RESPONSES[422]["description"])
+    )
+    report_package_path = "/advisory/policy-evaluations/{evaluation_id}/report-packages"
+    assert (
+        paths[report_package_path]["post"]["responses"]["503"]["description"]
+        == (POLICY_REPORT_PACKAGE_RESPONSES[503]["description"])
+    )
+    ai_evidence_path = "/advisory/policy-evaluations/{evaluation_id}/ai-evidence"
+    assert (
+        paths[ai_evidence_path]["post"]["responses"]["422"]["description"]
+        == (POLICY_AI_EVIDENCE_RESPONSES[422]["description"])
+    )
