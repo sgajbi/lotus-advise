@@ -4,7 +4,8 @@ from src.core.advisory.decision_summary_models import (
     ProposalDecisionApprovalRequirement,
     ProposalDecisionMissingEvidence,
 )
-from src.core.models import ProposalResult, SuitabilityIssue
+from src.core.proposal_result_models import ProposalResult
+from src.core.suitability_models import SuitabilityIssue
 
 
 def build_approval_requirements(

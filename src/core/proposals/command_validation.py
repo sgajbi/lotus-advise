@@ -1,6 +1,6 @@
 from typing import cast
 
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals.concurrency import (
     ProposalExpectedStateError,
     validate_expected_state,

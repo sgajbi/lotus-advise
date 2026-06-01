@@ -4,15 +4,15 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.advisory.alternatives_models import ProposalAlternativesRequest
 from src.core.common.actors import normalize_required_actor_id
-from src.core.models import (
-    EngineOptions,
-    GateDecision,
-    ProposalResult,
+from src.core.engine_options_models import EngineOptions
+from src.core.gate_models import GateDecision
+from src.core.portfolio_models import ReferenceModel
+from src.core.proposal_request_models import (
     ProposalSimulateRequest,
     ProposedCashFlow,
     ProposedTrade,
-    ReferenceModel,
 )
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.models import ProposalCreateResponse
 
 WorkspaceInputMode = Literal["stateless", "stateful"]

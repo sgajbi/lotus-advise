@@ -1,7 +1,8 @@
 from typing import Any
 
 from src.core.advisory.orchestration import evaluate_advisory_proposal
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.correlation import resolve_correlation_id
 
 

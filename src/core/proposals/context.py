@@ -6,7 +6,7 @@ from typing import Any, cast
 
 from src.core.advisory.policy_context import ProposalPolicySelectors, build_advisory_policy_context
 from src.core.common.canonical import hash_canonical_payload
-from src.core.models import ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals.models import (
     ProposalCreateMetadata,
     ProposalCreateRequest,

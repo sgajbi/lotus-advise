@@ -4,7 +4,8 @@ from src.core.advisory.alternatives_projection import build_proposal_alternative
 from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.idempotency import normalize_optional_idempotency_key
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposal_result_models import ProposalResult
 from src.integrations.lotus_core import (
     LotusCoreSimulationUnavailableError,
     lotus_core_local_fallback_enabled,

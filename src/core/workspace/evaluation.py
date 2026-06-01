@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Any, Protocol
 
-from src.core.models import ProposalResult
+from src.core.proposal_result_models import ProposalResult
 from src.core.workspace.models import (
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,

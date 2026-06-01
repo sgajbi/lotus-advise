@@ -5,7 +5,9 @@ from pydantic import BaseModel, Field
 from src.core.advisory.alternatives_models import ProposalAlternatives
 from src.core.advisory.decision_summary_models import ProposalDecisionSummary
 from src.core.advisory.narrative_models import ProposalNarrative
-from src.core.models import GateDecision, Money, SuitabilityIssue
+from src.core.gate_models import GateDecision
+from src.core.portfolio_models import Money
+from src.core.suitability_models import SuitabilityIssue
 
 
 class ProposalArtifactSummaryNote(BaseModel):

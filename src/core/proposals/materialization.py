@@ -4,7 +4,8 @@ from typing import Any
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.artifact_models import ProposalArtifact
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.evidence import build_proposal_evidence_bundle
 
 

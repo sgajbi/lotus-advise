@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-505
+
+- Scope: Proposal, workspace, and advisory service model dependency direction
+- Pattern: Internal proposal, workspace, and advisory service modules should import focused model
+  modules directly instead of depending on the `src/core/models.py` compatibility facade.
+- Status: Hardened
+- Finding Class: dependency-flow and modularity maintainability
+- Summary: After core runtime modules moved off the compatibility facade, proposal/workspace service
+  modules and advisory projection/artifact helpers still depended on `src.core.models`. That kept
+  internal service boundaries coupled to a public compatibility layer instead of explicit model
+  owners.
+- Evidence:
+  - Updated proposal, workspace, and advisory service modules to import proposal request/result,
+    gate, suitability, portfolio, simulation, and engine option models from their focused modules.
+  - Added a contract asserting `src/core/advisory`, `src/core/proposals`, and `src/core/workspace`
+    contain no `from src.core.models import` dependencies.
+- Consequence:
+  - Internal proposal/workspace/advisory service layers now depend on owned model modules, while the
+    compatibility facade remains available for public and legacy callers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue migrating API service/router and integration adapter imports away from the
+    compatibility facade in bounded slices.
+
 ## LA-REV-504
 
 - Scope: Core engine model dependency direction after facade extraction

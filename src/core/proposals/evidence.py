@@ -2,7 +2,7 @@ from copy import deepcopy
 from typing import Any, cast
 
 from src.core.advisory.risk_lens import extract_risk_lens
-from src.core.models import ProposalResult
+from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.memo_source_readiness import build_memo_source_readiness
 from src.core.proposals.policy_source_readiness import build_policy_source_readiness
 
