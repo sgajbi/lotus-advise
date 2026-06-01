@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-457
+
+- Scope: Integration capabilities route parameter contracts
+- Pattern: Platform capability query metadata should live outside the router while preserving
+  existing defaults and generated OpenAPI names.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/routers/integration_capabilities.py` carried inline `consumer_system` and
+  `tenant_id` `Query` declarations even though the route already delegates capability construction
+  to the capabilities service.
+- Evidence:
+  - Added `src/api/routers/integration_capabilities_parameters.py` for consumer-system and tenant
+    query contracts.
+  - Updated the `/platform/capabilities` route to use named aliases while preserving defaults,
+    descriptions, and examples.
+  - Extended internal guards so integration capability routes cannot reintroduce inline `Query`
+    declarations.
+- Consequence:
+  - Capability route orchestration is separated from OpenAPI query metadata, matching the route
+    boundary pattern used across proposal and proof routes.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Run the full internal guard and API contract subset to verify all route parameter extraction
+    remains stable together.
+
 ## LA-REV-456
 
 - Scope: Bank demo proof route parameter contract

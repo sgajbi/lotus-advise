@@ -488,6 +488,15 @@ def test_integration_capabilities_routes_use_shared_response_metadata():
     assert "responses=INTEGRATION_CAPABILITIES_RESPONSES" in source
 
 
+def test_integration_capabilities_routes_use_shared_parameter_contracts():
+    source = Path("src/api/routers/integration_capabilities.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import APIRouter" in source
+    assert "Query(" not in source
+    assert "IntegrationConsumerSystemQuery" in source
+    assert "IntegrationTenantIdQuery" in source
+
+
 def test_bank_demo_proof_routes_use_shared_response_metadata():
     source = inspect.getsource(bank_demo_proof_router)
 
