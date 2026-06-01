@@ -1,6 +1,19 @@
 from fastapi.testclient import TestClient
 
+from src.api.capabilities.degraded_reasons import (
+    LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+    dependency_unavailable_reason,
+    gated_dependency_unavailable_reason,
+    lifecycle_disabled_reason,
+)
+from src.api.capabilities.dependencies import (
+    bank_demo_proof_readiness,
+    dependency_map,
+    resolve_capability_dependency_status,
+)
+from src.api.capabilities.runtime_flags import resolve_capability_runtime_flags
 from src.api.capabilities.service import build_integration_capabilities
+from src.api.capabilities.supportability import build_advisory_supportability
 from src.api.main import app
 from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
 
@@ -617,6 +630,116 @@ def test_integration_capabilities_openapi_documents_supportability_metric_labels
     assert "lotus_advise_advisory_supportability_total" in metric_labels["description"]
     assert "portfolio" in metric_labels["description"]
     assert "trace" in metric_labels["description"]
+
+
+def test_advisory_supportability_projection_handles_malformed_dependency_rows():
+    supportability = build_advisory_supportability(
+        readiness={"dependencies": ["not-a-row", {"operational_ready": True}]},
+        lifecycle_enabled=True,
+        features=[],
+    )
+
+    assert supportability.dependency_count == 1
+    assert supportability.ready_dependency_count == 1
+    assert supportability.degraded_dependency_count == 0
+    assert supportability.state == "ready"
+
+
+def test_capability_dependency_helpers_fail_closed_for_missing_proof_dependency():
+    dependencies = dependency_map(
+        {
+            "dependencies": [
+                {"dependency_key": "lotus_core", "operational_ready": True},
+                "malformed-row",
+                {"dependency_key": "lotus_risk", "operational_ready": True},
+                {
+                    "dependency_key": "lotus_ai",
+                    "operational_ready": False,
+                    "degraded_reason": "LOTUS_AI_DEPENDENCY_UNAVAILABLE",
+                },
+            ]
+        }
+    )
+
+    ready, reason = bank_demo_proof_readiness(
+        lifecycle_enabled=True,
+        dependencies=dependencies,
+    )
+
+    assert "malformed-row" not in dependencies
+    assert ready is False
+    assert reason == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+
+
+def test_capability_dependency_status_projects_common_readiness_once():
+    dependencies = dependency_map(
+        {
+            "dependencies": [
+                {"dependency_key": "lotus_core", "operational_ready": True},
+                {"dependency_key": "lotus_risk", "operational_ready": True},
+                {"dependency_key": "lotus_ai", "operational_ready": True},
+                {"dependency_key": "lotus_report", "operational_ready": False},
+            ]
+        }
+    )
+
+    status = resolve_capability_dependency_status(
+        lifecycle_enabled=True,
+        dependencies=dependencies,
+    )
+
+    assert status.lotus_core_ready is True
+    assert status.lotus_risk_ready is True
+    assert status.lotus_ai_ready is True
+    assert status.lotus_report_ready is False
+    assert status.bank_demo_operational_ready is False
+    assert status.bank_demo_degraded_reason == "RFC0028_PROOF_DEPENDENCY_UNAVAILABLE"
+
+
+def test_capability_degraded_reason_helpers_preserve_public_reason_values():
+    assert (
+        dependency_unavailable_reason(
+            ready=False,
+            reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+        )
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
+    assert (
+        dependency_unavailable_reason(
+            ready=True,
+            reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+        )
+        is None
+    )
+    assert (
+        gated_dependency_unavailable_reason(
+            enabled=False,
+            ready=False,
+            reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+        )
+        is None
+    )
+    assert (
+        gated_dependency_unavailable_reason(
+            enabled=True,
+            ready=False,
+            reason=LOTUS_AI_DEPENDENCY_UNAVAILABLE,
+        )
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
+    assert lifecycle_disabled_reason(lifecycle_enabled=False) == "ADVISORY_LIFECYCLE_DISABLED"
+
+
+def test_capability_runtime_flags_resolve_shared_boolean_environment(monkeypatch):
+    monkeypatch.setenv("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", "off")
+    monkeypatch.setenv("PROPOSAL_ASYNC_OPERATIONS_ENABLED", "YES")
+    monkeypatch.setenv("LOTUS_AI_WORKSPACE_RATIONALE_ENABLED", "0")
+
+    flags = resolve_capability_runtime_flags()
+
+    assert flags.lifecycle_enabled is False
+    assert flags.async_enabled is True
+    assert flags.ai_rationale_enabled is False
 
 
 def test_integration_capabilities_service_fails_closed_for_missing_dependency():

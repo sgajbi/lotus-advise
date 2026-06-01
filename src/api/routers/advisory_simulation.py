@@ -1,7 +1,11 @@
-from typing import Annotated, Optional
+from fastapi import APIRouter, status
 
-from fastapi import APIRouter, Header, status
-
+from src.api.routers.advisory_simulation_parameters import (
+    ProposalArtifactCorrelationIdHeader,
+    ProposalArtifactIdempotencyKeyHeader,
+    ProposalSimulationCorrelationIdHeader,
+    ProposalSimulationIdempotencyKeyHeader,
+)
 from src.api.routers.advisory_simulation_responses import (
     PROPOSAL_ARTIFACT_RESPONSES,
     PROPOSAL_SIMULATION_RESPONSES,
@@ -42,22 +46,8 @@ router = APIRouter()
 )
 def simulate_proposal(
     request: ProposalSimulationRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required idempotency key used for dedupe and hash conflict detection.",
-            examples=["proposal-idem-001"],
-        ),
-    ],
-    correlation_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Correlation-Id",
-            description="Optional trace/correlation identifier propagated to logs and response.",
-            examples=["corr-proposal-1234"],
-        ),
-    ] = None,
+    idempotency_key: ProposalSimulationIdempotencyKeyHeader,
+    correlation_id: ProposalSimulationCorrelationIdHeader = None,
 ) -> ProposalResult:
     return service.simulate_proposal_response(
         request=request,
@@ -84,22 +74,8 @@ def simulate_proposal(
 )
 def build_proposal_artifact_endpoint(
     request: ProposalSimulationRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required idempotency key used for dedupe and hash conflict detection.",
-            examples=["proposal-artifact-idem-001"],
-        ),
-    ],
-    correlation_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Correlation-Id",
-            description="Optional trace/correlation identifier propagated to logs and response.",
-            examples=["corr-proposal-artifact-1234"],
-        ),
-    ] = None,
+    idempotency_key: ProposalArtifactIdempotencyKeyHeader,
+    correlation_id: ProposalArtifactCorrelationIdHeader = None,
 ) -> ProposalArtifact:
     resolved_request = service.resolve_simulation_input(request)
     proposal_result = service.simulate_proposal_response(

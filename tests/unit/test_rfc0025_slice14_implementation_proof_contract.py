@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.unit.capability_source_helpers import read_capability_source
+
 SLICE14_PATH = Path("docs/rfcs/RFC-0025-slice-14-implementation-proof.md")
 
 
@@ -39,7 +41,7 @@ def test_rfc0025_slice14_records_proof_before_slice16_product_promotion() -> Non
     )
     declaration_text = _read("contracts/domain-data-products/lotus-advise-products.v1.json")
     context_text = _read("REPOSITORY-ENGINEERING-CONTEXT.md")
-    capability_text = _read("src/api/capabilities/service.py")
+    capability_text = read_capability_source()
 
     assert "RFC-0025-slice-14-implementation-proof.md" in telemetry_text
     assert "live-suite proof" in telemetry_text

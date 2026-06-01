@@ -1,9 +1,14 @@
-from typing import Annotated, Optional
-
-from fastapi import BackgroundTasks, Depends, Header, Path, status
+from fastapi import BackgroundTasks, Depends, status
 
 import src.api.proposals.router as shared
+from src.api.proposals.async_parameters import (
+    ProposalAsyncCorrelationIdHeader,
+    ProposalAsyncCorrelationIdPath,
+    ProposalAsyncCreateIdempotencyKeyHeader,
+    ProposalAsyncOperationIdPath,
+)
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.lifecycle_parameters import ProposalIdPath
 from src.core.proposals import (
     ProposalAsyncAcceptedResponse,
     ProposalAsyncOperationStatusResponse,
@@ -27,24 +32,8 @@ from src.core.proposals import (
 def create_proposal_async(
     payload: ProposalCreateRequest,
     background_tasks: BackgroundTasks,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required idempotency key for proposal-create deduplication.",
-            examples=["proposal-create-idem-async-001"],
-        ),
-    ],
-    correlation_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Correlation-Id",
-            description=(
-                "Optional correlation id for asynchronous tracking. Generated when omitted."
-            ),
-            examples=["corr-proposal-create-async-001"],
-        ),
-    ] = None,
+    idempotency_key: ProposalAsyncCreateIdempotencyKeyHeader,
+    correlation_id: ProposalAsyncCorrelationIdHeader = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalAsyncAcceptedResponse:
     shared._assert_lifecycle_enabled()
@@ -76,22 +65,10 @@ def create_proposal_async(
     ),
 )
 def create_proposal_version_async(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
+    proposal_id: ProposalIdPath,
     payload: ProposalVersionRequest,
     background_tasks: BackgroundTasks,
-    correlation_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Correlation-Id",
-            description=(
-                "Optional correlation id for asynchronous tracking. Generated when omitted."
-            ),
-            examples=["corr-proposal-version-async-001"],
-        ),
-    ] = None,
+    correlation_id: ProposalAsyncCorrelationIdHeader = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalAsyncAcceptedResponse:
     shared._assert_lifecycle_enabled()
@@ -120,10 +97,7 @@ def create_proposal_version_async(
     description="Returns asynchronous operation status and terminal result/error payload.",
 )
 def get_proposal_async_operation(
-    operation_id: Annotated[
-        str,
-        Path(description="Asynchronous operation identifier.", examples=["pop_001"]),
-    ],
+    operation_id: ProposalAsyncOperationIdPath,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalAsyncOperationStatusResponse:
     shared._assert_lifecycle_enabled()
@@ -140,13 +114,7 @@ def get_proposal_async_operation(
     description="Returns the latest asynchronous operation associated with correlation id.",
 )
 def get_proposal_async_operation_by_correlation(
-    correlation_id: Annotated[
-        str,
-        Path(
-            description="Correlation id associated with asynchronous submission.",
-            examples=["corr-proposal-create-async-001"],
-        ),
-    ],
+    correlation_id: ProposalAsyncCorrelationIdPath,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalAsyncOperationStatusResponse:
     shared._assert_lifecycle_enabled()

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.unit.capability_source_helpers import read_capability_source
+
 RFC_PATH = Path("docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md")
 SLICE5_PATH = Path("docs/rfcs/RFC-0025-slice-5-policy-pack-catalog-schema-activation.md")
 RFC_INDEX_PATH = Path("docs/rfcs/README.md")
@@ -8,7 +10,6 @@ WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 CATALOG_SOURCE_PATH = Path("src/core/policy_packs/catalog.py")
 SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_packs.py")
-CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
 
 
 def test_rfc0025_slice5_policy_pack_catalog_evidence_is_indexed() -> None:
@@ -43,7 +44,7 @@ def test_rfc0025_slice5_promotes_catalog_without_policy_evaluation_claims() -> N
     catalog_source = CATALOG_SOURCE_PATH.read_text(encoding="utf-8")
     supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
     route_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
-    capabilities_source = CAPABILITIES_SOURCE_PATH.read_text(encoding="utf-8")
+    capabilities_source = read_capability_source()
 
     assert "rfc0025.policy-pack-catalog.v1" in supportability_source
     assert "POLICY_PACK_MAKER_CHECKER_REQUIRES_DIFFERENT_ACTOR" in catalog_source

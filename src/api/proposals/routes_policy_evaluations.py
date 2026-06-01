@@ -1,9 +1,19 @@
-from typing import Annotated
-
-from fastapi import Header, Path, Query, status
+from fastapi import status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.policy_evaluation_parameters import (
+    PolicyEvaluationAiEvidenceIdempotencyKeyHeader,
+    PolicyEvaluationEventIdempotencyKeyHeader,
+    PolicyEvaluationFinalizeIdempotencyKeyHeader,
+    PolicyEvaluationIdPath,
+    PolicyEvaluationPortfolioIdQuery,
+    PolicyEvaluationProposalIdPath,
+    PolicyEvaluationProposalVersionIdPath,
+    PolicyEvaluationReportPackageIdempotencyKeyHeader,
+    PolicyEvaluationSignOffDecisionIdempotencyKeyHeader,
+    PolicyEvaluationStatusQuery,
+)
 from src.api.proposals.policy_evaluation_responses import (
     POLICY_AI_EVIDENCE_RESPONSES,
     POLICY_EVALUATION_CREATE_RESPONSES,
@@ -62,29 +72,10 @@ from src.core.proposals.identifiers import new_report_request_id
     responses=POLICY_EVALUATION_CREATE_RESPONSES,
 )
 def create_or_replay_policy_evaluation(
-    proposal_id: Annotated[
-        str,
-        Path(
-            description="Proposal identifier evaluated by the policy record.",
-            examples=["pp_001"],
-        ),
-    ],
-    proposal_version_id: Annotated[
-        str,
-        Path(
-            description="Immutable proposal version identifier evaluated by the policy record.",
-            examples=["ppv_001"],
-        ),
-    ],
+    proposal_id: PolicyEvaluationProposalIdPath,
+    proposal_version_id: PolicyEvaluationProposalVersionIdPath,
     payload: PolicyEvaluationCreateRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required idempotency key for replay-safe policy evaluation finalization.",
-            examples=["policy-evaluation-finalize-001"],
-        ),
-    ],
+    idempotency_key: PolicyEvaluationFinalizeIdempotencyKeyHeader,
 ) -> PolicyEvaluationPersistenceResult:
     return run_proposal_operation(
         lambda: finalize_policy_evaluation_record(
@@ -114,26 +105,8 @@ def create_or_replay_policy_evaluation(
     responses=POLICY_REVIEW_QUEUE_RESPONSES,
 )
 def read_policy_review_queue(
-    evaluation_status: Annotated[
-        str | None,
-        Query(
-            description=(
-                "Optional aggregate policy posture filter. Defaults to evaluations requiring "
-                "review."
-            ),
-            examples=["PENDING_REVIEW"],
-        ),
-    ] = "PENDING_REVIEW",
-    portfolio_id: Annotated[
-        str | None,
-        Query(
-            description=(
-                "Optional portfolio identifier filter sourced from the finalized policy "
-                "evaluation evidence bundle."
-            ),
-            examples=["PB_SG_GLOBAL_BAL_001"],
-        ),
-    ] = None,
+    evaluation_status: PolicyEvaluationStatusQuery = "PENDING_REVIEW",
+    portfolio_id: PolicyEvaluationPortfolioIdQuery = None,
 ) -> PolicyEvaluationReviewQueueResponse:
     return get_policy_evaluation_review_queue(
         evaluation_status=evaluation_status,
@@ -155,10 +128,7 @@ def read_policy_review_queue(
     responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def read_policy_evaluation(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationRecord:
     return run_proposal_operation(lambda: get_policy_evaluation_record(evaluation_id=evaluation_id))
 
@@ -177,10 +147,7 @@ def read_policy_evaluation(
     responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def replay_policy_evaluation(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationReplayRequest,
 ) -> PolicyEvaluationReplayResponse:
     return run_proposal_operation(
@@ -205,19 +172,9 @@ def replay_policy_evaluation(
     responses=POLICY_EVALUATION_EVENT_RESPONSES,
 )
 def record_policy_evaluation_event(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationEventRequest,
-    idempotency_key: Annotated[
-        str | None,
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe policy evaluation event capture.",
-            examples=["policy-evaluation-review-001"],
-        ),
-    ] = None,
+    idempotency_key: PolicyEvaluationEventIdempotencyKeyHeader = None,
 ) -> PolicyEvaluationAuditEvent:
     return run_proposal_operation(
         lambda: append_policy_evaluation_event(
@@ -243,10 +200,7 @@ def record_policy_evaluation_event(
     responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def read_policy_evaluation_lineage(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationLineageResponse:
     return run_proposal_operation(
         lambda: get_policy_evaluation_lineage(evaluation_id=evaluation_id)
@@ -267,10 +221,7 @@ def read_policy_evaluation_lineage(
     responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def read_policy_sign_off_package(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationSignOffPackageResponse:
     return run_proposal_operation(
         lambda: get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
@@ -291,10 +242,7 @@ def read_policy_sign_off_package(
     responses=POLICY_EVALUATION_READ_RESPONSES,
 )
 def read_policy_evaluation_workflow(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationWorkflowResponse:
     return run_proposal_operation(
         lambda: get_policy_evaluation_workflow(evaluation_id=evaluation_id)
@@ -315,19 +263,9 @@ def read_policy_evaluation_workflow(
     responses=POLICY_SIGN_OFF_DECISION_RESPONSES,
 )
 def record_policy_sign_off_decision(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationSignOffDecisionRequest,
-    idempotency_key: Annotated[
-        str | None,
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe policy sign-off decisions.",
-            examples=["policy-evaluation-sign-off-001"],
-        ),
-    ] = None,
+    idempotency_key: PolicyEvaluationSignOffDecisionIdempotencyKeyHeader = None,
 ) -> PolicyEvaluationSignOffDecisionResponse:
     return run_proposal_operation(
         lambda: record_policy_evaluation_sign_off_decision(
@@ -353,19 +291,9 @@ def record_policy_sign_off_decision(
     responses=POLICY_REPORT_PACKAGE_RESPONSES,
 )
 def request_policy_report_package(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationReportPackageRequest,
-    idempotency_key: Annotated[
-        str | None,
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe policy report-package requests.",
-            examples=["policy-evaluation-report-package-001"],
-        ),
-    ] = None,
+    idempotency_key: PolicyEvaluationReportPackageIdempotencyKeyHeader = None,
 ) -> PolicyEvaluationReportPackageResponse:
     return run_lotus_report_operation(
         lambda: run_proposal_operation(
@@ -395,19 +323,9 @@ def request_policy_report_package(
     responses=POLICY_AI_EVIDENCE_RESPONSES,
 )
 def request_policy_ai_evidence(
-    evaluation_id: Annotated[
-        str,
-        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
-    ],
+    evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationAiEvidenceRequest,
-    idempotency_key: Annotated[
-        str | None,
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe policy AI evidence requests.",
-            examples=["policy-evaluation-ai-evidence-001"],
-        ),
-    ] = None,
+    idempotency_key: PolicyEvaluationAiEvidenceIdempotencyKeyHeader = None,
 ) -> PolicyEvaluationAiEvidenceResponse:
     return run_proposal_operation(
         lambda: request_policy_evaluation_ai_evidence(

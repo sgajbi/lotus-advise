@@ -1,10 +1,27 @@
-from datetime import datetime
-from typing import Annotated, Optional
-
-from fastapi import Depends, Header, Path, Query, status
+from fastapi import Depends, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.lifecycle_parameters import (
+    ProposalCreateCorrelationIdHeader,
+    ProposalCreatedByFilterQuery,
+    ProposalCreatedFromFilterQuery,
+    ProposalCreatedToFilterQuery,
+    ProposalCreateIdempotencyKeyHeader,
+    ProposalIdPath,
+    ProposalIncludeEvidenceQuery,
+    ProposalListCursorQuery,
+    ProposalListLimitQuery,
+    ProposalNarrativeVersionNoPath,
+    ProposalOptionalApprovalIdempotencyKeyHeader,
+    ProposalOptionalNarrativeReviewIdempotencyKeyHeader,
+    ProposalOptionalTransitionIdempotencyKeyHeader,
+    ProposalPortfolioIdFilterQuery,
+    ProposalVersionCorrelationIdHeader,
+    ProposalVersionIncludeEvidenceQuery,
+    ProposalVersionNoPath,
+    ProposalWorkflowStateFilterQuery,
+)
 from src.api.proposals.lifecycle_responses import (
     PROPOSAL_CREATE_RESPONSES,
     PROPOSAL_NARRATIVE_READ_RESPONSES,
@@ -48,22 +65,8 @@ from src.core.proposals.models import (
 )
 def create_proposal(
     payload: ProposalCreateRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required idempotency key for proposal-create deduplication.",
-            examples=["proposal-create-idem-001"],
-        ),
-    ],
-    correlation_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Correlation-Id",
-            description="Optional correlation id captured in lifecycle audit reason payload.",
-            examples=["corr-proposal-create-001"],
-        ),
-    ] = None,
+    idempotency_key: ProposalCreateIdempotencyKeyHeader,
+    correlation_id: ProposalCreateCorrelationIdHeader = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalCreateResponse:
     shared._assert_lifecycle_enabled()
@@ -85,17 +88,8 @@ def create_proposal(
     description="Returns proposal summary, current immutable version, and last gate decision.",
 )
 def get_proposal(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    include_evidence: Annotated[
-        bool,
-        Query(
-            description="Include full evidence bundle in current version payload.",
-            examples=[True],
-        ),
-    ] = True,
+    proposal_id: ProposalIdPath,
+    include_evidence: ProposalIncludeEvidenceQuery = True,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalDetailResponse:
     shared._assert_lifecycle_enabled()
@@ -113,40 +107,13 @@ def get_proposal(
     description="Lists persisted proposals with optional filters and cursor pagination.",
 )
 def list_proposals(
-    portfolio_id: Annotated[
-        Optional[str],
-        Query(description="Portfolio filter.", examples=["pf_01"]),
-    ] = None,
-    state: Annotated[
-        Optional[str],
-        Query(description="Current workflow state filter.", examples=["DRAFT"]),
-    ] = None,
-    created_by: Annotated[
-        Optional[str],
-        Query(description="Creator actor id filter.", examples=["advisor_123"]),
-    ] = None,
-    created_from: Annotated[
-        Optional[datetime],
-        Query(
-            description="Created-at lower bound in UTC ISO8601.",
-            examples=["2026-02-19T00:00:00Z"],
-        ),
-    ] = None,
-    created_to: Annotated[
-        Optional[datetime],
-        Query(
-            description="Created-at upper bound in UTC ISO8601.",
-            examples=["2026-02-20T00:00:00Z"],
-        ),
-    ] = None,
-    limit: Annotated[
-        int,
-        Query(description="Page size.", ge=1, le=100, examples=[20]),
-    ] = 20,
-    cursor: Annotated[
-        Optional[str],
-        Query(description="Opaque cursor from previous list response.", examples=["pp_123"]),
-    ] = None,
+    portfolio_id: ProposalPortfolioIdFilterQuery = None,
+    state: ProposalWorkflowStateFilterQuery = None,
+    created_by: ProposalCreatedByFilterQuery = None,
+    created_from: ProposalCreatedFromFilterQuery = None,
+    created_to: ProposalCreatedToFilterQuery = None,
+    limit: ProposalListLimitQuery = 20,
+    cursor: ProposalListCursorQuery = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalListResponse:
     shared._assert_lifecycle_enabled()
@@ -170,18 +137,9 @@ def list_proposals(
     description="Returns one immutable proposal version by version number.",
 )
 def get_proposal_version(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number.", ge=1, examples=[1]),
-    ],
-    include_evidence: Annotated[
-        bool,
-        Query(description="Include full evidence bundle in version payload.", examples=[True]),
-    ] = True,
+    proposal_id: ProposalIdPath,
+    version_no: ProposalVersionNoPath,
+    include_evidence: ProposalVersionIncludeEvidenceQuery = True,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalVersionDetail:
     shared._assert_lifecycle_enabled()
@@ -208,19 +166,9 @@ def get_proposal_version(
     responses=PROPOSAL_VERSION_CREATE_RESPONSES,
 )
 def create_proposal_version(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
+    proposal_id: ProposalIdPath,
     payload: ProposalVersionRequest,
-    correlation_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Correlation-Id",
-            description="Optional correlation id captured in version event reason payload.",
-            examples=["corr-proposal-version-001"],
-        ),
-    ] = None,
+    correlation_id: ProposalVersionCorrelationIdHeader = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalCreateResponse:
     shared._assert_lifecycle_enabled()
@@ -244,19 +192,9 @@ def create_proposal_version(
     ),
 )
 def transition_proposal_state(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
+    proposal_id: ProposalIdPath,
     payload: ProposalStateTransitionRequest,
-    idempotency_key: Annotated[
-        Optional[str],
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe transition writes.",
-            examples=["proposal-transition-idem-001"],
-        ),
-    ] = None,
+    idempotency_key: ProposalOptionalTransitionIdempotencyKeyHeader = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
@@ -282,19 +220,9 @@ def transition_proposal_state(
     ),
 )
 def record_proposal_approval(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
+    proposal_id: ProposalIdPath,
     payload: ProposalApprovalRequest,
-    idempotency_key: Annotated[
-        Optional[str],
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe approval writes.",
-            examples=["proposal-approval-idem-001"],
-        ),
-    ] = None,
+    idempotency_key: ProposalOptionalApprovalIdempotencyKeyHeader = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
@@ -321,14 +249,8 @@ def record_proposal_approval(
     responses=PROPOSAL_NARRATIVE_REGENERATE_RESPONSES,
 )
 def regenerate_proposal_narrative(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number containing the narrative.", ge=1),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalNarrativeVersionNoPath,
     payload: ProposalNarrativeRegenerationRequest,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalNarrativeRegenerationResponse:
@@ -356,14 +278,8 @@ def regenerate_proposal_narrative(
     responses=PROPOSAL_NARRATIVE_READ_RESPONSES,
 )
 def get_proposal_narrative(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number containing the narrative.", ge=1),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalNarrativeVersionNoPath,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalNarrativeReadResponse:
     shared._assert_lifecycle_enabled()
@@ -386,23 +302,10 @@ def get_proposal_narrative(
     responses=PROPOSAL_NARRATIVE_REVIEW_RESPONSES,
 )
 def review_proposal_narrative(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number containing the narrative.", ge=1),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalNarrativeVersionNoPath,
     payload: ProposalNarrativeReviewRequest,
-    idempotency_key: Annotated[
-        Optional[str],
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe narrative review writes.",
-            examples=["proposal-narrative-review-idem-001"],
-        ),
-    ] = None,
+    idempotency_key: ProposalOptionalNarrativeReviewIdempotencyKeyHeader = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalNarrativeReviewResponse:
     shared._assert_lifecycle_enabled()

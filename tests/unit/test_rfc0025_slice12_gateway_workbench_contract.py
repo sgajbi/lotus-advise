@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.unit.capability_source_helpers import read_capability_source
+
 RFC_PATH = Path("docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md")
 SLICE12_PATH = Path("docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md")
 RFC_INDEX_PATH = Path("docs/rfcs/README.md")
@@ -10,7 +12,6 @@ DECLARATION_PATH = Path("contracts/domain-data-products/lotus-advise-products.v1
 TELEMETRY_PATH = Path(
     "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
 )
-CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
 
 
 def _flat(text: str) -> str:
@@ -43,7 +44,7 @@ def test_rfc0025_slice12_updates_supported_boundary_without_product_promotion() 
     repo_context = REPO_CONTEXT_PATH.read_text(encoding="utf-8")
     declaration = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry = TELEMETRY_PATH.read_text(encoding="utf-8")
-    capabilities_source = CAPABILITIES_SOURCE_PATH.read_text(encoding="utf-8")
+    capabilities_source = read_capability_source()
 
     assert (
         "Slice 12 is complete for Gateway and Workbench product realization" in supported_features

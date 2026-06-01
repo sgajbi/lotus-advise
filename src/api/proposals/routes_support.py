@@ -1,9 +1,10 @@
-from typing import Annotated
-
-from fastapi import Depends, Path, status
+from fastapi import Depends, status
 
 import src.api.proposals.router as shared
+from src.api.proposals.async_parameters import ProposalAsyncOperationIdPath
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.lifecycle_parameters import ProposalIdPath, ProposalVersionNoPath
+from src.api.proposals.support_parameters import ProposalIdempotencyKeyPath
 from src.api.proposals.support_responses import (
     SUPPORT_ASYNC_REPLAY_RESPONSES,
     SUPPORT_LINEAGE_RESPONSES,
@@ -30,14 +31,8 @@ from src.core.replay.models import AdvisoryReplayEvidenceResponse
     ),
 )
 def get_proposal_workflow_timeline(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    proposal_id: ProposalIdPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalWorkflowTimelineResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -55,14 +50,8 @@ def get_proposal_workflow_timeline(
     ),
 )
 def get_proposal_approvals(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    proposal_id: ProposalIdPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalApprovalsResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -82,14 +71,8 @@ def get_proposal_approvals(
     responses=SUPPORT_LINEAGE_RESPONSES,
 )
 def get_proposal_lineage(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    proposal_id: ProposalIdPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalLineageResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -109,18 +92,9 @@ def get_proposal_lineage(
     responses=SUPPORT_VERSION_REPLAY_RESPONSES,
 )
 def get_proposal_version_replay_evidence(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number.", examples=[1]),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalVersionNoPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> AdvisoryReplayEvidenceResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -140,17 +114,8 @@ def get_proposal_version_replay_evidence(
     ),
 )
 def get_proposal_idempotency_lookup(
-    idempotency_key: Annotated[
-        str,
-        Path(
-            description="Proposal create idempotency key.",
-            examples=["proposal-create-idem-001"],
-        ),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    idempotency_key: ProposalIdempotencyKeyPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalIdempotencyLookupResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -172,14 +137,8 @@ def get_proposal_idempotency_lookup(
     responses=SUPPORT_ASYNC_REPLAY_RESPONSES,
 )
 def get_proposal_async_replay_evidence(
-    operation_id: Annotated[
-        str,
-        Path(description="Asynchronous operation identifier.", examples=["pop_001"]),
-    ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ],
+    operation_id: ProposalAsyncOperationIdPath,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> AdvisoryReplayEvidenceResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()

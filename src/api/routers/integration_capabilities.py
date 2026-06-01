@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 
 from src.api.capabilities import (
-    ConsumerSystem,
     IntegrationCapabilitiesResponse,
     build_integration_capabilities,
+)
+from src.api.routers.integration_capabilities_parameters import (
+    IntegrationConsumerSystemQuery,
+    IntegrationTenantIdQuery,
 )
 from src.api.routers.integration_capabilities_responses import INTEGRATION_CAPABILITIES_RESPONSES
 
@@ -21,16 +24,8 @@ router = APIRouter(tags=["Integration"])
     responses=INTEGRATION_CAPABILITIES_RESPONSES,
 )
 async def get_integration_capabilities(
-    consumer_system: ConsumerSystem = Query(
-        "lotus-gateway",
-        description="Consumer system requesting capabilities.",
-        examples=["lotus-gateway"],
-    ),
-    tenant_id: str = Query(
-        "default",
-        description="Tenant identifier used for policy resolution.",
-        examples=["default"],
-    ),
+    consumer_system: IntegrationConsumerSystemQuery = "lotus-gateway",
+    tenant_id: IntegrationTenantIdQuery = "default",
 ) -> IntegrationCapabilitiesResponse:
     return build_integration_capabilities(
         consumer_system=consumer_system,

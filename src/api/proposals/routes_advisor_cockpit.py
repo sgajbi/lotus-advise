@@ -1,11 +1,20 @@
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import Depends, Header, Path, Query, status
+from fastapi import Depends, status
 
 from src.api.proposals import router as shared
 from src.api.proposals.cockpit_dependencies import get_advisor_cockpit_service
+from src.api.proposals.cockpit_parameters import (
+    AdvisorCockpitAcknowledgementIdempotencyKeyHeader,
+    AdvisorCockpitActionCursorQuery,
+    AdvisorCockpitActionItemIdPath,
+    AdvisorCockpitActionLimitQuery,
+    AdvisorCockpitAdvisorIdQuery,
+    AdvisorCockpitCallerRoleQuery,
+    AdvisorCockpitCorrelationIdHeader,
+    AdvisorCockpitPortfolioIdQuery,
+    AdvisorCockpitPreparationPacketCursorQuery,
+)
 from src.api.proposals.cockpit_responses import (
     ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES,
     ADVISOR_COCKPIT_READ_RESPONSES,
@@ -23,9 +32,6 @@ from src.core.advisor_cockpit import (
     AdvisoryActionItemPage,
     CockpitCallerContext,
 )
-from src.core.advisor_cockpit.pagination import COCKPIT_ACTION_MAX_PAGE_SIZE
-from src.core.advisor_cockpit.projection_bounds import COCKPIT_IDENTIFIER_MAX_LENGTH
-from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
 
 
 @shared.router.get(
@@ -42,55 +48,12 @@ from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
 def list_advisor_cockpit_actions(
-    portfolio_id: Annotated[
-        str | None,
-        Query(
-            description="Optional portfolio scope for cockpit actions.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["PB_SG_GLOBAL_BAL_001"],
-        ),
-    ] = None,
-    advisor_id: Annotated[
-        str | None,
-        Query(
-            description="Optional advisor actor scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["advisor_sg_001"],
-        ),
-    ] = None,
-    role: Annotated[
-        AdvisorCockpitCallerRole,
-        Query(
-            description=(
-                "Caller role for server-side projection. `DPM_OWNER` is accepted only as a "
-                "legacy caller alias and is projected to `PORTFOLIO_MANAGER` owned actions."
-            ),
-            examples=["ADVISOR"],
-        ),
-    ] = "ADVISOR",
-    limit: Annotated[
-        int,
-        Query(
-            description="Bounded page size. Default is 25; maximum is 100.",
-            ge=1,
-            le=COCKPIT_ACTION_MAX_PAGE_SIZE,
-        ),
-    ] = 25,
-    cursor: Annotated[
-        str | None,
-        Query(
-            description="Opaque action cursor from a previous page.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ] = None,
-    correlation_id: Annotated[
-        str | None,
-        Header(
-            alias="X-Correlation-ID",
-            description="Optional correlation id propagated into returned action items.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ] = None,
+    portfolio_id: AdvisorCockpitPortfolioIdQuery = None,
+    advisor_id: AdvisorCockpitAdvisorIdQuery = None,
+    role: AdvisorCockpitCallerRoleQuery = "ADVISOR",
+    limit: AdvisorCockpitActionLimitQuery = 25,
+    cursor: AdvisorCockpitActionCursorQuery = None,
+    correlation_id: AdvisorCockpitCorrelationIdHeader = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisoryActionItemPage:
     return run_proposal_operation(
@@ -118,47 +81,11 @@ def list_advisor_cockpit_actions(
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
 def get_advisor_cockpit_action(
-    action_item_id: Annotated[
-        str,
-        Path(
-            description="Advisor cockpit action item identifier.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ],
-    portfolio_id: Annotated[
-        str | None,
-        Query(
-            description="Optional portfolio scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["PB_SG_GLOBAL_BAL_001"],
-        ),
-    ] = None,
-    advisor_id: Annotated[
-        str | None,
-        Query(
-            description="Optional advisor actor scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["advisor_sg_001"],
-        ),
-    ] = None,
-    role: Annotated[
-        AdvisorCockpitCallerRole,
-        Query(
-            description=(
-                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
-                "projected to `PORTFOLIO_MANAGER` owned actions."
-            ),
-            examples=["ADVISOR"],
-        ),
-    ] = "ADVISOR",
-    correlation_id: Annotated[
-        str | None,
-        Header(
-            alias="X-Correlation-ID",
-            description="Optional correlation id.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ] = None,
+    action_item_id: AdvisorCockpitActionItemIdPath,
+    portfolio_id: AdvisorCockpitPortfolioIdQuery = None,
+    advisor_id: AdvisorCockpitAdvisorIdQuery = None,
+    role: AdvisorCockpitCallerRoleQuery = "ADVISOR",
+    correlation_id: AdvisorCockpitCorrelationIdHeader = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisoryActionItem:
     return run_proposal_operation(
@@ -184,40 +111,10 @@ def get_advisor_cockpit_action(
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
 def get_advisor_cockpit_snapshot(
-    portfolio_id: Annotated[
-        str | None,
-        Query(
-            description="Optional portfolio scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["PB_SG_GLOBAL_BAL_001"],
-        ),
-    ] = None,
-    advisor_id: Annotated[
-        str | None,
-        Query(
-            description="Optional advisor actor scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["advisor_sg_001"],
-        ),
-    ] = None,
-    role: Annotated[
-        AdvisorCockpitCallerRole,
-        Query(
-            description=(
-                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
-                "projected to `PORTFOLIO_MANAGER` owned actions."
-            ),
-            examples=["ADVISOR"],
-        ),
-    ] = "ADVISOR",
-    correlation_id: Annotated[
-        str | None,
-        Header(
-            alias="X-Correlation-ID",
-            description="Optional correlation id.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ] = None,
+    portfolio_id: AdvisorCockpitPortfolioIdQuery = None,
+    advisor_id: AdvisorCockpitAdvisorIdQuery = None,
+    role: AdvisorCockpitCallerRoleQuery = "ADVISOR",
+    correlation_id: AdvisorCockpitCorrelationIdHeader = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitSnapshotResponse:
     return service.get_snapshot(
@@ -243,55 +140,12 @@ def get_advisor_cockpit_snapshot(
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
 def list_advisor_cockpit_preparation_packets(
-    portfolio_id: Annotated[
-        str | None,
-        Query(
-            description="Optional portfolio scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["PB_SG_GLOBAL_BAL_001"],
-        ),
-    ] = None,
-    advisor_id: Annotated[
-        str | None,
-        Query(
-            description="Optional advisor actor scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["advisor_sg_001"],
-        ),
-    ] = None,
-    role: Annotated[
-        AdvisorCockpitCallerRole,
-        Query(
-            description=(
-                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
-                "projected to `PORTFOLIO_MANAGER` owned actions."
-            ),
-            examples=["ADVISOR"],
-        ),
-    ] = "ADVISOR",
-    limit: Annotated[
-        int,
-        Query(
-            description="Bounded page size. Default is 25; maximum is 100.",
-            ge=1,
-            le=COCKPIT_ACTION_MAX_PAGE_SIZE,
-        ),
-    ] = 25,
-    cursor: Annotated[
-        str | None,
-        Query(
-            description="Opaque preparation-packet cursor from a previous page.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ] = None,
-    correlation_id: Annotated[
-        str | None,
-        Header(
-            alias="X-Correlation-ID",
-            description="Optional correlation id.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ] = None,
+    portfolio_id: AdvisorCockpitPortfolioIdQuery = None,
+    advisor_id: AdvisorCockpitAdvisorIdQuery = None,
+    role: AdvisorCockpitCallerRoleQuery = "ADVISOR",
+    limit: AdvisorCockpitActionLimitQuery = 25,
+    cursor: AdvisorCockpitPreparationPacketCursorQuery = None,
+    correlation_id: AdvisorCockpitCorrelationIdHeader = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitPreparationPacketPage:
     return run_proposal_operation(
@@ -319,40 +173,10 @@ def list_advisor_cockpit_preparation_packets(
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
 def get_advisor_cockpit_supportability(
-    portfolio_id: Annotated[
-        str | None,
-        Query(
-            description="Optional portfolio scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["PB_SG_GLOBAL_BAL_001"],
-        ),
-    ] = None,
-    advisor_id: Annotated[
-        str | None,
-        Query(
-            description="Optional advisor actor scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["advisor_sg_001"],
-        ),
-    ] = None,
-    role: Annotated[
-        AdvisorCockpitCallerRole,
-        Query(
-            description=(
-                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
-                "projected to `PORTFOLIO_MANAGER` owned actions."
-            ),
-            examples=["ADVISOR"],
-        ),
-    ] = "ADVISOR",
-    correlation_id: Annotated[
-        str | None,
-        Header(
-            alias="X-Correlation-ID",
-            description="Optional correlation id.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ] = None,
+    portfolio_id: AdvisorCockpitPortfolioIdQuery = None,
+    advisor_id: AdvisorCockpitAdvisorIdQuery = None,
+    role: AdvisorCockpitCallerRoleQuery = "ADVISOR",
+    correlation_id: AdvisorCockpitCorrelationIdHeader = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitSupportabilityResponse:
     return service.get_supportability(
@@ -376,57 +200,13 @@ def get_advisor_cockpit_supportability(
     responses=ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES,
 )
 def acknowledge_advisor_cockpit_action(
-    action_item_id: Annotated[
-        str,
-        Path(
-            description="Advisor cockpit action item identifier.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ],
+    action_item_id: AdvisorCockpitActionItemIdPath,
     payload: AdvisorCockpitAcknowledgeRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required replay-safe acknowledgement idempotency key.",
-            max_length=MAX_IDEMPOTENCY_KEY_LENGTH,
-            examples=["ack-cockpit-action-001"],
-        ),
-    ],
-    portfolio_id: Annotated[
-        str | None,
-        Query(
-            description="Optional portfolio scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["PB_SG_GLOBAL_BAL_001"],
-        ),
-    ] = None,
-    advisor_id: Annotated[
-        str | None,
-        Query(
-            description="Optional advisor actor scope.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-            examples=["advisor_sg_001"],
-        ),
-    ] = None,
-    role: Annotated[
-        AdvisorCockpitCallerRole,
-        Query(
-            description=(
-                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
-                "projected to `PORTFOLIO_MANAGER` owned actions."
-            ),
-            examples=["ADVISOR"],
-        ),
-    ] = "ADVISOR",
-    correlation_id: Annotated[
-        str | None,
-        Header(
-            alias="X-Correlation-ID",
-            description="Optional correlation id.",
-            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        ),
-    ] = None,
+    idempotency_key: AdvisorCockpitAcknowledgementIdempotencyKeyHeader,
+    portfolio_id: AdvisorCockpitPortfolioIdQuery = None,
+    advisor_id: AdvisorCockpitAdvisorIdQuery = None,
+    role: AdvisorCockpitCallerRoleQuery = "ADVISOR",
+    correlation_id: AdvisorCockpitCorrelationIdHeader = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitAcknowledgeResponse:
     return run_proposal_operation(

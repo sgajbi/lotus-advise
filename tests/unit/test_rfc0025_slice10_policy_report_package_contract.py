@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.unit.capability_source_helpers import read_capability_source
+
 RFC_PATH = Path("docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md")
 SLICE10_PATH = Path("docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md")
 RFC_INDEX_PATH = Path("docs/rfcs/README.md")
@@ -14,7 +16,6 @@ DECLARATION_PATH = Path("contracts/domain-data-products/lotus-advise-products.v1
 TELEMETRY_PATH = Path(
     "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
 )
-CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
 
 
 def _flat(text: str) -> str:
@@ -56,7 +57,7 @@ def test_rfc0025_slice10_records_report_refs_without_product_surface_promotion()
     models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     declaration_source = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry_source = TELEMETRY_PATH.read_text(encoding="utf-8")
-    capabilities_source = CAPABILITIES_SOURCE_PATH.read_text(encoding="utf-8")
+    capabilities_source = read_capability_source()
 
     assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in routes_source
     assert "PolicyEvaluationReportPackageRequest" in models_source

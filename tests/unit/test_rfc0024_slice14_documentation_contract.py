@@ -3,6 +3,11 @@ from pathlib import Path
 SLICE14_PATH = Path(
     "docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md"
 )
+CAPABILITY_MODULE_PATHS = (
+    Path("src/api/capabilities/service.py"),
+    Path("src/api/capabilities/feature_catalog.py"),
+    Path("src/api/capabilities/workflow_catalog.py"),
+)
 
 
 def _read(path: str | Path) -> str:
@@ -49,7 +54,7 @@ def test_rfc0024_slice14_contracts_are_unblocked_without_client_ready_claims() -
         "contracts/trust-telemetry/advisory-proposal-memo-evidence-pack.telemetry.v1.json"
     )
     declaration_text = _read("contracts/domain-data-products/lotus-advise-products.v1.json")
-    capability_text = _read("src/api/capabilities/service.py")
+    capability_text = "\n".join(_read(path) for path in CAPABILITY_MODULE_PATHS)
 
     assert '"lifecycle_status": "active"' in declaration_text
     assert '"completeness_status": "complete"' in telemetry_text

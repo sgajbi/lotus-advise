@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 import src.api.main as api_main
+from src.api.openapi_tags import OPENAPI_TAGS
 from src.api.proposals import (
     router as proposal_router,
 )
@@ -113,6 +114,26 @@ def test_api_main_does_not_export_router_or_engine_internals():
         assert not hasattr(api_main, export_name)
 
 
+def test_deprecated_core_engine_shim_is_removed():
+    assert not Path("src/core/engine.py").exists()
+
+
+def test_api_main_uses_shared_openapi_tag_catalog():
+    source = Path("src/api/main.py").read_text(encoding="utf-8")
+
+    assert "from src.api.openapi_tags import OPENAPI_TAGS" in source
+    assert "openapi_tags=OPENAPI_TAGS" in source
+    assert api_main.app.openapi_tags == OPENAPI_TAGS
+
+
+def test_api_main_uses_shared_problem_detail_builder():
+    source = Path("src/api/main.py").read_text(encoding="utf-8")
+
+    assert "from src.api.problem_details import build_problem_detail_response" in source
+    assert "application/problem+json" not in source
+    assert source.count("build_problem_detail_response(") == 3
+
+
 def test_memo_routes_use_shared_response_metadata():
     source = inspect.getsource(routes_memo)
 
@@ -125,6 +146,20 @@ def test_memo_routes_use_shared_response_metadata():
     assert "LotusReportUnavailableError" not in source
     assert "run_lotus_report_operation" in source
     assert source.count("run_proposal_operation(") == 9
+
+
+def test_memo_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_memo.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "Query(" not in source
+    assert "ProposalIdPath" in source
+    assert "ProposalMemoSourceVersionNoPath" in source
+    assert "ProposalMemoCreateIdempotencyKeyHeader" in source
+    assert "ProposalMemoReviewIdempotencyKeyHeader" in source
+    assert "ProposalMemoAudienceQuery" in source
 
 
 def test_policy_pack_routes_use_shared_response_metadata():
@@ -140,6 +175,18 @@ def test_policy_pack_routes_use_shared_response_metadata():
     assert source.count("run_proposal_operation(") == 3
 
 
+def test_policy_pack_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_policy_packs.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "PolicyPackIdPath" in source
+    assert "PolicyPackVersionPath" in source
+    assert "PolicyPackValidationIdempotencyKeyHeader" in source
+    assert "PolicyPackActivationIdempotencyKeyHeader" in source
+
+
 def test_support_routes_use_shared_response_metadata():
     source = inspect.getsource(routes_support)
 
@@ -150,6 +197,17 @@ def test_support_routes_use_shared_response_metadata():
     assert "raise_proposal_http_exception" not in source
     assert "ProposalNotFoundError" not in source
     assert source.count("run_proposal_operation(") == 6
+
+
+def test_support_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_support.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Path(" not in source
+    assert "ProposalIdPath" in source
+    assert "ProposalVersionNoPath" in source
+    assert "ProposalIdempotencyKeyPath" in source
+    assert "ProposalAsyncOperationIdPath" in source
 
 
 def test_lifecycle_routes_use_shared_response_metadata():
@@ -164,6 +222,20 @@ def test_lifecycle_routes_use_shared_response_metadata():
     assert source.count("run_proposal_operation(") == 9
 
 
+def test_lifecycle_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_lifecycle.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Query(" not in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "ProposalIdPath" in source
+    assert "ProposalCreateIdempotencyKeyHeader" in source
+    assert "ProposalVersionCorrelationIdHeader" in source
+    assert "ProposalListLimitQuery" in source
+    assert "ProposalOptionalNarrativeReviewIdempotencyKeyHeader" in source
+
+
 def test_workspace_routes_use_shared_response_metadata():
     source = inspect.getsource(workspace_router)
 
@@ -172,10 +244,26 @@ def test_workspace_routes_use_shared_response_metadata():
     assert "responses=WORKSPACE_DRAFT_ACTION_RESPONSES" in source
     assert "responses=WORKSPACE_HANDOFF_RESPONSES" in source
     assert "_raise_saved_version_not_found" not in source
-    assert "from src.api.services.workspace_errors import" in source
-    assert "WorkspaceEvaluationUnavailableError" in source
-    assert "WorkspaceSavedVersionNotFoundError" in source
+    assert "from src.api.services.workspace_errors import" not in source
+    assert "WorkspaceEvaluationUnavailableError" not in source
+    assert "WorkspaceSavedVersionNotFoundError" not in source
+    assert "WorkspaceAssistantUnavailableError" not in source
+    assert "WorkspaceLifecycleHandoffUnavailableError" not in source
+    assert "run_workspace_operation" in source
+    assert source.count("run_workspace_operation(") == 11
     assert "from src.api.services.workspace_service import (\n    WorkspaceEvaluation" not in source
+
+
+def test_workspace_routes_use_shared_parameter_contracts():
+    source = Path("src/api/workspaces/router.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import APIRouter, Depends, status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "WorkspaceIdPath" in source
+    assert "WorkspaceVersionIdPath" in source
+    assert "WorkspaceCreateCorrelationIdHeader" in source
+    assert "WorkspaceHandoffIdempotencyKeyHeader" in source
 
 
 def test_workspace_ai_service_uses_shared_workspace_exception_types():
@@ -252,12 +340,39 @@ def test_advisory_copilot_routes_use_shared_error_boundary():
     assert source.count("run_copilot_operation(") == 7
 
 
+def test_advisory_copilot_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_advisory_copilot.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Query(" not in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "AdvisoryCopilotCorrelationIdHeader" in source
+    assert "AdvisoryCopilotOptionalIdempotencyKeyHeader" in source
+    assert "AdvisoryCopilotReviewIdempotencyKeyHeader" in source
+    assert "AdvisoryCopilotEvidencePacketIdPath" in source
+    assert "AdvisoryCopilotRunLimitQuery" in source
+
+
 def test_advisor_cockpit_routes_use_shared_error_boundary():
     source = Path("src/api/proposals/routes_advisor_cockpit.py").read_text(encoding="utf-8")
 
     assert "raise_proposal_http_exception" not in source
     assert "ProposalNotFoundError" not in source
     assert source.count("run_proposal_operation(") == 4
+
+
+def test_advisor_cockpit_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_advisor_cockpit.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Query(" not in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "AdvisorCockpitPortfolioIdQuery" in source
+    assert "AdvisorCockpitCallerRoleQuery" in source
+    assert "AdvisorCockpitCorrelationIdHeader" in source
+    assert "AdvisorCockpitAcknowledgementIdempotencyKeyHeader" in source
 
 
 def test_delivery_routes_use_shared_proposal_error_boundary():
@@ -270,6 +385,16 @@ def test_delivery_routes_use_shared_proposal_error_boundary():
     assert source.count("run_proposal_operation(") == 6
 
 
+def test_delivery_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_delivery.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import Depends, status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "ProposalIdPath" in source
+    assert "ProposalExecutionHandoffIdempotencyKeyHeader" in source
+
+
 def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
     source = inspect.getsource(routes_policy_evaluations)
 
@@ -280,12 +405,39 @@ def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
     assert source.count("run_proposal_operation(") == 10
 
 
+def test_policy_evaluation_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_policy_evaluations.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "Query(" not in source
+    assert "PolicyEvaluationProposalIdPath" in source
+    assert "PolicyEvaluationProposalVersionIdPath" in source
+    assert "PolicyEvaluationFinalizeIdempotencyKeyHeader" in source
+    assert "PolicyEvaluationIdPath" in source
+    assert "PolicyEvaluationStatusQuery" in source
+
+
 def test_async_routes_use_shared_proposal_error_boundary():
     source = inspect.getsource(routes_async)
 
     assert "raise_proposal_http_exception" not in source
     assert "ProposalNotFoundError" not in source
     assert source.count("run_proposal_operation(") == 4
+
+
+def test_async_routes_use_shared_parameter_contracts():
+    source = Path("src/api/proposals/routes_async.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import BackgroundTasks, Depends, status" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "ProposalAsyncCreateIdempotencyKeyHeader" in source
+    assert "ProposalAsyncCorrelationIdHeader" in source
+    assert "ProposalAsyncOperationIdPath" in source
+    assert "ProposalAsyncCorrelationIdPath" in source
+    assert "ProposalIdPath" in source
 
 
 def test_direct_http_exception_construction_stays_in_error_boundary_modules():
@@ -313,6 +465,17 @@ def test_advisory_simulation_routes_use_shared_response_metadata():
     assert "responses={" not in source
     assert "responses=PROPOSAL_SIMULATION_RESPONSES" in source
     assert "responses=PROPOSAL_ARTIFACT_RESPONSES" in source
+
+
+def test_advisory_simulation_routes_use_shared_parameter_contracts():
+    source = Path("src/api/routers/advisory_simulation.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import APIRouter, status" in source
+    assert "Header(" not in source
+    assert "ProposalSimulationIdempotencyKeyHeader" in source
+    assert "ProposalArtifactIdempotencyKeyHeader" in source
+    assert "ProposalSimulationCorrelationIdHeader" in source
+    assert "ProposalArtifactCorrelationIdHeader" in source
 
 
 def test_advisory_simulation_service_uses_shared_error_helpers():
@@ -346,6 +509,71 @@ def test_integration_capabilities_routes_use_shared_response_metadata():
     assert "responses=INTEGRATION_CAPABILITIES_RESPONSES" in source
 
 
+def test_integration_capabilities_routes_use_shared_parameter_contracts():
+    source = Path("src/api/routers/integration_capabilities.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import APIRouter" in source
+    assert "Query(" not in source
+    assert "IntegrationConsumerSystemQuery" in source
+    assert "IntegrationTenantIdQuery" in source
+
+
+def test_capabilities_service_delegates_supportability_projection():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+
+    assert "from src.api.capabilities.supportability import build_advisory_supportability" in source
+    assert "record_advisory_supportability" not in source
+    assert "SupportabilityState" not in source
+    assert "def build_advisory_supportability(" not in source
+
+
+def test_capabilities_service_delegates_dependency_readiness_helpers():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+    feature_catalog = Path("src/api/capabilities/feature_catalog.py").read_text(encoding="utf-8")
+    workflow_catalog = Path("src/api/capabilities/workflow_catalog.py").read_text(encoding="utf-8")
+
+    assert "from src.api.capabilities.dependencies import" in source
+    assert "def dependency_map(" not in source
+    assert "def dependency_ready(" not in source
+    assert "dependency_ready," not in source
+    assert "bank_demo_proof_readiness" not in source
+    assert "resolve_capability_dependency_status" not in source
+    assert "resolve_capability_dependency_status" in feature_catalog
+    assert "resolve_capability_dependency_status" in workflow_catalog
+    assert "BANK_DEMO_PROOF_DEPENDENCY_KEYS" not in source
+    assert '"LOTUS_CORE_DEPENDENCY_UNAVAILABLE"' not in source
+    assert '"LOTUS_AI_DEPENDENCY_UNAVAILABLE"' not in source
+    assert '"LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"' not in source
+    assert '"ADVISORY_LIFECYCLE_DISABLED"' not in source
+
+
+def test_capabilities_service_delegates_runtime_flag_resolution():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+
+    assert (
+        "from src.api.capabilities.runtime_flags import resolve_capability_runtime_flags" in source
+    )
+    assert "import os" not in source
+    assert "def _env_bool(" not in source
+    assert "os.getenv(" not in source
+
+
+def test_capabilities_service_delegates_feature_catalog_assembly():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+
+    assert "from src.api.capabilities.feature_catalog import build_feature_capabilities" in source
+    assert "def build_feature_capabilities(" not in source
+    assert "FeatureCapability(" not in source
+
+
+def test_capabilities_service_delegates_workflow_catalog_assembly():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+
+    assert "from src.api.capabilities.workflow_catalog import build_workflow_capabilities" in source
+    assert "def build_workflow_capabilities(" not in source
+    assert "WorkflowCapability(" not in source
+
+
 def test_bank_demo_proof_routes_use_shared_response_metadata():
     source = inspect.getsource(bank_demo_proof_router)
 
@@ -355,3 +583,11 @@ def test_bank_demo_proof_routes_use_shared_response_metadata():
     assert "HTTPException(" not in source
     assert "except ValueError as exc" not in source
     assert "run_bank_demo_proof_operation" in source
+
+
+def test_bank_demo_proof_routes_use_shared_parameter_contracts():
+    source = Path("src/api/routers/bank_demo_proof.py").read_text(encoding="utf-8")
+
+    assert "from fastapi import APIRouter, status" in source
+    assert "Header(" not in source
+    assert "BankDemoProofCorrelationIdHeader" in source

@@ -8,6 +8,8 @@ from typing import Any
 
 import pytest
 
+from tests.unit.capability_source_helpers import read_capability_source
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_ROOT = REPO_ROOT.parent / "lotus-platform"
 TELEMETRY_DIR = REPO_ROOT / "contracts" / "trust-telemetry"
@@ -172,9 +174,7 @@ def test_rfc0024_memo_trust_telemetry_promotes_only_advisor_use_memo() -> None:
     snapshot = _load_json(MEMO_SNAPSHOT_PATH)
     declaration = _load_json(DECLARATION_PATH)
     supported_text = (REPO_ROOT / "wiki" / "Supported-Features.md").read_text(encoding="utf-8")
-    capability_text = (REPO_ROOT / "src" / "api" / "capabilities" / "service.py").read_text(
-        encoding="utf-8"
-    )
+    capability_text = read_capability_source(repo_root=REPO_ROOT)
 
     assert "advisory-proposal-memo-evidence-pack.telemetry.v1.json" in telemetry_files
     assert snapshot["product_name"] == "AdvisoryProposalMemoEvidencePack"
@@ -309,9 +309,7 @@ def test_rfc0025_policy_evaluation_catalog_generation_promotes_active_support(
         for product in catalog["products"]
         if product["product_id"] == "lotus-advise:AdvisoryPolicyEvaluationRecord:v1"
     )
-    capability_text = (REPO_ROOT / "src" / "api" / "capabilities" / "service.py").read_text(
-        encoding="utf-8"
-    )
+    capability_text = read_capability_source(repo_root=REPO_ROOT)
 
     assert policy_product["lifecycle_status"] == "active"
     assert policy_product["current_routes"] == [

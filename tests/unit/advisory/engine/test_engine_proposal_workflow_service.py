@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+import src.core.proposals.create_command as proposal_create_command_module
 import src.core.proposals.service as proposal_service_module
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
@@ -24,6 +25,7 @@ from src.core.proposals.models import (
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
 )
+from src.core.proposals.replay_views import build_create_response_from_replay_referents
 from src.core.proposals.service import (
     ProposalIdempotencyConflictError,
     ProposalLifecycleError,
@@ -125,7 +127,7 @@ def test_create_proposal_redacts_sensitive_context_resolution_errors(
         )
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_create_command_module,
         "resolve_create_request",
         _raise_sensitive_context_error,
     )
@@ -719,6 +721,429 @@ def test_service_get_proposal_and_version_raise_not_found_paths():
         raise AssertionError("Expected PROPOSAL_VERSION_NOT_FOUND")
 
 
+@pytest.mark.parametrize(
+    ("service_method_name", "view_function_name"),
+    [
+        ("get_workflow_timeline", "build_workflow_timeline_view"),
+        ("get_execution_status", "build_execution_status_view"),
+        ("get_delivery_summary", "build_delivery_summary_view"),
+        ("get_delivery_history", "build_delivery_history_view"),
+    ],
+)
+def test_service_delegates_activity_views(
+    monkeypatch,
+    service_method_name: str,
+    view_function_name: str,
+):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+
+    response = getattr(service, service_method_name)(proposal_id="pp_activity_view")
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_activity_view",
+    }
+
+
+@pytest.mark.parametrize(
+    ("service_method_name", "view_function_name", "call_kwargs", "expected_kwargs"),
+    [
+        (
+            "get_proposal",
+            "build_proposal_detail_view",
+            {"proposal_id": "pp_detail_view", "include_evidence": False},
+            {"proposal_id": "pp_detail_view", "include_evidence": False},
+        ),
+        (
+            "get_approvals",
+            "build_proposal_approvals_view",
+            {"proposal_id": "pp_approval_view"},
+            {"proposal_id": "pp_approval_view"},
+        ),
+        (
+            "get_lineage",
+            "build_proposal_lineage_view",
+            {"proposal_id": "pp_lineage_view"},
+            {"proposal_id": "pp_lineage_view"},
+        ),
+        (
+            "get_idempotency_lookup",
+            "build_idempotency_lookup_view",
+            {"idempotency_key": "idem-read-view"},
+            {"idempotency_key": "idem-read-view"},
+        ),
+        (
+            "get_version",
+            "build_proposal_version_view",
+            {
+                "proposal_id": "pp_version_view",
+                "version_no": 3,
+                "include_evidence": False,
+            },
+            {
+                "proposal_id": "pp_version_view",
+                "version_no": 3,
+                "include_evidence": False,
+            },
+        ),
+    ],
+)
+def test_service_delegates_simple_read_views(
+    monkeypatch,
+    service_method_name: str,
+    view_function_name: str,
+    call_kwargs: dict[str, object],
+    expected_kwargs: dict[str, object],
+):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+
+    response = getattr(service, service_method_name)(**call_kwargs)
+
+    assert response is sentinel
+    assert captured == {"repository": repo, **expected_kwargs}
+
+
+def test_service_delegates_proposal_list_view(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    created_from = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    created_to = datetime(2026, 1, 3, tzinfo=timezone.utc)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_build_proposal_list_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "build_proposal_list_view",
+        fake_build_proposal_list_view,
+    )
+
+    response = service.list_proposals(
+        portfolio_id="pf_read_view",
+        state="DRAFT",
+        created_by="advisor",
+        created_from=created_from,
+        created_to=created_to,
+        limit=25,
+        cursor="cursor-read-view",
+    )
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "portfolio_id": "pf_read_view",
+        "state": "DRAFT",
+        "created_by": "advisor",
+        "created_from": created_from,
+        "created_to": created_to,
+        "limit": 25,
+        "cursor": "cursor-read-view",
+    }
+
+
+def test_service_delegates_version_replay_view(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_build_proposal_version_replay_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "build_proposal_version_replay_view",
+        fake_build_proposal_version_replay_view,
+    )
+
+    response = service.get_version_replay(proposal_id="pp_replay_view", version_no=5)
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_replay_view",
+        "version_no": 5,
+    }
+
+
+def test_service_delegates_create_version_command(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(
+        repository=repo,
+        store_evidence_bundle=False,
+        require_proposal_simulation_flag=False,
+        allow_portfolio_id_change_on_new_version=True,
+    )
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    replay_lineage = {"source": "async-replay"}
+    context_resolution_override = {"source": "test-context"}
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_create_proposal_version(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "create_proposal_version",
+        fake_create_proposal_version,
+    )
+
+    response = service.create_version(
+        proposal_id="pp_create_version_delegate",
+        payload=payload,
+        correlation_id="corr-create-version-delegate",
+        replay_lineage=replay_lineage,
+        context_resolution_override=context_resolution_override,
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["proposal_id"] == "pp_create_version_delegate"
+    assert captured["payload"] is payload
+    assert captured["correlation_id"] == "corr-create-version-delegate"
+    assert captured["replay_lineage"] is replay_lineage
+    assert captured["context_resolution_override"] is context_resolution_override
+    assert captured["store_evidence_bundle"] is False
+    assert captured["require_proposal_simulation_flag"] is False
+    assert captured["allow_portfolio_id_change_on_new_version"] is True
+    assert callable(captured["utc_now"])
+
+
+def test_service_delegates_create_proposal_command(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(
+        repository=repo,
+        store_evidence_bundle=False,
+        require_proposal_simulation_flag=False,
+    )
+    payload = _create_payload()
+    replay_lineage = {"source": "create-replay"}
+    context_resolution_override = {"source": "create-context"}
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_create_proposal_command(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "create_proposal_command",
+        fake_create_proposal_command,
+    )
+
+    response = service.create_proposal(
+        payload=payload,
+        idempotency_key="idem-create-delegate",
+        correlation_id="corr-create-delegate",
+        lifecycle_origin="WORKSPACE_HANDOFF",
+        source_workspace_id="workspace-create-delegate",
+        replay_lineage=replay_lineage,
+        context_resolution_override=context_resolution_override,
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["payload"] is payload
+    assert captured["idempotency_key"] == "idem-create-delegate"
+    assert captured["correlation_id"] == "corr-create-delegate"
+    assert captured["lifecycle_origin"] == "WORKSPACE_HANDOFF"
+    assert captured["source_workspace_id"] == "workspace-create-delegate"
+    assert captured["replay_lineage"] is replay_lineage
+    assert captured["context_resolution_override"] is context_resolution_override
+    assert captured["store_evidence_bundle"] is False
+    assert captured["require_proposal_simulation_flag"] is False
+    assert callable(captured["utc_now"])
+
+
+def test_service_delegates_create_proposal_async_submission(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_accept_create_proposal_async_submission_command(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "accept_create_proposal_async_submission_command",
+        fake_accept_create_proposal_async_submission_command,
+    )
+
+    response = service.accept_create_proposal_async_submission(
+        payload=payload,
+        idempotency_key="idem-create-async-delegate",
+        correlation_id="corr-create-async-delegate",
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["payload"] is payload
+    assert captured["idempotency_key"] == "idem-create-async-delegate"
+    assert captured["correlation_id"] == "corr-create-async-delegate"
+    assert captured["max_attempts"] == 3
+    assert callable(captured["utc_now"])
+    assert captured["submission_stats"] is service._async_create_submission_stats  # noqa: SLF001
+
+
+def test_service_delegates_create_version_async_submission(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_accept_create_version_async_submission_command(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "accept_create_version_async_submission_command",
+        fake_accept_create_version_async_submission_command,
+    )
+
+    response = service.accept_create_version_async_submission(
+        proposal_id="pp-version-async-delegate",
+        payload=payload,
+        correlation_id="corr-version-async-delegate",
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["proposal_id"] == "pp-version-async-delegate"
+    assert captured["payload"] is payload
+    assert captured["correlation_id"] == "corr-version-async-delegate"
+    assert captured["max_attempts"] == 3
+    assert callable(captured["utc_now"])
+
+
+def test_service_delegates_narrative_read_view(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_build_narrative_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "build_narrative_view",
+        fake_build_narrative_view,
+    )
+
+    response = service.get_narrative(proposal_id="pp_narrative_view", version_no=2)
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_narrative_view",
+        "version_no": 2,
+    }
+
+
+def test_service_delegates_narrative_regeneration_view(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = object()
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_regenerate_narrative_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "regenerate_narrative_view",
+        fake_regenerate_narrative_view,
+    )
+
+    response = service.regenerate_narrative(
+        proposal_id="pp_narrative_regenerate",
+        version_no=3,
+        payload=payload,  # type: ignore[arg-type]
+    )
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_narrative_regenerate",
+        "version_no": 3,
+        "payload": payload,
+    }
+
+
+def test_service_delegates_narrative_review_command(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = object()
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_record_narrative_review(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "record_narrative_review",
+        fake_record_narrative_review,
+    )
+
+    response = service.record_narrative_review(
+        proposal_id="pp_narrative_review",
+        version_no=4,
+        payload=payload,  # type: ignore[arg-type]
+        idempotency_key="idem-narrative-review",
+    )
+
+    assert response is sentinel
+    assert captured["repository"] is repo
+    assert captured["proposal_id"] == "pp_narrative_review"
+    assert captured["version_no"] == 4
+    assert captured["payload"] is payload
+    assert captured["idempotency_key"] == "idem-narrative-review"
+    assert isinstance(captured["event_id"], str)
+    assert callable(captured["occurred_at"])
+
+
 def test_service_missing_version_paths_and_helper_branches():
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)
@@ -785,7 +1210,11 @@ def test_service_missing_version_paths_and_helper_branches():
         )
     )
     try:
-        service._read_create_response(proposal_id="pp_missing", version_no=1)
+        build_create_response_from_replay_referents(
+            repository=repo,
+            proposal_id="pp_missing",
+            version_no=1,
+        )
     except ProposalNotFoundError as exc:
         assert str(exc) == "PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND"
     else:
@@ -846,6 +1275,116 @@ def test_service_execute_async_returns_when_operation_missing():
     service.execute_create_version_async(
         operation_id="pop_missing",
     )
+
+
+@pytest.mark.parametrize(
+    ("service_method_name", "view_function_name", "call_kwargs", "expected_identity"),
+    [
+        (
+            "get_async_operation",
+            "build_async_operation_status_view",
+            {"operation_id": "pop_status_view"},
+            {"operation_id": "pop_status_view"},
+        ),
+        (
+            "get_async_operation_replay",
+            "build_async_operation_replay_view",
+            {"operation_id": "pop_replay_view"},
+            {"operation_id": "pop_replay_view"},
+        ),
+        (
+            "get_async_operation_by_correlation",
+            "build_async_operation_correlation_view",
+            {"correlation_id": "corr_async_view"},
+            {"correlation_id": "corr_async_view"},
+        ),
+    ],
+)
+def test_service_delegates_async_operation_views(
+    monkeypatch,
+    service_method_name: str,
+    view_function_name: str,
+    call_kwargs: dict[str, str],
+    expected_identity: dict[str, str],
+):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+
+    response = getattr(service, service_method_name)(**call_kwargs)
+
+    assert response is sentinel
+    assert captured == {"repository": repo, **expected_identity}
+
+
+def test_service_delegates_create_proposal_async_execution(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+    captured: dict[str, object] = {}
+
+    def fake_execute_create_proposal_async_operation(**kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "execute_create_proposal_async_operation",
+        fake_execute_create_proposal_async_operation,
+    )
+
+    service.execute_create_proposal_async(
+        operation_id="pop_delegate_create",
+        payload=payload,
+        idempotency_key="idem-delegate-create",
+        correlation_id="corr-delegate-create",
+    )
+
+    assert captured["repository"] is repo
+    assert captured["operation_id"] == "pop_delegate_create"
+    assert captured["fallback_payload"] is payload
+    assert captured["fallback_idempotency_key"] == "idem-delegate-create"
+    assert captured["fallback_correlation_id"] == "corr-delegate-create"
+    assert captured["create_proposal"] == service.create_proposal
+
+
+def test_service_delegates_create_version_async_execution(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    captured: dict[str, object] = {}
+
+    def fake_execute_create_version_async_operation(**kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "execute_create_version_async_operation",
+        fake_execute_create_version_async_operation,
+    )
+
+    service.execute_create_version_async(
+        operation_id="pop_delegate_version",
+        proposal_id="pp_delegate_version",
+        payload=payload,
+        correlation_id="corr-delegate-version",
+    )
+
+    assert captured["repository"] is repo
+    assert captured["operation_id"] == "pop_delegate_version"
+    assert captured["fallback_proposal_id"] == "pp_delegate_version"
+    assert captured["fallback_payload"] is payload
+    assert captured["fallback_correlation_id"] == "corr-delegate-version"
+    assert captured["create_version"] == service.create_version
 
 
 def test_service_execute_create_proposal_async_marks_failed_on_lifecycle_error():
@@ -1176,6 +1715,30 @@ def test_service_recover_async_operations_replays_expired_running_version_operat
     assert status.status == "SUCCEEDED"
     assert status.attempt_count == 2
     assert status.result is not None
+
+
+def test_service_delegates_async_recovery_batch(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    captured: dict[str, object] = {}
+
+    def fake_recover_async_operation_batch(**kwargs):
+        captured.update(kwargs)
+        return 7
+
+    monkeypatch.setattr(
+        proposal_service_module,
+        "recover_async_operation_batch",
+        fake_recover_async_operation_batch,
+    )
+
+    recovered = service.recover_async_operations(max_operations=3)
+
+    assert recovered == 7
+    assert captured["repository"] is repo
+    assert captured["max_operations"] == 3
+    assert captured["execute_create_proposal_async"] == service.execute_create_proposal_async
+    assert captured["execute_create_version_async"] == service.execute_create_version_async
 
 
 def test_service_expected_state_can_be_optional_when_disabled():

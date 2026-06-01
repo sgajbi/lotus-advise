@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from tests.unit.capability_source_helpers import read_capability_source
+
 SLICE16_PATH = Path("docs/rfcs/RFC-0025-slice-16-final-closure.md")
 
 
@@ -62,7 +64,7 @@ def test_rfc0025_slice16_promotes_active_policy_data_product_truth() -> None:
         "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
     )
     declaration = _load_json("contracts/domain-data-products/lotus-advise-products.v1.json")
-    capabilities = _read("src/api/capabilities/service.py")
+    capabilities = read_capability_source()
     supportability = _read("src/core/policy_packs/supportability.py")
 
     product = next(

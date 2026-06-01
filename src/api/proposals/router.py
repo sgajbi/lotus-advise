@@ -10,7 +10,7 @@ from src.api.proposals.feature_gates import (
     assert_proposal_support_apis_enabled,
 )
 from src.api.proposals.runtime_errors import resolve_proposal_runtime_dependency
-from src.api.routers.runtime_utils import env_flag
+from src.api.runtime_flags import env_flag
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.repository import ProposalRepository
 

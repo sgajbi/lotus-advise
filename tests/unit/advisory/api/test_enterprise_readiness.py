@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.api.enterprise_readiness import (
+    _REDACT_FIELD_MARKERS,
     authorize_write_request,
     build_enterprise_audit_middleware,
     emit_audit_event,
@@ -199,6 +200,12 @@ def test_redact_sensitive_covers_common_audit_metadata_key_variants() -> None:
     assert redacted["safe_business_key"] == "portfolio review requested"
     assert redacted["nested"]["normal"] == "kept"
     assert redacted["items"][1]["reason"] == "advisor review"
+
+
+def test_enterprise_redaction_uses_single_marker_catalog() -> None:
+    assert "password" in _REDACT_FIELD_MARKERS
+    assert "account_number" in _REDACT_FIELD_MARKERS
+    assert "client_email" in _REDACT_FIELD_MARKERS
 
 
 def test_redact_sensitive_does_not_mutate_original_metadata() -> None:

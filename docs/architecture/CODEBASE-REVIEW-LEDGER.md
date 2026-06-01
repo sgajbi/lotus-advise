@@ -1,5 +1,1294 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-490
+
+- Scope: Postgres proposal persistence helper dependency direction
+- Pattern: Extracted Postgres persistence helpers should not import the repository adapter they
+  support, otherwise the modularization can regress into cyclic infrastructure dependencies.
+- Status: Hardened
+- Finding Class: dependency-flow regression test gap
+- Summary: The newly extracted persistence helpers had no explicit contract preventing reverse
+  imports from helper modules back into `src/infrastructure/proposals/postgres.py`.
+- Evidence:
+  - Extended `tests/unit/advisory/contracts/test_proposal_postgres_repository_boundary.py` with a
+    dependency-direction assertion across the extracted Postgres helper modules.
+  - The contract rejects imports of the repository adapter from helper modules.
+- Consequence:
+  - The extracted helper modules remain lower-level persistence units and the repository adapter
+    remains the orchestration layer.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public behavior is
+    unchanged.
+- Follow-Up:
+  - Run broad local gates and open the PR once GitHub Feature Lane is green for the final pushed
+    commit.
+
+## LA-REV-489
+
+- Scope: Postgres proposal repository boundary regression coverage
+- Pattern: The proposal Postgres repository adapter needs direct contract coverage that prevents
+  persistence SQL from drifting back into the delegating adapter after modularization.
+- Status: Hardened
+- Finding Class: architecture regression test gap
+- Summary: The Postgres persistence extraction had strong behavior coverage but no explicit
+  architecture contract preventing future inline SQL from returning to
+  `src/infrastructure/proposals/postgres.py`.
+- Evidence:
+  - Added `tests/unit/advisory/contracts/test_proposal_postgres_repository_boundary.py`.
+  - The contract asserts that `postgres.py` remains a compact delegating adapter without inline SQL
+    markers and that the extracted Postgres helper modules remain present.
+- Consequence:
+  - Future changes that reintroduce monolithic SQL into the repository adapter now fail a fast unit
+    contract before the codebase regresses structurally.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public behavior is
+    unchanged.
+- Follow-Up:
+  - Include this contract in the focused proposal persistence validation pack and in the PR evidence.
+
+## LA-REV-488
+
+- Scope: Postgres proposal repository helper imports
+- Pattern: The proposal Postgres repository adapter should depend on cohesive helper modules instead
+  of dozens of single-function helper imports that make the orchestration boundary difficult to
+  scan.
+- Status: Hardened
+- Finding Class: readability and dependency-flow maintainability
+- Summary: After extracting persistence helpers, `src/infrastructure/proposals/postgres.py` imported
+  each helper function individually. That reduced SQL size but left a noisy adapter-level dependency
+  surface and made it harder to see the intended module boundaries.
+- Evidence:
+  - Collapsed persistence helper imports to module-level aliases for approvals, async operations,
+    cockpit acknowledgements, idempotency, memos, records, versions, and workflow events.
+  - Updated repository delegation calls to use those module aliases, making ownership boundaries
+    visible at call sites.
+- Consequence:
+  - The repository adapter now reads as orchestration across cohesive infrastructure modules rather
+    than a flat list of imported functions.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because behavior and public API
+    contracts are unchanged.
+- Follow-Up:
+  - Continue with broad proposal persistence validation and PR-readiness checks after the commit
+    batch reaches the requested size.
+
+## LA-REV-487
+
+- Scope: Postgres proposal record persistence
+- Pattern: Proposal record create/update/get/list SQL and transaction-scoped upsert should live in a
+  focused infrastructure helper instead of remaining inline in the proposal Postgres repository
+  adapter.
+- Status: Hardened
+- Finding Class: modularity and proposal list-query maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned proposal record persistence
+  directly, including keyset list filtering, cursor predicate construction, point lookup, and the
+  transaction-scoped upsert reused by proposal transitions. This kept the core proposal list-query
+  path coupled to unrelated memo, version, approval, event, and idempotency persistence in one
+  adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_records.py` for proposal record persistence
+    helpers.
+  - Updated `PostgresProposalRepository` proposal record methods and transition writes to delegate
+    through the helper while preserving the transaction boundary used by `transition_proposal`.
+  - Reused existing Postgres repository coverage for create/update/get/list behavior, keyset cursor
+    behavior, and transition write behavior.
+- Consequence:
+  - Proposal list-query and state persistence now have explicit infrastructure ownership, reducing
+    the repository adapter to orchestration and delegation.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue reducing import/delegation noise and run the broader proposal persistence pack before
+    PR closure.
+
+## LA-REV-486
+
+- Scope: Postgres proposal approval persistence
+- Pattern: Approval append/list/batch-list SQL and transaction-scoped approval insertion should live
+  in a focused infrastructure helper instead of remaining inline in the proposal Postgres repository
+  adapter.
+- Status: Hardened
+- Finding Class: modularity and approval audit persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned approval persistence directly,
+  including ordered approval reads, batch approval ordering, and the private insert routine reused by
+  transition writes. This kept risk/compliance approval audit persistence coupled to proposal record
+  persistence and transition orchestration in one adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_approvals.py` for approval persistence helpers.
+  - Updated `PostgresProposalRepository` approval methods and transition writes to delegate through
+    the helper while preserving the transaction boundary used by `transition_proposal`.
+  - Reused existing Postgres repository coverage for approval ordering, batch ordering, and
+    transition write behavior.
+- Consequence:
+  - Approval audit persistence now has explicit infrastructure ownership while preserving the atomic
+    proposal transition write path.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal record persistence after this helper is green locally and remotely.
+
+## LA-REV-485
+
+- Scope: Postgres proposal workflow event persistence
+- Pattern: Workflow event append/list/batch-list SQL and transaction-scoped event insertion should
+  live in a focused infrastructure helper instead of remaining inline in the proposal Postgres
+  repository adapter.
+- Status: Hardened
+- Finding Class: modularity and lifecycle audit persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned proposal workflow event
+  persistence directly, including ordered event reads, batch event ordering, and the private insert
+  routine reused by transition writes. This kept lifecycle audit persistence mixed with proposal,
+  version, memo, and approval persistence in one adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_workflow_events.py` for workflow event persistence
+    helpers.
+  - Updated `PostgresProposalRepository` event methods and transition writes to delegate through
+    the helper while preserving the transaction boundary used by `transition_proposal`.
+  - Reused existing Postgres repository coverage for workflow event ordering, batch ordering, and
+    transition write behavior.
+- Consequence:
+  - Lifecycle audit persistence now has explicit infrastructure ownership while preserving the
+    atomic proposal transition write path.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting approval and proposal record persistence groups after this helper is green
+    locally and remotely.
+
+## LA-REV-484
+
+- Scope: Postgres proposal version persistence
+- Pattern: Proposal version insert/upsert, point lookup, ordered listing, and current-version lookup
+  should live in a focused infrastructure helper instead of remaining inline in the proposal
+  Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and proposal version persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned proposal version SQL directly,
+  including the version column projection, canonical JSON serialization, conflict update behavior,
+  and current-version query. This coupled advisory artifact lineage persistence to unrelated
+  lifecycle, event, and approval persistence in the same adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_versions.py` for proposal version persistence
+    helpers.
+  - Updated `PostgresProposalRepository` version methods to delegate through `_connect` while
+    preserving existing repository method signatures.
+  - Reused existing Postgres repository coverage for version create/get/list/current-version
+    behavior.
+- Consequence:
+  - Proposal artifact lineage persistence now has explicit infrastructure ownership, reducing the
+    repository adapter surface and making version-query hardening easier to localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting workflow event, approval, and proposal lifecycle persistence groups after
+    this helper is green locally and remotely.
+
+## LA-REV-483
+
+- Scope: Postgres proposal memo persistence
+- Pattern: Memo insert/read/list and memo-event append/list SQL should live in a focused
+  infrastructure helper instead of remaining inline in the proposal Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and proposal evidence persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned proposal memo persistence directly,
+  including the full memo column projection, memo-event writes, batch proposal memo lookup ordering,
+  and memo row mapping. This kept advisory memo evidence-pack persistence coupled to unrelated
+  proposal lifecycle and approval persistence concerns.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_memos.py` for proposal memo and memo-event
+    persistence helpers.
+  - Updated `PostgresProposalRepository` memo methods to delegate through `_connect` while
+    preserving existing repository method signatures.
+  - Reused existing Postgres repository roundtrip coverage for memo persistence, version lookup,
+    batch ordering, memo idempotency preservation, and memo-event ordering.
+- Consequence:
+  - Advisory memo evidence-pack persistence now has explicit infrastructure ownership, reducing the
+    proposal repository adapter surface and making future memo query hardening easier to localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal/version/event/approval persistence groups after this helper is
+    green locally and remotely.
+
+## LA-REV-482
+
+- Scope: Postgres advisor cockpit acknowledgement persistence
+- Pattern: Advisor cockpit acknowledgement lookup, idempotent save, and idempotency lookup SQL
+  should live in a focused infrastructure helper instead of remaining inline in the proposal
+  Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and infrastructure persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned cockpit acknowledgement
+  persistence directly, including idempotency insert, conflict validation, acknowledgement upsert,
+  rollback behavior, and row mapping. This kept a separate advisor-cockpit persistence concern in
+  the proposal repository monolith.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_cockpit_acknowledgements.py` for cockpit
+    acknowledgement persistence helpers.
+  - Updated `PostgresProposalRepository` cockpit acknowledgement methods to delegate through
+    `_connect` while preserving existing repository method signatures.
+  - Reused existing Postgres repository roundtrip coverage proving acknowledgement persistence,
+    idempotency lookup, and idempotency conflict rollback behavior.
+- Consequence:
+  - Advisor cockpit acknowledgement persistence now has explicit infrastructure ownership, reducing
+    unrelated persistence concerns in the proposal repository adapter.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting memo persistence or proposal/version/event persistence groups after this
+    helper is green locally and remotely.
+
+## LA-REV-481
+
+- Scope: Postgres proposal async operation persistence
+- Pattern: Async operation upsert, idempotent insert, lookup, and recoverable-operation query logic
+  should live in a focused infrastructure helper instead of remaining inline in the oversized
+  Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and async persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned all async operation persistence
+  SQL directly, including operation upsert, atomic idempotent insert-or-load, status/correlation
+  lookup, and recoverable-operation scanning. This mixed operational retry persistence into the
+  already large repository adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_async_operations.py` for async operation
+    persistence helpers and the shared column/parameter mapping.
+  - Updated `PostgresProposalRepository` async operation methods to delegate through `_connect`
+    while preserving existing repository method signatures.
+  - Reused existing Postgres repository unit coverage for create/update, correlation lookup,
+    atomic idempotent insert-or-load, non-idempotent snapshot behavior, and recoverable operation
+    ordering/limit semantics.
+- Consequence:
+  - Async operation persistence now has explicit infrastructure ownership, making future retry,
+    lease, and recovery query hardening easier to localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting remaining Postgres repository method groups such as cockpit
+    acknowledgements and memo persistence once async operation extraction is green locally and
+    remotely.
+
+## LA-REV-480
+
+- Scope: Postgres proposal idempotency persistence
+- Pattern: Proposal, simulation, and memo idempotency SQL should live in a focused infrastructure
+  helper instead of remaining inline in the oversized Postgres repository adapter.
+- Status: Hardened
+- Finding Class: modularity and infrastructure persistence maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned three idempotency persistence
+  groups directly at the top of the repository class. These methods mixed idempotency SQL, row
+  mapping, and transaction handling into the adapter, widening a file already over 1,300 lines.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_idempotency.py` for proposal, simulation, and memo
+    idempotency get/save helpers.
+  - Updated `PostgresProposalRepository` idempotency methods to delegate through `_connect` while
+    preserving existing repository method signatures.
+  - Reused existing Postgres repository unit coverage for proposal, simulation, and memo
+    idempotency persistence semantics, including memo idempotency `ON CONFLICT DO NOTHING`
+    behavior.
+- Consequence:
+  - Idempotency persistence now has explicit infrastructure ownership, making future auditability,
+    conflict handling, and query-shape hardening easier to localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting Postgres async operation persistence and cockpit acknowledgement groups once
+    idempotency extraction is green locally and remotely.
+
+## LA-REV-479
+
+- Scope: Postgres proposal repository mapping helpers
+- Pattern: Postgres row mapping and JSON/date serialization should live in a focused mapper module
+  instead of remaining embedded at the bottom of the oversized repository adapter.
+- Status: Hardened
+- Finding Class: modularity and infrastructure maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still bundled repository SQL methods with
+  JSON serialization helpers and row-to-domain mappers. That kept infrastructure conversion logic
+  inside the 1,400+ line repository adapter and made mapper behavior harder to test directly.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_mappers.py` for JSON/date helpers and Postgres
+    row-to-domain mappers.
+  - Updated `src/infrastructure/proposals/postgres.py` to import mapper helpers through its
+    existing private compatibility names, preserving current call sites and tests while removing
+    mapper implementations from the repository file.
+  - Added mapper-focused unit coverage for compatibility aliases, canonical JSON serialization,
+    list JSON filtering, optional datetime parsing, and missing-row handling.
+- Consequence:
+  - The Postgres proposal repository now has a narrower responsibility surface, and mapper behavior
+    can be hardened independently before larger SQL method extraction.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting Postgres repository method groups, starting with idempotency and async
+    operation persistence, once mapper extraction is green locally and remotely.
+
+## LA-REV-478
+
+- Scope: Proposal async submission command orchestration
+- Pattern: Async create and version submission acceptance should live in command helpers instead
+  of keeping idempotency normalization, correlation resolution, operation construction,
+  persistence, and acceptance projection inline in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and async command-boundary maintainability
+- Summary: `src/core/proposals/service.py` still owned async submission acceptance for both
+  initial create and create-version flows. These methods mixed correlation/idempotency handling,
+  operation construction, persistence, conflict translation, and create-submission telemetry updates
+  inside the service facade.
+- Evidence:
+  - Added `src/core/proposals/async_submission_commands.py` for create-proposal and create-version
+    async submission acceptance.
+  - Updated `ProposalWorkflowService` async submission methods to delegate to the command helpers
+    while preserving public method signatures.
+  - Added service-level guard coverage proving repository, payloads, proposal identity,
+    idempotency key, correlation ID, max attempts, clock dependency, and create-submission stats
+    tracker are passed through unchanged.
+- Consequence:
+  - Async submission acceptance now has explicit command ownership, separating request acceptance
+    from the service facade and making future idempotency/correlation diagnostics easier to test.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Run a broader proposal workflow regression pack before preparing the branch for PR.
+
+## LA-REV-477
+
+- Scope: Proposal create command orchestration
+- Pattern: Initial proposal creation should live in a command boundary instead of keeping
+  idempotency replay, lifecycle-origin validation, context resolution, simulation,
+  materialization, persistence, and response projection inline in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and command-boundary maintainability
+- Summary: After create-version extraction, `src/core/proposals/service.py` still owned the full
+  initial create command path. That path mixed idempotency conflict/replay handling, lifecycle
+  validation, advisory simulation, materialization, command-state creation, and persistence inside
+  the service facade.
+- Evidence:
+  - Added `src/core/proposals/create_command.py` with the initial create command boundary and
+    explicit dependencies for repository, lifecycle origin, replay lineage, context override,
+    evidence-storage flag, simulation flag, and clock source.
+  - Updated `ProposalWorkflowService.create_proposal()` to delegate to the command boundary while
+    preserving public method signatures.
+  - Added service-level guard coverage proving the command receives repository, payload,
+    idempotency key, correlation ID, lifecycle origin, workspace source, replay lineage, context
+    override, evidence-storage flag, simulation flag, and clock dependency unchanged.
+- Consequence:
+  - The workflow service no longer owns proposal create command internals, leaving command behavior
+    in focused modules and making future idempotency, lineage, and validation hardening easier to
+    localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting async submission command helpers and then run a broader service regression
+    pack before PR preparation.
+
+## LA-REV-476
+
+- Scope: Proposal create-version command orchestration
+- Pattern: Create-version command execution should live in a command boundary instead of keeping
+  state validation, context resolution, simulation, materialization, persistence, and response
+  projection inline in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and command-boundary maintainability
+- Summary: `src/core/proposals/service.py` still owned the full create-version command path,
+  mixing proposal state validation, portfolio-context checks, advisory simulation, materialization,
+  workflow event creation, and persistence into the service facade.
+- Evidence:
+  - Added `src/core/proposals/version_command.py` with the create-version command boundary and
+    explicit dependencies for repository, runtime flags, replay lineage, context override, and
+    clock source.
+  - Updated `ProposalWorkflowService.create_version()` to delegate to the command boundary while
+    preserving public method signatures.
+  - Added service-level guard coverage proving the command receives repository, proposal identity,
+    payload, correlation ID, replay lineage, context override, evidence-storage flag, simulation
+    flag, portfolio-change flag, and clock dependency unchanged.
+- Consequence:
+  - The workflow service no longer owns the largest create-version command implementation, making
+    command behavior easier to test and reducing the service facade's responsibility surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting create-proposal command orchestration and async submission command helpers
+    once the create-version boundary is green locally and remotely.
+
+## LA-REV-475
+
+- Scope: Proposal replay referent view assembly
+- Pattern: Proposal replay referent reconstruction should live in a focused replay-view boundary
+  instead of keeping idempotency replay reconstruction and version replay assembly in
+  `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and replay evidence maintainability
+- Summary: `src/core/proposals/service.py` still owned create-response reconstruction for
+  idempotency replay and version replay evidence assembly directly. Both paths shared proposal
+  version replay referents and not-found translation, keeping replay evidence details in the
+  workflow service.
+- Evidence:
+  - Added `src/core/proposals/replay_views.py` for create-response reconstruction from replay
+    referents and proposal version replay evidence assembly.
+  - Updated idempotent create replay and `ProposalWorkflowService.get_version_replay()` to delegate
+    to the replay-view boundary.
+  - Updated tests to exercise replay referent reconstruction through the new boundary and added
+    service-level guard coverage for version replay delegation.
+- Consequence:
+  - Replay evidence assembly now has explicit module ownership, reducing private helper surface in
+    the workflow service and making replay/idempotency hardening easier to review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting create-version command orchestration and async submission helpers where
+    the workflow service still owns larger command paths.
+
+## LA-REV-474
+
+- Scope: Proposal simple read-view orchestration
+- Pattern: Proposal detail, list, approval, lineage, idempotency lookup, and version detail reads
+  should share a read-view boundary instead of keeping read-model lookup and projection assembly in
+  `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and read-side maintainability
+- Summary: `src/core/proposals/service.py` still owned several simple read paths directly,
+  including repeated not-found translation and projection-builder calls. These methods widened the
+  workflow service with read-side concerns that did not need access to command orchestration.
+- Evidence:
+  - Added `src/core/proposals/read_views.py` for detail, list, approvals, lineage, idempotency
+    lookup, and version detail view assembly.
+  - Updated `ProposalWorkflowService` simple read methods to delegate to the read-view boundary
+    while preserving public method signatures.
+  - Added service-level guard coverage proving repository, filters, pagination cursor, evidence
+    flags, idempotency key, proposal identity, and version identity are passed through unchanged.
+- Consequence:
+  - Simple read behavior now has a module-level ownership point, reducing repeated read-model and
+    projection wiring in the workflow service and making future API response hardening easier to
+    localize.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting version replay/idempotency referent helpers and create-version command
+    orchestration where the workflow service still owns large command paths.
+
+## LA-REV-473
+
+- Scope: Proposal async operation status and replay views
+- Pattern: Async operation status, replay, and correlation lookup should share a focused
+  read-side boundary instead of repeating async-operation read-model lookup, not-found translation,
+  and projection wiring in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and async read-side maintainability
+- Summary: `src/core/proposals/service.py` still owned async status lookup, replay response
+  assembly, and correlation lookup directly. That kept status/replay projection details and
+  repeated `PROPOSAL_ASYNC_OPERATION_NOT_FOUND` handling inside the workflow service.
+- Evidence:
+  - Added `src/core/proposals/async_operation_views.py` with status, replay, and correlation
+    read-side boundaries.
+  - Updated `ProposalWorkflowService` async-operation read methods to delegate to the async view
+    boundary while preserving public method signatures.
+  - Added parameterized service-level guard coverage proving all async-operation read methods pass
+    repository and operation/correlation identity into the view boundary.
+- Consequence:
+  - Async read behavior is now isolated from command orchestration, giving status/replay hardening
+    a narrower module with explicit ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal detail/list/approval/lineage read helpers where repeated
+    read-model lookup and projection assembly remain.
+
+## LA-REV-472
+
+- Scope: Proposal narrative read and review orchestration
+- Pattern: Proposal workflow service should delegate narrative read, regeneration, and review
+  command orchestration to a focused narrative boundary instead of repeating proposal/version
+  referent loading and domain-error translation inline.
+- Status: Hardened
+- Finding Class: modularity and narrative workflow maintainability
+- Summary: `src/core/proposals/service.py` owned three narrative methods that each loaded proposal
+  version replay referents, translated `PROPOSAL_NOT_FOUND` and `PROPOSAL_VERSION_NOT_FOUND`, and
+  mapped narrative review errors. That mixed narrative package behavior into the already large
+  workflow service.
+- Evidence:
+  - Added `src/core/proposals/narrative_views.py` to own narrative read, regeneration, and review
+    command orchestration.
+  - Updated `ProposalWorkflowService` narrative methods to delegate to the narrative boundary while
+    preserving public method signatures.
+  - Added service-level guard coverage proving narrative read, regeneration, and review methods
+    pass repository, proposal identity, version identity, payloads, idempotency keys, and event-time
+    dependencies into the boundary.
+- Consequence:
+  - Narrative behavior now has a narrower module-level ownership point, making future client-ready
+    narrative gating and replay evidence hardening easier to test without growing the workflow
+    service.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting async status/replay and version replay read helpers where repeated
+    read-model lookup and not-found translation remain.
+
+## LA-REV-471
+
+- Scope: Proposal activity view assembly
+- Pattern: Workflow timeline, execution status, delivery summary, and delivery history should share
+  a focused activity-view boundary instead of repeating activity read-model loading and not-found
+  guards in `ProposalWorkflowService`.
+- Status: Hardened
+- Finding Class: modularity and read-side maintainability
+- Summary: `src/core/proposals/service.py` repeated the same proposal activity read-model access
+  and `PROPOSAL_NOT_FOUND` handling across four read-side methods before calling projection
+  builders. The duplication made the workflow service responsible for projection setup rather than
+  command/read orchestration.
+- Evidence:
+  - Added `src/core/proposals/activity_views.py` to own activity-backed workflow timeline,
+    execution status, delivery summary, and delivery history response construction.
+  - Updated `ProposalWorkflowService` activity read methods to delegate to the activity-view
+    boundary.
+  - Added parameterized service-level guard coverage proving all four methods delegate repository
+    and proposal identity into the activity-view boundary.
+- Consequence:
+  - Activity-backed read behavior has one module-level ownership point, reducing repeated guards in
+    the workflow service and making future projection changes easier to test.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting remaining idempotency, async-status, and replay read helpers where repeated
+    service-level read-model handling remains.
+
+## LA-REV-470
+
+- Scope: Proposal async operation execution orchestration
+- Pattern: Proposal workflow service should delegate persisted async-operation execution to a
+  focused boundary instead of owning payload recovery, replay-lineage construction, and terminal
+  execution inline.
+- Status: Hardened
+- Finding Class: modularity and async operational maintainability
+- Summary: `src/core/proposals/service.py` still contained create-proposal and create-version
+  async execution orchestration, including persisted payload recovery and terminal operation
+  runner wiring. That kept retry/replay mechanics embedded in the large workflow service.
+- Evidence:
+  - Added `src/core/proposals/async_operation_execution.py` with create and version async
+    execution boundaries.
+  - Updated `ProposalWorkflowService.execute_create_proposal_async()` and
+    `execute_create_version_async()` to delegate execution while preserving public method
+    signatures.
+  - Added service-level guard coverage proving both async execution methods pass repository,
+    fallback payloads, correlation IDs, and create/version callbacks into the execution boundary.
+- Consequence:
+  - Async execution behavior is now isolated beside recovery and runner modules, giving future
+    retry, diagnostics, and lineage hardening a narrower module to test and review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal read-model and narrative/replay convenience methods into focused
+    boundaries where tests show clear ownership.
+
+## LA-REV-469
+
+- Scope: Proposal async recovery orchestration
+- Pattern: Proposal workflow service should delegate async recovery batch orchestration to a
+  focused module instead of owning recovery scanning, dispatch, and unsupported-operation failure
+  handling inline.
+- Status: Hardened
+- Finding Class: modularity and async operational maintainability
+- Summary: `src/core/proposals/service.py` still contained the async recovery loop, including
+  recoverable-operation loading, operation-kind dispatch, and unsupported operation failure
+  persistence. That kept operational retry/recovery behavior inside the already large workflow
+  service.
+- Evidence:
+  - Added `src/core/proposals/async_operation_recovery.py` with the recovery batch boundary and
+    recovery batch-size constant.
+  - Updated `ProposalWorkflowService.recover_async_operations()` to delegate to the recovery
+    boundary while preserving create/version execution callbacks.
+  - Added service-level guard coverage proving the workflow service delegates recovery orchestration
+    instead of owning the recovery loop.
+- Consequence:
+  - Async recovery behavior is now isolated for future operational diagnostics and retry hardening,
+    and the proposal workflow service has a narrower responsibility surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal service read-model and narrative/replay convenience methods into
+    focused service modules where tests show clear boundaries.
+
+## LA-REV-468
+
+- Scope: Capability workflow catalog assembly
+- Pattern: Integration capability service orchestration should delegate workflow catalog
+  construction to a catalog module instead of owning every workflow row inline.
+- Status: Hardened
+- Finding Class: modularity and service-boundary maintainability
+- Summary: After feature catalog extraction, `src/api/capabilities/service.py` still embedded every
+  `WorkflowCapability` row, including dependency readiness and degraded-reason selection.
+- Evidence:
+  - Added `src/api/capabilities/workflow_catalog.py` for workflow capability construction.
+  - Updated `src/api/capabilities/service.py` to import workflow and feature catalog builders.
+  - Added guard coverage preventing `WorkflowCapability` row assembly from drifting back into
+    `service.py`.
+  - Updated RFC-0026 code-path contract coverage to scan the split capability catalog modules.
+- Consequence:
+  - Capability response service is now focused on readiness, runtime flags, supportability, and
+    response assembly rather than catalog row ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue reducing capability model/OpenAPI size and add catalog-focused characterization tests
+    if future catalog rows are introduced.
+
+## LA-REV-467
+
+- Scope: Capability feature catalog assembly
+- Pattern: Integration capability service orchestration should delegate feature catalog construction
+  to a catalog module instead of owning every feature row inline.
+- Status: Hardened
+- Finding Class: modularity and service-boundary maintainability
+- Summary: `src/api/capabilities/service.py` still embedded every `FeatureCapability` row, keeping
+  long catalog data, dependency readiness logic, and response orchestration in one module.
+- Evidence:
+  - Added `src/api/capabilities/feature_catalog.py` for feature capability construction.
+  - Updated `src/api/capabilities/service.py` to import the feature catalog builder and focus on
+    response orchestration plus the remaining workflow catalog.
+  - Added guard coverage preventing `FeatureCapability` row assembly from drifting back into
+    `service.py`.
+- Consequence:
+  - Feature catalog ownership is now isolated, making the integration capability response easier to
+    maintain and reducing service module size without changing public response values.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Extract workflow capability catalog construction into a sibling module once this feature catalog
+    split is green locally and remotely.
+
+## LA-REV-466
+
+- Scope: Capability degraded-reason code selection
+- Pattern: Public degraded-reason codes should be centralized constants with reusable selection
+  helpers rather than raw strings repeated inside capability catalog assembly.
+- Status: Hardened
+- Finding Class: duplication reduction and API consistency
+- Summary: `src/api/capabilities/service.py` repeated dependency-unavailable and lifecycle-disabled
+  reason strings across feature and workflow catalog rows. This increased drift risk for a public
+  API field consumed by Gateway, Workbench, and operations diagnostics.
+- Evidence:
+  - Added `src/api/capabilities/degraded_reasons.py` with public reason constants and small
+    selection helpers.
+  - Updated dependency proof readiness and capability service assembly to use those constants and
+    helpers.
+  - Added direct coverage proving helper outputs preserve the public reason values.
+  - Tightened internal guard coverage preventing raw degraded-reason strings from returning to
+    `capabilities.service`.
+- Consequence:
+  - Capability degraded-reason semantics are now centralized while preserving the response contract.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting the remaining capability catalog rows into smaller catalog modules after
+    reason-code and dependency-status boundaries are stable.
+
+## LA-REV-465
+
+- Scope: Capability dependency status projection
+- Pattern: Feature and workflow capability assembly should consume one typed dependency status
+  projection rather than repeating dependency readiness lookups.
+- Status: Hardened
+- Finding Class: duplication reduction and service-boundary maintainability
+- Summary: `src/api/capabilities/service.py` still repeated the same dependency readiness lookups
+  and bank-demo proof readiness projection in both feature and workflow capability builders.
+- Evidence:
+  - Added `CapabilityDependencyStatus` and `resolve_capability_dependency_status()` to
+    `src/api/capabilities/dependencies.py`.
+  - Updated feature and workflow capability builders to consume the typed status projection.
+  - Added direct coverage proving the common status projection fails closed for a missing bank-demo
+    proof dependency.
+  - Tightened internal guard coverage so `capabilities.service` does not reintroduce direct
+    dependency readiness or bank-demo proof readiness calls.
+- Consequence:
+  - Dependency readiness behavior now has one reusable projection boundary, reducing duplicate
+    service logic while preserving the current public capability contract.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue decomposing the remaining feature/workflow catalog data in small commits after the
+    dependency and runtime boundaries remain green in CI.
+
+## LA-REV-464
+
+- Scope: Capabilities runtime flag resolution
+- Pattern: Runtime environment flag parsing should live in a shared, typed boundary instead of
+  service-local helpers.
+- Status: Hardened
+- Finding Class: service-boundary maintainability and duplication reduction
+- Summary: `src/api/capabilities/service.py` still parsed environment booleans directly, while
+  proposal runtime code used a separate router utility for the same boolean semantics. That kept
+  environment access inside capability catalog assembly and duplicated feature-flag parsing.
+- Evidence:
+  - Added `src/api/runtime_flags.py` as the shared environment boolean parser.
+  - Added `src/api/capabilities/runtime_flags.py` with a typed `CapabilityRuntimeFlags` projection.
+  - Updated capabilities service, proposal router construction, and router runtime utilities to use
+    the shared parser.
+  - Added guard coverage preventing `capabilities.service` from reintroducing direct `os.getenv`
+    flag parsing.
+  - Added direct capability runtime flag coverage for true/false environment values.
+- Consequence:
+  - Capability catalog assembly is now driven by explicit runtime flag inputs, and boolean parsing
+    semantics are shared across proposal runtime and capabilities reporting.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Consider moving proposal workflow construction flags into a typed proposal runtime flag
+    projection once the proposal router is decomposed further.
+
+## LA-REV-463
+
+- Scope: Integration capability dependency readiness helpers
+- Pattern: Dependency-map parsing, dependency readiness lookup, and bank-demo proof readiness
+  should be reusable capability helpers rather than private service functions.
+- Status: Hardened
+- Finding Class: modularity and readiness-boundary maintainability
+- Summary: `src/api/capabilities/service.py` still owned dependency row parsing, dependency lookup,
+  first-unready reason selection, and RFC-0028 bank-demo proof dependency readiness. These helpers
+  are shared readiness primitives used by feature, workflow, and supportability projections.
+- Evidence:
+  - Added `src/api/capabilities/dependencies.py` for dependency rows, dependency maps, readiness
+    lookup, first-unready reason selection, and bank-demo proof readiness.
+  - Updated the capabilities service and supportability projection to use the shared dependency
+    helpers.
+  - Added guard coverage preventing dependency readiness helpers from drifting back into
+    `service.py`.
+  - Added direct coverage for malformed dependency rows and missing bank-demo proof dependencies.
+- Consequence:
+  - Capability service code is more focused on feature/workflow catalog assembly, while dependency
+    readiness behavior has a reusable module with explicit fail-closed tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public capability
+    behavior is unchanged.
+- Follow-Up:
+  - Extract feature and workflow catalog construction from `service.py` in later commits if a
+    coherent catalog/data split can be made without weakening OpenAPI contract coverage.
+
+## LA-REV-462
+
+- Scope: Integration capability supportability projection
+- Pattern: Capability assembly should delegate supportability metric projection to a focused
+  module instead of mixing it into the feature/workflow service.
+- Status: Hardened
+- Finding Class: modularity and service-boundary maintainability
+- Summary: `src/api/capabilities/service.py` mixed feature/workflow capability assembly with
+  advisory supportability projection and metric recording. This kept supportability state
+  derivation coupled to the broader capabilities service.
+- Evidence:
+  - Added `src/api/capabilities/supportability.py` with `build_advisory_supportability`.
+  - Updated the capabilities service to import the supportability projection instead of owning it.
+  - Added guard coverage preventing supportability state projection and metric recording from
+    drifting back into `service.py`.
+  - Added direct coverage for malformed dependency rows so supportability projection fails closed
+    to typed dependency dictionaries.
+- Consequence:
+  - Capability feature/workflow assembly is separated from supportability projection and metric
+    recording, making both responsibilities easier to test and evolve independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the public capability
+    contract is unchanged.
+- Follow-Up:
+  - Continue decomposing `src/api/capabilities/service.py` by extracting feature and workflow
+    catalog definitions when a coherent low-risk seam is available.
+
+## LA-REV-461
+
+- Scope: Enterprise audit redaction configuration
+- Pattern: Sensitive audit-field matching should use one maintained marker catalog rather than
+  overlapping exact-match and marker lists.
+- Status: Hardened
+- Finding Class: duplication and sensitive-data handling maintainability
+- Summary: `src/api/enterprise_readiness.py` maintained `_REDACT_FIELDS` and
+  `_REDACT_FIELD_MARKERS`, but the marker catalog already covered the exact names and broader key
+  variants. Keeping both lists created a drift risk for future sensitive field additions.
+- Evidence:
+  - Removed the redundant exact-match `_REDACT_FIELDS` catalog.
+  - Kept `_REDACT_FIELD_MARKERS` as the single redaction source for exact and variant matching.
+  - Added test coverage pinning critical markers for password, account number, and client email.
+- Consequence:
+  - Enterprise audit redaction configuration has a single owner while preserving existing redaction
+    behavior for current tests and metadata key variants.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because behavior is unchanged.
+- Follow-Up:
+  - Extend `_REDACT_FIELD_MARKERS` directly when new sensitive metadata keys are introduced.
+
+## LA-REV-460
+
+- Scope: API problem-detail response construction
+- Pattern: Repeated problem-detail response construction should use a shared API helper.
+- Status: Hardened
+- Finding Class: error response consistency and API maintainability
+- Summary: `src/api/main.py` repeated `application/problem+json` response construction in the
+  readiness, unhandled exception, and Lotus Core simulation exception handlers. Each block carried
+  the same response shape, which made future correlation or problem-detail changes easy to miss in
+  one handler.
+- Evidence:
+  - Added `src/api/problem_details.py` with `build_problem_detail_response`.
+  - Updated readiness, unhandled exception, and Lotus Core simulation handlers to use the shared
+    builder while preserving response shape.
+  - Added tests for the shared problem-detail builder and an internal guard requiring `main.py` to
+    use it.
+- Consequence:
+  - API problem-detail responses now have one shared construction path for status, detail,
+    instance, and correlation id fields.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because response behavior is
+    unchanged.
+- Follow-Up:
+  - Reuse the helper in future API-level exception handlers that return problem-detail payloads.
+
+## LA-REV-459
+
+- Scope: FastAPI OpenAPI tag catalog
+- Pattern: Static API documentation metadata should be owned by a dedicated module rather than
+  embedded in application wiring.
+- Status: Hardened
+- Finding Class: modularity and API documentation maintainability
+- Summary: `src/api/main.py` included the full OpenAPI tag catalog inline, mixing static API
+  documentation metadata with app construction, router inclusion, middleware, health checks, and
+  exception handlers.
+- Evidence:
+  - Added `src/api/openapi_tags.py` with the governed tag catalog.
+  - Updated `src/api/main.py` to pass `OPENAPI_TAGS` to FastAPI.
+  - Added an internal guard that verifies app wiring uses the shared tag catalog.
+- Consequence:
+  - App assembly is smaller and OpenAPI tag metadata now has a single focused owner for future API
+    documentation changes.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because generated OpenAPI truth
+    is unchanged.
+- Follow-Up:
+  - Consider moving health/readiness problem-detail helpers out of `main.py` if future health
+    checks grow beyond the current bounded logic.
+
+## LA-REV-458
+
+- Scope: Deprecated advisory engine compatibility shim
+- Pattern: Dead deprecated import shims should be removed once internal callers use the canonical
+  module.
+- Status: Removed
+- Finding Class: dead code and import boundary hygiene
+- Summary: `src/core/engine.py` only re-exported `run_proposal_simulation` from
+  `src.core.advisory_engine` and emitted a deprecation warning at import time. Repository code and
+  tests now import the canonical module directly, leaving the shim as a stale parallel import path.
+- Evidence:
+  - Removed `src/core/engine.py`.
+  - Added an internal guard that prevents the deprecated shim from being reintroduced.
+  - Verified repository references use `src.core.advisory_engine` rather than the shim.
+- Consequence:
+  - Advisory engine imports now have a single canonical module, reducing compatibility clutter and
+    warning side effects during accidental imports.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public documentation
+    already points to `src/core/advisory_engine.py`.
+- Follow-Up:
+  - Continue removing deprecated compatibility paths when reference scans show no remaining
+    internal consumers.
+
+## LA-REV-457
+
+- Scope: Integration capabilities route parameter contracts
+- Pattern: Platform capability query metadata should live outside the router while preserving
+  existing defaults and generated OpenAPI names.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/routers/integration_capabilities.py` carried inline `consumer_system` and
+  `tenant_id` `Query` declarations even though the route already delegates capability construction
+  to the capabilities service.
+- Evidence:
+  - Added `src/api/routers/integration_capabilities_parameters.py` for consumer-system and tenant
+    query contracts.
+  - Updated the `/platform/capabilities` route to use named aliases while preserving defaults,
+    descriptions, and examples.
+  - Extended internal guards so integration capability routes cannot reintroduce inline `Query`
+    declarations.
+- Consequence:
+  - Capability route orchestration is separated from OpenAPI query metadata, matching the route
+    boundary pattern used across proposal and proof routes.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Run the full internal guard and API contract subset to verify all route parameter extraction
+    remains stable together.
+
+## LA-REV-456
+
+- Scope: Bank demo proof route parameter contract
+- Pattern: Bank demo proof capture routes should keep proof correlation header metadata outside
+  the router module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/routers/bank_demo_proof.py` owned the RFC-0028 proof-pack correlation header
+  contract inline, including the governed maximum length. This kept OpenAPI metadata in the router
+  even though request/runtime metadata normalization already lives in dedicated modules.
+- Evidence:
+  - Added `src/api/routers/bank_demo_proof_parameters.py` for the proof-pack correlation header.
+  - Updated the proof-pack route to use the named parameter alias while preserving the governed
+    header name, title, description, and maximum length.
+  - Extended internal guards so bank-demo-proof routes cannot reintroduce inline `Header`
+    declarations.
+- Consequence:
+  - RFC-0028 proof-pack route orchestration is separated from proof capture header metadata.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Review `integration_capabilities.py` query parameter declarations separately because its enum
+    defaults and generated OpenAPI shape should be verified carefully.
+
+## LA-REV-455
+
+- Scope: Advisory simulation route parameter contracts
+- Pattern: Simulation and artifact routes should share idempotency and correlation header contracts
+  outside the router module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/routers/advisory_simulation.py` repeated `Idempotency-Key` and
+  `X-Correlation-Id` header declarations for simulation and artifact endpoints. This duplicated
+  OpenAPI metadata inside the router while the endpoints already delegate behavior to the
+  simulation service.
+- Evidence:
+  - Added `src/api/routers/advisory_simulation_parameters.py` for simulation and artifact
+    idempotency/correlation headers.
+  - Updated simulation routes to use named aliases while preserving existing descriptions and
+    examples.
+  - Extended internal guards so advisory simulation routes cannot reintroduce inline `Header`
+    declarations.
+- Consequence:
+  - Advisory simulation route handlers are thinner and header metadata now has a route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Apply the same pattern to the remaining small non-proposal routers with inline parameter
+    contracts.
+
+## LA-REV-454
+
+- Scope: Advisory policy pack route parameter contracts
+- Pattern: Policy pack catalog routes should centralize pack id, version, and activation/validation
+  idempotency contracts outside the controller module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_policy_packs.py` repeated policy pack id/version path
+  metadata and required idempotency header declarations for validation and activation routes.
+- Evidence:
+  - Added `src/api/proposals/policy_pack_parameters.py` for policy pack path and idempotency
+    header contracts.
+  - Updated policy pack routes to use named aliases while preserving existing descriptions and
+    examples.
+  - Extended internal guards so policy pack routes cannot reintroduce inline `Header` or `Path`
+    contracts.
+- Consequence:
+  - Policy pack route handlers now focus on catalog orchestration while policy pack OpenAPI
+    metadata has a route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - After this parameter-contract cleanup batch, run a broader guard suite across all touched route
+    modules before choosing the next backend hardening seam.
+
+## LA-REV-453
+
+- Scope: Advisory policy evaluation route parameter contracts
+- Pattern: Policy evaluation routes should centralize policy identifiers, review queue filters, and
+  idempotency metadata outside the controller module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_policy_evaluations.py` repeated `Path`, `Query`, and
+  `Header` declarations for proposal ids, proposal version ids, policy evaluation ids, review queue
+  filters, finalization idempotency, event capture, sign-off decisions, report-package requests, and
+  AI evidence requests. This made the controller module the owner of both orchestration and a large
+  OpenAPI metadata surface.
+- Evidence:
+  - Added `src/api/proposals/policy_evaluation_parameters.py` for policy evaluation path, query,
+    and idempotency header contracts.
+  - Updated policy evaluation routes to use named aliases while preserving existing descriptions,
+    examples, required finalization idempotency, and optional event/report/AI idempotency behavior.
+  - Extended internal guards so policy evaluation routes cannot reintroduce inline `Header`,
+    `Path`, or `Query` contracts.
+- Consequence:
+  - Policy evaluation route handlers are thinner, and policy OpenAPI/validation metadata now has a
+    single route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Policy pack routes remain a smaller parameter-contract duplication surface and can be cleaned up
+    separately.
+
+## LA-REV-452
+
+- Scope: Advisory proposal memo route parameter contracts
+- Pattern: Memo routes should centralize memo source version, audience, and idempotency contracts
+  outside the controller module.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_memo.py` repeated proposal id, memo source version,
+  audience, and several memo idempotency `Header`, `Path`, and `Query` declarations across create,
+  read, projection, review, report-package, AI commentary, lineage, and replay routes. This made a
+  large controller module responsible for OpenAPI metadata as well as request orchestration.
+- Evidence:
+  - Added `src/api/proposals/memo_parameters.py` for memo source version, audience, and
+    idempotency header contracts.
+  - Reused lifecycle `ProposalIdPath` in memo routes.
+  - Updated memo repository dependencies to direct `Depends(...)` declarations.
+  - Extended internal guards so memo routes cannot reintroduce inline `Header`, `Path`, or `Query`
+    contracts.
+- Consequence:
+  - Memo route handlers are smaller and memo OpenAPI/validation metadata now has a route-family
+    owner while preserving distinct idempotency descriptions for create, review, report-package,
+    and AI commentary operations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Policy evaluation routes remain the largest parameter-contract duplication surface and should
+    be addressed in a separate scoped commit.
+
+## LA-REV-451
+
+- Scope: Advisory proposal delivery route parameter contracts
+- Pattern: Delivery routes should share lifecycle proposal identifier contracts and isolate
+  delivery-specific idempotency metadata outside the router.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_delivery.py` repeated proposal id path declarations across
+  report, execution handoff, delivery summary/history, execution status, and execution update
+  endpoints. The execution handoff route also carried an inline idempotency header declaration in
+  the controller module.
+- Evidence:
+  - Added `src/api/proposals/delivery_parameters.py` for execution handoff idempotency metadata.
+  - Reused lifecycle `ProposalIdPath` for delivery routes.
+  - Updated delivery route dependencies to direct `Depends(...)` declarations.
+  - Extended internal guards so delivery routes do not reintroduce inline `Header` or `Path`
+    contracts.
+- Consequence:
+  - Delivery route handlers are thinner and delivery-specific idempotency metadata now has a
+    route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Continue consolidating memo and policy route parameters, then reassess whether shared proposal
+    parameter modules should be grouped by lifecycle, support, delivery, and memo domains.
+
+## LA-REV-450
+
+- Scope: Advisory proposal support route parameter contracts
+- Pattern: Support routes should share proposal, version, idempotency, and async operation
+  identifier contracts with adjacent lifecycle route modules.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_support.py` repeated path parameter declarations for
+  proposal ids, proposal version numbers, idempotency lookup keys, and async operation ids. The
+  route module also used dependency `Annotated` wrappers where direct FastAPI dependencies are
+  already the local route-family convention.
+- Evidence:
+  - Added `src/api/proposals/support_parameters.py` for support-specific idempotency key lookup.
+  - Reused lifecycle `ProposalIdPath` and `ProposalVersionNoPath` and async
+    `ProposalAsyncOperationIdPath` aliases in support routes.
+  - Updated support route dependencies to direct `Depends(...)` declarations.
+  - Extended internal guards so support routes do not reintroduce inline `Path` contracts.
+- Consequence:
+  - Support route handlers now align with lifecycle and async parameter ownership while preserving
+    existing support API behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is route-internal
+    API contract consolidation.
+- Follow-Up:
+  - Continue consolidating delivery and memo route parameters where lifecycle aliases match their
+    public contract.
+
+## LA-REV-449
+
+- Scope: Advisory proposal async route parameter contracts
+- Pattern: Async proposal lifecycle routes should share idempotency, correlation, operation, and
+  proposal identifier parameter contracts instead of repeating FastAPI declarations inline.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_async.py` repeated `Header` and `Path` declarations for async
+  create idempotency, correlation tracking, proposal ids, operation ids, and correlation lookups.
+  This duplicated lifecycle vocabulary that already belongs in shared route parameter modules.
+- Evidence:
+  - Added `src/api/proposals/async_parameters.py` for async idempotency, correlation, and operation
+    identifiers.
+  - Reused `ProposalIdPath` from lifecycle parameters for the async version route.
+  - Extended internal guards so async routes cannot reintroduce inline `Header` or `Path`
+    contracts.
+- Consequence:
+  - Async proposal route handlers are thinner, and async OpenAPI/validation metadata now has a
+    clear owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving internals.
+- Follow-Up:
+  - Align remaining support and delivery route parameter contracts with the lifecycle aliases where
+    the semantics match.
+
+## LA-REV-448
+
+- Scope: Advisory Copilot route parameter contracts
+- Pattern: Advisory Copilot path, header, and pagination contracts should be shared rather than
+  repeated inline across route handlers.
+- Status: Hardened
+- Finding Class: API contract duplication and route maintainability
+- Summary: `src/api/proposals/routes_advisory_copilot.py` repeated FastAPI `Header`, `Path`, and
+  `Query` declarations for correlation ids, idempotency keys, evidence packet ids, run ids,
+  proposal/version ids, and bounded pagination. The repeated inline contracts made future OpenAPI
+  or validation changes more error-prone across the Copilot route family.
+- Evidence:
+  - Added `src/api/proposals/copilot_parameters.py` for Advisory Copilot path, header, and query
+    contracts.
+  - Updated Advisory Copilot routes to depend on named parameter aliases while preserving existing
+    descriptions, bounds, required review idempotency, optional action idempotency, and pagination.
+  - Extended internal route guards to keep inline `Header`, `Path`, and `Query` contracts out of
+    the Copilot router.
+- Consequence:
+  - Advisory Copilot route functions are thinner and OpenAPI/validation metadata now has a single
+    route-family owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while improving route internals.
+- Follow-Up:
+  - Continue extracting duplicated parameter contracts from remaining large proposal route modules.
+
+## LA-REV-447
+
+- Scope: Advisory workspace route exception boundary
+- Pattern: Workspace route functions should delegate workspace exception translation to a shared
+  API error boundary instead of importing service exception taxonomy and repeating try/except
+  blocks.
+- Status: Hardened
+- Finding Class: error-boundary duplication and route-layer coupling
+- Summary: `src/api/workspaces/router.py` still imported workspace service exception classes and
+  repeated not-found, conflict, saved-version-not-found, assistant-unavailable, and handoff
+  unavailable mappings across route handlers. That kept service exception taxonomy coupled to the
+  route module.
+- Evidence:
+  - Added `run_workspace_operation` to `src/api/workspaces/errors.py`.
+  - Updated workspace routes to delegate workspace exception translation to the shared boundary
+    while preserving proposal lifecycle exception mapping for handoff.
+  - Extended the internal guard to keep workspace service exception imports out of the router and
+    require the shared workspace operation boundary.
+- Consequence:
+  - Workspace route handlers now focus on request orchestration while workspace HTTP error
+    semantics live in the workspace API error module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while reducing route-layer coupling.
+- Follow-Up:
+  - Add lower-level tests for `run_workspace_operation` if future workspace exception categories
+    are added beyond the current route-covered mappings.
+
+## LA-REV-446
+
+- Scope: Advisory workspace route parameter contracts
+- Pattern: Workspace path and header contracts should live in a shared workspace API parameter
+  module where repeated across create, read, draft, evaluate, save, replay, resume, compare, AI,
+  and handoff endpoints.
+- Status: Hardened
+- Finding Class: OpenAPI duplication and route-boundary maintainability
+- Summary: `src/api/workspaces/router.py` repeated workspace session path metadata across nearly
+  every endpoint and repeated create/handoff correlation and idempotency header metadata inline.
+  That made the workspace route module larger and increased Swagger drift risk.
+- Evidence:
+  - Added `src/api/workspaces/parameters.py` with reusable annotated FastAPI parameter contracts.
+  - Updated workspace routes to consume shared workspace id, workspace version id, correlation id,
+    and handoff idempotency aliases.
+  - Added an internal guard so the workspace router no longer owns raw `Header` or `Path`
+    declarations for the shared workspace route contract.
+- Consequence:
+  - Workspace route signatures now foreground workflow behavior while one module owns repeated
+    path/header documentation and examples.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while reducing internal route duplication.
+- Follow-Up:
+  - Continue extracting shared route parameter contracts only where the metadata is repeated enough
+    to create real drift risk.
+
+## LA-REV-445
+
+- Scope: Proposal lifecycle route parameter contracts
+- Pattern: Proposal lifecycle route parameter metadata should be centralized where repeated
+  path, header, pagination, filter, and evidence-toggle contracts recur across endpoints.
+- Status: Hardened
+- Finding Class: OpenAPI duplication and route-boundary maintainability
+- Summary: `src/api/proposals/routes_lifecycle.py` repeated proposal-id, version number,
+  idempotency, correlation-id, include-evidence, list-filter, and pagination parameter
+  declarations inline across the lifecycle route family. That increased drift risk for Swagger
+  descriptions and route bounds.
+- Evidence:
+  - Added `src/api/proposals/lifecycle_parameters.py` with reusable annotated FastAPI parameter
+    contracts.
+  - Updated lifecycle routes to consume the shared parameter aliases while preserving existing
+    endpoint signatures and OpenAPI metadata intent.
+  - Added an internal guard so the lifecycle route module no longer owns raw `Query`, `Header`, or
+    `Path` declarations for these shared contracts.
+- Consequence:
+  - Proposal lifecycle routes now keep business behavior visible while parameter bounds and usage
+    guidance live in one route-family contract module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this preserves public
+    API behavior while reducing internal route duplication.
+- Follow-Up:
+  - Review remaining proposal route families for parameter metadata duplication after this pattern
+    proves stable under OpenAPI and lifecycle contract tests.
+
+## LA-REV-444
+
+- Scope: Advisor Cockpit route parameter contracts
+- Pattern: Repeated route parameter metadata for the same cockpit caller-context contract should
+  live in a shared API parameter module rather than being copied into each route signature.
+- Status: Hardened
+- Finding Class: OpenAPI duplication and route-boundary maintainability
+- Summary: `src/api/proposals/routes_advisor_cockpit.py` repeated the same portfolio, advisor,
+  caller-role, correlation-id, action-id, limit, cursor, and acknowledgement idempotency parameter
+  declarations across multiple endpoints. That made Swagger wording and bounds easier to drift
+  across the Advisor Cockpit surface.
+- Evidence:
+  - Added `src/api/proposals/cockpit_parameters.py` with reusable annotated FastAPI parameter
+    contracts.
+  - Updated Advisor Cockpit routes to consume the shared parameter aliases while preserving the
+    public endpoint behavior and OpenAPI metadata.
+  - Added an internal guard so the route module no longer owns raw `Query`, `Header`, or `Path`
+    parameter definitions for the shared cockpit contract.
+- Consequence:
+  - The Advisor Cockpit route family now has one source for caller-context and pagination parameter
+    documentation, reducing OpenAPI drift risk.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    contract maintainability with preserved route behavior.
+- Follow-Up:
+  - Apply the same parameter-contract extraction pattern to other route families only where the
+    repeated OpenAPI metadata is materially at risk of drift.
+
 ## LA-REV-443
 
 - Scope: Simulation idempotency persistence timestamp boundary

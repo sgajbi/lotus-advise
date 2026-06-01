@@ -19,15 +19,6 @@ MiddlewareCallable = Callable[[Request, MiddlewareNext], Awaitable[Response]]
 _SERVICE_NAME = "lotus-advise"
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 _REQUIRED_HEADERS = {"x-actor-id", "x-tenant-id", "x-role", "x-correlation-id"}
-_REDACT_FIELDS = {
-    "password",
-    "secret",
-    "token",
-    "authorization",
-    "ssn",
-    "account_number",
-    "client_email",
-}
 _REDACT_FIELD_MARKERS = frozenset(
     {
         "access_key",
@@ -215,8 +206,6 @@ def redact_sensitive(value: Any) -> Any:
 
 def _is_sensitive_field_name(key: Any) -> bool:
     normalized = str(key).strip().lower().replace("-", "_")
-    if normalized in _REDACT_FIELDS:
-        return True
     compact = normalized.replace("_", "")
     return any(
         marker in normalized or marker.replace("_", "") in compact

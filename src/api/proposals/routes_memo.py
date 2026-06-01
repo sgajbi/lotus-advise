@@ -1,10 +1,19 @@
 from datetime import datetime, timezone
-from typing import Annotated, Optional
 
-from fastapi import Depends, Header, Path, Query, status
+from fastapi import Depends, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.lifecycle_parameters import ProposalIdPath
+from src.api.proposals.memo_parameters import (
+    ProposalMemoAiCommentaryIdempotencyKeyHeader,
+    ProposalMemoAudienceQuery,
+    ProposalMemoCreateIdempotencyKeyHeader,
+    ProposalMemoReportPackageEventIdempotencyKeyHeader,
+    ProposalMemoReportPackageIdempotencyKeyHeader,
+    ProposalMemoReviewIdempotencyKeyHeader,
+    ProposalMemoSourceVersionNoPath,
+)
 from src.api.proposals.memo_responses import (
     MEMO_AI_COMMENTARY_RESPONSES,
     MEMO_CREATE_RESPONSES,
@@ -59,27 +68,11 @@ from src.core.proposals.repository import ProposalRepository
     responses=MEMO_CREATE_RESPONSES,
 )
 def create_proposal_memo(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number used as memo source.", ge=1),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalMemoSourceVersionNoPath,
     payload: ProposalMemoCreateRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(
-            alias="Idempotency-Key",
-            description="Required idempotency key for replay-safe memo creation.",
-            examples=["proposal-memo-create-idem-001"],
-        ),
-    ],
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
+    idempotency_key: ProposalMemoCreateIdempotencyKeyHeader,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
 ) -> ProposalMemoResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
@@ -108,18 +101,9 @@ def create_proposal_memo(
     responses=MEMO_READ_RESPONSES,
 )
 def get_proposal_memo(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number used as memo source.", ge=1),
-    ],
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalMemoSourceVersionNoPath,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
 ) -> ProposalMemoResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
@@ -144,25 +128,10 @@ def get_proposal_memo(
     responses=MEMO_READ_RESPONSES,
 )
 def get_proposal_memo_projection(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number used as memo source.", ge=1),
-    ],
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
-    audience: Annotated[
-        Optional[str],
-        Query(
-            description="Optional memo audience filter such as `ADVISOR` or `COMPLIANCE`.",
-            examples=["ADVISOR"],
-        ),
-    ] = None,
+    proposal_id: ProposalIdPath,
+    version_no: ProposalMemoSourceVersionNoPath,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
+    audience: ProposalMemoAudienceQuery = None,
 ) -> ProposalMemoProjectionResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
@@ -188,27 +157,11 @@ def get_proposal_memo_projection(
     responses=MEMO_REVIEW_RESPONSES,
 )
 def review_proposal_memo(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number used as memo source.", ge=1),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalMemoSourceVersionNoPath,
     payload: ProposalMemoReviewRequest,
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
-    idempotency_key: Annotated[
-        Optional[str],
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe memo review writes.",
-            examples=["proposal-memo-review-idem-001"],
-        ),
-    ] = None,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
+    idempotency_key: ProposalMemoReviewIdempotencyKeyHeader = None,
 ) -> ProposalMemoReviewResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
@@ -239,27 +192,11 @@ def review_proposal_memo(
     responses=MEMO_REPORT_PACKAGE_EVENT_RESPONSES,
 )
 def record_proposal_memo_report_package_event(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number used as memo source.", ge=1),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalMemoSourceVersionNoPath,
     payload: ProposalMemoReportPackageEventRequest,
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
-    idempotency_key: Annotated[
-        Optional[str],
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe memo report-package events.",
-            examples=["proposal-memo-report-package-idem-001"],
-        ),
-    ] = None,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
+    idempotency_key: ProposalMemoReportPackageEventIdempotencyKeyHeader = None,
 ) -> ProposalMemoReportPackageEventResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
@@ -290,27 +227,11 @@ def record_proposal_memo_report_package_event(
     responses=MEMO_REPORT_PACKAGE_RESPONSES,
 )
 def request_proposal_memo_report_package(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number used as memo source.", ge=1),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalMemoSourceVersionNoPath,
     payload: ProposalMemoReportPackageRequest,
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
-    idempotency_key: Annotated[
-        Optional[str],
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe memo report-package requests.",
-            examples=["proposal-memo-report-package-idem-001"],
-        ),
-    ] = None,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
+    idempotency_key: ProposalMemoReportPackageIdempotencyKeyHeader = None,
 ) -> ProposalMemoReportPackageResponse:
     shared._assert_lifecycle_enabled()
     return run_lotus_report_operation(
@@ -344,27 +265,11 @@ def request_proposal_memo_report_package(
     responses=MEMO_AI_COMMENTARY_RESPONSES,
 )
 def request_proposal_memo_ai_commentary(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number used as memo source.", ge=1),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalMemoSourceVersionNoPath,
     payload: ProposalMemoAiCommentaryRequest,
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
-    idempotency_key: Annotated[
-        Optional[str],
-        Header(
-            alias="Idempotency-Key",
-            description="Optional idempotency key for replay-safe memo AI commentary requests.",
-            examples=["proposal-memo-ai-commentary-idem-001"],
-        ),
-    ] = None,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
+    idempotency_key: ProposalMemoAiCommentaryIdempotencyKeyHeader = None,
 ) -> ProposalMemoAiCommentaryResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
@@ -393,14 +298,8 @@ def request_proposal_memo_ai_commentary(
     responses=MEMO_LINEAGE_RESPONSES,
 )
 def get_proposal_memo_lineage(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
+    proposal_id: ProposalIdPath,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
 ) -> ProposalMemoLineageResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
@@ -421,18 +320,9 @@ def get_proposal_memo_lineage(
     responses=MEMO_READ_RESPONSES,
 )
 def get_proposal_memo_replay_evidence(
-    proposal_id: Annotated[
-        str,
-        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
-    ],
-    version_no: Annotated[
-        int,
-        Path(description="Immutable proposal version number used as memo source.", ge=1),
-    ],
-    repository: Annotated[
-        ProposalRepository,
-        Depends(shared.get_proposal_repository),
-    ],
+    proposal_id: ProposalIdPath,
+    version_no: ProposalMemoSourceVersionNoPath,
+    repository: ProposalRepository = Depends(shared.get_proposal_repository),
 ) -> ProposalMemoReplayEvidenceResponse:
     shared._assert_lifecycle_enabled()
     return run_proposal_operation(
