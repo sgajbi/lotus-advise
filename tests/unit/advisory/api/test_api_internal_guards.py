@@ -33,6 +33,7 @@ bank_demo_proof_router = importlib.import_module("src.api.routers.bank_demo_proo
 advisory_simulation_service = importlib.import_module(
     "src.api.services.advisory_simulation_service"
 )
+copilot_dependencies = importlib.import_module("src.api.proposals.copilot_dependencies")
 workspace_ai_service = importlib.import_module("src.api.services.workspace_ai_service")
 workspace_store = importlib.import_module("src.api.services.workspace_store")
 workspace_service = importlib.import_module("src.api.services.workspace_service")
@@ -186,6 +187,14 @@ def test_proposal_router_uses_shared_runtime_error_helpers():
     assert "_backend_init_error_detail" not in source
     assert "proposal_backend_unavailable_exception" in source
     assert "proposal_backend_connection_failed_exception" in source
+
+
+def test_copilot_dependencies_use_shared_repository_error_helper():
+    source = inspect.getsource(copilot_dependencies)
+
+    assert "HTTPException(" not in source
+    assert "safe_copilot_repository_error_detail" not in source
+    assert "copilot_repository_unavailable_exception" in source
 
 
 def test_advisory_simulation_routes_use_shared_response_metadata():

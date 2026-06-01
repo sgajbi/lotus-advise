@@ -40,3 +40,10 @@ def safe_copilot_repository_error_detail(error_detail: str) -> str:
     if contains_sensitive_error_detail(error_detail):
         return COPILOT_REPOSITORY_UNAVAILABLE_DETAIL
     return error_detail
+
+
+def copilot_repository_unavailable_exception(error_detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=safe_copilot_repository_error_detail(error_detail),
+    )

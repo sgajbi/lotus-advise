@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-414
+
+- Scope: Advisory copilot repository dependency error boundary
+- Pattern: Dependency providers should call shared route-family error helpers for repository
+  startup failures instead of constructing HTTP exceptions inline.
+- Status: Hardened
+- Finding Class: modularity problem and error-boundary consistency
+- Summary: `src/api/proposals/copilot_dependencies.py` constructed a 503 `HTTPException` directly
+  when the Postgres advisory copilot repository could not initialize. The copilot route family
+  already had `copilot_errors.py` for request and repository detail sanitization, so repository
+  startup status mapping belonged there rather than in dependency wiring.
+- Evidence:
+  - Added `copilot_repository_unavailable_exception` to `src/api/proposals/copilot_errors.py`.
+  - Updated `get_advisory_copilot_repository` to raise the shared helper from repository
+    initialization errors.
+  - Added an internal guard that keeps direct `HTTPException(...)` construction out of
+    `copilot_dependencies.py`.
+- Consequence:
+  - Copilot dependency wiring is easier to scan and repository-unavailable response mapping is
+    centralized with the rest of the copilot HTTP error boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    dependency/error-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Keep direct HTTP exception construction limited to explicit error-mapping modules.
+
 ## LA-REV-413
 
 - Scope: Proposal router runtime error boundary
