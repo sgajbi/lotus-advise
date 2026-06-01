@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-398
+
+- Scope: Advisory operations support API response metadata
+- Pattern: Support and replay route families should share operational error response descriptions
+  instead of repeating not-found and runtime-unavailable maps inline.
+- Status: Hardened
+- Finding Class: duplication and API documentation quality
+- Summary: `src/api/proposals/routes_support.py` repeated proposal not-found, replay-evidence
+  not-found, async-operation not-found, and runtime persistence unavailable response maps across
+  lineage and replay support endpoints. These routes already delegated behavior to
+  `ProposalWorkflowService`, so the remaining inline response dictionaries were route metadata
+  duplication rather than endpoint logic.
+- Evidence:
+  - Moved support-route OpenAPI response metadata into
+    `src/api/proposals/support_responses.py`.
+  - Lineage, version replay-evidence, and async replay-evidence decorators now reference named
+    response maps.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `routes_support.py`.
+- Consequence:
+  - Advisory operations support routes keep operational diagnostics wording centralized while route
+    bodies remain focused on feature gates, dependency use, and service delegation.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue applying response-metadata extraction to the larger lifecycle route family in a
+    separate commit with focused OpenAPI and route-boundary coverage.
+
 ## LA-REV-397
 
 - Scope: Advisory policy-pack API response metadata

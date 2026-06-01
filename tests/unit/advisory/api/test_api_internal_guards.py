@@ -3,7 +3,7 @@ import inspect
 import pytest
 
 import src.api.main as api_main
-from src.api.proposals import routes_memo, routes_policy_packs
+from src.api.proposals import routes_memo, routes_policy_packs, routes_support
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.routers.advisory_simulation import (
     build_proposal_artifact_endpoint,
@@ -91,3 +91,12 @@ def test_policy_pack_routes_use_shared_response_metadata():
     assert "responses=POLICY_PACK_LIST_RESPONSES" in source
     assert "responses=POLICY_PACK_VALIDATE_RESPONSES" in source
     assert "responses=POLICY_PACK_ACTIVATE_RESPONSES" in source
+
+
+def test_support_routes_use_shared_response_metadata():
+    source = inspect.getsource(routes_support)
+
+    assert "responses={" not in source
+    assert "responses=SUPPORT_LINEAGE_RESPONSES" in source
+    assert "responses=SUPPORT_VERSION_REPLAY_RESPONSES" in source
+    assert "responses=SUPPORT_ASYNC_REPLAY_RESPONSES" in source
