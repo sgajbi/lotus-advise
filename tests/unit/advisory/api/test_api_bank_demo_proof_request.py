@@ -32,6 +32,20 @@ def test_bank_demo_proof_request_rejects_sensitive_local_artifact_refs() -> None
             output_ref_prefix="../output/rfc0028/backend-proof",
         )
 
+    with pytest.raises(ValidationError, match="live_suite_bundle_ref cannot contain"):
+        BankDemoProofCaptureRequest(
+            live_runtime_payload=_live_runtime_payload(),
+            runtime_posture=_runtime_posture(),
+            live_suite_bundle_ref="output/rfc0028/provider output",
+        )
+
+    with pytest.raises(ValidationError, match="output_ref_prefix cannot contain"):
+        BankDemoProofCaptureRequest(
+            live_runtime_payload=_live_runtime_payload(),
+            runtime_posture=_runtime_posture(),
+            output_ref_prefix="output/rfc0028/trace-id",
+        )
+
 
 def test_bank_demo_proof_runtime_metadata_prefers_request_then_environment(monkeypatch) -> None:
     monkeypatch.setenv("LOTUS_ADVISE_COMMIT_SHA", "env-sha-456")

@@ -9425,6 +9425,33 @@
   - Keep new commercial material families validated against the active register in proof capture,
     not only in documentation tests.
 
+## LA-REV-388
+
+- Scope: RFC-0028 local proof artifact reference sensitivity guard
+- Pattern: Local artifact references used in proof packs must reject provider, raw-payload, trace,
+  and correlation wording with the same rigor as runtime metadata and summaries
+- Status: Hardened
+- Finding Class: Security posture and proof-artifact hygiene
+- Summary: `normalize_local_artifact_ref` rejected URLs, traversal, tokens, secrets, prompts, and
+  raw payload/source fragments, but it did not reject provider output/response or trace/correlation
+  path wording. Those strings are not appropriate in proof artifact references and could leak
+  operational diagnostic intent into sanitized artifacts.
+- Evidence:
+  - Expanded artifact-reference sensitive fragments to include raw prompt, provider output,
+    provider response, trace id, and correlation id.
+  - Normalized spaces and hyphens before fragment matching so `provider output` and `trace-id`
+    variants are rejected.
+  - Added API request-boundary tests for sensitive live-suite bundle refs and output prefixes.
+  - Focused `ruff`, format check, and bank-demo proof API/capture tests passed with 22 tests.
+- Consequence:
+  - RFC-0028 proof artifact refs now fail closed on sensitive diagnostic/provider path fragments
+    before proof capture can proceed.
+- Documentation:
+  - Review ledger updated. Existing README/commercial wording already describes sensitive artifact
+    reference rejection, so no source-truth wording change is required.
+- Follow-Up:
+  - Keep artifact-ref, runtime metadata, and runtime summary sensitive-term guards aligned.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
