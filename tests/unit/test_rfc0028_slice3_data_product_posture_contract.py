@@ -68,7 +68,7 @@ def test_rfc0028_composes_from_existing_active_advisory_evidence_products() -> N
         assert product["authoritative_domain"] == "advisory_workflow"
 
 
-def test_rfc0028_records_slice_three_data_product_decision_and_no_wiki_change() -> None:
+def test_rfc0028_records_data_product_boundary_and_later_capability_promotion() -> None:
     flat = _flat(RFC28_PATH)
 
     markers = (
@@ -81,8 +81,20 @@ def test_rfc0028_records_slice_three_data_product_decision_and_no_wiki_change() 
             "Existing active Advise evidence products are the source products for the "
             "eventual RFC-0028 proof pack"
         ),
-        "`/platform/capabilities` must not advertise bank-demo proof or supported-claim support",
-        "No wiki source change is required for Slice 3",
+        (
+            "`/platform/capabilities` must not advertise bank-demo proof or supported-claim "
+            "support before the Advise proof API and the Gateway/Workbench proof slices "
+            "promote the capability with evidence"
+        ),
+        (
+            "Slice 17 promotes `/platform/capabilities` feature `advisory.bank_demo_proof` "
+            "and workflow `advisory_bank_demo_proof`"
+        ),
+        (
+            "`AdvisoryBankDemoProofPack`, `AdvisorySupportedClaimRegister`, and "
+            "`AdvisoryDemoScenarioContract` remain internal proof records rather than active "
+            "standalone data products"
+        ),
     )
     for marker in markers:
         assert marker in flat
