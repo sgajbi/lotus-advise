@@ -1,5 +1,28 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-428
+
+- Scope: Async proposal route error boundary
+- Pattern: Async proposal submission and lookup routes should share proposal exception mapping while
+  preserving their scheduling semantics.
+- Status: Hardened
+- Finding Class: duplication and API-boundary consistency
+- Summary: `src/api/proposals/routes_async.py` repeated proposal exception imports and local HTTP
+  mapping across async create, async version, operation lookup, and correlation lookup routes.
+- Evidence:
+  - Reused `run_proposal_operation` across four async route service calls.
+  - Preserved `should_schedule` behavior so replayed submissions are still not rescheduled.
+  - Added an internal guard preventing local proposal exception mapping from returning to async
+    routes.
+- Consequence:
+  - Async routes now share the same proposal taxonomy-to-HTTP path as the synchronous proposal API
+    modules while keeping route-owned background scheduling explicit.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue scanning for remaining route-local exception wrappers outside proposal taxonomy.
+
 ## LA-REV-427
 
 - Scope: Proposal memo route error boundary
