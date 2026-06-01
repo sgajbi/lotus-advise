@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-551
+
+- Scope: Advisory copilot evidence-packet persistence workflow boundary
+- Pattern: Evidence-packet save/load persistence should have a focused workflow owner instead of
+  living inside the broader advisory-copilot service module.
+- Status: Hardened
+- Finding Class: Service decomposition and evidence auditability
+- Summary: `src/core/advisory_copilot/service.py` still owned evidence-packet persistence and
+  hydration alongside run persistence and review mutation workflows. That kept evidence-packet
+  audit handling coupled to unrelated run/review orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/packet_persistence.py` for evidence-packet save/load
+    workflows.
+  - Updated the application service and package export to import evidence-packet persistence from
+    the focused module while retaining service compatibility imports.
+  - Added coverage proving `service.py` no longer defines the evidence-packet save/load helpers
+    and compatibility imports resolve to the focused implementations.
+- Consequence:
+  - Evidence-packet persistence is now isolated from run persistence and human-review mutation
+    workflows, making the advisory-copilot service boundary easier to review and reuse.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract run persistence construction or review append workflows into focused modules.
+
 ## LA-REV-550
 
 - Scope: Advisory copilot run lineage defaults and record identity boundary

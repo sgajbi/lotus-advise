@@ -25,6 +25,10 @@ from src.core.advisory_copilot.idempotency_records import (
     AdvisoryCopilotRunIdempotencyRecord,
 )
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
+from src.core.advisory_copilot.packet_persistence import (
+    load_advisory_copilot_evidence_packet,
+    save_advisory_copilot_evidence_packet,
+)
 from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
 from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
@@ -57,10 +61,8 @@ from src.core.advisory_copilot.service import (
     AdvisoryCopilotReviewResult,
     AdvisoryCopilotRunPersistenceResult,
     list_advisory_copilot_reviews,
-    load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
     record_advisory_copilot_review,
-    save_advisory_copilot_evidence_packet,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,

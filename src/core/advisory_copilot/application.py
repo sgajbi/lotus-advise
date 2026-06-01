@@ -17,6 +17,10 @@ from src.core.advisory_copilot.api_models import (
 from src.core.advisory_copilot.catalog import list_copilot_action_definitions
 from src.core.advisory_copilot.evidence_packets import build_copilot_evidence_packet
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
+from src.core.advisory_copilot.packet_persistence import (
+    load_advisory_copilot_evidence_packet,
+    save_advisory_copilot_evidence_packet,
+)
 from src.core.advisory_copilot.pagination import normalize_copilot_run_page_size
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.request_hashing import build_advisory_copilot_run_request_hash
@@ -24,10 +28,8 @@ from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.advisory_copilot.run_review_policy import can_attempt_advisory_copilot_run_refresh
 from src.core.advisory_copilot.service import (
     list_advisory_copilot_reviews,
-    load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
     record_advisory_copilot_review,
-    save_advisory_copilot_evidence_packet,
 )
 from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,

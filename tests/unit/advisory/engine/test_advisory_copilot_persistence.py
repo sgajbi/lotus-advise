@@ -27,6 +27,12 @@ from src.core.advisory_copilot import (
 from src.core.advisory_copilot.idempotency_records import (
     AdvisoryCopilotRunIdempotencyRecord as FocusedAdvisoryCopilotRunIdempotencyRecord,
 )
+from src.core.advisory_copilot.packet_persistence import (
+    load_advisory_copilot_evidence_packet as focused_load_advisory_copilot_evidence_packet,
+)
+from src.core.advisory_copilot.packet_persistence import (
+    save_advisory_copilot_evidence_packet as focused_save_advisory_copilot_evidence_packet,
+)
 from src.core.advisory_copilot.packet_records import (
     AdvisoryCopilotEvidencePacketRecord as FocusedAdvisoryCopilotEvidencePacketRecord,
 )
@@ -314,6 +320,15 @@ def test_advisory_copilot_run_lineage_defaults_have_focused_owner() -> None:
     assert stable_copilot_record_id(prefix="copilot_run", value="sha256:request").startswith(
         "copilot_run_"
     )
+
+
+def test_advisory_copilot_packet_persistence_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "def save_advisory_copilot_evidence_packet" not in service_source
+    assert "def load_advisory_copilot_evidence_packet" not in service_source
+    assert save_advisory_copilot_evidence_packet is focused_save_advisory_copilot_evidence_packet
+    assert load_advisory_copilot_evidence_packet is focused_load_advisory_copilot_evidence_packet
 
 
 class _FakePostgresConnection:
