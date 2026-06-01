@@ -44,6 +44,22 @@ def _dependency_ready(dependencies: dict[str, dict[str, object]], dependency_key
     return bool(dependency.get("operational_ready"))
 
 
+def _first_unready_dependency_reason(
+    dependencies: dict[str, dict[str, object]],
+    dependency_keys: tuple[str, ...],
+    *,
+    fallback_reason: str,
+) -> str:
+    for dependency_key in dependency_keys:
+        if _dependency_ready(dependencies, dependency_key):
+            continue
+        dependency = dependencies.get(dependency_key)
+        reason = dependency.get("degraded_reason") if dependency is not None else None
+        if isinstance(reason, str) and reason:
+            return reason
+    return fallback_reason
+
+
 def build_advisory_supportability(
     *,
     readiness: dict[str, object],
@@ -101,6 +117,24 @@ def build_feature_capabilities(
     lotus_risk_ready = _dependency_ready(dependencies, "lotus_risk")
     lotus_ai_ready = _dependency_ready(dependencies, "lotus_ai")
     lotus_report_ready = _dependency_ready(dependencies, "lotus_report")
+    bank_demo_dependency_keys = ("lotus_core", "lotus_risk", "lotus_ai", "lotus_report")
+    bank_demo_operational_ready = lifecycle_enabled and all(
+        _dependency_ready(dependencies, dependency_key)
+        for dependency_key in bank_demo_dependency_keys
+    )
+    bank_demo_degraded_reason = (
+        None
+        if bank_demo_operational_ready
+        else (
+            "ADVISORY_LIFECYCLE_DISABLED"
+            if not lifecycle_enabled
+            else _first_unready_dependency_reason(
+                dependencies,
+                bank_demo_dependency_keys,
+                fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
+            )
+        )
+    )
 
     return [
         FeatureCapability(
@@ -284,6 +318,21 @@ def build_feature_capabilities(
             ),
         ),
         FeatureCapability(
+            key="advisory.bank_demo_proof",
+            enabled=lifecycle_enabled,
+            operational_ready=bank_demo_operational_ready,
+            owner_service="ADVISORY",
+            description=(
+                "RFC-0028 bank-demo proof capability with source-owned scenario contract, "
+                "supported-claim register, sanitized proof-pack capture, commercial/RFP/security "
+                "material governance, and Gateway/Workbench canonical proof. Client-ready "
+                "publication, external client communication, completed sign-off authority, "
+                "and OMS order lifecycle remain blocked."
+            ),
+            fallback_mode="NONE",
+            degraded_reason=bank_demo_degraded_reason,
+        ),
+        FeatureCapability(
             key="advisory.proposals.execution_handoff",
             enabled=lifecycle_enabled,
             operational_ready=lifecycle_enabled,
@@ -316,6 +365,24 @@ def build_workflow_capabilities(
     lotus_risk_ready = _dependency_ready(dependencies, "lotus_risk")
     lotus_ai_ready = _dependency_ready(dependencies, "lotus_ai")
     lotus_report_ready = _dependency_ready(dependencies, "lotus_report")
+    bank_demo_dependency_keys = ("lotus_core", "lotus_risk", "lotus_ai", "lotus_report")
+    bank_demo_operational_ready = lifecycle_enabled and all(
+        _dependency_ready(dependencies, dependency_key)
+        for dependency_key in bank_demo_dependency_keys
+    )
+    bank_demo_degraded_reason = (
+        None
+        if bank_demo_operational_ready
+        else (
+            "ADVISORY_LIFECYCLE_DISABLED"
+            if not lifecycle_enabled
+            else _first_unready_dependency_reason(
+                dependencies,
+                bank_demo_dependency_keys,
+                fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
+            )
+        )
+    )
 
     return [
         WorkflowCapability(
@@ -457,6 +524,23 @@ def build_workflow_capabilities(
                 if not lifecycle_enabled or lotus_ai_ready
                 else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
             ),
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_bank_demo_proof",
+            enabled=lifecycle_enabled,
+            operational_ready=bank_demo_operational_ready,
+            required_features=[
+                "advisory.proposals.lifecycle",
+                "advisory.proposals.reviewed_narrative_evidence",
+                "advisory.proposals.memo_evidence_pack",
+                "advisory.policy_pack_catalog",
+                "advisory.proposals.policy_evaluation",
+                "advisory.advisor_cockpit",
+                "advisory.advisory_copilot",
+                "advisory.bank_demo_proof",
+            ],
+            dependency_keys=list(bank_demo_dependency_keys),
+            degraded_reason=bank_demo_degraded_reason,
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_execution_handoff",

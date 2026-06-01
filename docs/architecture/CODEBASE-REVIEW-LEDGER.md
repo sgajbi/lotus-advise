@@ -9486,6 +9486,39 @@
   - Continue rejecting future commercial material that maps client-facing assets to UI-pending
     claims.
 
+## LA-REV-390
+
+- Scope: RFC-0028 capability discovery after implementation proof
+- Pattern: `/platform/capabilities` should advertise implemented proof capabilities once source
+  APIs, Gateway, Workbench, platform registration, and canonical evidence exist
+- Status: Hardened
+- Finding Class: Capability posture and documentation truth
+- Summary: RFC-0028 implementation truth and supported-features material described the bank-demo
+  proof surface as implemented, but the Advise capability source still carried the early Slice 3
+  non-promotion posture. That made Gateway/platform capability discovery less complete than the
+  source-owned proof API and product-surface evidence.
+- Evidence:
+  - Added feature `advisory.bank_demo_proof` and workflow `advisory_bank_demo_proof` to
+    `/platform/capabilities`.
+  - Capability readiness is dependency-aware across `lotus_core`, `lotus_risk`, `lotus_ai`, and
+    `lotus_report` because the promoted proof journey composes proposal source evidence, degraded
+    source posture, governed AI/model-risk evidence, and report/render/archive document proof.
+  - Updated tests so the RFC-0028 data-product posture guard still prevents proof records from
+    becoming active standalone data products while allowing capability discovery to advertise the
+    implemented proof feature.
+  - Updated RFC and supported-features source to record the Slice 17 capability discovery
+    promotion and the remaining blocked boundaries.
+- Consequence:
+  - Capability consumers can now discover the implemented RFC-0028 proof surface without implying
+    active proof-record data products, client-ready publication, external client communication,
+    completed sign-off authority, or OMS/order/fill/settlement.
+- Documentation:
+  - RFC index, RFC source, supported-features wiki source, and review ledger updated. Wiki
+    publication is required after this branch merges.
+- Follow-Up:
+  - Keep future capability promotion tests paired with data-product posture tests so capability
+    discovery and source-of-record declarations cannot drift.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

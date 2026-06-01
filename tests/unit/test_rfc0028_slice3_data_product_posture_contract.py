@@ -35,7 +35,7 @@ def _flat(path: Path) -> str:
     return " ".join(path.read_text(encoding="utf-8").split())
 
 
-def test_rfc0028_does_not_prematurely_promote_proof_records_as_data_products() -> None:
+def test_rfc0028_keeps_proof_records_internal_but_promotes_capability_after_proof() -> None:
     declaration = _load_json(PRODUCT_DECLARATION_PATH)
     products = {product["product_name"]: product for product in declaration["products"]}
     telemetry_text = "\n".join(
@@ -48,8 +48,12 @@ def test_rfc0028_does_not_prematurely_promote_proof_records_as_data_products() -
         assert proposed_record not in telemetry_text
 
     assert "BANK_DEMO_PROOF_PACK_CREATED" not in capability_text
-    assert "advisory.bank_demo" not in capability_text
-    assert "supported_claim" not in capability_text.lower()
+    assert "AdvisoryBankDemoProofPack" not in capability_text
+    assert "AdvisorySupportedClaimRegister" not in capability_text
+    assert "AdvisoryDemoScenarioContract" not in capability_text
+    assert "advisory.bank_demo_proof" in capability_text
+    assert "advisory_bank_demo_proof" in capability_text
+    assert "supported-claim register" in capability_text
 
 
 def test_rfc0028_composes_from_existing_active_advisory_evidence_products() -> None:
