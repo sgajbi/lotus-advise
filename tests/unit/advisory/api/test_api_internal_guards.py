@@ -6,6 +6,9 @@ import pytest
 
 import src.api.main as api_main
 from src.api.proposals import (
+    router as proposal_router,
+)
+from src.api.proposals import (
     routes_lifecycle,
     routes_memo,
     routes_policy_packs,
@@ -174,6 +177,15 @@ def test_workspace_service_uses_consolidated_workspace_imports():
     assert source.count("from src.api.services.workspace_errors import") == 1
     assert "from src.api.services import workspace_store" in source
     assert "from src.api.services.workspace_store import" not in source
+
+
+def test_proposal_router_uses_shared_runtime_error_helpers():
+    source = inspect.getsource(proposal_router)
+
+    assert "HTTPException(" not in source
+    assert "_backend_init_error_detail" not in source
+    assert "proposal_backend_unavailable_exception" in source
+    assert "proposal_backend_connection_failed_exception" in source
 
 
 def test_advisory_simulation_routes_use_shared_response_metadata():

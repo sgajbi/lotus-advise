@@ -1,13 +1,16 @@
 import importlib
 from typing import Optional, cast
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 
 from src.api.proposals import runtime
+from src.api.proposals.runtime_errors import (
+    proposal_backend_connection_failed_exception,
+    proposal_backend_unavailable_exception,
+)
 from src.api.routers.runtime_utils import (
     assert_feature_enabled,
     env_flag,
-    normalize_backend_init_error,
 )
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.repository import ProposalRepository
@@ -20,17 +23,6 @@ _SERVICE: Optional[ProposalWorkflowService] = None
 
 def _proposal_store_backend_name() -> str:
     return cast(str, runtime.proposal_store_backend_name())
-
-
-def _backend_init_error_detail(detail: str) -> str:
-    return cast(
-        str,
-        normalize_backend_init_error(
-            detail=detail,
-            required_detail="PROPOSAL_POSTGRES_DSN_REQUIRED",
-            fallback_detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
-        ),
-    )
 
 
 def _resolve_repository() -> ProposalRepository:
@@ -55,15 +47,9 @@ def get_proposal_workflow_service() -> ProposalWorkflowService:
                 require_proposal_simulation_flag=env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
             )
         except RuntimeError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=_backend_init_error_detail(str(exc)),
-            ) from exc
+            raise proposal_backend_unavailable_exception(str(exc)) from exc
         except (TypeError, ValueError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
-            ) from exc
+            raise proposal_backend_connection_failed_exception() from exc
     return _SERVICE
 
 
@@ -71,15 +57,9 @@ def get_proposal_repository() -> ProposalRepository:
     try:
         return _resolve_repository()
     except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=_backend_init_error_detail(str(exc)),
-        ) from exc
+        raise proposal_backend_unavailable_exception(str(exc)) from exc
     except (TypeError, ValueError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
-        ) from exc
+        raise proposal_backend_connection_failed_exception() from exc
 
 
 def ensure_proposal_runtime_ready() -> None:

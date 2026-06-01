@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-413
+
+- Scope: Proposal router runtime error boundary
+- Pattern: Router dependency providers should delegate backend-unavailable HTTP exception mapping
+  to shared error helpers instead of constructing status/detail payloads inline.
+- Status: Hardened
+- Finding Class: modularity problem and error-boundary consistency
+- Summary: `src/api/proposals/router.py` constructed `HTTPException` responses directly when
+  proposal repository or workflow-service initialization failed. The router also carried a private
+  backend detail normalizer, keeping runtime dependency flow mixed with HTTP status-code mapping.
+- Evidence:
+  - Added `src/api/proposals/runtime_errors.py` for proposal backend unavailable and connection
+    failed HTTP exception helpers.
+  - Updated `get_proposal_workflow_service` and `get_proposal_repository` to raise the named
+    helpers from caught initialization errors.
+  - Added an internal guard that keeps direct `HTTPException(...)` construction and the old private
+    backend normalizer out of `src/api/proposals/router.py`.
+- Consequence:
+  - Proposal router dependencies are easier to audit for runtime construction flow, and backend
+    unavailable response mapping is centralized for future observability/error-model hardening.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    API dependency/error-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue consolidating direct HTTP exception construction in reusable route/error modules where
+    focused tests can pin behavior.
+
 ## LA-REV-412
 
 - Scope: RFC-0028 bank-demo proof API error mapping
