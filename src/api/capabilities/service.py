@@ -17,6 +17,8 @@ from src.api.capabilities.readiness import build_operational_readiness
 from src.api.observability import record_advisory_supportability
 from src.integrations.lotus_core import lotus_core_fallback_mode
 
+BANK_DEMO_PROOF_DEPENDENCY_KEYS = ("lotus_core", "lotus_risk", "lotus_ai", "lotus_report")
+
 
 def _env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
@@ -58,6 +60,26 @@ def _first_unready_dependency_reason(
         if isinstance(reason, str) and reason:
             return reason
     return fallback_reason
+
+
+def _bank_demo_proof_readiness(
+    *,
+    lifecycle_enabled: bool,
+    dependencies: dict[str, dict[str, object]],
+) -> tuple[bool, str | None]:
+    operational_ready = lifecycle_enabled and all(
+        _dependency_ready(dependencies, dependency_key)
+        for dependency_key in BANK_DEMO_PROOF_DEPENDENCY_KEYS
+    )
+    if operational_ready:
+        return True, None
+    if not lifecycle_enabled:
+        return False, "ADVISORY_LIFECYCLE_DISABLED"
+    return False, _first_unready_dependency_reason(
+        dependencies,
+        BANK_DEMO_PROOF_DEPENDENCY_KEYS,
+        fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
+    )
 
 
 def build_advisory_supportability(
@@ -117,23 +139,9 @@ def build_feature_capabilities(
     lotus_risk_ready = _dependency_ready(dependencies, "lotus_risk")
     lotus_ai_ready = _dependency_ready(dependencies, "lotus_ai")
     lotus_report_ready = _dependency_ready(dependencies, "lotus_report")
-    bank_demo_dependency_keys = ("lotus_core", "lotus_risk", "lotus_ai", "lotus_report")
-    bank_demo_operational_ready = lifecycle_enabled and all(
-        _dependency_ready(dependencies, dependency_key)
-        for dependency_key in bank_demo_dependency_keys
-    )
-    bank_demo_degraded_reason = (
-        None
-        if bank_demo_operational_ready
-        else (
-            "ADVISORY_LIFECYCLE_DISABLED"
-            if not lifecycle_enabled
-            else _first_unready_dependency_reason(
-                dependencies,
-                bank_demo_dependency_keys,
-                fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
-            )
-        )
+    bank_demo_operational_ready, bank_demo_degraded_reason = _bank_demo_proof_readiness(
+        lifecycle_enabled=lifecycle_enabled,
+        dependencies=dependencies,
     )
 
     return [
@@ -365,23 +373,9 @@ def build_workflow_capabilities(
     lotus_risk_ready = _dependency_ready(dependencies, "lotus_risk")
     lotus_ai_ready = _dependency_ready(dependencies, "lotus_ai")
     lotus_report_ready = _dependency_ready(dependencies, "lotus_report")
-    bank_demo_dependency_keys = ("lotus_core", "lotus_risk", "lotus_ai", "lotus_report")
-    bank_demo_operational_ready = lifecycle_enabled and all(
-        _dependency_ready(dependencies, dependency_key)
-        for dependency_key in bank_demo_dependency_keys
-    )
-    bank_demo_degraded_reason = (
-        None
-        if bank_demo_operational_ready
-        else (
-            "ADVISORY_LIFECYCLE_DISABLED"
-            if not lifecycle_enabled
-            else _first_unready_dependency_reason(
-                dependencies,
-                bank_demo_dependency_keys,
-                fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
-            )
-        )
+    bank_demo_operational_ready, bank_demo_degraded_reason = _bank_demo_proof_readiness(
+        lifecycle_enabled=lifecycle_enabled,
+        dependencies=dependencies,
     )
 
     return [
@@ -539,7 +533,7 @@ def build_workflow_capabilities(
                 "advisory.advisory_copilot",
                 "advisory.bank_demo_proof",
             ],
-            dependency_keys=list(bank_demo_dependency_keys),
+            dependency_keys=list(BANK_DEMO_PROOF_DEPENDENCY_KEYS),
             degraded_reason=bank_demo_degraded_reason,
         ),
         WorkflowCapability(
