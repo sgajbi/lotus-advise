@@ -124,6 +124,7 @@ from src.core.models import (
     ProposalAllocationView,
     ProposalOrderIntent,
     ProposedTrade,
+    Reconciliation,
     RuleResult,
     SecurityTradeIntent,
     ShelfEntry,
@@ -139,6 +140,7 @@ from src.core.models import (
     TargetInstrument,
     TargetMethod,
     TaxBudgetConstraintEvent,
+    TaxImpact,
     TaxLot,
     UniverseCoverage,
     UniverseData,
@@ -185,6 +187,12 @@ from src.core.portfolio_models import (
 )
 from src.core.portfolio_models import (
     TaxLot as PortfolioTaxLot,
+)
+from src.core.proposal_effect_models import (
+    Reconciliation as EffectsReconciliation,
+)
+from src.core.proposal_effect_models import (
+    TaxImpact as EffectsTaxImpact,
 )
 from src.core.simulation_state_models import (
     AllocationMetric as SimulationAllocationMetric,
@@ -317,6 +325,11 @@ def test_core_models_preserves_gate_model_import_contract():
     assert GateDecision is GateGateDecision
     assert GateDecisionSummary is GateGateDecisionSummary
     assert GateReason is GateGateReason
+
+
+def test_core_models_preserves_proposal_effect_model_import_contract():
+    assert Reconciliation is EffectsReconciliation
+    assert TaxImpact is EffectsTaxImpact
 
 
 def test_money_validation():

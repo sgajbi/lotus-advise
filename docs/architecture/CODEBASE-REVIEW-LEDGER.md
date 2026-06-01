@@ -1,5 +1,29 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-500
+
+- Scope: Core proposal reconciliation and tax-impact model ownership
+- Pattern: Proposal financial effect DTOs should live in a focused core model module instead of
+  remaining inline in the broad `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and proposal financial effect model maintainability
+- Summary: `src/core/models.py` still owned reconciliation and tax-impact DTOs used by proposal
+  result assembly alongside unrelated proposal-input and proposal-result models.
+- Evidence:
+  - Added `src/core/proposal_effect_models.py` for reconciliation and tax-impact DTOs.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    proposal effect model definitions.
+- Consequence:
+  - Proposal financial effect definitions now have explicit ownership while downstream callers can
+    continue importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue extracting proposal-input and proposal-result model groups from `src/core/models.py` in
+    small compatibility-preserving slices.
+
 ## LA-REV-499
 
 - Scope: Core workflow gate model ownership
