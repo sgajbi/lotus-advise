@@ -131,6 +131,7 @@ def test_workspace_routes_use_shared_response_metadata():
     assert "responses=WORKSPACE_CREATE_RESPONSES" in source
     assert "responses=WORKSPACE_DRAFT_ACTION_RESPONSES" in source
     assert "responses=WORKSPACE_HANDOFF_RESPONSES" in source
+    assert "_raise_saved_version_not_found" not in source
 
 
 def test_advisory_simulation_routes_use_shared_response_metadata():

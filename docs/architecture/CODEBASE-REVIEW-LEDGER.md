@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-404
+
+- Scope: Advisory workspace saved-version error boundary
+- Pattern: Route-local exception helpers should be removed when they only wrap the shared HTTP
+  mapper and obscure consistent exception chaining.
+- Status: Hardened
+- Finding Class: dead indirection and error-boundary consistency
+- Summary: `src/api/workspaces/router.py` had a private `_raise_saved_version_not_found` helper
+  that only returned `workspace_not_found_exception(exc)`. Saved-version routes then raised the
+  returned `HTTPException` without `from exc`, unlike the rest of the workspace router's
+  not-found and conflict handling.
+- Evidence:
+  - Removed `_raise_saved_version_not_found`.
+  - Saved-version replay, resume, and compare routes now raise the shared workspace not-found
+    exception directly with `from exc`.
+  - Extended the internal workspace router guard to keep the dead helper from returning.
+- Consequence:
+  - Workspace saved-version failures retain consistent exception chaining for diagnostics while the
+    router has one fewer local error-handling path.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    error-boundary cleanup for existing behavior.
+- Follow-Up:
+  - Continue looking for thin route-local wrappers that duplicate shared error mappers.
+
 ## LA-REV-403
 
 - Scope: RFC-0028 bank-demo proof API response metadata

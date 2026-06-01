@@ -1,6 +1,6 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
+from fastapi import APIRouter, Depends, Header, Path, status
 
 import src.api.proposals.router as proposal_shared
 from src.api.proposals.errors import raise_proposal_http_exception
@@ -78,10 +78,6 @@ def _resolve_workspace_or_404(workspace_id: str) -> WorkspaceSession:
         return get_workspace_session(workspace_id)
     except WorkspaceNotFoundError as exc:
         raise workspace_not_found_exception(exc) from exc
-
-
-def _raise_saved_version_not_found(exc: WorkspaceSavedVersionNotFoundError) -> HTTPException:
-    return workspace_not_found_exception(exc)
 
 
 @router.post(
@@ -259,7 +255,7 @@ def get_saved_workspace_version_replay_evidence(
     except WorkspaceNotFoundError as exc:
         raise workspace_not_found_exception(exc) from exc
     except WorkspaceSavedVersionNotFoundError as exc:
-        raise _raise_saved_version_not_found(exc)
+        raise workspace_not_found_exception(exc) from exc
 
 
 @router.post(
@@ -284,7 +280,7 @@ def resume_workspace(
     except WorkspaceNotFoundError as exc:
         raise workspace_not_found_exception(exc) from exc
     except WorkspaceSavedVersionNotFoundError as exc:
-        raise _raise_saved_version_not_found(exc)
+        raise workspace_not_found_exception(exc) from exc
 
 
 @router.post(
@@ -310,7 +306,7 @@ def compare_workspace(
     except WorkspaceNotFoundError as exc:
         raise workspace_not_found_exception(exc) from exc
     except WorkspaceSavedVersionNotFoundError as exc:
-        raise _raise_saved_version_not_found(exc)
+        raise workspace_not_found_exception(exc) from exc
 
 
 @router.post(
