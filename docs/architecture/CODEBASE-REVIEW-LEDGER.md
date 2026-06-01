@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-506
+
+- Scope: Monetary float guard allowlist matching
+- Pattern: Governance checks should fail on new or changed monetary float usage without failing on
+  line-number drift caused by unrelated modularization.
+- Status: Hardened
+- Finding Class: CI governance brittleness and monetary-control maintainability
+- Summary: The monetary float guard compared findings against the allowlist using full
+  `path:line:code` strings. The core model import refactor moved approved target-generation
+  optimizer findings by a few lines, causing Feature Lane lint to fail even though no monetary float
+  code had changed.
+- Evidence:
+  - Added stable monetary-float finding keys that ignore line-number movement while preserving path
+    and source-code text.
+  - Added unit coverage proving line drift remains allowlisted and code-text changes remain
+    detectable.
+  - `python scripts/check_monetary_float_usage.py` passed with the existing six findings matched to
+    the governed allowlist.
+  - `make lint` passed locally after the guard hardening.
+- Consequence:
+  - Feature Lane remains sensitive to new or changed monetary float usage while no longer blocking
+    unrelated refactors that only shift approved findings to different line numbers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this changes CI guard
+    matching behavior only; it does not change product behavior or published operator guidance.
+- Follow-Up:
+  - Continue reducing the allowlisted monetary float baseline rather than refreshing approvals for
+    convenience.
+
 ## LA-REV-505
 
 - Scope: Proposal, workspace, and advisory service model dependency direction

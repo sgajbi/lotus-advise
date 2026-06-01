@@ -101,6 +101,15 @@ def load_allowlist(path: Path) -> tuple[dict[str, dict], list[str], list[str]]:
     return entries, errors, stale
 
 
+def finding_code_key(finding: str) -> str:
+    """Return a stable key that ignores line-number movement but keeps path and code text."""
+    parts = finding.split(":", 2)
+    if len(parts) != 3:
+        return finding
+    rel_path, _line_no, code = parts
+    return f"{rel_path}:{code}"
+
+
 def write_allowlist(
     path: Path, findings: list[str], existing_entries: dict[str, dict], review_by: str
 ) -> None:
@@ -169,7 +178,13 @@ def main() -> int:
         print(f"\nUpdate {allowlist_path} with refreshed review dates and remediation status.")
         return 1
 
-    unexpected = sorted(set(findings) - set(allowlist_entries))
+    allowlisted_code_keys = {finding_code_key(finding) for finding in allowlist_entries}
+    unexpected = sorted(
+        finding
+        for finding in set(findings)
+        if finding not in allowlist_entries
+        and finding_code_key(finding) not in allowlisted_code_keys
+    )
 
     if unexpected:
         print("Unauthorized monetary float usage detected:")
