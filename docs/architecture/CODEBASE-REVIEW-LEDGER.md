@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-416
+
+- Scope: Workspace saved-version service boundary
+- Pattern: Workspace saved-version save/list/replay/resume/compare behavior should live behind a
+  dedicated service module instead of sharing the main workspace orchestration module.
+- Status: Hardened
+- Finding Class: modularity problem and service-boundary consistency
+- Summary: `src/api/services/workspace_service.py` still owned workspace saved-version lookup,
+  save, list, replay, resume, and compare logic alongside session creation, evaluation, draft
+  actions, and lifecycle handoff. That kept several saved-version domain imports and helper paths
+  in the main workspace service module.
+- Evidence:
+  - Added `src/api/services/workspace_saved_versions.py` for saved-version save/list/replay/resume
+    and compare behavior.
+  - Kept the existing `workspace_service.py` public functions as thin delegates so route imports
+    and API behavior remain stable.
+  - Added an internal guard that prevents `workspace_service.py` from importing
+    `src.core.workspace.versions` directly and pins the new saved-version service dependency.
+- Consequence:
+  - The main workspace service is smaller and more focused on session lifecycle, evaluation, draft
+    action, and handoff orchestration, while saved-version behavior has a clearer module boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service modularity cleanup for existing behavior.
+- Follow-Up:
+  - Continue extracting focused workspace subdomains when the route-facing API can remain stable
+    behind thin delegates.
+
 ## LA-REV-415
 
 - Scope: API HTTP exception construction boundary

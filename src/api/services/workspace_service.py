@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from src.api.services import workspace_store
+from src.api.services import workspace_saved_versions, workspace_store
 from src.api.services.workspace_context_resolution import (
     build_initial_workspace_context,
     build_workspace_simulate_request,
@@ -10,7 +10,6 @@ from src.api.services.workspace_errors import (
     WORKSPACE_EVALUATION_UNAVAILABLE_DETAIL,
     WorkspaceEvaluationUnavailableError,
     WorkspaceNotFoundError,
-    WorkspaceSavedVersionNotFoundError,
     safe_workspace_error_detail,
 )
 from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
@@ -19,17 +18,12 @@ from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.correlation import resolve_correlation_id
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-from src.core.replay.service import build_workspace_saved_version_replay_response
-from src.core.workspace.compare import build_workspace_compare_response
 from src.core.workspace.draft_actions import (
     WorkspaceDraftActionError,
     apply_workspace_draft_action_to_state,
 )
 from src.core.workspace.evaluation import build_evaluation_summary
-from src.core.workspace.identifiers import (
-    new_workspace_id,
-    new_workspace_version_id,
-)
+from src.core.workspace.identifiers import new_workspace_id
 from src.core.workspace.models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
@@ -38,7 +32,6 @@ from src.core.workspace.models import (
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
     WorkspaceResumeRequest,
-    WorkspaceSavedVersion,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
@@ -52,14 +45,6 @@ from src.core.workspace.reevaluation import (
 )
 from src.core.workspace.replay import build_replay_evidence
 from src.core.workspace.sessions import build_workspace_session
-from src.core.workspace.versions import (
-    WorkspaceSavedVersionLookupError,
-    apply_saved_workspace_version,
-    build_saved_version_list_response,
-    build_saved_workspace_version,
-    find_saved_version,
-    refresh_saved_version_metadata,
-)
 
 MAX_WORKSPACE_SESSION_CACHE_SIZE = workspace_store.DEFAULT_WORKSPACE_SESSION_CACHE_SIZE
 
@@ -125,16 +110,6 @@ def reset_workspace_sessions_for_tests() -> None:
     workspace_store.reset_workspace_sessions()
 
 
-def _find_saved_version(
-    session: WorkspaceSession,
-    workspace_version_id: str,
-) -> WorkspaceSavedVersion:
-    try:
-        return find_saved_version(session, workspace_version_id)
-    except WorkspaceSavedVersionLookupError as exc:
-        raise WorkspaceSavedVersionNotFoundError("WORKSPACE_SAVED_VERSION_NOT_FOUND") from exc
-
-
 def create_workspace_session(
     request: WorkspaceSessionCreateRequest,
 ) -> WorkspaceSessionCreateResponse:
@@ -181,35 +156,26 @@ def save_workspace_version(
     workspace_id: str,
     request: WorkspaceSaveRequest,
 ) -> WorkspaceSaveResponse:
-    session = get_workspace_session(workspace_id)
-    saved_version = build_saved_workspace_version(
-        session=session,
-        request=request,
-        workspace_version_id=new_workspace_version_id(),
+    return workspace_saved_versions.save_workspace_version(
+        workspace_id,
+        request,
         saved_at=_utc_now_iso(),
     )
-    session.saved_versions.append(saved_version)
-    refresh_saved_version_metadata(session)
-    _save_workspace_session(session)
-    return WorkspaceSaveResponse(workspace=session, saved_version=saved_version)
 
 
 def list_workspace_saved_versions(
     workspace_id: str,
 ) -> WorkspaceSavedVersionListResponse:
-    session = get_workspace_session(workspace_id)
-    return build_saved_version_list_response(session)
+    return workspace_saved_versions.list_workspace_saved_versions(workspace_id)
 
 
 def get_workspace_saved_version_replay(
     workspace_id: str,
     workspace_version_id: str,
 ) -> AdvisoryReplayEvidenceResponse:
-    session = get_workspace_session(workspace_id)
-    saved_version = _find_saved_version(session, workspace_version_id)
-    return build_workspace_saved_version_replay_response(
-        session=session,
-        saved_version=saved_version,
+    return workspace_saved_versions.get_workspace_saved_version_replay(
+        workspace_id,
+        workspace_version_id,
     )
 
 
@@ -217,23 +183,14 @@ def resume_workspace_version(
     workspace_id: str,
     request: WorkspaceResumeRequest,
 ) -> WorkspaceSession:
-    session = get_workspace_session(workspace_id)
-    saved_version = _find_saved_version(session, request.workspace_version_id)
-    apply_saved_workspace_version(session=session, saved_version=saved_version)
-    _save_workspace_session(session)
-    return session
+    return workspace_saved_versions.resume_workspace_version(workspace_id, request)
 
 
 def compare_workspace_to_saved_version(
     workspace_id: str,
     request: WorkspaceCompareRequest,
 ) -> WorkspaceCompareResponse:
-    session = get_workspace_session(workspace_id)
-    saved_version = _find_saved_version(session, request.workspace_version_id)
-    return build_workspace_compare_response(
-        session=session,
-        baseline_version=saved_version,
-    )
+    return workspace_saved_versions.compare_workspace_to_saved_version(workspace_id, request)
 
 
 def handoff_workspace_to_proposal_lifecycle(
