@@ -30,7 +30,7 @@ from src.core.advisory_copilot.review_persistence import (
     record_advisory_copilot_review,
 )
 from src.core.advisory_copilot.run_persistence import persist_advisory_copilot_run
-from src.core.advisory_copilot.run_review_policy import can_attempt_advisory_copilot_run_refresh
+from src.core.advisory_copilot.run_replay_policy import resolve_advisory_copilot_run_replay
 from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,
 )
@@ -189,17 +189,13 @@ class AdvisoryCopilotApplicationService:
                 requested_intents=payload.requested_intents,
                 user_instruction=payload.user_instruction,
             )
-            existing_idempotency = self._repository.get_run_idempotency(
-                idempotency_key=idempotency_key
+            replay_run = resolve_advisory_copilot_run_replay(
+                repository=self._repository,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
             )
-            if existing_idempotency is not None:
-                if existing_idempotency.request_hash != request_hash:
-                    raise ValueError("COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT")
-                existing_run = self._repository.get_run(run_id=existing_idempotency.run_id)
-                if existing_run is None:
-                    raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
-                if not can_attempt_advisory_copilot_run_refresh(existing_run):
-                    return AdvisoryCopilotRunResponse(run=existing_run, replayed=True)
+            if replay_run is not None:
+                return AdvisoryCopilotRunResponse(run=replay_run, replayed=True)
         draft = self._draft_generator(
             evidence_packet=evidence_packet,
             audience=payload.audience,

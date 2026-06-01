@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-565
+
+- Scope: Advisory copilot run idempotency replay preflight
+- Pattern: Pre-draft replay decisions should live in a focused run replay policy module rather
+  than inside the application-service orchestration method.
+- Status: Hardened
+- Finding Class: Service boundary modularity and idempotency auditability
+- Summary: `AdvisoryCopilotApplicationService.run_action` carried inline idempotency lookup,
+  request-hash conflict handling, orphan detection, and retryability branching before invoking the
+  draft generator. That made replay behavior harder to test independently from orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_replay_policy.py` with
+    `resolve_advisory_copilot_run_replay`.
+  - Updated `run_action` to delegate pre-draft replay decisions to the focused helper while
+    preserving request-hash construction and replay response semantics.
+  - Added coverage proving replay return for non-retryable matching runs, conflict rejection for
+    changed request hashes, and refresh allowance for retryable unavailable runs.
+- Consequence:
+  - Advisory-copilot idempotency replay behavior is now independently testable and the application
+    service no longer owns repository-specific replay branching.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue thinning the application service around proposal-version evidence lookup and
+    supportability response construction where useful.
+
 ## LA-REV-564
 
 - Scope: Advisory copilot correlation resolution boundary

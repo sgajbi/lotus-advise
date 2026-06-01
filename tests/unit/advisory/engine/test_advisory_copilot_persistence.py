@@ -90,6 +90,7 @@ from src.core.advisory_copilot.run_persistence import (
 from src.core.advisory_copilot.run_records import (
     AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
 )
+from src.core.advisory_copilot.run_replay_policy import resolve_advisory_copilot_run_replay
 from src.core.advisory_copilot.run_review_policy import (
     can_attempt_advisory_copilot_run_refresh,
     review_posture_from_draft_status,
@@ -937,6 +938,50 @@ def test_retrying_false_positive_output_guardrail_refreshes_same_idempotent_requ
     assert refreshed.run.review_posture == "REVIEW_REQUIRED"
     assert refreshed.run.guardrail_results_json == []
     assert refreshed.run.output_sections_json[0]["section_key"] == "NARRATIVE_POSTURE"
+
+
+def test_copilot_run_replay_policy_separates_replay_from_retryable_refresh() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    first = _persist_run(repository).run
+
+    assert (
+        resolve_advisory_copilot_run_replay(
+            repository=repository,
+            idempotency_key="copilot-action-idem-001",
+            request_hash=first.request_hash,
+        )
+        == first
+    )
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT"):
+        resolve_advisory_copilot_run_replay(
+            repository=repository,
+            idempotency_key="copilot-action-idem-001",
+            request_hash="sha256:different-request",
+        )
+
+    retryable_repository = InMemoryAdvisoryCopilotRepository()
+    retryable = _persist_run(
+        retryable_repository,
+        draft_status="UNAVAILABLE",
+        output_sections=(),
+        lineage={
+            "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+            "workflow_pack_version": "v1",
+            "workflow_run_id": None,
+            "model_version": None,
+            "proposal_version_no": 1,
+            "fallback_reason": "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+        },
+    ).run
+
+    assert (
+        resolve_advisory_copilot_run_replay(
+            repository=retryable_repository,
+            idempotency_key="copilot-action-idem-001",
+            request_hash=retryable.request_hash,
+        )
+        is None
+    )
 
 
 def test_copilot_run_idempotency_rejects_changed_request() -> None:
