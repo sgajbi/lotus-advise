@@ -1,5 +1,28 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-489
+
+- Scope: Postgres proposal repository boundary regression coverage
+- Pattern: The proposal Postgres repository adapter needs direct contract coverage that prevents
+  persistence SQL from drifting back into the delegating adapter after modularization.
+- Status: Hardened
+- Finding Class: architecture regression test gap
+- Summary: The Postgres persistence extraction had strong behavior coverage but no explicit
+  architecture contract preventing future inline SQL from returning to
+  `src/infrastructure/proposals/postgres.py`.
+- Evidence:
+  - Added `tests/unit/advisory/contracts/test_proposal_postgres_repository_boundary.py`.
+  - The contract asserts that `postgres.py` remains a compact delegating adapter without inline SQL
+    markers and that the extracted Postgres helper modules remain present.
+- Consequence:
+  - Future changes that reintroduce monolithic SQL into the repository adapter now fail a fast unit
+    contract before the codebase regresses structurally.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public behavior is
+    unchanged.
+- Follow-Up:
+  - Include this contract in the focused proposal persistence validation pack and in the PR evidence.
+
 ## LA-REV-488
 
 - Scope: Postgres proposal repository helper imports
