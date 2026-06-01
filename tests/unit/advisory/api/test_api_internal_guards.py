@@ -529,13 +529,17 @@ def test_capabilities_service_delegates_supportability_projection():
 
 def test_capabilities_service_delegates_dependency_readiness_helpers():
     source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+    feature_catalog = Path("src/api/capabilities/feature_catalog.py").read_text(encoding="utf-8")
+    workflow_catalog = Path("src/api/capabilities/workflow_catalog.py").read_text(encoding="utf-8")
 
     assert "from src.api.capabilities.dependencies import" in source
     assert "def dependency_map(" not in source
     assert "def dependency_ready(" not in source
     assert "dependency_ready," not in source
     assert "bank_demo_proof_readiness" not in source
-    assert "resolve_capability_dependency_status" in source
+    assert "resolve_capability_dependency_status" not in source
+    assert "resolve_capability_dependency_status" in feature_catalog
+    assert "resolve_capability_dependency_status" in workflow_catalog
     assert "BANK_DEMO_PROOF_DEPENDENCY_KEYS" not in source
     assert '"LOTUS_CORE_DEPENDENCY_UNAVAILABLE"' not in source
     assert '"LOTUS_AI_DEPENDENCY_UNAVAILABLE"' not in source
@@ -560,6 +564,14 @@ def test_capabilities_service_delegates_feature_catalog_assembly():
     assert "from src.api.capabilities.feature_catalog import build_feature_capabilities" in source
     assert "def build_feature_capabilities(" not in source
     assert "FeatureCapability(" not in source
+
+
+def test_capabilities_service_delegates_workflow_catalog_assembly():
+    source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
+
+    assert "from src.api.capabilities.workflow_catalog import build_workflow_capabilities" in source
+    assert "def build_workflow_capabilities(" not in source
+    assert "WorkflowCapability(" not in source
 
 
 def test_bank_demo_proof_routes_use_shared_response_metadata():

@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-468
+
+- Scope: Capability workflow catalog assembly
+- Pattern: Integration capability service orchestration should delegate workflow catalog
+  construction to a catalog module instead of owning every workflow row inline.
+- Status: Hardened
+- Finding Class: modularity and service-boundary maintainability
+- Summary: After feature catalog extraction, `src/api/capabilities/service.py` still embedded every
+  `WorkflowCapability` row, including dependency readiness and degraded-reason selection.
+- Evidence:
+  - Added `src/api/capabilities/workflow_catalog.py` for workflow capability construction.
+  - Updated `src/api/capabilities/service.py` to import workflow and feature catalog builders.
+  - Added guard coverage preventing `WorkflowCapability` row assembly from drifting back into
+    `service.py`.
+  - Updated RFC-0026 code-path contract coverage to scan the split capability catalog modules.
+- Consequence:
+  - Capability response service is now focused on readiness, runtime flags, supportability, and
+    response assembly rather than catalog row ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue reducing capability model/OpenAPI size and add catalog-focused characterization tests
+    if future catalog rows are introduced.
+
 ## LA-REV-467
 
 - Scope: Capability feature catalog assembly

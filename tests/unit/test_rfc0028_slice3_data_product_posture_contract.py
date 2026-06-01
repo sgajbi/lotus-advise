@@ -9,7 +9,11 @@ PRODUCT_DECLARATION_PATH = (
     REPO_ROOT / "contracts" / "domain-data-products" / "lotus-advise-products.v1.json"
 )
 TRUST_TELEMETRY_DIR = REPO_ROOT / "contracts" / "trust-telemetry"
-CAPABILITY_SERVICE_PATH = REPO_ROOT / "src" / "api" / "capabilities" / "service.py"
+CAPABILITY_MODULE_PATHS = (
+    REPO_ROOT / "src" / "api" / "capabilities" / "service.py",
+    REPO_ROOT / "src" / "api" / "capabilities" / "feature_catalog.py",
+    REPO_ROOT / "src" / "api" / "capabilities" / "workflow_catalog.py",
+)
 
 RFC28_PROPOSED_RECORDS = {
     "AdvisoryBankDemoProofPack",
@@ -41,7 +45,9 @@ def test_rfc0028_keeps_proof_records_internal_but_promotes_capability_after_proo
     telemetry_text = "\n".join(
         path.read_text(encoding="utf-8") for path in TRUST_TELEMETRY_DIR.glob("*.json")
     )
-    capability_text = CAPABILITY_SERVICE_PATH.read_text(encoding="utf-8")
+    capability_text = "\n".join(
+        path.read_text(encoding="utf-8") for path in CAPABILITY_MODULE_PATHS
+    )
 
     assert RFC28_PROPOSED_RECORDS.isdisjoint(products)
     for proposed_record in RFC28_PROPOSED_RECORDS:
