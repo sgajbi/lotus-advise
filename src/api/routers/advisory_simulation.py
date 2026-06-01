@@ -2,13 +2,11 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Header, status
 
-from src.api.services import advisory_simulation_service as service
-from src.api.simulation_examples import (
-    PROPOSAL_409_EXAMPLE,
-    PROPOSAL_BLOCKED_EXAMPLE,
-    PROPOSAL_PENDING_EXAMPLE,
-    PROPOSAL_READY_EXAMPLE,
+from src.api.routers.advisory_simulation_responses import (
+    PROPOSAL_ARTIFACT_RESPONSES,
+    PROPOSAL_SIMULATION_RESPONSES,
 )
+from src.api.services import advisory_simulation_service as service
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.models import ProposalResult
@@ -40,25 +38,7 @@ router = APIRouter()
         "Optional header: `X-Correlation-Id` (auto-generated when omitted).\\n\\n"
         "Requires `options.enable_proposal_simulation=true`."
     ),
-    responses={
-        200: {
-            "description": "Proposal simulation completed with domain status in payload.",
-            "content": {
-                "application/json": {
-                    "examples": {
-                        "ready": PROPOSAL_READY_EXAMPLE,
-                        "pending_review": PROPOSAL_PENDING_EXAMPLE,
-                        "blocked": PROPOSAL_BLOCKED_EXAMPLE,
-                    }
-                }
-            },
-        },
-        409: {
-            "description": "Idempotency key reused with different canonical request hash.",
-            "content": {"application/json": {"examples": {"conflict": PROPOSAL_409_EXAMPLE}}},
-        },
-        422: {"description": "Validation error (invalid payload or missing required headers)."},
-    },
+    responses=PROPOSAL_SIMULATION_RESPONSES,
 )
 def simulate_proposal(
     request: ProposalSimulationRequest,
@@ -100,14 +80,7 @@ def simulate_proposal(
         "Optional header: `X-Correlation-Id` (auto-generated when omitted).\\n\\n"
         "Requires `options.enable_proposal_simulation=true`."
     ),
-    responses={
-        200: {"description": "Proposal artifact generated successfully."},
-        409: {
-            "description": "Idempotency key reused with different canonical request hash.",
-            "content": {"application/json": {"examples": {"conflict": PROPOSAL_409_EXAMPLE}}},
-        },
-        422: {"description": "Validation error (invalid payload or missing required headers)."},
-    },
+    responses=PROPOSAL_ARTIFACT_RESPONSES,
 )
 def build_proposal_artifact_endpoint(
     request: ProposalSimulationRequest,

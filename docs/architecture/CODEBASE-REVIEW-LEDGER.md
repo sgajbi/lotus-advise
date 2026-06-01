@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-401
+
+- Scope: Advisory simulation API response metadata
+- Pattern: Simulation route modules should keep OpenAPI response examples and error maps separate
+  from deterministic simulation and artifact endpoint flow.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/routers/advisory_simulation.py` still owned sizeable response dictionaries for
+  proposal simulation and proposal artifact endpoints, including ready, pending-review, blocked,
+  and idempotency-conflict examples. The endpoint behavior already delegated simulation input
+  resolution and idempotency handling to the simulation service, so route-local response maps were
+  documentation metadata coupled to controller flow.
+- Evidence:
+  - Moved advisory simulation OpenAPI response maps into
+    `src/api/routers/advisory_simulation_responses.py`.
+  - Simulation and artifact decorators now reference named response maps while preserving existing
+    examples from `src/api/simulation_examples.py`.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `src/api/routers/advisory_simulation.py`.
+- Consequence:
+  - Advisory simulation routing is smaller and easier to review while the OpenAPI examples remain
+    reusable for contract tests and future documentation hardening.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue extracting the remaining small non-proposal response maps from proof and integration
+    capability routers before PR closure.
+
 ## LA-REV-400
 
 - Scope: Advisory workspace API response metadata

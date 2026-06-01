@@ -21,6 +21,7 @@ from src.integrations.lotus_core.simulation import (
 )
 
 workspace_router = importlib.import_module("src.api.workspaces.router")
+advisory_simulation_router = importlib.import_module("src.api.routers.advisory_simulation")
 
 
 def test_raise_proposal_http_exception_re_raises_unknown_exception():
@@ -126,3 +127,11 @@ def test_workspace_routes_use_shared_response_metadata():
     assert "responses=WORKSPACE_CREATE_RESPONSES" in source
     assert "responses=WORKSPACE_DRAFT_ACTION_RESPONSES" in source
     assert "responses=WORKSPACE_HANDOFF_RESPONSES" in source
+
+
+def test_advisory_simulation_routes_use_shared_response_metadata():
+    source = inspect.getsource(advisory_simulation_router)
+
+    assert "responses={" not in source
+    assert "responses=PROPOSAL_SIMULATION_RESPONSES" in source
+    assert "responses=PROPOSAL_ARTIFACT_RESPONSES" in source
