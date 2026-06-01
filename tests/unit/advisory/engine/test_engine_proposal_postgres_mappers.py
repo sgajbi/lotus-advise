@@ -1,11 +1,6 @@
 from datetime import datetime, timezone
 
-from src.infrastructure.proposals import postgres as postgres_module
 from src.infrastructure.proposals import postgres_mappers
-
-
-def test_postgres_mapper_aliases_cover_remaining_inline_persistence() -> None:
-    assert postgres_module._to_proposal is postgres_mappers.to_proposal
 
 
 def test_postgres_mappers_use_canonical_json_serialization() -> None:

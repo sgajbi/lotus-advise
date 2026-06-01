@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-487
+
+- Scope: Postgres proposal record persistence
+- Pattern: Proposal record create/update/get/list SQL and transaction-scoped upsert should live in a
+  focused infrastructure helper instead of remaining inline in the proposal Postgres repository
+  adapter.
+- Status: Hardened
+- Finding Class: modularity and proposal list-query maintainability
+- Summary: `src/infrastructure/proposals/postgres.py` still owned proposal record persistence
+  directly, including keyset list filtering, cursor predicate construction, point lookup, and the
+  transaction-scoped upsert reused by proposal transitions. This kept the core proposal list-query
+  path coupled to unrelated memo, version, approval, event, and idempotency persistence in one
+  adapter.
+- Evidence:
+  - Added `src/infrastructure/proposals/postgres_records.py` for proposal record persistence
+    helpers.
+  - Updated `PostgresProposalRepository` proposal record methods and transition writes to delegate
+    through the helper while preserving the transaction boundary used by `transition_proposal`.
+  - Reused existing Postgres repository coverage for create/update/get/list behavior, keyset cursor
+    behavior, and transition write behavior.
+- Consequence:
+  - Proposal list-query and state persistence now have explicit infrastructure ownership, reducing
+    the repository adapter to orchestration and delegation.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Continue reducing import/delegation noise and run the broader proposal persistence pack before
+    PR closure.
+
 ## LA-REV-486
 
 - Scope: Postgres proposal approval persistence

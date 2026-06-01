@@ -22,7 +22,6 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
 )
 from src.infrastructure.postgres_migrations import apply_postgres_migrations
-from src.infrastructure.proposals import postgres_mappers as _postgres_mappers
 from src.infrastructure.proposals.postgres_approvals import (
     create_approval as _create_approval,
 )
@@ -101,6 +100,21 @@ from src.infrastructure.proposals.postgres_memos import (
 from src.infrastructure.proposals.postgres_memos import (
     list_memos_for_proposals as _list_memos_for_proposals,
 )
+from src.infrastructure.proposals.postgres_records import (
+    create_proposal as _create_proposal,
+)
+from src.infrastructure.proposals.postgres_records import (
+    get_proposal as _get_proposal,
+)
+from src.infrastructure.proposals.postgres_records import (
+    list_proposals as _list_proposals,
+)
+from src.infrastructure.proposals.postgres_records import (
+    update_proposal as _update_proposal,
+)
+from src.infrastructure.proposals.postgres_records import (
+    upsert_proposal as _upsert_proposal,
+)
 from src.infrastructure.proposals.postgres_versions import (
     create_version as _create_version,
 )
@@ -125,8 +139,6 @@ from src.infrastructure.proposals.postgres_workflow_events import (
 from src.infrastructure.proposals.postgres_workflow_events import (
     list_events_for_proposals as _list_events_for_proposals,
 )
-
-_to_proposal = _postgres_mappers.to_proposal
 
 
 class PostgresProposalRepository:
@@ -272,37 +284,13 @@ class PostgresProposalRepository:
         )
 
     def create_proposal(self, proposal: ProposalRecord) -> None:
-        with closing(self._connect()) as connection:
-            self._upsert_proposal(connection=connection, proposal=proposal)
-            connection.commit()
+        _create_proposal(connect=self._connect, proposal=proposal)
 
     def update_proposal(self, proposal: ProposalRecord) -> None:
-        with closing(self._connect()) as connection:
-            self._upsert_proposal(connection=connection, proposal=proposal)
-            connection.commit()
+        _update_proposal(connect=self._connect, proposal=proposal)
 
     def get_proposal(self, *, proposal_id: str) -> Optional[ProposalRecord]:
-        query = """
-            SELECT
-                proposal_id,
-                portfolio_id,
-                mandate_id,
-                jurisdiction,
-                created_by,
-                created_at,
-                last_event_at,
-                current_state,
-                current_version_no,
-                title,
-                advisor_notes,
-                lifecycle_origin,
-                source_workspace_id
-            FROM proposal_records
-            WHERE proposal_id = %s
-        """
-        with closing(self._connect()) as connection:
-            row = connection.execute(query, (proposal_id,)).fetchone()
-        return _to_proposal(row)
+        return _get_proposal(connect=self._connect, proposal_id=proposal_id)
 
     def list_proposals(
         self,
@@ -315,79 +303,16 @@ class PostgresProposalRepository:
         limit: int,
         cursor: Optional[str],
     ) -> tuple[list[ProposalRecord], Optional[str]]:
-        where_clauses = []
-        args: list[object] = []
-        cursor_where_clauses = ["cursor_record.proposal_id = %s"]
-        cursor_args: list[object] = []
-
-        def add_filter(clause: str, cursor_clause: str, value: object) -> None:
-            where_clauses.append(clause)
-            args.append(value)
-            cursor_where_clauses.append(cursor_clause)
-            cursor_args.append(value)
-
-        if portfolio_id is not None:
-            add_filter("portfolio_id = %s", "cursor_record.portfolio_id = %s", portfolio_id)
-        if state is not None:
-            add_filter("current_state = %s", "cursor_record.current_state = %s", state)
-        if created_by is not None:
-            add_filter("created_by = %s", "cursor_record.created_by = %s", created_by)
-        if created_from is not None:
-            add_filter(
-                "created_at >= %s",
-                "cursor_record.created_at >= %s",
-                created_from.isoformat(),
-            )
-        if created_to is not None:
-            add_filter(
-                "created_at <= %s",
-                "cursor_record.created_at <= %s",
-                created_to.isoformat(),
-            )
-        if cursor:
-            cursor_args.insert(0, cursor)
-            cursor_where_sql = " AND ".join(cursor_where_clauses)
-            where_clauses.append(
-                f"""
-                (created_at, proposal_id) < (
-                    SELECT cursor_record.created_at, cursor_record.proposal_id
-                    FROM proposal_records cursor_record
-                    WHERE {cursor_where_sql}
-                )
-                """
-            )
-            args.extend(cursor_args)
-        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
-        query = f"""
-            SELECT
-                proposal_id,
-                portfolio_id,
-                mandate_id,
-                jurisdiction,
-                created_by,
-                created_at,
-                last_event_at,
-                current_state,
-                current_version_no,
-                title,
-                advisor_notes,
-                lifecycle_origin,
-                source_workspace_id
-            FROM proposal_records
-            {where_sql}
-            ORDER BY created_at DESC, proposal_id DESC
-            LIMIT %s
-        """
-        args.append(limit + 1)
-        with closing(self._connect()) as connection:
-            rows = connection.execute(query, tuple(args)).fetchall()
-        proposals = cast(
-            list[ProposalRecord],
-            [proposal for proposal in (_to_proposal(row) for row in rows) if proposal is not None],
+        return _list_proposals(
+            connect=self._connect,
+            portfolio_id=portfolio_id,
+            state=state,
+            created_by=created_by,
+            created_from=created_from,
+            created_to=created_to,
+            limit=limit,
+            cursor=cursor,
         )
-        page = proposals[:limit]
-        next_cursor = page[-1].proposal_id if len(proposals) > limit else None
-        return page, next_cursor
 
     def create_version(self, version: ProposalVersionRecord) -> None:
         _create_version(connect=self._connect, version=version)
@@ -453,7 +378,7 @@ class PostgresProposalRepository:
             _insert_workflow_event(connection=connection, event=event)
             if approval is not None:
                 _insert_approval(connection=connection, approval=approval)
-            self._upsert_proposal(connection=connection, proposal=proposal)
+            _upsert_proposal(connection=connection, proposal=proposal)
             connection.commit()
 
         return ProposalTransitionResult(
@@ -469,56 +394,6 @@ class PostgresProposalRepository:
     def _init_db(self) -> None:
         with closing(self._connect()) as connection:
             apply_postgres_migrations(connection=connection, namespace="proposals")
-
-    def _upsert_proposal(self, *, connection: Any, proposal: ProposalRecord) -> None:
-        query = """
-            INSERT INTO proposal_records (
-                proposal_id,
-                portfolio_id,
-                mandate_id,
-                jurisdiction,
-                created_by,
-                created_at,
-                last_event_at,
-                current_state,
-                current_version_no,
-                title,
-                advisor_notes,
-                lifecycle_origin,
-                source_workspace_id
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (proposal_id) DO UPDATE SET
-                portfolio_id=excluded.portfolio_id,
-                mandate_id=excluded.mandate_id,
-                jurisdiction=excluded.jurisdiction,
-                created_by=excluded.created_by,
-                created_at=excluded.created_at,
-                last_event_at=excluded.last_event_at,
-                current_state=excluded.current_state,
-                current_version_no=excluded.current_version_no,
-                title=excluded.title,
-                advisor_notes=excluded.advisor_notes,
-                lifecycle_origin=excluded.lifecycle_origin,
-                source_workspace_id=excluded.source_workspace_id
-        """
-        connection.execute(
-            query,
-            (
-                proposal.proposal_id,
-                proposal.portfolio_id,
-                proposal.mandate_id,
-                proposal.jurisdiction,
-                proposal.created_by,
-                proposal.created_at.isoformat(),
-                proposal.last_event_at.isoformat(),
-                proposal.current_state,
-                proposal.current_version_no,
-                proposal.title,
-                proposal.advisor_notes,
-                proposal.lifecycle_origin,
-                proposal.source_workspace_id,
-            ),
-        )
 
 
 def _import_psycopg() -> tuple[Any, Any]:

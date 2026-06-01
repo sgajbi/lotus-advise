@@ -19,6 +19,7 @@ from src.core.proposals.models import (
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
 )
+from src.infrastructure.proposals import postgres_mappers
 from src.infrastructure.proposals.postgres import PostgresProposalRepository
 
 
@@ -1443,4 +1444,4 @@ def test_postgres_repository_connect_uses_dsn_and_row_factory(monkeypatch):
 
 
 def test_to_proposal_returns_none_for_missing_row():
-    assert postgres_module._to_proposal(None) is None
+    assert postgres_mappers.to_proposal(None) is None
