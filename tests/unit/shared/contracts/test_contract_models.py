@@ -123,6 +123,8 @@ from src.core.models import (
     ProposalAllocationLens,
     ProposalAllocationView,
     ProposalOrderIntent,
+    ProposalSimulateRequest,
+    ProposedCashFlow,
     ProposedTrade,
     Reconciliation,
     RuleResult,
@@ -193,6 +195,15 @@ from src.core.proposal_effect_models import (
 )
 from src.core.proposal_effect_models import (
     TaxImpact as EffectsTaxImpact,
+)
+from src.core.proposal_request_models import (
+    ProposalSimulateRequest as RequestProposalSimulateRequest,
+)
+from src.core.proposal_request_models import (
+    ProposedCashFlow as RequestProposedCashFlow,
+)
+from src.core.proposal_request_models import (
+    ProposedTrade as RequestProposedTrade,
 )
 from src.core.simulation_state_models import (
     AllocationMetric as SimulationAllocationMetric,
@@ -330,6 +341,12 @@ def test_core_models_preserves_gate_model_import_contract():
 def test_core_models_preserves_proposal_effect_model_import_contract():
     assert Reconciliation is EffectsReconciliation
     assert TaxImpact is EffectsTaxImpact
+
+
+def test_core_models_preserves_proposal_request_model_import_contract():
+    assert ProposalSimulateRequest is RequestProposalSimulateRequest
+    assert ProposedCashFlow is RequestProposedCashFlow
+    assert ProposedTrade is RequestProposedTrade
 
 
 def test_money_validation():

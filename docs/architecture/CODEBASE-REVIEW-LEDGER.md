@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-501
+
+- Scope: Core proposal request model ownership
+- Pattern: Advisor-entered proposal cash flows, manual trades, and proposal simulation request
+  models should live in a focused core model module instead of remaining inline in the broad
+  `src/core/models.py` compatibility surface.
+- Status: Hardened
+- Finding Class: modularity and proposal input validation maintainability
+- Summary: `src/core/models.py` still owned proposal request DTOs and manual-trade validation logic
+  used by advisory simulation, workspace drafts, context hydration, and integration adapters
+  alongside the remaining proposal result model.
+- Evidence:
+  - Added `src/core/proposal_request_models.py` for proposed cash-flow, proposed trade, and proposal
+    simulation request DTOs.
+  - Moved decimal-string float rejection and quantity/notional validation into the request model
+    module.
+  - Updated `src/core/models.py` to re-export those models so existing public imports remain stable.
+  - Added contract coverage proving the compatibility import surface still points at the extracted
+    proposal request model definitions.
+- Consequence:
+  - Proposal input validation now has explicit ownership while downstream callers can continue
+    importing from `src.core.models` during the broader modularization program.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API behavior is
+    unchanged.
+- Follow-Up:
+  - Extract the remaining proposal-result model from `src/core/models.py` and preserve the same
+    compatibility contract.
+
 ## LA-REV-500
 
 - Scope: Core proposal reconciliation and tax-impact model ownership
