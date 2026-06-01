@@ -245,6 +245,35 @@ def test_copilot_packet_models_use_business_text_normalizer_for_identifiers() ->
     assert "def _normalize_required_text" not in packet_source
 
 
+def test_copilot_catalog_projection_uses_business_text_normalizer() -> None:
+    catalog_source = Path("src/core/advisory_copilot/catalog_models.py").read_text(encoding="utf-8")
+
+    projection = CopilotBusinessProjection(
+        action_family="MEETING_PREPARATION",
+        label="  Meeting\npreparation  ",
+        summary="Prepare an advisor-reviewed meeting note from source-backed evidence.",
+        next_action_label="  Review draft  ",
+    )
+
+    assert projection.label == "Meeting preparation"
+    assert projection.next_action_label == "Review draft"
+    with pytest.raises(ValidationError, match="COPILOT_BUSINESS_PROJECTION_REQUIRED"):
+        CopilotBusinessProjection(
+            action_family="MEETING_PREPARATION",
+            label="   ",
+            summary="Prepare an advisor-reviewed meeting note.",
+            next_action_label="Review draft",
+        )
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        CopilotBusinessProjection(
+            action_family="MEETING_PREPARATION",
+            label="Meeting preparation",
+            summary="raw payload detail",
+            next_action_label="Review draft",
+        )
+    assert "def _normalize_required_text" not in catalog_source
+
+
 def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:
     tree = ast.parse(ADVISORY_COPILOT_MODELS_PATH.read_text(encoding="utf-8"))
     literal_assignments = [

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.core.advisory_copilot.business_text import assert_copilot_business_safe_text
+from src.core.advisory_copilot.business_text import normalize_required_copilot_business_text
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,
     CopilotAudience,
@@ -90,16 +90,7 @@ class CopilotBusinessProjection(BaseModel):
     @field_validator("label", "summary", "next_action_label")
     @classmethod
     def _business_copy_must_be_safe(cls, value: str) -> str:
-        normalized = _normalize_required_text(
+        return normalize_required_copilot_business_text(
             value,
             error_code="COPILOT_BUSINESS_PROJECTION_REQUIRED",
         )
-        assert_copilot_business_safe_text(normalized)
-        return normalized
-
-
-def _normalize_required_text(value: str, *, error_code: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(error_code)
-    return normalized

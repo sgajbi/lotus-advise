@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-558
+
+- Scope: Advisory copilot catalog projection business-text normalization
+- Pattern: Business-facing catalog projection copy should use the shared business-text normalizer
+  rather than local required-text helpers plus separate safety checks.
+- Status: Hardened
+- Finding Class: Duplication reduction and private-banking vocabulary safety
+- Summary: `src/core/advisory_copilot/catalog_models.py` still carried local blank/whitespace
+  normalization for business projection labels, summaries, and next-action labels before invoking
+  the business-safe text guard. That duplicated the centralized business-copy normalizer.
+- Evidence:
+  - Updated `CopilotBusinessProjection` validators to use
+    `normalize_required_copilot_business_text`.
+  - Removed the catalog-local required-text helper.
+  - Added coverage proving whitespace normalization, blank rejection, technical leakage rejection,
+    and removal of the duplicate helper.
+- Consequence:
+  - Business-facing copilot catalog copy now shares the same private-banking vocabulary safety
+    boundary as evidence section and packet text.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API shape did not
+    change; validation semantics remain aligned with existing technical-leak rejection.
+- Follow-Up:
+  - Continue consolidating reference and unsupported-evidence text normalization where semantics
+    match.
+
 ## LA-REV-557
 
 - Scope: Advisory copilot packet business-text normalization
