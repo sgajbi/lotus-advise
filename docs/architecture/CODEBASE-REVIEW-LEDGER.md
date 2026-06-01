@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-463
+
+- Scope: Integration capability dependency readiness helpers
+- Pattern: Dependency-map parsing, dependency readiness lookup, and bank-demo proof readiness
+  should be reusable capability helpers rather than private service functions.
+- Status: Hardened
+- Finding Class: modularity and readiness-boundary maintainability
+- Summary: `src/api/capabilities/service.py` still owned dependency row parsing, dependency lookup,
+  first-unready reason selection, and RFC-0028 bank-demo proof dependency readiness. These helpers
+  are shared readiness primitives used by feature, workflow, and supportability projections.
+- Evidence:
+  - Added `src/api/capabilities/dependencies.py` for dependency rows, dependency maps, readiness
+    lookup, first-unready reason selection, and bank-demo proof readiness.
+  - Updated the capabilities service and supportability projection to use the shared dependency
+    helpers.
+  - Added guard coverage preventing dependency readiness helpers from drifting back into
+    `service.py`.
+  - Added direct coverage for malformed dependency rows and missing bank-demo proof dependencies.
+- Consequence:
+  - Capability service code is more focused on feature/workflow catalog assembly, while dependency
+    readiness behavior has a reusable module with explicit fail-closed tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public capability
+    behavior is unchanged.
+- Follow-Up:
+  - Extract feature and workflow catalog construction from `service.py` in later commits if a
+    coherent catalog/data split can be made without weakening OpenAPI contract coverage.
+
 ## LA-REV-462
 
 - Scope: Integration capability supportability projection

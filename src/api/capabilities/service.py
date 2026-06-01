@@ -1,7 +1,13 @@
 import os
 from datetime import UTC, date, datetime
-from typing import cast
 
+from src.api.capabilities.dependencies import (
+    DependencyMap,
+    bank_demo_proof_dependency_keys,
+    bank_demo_proof_readiness,
+    dependency_map,
+    dependency_ready,
+)
 from src.api.capabilities.models import (
     ConsumerSystem,
     FeatureCapability,
@@ -13,8 +19,6 @@ from src.api.capabilities.readiness import build_operational_readiness
 from src.api.capabilities.supportability import build_advisory_supportability
 from src.integrations.lotus_core import lotus_core_fallback_mode
 
-BANK_DEMO_PROOF_DEPENDENCY_KEYS = ("lotus_core", "lotus_risk", "lotus_ai", "lotus_report")
-
 
 def _env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
@@ -23,73 +27,18 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _dependency_rows(readiness: dict[str, object]) -> list[dict[str, object]]:
-    return cast(list[dict[str, object]], readiness.get("dependencies", []))
-
-
-def _dependency_map(readiness: dict[str, object]) -> dict[str, dict[str, object]]:
-    return {
-        str(item["dependency_key"]): item
-        for item in _dependency_rows(readiness)
-        if "dependency_key" in item
-    }
-
-
-def _dependency_ready(dependencies: dict[str, dict[str, object]], dependency_key: str) -> bool:
-    dependency = dependencies.get(dependency_key)
-    if dependency is None:
-        return False
-    return bool(dependency.get("operational_ready"))
-
-
-def _first_unready_dependency_reason(
-    dependencies: dict[str, dict[str, object]],
-    dependency_keys: tuple[str, ...],
-    *,
-    fallback_reason: str,
-) -> str:
-    for dependency_key in dependency_keys:
-        if _dependency_ready(dependencies, dependency_key):
-            continue
-        dependency = dependencies.get(dependency_key)
-        reason = dependency.get("degraded_reason") if dependency is not None else None
-        if isinstance(reason, str) and reason:
-            return reason
-    return fallback_reason
-
-
-def _bank_demo_proof_readiness(
-    *,
-    lifecycle_enabled: bool,
-    dependencies: dict[str, dict[str, object]],
-) -> tuple[bool, str | None]:
-    operational_ready = lifecycle_enabled and all(
-        _dependency_ready(dependencies, dependency_key)
-        for dependency_key in BANK_DEMO_PROOF_DEPENDENCY_KEYS
-    )
-    if operational_ready:
-        return True, None
-    if not lifecycle_enabled:
-        return False, "ADVISORY_LIFECYCLE_DISABLED"
-    return False, _first_unready_dependency_reason(
-        dependencies,
-        BANK_DEMO_PROOF_DEPENDENCY_KEYS,
-        fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
-    )
-
-
 def build_feature_capabilities(
     *,
     lifecycle_enabled: bool,
     async_enabled: bool,
     ai_rationale_enabled: bool,
-    dependencies: dict[str, dict[str, object]],
+    dependencies: DependencyMap,
 ) -> list[FeatureCapability]:
-    lotus_core_ready = _dependency_ready(dependencies, "lotus_core")
-    lotus_risk_ready = _dependency_ready(dependencies, "lotus_risk")
-    lotus_ai_ready = _dependency_ready(dependencies, "lotus_ai")
-    lotus_report_ready = _dependency_ready(dependencies, "lotus_report")
-    bank_demo_operational_ready, bank_demo_degraded_reason = _bank_demo_proof_readiness(
+    lotus_core_ready = dependency_ready(dependencies, "lotus_core")
+    lotus_risk_ready = dependency_ready(dependencies, "lotus_risk")
+    lotus_ai_ready = dependency_ready(dependencies, "lotus_ai")
+    lotus_report_ready = dependency_ready(dependencies, "lotus_report")
+    bank_demo_operational_ready, bank_demo_degraded_reason = bank_demo_proof_readiness(
         lifecycle_enabled=lifecycle_enabled,
         dependencies=dependencies,
     )
@@ -317,13 +266,13 @@ def build_workflow_capabilities(
     *,
     lifecycle_enabled: bool,
     ai_rationale_enabled: bool,
-    dependencies: dict[str, dict[str, object]],
+    dependencies: DependencyMap,
 ) -> list[WorkflowCapability]:
-    lotus_core_ready = _dependency_ready(dependencies, "lotus_core")
-    lotus_risk_ready = _dependency_ready(dependencies, "lotus_risk")
-    lotus_ai_ready = _dependency_ready(dependencies, "lotus_ai")
-    lotus_report_ready = _dependency_ready(dependencies, "lotus_report")
-    bank_demo_operational_ready, bank_demo_degraded_reason = _bank_demo_proof_readiness(
+    lotus_core_ready = dependency_ready(dependencies, "lotus_core")
+    lotus_risk_ready = dependency_ready(dependencies, "lotus_risk")
+    lotus_ai_ready = dependency_ready(dependencies, "lotus_ai")
+    lotus_report_ready = dependency_ready(dependencies, "lotus_report")
+    bank_demo_operational_ready, bank_demo_degraded_reason = bank_demo_proof_readiness(
         lifecycle_enabled=lifecycle_enabled,
         dependencies=dependencies,
     )
@@ -483,7 +432,7 @@ def build_workflow_capabilities(
                 "advisory.advisory_copilot",
                 "advisory.bank_demo_proof",
             ],
-            dependency_keys=list(BANK_DEMO_PROOF_DEPENDENCY_KEYS),
+            dependency_keys=bank_demo_proof_dependency_keys(),
             degraded_reason=bank_demo_degraded_reason,
         ),
         WorkflowCapability(
@@ -507,7 +456,7 @@ def build_integration_capabilities(
     async_enabled = _env_bool("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True)
     ai_rationale_enabled = _env_bool("LOTUS_AI_WORKSPACE_RATIONALE_ENABLED", True)
     readiness_payload = readiness if readiness is not None else build_operational_readiness()
-    dependencies = _dependency_map(readiness_payload)
+    dependencies = dependency_map(readiness_payload)
     features = build_feature_capabilities(
         lifecycle_enabled=lifecycle_enabled,
         async_enabled=async_enabled,

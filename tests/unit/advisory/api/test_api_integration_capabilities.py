@@ -1,5 +1,9 @@
 from fastapi.testclient import TestClient
 
+from src.api.capabilities.dependencies import (
+    bank_demo_proof_readiness,
+    dependency_map,
+)
 from src.api.capabilities.service import build_integration_capabilities
 from src.api.capabilities.supportability import build_advisory_supportability
 from src.api.main import app
@@ -631,6 +635,32 @@ def test_advisory_supportability_projection_handles_malformed_dependency_rows():
     assert supportability.ready_dependency_count == 1
     assert supportability.degraded_dependency_count == 0
     assert supportability.state == "ready"
+
+
+def test_capability_dependency_helpers_fail_closed_for_missing_proof_dependency():
+    dependencies = dependency_map(
+        {
+            "dependencies": [
+                {"dependency_key": "lotus_core", "operational_ready": True},
+                "malformed-row",
+                {"dependency_key": "lotus_risk", "operational_ready": True},
+                {
+                    "dependency_key": "lotus_ai",
+                    "operational_ready": False,
+                    "degraded_reason": "LOTUS_AI_DEPENDENCY_UNAVAILABLE",
+                },
+            ]
+        }
+    )
+
+    ready, reason = bank_demo_proof_readiness(
+        lifecycle_enabled=True,
+        dependencies=dependencies,
+    )
+
+    assert "malformed-row" not in dependencies
+    assert ready is False
+    assert reason == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
 
 
 def test_integration_capabilities_service_fails_closed_for_missing_dependency():

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.api.capabilities.dependencies import dependency_rows
 from src.api.capabilities.models import (
     AdvisorySupportability,
     FeatureCapability,
@@ -10,20 +11,16 @@ from src.api.capabilities.models import (
 from src.api.observability import record_advisory_supportability
 
 
-def _dependency_rows(readiness: dict[str, object]) -> list[dict[str, object]]:
-    return [item for item in readiness.get("dependencies", []) if isinstance(item, dict)]
-
-
 def build_advisory_supportability(
     *,
     readiness: dict[str, object],
     lifecycle_enabled: bool,
     features: list[FeatureCapability],
 ) -> AdvisorySupportability:
-    dependency_rows = _dependency_rows(readiness)
-    dependency_count = len(dependency_rows)
+    rows = dependency_rows(readiness)
+    dependency_count = len(rows)
     ready_dependency_count = sum(
-        1 for dependency in dependency_rows if bool(dependency.get("operational_ready"))
+        1 for dependency in rows if bool(dependency.get("operational_ready"))
     )
     degraded_dependency_count = dependency_count - ready_dependency_count
     enabled_features = [feature for feature in features if feature.enabled]
