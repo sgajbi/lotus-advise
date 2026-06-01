@@ -204,6 +204,47 @@ def test_advisory_copilot_business_text_normalizer_owns_required_business_copy()
     assert "contains_copilot_business_technical_detail" not in section_source
 
 
+def test_copilot_packet_models_use_business_text_normalizer_for_identifiers() -> None:
+    packet_source = Path("src/core/advisory_copilot/packet_models.py").read_text(encoding="utf-8")
+
+    packet = CopilotEvidencePacket(
+        evidence_packet_id="  copilot_packet_pb_sg_001  ",
+        evidence_packet_hash="  sha256:copilot-packet  ",
+        action_family="PROPOSAL_EXPLANATION",
+        portfolio_id="  PB_SG_GLOBAL_BAL_001  ",
+        proposal_id="  proposal_sg_structured_note_001  ",
+        sections=(
+            CopilotEvidencePacketSection(
+                section_key="POLICY_POSTURE",
+                title="Policy posture",
+                evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+                source_refs=(
+                    CopilotSourceRef(
+                        source_system="lotus-advise",
+                        source_type="POLICY_EVALUATION",
+                        source_id="policy_eval_001",
+                        content_hash="sha256:policy",
+                        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+                    ),
+                ),
+                summary_items=("Policy evaluation requires compliance review.",),
+            ),
+        ),
+        retention_class="ADVISORY_REVIEW_RECORD",
+    )
+
+    assert packet.evidence_packet_id == "copilot_packet_pb_sg_001"
+    assert packet.proposal_id == "proposal_sg_structured_note_001"
+    with pytest.raises(ValidationError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        CopilotEvidencePacket(
+            **{
+                **packet.model_dump(),
+                "evidence_packet_id": "raw prompt packet",
+            }
+        )
+    assert "def _normalize_required_text" not in packet_source
+
+
 def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:
     tree = ast.parse(ADVISORY_COPILOT_MODELS_PATH.read_text(encoding="utf-8"))
     literal_assignments = [

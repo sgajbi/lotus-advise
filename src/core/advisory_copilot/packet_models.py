@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.core.advisory_copilot.business_text import normalize_required_copilot_business_text
 from src.core.advisory_copilot.reference_models import CopilotLineageRef
 from src.core.advisory_copilot.section_models import CopilotEvidencePacketSection
 from src.core.advisory_copilot.type_models import (
@@ -75,18 +76,17 @@ class CopilotEvidencePacket(BaseModel):
     @field_validator("evidence_packet_id", "evidence_packet_hash", "portfolio_id")
     @classmethod
     def _normalize_required_packet_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_EVIDENCE_PACKET_REQUIRED")
+        return normalize_required_copilot_business_text(
+            value,
+            error_code="COPILOT_EVIDENCE_PACKET_REQUIRED",
+        )
 
     @field_validator("proposal_id")
     @classmethod
     def _normalize_optional_packet_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        return _normalize_required_text(value, error_code="COPILOT_EVIDENCE_PACKET_REQUIRED")
-
-
-def _normalize_required_text(value: str, *, error_code: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(error_code)
-    return normalized
+        return normalize_required_copilot_business_text(
+            value,
+            error_code="COPILOT_EVIDENCE_PACKET_REQUIRED",
+        )

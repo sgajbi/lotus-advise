@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-557
+
+- Scope: Advisory copilot packet business-text normalization
+- Pattern: Packet identifier normalization should reuse the shared business-text normalizer where
+  packet identifiers are persisted into audit and evidence payloads.
+- Status: Hardened
+- Finding Class: Duplication reduction and sensitive-data handling
+- Summary: `src/core/advisory_copilot/packet_models.py` still carried a local required-text
+  normalizer for evidence-packet ids, hashes, portfolio ids, and optional proposal ids. That
+  duplicated whitespace/blank handling and did not share the same technical-leak guard as evidence
+  section business copy.
+- Evidence:
+  - Updated packet model required and optional text validators to use
+    `normalize_required_copilot_business_text`.
+  - Removed the packet-local required-text helper.
+  - Added coverage proving packet identifiers normalize whitespace, reject technical leakage, and
+    no longer define the duplicate helper.
+- Consequence:
+  - Packet identifiers persisted in copilot evidence records now share the same business-safe text
+    boundary as section evidence text.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API shape did
+    not change; validation is stricter for sensitive technical leakage.
+- Follow-Up:
+  - Migrate catalog and reference model required-text normalization where business-safety semantics
+    match.
+
 ## LA-REV-556
 
 - Scope: Advisory copilot evidence section business-text normalization
