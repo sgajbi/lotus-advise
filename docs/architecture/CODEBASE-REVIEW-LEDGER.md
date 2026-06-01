@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-534
+
+- Scope: Advisory copilot evidence-reference models
+- Pattern: Source and lineage reference DTOs should live outside the broad advisory-copilot packet
+  model module
+- Status: Hardened
+- Finding Class: Modularity and auditability boundary ownership
+- Summary: `CopilotSourceRef` and `CopilotLineageRef` are reusable audit/evidence reference models,
+  but they were owned by `src/core/advisory_copilot/models.py` alongside packet and section DTOs.
+  That kept source projection, packet building, and package exports coupled to the broad model
+  surface for reference-only concerns.
+- Evidence:
+  - Added `src/core/advisory_copilot/reference_models.py` for source and lineage reference DTOs.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved source-projection and evidence-packet helper imports to the focused reference model
+    module.
+  - Added import-contract coverage proving package and compatibility imports resolve to the
+    focused reference classes.
+- Consequence:
+  - Advisory-copilot evidence references now have an auditable, reusable owner that can be shared by
+    packet, persistence, and integration layers without importing the remaining model monolith.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting unsupported-evidence and packet-section models, then convert the broad
+    advisory-copilot model module into a compatibility facade.
+
 ## LA-REV-533
 
 - Scope: Advisory copilot business-text safety boundary

@@ -45,6 +45,9 @@ from src.core.advisory_copilot.models import (
     CopilotEvidenceAccessClass as CompatibilityCopilotEvidenceAccessClass,
 )
 from src.core.advisory_copilot.models import (
+    CopilotLineageRef as CompatibilityCopilotLineageRef,
+)
+from src.core.advisory_copilot.models import (
     CopilotRetentionClass as CompatibilityCopilotRetentionClass,
 )
 from src.core.advisory_copilot.models import (
@@ -54,6 +57,9 @@ from src.core.advisory_copilot.models import (
     CopilotSourceDependency as CompatibilityCopilotSourceDependency,
 )
 from src.core.advisory_copilot.models import (
+    CopilotSourceRef as CompatibilityCopilotSourceRef,
+)
+from src.core.advisory_copilot.models import (
     CopilotUnsupportedEvidenceReason as CompatibilityCopilotUnsupportedEvidenceReason,
 )
 from src.core.advisory_copilot.models import (
@@ -61,6 +67,12 @@ from src.core.advisory_copilot.models import (
 )
 from src.core.advisory_copilot.models import (
     contains_copilot_business_technical_detail as compatibility_contains_technical_detail,
+)
+from src.core.advisory_copilot.reference_models import (
+    CopilotLineageRef as FocusedCopilotLineageRef,
+)
+from src.core.advisory_copilot.reference_models import (
+    CopilotSourceRef as FocusedCopilotSourceRef,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily as FocusedCopilotActionFamily,
@@ -149,6 +161,13 @@ def test_advisory_copilot_business_text_import_contract() -> None:
 
     with pytest.raises(ValueError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
         FocusedAssertCopilotBusinessSafeText("Provider response must not appear.")
+
+
+def test_advisory_copilot_models_preserve_reference_import_contract() -> None:
+    assert CopilotSourceRef is FocusedCopilotSourceRef
+    assert CopilotLineageRef is FocusedCopilotLineageRef
+    assert CompatibilityCopilotSourceRef is FocusedCopilotSourceRef
+    assert CompatibilityCopilotLineageRef is FocusedCopilotLineageRef
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:

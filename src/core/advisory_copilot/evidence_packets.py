@@ -10,9 +10,9 @@ from src.core.advisory_copilot.models import (
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
-    CopilotLineageRef,
     CopilotUnsupportedEvidence,
 )
+from src.core.advisory_copilot.reference_models import CopilotLineageRef
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,
     CopilotAudience,

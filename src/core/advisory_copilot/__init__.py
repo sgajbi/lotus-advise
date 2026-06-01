@@ -23,8 +23,6 @@ from src.core.advisory_copilot.models import (
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
-    CopilotLineageRef,
-    CopilotSourceRef,
     CopilotUnsupportedEvidence,
 )
 from src.core.advisory_copilot.projection import (
@@ -37,6 +35,7 @@ from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunIdempotencyRecord,
     AdvisoryCopilotRunRecord,
 )
+from src.core.advisory_copilot.reference_models import CopilotLineageRef, CopilotSourceRef
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import (
     REVIEW_ACTION_TO_POSTURE,
