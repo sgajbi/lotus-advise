@@ -1721,5 +1721,5 @@ Front-office canonical automation decision:
    cross-service contracts, or front-office/live validation for product-surface regressions.
 
 No open implementation question remains for RFC-0028 Slice 1. New facts discovered during
-implementation must be recorded as slice decisions, not parked in WTBD, "day 2", or "wave 2"
+implementation must be recorded as slice decisions, not parked in WTBD or phase-postponement
 language.
