@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-522
+
+- Scope: Policy evaluation workflow model ownership
+- Pattern: Policy evaluation workflow and sign-off DTOs should live in a focused module instead of
+  remaining inline in the broad policy-pack model surface.
+- Status: Hardened
+- Finding Class: modularity and policy workflow maintainability
+- Summary: `src/core/policy_packs/models.py` still owned the RFC-0025 workflow projection,
+  requirement projection, sign-off decision request, and sign-off decision response DTOs after
+  persistence model extraction. These DTOs are the maker-checker workflow boundary and are distinct
+  from durable record persistence, report-package handoff, and AI evidence DTOs.
+- Evidence:
+  - Added `src/core/policy_packs/workflow_models.py` for workflow requirement status, sign-off
+    status, sign-off decision literals, workflow projection, and sign-off command/response DTOs.
+  - Kept `src.core.policy_packs.models` compatibility imports intact for existing callers and
+    OpenAPI/schema-name stability.
+  - Updated workflow runtime and package exports to import workflow DTOs from the focused module.
+  - Extended policy-pack model contract coverage and RFC-0025 Slice 9 source-contract coverage to
+    prove the focused workflow model ownership and compatibility import posture.
+- Consequence:
+  - Policy evaluation workflow code now depends on a narrow maker-checker workflow model boundary
+    instead of the broader policy-pack compatibility module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API schemas and runtime
+    behavior are unchanged.
+- Follow-Up:
+  - Continue extracting policy evaluation lineage/review projections, report-package DTOs, and AI
+    evidence DTOs from `src/core/policy_packs/models.py`.
+
 ## LA-REV-521
 
 - Scope: Policy evaluation persistence model ownership

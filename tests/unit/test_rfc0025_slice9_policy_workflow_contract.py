@@ -11,6 +11,7 @@ ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_evaluations.py")
 WORKFLOW_SOURCE_PATH = Path("src/core/policy_packs/workflow.py")
 SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
+WORKFLOW_MODELS_SOURCE_PATH = Path("src/core/policy_packs/workflow_models.py")
 DECLARATION_PATH = Path("contracts/domain-data-products/lotus-advise-products.v1.json")
 TELEMETRY_PATH = Path(
     "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
@@ -50,8 +51,9 @@ def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> 
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     workflow_source = WORKFLOW_SOURCE_PATH.read_text(encoding="utf-8")
+    workflow_models_source = WORKFLOW_MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
-    models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
+    compatibility_models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     declaration_source = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry_source = TELEMETRY_PATH.read_text(encoding="utf-8")
     capabilities_source = read_capability_source()
@@ -61,8 +63,10 @@ def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> 
     assert "rfc0025.policy-sign-off-workflow.v1" in supportability_source
     assert "POLICY_EVALUATION_SIGN_OFF_REQUIRES_MAKER_CHECKER" in workflow_source
     assert "CONFLICT_REVIEW_OUTCOME_REQUIRED" in workflow_source
-    assert "PolicyEvaluationWorkflowResponse" in models_source
-    assert "PolicyEvaluationSignOffDecisionRequest" in models_source
+    assert "PolicyEvaluationWorkflowResponse" in workflow_models_source
+    assert "PolicyEvaluationSignOffDecisionRequest" in workflow_models_source
+    assert "PolicyEvaluationWorkflowResponse" in compatibility_models_source
+    assert "PolicyEvaluationSignOffDecisionRequest" in compatibility_models_source
     assert "/advisory/policy-evaluations/{evaluation_id}/workflow" in declaration_source
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in declaration_source
     assert "RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md" in telemetry_source

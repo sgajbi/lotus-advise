@@ -5,12 +5,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from src.core.common.idempotency import normalize_optional_idempotency_key
-from src.core.policy_packs.models import (
-    PolicyEvaluationRequirementProjection,
-    PolicyEvaluationSignOffDecisionRequest,
-    PolicyEvaluationSignOffDecisionResponse,
-    PolicyEvaluationWorkflowResponse,
-)
 from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
     get_policy_evaluation_record,
@@ -24,6 +18,12 @@ from src.core.policy_packs.supportability import (
     CLIENT_READY_PUBLICATION_POSTURE,
     POLICY_WORKFLOW_CONTRACT_VERSION,
     policy_sign_off_package_posture,
+)
+from src.core.policy_packs.workflow_models import (
+    PolicyEvaluationRequirementProjection,
+    PolicyEvaluationSignOffDecisionRequest,
+    PolicyEvaluationSignOffDecisionResponse,
+    PolicyEvaluationWorkflowResponse,
 )
 from src.core.proposals.exceptions import ProposalValidationError
 

@@ -39,6 +39,10 @@ from src.core.policy_packs.models import (
     PolicyEvaluationRecord,
     PolicyEvaluationReplayRequest,
     PolicyEvaluationReplayResponse,
+    PolicyEvaluationRequirementProjection,
+    PolicyEvaluationSignOffDecisionRequest,
+    PolicyEvaluationSignOffDecisionResponse,
+    PolicyEvaluationWorkflowResponse,
     PolicyPackActivationRequest,
     PolicyPackActivationResponse,
     PolicyPackApplicabilityResult,
@@ -72,6 +76,18 @@ from src.core.policy_packs.persistence_models import (
 from src.core.policy_packs.persistence_models import (
     PolicyEvaluationReplayResponse as PersistencePolicyEvaluationReplayResponse,
 )
+from src.core.policy_packs.workflow_models import (
+    PolicyEvaluationRequirementProjection as WorkflowPolicyEvaluationRequirementProjection,
+)
+from src.core.policy_packs.workflow_models import (
+    PolicyEvaluationSignOffDecisionRequest as WorkflowPolicyEvaluationSignOffDecisionRequest,
+)
+from src.core.policy_packs.workflow_models import (
+    PolicyEvaluationSignOffDecisionResponse as WorkflowPolicyEvaluationSignOffDecisionResponse,
+)
+from src.core.policy_packs.workflow_models import (
+    PolicyEvaluationWorkflowResponse as WorkflowPolicyEvaluationWorkflowResponse,
+)
 
 
 def test_policy_pack_models_preserves_catalog_model_import_contract():
@@ -99,3 +115,12 @@ def test_policy_pack_models_preserves_persistence_model_import_contract():
     assert PolicyEvaluationRecord is PersistencePolicyEvaluationRecord
     assert PolicyEvaluationReplayRequest is PersistencePolicyEvaluationReplayRequest
     assert PolicyEvaluationReplayResponse is PersistencePolicyEvaluationReplayResponse
+
+
+def test_policy_pack_models_preserves_workflow_model_import_contract():
+    assert PolicyEvaluationRequirementProjection is WorkflowPolicyEvaluationRequirementProjection
+    assert PolicyEvaluationSignOffDecisionRequest is WorkflowPolicyEvaluationSignOffDecisionRequest
+    assert (
+        PolicyEvaluationSignOffDecisionResponse is WorkflowPolicyEvaluationSignOffDecisionResponse
+    )
+    assert PolicyEvaluationWorkflowResponse is WorkflowPolicyEvaluationWorkflowResponse
