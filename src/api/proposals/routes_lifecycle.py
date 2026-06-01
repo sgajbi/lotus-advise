@@ -4,8 +4,14 @@ from typing import Annotated, Optional
 from fastapi import Depends, Header, Path, Query, status
 
 import src.api.proposals.router as shared
-from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.lifecycle_responses import (
+    PROPOSAL_CREATE_RESPONSES,
+    PROPOSAL_NARRATIVE_READ_RESPONSES,
+    PROPOSAL_NARRATIVE_REGENERATE_RESPONSES,
+    PROPOSAL_NARRATIVE_REVIEW_RESPONSES,
+    PROPOSAL_VERSION_CREATE_RESPONSES,
+)
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.proposals import (
     ProposalCreateRequest,
@@ -45,20 +51,7 @@ from src.core.proposals.models import (
         "workflow creation event, and idempotency mapping. Supports legacy direct "
         "`simulate_request` payloads plus normalized `stateless` and `stateful` input modes."
     ),
-    responses={
-        status.HTTP_409_CONFLICT: {
-            "description": "Idempotency key was reused with a different proposal-create payload."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "Proposal input failed validation or required stateful context could not be "
-                "resolved."
-            )
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=PROPOSAL_CREATE_RESPONSES,
 )
 def create_proposal(
     payload: ProposalCreateRequest,
@@ -222,14 +215,7 @@ def get_proposal_version(
         "Supports legacy direct `simulate_request` payloads plus normalized `stateless` and "
         "`stateful` input modes."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Proposal was not found."},
-        status.HTTP_409_CONFLICT: {"description": "Expected current version check failed."},
-        HTTP_422_UNPROCESSABLE: {"description": "Proposal version input failed validation."},
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=PROPOSAL_VERSION_CREATE_RESPONSES,
 )
 def create_proposal_version(
     proposal_id: Annotated[
@@ -355,17 +341,7 @@ def record_proposal_approval(
         "version artifact. This route does not mutate proposal state, does not replace the "
         "persisted narrative, and does not publish client-ready commentary."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal or immutable proposal version was not found."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": "The proposal version has no persisted `proposal_narrative`."
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=PROPOSAL_NARRATIVE_REGENERATE_RESPONSES,
 )
 def regenerate_proposal_narrative(
     proposal_id: Annotated[
@@ -401,17 +377,7 @@ def regenerate_proposal_narrative(
         "latest review posture and source hash evidence. The route is read-only and never "
         "regenerates text."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal or immutable proposal version was not found."
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": "The proposal version has no persisted `proposal_narrative`."
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=PROPOSAL_NARRATIVE_READ_RESPONSES,
 )
 def get_proposal_narrative(
     proposal_id: Annotated[
@@ -442,23 +408,7 @@ def get_proposal_narrative(
         "proposal version. The operation never regenerates narrative text and preserves exact "
         "review, policy, guardrail, and source-hash evidence for replay."
     ),
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Proposal or immutable proposal version was not found."
-        },
-        status.HTTP_409_CONFLICT: {
-            "description": ("Idempotency key was reused with a different narrative review payload.")
-        },
-        HTTP_422_UNPROCESSABLE: {
-            "description": (
-                "The proposal version has no reviewable `proposal_narrative`, or the review "
-                "request is invalid."
-            )
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Proposal runtime persistence is unavailable or misconfigured."
-        },
-    },
+    responses=PROPOSAL_NARRATIVE_REVIEW_RESPONSES,
 )
 def review_proposal_narrative(
     proposal_id: Annotated[

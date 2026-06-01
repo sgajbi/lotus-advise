@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-399
+
+- Scope: Advisory proposal lifecycle API response metadata
+- Pattern: Large lifecycle route modules should keep OpenAPI response maps in a reusable metadata
+  module when several endpoints share not-found, idempotency, validation, and runtime persistence
+  semantics.
+- Status: Hardened
+- Finding Class: modularity problem and API documentation quality
+- Summary: `src/api/proposals/routes_lifecycle.py` still repeated proposal-create, version-create,
+  narrative-regeneration, narrative-read, and narrative-review response dictionaries inline. The
+  lifecycle route handlers already delegated behavior to `ProposalWorkflowService`; keeping
+  response dictionaries in the route module made the largest proposal API boundary harder to scan
+  and increased the chance of wording drift across lifecycle OpenAPI docs.
+- Evidence:
+  - Moved lifecycle OpenAPI response metadata into
+    `src/api/proposals/lifecycle_responses.py`.
+  - Lifecycle decorators now reference named response maps for proposal creation, version creation,
+    narrative regeneration, narrative reads, and narrative reviews.
+  - Added an internal guard that prevents inline `responses={...}` dictionaries from returning to
+    `routes_lifecycle.py`.
+- Consequence:
+  - Proposal lifecycle routing is more focused on HTTP parameters, feature gates, and service
+    delegation while shared response wording remains reusable and auditable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal API
+    response metadata organization for existing behavior.
+- Follow-Up:
+  - Continue reviewing lifecycle routes for dependency-flow and parameter consistency after the
+    response metadata boundary is stable.
+
 ## LA-REV-398
 
 - Scope: Advisory operations support API response metadata
