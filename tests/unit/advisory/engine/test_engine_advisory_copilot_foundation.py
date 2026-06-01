@@ -9,8 +9,10 @@ from pydantic import ValidationError
 from src.core.advisory_copilot import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,
+    CopilotActionDefinition,
     CopilotActionFamily,
     CopilotAudience,
+    CopilotBusinessProjection,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
@@ -34,10 +36,22 @@ from src.core.advisory_copilot.business_text import (
 from src.core.advisory_copilot.business_text import (
     contains_copilot_business_technical_detail as focused_contains_technical_detail,
 )
+from src.core.advisory_copilot.catalog_models import (
+    CopilotActionDefinition as FocusedCopilotActionDefinition,
+)
+from src.core.advisory_copilot.catalog_models import (
+    CopilotBusinessProjection as FocusedCopilotBusinessProjection,
+)
+from src.core.advisory_copilot.models import (
+    CopilotActionDefinition as CompatibilityCopilotActionDefinition,
+)
 from src.core.advisory_copilot.models import (
     CopilotActionFamily as CompatibilityCopilotActionFamily,
 )
 from src.core.advisory_copilot.models import CopilotAudience as CompatibilityCopilotAudience
+from src.core.advisory_copilot.models import (
+    CopilotBusinessProjection as CompatibilityCopilotBusinessProjection,
+)
 from src.core.advisory_copilot.models import (
     CopilotClientReadyPosture as CompatibilityCopilotClientReadyPosture,
 )
@@ -198,6 +212,13 @@ def test_advisory_copilot_models_preserve_section_import_contract() -> None:
     assert CopilotEvidenceSectionInput is FocusedCopilotEvidenceSectionInput
     assert CompatibilityCopilotEvidencePacketSection is FocusedCopilotEvidencePacketSection
     assert CompatibilityCopilotEvidenceSectionInput is FocusedCopilotEvidenceSectionInput
+
+
+def test_advisory_copilot_models_preserve_catalog_import_contract() -> None:
+    assert CopilotActionDefinition is FocusedCopilotActionDefinition
+    assert CopilotBusinessProjection is FocusedCopilotBusinessProjection
+    assert CompatibilityCopilotActionDefinition is FocusedCopilotActionDefinition
+    assert CompatibilityCopilotBusinessProjection is FocusedCopilotBusinessProjection
 
 
 def test_copilot_catalog_keeps_ai_execution_boundary_in_lotus_ai() -> None:

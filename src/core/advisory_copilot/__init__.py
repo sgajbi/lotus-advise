@@ -3,6 +3,10 @@ from src.core.advisory_copilot.catalog import (
     get_copilot_action_definition,
     list_copilot_action_definitions,
 )
+from src.core.advisory_copilot.catalog_models import (
+    CopilotActionDefinition,
+    CopilotBusinessProjection,
+)
 from src.core.advisory_copilot.evidence_packets import (
     ACTION_REQUIRED_EVIDENCE_SECTIONS,
     SOURCE_EVIDENCE_SECTIONS,
@@ -18,8 +22,6 @@ from src.core.advisory_copilot.guardrails import (
     guardrail_reason_for_intent,
 )
 from src.core.advisory_copilot.models import (
-    CopilotActionDefinition,
-    CopilotBusinessProjection,
     CopilotEvidencePacket,
 )
 from src.core.advisory_copilot.projection import (

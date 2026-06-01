@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-537
+
+- Scope: Advisory copilot catalog model ownership
+- Pattern: Action definition and business projection DTOs should be owned by catalog-facing model
+  modules instead of the packet model module
+- Status: Hardened
+- Finding Class: Modularity and domain model ownership
+- Summary: `CopilotActionDefinition` and `CopilotBusinessProjection` describe supported action
+  catalog metadata and business-facing labels, but they were still defined in the broad
+  advisory-copilot packet model module. That kept catalog and projection services coupled to packet
+  DTO ownership.
+- Evidence:
+  - Added `src/core/advisory_copilot/catalog_models.py` for action definition and business
+    projection DTOs.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/models.py`.
+  - Moved catalog and business projection imports to the focused catalog model module.
+  - Added import-contract coverage proving package and compatibility imports resolve to the
+    focused catalog model classes.
+- Consequence:
+  - Advisory-copilot action catalog vocabulary and business-facing projection metadata now have a
+    focused owner, leaving the broad model module with top-level packet DTO ownership only.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract the top-level evidence packet DTO and convert `src/core/advisory_copilot/models.py` to
+    a pure compatibility facade.
+
 ## LA-REV-536
 
 - Scope: Advisory copilot evidence section models
