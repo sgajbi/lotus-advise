@@ -1,4 +1,5 @@
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -14,17 +15,19 @@ from src.core.advisory import (
     build_candidate_seeds,
     normalize_alternatives_request,
 )
-from src.core.advisory.alternatives_strategies import (
-    _estimated_notional,
-    _first_adjustable_trade,
-    _half_money,
-    _half_quantity,
-    _largest_sellable_position,
-    _position_rank_value,
-    _preferred_buy_instrument,
-    _quantity_for_notional,
-    _reduced_trade_payload,
+from src.core.advisory.alternatives_strategy_support import (
+    estimated_notional,
+    first_adjustable_trade,
+    half_money,
+    half_quantity,
+    largest_sellable_position,
+    position_rank_value,
+    preferred_buy_instrument,
+    quantity_for_notional,
+    reduced_trade_payload,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def _inputs() -> AlternativeStrategyInputs:
@@ -675,7 +678,7 @@ def test_build_candidate_plan_rejects_unregistered_objective_when_registry_missi
 
 
 def test_alternatives_helper_functions_cover_money_and_trade_edge_cases():
-    assert _position_rank_value(
+    assert position_rank_value(
         StrategyPosition(
             instrument_id="AAPL",
             quantity=Decimal("2"),
@@ -683,15 +686,15 @@ def test_alternatives_helper_functions_cover_money_and_trade_edge_cases():
             currency="USD",
         )
     ) == Decimal("2")
-    assert _half_quantity(Decimal("1")) is None
-    assert _half_quantity(Decimal("5")) == Decimal("2")
-    assert _half_money(Decimal("0.01")) is None
-    assert _half_money(Decimal("5.00")) == Decimal("2.50")
-    assert _estimated_notional(None, Decimal("5")) is None
-    assert _estimated_notional(Decimal("10"), Decimal("5")) == Decimal("50.00")
-    assert _quantity_for_notional(Decimal("0"), Decimal("10"), Decimal("5")) is None
-    assert _quantity_for_notional(Decimal("75"), Decimal("10"), Decimal("5")) is None
-    assert _quantity_for_notional(Decimal("50"), Decimal("10"), Decimal("5")) == Decimal("5")
+    assert half_quantity(Decimal("1")) is None
+    assert half_quantity(Decimal("5")) == Decimal("2")
+    assert half_money(Decimal("0.01")) is None
+    assert half_money(Decimal("5.00")) == Decimal("2.50")
+    assert estimated_notional(None, Decimal("5")) is None
+    assert estimated_notional(Decimal("10"), Decimal("5")) == Decimal("50.00")
+    assert quantity_for_notional(Decimal("0"), Decimal("10"), Decimal("5")) is None
+    assert quantity_for_notional(Decimal("75"), Decimal("10"), Decimal("5")) is None
+    assert quantity_for_notional(Decimal("50"), Decimal("10"), Decimal("5")) == Decimal("5")
 
     notional_trade = StrategyTradeIntent(
         side="BUY",
@@ -699,8 +702,8 @@ def test_alternatives_helper_functions_cover_money_and_trade_edge_cases():
         notional_amount=Decimal("100.00"),
         notional_currency="USD",
     )
-    assert _first_adjustable_trade((notional_trade,)) == notional_trade
-    assert _reduced_trade_payload(notional_trade) == {
+    assert first_adjustable_trade((notional_trade,)) == notional_trade
+    assert reduced_trade_payload(notional_trade) == {
         "intent_type": "SECURITY_TRADE",
         "side": "BUY",
         "instrument_id": "NVDA",
@@ -709,13 +712,13 @@ def test_alternatives_helper_functions_cover_money_and_trade_edge_cases():
 
     no_candidate_inputs = _inputs()
     assert (
-        _largest_sellable_position(
+        largest_sellable_position(
             inputs=no_candidate_inputs,
             constraints=ProposalAlternativesConstraints(preserve_holdings=["AAPL", "SAP", "MSFT"]),
         )
         is None
     )
-    synthetic_buy = _preferred_buy_instrument(
+    synthetic_buy = preferred_buy_instrument(
         inputs=AlternativeStrategyInputs(
             portfolio_id="pf_synthetic_buy",
             base_currency="USD",
@@ -731,3 +734,37 @@ def test_alternatives_helper_functions_cover_money_and_trade_edge_cases():
     assert synthetic_buy is not None
     assert synthetic_buy.instrument_id == "NVDA"
     assert synthetic_buy.quantity == Decimal("0")
+
+
+def test_alternative_strategies_delegate_selection_and_money_helpers() -> None:
+    strategy_source = (REPO_ROOT / "src/core/advisory/alternatives_strategies.py").read_text(
+        encoding="utf-8"
+    )
+    objective_source = (
+        REPO_ROOT / "src/core/advisory/alternatives_strategy_objectives.py"
+    ).read_text(encoding="utf-8")
+    support_source = (REPO_ROOT / "src/core/advisory/alternatives_strategy_support.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.advisory.alternatives_strategy_objectives import" in strategy_source
+    for objective_class in (
+        "ReduceConcentrationStrategy",
+        "RaiseCashStrategy",
+        "LowerTurnoverStrategy",
+        "ImproveCurrencyAlignmentStrategy",
+        "AvoidRestrictedProductsStrategy",
+    ):
+        assert f"class {objective_class}(" not in strategy_source
+        assert f"class {objective_class}(" in objective_source
+
+    assert "from src.core.advisory.alternatives_strategy_support import" in strategy_source
+    for helper_name in (
+        "largest_sellable_position",
+        "preferred_buy_instrument",
+        "quantity_for_notional",
+        "estimated_notional",
+        "reduced_trade_payload",
+    ):
+        assert f"def {helper_name}(" not in strategy_source
+        assert f"def {helper_name}(" in support_source

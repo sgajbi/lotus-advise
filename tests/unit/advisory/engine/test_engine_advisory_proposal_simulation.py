@@ -619,7 +619,7 @@ def test_proposal_simulation_reconciliation_mismatch_blocks_run():
     options = EngineOptions(enable_proposal_simulation=True)
 
     with patch(
-        "src.core.advisory_engine.build_reconciliation",
+        "src.core.advisory.simulation_review.build_reconciliation",
         return_value=(
             Reconciliation(
                 before_total_value=Money(amount=Decimal("1000"), currency="USD"),
@@ -681,7 +681,10 @@ def test_proposal_simulation_forces_pending_status_when_rule_derivation_returns_
     market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
     options = EngineOptions(enable_proposal_simulation=True, block_on_missing_fx=False)
 
-    with patch("src.core.advisory_engine.derive_status_from_rules", return_value="READY"):
+    with patch(
+        "src.core.advisory.simulation_review.derive_status_from_rules",
+        return_value="READY",
+    ):
         result = run_proposal_simulation(
             portfolio=portfolio,
             market_data=market_data,
@@ -907,7 +910,7 @@ def test_proposal_simulation_skips_buy_intent_without_notional():
 
     with (
         patch(
-            "src.core.advisory_engine.build_proposal_security_trade_intent",
+            "src.core.advisory.simulation_intent_plan.build_proposal_security_trade_intent",
             return_value=(
                 SecurityTradeIntent(
                     intent_id="oi_1",
@@ -920,7 +923,7 @@ def test_proposal_simulation_skips_buy_intent_without_notional():
             ),
         ),
         patch(
-            "src.core.advisory_engine.build_auto_funding_plan",
+            "src.core.advisory.simulation_intent_plan.build_auto_funding_plan",
             return_value=([], {}, set(), [], False),
         ),
     ):

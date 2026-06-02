@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-01T23:51:32.591573+00:00`
-- Branch: `advise-enterprise-hardening-slice-14`
-- Head: `0f6ffecc6af02481e4b72f9b720c85e18b9ffa16`
+- Generated At: `2026-06-02T05:07:00.098804+00:00`
+- Branch: `advise-enterprise-hardening-slice-15`
+- Head: `48be546f1cfce95bce183add1da8c28e01b3a7a8`
 - Branch Commits Over Main: `48`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `753`
+- Python files: `793`
 - Packages: `37`
-- Modules: `716`
-- Total Python lines: `129655`
+- Modules: `756`
+- Total Python lines: `131523`
 
 ## Largest Files
 
@@ -23,7 +23,7 @@
 | 4 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2368 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
-| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1571 |
+| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1570 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 9 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 | 10 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
@@ -34,14 +34,14 @@
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
 | 2 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 3 | `_build_sections` | `src/core/proposals/memo_builder.py` | 122 | 300 |
-| 4 | `build_default_supported_claim_register` | `src/core/bank_demo_proof/supported_claim_register.py` | 18 | 294 |
-| 5 | `run_proposal_simulation` | `src/core/advisory_engine.py` | 39 | 283 |
-| 6 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
-| 7 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
-| 8 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
-| 9 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 10 | `build_feature_capabilities` | `src/api/capabilities/feature_catalog.py` | 20 | 238 |
+| 3 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
+| 4 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
+| 5 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
+| 6 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
+| 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
+| 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
+| 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
+| 10 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 370 | 200 |
 
 ## Complexity
 
@@ -70,8 +70,8 @@
 
 - Dependency verification configured: `True`
 - Security audit configured: `True`
-- Available dependency/security tools: `ruff, mypy, pytest, coverage.py, pip-audit, radon, vulture`
-- Pending optional tools: `xenon, deptry, bandit, interrogate`
+- Available dependency/security tools: `ruff, mypy, pytest, coverage.py, pip-audit, radon, xenon, vulture, deptry, bandit, interrogate`
+- Pending optional tools: ``
 
 ## Security
 

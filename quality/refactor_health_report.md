@@ -1,7 +1,7 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `advise-enterprise-hardening-slice-14`
-- Head: `0f6ffecc6af02481e4b72f9b720c85e18b9ffa16`
+- Branch: `advise-enterprise-hardening-slice-15`
+- Head: `48be546f1cfce95bce183add1da8c28e01b3a7a8`
 - Branch Commits Over Main: `48`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
@@ -10,6 +10,40 @@
 - Advisory-copilot API DTOs are split into request, response, limits, and compatibility
   modules.
 - Advisory-copilot source projections and run-record limits have focused owner modules.
+- Advisory simulation orchestration is split into intent planning, review policy,
+  and decision-support modules with focused boundary tests.
+- Feature capability catalog assembly is split into foundation, evidence-product,
+  and operational capability groups.
+- Workflow capability catalog assembly is split into foundation, evidence-product,
+  and operational workflow groups.
+- Proposal memo section assembly is split into foundational, policy-review,
+  operational, and appendix section groups.
+- Bank-demo supported-claim register assembly is split into artifact policy,
+  backend-evidence, product-surface, and boundary claim groups.
+- Compliance rule evaluation is split into focused cash-band, concentration,
+  data-quality, trade-size, shorting, and cash-sufficiency evaluators.
+- Proposal memo source-readiness assembly is split into core, risk, and Advise
+  source-owner section groups.
+- Bank-demo runtime summary sanitization is split into access helpers and
+  focused projection builders.
+- Bank-demo commercial material pack assembly delegates governed material rows to
+  a focused catalog module.
+- Proposal artifact assembly delegates portfolio, summary, trade/funding, review,
+  evidence-bundle, and hash finalization to focused artifact modules.
+- Advisory auto-funding planning delegates FX source selection and missing-rate
+  diagnostics to a focused funding-selection module.
+- Policy source-readiness assembly is split into Lotus Core, product-policy,
+  and Lotus Risk source-owner section modules.
+- Proposal memo foundational sections are split into focused per-section builders
+  outside the shared memo section group coordinator.
+- Proposal memo API orchestration delegates report-package and AI-evidence payloads
+  to a focused external-package module.
+- Proposal memo API response assembly delegates memo, audit-event, report replay,
+  AI commentary, archive-ref, section, and replay-metadata projection to a
+  focused response projection module.
+- Alternative strategy construction delegates input DTOs, base mechanics,
+  objective classes, selection helpers, trade-payload formatting, and notional math
+  to focused strategy modules.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

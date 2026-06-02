@@ -162,6 +162,26 @@ def test_memo_routes_use_shared_parameter_contracts():
     assert "ProposalMemoAudienceQuery" in source
 
 
+def test_memo_builder_delegates_section_catalog_groups():
+    builder_source = Path("src/core/proposals/memo_builder.py").read_text(encoding="utf-8")
+    groups_source = Path("src/core/proposals/memo_section_groups.py").read_text(encoding="utf-8")
+    foundational_source = Path("src/core/proposals/memo_foundational_sections.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "build_foundational_memo_sections" in builder_source
+    assert "build_policy_review_memo_sections" in builder_source
+    assert "build_operational_memo_sections" in builder_source
+    assert "build_appendix_memo_sections" in builder_source
+    assert "build_suitability_best_interest_enrichment" not in builder_source
+    assert "_decision_summary_text" not in builder_source
+    assert "def _build_sections(" in builder_source
+    assert groups_source.count("section_factory(") == 6
+    assert foundational_source.count("section_factory(") == 7
+    assert "from src.core.proposals.memo_foundational_sections import" in groups_source
+    assert groups_source.count("appendix_factory(") == 4
+
+
 def test_policy_pack_routes_use_shared_response_metadata():
     source = inspect.getsource(routes_policy_packs)
 
@@ -566,12 +586,32 @@ def test_capabilities_service_delegates_feature_catalog_assembly():
     assert "FeatureCapability(" not in source
 
 
+def test_feature_catalog_delegates_capability_groups():
+    source = Path("src/api/capabilities/feature_catalog.py").read_text(encoding="utf-8")
+
+    assert "build_foundational_feature_capabilities" in source
+    assert "build_evidence_product_feature_capabilities" in source
+    assert "build_operational_feature_capabilities" in source
+    assert "FeatureCapability(" not in source
+    assert "advisory.bank_demo_proof" not in source
+
+
 def test_capabilities_service_delegates_workflow_catalog_assembly():
     source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
 
     assert "from src.api.capabilities.workflow_catalog import build_workflow_capabilities" in source
     assert "def build_workflow_capabilities(" not in source
     assert "WorkflowCapability(" not in source
+
+
+def test_workflow_catalog_delegates_capability_groups():
+    source = Path("src/api/capabilities/workflow_catalog.py").read_text(encoding="utf-8")
+
+    assert "build_foundational_workflow_capabilities" in source
+    assert "build_evidence_product_workflow_capabilities" in source
+    assert "build_operational_workflow_capabilities" in source
+    assert "WorkflowCapability(" not in source
+    assert "advisory_bank_demo_proof" not in source
 
 
 def test_bank_demo_proof_routes_use_shared_response_metadata():

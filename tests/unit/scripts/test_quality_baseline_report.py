@@ -59,6 +59,22 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Documentation Gaps" in baseline
     assert "Observability Gaps" in baseline
     assert "Progressive Gate Phase" in scorecard
+    assert "Advisory simulation orchestration is split" in refactor_health
+    assert "Feature capability catalog assembly is split" in refactor_health
+    assert "Workflow capability catalog assembly is split" in refactor_health
+    assert "Proposal memo section assembly is split" in refactor_health
+    assert "Bank-demo supported-claim register assembly is split" in refactor_health
+    assert "Compliance rule evaluation is split" in refactor_health
+    assert "Proposal memo source-readiness assembly is split" in refactor_health
+    assert "Bank-demo runtime summary sanitization is split" in refactor_health
+    assert "Bank-demo commercial material pack assembly delegates" in refactor_health
+    assert "evidence-bundle, and hash finalization" in refactor_health
+    assert "Advisory auto-funding planning delegates FX source selection" in refactor_health
+    assert "Policy source-readiness assembly is split" in refactor_health
+    assert "Proposal memo foundational sections are split" in refactor_health
+    assert "Proposal memo API orchestration delegates report-package" in refactor_health
+    assert "Proposal memo API response assembly delegates memo" in refactor_health
+    assert "Alternative strategy construction delegates input DTOs" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
 
 

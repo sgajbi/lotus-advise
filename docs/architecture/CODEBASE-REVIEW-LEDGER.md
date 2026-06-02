@@ -1,5 +1,596 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-599
+
+- Scope: Proposal memo API response projection
+- Pattern: Memo API orchestration should not own response projection, audit-event projection,
+  report replay projection, AI commentary replay projection, archive-ref projection, and replay
+  metadata completeness checks in the same module.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and response-projection maintainability
+- Summary: `src/core/proposals/memo_api.py` still mixed memo API use-case orchestration with
+  response projection helpers after the external package payload split. This kept read-model
+  projection behavior close to idempotency, persistence-event recording, and downstream request
+  orchestration.
+- Evidence:
+  - Added `src/core/proposals/memo_response_projection.py` for memo response assembly, audit-event
+    projection, latest event posture, report response replay, AI commentary replay, archive refs,
+    section projection, and memo replay metadata completeness checks.
+  - Kept `src/core/proposals/memo_api.py` responsible for memo command/query orchestration,
+    proposal/memo loading, idempotent event append/replay, source-hash validation, report/AI
+    request orchestration, and API error conversion.
+  - Reduced `src/core/proposals/memo_api.py` from an 812-line hotspot to 674 lines.
+  - Added a source-boundary guard proving response projection helpers stay in the projection module.
+  - Focused memo API tests now pass with 11 tests; focused `ruff`, `ruff format --check`, and
+    `mypy` checks passed for the touched memo modules.
+- Consequence:
+  - Memo API behavior remains compatible while response projection can be reviewed and tested
+    independently from event mutation and downstream integration orchestration.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing remaining `memo_api.py` orchestration complexity around load/idempotency and
+    report/AI request workflows if future health reports keep it above the preferred hotspot band.
+
+## LA-REV-598
+
+- Scope: Advisory alternative strategy construction
+- Pattern: Alternative construction strategies should not own DTO declarations, instrument-selection
+  helpers, trade-payload formatting, and notional arithmetic in the same oversized module.
+- Status: Hardened
+- Finding Class: Advisory strategy modularity and deterministic construction maintainability
+- Summary: `src/core/advisory/alternatives_strategies.py` mixed strategy classes, public strategy
+  DTOs, deterministic selection helpers, turnover trade shaping, and Decimal-based money/quantity
+  arithmetic. That made the strategy registry harder to review and encouraged tests to reach into
+  private helpers on the orchestrator module.
+- Evidence:
+  - Added `src/core/advisory/alternatives_strategy_models.py` for strategy input/result DTOs while
+    preserving existing public imports from `src.core.advisory.alternatives_strategies`.
+  - Added `src/core/advisory/alternatives_strategy_base.py` for the strategy interface, shared
+    seed construction, and rejection construction.
+  - Added `src/core/advisory/alternatives_strategy_objectives.py` for the five concrete objective
+    strategies.
+  - Added `src/core/advisory/alternatives_strategy_support.py` for candidate IDs, sellable-position
+    selection, preferred buy selection, turnover trade payloads, and Decimal quantity/notional
+    helpers.
+  - Reduced `src/core/advisory/alternatives_strategies.py` from an 859-line hotspot to a 94-line
+    registry and candidate-plan entry point.
+  - Added a boundary guard proving objective classes stay in the objective module and helper
+    definitions stay in the support module; focused alternatives tests now pass with 28 tests.
+  - Focused `ruff` and `mypy` checks passed for the touched strategy modules.
+- Consequence:
+  - Alternative construction behavior remains compatible while helper behavior can be tested and
+    reviewed independently from objective orchestration.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue splitting remaining alternatives strategy objective classes if future health reports
+    show the module is still a material production-code hotspot.
+
+## LA-REV-597
+
+- Scope: Proposal memo API external package payloads
+- Pattern: Memo API orchestration should delegate lotus-report package payloads and Lotus AI memo
+  evidence payloads to a focused module.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and downstream payload maintainability
+- Summary: `src/core/proposals/memo_api.py` mixed memo API orchestration, review/report/AI event
+  idempotency, report-service request orchestration, and downstream memo package/evidence payload
+  construction. This made downstream payload shape harder to review separately from API event
+  semantics.
+- Evidence:
+  - Added `src/core/proposals/memo_external_packages.py` for report memo package payloads, AI memo
+    evidence payloads, and source-authority reference extraction.
+  - Kept `src/core/proposals/memo_api.py` responsible for API use-case orchestration, memo loading,
+    idempotency, review/report/AI event recording, and response assembly.
+  - Added a source guard proving `memo_api.py` delegates external package payload construction.
+  - Focused memo API tests, ruff, and mypy checks passed.
+- Consequence:
+  - Memo report and AI-commentary behavior remains compatible while downstream payload shape can be
+    reviewed independently from memo API event orchestration.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots in advisory alternatives strategy assembly, proposal
+    command builders, and memo API response/event projection.
+
+## LA-REV-596
+
+- Scope: Proposal memo foundational section assembly
+- Pattern: Foundational memo sections should use focused per-section builders instead of one large
+  shared section list inside the section-group coordinator.
+- Status: Hardened
+- Finding Class: Proposal memo modularity and advisor-facing evidence maintainability
+- Summary: `build_foundational_memo_sections` was the largest remaining production-code function
+  in the health report and mixed executive summary, household context, advisory objective,
+  recommendation, rejected alternatives, portfolio impact, and risk context section construction in
+  one function. This made advisor-facing memo copy and source-authority evidence harder to review.
+- Evidence:
+  - Added `src/core/proposals/memo_foundational_sections.py` with focused builders for each
+    foundational memo section.
+  - Kept `build_foundational_memo_sections` available through
+    `src/core/proposals/memo_section_groups.py` as a compatibility re-export for existing memo
+    builder imports.
+  - Added a source guard proving foundational section builders live outside the shared section group
+    coordinator.
+  - Focused memo-builder tests, ruff, and mypy checks passed.
+- Consequence:
+  - Proposal memo behavior remains compatible while foundational advisor-facing sections can be
+    reviewed independently by section and source-authority posture.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots in proposal memo API, advisory alternatives strategy
+    assembly, and proposal command builders.
+
+## LA-REV-595
+
+- Scope: Advisory proposal artifact evidence bundle and canonical hashing
+- Pattern: Proposal artifact construction should delegate evidence-bundle serialization and
+  canonical artifact hash finalization to a focused evidence module.
+- Status: Hardened
+- Finding Class: Advisory artifact lineage and evidence-hash maintainability
+- Summary: After the projection split, `src/core/advisory/artifact.py` still owned request/result
+  evidence serialization, canonical payload exclusion rules, artifact hash mutation, optional
+  deterministic narrative generation, and narrative-aware hash recomputation. This kept lineage and
+  hash semantics coupled to the presentation artifact assembly path.
+- Evidence:
+  - Added `src/core/advisory/artifact_evidence.py` for evidence-bundle serialization and
+    canonical artifact hash finalization.
+  - Kept `build_proposal_artifact` as the stable public artifact entry point responsible for
+    proposal artifact orchestration and section assembly.
+  - Updated the artifact boundary guard to prove `artifact.py` delegates evidence-bundle creation
+    and no longer owns direct canonical hash calls.
+  - Focused proposal artifact tests, golden artifact scenarios, ruff, and mypy checks passed.
+- Consequence:
+  - Proposal artifact lineage behavior remains compatible while evidence-bundle serialization,
+    deterministic narrative integration, and canonical hash semantics can be reviewed independently.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots in proposal memo API, advisory alternatives strategy
+    assembly, and proposal command builders.
+
+## LA-REV-594
+
+- Scope: RFC-0025 policy source-readiness assembly
+- Pattern: Policy source-readiness projection should keep Lotus Core profile/mandate/holdings
+  evidence, Lotus Core product-policy evidence, Lotus Risk policy metrics, and Advise runtime
+  posture in focused source-owner modules.
+- Status: Hardened
+- Finding Class: Policy source-readiness modularity and source-owner evidence maintainability
+- Summary: `src/core/proposals/policy_source_readiness.py` mixed public manifest assembly with
+  client-profile, mandate, holdings/market-data, product-policy, and risk-policy readiness rules.
+  That made source-owner evidence changes harder to review and increased the chance that product
+  policy or risk evidence behavior would be changed accidentally while adjusting the manifest
+  envelope.
+- Evidence:
+  - Added `src/core/proposals/policy_source_readiness_core.py` for Lotus Core client-profile,
+    mandate, and holdings/market-data source-owner sections.
+  - Added `src/core/proposals/policy_source_readiness_product.py` for product eligibility,
+    target-market, complexity, and private-asset/structured-product flag evidence.
+  - Added `src/core/proposals/policy_source_readiness_risk.py` for Lotus Risk policy-metric
+    readiness, degraded supportability handling, and risk-owner reason codes.
+  - Kept `build_policy_source_readiness` as the stable public manifest entry point responsible for
+    evidence-bundle extraction, Advise runtime posture, overall posture, source authority, and
+    claim policy.
+  - Added a source guard proving source-owner section policy is delegated out of the public
+    manifest builder.
+  - Focused policy source-readiness tests, ruff, and mypy checks passed.
+- Consequence:
+  - RFC-0025 source-readiness behavior remains compatible while private-banking source-owner
+    evidence rules can be reviewed and tested independently by source family.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots in proposal command builders, proposal memo API, and
+    advisory alternatives strategy assembly.
+
+## LA-REV-593
+
+- Scope: Advisory auto-funding source selection
+- Pattern: Auto-funding orchestration should delegate FX source selection, missing-rate
+  diagnostics, and smallest-deficit tracking to a focused policy module.
+- Status: Hardened
+- Finding Class: Advisory funding modularity and proposal simulation maintainability
+- Summary: `src/core/advisory/funding.py` mixed funding-plan orchestration with candidate funding
+  currency ordering, FX-rate lookup, missing-FX diagnostics, funding-cash sufficiency checks, and
+  smallest-deficit tracking. This made proposal simulation funding behavior harder to review and
+  increased coupling between diagnostics policy and FX intent construction.
+- Evidence:
+  - Added `src/core/advisory/funding_selection.py` for funding currency priority,
+    missing-FX-pair recording, and funding-source selection.
+  - Kept `build_auto_funding_plan` as the stable public orchestration entry point responsible for
+    plan rows, failure classification, FX intent construction, portfolio mutation, and dependency
+    mapping.
+  - Preserved compatibility imports for `funding_priority_currencies` and
+    `record_missing_fx_pair` from `src/core/advisory/funding.py`.
+  - Added focused tests for successful base-currency funding selection, missing-FX diagnostics, and
+    the source guard proving `funding.py` no longer owns direct FX-rate selection.
+  - Focused funding, proposal simulation, ruff, and mypy checks passed.
+- Consequence:
+  - Advisory proposal funding behavior remains compatible while FX source-selection policy can be
+    reviewed and tested independently from funding-plan orchestration and generated FX intents.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots such as policy source-readiness assembly and
+    proposal command builders.
+
+## LA-REV-592
+
+- Scope: Advisory proposal artifact assembly
+- Pattern: Proposal artifact construction should orchestrate focused projection modules instead of
+  owning portfolio deltas, summary/next-step policy, trade/funding rows, suitability summaries, and
+  risk-lens copy in one builder.
+- Status: Hardened
+- Finding Class: Advisory artifact modularity and proposal evidence maintainability
+- Summary: `src/core/advisory/artifact.py` mixed deterministic formatting, portfolio-impact
+  projection, objective tag and next-step policy, takeaway generation, trade/funding projection,
+  suitability summary projection, risk-lens copy, artifact assembly, hash generation, and optional
+  narrative hashing. This made proposal artifact changes harder to review and increased the chance
+  that business copy, review posture, or evidence-hash behavior would be changed together
+  accidentally.
+- Evidence:
+  - Added `src/core/advisory/artifact_formatting.py` for deterministic decimal/weight formatting.
+  - Added `src/core/advisory/artifact_portfolio.py` for portfolio state projection, cash-weight
+    lookup, and largest instrument weight-change calculation.
+  - Added `src/core/advisory/artifact_summary.py` for objective tags, recommended next step, and
+    deterministic artifact takeaways.
+  - Added `src/core/advisory/artifact_trades.py` for security-trade and FX funding projection.
+  - Added `src/core/advisory/artifact_review.py` for suitability and risk-lens summaries.
+  - Kept `build_proposal_artifact` as the stable public artifact entry point responsible for
+    orchestration, evidence bundle assembly, canonical hash generation, and optional deterministic
+    narrative integration.
+  - Updated proposal artifact tests to exercise the new focused modules and added a source guard
+    proving projection helpers are delegated out of the artifact builder.
+  - Focused artifact and golden artifact tests, ruff, and mypy passed.
+- Consequence:
+  - Proposal artifact behavior remains compatible while portfolio, summary, trade/funding, and
+    review projection changes can be reviewed and tested independently.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots such as auto-funding planning, policy
+    source-readiness assembly, and proposal command builders.
+
+## LA-REV-591
+
+- Scope: Bank-demo commercial material pack assembly
+- Pattern: Claim-governed commercial material rows should live in a focused catalog module while
+  the commercial material pack module owns validation, repository-local source-ref hygiene, and
+  supported-claim register alignment.
+- Status: Hardened
+- Finding Class: Bank-demo proof modularity and commercial material governance
+- Summary: `src/core/bank_demo_proof/commercial_materials.py` mixed Pydantic model validation,
+  source-reference sanitization, supported-claim register checks, and all product/RFP/security/demo
+  material rows in `build_commercial_material_pack`. This widened a commercial proof boundary that
+  must preserve blocked claims such as client-ready publication, external client communication,
+  bank-specific certification, legal/regulatory advice, and OMS/order/fill/settlement.
+- Evidence:
+  - Added `src/core/bank_demo_proof/commercial_material_catalog.py` for required claim ids,
+    blocked commercial claims, and the governed material row catalog.
+  - Kept `src/core/bank_demo_proof/commercial_materials.py` responsible for model validation,
+    repository-local source-ref checks, client-facing supported-claim alignment, and public pack
+    assembly.
+  - Added a source guard proving `build_commercial_material_pack` delegates catalog rows and does
+    not own raw `CommercialMaterial` row construction.
+  - Existing commercial-material tests still prove business-safe material copy, exact blocked-claim
+    exclusion, supported-claim register alignment, unknown/UI-pending/planned/unsupported claim
+    rejection, source-ref sanitization, duplicate rejection, and required-claim coverage.
+  - Refreshed quality reports to record the commercial material catalog split as current progress.
+- Consequence:
+  - Commercial/RFP/security/demo material governance remains behavior-compatible while future
+    material catalog changes can be reviewed separately from validation and supported-claim
+    alignment.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published proof claims, material refs, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots such as proposal artifact construction, auto-funding
+    planning, policy source-readiness assembly, and proposal command builders.
+
+## LA-REV-590
+
+- Scope: Bank-demo runtime summary sanitization
+- Pattern: Sanitized proof projection should keep contract access helpers and per-surface
+  projection builders separate from the public runtime-summary entry point.
+- Status: Hardened
+- Finding Class: Bank-demo proof sanitization modularity and sensitive-data boundary
+  maintainability
+- Summary: `src/core/bank_demo_proof/runtime_summary.py` owned a 162-line
+  `sanitize_live_runtime_summary` function that mixed required contract lookups, projection shape,
+  lifecycle/workspace/narrative/memo/policy summaries, decision and alternative path projection,
+  and degraded-runtime projection. This widened a sensitive proof-sanitization boundary and made it
+  harder to review which fields are allowed into committed proof material.
+- Evidence:
+  - Added `src/core/bank_demo_proof/runtime_summary_access.py` for fail-closed contract access and
+    stable field selection helpers.
+  - Added `src/core/bank_demo_proof/runtime_summary_projection.py` for focused lifecycle,
+    workspace-rationale, narrative, memo, policy, decision-path, alternatives-path, and degraded
+    runtime projection builders.
+  - Kept `sanitize_live_runtime_summary`, `value_at`, and `select_fields` import-compatible from
+    `runtime_summary.py`.
+  - Added a source guard proving `runtime_summary.py` delegates projection ownership and does not
+    carry sensitive hash field names or path-loop projection logic.
+  - Existing runtime-summary and proof-capture tests still prove demo-safe field projection,
+    fail-closed missing-section handling, dotted-path missing-field errors, and shape preservation
+    for missing optional fields.
+- Consequence:
+  - The sanitized backend proof summary remains behavior-compatible while the sensitive-data
+    boundary is easier to audit and extend per proof surface.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published proof fields, API behavior, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Continue with the next production-code hotspot, likely commercial material pack assembly or
+    proposal artifact construction.
+
+## LA-REV-589
+
+- Scope: Proposal memo source-readiness assembly
+- Pattern: Source-readiness manifests should keep source-owner section construction in focused
+  modules while the public builder owns evidence extraction, contract metadata, and posture
+  assembly.
+- Status: Hardened
+- Finding Class: Proposal evidence modularity and source-authority maintainability
+- Summary: `src/core/proposals/memo_source_readiness.py` carried a 195-line
+  `build_memo_source_readiness` function mixing Lotus Core holdings/cash/market/product evidence,
+  Lotus Risk concentration and extended memo evidence, and Advise decision/lifecycle sections. The
+  source-level hotspot scan identified it as the largest remaining production-code function after
+  the compliance rule split.
+- Evidence:
+  - Added `src/core/proposals/memo_source_readiness_sections.py` with grouped core, risk, and
+    Advise source-owner section builders.
+  - Kept `build_memo_source_readiness` as the stable public assembler for contract version,
+    capability posture, overall posture, source authority, section copy, and claim policy.
+  - Added a source guard proving the public builder delegates section ownership and no longer
+    constructs raw `source_readiness_section` rows or owns source-specific status helpers.
+  - Existing memo source-readiness tests still prove READY source-backed families, blocked missing
+    owner evidence, price/FX open-end date handling, and no invented memo claims.
+  - Refreshed quality reports; the largest-function table is now dominated by tests and live
+    validation scripts rather than production-code monoliths.
+- Consequence:
+  - Memo source authority remains deterministic and behavior-compatible while future source-owner
+    changes can land in the relevant section group without widening the public builder.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, supported features, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Apply the same grouped source-owner pattern to `policy_source_readiness.py` or bank-demo
+    runtime-summary projection when those become the next production-code hotspots.
+
+## LA-REV-588
+
+- Scope: Core compliance rule evaluation
+- Pattern: Rule-engine orchestration should call focused rule evaluators rather than owning every
+  rule implementation in one method.
+- Status: Hardened
+- Finding Class: Core compliance modularity and rule-boundary maintainability
+- Summary: `src/core/compliance.py` had a 199-line `RuleEngine.evaluate` method that mixed cash
+  band policy, single-position concentration, data quality blockers, suppressed-intent reporting,
+  no-shorting, and cash-sufficiency checks. The source-level hotspot scan identified it as the
+  largest remaining production-code function after the memo and supported-claim register splits.
+- Evidence:
+  - Added `src/core/compliance_rules.py` with focused evaluators for cash band, single-position
+    maximum, data quality, minimum trade-size reporting, no-shorting, and cash sufficiency.
+  - Kept `RuleEngine.evaluate` as the stable public orchestrator and preserved result order:
+    `CASH_BAND`, `SINGLE_POSITION_MAX`, `DATA_QUALITY`, `MIN_TRADE_SIZE`, `NO_SHORTING`, and
+    `INSUFFICIENT_CASH`.
+  - Added a source guard proving `RuleEngine.evaluate` delegates to the focused evaluators and no
+    longer constructs raw `RuleResult` rows.
+  - Existing compliance tests still prove pass/fail cash-band behavior, hard single-position
+    breaches, no-shorting failures, all-rule emission, tolerance boundaries, and suppressed-intent
+    reporting.
+  - Refreshed quality reports to record the compliance rule split as a current progress signal.
+- Consequence:
+  - Compliance behavior is unchanged, but each governed rule can now evolve independently with
+    focused tests and less risk of accidental changes to unrelated rule posture.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, supported features, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Consider applying the same per-rule decomposition to policy source-readiness builders when
+    they become the next production-code hotspot.
+
+## LA-REV-587
+
+- Scope: Bank-demo supported-claim register assembly
+- Pattern: Supported claims should be owned by focused business claim groups while the public
+  register builder keeps canonical scenario identity and register assembly.
+- Status: Hardened
+- Finding Class: Bank-demo proof modularity and claim-governance maintainability
+- Summary: `src/core/bank_demo_proof/supported_claim_register.py` owned artifact policy plus every
+  supported claim row in one 294-line builder. The quality baseline listed
+  `build_default_supported_claim_register` as the remaining top production-code hotspot after the
+  proposal memo section split.
+- Evidence:
+  - Added `src/core/bank_demo_proof/supported_claim_policy.py` for commit/local/sensitive artifact
+    policy.
+  - Added `src/core/bank_demo_proof/supported_claim_backend_evidence.py` for backend proof,
+    advisor-journey backend evidence, and degraded-runtime boundary claims.
+  - Added `src/core/bank_demo_proof/supported_claim_product_surface.py` for governed
+    product-surface, advisor-use document proof, and commercial/RFP/security material claims.
+  - Added `src/core/bank_demo_proof/supported_claim_boundaries.py` for AI/policy/cockpit boundary,
+    client-ready publication blocking, and retired legacy pending-claim posture.
+  - Added `src/core/bank_demo_proof/supported_claim_refs.py` for shared proof asset references and
+    preserved the public `RFC28_SUPPORTED_CLAIM_REGISTER_REF` import surface.
+  - Added a source guard proving the public register builder delegates artifact policy and claim
+    groups and does not own raw `SupportedClaim` rows.
+  - Refreshed `quality/baseline_report.md`; `build_default_supported_claim_register` no longer
+    appears in the top-10 largest-function hotspot list.
+- Consequence:
+  - Claim taxonomy, material permissions, and boundary wording remain unchanged, but future
+    bank-demo proof claims can land in the relevant claim group with clearer review scope.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published proof claims and operator workflow truth did not change.
+- Follow-Up:
+  - Continue reducing remaining production hotspots in live parity validation and oversized
+    proposal workflow test fixtures.
+
+## LA-REV-586
+
+- Scope: Advisory proposal memo section assembly
+- Pattern: Memo section catalog ownership should be grouped by business purpose while the memo
+  builder keeps deterministic hashing, source-readiness folding, and evidence-pack assembly.
+- Status: Hardened
+- Finding Class: Core proposal memo modularity and maintainability
+- Summary: `src/core/proposals/memo_builder.py` owned a 300-line `_build_sections` function that
+  mixed foundational memo sections, policy-review enrichment, operational delivery boundaries, and
+  appendices. The quality baseline listed `_build_sections` as the top production-code hotspot
+  after the prior simulation and capability-catalog slices.
+- Evidence:
+  - Added `src/core/proposals/memo_section_groups.py` with focused foundational, policy-review,
+    operational, and appendix section group builders.
+  - Kept `src/core/proposals/memo_builder.py` responsible for deterministic memo identity,
+    section hashing, source-section status folding, material claim construction, and model
+    assembly.
+  - Added an internal guard proving `memo_builder.py` delegates section catalog ownership and does
+    not directly own policy enrichment or dynamic section summary helpers.
+  - Existing memo-builder behavior tests still prove deterministic memo hashes, required section
+    ordering, policy/fee/conflict enrichment, report/archive blocking, missing-evidence propagation,
+    and product-policy evidence blocking.
+  - Refreshed `quality/baseline_report.md`; `_build_sections` no longer appears in the top-10
+    largest-function hotspot list.
+- Consequence:
+  - Proposal memo behavior is unchanged, but future changes can now land in the relevant memo
+    section group without editing one broad builder function or risking unrelated section posture.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published feature posture, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue with the remaining production hotspot in
+    `src/core/bank_demo_proof/supported_claim_register.py`.
+
+## LA-REV-585
+
+- Scope: `/platform/capabilities` workflow capability catalog assembly
+- Pattern: Workflow publication should keep foundational, evidence-product, and operational
+  workflow rows in focused modules rather than one broad list literal.
+- Status: Hardened
+- Finding Class: API catalog modularity and source-contract maintainability
+- Summary: `src/api/capabilities/workflow_catalog.py` mirrored the old feature catalog shape and
+  owned a large `WorkflowCapability` list spanning proposal simulation, lifecycle, workspace,
+  AI-rationale, risk/reporting, RFC evidence products, bank-demo proof, and execution handoff.
+  This made workflow publication harder to review and extended the same monolithic source-contract
+  problem fixed for feature rows.
+- Evidence:
+  - Added `src/api/capabilities/workflow_catalog_foundation.py` for simulation, lifecycle,
+    workspace, AI-rationale, risk-lens, and reporting workflow rows.
+  - Added `src/api/capabilities/workflow_catalog_evidence_products.py` for RFC-0023 through
+    RFC-0028 evidence-product and bank-demo proof workflow rows.
+  - Added `src/api/capabilities/workflow_catalog_operations.py` for execution-handoff workflow
+    rows.
+  - Kept `build_workflow_capabilities` as the public coordinator and added an internal guard that
+    prevents raw `WorkflowCapability` rows from returning to the coordinator.
+  - Updated capability source-contract tests to scan the new workflow catalog owner modules.
+  - Focused capability API, RFC source-contract, trust telemetry, ruff, and targeted mypy checks
+    passed.
+- Consequence:
+  - `/platform/capabilities` workflow publication keeps the same runtime contract while matching
+    the grouped feature-catalog architecture and reducing future capability-change blast radius.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published workflow keys, behavior, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Continue using grouped owner modules for future capability additions so `/platform/capabilities`
+    remains auditable as evidence products grow.
+
+## LA-REV-584
+
+- Scope: `/platform/capabilities` feature capability catalog assembly
+- Pattern: Capability publication should keep feature groups in focused modules instead of mixing
+  foundational APIs, evidence-product promotions, bank-demo proof posture, execution handoff, and
+  supportability rows in one large catalog function.
+- Status: Hardened
+- Finding Class: API catalog modularity and source-contract maintainability
+- Summary: `src/api/capabilities/feature_catalog.py` still owned one large `FeatureCapability`
+  list literal covering baseline advisory APIs, workspace AI rationale, report/risk dependencies,
+  RFC-0023 through RFC-0028 evidence products, execution handoff, and supportability posture. This
+  kept unrelated capability groups coupled and left source-contract tests anchored to a monolithic
+  file.
+- Evidence:
+  - Added `src/api/capabilities/feature_catalog_foundation.py` for simulation, lifecycle, async,
+    workspace, AI-rationale, risk-lens, and reporting feature rows.
+  - Added `src/api/capabilities/feature_catalog_evidence_products.py` for RFC-0023 through
+    RFC-0028 evidence-product and proof feature rows.
+  - Added `src/api/capabilities/feature_catalog_operations.py` for execution handoff and advisory
+    supportability rows.
+  - Kept `build_feature_capabilities` as the public coordinator and added an internal guard that
+    prevents raw `FeatureCapability` rows from returning to the coordinator.
+  - Updated source-contract tests to read the new capability catalog modules.
+  - Focused capability API, RFC source-contract, trust telemetry, ruff, and targeted mypy checks
+    passed.
+- Consequence:
+  - `/platform/capabilities` feature publication keeps the same runtime contract while making
+    capability groups easier to review, extend, and test without editing one broad monolith.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published capability keys, behavior, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Apply the same grouped-catalog pattern to `workflow_catalog.py` when the next API catalog
+    hotspot is addressed.
+
+## LA-REV-583
+
+- Scope: Advisory proposal simulation orchestration
+- Pattern: Core advisory simulation should orchestrate focused use-case modules rather than owning
+  intent planning, review policy, reconciliation, optional analytics, suitability, workflow gates,
+  and result assembly in one monolithic function.
+- Status: Hardened
+- Finding Class: Core service modularity and maintainability
+- Summary: `src/core/advisory_engine.py` still carried a large `run_proposal_simulation` function
+  that mixed cash-flow application, shelf validation, trade-intent creation, funding planning,
+  rule evaluation, reconciliation, drift analytics, suitability scanning, workflow-gate evaluation,
+  and result assembly. The quality baseline listed it as a top production hotspot before this
+  slice.
+- Evidence:
+  - Added `src/core/advisory/simulation_intent_plan.py` for cash-flow, security-trade,
+    funding, dependency, and executable-intent planning.
+  - Added `src/core/advisory/simulation_review.py` for rule evaluation, hard input guards,
+    funding-DQ review posture, value reconciliation, and final status policy.
+  - Added `src/core/advisory/simulation_decision_support.py` for drift analysis, suitability
+    scanning, and workflow-gate decision support.
+  - Added focused unit coverage for the extracted intent-plan, review-policy, and
+    decision-support boundaries while preserving existing `run_proposal_simulation` behavior.
+  - Refreshed `quality/baseline_report.md`; `run_proposal_simulation` no longer appears in the
+    top-10 largest-function hotspot list.
+- Consequence:
+  - Advisory proposal simulation now has clearer dependency flow: orchestration remains in the
+    public engine entry point while intent planning, review policy, and decision support have
+    separately testable owner modules.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, supported features, and operator workflows did not
+    change.
+- Follow-Up:
+  - Continue reducing remaining production hotspots such as proposal memo section building,
+    supported-claim register assembly, and feature-capability catalog construction.
+
 ## LA-REV-582
 
 - Scope: Advisory copilot idempotency-record limit ownership

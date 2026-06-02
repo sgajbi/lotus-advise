@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from src.core.bank_demo_proof import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
@@ -33,6 +35,20 @@ def test_default_supported_claim_register_pins_canonical_claims() -> None:
         evidence_refs = set(claim.evidence_refs)
         for requirement in claim.proof_requirements:
             assert requirement.evidence_ref in evidence_refs, claim.claim_id
+
+
+def test_supported_claim_register_delegates_claim_groups() -> None:
+    source = Path("src/core/bank_demo_proof/supported_claim_register.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "build_supported_claim_artifact_policy" in source
+    assert "build_backend_evidence_supported_claims" in source
+    assert "build_product_surface_supported_claims" in source
+    assert "build_boundary_supported_claims" in source
+    assert "SupportedClaim(" not in source
+    assert "SupportedClaimProofRequirement(" not in source
+    assert "backend_proof_capture_repeatable" not in source
 
 
 def test_default_supported_claim_register_promotes_product_surface_claims() -> None:

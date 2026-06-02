@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from src.core.proposals.memo_source_readiness import build_memo_source_readiness
 
 
@@ -89,6 +91,18 @@ def test_memo_source_readiness_marks_source_backed_families_ready_without_memo_c
     assert _section(readiness, "risk_concentration")["status"] == "READY"
     assert "lotus-core" in readiness["source_authority"]
     assert "lotus-risk" in readiness["source_authority"]
+
+
+def test_memo_source_readiness_delegates_source_owner_sections():
+    source = Path("src/core/proposals/memo_source_readiness.py").read_text(encoding="utf-8")
+
+    assert "build_core_memo_source_sections" in source
+    assert "build_risk_memo_source_sections" in source
+    assert "build_advise_memo_source_sections" in source
+    assert "source_readiness_section(" not in source
+    assert "_core_holdings_cash_status" not in source
+    assert "_risk_concentration_status" not in source
+    assert "_advise_boundary_status" not in source
 
 
 def test_memo_source_readiness_blocks_missing_owner_evidence_without_inventing_facts():

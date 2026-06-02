@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -64,6 +66,20 @@ def test_commercial_material_pack_uses_bounded_business_safe_materials() -> None
         )
         is pack
     )
+
+
+def test_commercial_material_pack_delegates_catalog_rows() -> None:
+    source = Path("src/core/bank_demo_proof/commercial_materials.py").read_text(encoding="utf-8")
+    catalog_source = Path("src/core/bank_demo_proof/commercial_material_catalog.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "build_commercial_materials" in source
+    assert "REQUIRED_COMMERCIAL_CLAIM_IDS" in source
+    assert "BLOCKED_COMMERCIAL_CLAIMS" in source
+    assert "            CommercialMaterial(" not in source
+    assert "product_one_pager" not in source
+    assert catalog_source.count("CommercialMaterial(") == 10
 
 
 def test_commercial_material_pack_alignment_rejects_unknown_or_unpromoted_claims() -> None:

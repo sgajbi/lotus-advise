@@ -1,6 +1,9 @@
 from copy import deepcopy
+from pathlib import Path
 
 from src.core.proposals.policy_source_readiness import build_policy_source_readiness
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def _base_evidence_bundle() -> dict:
@@ -166,3 +169,16 @@ def test_policy_source_readiness_keeps_degraded_risk_owner_evidence_pending_revi
     assert risk["status"] == "PENDING_REVIEW"
     assert "lotus-risk degraded policy metrics" in risk["missing_evidence"]
     assert "RISK_OWNER_POLICY_EVIDENCE_DEGRADED" in risk["reason_codes"]
+
+
+def test_policy_source_readiness_delegates_source_owner_sections():
+    source = (REPO_ROOT / "src/core/proposals/policy_source_readiness.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "build_core_policy_source_sections" in source
+    assert "build_product_policy_source_section" in source
+    assert "build_risk_policy_source_section" in source
+    assert "def _client_profile_status(" not in source
+    assert "def _product_policy_status(" not in source
+    assert "def _risk_policy_status(" not in source

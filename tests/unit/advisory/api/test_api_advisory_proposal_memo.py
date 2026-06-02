@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 import src.api.main as api_main
@@ -6,11 +8,47 @@ from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.proposals import memo_api
 from src.integrations.lotus_ai.proposal_memo import ProposalMemoAiCommentaryDraft
 
+REPO_ROOT = Path(__file__).resolve().parents[4]
+
 
 def setup_function() -> None:
     reset_proposal_workflow_service_for_tests()
     if hasattr(api_main, "request_proposal_memo_report_package_with_lotus_report"):
         delattr(api_main, "request_proposal_memo_report_package_with_lotus_report")
+
+
+def test_memo_api_delegates_external_package_payloads() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    package_source = (REPO_ROOT / "src/core/proposals/memo_external_packages.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.proposals.memo_external_packages import" in source
+    assert "def _build_report_memo_package(" not in source
+    assert "def _build_memo_ai_evidence(" not in source
+    assert "def build_report_memo_package(" in package_source
+    assert "def build_memo_ai_evidence(" in package_source
+
+
+def test_memo_api_delegates_response_projection_helpers() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    projection_source = (REPO_ROOT / "src/core/proposals/memo_response_projection.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.proposals.memo_response_projection import" in source
+    for helper_name in (
+        "build_memo_response",
+        "to_audit_event",
+        "latest_event_posture",
+        "report_response_from_event",
+        "commentary_from_ai_event",
+        "archive_refs_from_report_posture",
+        "project_sections",
+        "memo_has_replay_metadata",
+    ):
+        assert f"def {helper_name}(" not in source
+        assert f"def {helper_name}(" in projection_source
 
 
 def _base_create_payload(portfolio_id: str = "pf_memo_api_1") -> dict:
