@@ -68,6 +68,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal memo source-readiness assembly is split" in refactor_health
     assert "Bank-demo runtime summary sanitization is split" in refactor_health
     assert "Bank-demo commercial material pack assembly delegates" in refactor_health
+    assert "Proposal artifact assembly delegates portfolio" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
 
 

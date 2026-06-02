@@ -243,6 +243,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused projection builders.",
         "- Bank-demo commercial material pack assembly delegates governed material rows to",
         "  a focused catalog module.",
+        "- Proposal artifact assembly delegates portfolio, summary, trade/funding, and review",
+        "  projections to focused artifact modules.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

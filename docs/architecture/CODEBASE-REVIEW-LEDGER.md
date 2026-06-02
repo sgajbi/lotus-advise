@@ -1,5 +1,44 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-592
+
+- Scope: Advisory proposal artifact assembly
+- Pattern: Proposal artifact construction should orchestrate focused projection modules instead of
+  owning portfolio deltas, summary/next-step policy, trade/funding rows, suitability summaries, and
+  risk-lens copy in one builder.
+- Status: Hardened
+- Finding Class: Advisory artifact modularity and proposal evidence maintainability
+- Summary: `src/core/advisory/artifact.py` mixed deterministic formatting, portfolio-impact
+  projection, objective tag and next-step policy, takeaway generation, trade/funding projection,
+  suitability summary projection, risk-lens copy, artifact assembly, hash generation, and optional
+  narrative hashing. This made proposal artifact changes harder to review and increased the chance
+  that business copy, review posture, or evidence-hash behavior would be changed together
+  accidentally.
+- Evidence:
+  - Added `src/core/advisory/artifact_formatting.py` for deterministic decimal/weight formatting.
+  - Added `src/core/advisory/artifact_portfolio.py` for portfolio state projection, cash-weight
+    lookup, and largest instrument weight-change calculation.
+  - Added `src/core/advisory/artifact_summary.py` for objective tags, recommended next step, and
+    deterministic artifact takeaways.
+  - Added `src/core/advisory/artifact_trades.py` for security-trade and FX funding projection.
+  - Added `src/core/advisory/artifact_review.py` for suitability and risk-lens summaries.
+  - Kept `build_proposal_artifact` as the stable public artifact entry point responsible for
+    orchestration, evidence bundle assembly, canonical hash generation, and optional deterministic
+    narrative integration.
+  - Updated proposal artifact tests to exercise the new focused modules and added a source guard
+    proving projection helpers are delegated out of the artifact builder.
+  - Focused artifact and golden artifact tests, ruff, and mypy passed.
+- Consequence:
+  - Proposal artifact behavior remains compatible while portfolio, summary, trade/funding, and
+    review projection changes can be reviewed and tested independently.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots such as auto-funding planning, policy
+    source-readiness assembly, and proposal command builders.
+
 ## LA-REV-591
 
 - Scope: Bank-demo commercial material pack assembly
