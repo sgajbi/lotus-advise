@@ -165,6 +165,9 @@ def test_memo_routes_use_shared_parameter_contracts():
 def test_memo_builder_delegates_section_catalog_groups():
     builder_source = Path("src/core/proposals/memo_builder.py").read_text(encoding="utf-8")
     groups_source = Path("src/core/proposals/memo_section_groups.py").read_text(encoding="utf-8")
+    foundational_source = Path("src/core/proposals/memo_foundational_sections.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "build_foundational_memo_sections" in builder_source
     assert "build_policy_review_memo_sections" in builder_source
@@ -173,7 +176,9 @@ def test_memo_builder_delegates_section_catalog_groups():
     assert "build_suitability_best_interest_enrichment" not in builder_source
     assert "_decision_summary_text" not in builder_source
     assert "def _build_sections(" in builder_source
-    assert groups_source.count("section_factory(") == 13
+    assert groups_source.count("section_factory(") == 6
+    assert foundational_source.count("section_factory(") == 7
+    assert "from src.core.proposals.memo_foundational_sections import" in groups_source
     assert groups_source.count("appendix_factory(") == 4
 
 
