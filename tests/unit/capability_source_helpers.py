@@ -9,6 +9,9 @@ CAPABILITY_MODULE_PATHS = (
     Path("src/api/capabilities/feature_catalog_evidence_products.py"),
     Path("src/api/capabilities/feature_catalog_operations.py"),
     Path("src/api/capabilities/workflow_catalog.py"),
+    Path("src/api/capabilities/workflow_catalog_foundation.py"),
+    Path("src/api/capabilities/workflow_catalog_evidence_products.py"),
+    Path("src/api/capabilities/workflow_catalog_operations.py"),
 )
 
 

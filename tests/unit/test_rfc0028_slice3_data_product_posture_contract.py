@@ -16,6 +16,9 @@ CAPABILITY_MODULE_PATHS = (
     REPO_ROOT / "src" / "api" / "capabilities" / "feature_catalog_evidence_products.py",
     REPO_ROOT / "src" / "api" / "capabilities" / "feature_catalog_operations.py",
     REPO_ROOT / "src" / "api" / "capabilities" / "workflow_catalog.py",
+    REPO_ROOT / "src" / "api" / "capabilities" / "workflow_catalog_foundation.py",
+    REPO_ROOT / "src" / "api" / "capabilities" / "workflow_catalog_evidence_products.py",
+    REPO_ROOT / "src" / "api" / "capabilities" / "workflow_catalog_operations.py",
 )
 
 RFC28_PROPOSED_RECORDS = {

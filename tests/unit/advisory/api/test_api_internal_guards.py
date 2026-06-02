@@ -584,6 +584,16 @@ def test_capabilities_service_delegates_workflow_catalog_assembly():
     assert "WorkflowCapability(" not in source
 
 
+def test_workflow_catalog_delegates_capability_groups():
+    source = Path("src/api/capabilities/workflow_catalog.py").read_text(encoding="utf-8")
+
+    assert "build_foundational_workflow_capabilities" in source
+    assert "build_evidence_product_workflow_capabilities" in source
+    assert "build_operational_workflow_capabilities" in source
+    assert "WorkflowCapability(" not in source
+    assert "advisory_bank_demo_proof" not in source
+
+
 def test_bank_demo_proof_routes_use_shared_response_metadata():
     source = inspect.getsource(bank_demo_proof_router)
 
