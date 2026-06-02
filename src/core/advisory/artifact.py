@@ -147,6 +147,6 @@ def build_proposal_artifact(
         evidence_bundle=build_artifact_evidence_bundle(
             request=request,
             proposal_result=proposal_result,
-        )
+        ),
     )
     return finalize_artifact_evidence_hashes(artifact=artifact, request=request)
