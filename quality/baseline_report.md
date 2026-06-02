@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-02T00:22:51.569698+00:00`
+- Generated At: `2026-06-02T00:28:10.312644+00:00`
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `061e951b3e174be45cad03b6f4e72074bb41cc74`
-- Branch Commits Over Main: `3`
+- Head: `554439e10a48e4645790dec221e6f4c8da52016e`
+- Branch Commits Over Main: `5`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `759`
+- Python files: `762`
 - Packages: `37`
-- Modules: `722`
-- Total Python lines: `130203`
+- Modules: `725`
+- Total Python lines: `130309`
 
 ## Largest Files
 
@@ -40,8 +40,8 @@
 | 6 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 7 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 8 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 9 | `build_feature_capabilities` | `src/api/capabilities/feature_catalog.py` | 20 | 238 |
-| 10 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
+| 9 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
+| 10 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 
 ## Complexity
 

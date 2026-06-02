@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `061e951b3e174be45cad03b6f4e72074bb41cc74`
-- Branch Commits Over Main: `3`
+- Head: `554439e10a48e4645790dec221e6f4c8da52016e`
+- Branch Commits Over Main: `5`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -12,6 +12,8 @@
 - Advisory-copilot source projections and run-record limits have focused owner modules.
 - Advisory simulation orchestration is split into intent planning, review policy,
   and decision-support modules with focused boundary tests.
+- Feature capability catalog assembly is split into foundation, evidence-product,
+  and operational capability groups.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

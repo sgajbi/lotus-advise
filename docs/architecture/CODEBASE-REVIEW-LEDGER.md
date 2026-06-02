@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-584
+
+- Scope: `/platform/capabilities` feature capability catalog assembly
+- Pattern: Capability publication should keep feature groups in focused modules instead of mixing
+  foundational APIs, evidence-product promotions, bank-demo proof posture, execution handoff, and
+  supportability rows in one large catalog function.
+- Status: Hardened
+- Finding Class: API catalog modularity and source-contract maintainability
+- Summary: `src/api/capabilities/feature_catalog.py` still owned one large `FeatureCapability`
+  list literal covering baseline advisory APIs, workspace AI rationale, report/risk dependencies,
+  RFC-0023 through RFC-0028 evidence products, execution handoff, and supportability posture. This
+  kept unrelated capability groups coupled and left source-contract tests anchored to a monolithic
+  file.
+- Evidence:
+  - Added `src/api/capabilities/feature_catalog_foundation.py` for simulation, lifecycle, async,
+    workspace, AI-rationale, risk-lens, and reporting feature rows.
+  - Added `src/api/capabilities/feature_catalog_evidence_products.py` for RFC-0023 through
+    RFC-0028 evidence-product and proof feature rows.
+  - Added `src/api/capabilities/feature_catalog_operations.py` for execution handoff and advisory
+    supportability rows.
+  - Kept `build_feature_capabilities` as the public coordinator and added an internal guard that
+    prevents raw `FeatureCapability` rows from returning to the coordinator.
+  - Updated source-contract tests to read the new capability catalog modules.
+  - Focused capability API, RFC source-contract, trust telemetry, ruff, and targeted mypy checks
+    passed.
+- Consequence:
+  - `/platform/capabilities` feature publication keeps the same runtime contract while making
+    capability groups easier to review, extend, and test without editing one broad monolith.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published capability keys, behavior, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Apply the same grouped-catalog pattern to `workflow_catalog.py` when the next API catalog
+    hotspot is addressed.
+
 ## LA-REV-583
 
 - Scope: Advisory proposal simulation orchestration
