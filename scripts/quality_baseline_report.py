@@ -249,6 +249,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  diagnostics to a focused funding-selection module.",
         "- Policy source-readiness assembly is split into Lotus Core, product-policy,",
         "  and Lotus Risk source-owner section modules.",
+        "- Proposal memo foundational sections are split into focused per-section builders",
+        "  outside the shared memo section group coordinator.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-596
+
+- Scope: Proposal memo foundational section assembly
+- Pattern: Foundational memo sections should use focused per-section builders instead of one large
+  shared section list inside the section-group coordinator.
+- Status: Hardened
+- Finding Class: Proposal memo modularity and advisor-facing evidence maintainability
+- Summary: `build_foundational_memo_sections` was the largest remaining production-code function
+  in the health report and mixed executive summary, household context, advisory objective,
+  recommendation, rejected alternatives, portfolio impact, and risk context section construction in
+  one function. This made advisor-facing memo copy and source-authority evidence harder to review.
+- Evidence:
+  - Added `src/core/proposals/memo_foundational_sections.py` with focused builders for each
+    foundational memo section.
+  - Kept `build_foundational_memo_sections` available through
+    `src/core/proposals/memo_section_groups.py` as a compatibility re-export for existing memo
+    builder imports.
+  - Added a source guard proving foundational section builders live outside the shared section group
+    coordinator.
+  - Focused memo-builder tests, ruff, and mypy checks passed.
+- Consequence:
+  - Proposal memo behavior remains compatible while foundational advisor-facing sections can be
+    reviewed independently by section and source-authority posture.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots in proposal memo API, advisory alternatives strategy
+    assembly, and proposal command builders.
+
 ## LA-REV-595
 
 - Scope: Advisory proposal artifact evidence bundle and canonical hashing
