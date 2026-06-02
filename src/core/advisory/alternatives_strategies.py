@@ -1,14 +1,15 @@
-from abc import ABC, abstractmethod
 from decimal import Decimal
-from typing import Literal
 
 from src.core.advisory.alternatives_models import (
     AlternativeCandidateSeed,
     AlternativeConstructionObjective,
-    AlternativeEvidenceRequirement,
     RejectedAlternativeCandidate,
 )
 from src.core.advisory.alternatives_normalizer import NormalizedProposalAlternativesRequest
+from src.core.advisory.alternatives_strategy_base import (
+    AlternativeConstructionStrategy,
+    BaseAlternativeStrategy,
+)
 from src.core.advisory.alternatives_strategy_models import (
     AlternativeStrategyBuildResult,
     AlternativeStrategyInputs,
@@ -57,84 +58,7 @@ __all__ = [
 ]
 
 
-class AlternativeConstructionStrategy(ABC):
-    strategy_id: str
-    objective: AlternativeConstructionObjective
-    required_evidence: tuple[AlternativeEvidenceRequirement, ...] = ()
-
-    @abstractmethod
-    def build_result(
-        self,
-        *,
-        request: NormalizedProposalAlternativesRequest,
-        inputs: AlternativeStrategyInputs,
-    ) -> AlternativeStrategyBuildResult:
-        """Build deterministic candidate seeds without upstream service calls."""
-
-
-class _BaseStrategy(AlternativeConstructionStrategy):
-    label: str
-    summary: str
-
-    def _seed(
-        self,
-        *,
-        request: NormalizedProposalAlternativesRequest,
-        inputs: AlternativeStrategyInputs,
-        pivot: str,
-        generated_intents: list[dict[str, object]],
-        metadata: dict[str, object] | None = None,
-    ) -> AlternativeCandidateSeed:
-        return AlternativeCandidateSeed(
-            candidate_id=_candidate_id(
-                objective=self.objective,
-                portfolio_id=inputs.portfolio_id,
-                pivot=pivot,
-            ),
-            objective=self.objective,
-            strategy_id=self.strategy_id,
-            status="READY_FOR_SIMULATION",
-            label=self.label,
-            summary=self.summary,
-            required_evidence=list(self.required_evidence),
-            generated_intents=generated_intents,
-            metadata={
-                "portfolio_id": inputs.portfolio_id,
-                "base_currency": inputs.base_currency,
-                "pivot_instrument_id": pivot,
-                "objective_rank": request.requested_objectives.index(self.objective),
-                **(metadata or {}),
-            },
-        )
-
-    def _reject(
-        self,
-        *,
-        inputs: AlternativeStrategyInputs,
-        reason_code: str,
-        summary: str,
-        pivot: str,
-        status: Literal["REJECTED_CONSTRAINT_VIOLATION", "REJECTED_INSUFFICIENT_EVIDENCE"],
-        failed_constraints: list[str] | None = None,
-        missing_evidence: list[str] | None = None,
-    ) -> RejectedAlternativeCandidate:
-        return RejectedAlternativeCandidate(
-            candidate_id=_candidate_id(
-                objective=self.objective,
-                portfolio_id=inputs.portfolio_id,
-                pivot=pivot,
-            ),
-            objective=self.objective,
-            status=status,
-            reason_code=reason_code,
-            summary=summary,
-            failed_constraints=failed_constraints or [],
-            missing_evidence=missing_evidence or [],
-            evidence_refs=[f"strategy:{self.strategy_id}", f"portfolio:{inputs.portfolio_id}"],
-        )
-
-
-class ReduceConcentrationStrategy(_BaseStrategy):
+class ReduceConcentrationStrategy(BaseAlternativeStrategy):
     strategy_id = "reduce_concentration_v1"
     objective = "REDUCE_CONCENTRATION"
     label = "Reduce concentration"
@@ -250,7 +174,7 @@ class ReduceConcentrationStrategy(_BaseStrategy):
         )
 
 
-class RaiseCashStrategy(_BaseStrategy):
+class RaiseCashStrategy(BaseAlternativeStrategy):
     strategy_id = "raise_cash_v1"
     objective = "RAISE_CASH"
     label = "Raise cash"
@@ -376,7 +300,7 @@ class RaiseCashStrategy(_BaseStrategy):
         )
 
 
-class LowerTurnoverStrategy(_BaseStrategy):
+class LowerTurnoverStrategy(BaseAlternativeStrategy):
     strategy_id = "lower_turnover_v1"
     objective = "LOWER_TURNOVER"
     label = "Lower turnover"
@@ -434,7 +358,7 @@ class LowerTurnoverStrategy(_BaseStrategy):
         )
 
 
-class ImproveCurrencyAlignmentStrategy(_BaseStrategy):
+class ImproveCurrencyAlignmentStrategy(BaseAlternativeStrategy):
     strategy_id = "improve_currency_alignment_v1"
     objective = "IMPROVE_CURRENCY_ALIGNMENT"
     label = "Improve currency alignment"
@@ -577,7 +501,7 @@ class ImproveCurrencyAlignmentStrategy(_BaseStrategy):
         )
 
 
-class AvoidRestrictedProductsStrategy(_BaseStrategy):
+class AvoidRestrictedProductsStrategy(BaseAlternativeStrategy):
     strategy_id = "avoid_restricted_products_v1"
     objective = "AVOID_RESTRICTED_PRODUCTS"
     label = "Avoid restricted products"
