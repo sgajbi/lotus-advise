@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-593
+
+- Scope: Advisory auto-funding source selection
+- Pattern: Auto-funding orchestration should delegate FX source selection, missing-rate
+  diagnostics, and smallest-deficit tracking to a focused policy module.
+- Status: Hardened
+- Finding Class: Advisory funding modularity and proposal simulation maintainability
+- Summary: `src/core/advisory/funding.py` mixed funding-plan orchestration with candidate funding
+  currency ordering, FX-rate lookup, missing-FX diagnostics, funding-cash sufficiency checks, and
+  smallest-deficit tracking. This made proposal simulation funding behavior harder to review and
+  increased coupling between diagnostics policy and FX intent construction.
+- Evidence:
+  - Added `src/core/advisory/funding_selection.py` for funding currency priority,
+    missing-FX-pair recording, and funding-source selection.
+  - Kept `build_auto_funding_plan` as the stable public orchestration entry point responsible for
+    plan rows, failure classification, FX intent construction, portfolio mutation, and dependency
+    mapping.
+  - Preserved compatibility imports for `funding_priority_currencies` and
+    `record_missing_fx_pair` from `src/core/advisory/funding.py`.
+  - Added focused tests for successful base-currency funding selection, missing-FX diagnostics, and
+    the source guard proving `funding.py` no longer owns direct FX-rate selection.
+  - Focused funding, proposal simulation, ruff, and mypy checks passed.
+- Consequence:
+  - Advisory proposal funding behavior remains compatible while FX source-selection policy can be
+    reviewed and tested independently from funding-plan orchestration and generated FX intents.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots such as policy source-readiness assembly and
+    proposal command builders.
+
 ## LA-REV-592
 
 - Scope: Advisory proposal artifact assembly

@@ -245,6 +245,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  a focused catalog module.",
         "- Proposal artifact assembly delegates portfolio, summary, trade/funding, and review",
         "  projections to focused artifact modules.",
+        "- Advisory auto-funding planning delegates FX source selection and missing-rate",
+        "  diagnostics to a focused funding-selection module.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

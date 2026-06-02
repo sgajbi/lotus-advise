@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `dd5e89a77968eac31845477ad80bab2a1c21a6f2`
-- Branch Commits Over Main: `22`
+- Head: `2270f04b41c1f8780a4a0c511c1a5492dc39ee15`
+- Branch Commits Over Main: `25`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -30,6 +30,8 @@
   a focused catalog module.
 - Proposal artifact assembly delegates portfolio, summary, trade/funding, and review
   projections to focused artifact modules.
+- Advisory auto-funding planning delegates FX source selection and missing-rate
+  diagnostics to a focused funding-selection module.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work
