@@ -11,24 +11,24 @@ def build_product_policy_source_section(
     return cast(
         dict[str, Any],
         source_readiness_section(
-        key="core_product_eligibility_target_market_complexity",
-        owner_service="lotus-core",
-        status=_product_policy_status(
-            proposed_trades=proposed_trades,
-            shelf_entries=shelf_entries,
-        ),
-        evidence_refs=[
-            "inputs.proposed_trades",
-            "inputs.shelf_entries",
-        ],
-        missing_evidence=_product_policy_missing(
-            proposed_trades=proposed_trades,
-            shelf_entries=shelf_entries,
-        ),
-        reason_codes=_product_policy_reasons(
-            proposed_trades=proposed_trades,
-            shelf_entries=shelf_entries,
-        ),
+            key="core_product_eligibility_target_market_complexity",
+            owner_service="lotus-core",
+            status=_product_policy_status(
+                proposed_trades=proposed_trades,
+                shelf_entries=shelf_entries,
+            ),
+            evidence_refs=[
+                "inputs.proposed_trades",
+                "inputs.shelf_entries",
+            ],
+            missing_evidence=_product_policy_missing(
+                proposed_trades=proposed_trades,
+                shelf_entries=shelf_entries,
+            ),
+            reason_codes=_product_policy_reasons(
+                proposed_trades=proposed_trades,
+                shelf_entries=shelf_entries,
+            ),
         ),
     )
 

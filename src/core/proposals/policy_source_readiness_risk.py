@@ -13,21 +13,21 @@ def build_risk_policy_source_section(risk_lens: dict[str, Any]) -> dict[str, Any
     return cast(
         dict[str, Any],
         source_readiness_section(
-        key="risk_policy_metrics",
-        owner_service="lotus-risk",
-        status=_risk_policy_status(risk_lens),
-        evidence_refs=[
-            "risk_lens.single_position_concentration",
-            "risk_lens.issuer_concentration",
-            "risk_lens.drawdown",
-            "risk_lens.var",
-            "risk_lens.stress",
-            "risk_lens.liquidity_risk",
-            "risk_lens.private_asset_risk",
-            "risk_lens.climate_geopolitical_risk",
-        ],
-        missing_evidence=_risk_policy_missing(risk_lens),
-        reason_codes=_risk_policy_reasons(risk_lens),
+            key="risk_policy_metrics",
+            owner_service="lotus-risk",
+            status=_risk_policy_status(risk_lens),
+            evidence_refs=[
+                "risk_lens.single_position_concentration",
+                "risk_lens.issuer_concentration",
+                "risk_lens.drawdown",
+                "risk_lens.var",
+                "risk_lens.stress",
+                "risk_lens.liquidity_risk",
+                "risk_lens.private_asset_risk",
+                "risk_lens.climate_geopolitical_risk",
+            ],
+            missing_evidence=_risk_policy_missing(risk_lens),
+            reason_codes=_risk_policy_reasons(risk_lens),
         ),
     )
 
