@@ -1,13 +1,11 @@
 from typing import Any, Optional
 
 from src.core.advisory.ids import proposal_run_id_from_request_hash
+from src.core.advisory.simulation_decision_support import build_simulation_decision_support
 from src.core.advisory.simulation_intent_plan import build_simulation_intent_plan
 from src.core.advisory.simulation_review import evaluate_simulation_review
 from src.core.common.diagnostics import make_diagnostics_data
-from src.core.common.drift_analytics import compute_drift_analysis
 from src.core.common.idempotency import normalize_optional_idempotency_key
-from src.core.common.suitability import compute_suitability_result
-from src.core.common.workflow_gates import evaluate_gate_decision
 from src.core.diagnostics_models import LineageData
 from src.core.engine_options_models import EngineOptions, ValuationMode
 from src.core.portfolio_models import (
@@ -82,46 +80,20 @@ def run_proposal_simulation(
         intent_plan=intent_plan,
     )
 
-    drift_analysis = None
-    if options.enable_drift_analytics and reference_model_validated is not None:
-        if reference_model_validated.base_currency != portfolio.base_currency:
-            diagnostics.warnings.append("REFERENCE_MODEL_BASE_CURRENCY_MISMATCH")
-        else:
-            traded_instruments = {
-                intent.instrument_id
-                for intent in intent_plan.intents
-                if intent.intent_type == "SECURITY_TRADE"
-            }
-            drift_analysis = compute_drift_analysis(
-                before=before,
-                after=after,
-                reference_model=reference_model_validated,
-                traded_instruments=traded_instruments,
-                options=options,
-            )
-
-    suitability = None
-    if options.enable_suitability_scanner:
-        suitability = compute_suitability_result(
-            before=before,
-            after=after,
-            shelf=shelf,
-            options=options,
-            portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,
-            market_data_snapshot_id=market_data.snapshot_id or "md",
-            proposed_trades=intent_plan.trades,
-            policy_context=policy_context,
-        )
-    gate_decision = None
-    if options.enable_workflow_gates:
-        gate_decision = evaluate_gate_decision(
-            status=review.final_status,
-            rule_results=review.rule_results,
-            suitability=suitability,
-            diagnostics=diagnostics,
-            options=options,
-            default_requires_client_consent=True,
-        )
+    decision_support = build_simulation_decision_support(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=options,
+        diagnostics=diagnostics,
+        before=before,
+        after=after,
+        intent_plan=intent_plan,
+        final_status=review.final_status,
+        rule_results=review.rule_results,
+        reference_model=reference_model_validated,
+        policy_context=policy_context,
+    )
 
     return ProposalResult(
         proposal_run_id=run_id,
@@ -133,9 +105,9 @@ def run_proposal_simulation(
         reconciliation=review.reconciliation,
         rule_results=review.rule_results,
         diagnostics=diagnostics,
-        drift_analysis=drift_analysis,
-        suitability=suitability,
-        gate_decision=gate_decision,
+        drift_analysis=decision_support.drift_analysis,
+        suitability=decision_support.suitability,
+        gate_decision=decision_support.gate_decision,
         explanation={"summary": review.final_status},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,
