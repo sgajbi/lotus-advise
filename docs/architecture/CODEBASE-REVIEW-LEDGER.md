@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-599
+
+- Scope: Proposal memo API response projection
+- Pattern: Memo API orchestration should not own response projection, audit-event projection,
+  report replay projection, AI commentary replay projection, archive-ref projection, and replay
+  metadata completeness checks in the same module.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and response-projection maintainability
+- Summary: `src/core/proposals/memo_api.py` still mixed memo API use-case orchestration with
+  response projection helpers after the external package payload split. This kept read-model
+  projection behavior close to idempotency, persistence-event recording, and downstream request
+  orchestration.
+- Evidence:
+  - Added `src/core/proposals/memo_response_projection.py` for memo response assembly, audit-event
+    projection, latest event posture, report response replay, AI commentary replay, archive refs,
+    section projection, and memo replay metadata completeness checks.
+  - Kept `src/core/proposals/memo_api.py` responsible for memo command/query orchestration,
+    proposal/memo loading, idempotent event append/replay, source-hash validation, report/AI
+    request orchestration, and API error conversion.
+  - Reduced `src/core/proposals/memo_api.py` from an 812-line hotspot to 674 lines.
+  - Added a source-boundary guard proving response projection helpers stay in the projection module.
+  - Focused memo API tests now pass with 11 tests; focused `ruff`, `ruff format --check`, and
+    `mypy` checks passed for the touched memo modules.
+- Consequence:
+  - Memo API behavior remains compatible while response projection can be reviewed and tested
+    independently from event mutation and downstream integration orchestration.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing remaining `memo_api.py` orchestration complexity around load/idempotency and
+    report/AI request workflows if future health reports keep it above the preferred hotspot band.
+
 ## LA-REV-598
 
 - Scope: Advisory alternative strategy construction
