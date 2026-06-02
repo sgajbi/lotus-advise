@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-587
+
+- Scope: Bank-demo supported-claim register assembly
+- Pattern: Supported claims should be owned by focused business claim groups while the public
+  register builder keeps canonical scenario identity and register assembly.
+- Status: Hardened
+- Finding Class: Bank-demo proof modularity and claim-governance maintainability
+- Summary: `src/core/bank_demo_proof/supported_claim_register.py` owned artifact policy plus every
+  supported claim row in one 294-line builder. The quality baseline listed
+  `build_default_supported_claim_register` as the remaining top production-code hotspot after the
+  proposal memo section split.
+- Evidence:
+  - Added `src/core/bank_demo_proof/supported_claim_policy.py` for commit/local/sensitive artifact
+    policy.
+  - Added `src/core/bank_demo_proof/supported_claim_backend_evidence.py` for backend proof,
+    advisor-journey backend evidence, and degraded-runtime boundary claims.
+  - Added `src/core/bank_demo_proof/supported_claim_product_surface.py` for governed
+    product-surface, advisor-use document proof, and commercial/RFP/security material claims.
+  - Added `src/core/bank_demo_proof/supported_claim_boundaries.py` for AI/policy/cockpit boundary,
+    client-ready publication blocking, and retired legacy pending-claim posture.
+  - Added `src/core/bank_demo_proof/supported_claim_refs.py` for shared proof asset references and
+    preserved the public `RFC28_SUPPORTED_CLAIM_REGISTER_REF` import surface.
+  - Added a source guard proving the public register builder delegates artifact policy and claim
+    groups and does not own raw `SupportedClaim` rows.
+  - Refreshed `quality/baseline_report.md`; `build_default_supported_claim_register` no longer
+    appears in the top-10 largest-function hotspot list.
+- Consequence:
+  - Claim taxonomy, material permissions, and boundary wording remain unchanged, but future
+    bank-demo proof claims can land in the relevant claim group with clearer review scope.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published proof claims and operator workflow truth did not change.
+- Follow-Up:
+  - Continue reducing remaining production hotspots in live parity validation and oversized
+    proposal workflow test fixtures.
+
 ## LA-REV-586
 
 - Scope: Advisory proposal memo section assembly

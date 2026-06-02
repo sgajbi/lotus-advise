@@ -233,6 +233,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and operational workflow groups.",
         "- Proposal memo section assembly is split into foundational, policy-review,",
         "  operational, and appendix section groups.",
+        "- Bank-demo supported-claim register assembly is split into artifact policy,",
+        "  backend-evidence, product-surface, and boundary claim groups.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

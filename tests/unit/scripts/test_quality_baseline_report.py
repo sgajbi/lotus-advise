@@ -63,6 +63,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Feature capability catalog assembly is split" in refactor_health
     assert "Workflow capability catalog assembly is split" in refactor_health
     assert "Proposal memo section assembly is split" in refactor_health
+    assert "Bank-demo supported-claim register assembly is split" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
 
 
