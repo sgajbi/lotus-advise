@@ -254,9 +254,7 @@ def _build_portfolio_impact_section(
             section_id="PORTFOLIO_IMPACT",
             evidence_refs=["artifact.portfolio_impact"],
             source_refs=["lotus-core:portfolio_state", "lotus-advise:proposal_artifact"],
-            texts=[
-                "Portfolio impact uses the immutable proposal artifact before/after evidence."
-            ],
+            texts=["Portfolio impact uses the immutable proposal artifact before/after evidence."],
             reason_codes=["PORTFOLIO_IMPACT_CAPTURED"],
         ),
     )

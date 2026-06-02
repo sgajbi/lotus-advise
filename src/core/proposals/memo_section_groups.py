@@ -54,6 +54,7 @@ _OPERATIONS_AUDIENCES: list[ProposalMemoAudience] = [
     "AUDIT",
 ]
 
+
 def build_policy_review_memo_sections(
     *,
     artifact: dict[str, Any],
