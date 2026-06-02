@@ -1,8 +1,11 @@
 from copy import deepcopy
+from pathlib import Path
 
 from src.core.proposals.memo_builder import build_advisory_proposal_memo_evidence_pack
 from src.core.proposals.memo_models import ProposalMemoSectionKey
 from src.core.proposals.memo_source_readiness import build_memo_source_readiness
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def _evidence_bundle() -> dict:
@@ -287,3 +290,18 @@ def test_memo_builder_blocks_missing_product_policy_evidence() -> None:
     assert conflicts.status == "BLOCKED"
     assert "product_document_evidence" in conflicts.missing_evidence
     assert "PRODUCT_DOCUMENTATION_INCOMPLETE_FOR_PROPOSED_TRADES" in conflicts.reason_codes
+
+
+def test_foundational_memo_sections_use_focused_section_builders() -> None:
+    groups_source = (REPO_ROOT / "src/core/proposals/memo_section_groups.py").read_text(
+        encoding="utf-8"
+    )
+    foundational_source = (
+        REPO_ROOT / "src/core/proposals/memo_foundational_sections.py"
+    ).read_text(encoding="utf-8")
+
+    assert "from src.core.proposals.memo_foundational_sections import" in groups_source
+    assert "def _build_executive_summary_section(" not in groups_source
+    assert "def _build_risk_context_section(" not in groups_source
+    assert "def _build_executive_summary_section(" in foundational_source
+    assert "def _build_risk_context_section(" in foundational_source
