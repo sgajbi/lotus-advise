@@ -19,9 +19,9 @@ def setup_function() -> None:
 
 def test_memo_api_delegates_external_package_payloads() -> None:
     source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
-    package_source = (
-        REPO_ROOT / "src/core/proposals/memo_external_packages.py"
-    ).read_text(encoding="utf-8")
+    package_source = (REPO_ROOT / "src/core/proposals/memo_external_packages.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "from src.core.proposals.memo_external_packages import" in source
     assert "def _build_report_memo_package(" not in source
