@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-02T00:36:39.253060+00:00`
+- Generated At: `2026-06-02T00:45:23.175320+00:00`
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `e9644e00077f904cb1eb3181c7b5bb0e330fb264`
-- Branch Commits Over Main: `8`
+- Head: `e0034797817ce7f747567b6fc0649c1b58fb9694`
+- Branch Commits Over Main: `9`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `765`
+- Python files: `766`
 - Packages: `37`
-- Modules: `728`
-- Total Python lines: `130414`
+- Modules: `729`
+- Total Python lines: `130562`
 
 ## Largest Files
 
@@ -34,14 +34,14 @@
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
 | 2 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 3 | `_build_sections` | `src/core/proposals/memo_builder.py` | 122 | 300 |
-| 4 | `build_default_supported_claim_register` | `src/core/bank_demo_proof/supported_claim_register.py` | 18 | 294 |
-| 5 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
-| 6 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
-| 7 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
-| 8 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 9 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
-| 10 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
+| 3 | `build_default_supported_claim_register` | `src/core/bank_demo_proof/supported_claim_register.py` | 18 | 294 |
+| 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
+| 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
+| 6 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
+| 7 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
+| 8 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
+| 9 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
+| 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
 
 ## Complexity
 

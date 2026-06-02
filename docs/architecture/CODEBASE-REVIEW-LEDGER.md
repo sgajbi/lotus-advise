@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-586
+
+- Scope: Advisory proposal memo section assembly
+- Pattern: Memo section catalog ownership should be grouped by business purpose while the memo
+  builder keeps deterministic hashing, source-readiness folding, and evidence-pack assembly.
+- Status: Hardened
+- Finding Class: Core proposal memo modularity and maintainability
+- Summary: `src/core/proposals/memo_builder.py` owned a 300-line `_build_sections` function that
+  mixed foundational memo sections, policy-review enrichment, operational delivery boundaries, and
+  appendices. The quality baseline listed `_build_sections` as the top production-code hotspot
+  after the prior simulation and capability-catalog slices.
+- Evidence:
+  - Added `src/core/proposals/memo_section_groups.py` with focused foundational, policy-review,
+    operational, and appendix section group builders.
+  - Kept `src/core/proposals/memo_builder.py` responsible for deterministic memo identity,
+    section hashing, source-section status folding, material claim construction, and model
+    assembly.
+  - Added an internal guard proving `memo_builder.py` delegates section catalog ownership and does
+    not directly own policy enrichment or dynamic section summary helpers.
+  - Existing memo-builder behavior tests still prove deterministic memo hashes, required section
+    ordering, policy/fee/conflict enrichment, report/archive blocking, missing-evidence propagation,
+    and product-policy evidence blocking.
+  - Refreshed `quality/baseline_report.md`; `_build_sections` no longer appears in the top-10
+    largest-function hotspot list.
+- Consequence:
+  - Proposal memo behavior is unchanged, but future changes can now land in the relevant memo
+    section group without editing one broad builder function or risking unrelated section posture.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published feature posture, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue with the remaining production hotspot in
+    `src/core/bank_demo_proof/supported_claim_register.py`.
+
 ## LA-REV-585
 
 - Scope: `/platform/capabilities` workflow capability catalog assembly

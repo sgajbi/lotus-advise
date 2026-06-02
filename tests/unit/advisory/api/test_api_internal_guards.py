@@ -164,9 +164,7 @@ def test_memo_routes_use_shared_parameter_contracts():
 
 def test_memo_builder_delegates_section_catalog_groups():
     builder_source = Path("src/core/proposals/memo_builder.py").read_text(encoding="utf-8")
-    groups_source = Path("src/core/proposals/memo_section_groups.py").read_text(
-        encoding="utf-8"
-    )
+    groups_source = Path("src/core/proposals/memo_section_groups.py").read_text(encoding="utf-8")
 
     assert "build_foundational_memo_sections" in builder_source
     assert "build_policy_review_memo_sections" in builder_source

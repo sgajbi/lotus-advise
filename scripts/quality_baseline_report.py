@@ -231,6 +231,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and operational capability groups.",
         "- Workflow capability catalog assembly is split into foundation, evidence-product,",
         "  and operational workflow groups.",
+        "- Proposal memo section assembly is split into foundational, policy-review,",
+        "  operational, and appendix section groups.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
