@@ -1,20 +1,14 @@
-from decimal import Decimal
 from typing import Any, Optional
 
 from src.core.advisory.ids import proposal_run_id_from_request_hash
-from src.core.advisory.intents import expected_cash_delta_base
 from src.core.advisory.simulation_intent_plan import build_simulation_intent_plan
+from src.core.advisory.simulation_review import evaluate_simulation_review
 from src.core.common.diagnostics import make_diagnostics_data
 from src.core.common.drift_analytics import compute_drift_analysis
 from src.core.common.idempotency import normalize_optional_idempotency_key
-from src.core.common.simulation_shared import (
-    build_reconciliation,
-    derive_status_from_rules,
-)
 from src.core.common.suitability import compute_suitability_result
 from src.core.common.workflow_gates import evaluate_gate_decision
-from src.core.compliance import RuleEngine
-from src.core.diagnostics_models import LineageData, RuleResult
+from src.core.diagnostics_models import LineageData
 from src.core.engine_options_models import EngineOptions, ValuationMode
 from src.core.portfolio_models import (
     MarketDataSnapshot,
@@ -78,70 +72,15 @@ def run_proposal_simulation(
         )
     else:
         after = before.model_copy(deep=True)
-    rule_results = RuleEngine.evaluate(after, options, diagnostics)
-
-    if intent_plan.hard_failures:
-        measured = Decimal(len(intent_plan.hard_failures))
-        rule_results.append(
-            RuleResult(
-                rule_id="PROPOSAL_INPUT_GUARDS",
-                severity="HARD",
-                status="FAIL",
-                measured=measured,
-                threshold={"max": Decimal("0")},
-                reason_code=intent_plan.hard_failures[0],
-                remediation_hint=(
-                    "Adjust proposal cash flows, funding inputs, or shelf eligibility."
-                ),
-            )
-        )
-
-    if intent_plan.force_pending_review:
-        rule_results.append(
-            RuleResult(
-                rule_id="PROPOSAL_FUNDING_DQ",
-                severity="SOFT",
-                status="FAIL",
-                measured=Decimal(len(diagnostics.missing_fx_pairs)),
-                threshold={"max": Decimal("0")},
-                reason_code="MISSING_FX_FOR_FUNDING",
-                remediation_hint="Provide required FX rates for advisory auto-funding.",
-            )
-        )
-
-    final_status = derive_status_from_rules(rule_results)
-
-    expected_delta_base = expected_cash_delta_base(
+    review = evaluate_simulation_review(
         portfolio=portfolio,
         market_data=market_data,
-        cash_flows=intent_plan.cash_flows,
-        dq_log=diagnostics.data_quality,
+        options=options,
+        diagnostics=diagnostics,
+        before=before,
+        after=after,
+        intent_plan=intent_plan,
     )
-    expected_after_total = before.total_value.amount + expected_delta_base
-    reconciliation, recon_diff, tolerance = build_reconciliation(
-        before_total=before.total_value.amount,
-        after_total=after.total_value.amount,
-        expected_after_total=expected_after_total,
-        base_currency=portfolio.base_currency,
-        use_absolute_scale=True,
-    )
-
-    if reconciliation.status == "MISMATCH":
-        final_status = "BLOCKED"
-        rule_results.append(
-            RuleResult(
-                rule_id="RECONCILIATION",
-                severity="HARD",
-                status="FAIL",
-                measured=recon_diff,
-                threshold={"max": tolerance},
-                reason_code="VALUE_MISMATCH",
-                remediation_hint="Check pricing/FX or proposal inputs.",
-            )
-        )
-
-    if intent_plan.force_pending_review and final_status == "READY":
-        final_status = "PENDING_REVIEW"
 
     drift_analysis = None
     if options.enable_drift_analytics and reference_model_validated is not None:
@@ -176,8 +115,8 @@ def run_proposal_simulation(
     gate_decision = None
     if options.enable_workflow_gates:
         gate_decision = evaluate_gate_decision(
-            status=final_status,
-            rule_results=rule_results,
+            status=review.final_status,
+            rule_results=review.rule_results,
             suitability=suitability,
             diagnostics=diagnostics,
             options=options,
@@ -187,17 +126,17 @@ def run_proposal_simulation(
     return ProposalResult(
         proposal_run_id=run_id,
         correlation_id=correlation_id,
-        status=final_status,
+        status=review.final_status,
         before=before,
         intents=intent_plan.intents,
         after_simulated=after,
-        reconciliation=reconciliation,
-        rule_results=rule_results,
+        reconciliation=review.reconciliation,
+        rule_results=review.rule_results,
         diagnostics=diagnostics,
         drift_analysis=drift_analysis,
         suitability=suitability,
         gate_decision=gate_decision,
-        explanation={"summary": final_status},
+        explanation={"summary": review.final_status},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,
             market_data_snapshot_id=market_data.snapshot_id or "md",
