@@ -11,6 +11,10 @@ from src.core.proposals.exceptions import (
     ProposalValidationError,
 )
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
+from src.core.proposals.memo_external_packages import (
+    build_memo_ai_evidence,
+    build_report_memo_package,
+)
 from src.core.proposals.memo_persistence import (
     ProposalMemoPersistenceError,
     create_or_replay_proposal_memo,
@@ -303,7 +307,7 @@ def request_memo_report_package_response(
             "requested_by": payload.requested_by,
             "related_version_no": version_no,
             "requested_output_formats": payload.requested_output_formats,
-            "proposal_memo_package": _build_report_memo_package(
+            "proposal_memo_package": build_report_memo_package(
                 memo=memo,
                 payload=payload,
                 review_posture=review_posture,
@@ -389,7 +393,7 @@ def request_memo_ai_commentary_response(
                 replayed=True,
             )
 
-    memo_evidence = _build_memo_ai_evidence(memo=memo, review_posture=review_posture)
+    memo_evidence = build_memo_ai_evidence(memo=memo, review_posture=review_posture)
     try:
         commentary = generate_proposal_memo_commentary_with_lotus_ai(
             memo_evidence=memo_evidence,
@@ -576,82 +580,6 @@ def build_memo_response(
             "client_ready_publication": projection["client_ready_publication"],
         },
     )
-
-
-def _build_report_memo_package(
-    *,
-    memo: ProposalMemoRecord,
-    payload: ProposalMemoReportPackageRequest,
-    review_posture: dict[str, Any],
-) -> dict[str, Any]:
-    memo_json = dict(memo.memo_json)
-    return {
-        "package_status": "INCLUDED_ADVISOR_PROPOSAL_MEMO",
-        "usage": "REPORT_REQUEST_APPROVED_ADVISOR_MEMO",
-        "memo_id": memo.memo_id,
-        "memo_version": memo.memo_version,
-        "memo_status": memo.memo_status,
-        "proposal_id": memo.proposal_id,
-        "proposal_version_no": memo.proposal_version_no,
-        "proposal_version_id": memo.proposal_version_id,
-        "artifact_id": memo.artifact_id,
-        "memo_hash": memo.memo_hash,
-        "source_input_hash": memo.source_input_hash,
-        "review": {
-            "review_event_id": review_posture.get("event_id"),
-            "review_action": review_posture.get("review_action"),
-            "reviewed_by": review_posture.get("actor_id"),
-            "reviewed_at": review_posture.get("occurred_at"),
-            "review_reason": review_posture.get("review_reason"),
-        },
-        "projection": dict(memo.projection_json),
-        "sections": memo_json.get("sections", []),
-        "source_authority_manifest": memo_json.get("source_authority_manifest", {}),
-        "supportability": memo_json.get("supportability", {}),
-        "requested_output_formats": payload.requested_output_formats,
-        "client_ready_publication": "BLOCKED",
-        "report_request_reason": payload.reason,
-    }
-
-
-def _build_memo_ai_evidence(
-    *,
-    memo: ProposalMemoRecord,
-    review_posture: dict[str, Any],
-) -> dict[str, Any]:
-    memo_json = dict(memo.memo_json)
-    return {
-        "memo_id": memo.memo_id,
-        "memo_version": memo.memo_version,
-        "memo_status": memo.memo_status,
-        "memo_hash": memo.memo_hash,
-        "source_input_hash": memo.source_input_hash,
-        "proposal_id": memo.proposal_id,
-        "proposal_version_no": memo.proposal_version_no,
-        "proposal_version_id": memo.proposal_version_id,
-        "artifact_id": memo.artifact_id,
-        "review": {
-            "review_event_id": review_posture.get("event_id"),
-            "review_action": review_posture.get("review_action"),
-            "reviewed_by": review_posture.get("actor_id"),
-            "reviewed_at": review_posture.get("occurred_at"),
-        },
-        "projection": dict(memo.projection_json),
-        "sections": memo_json.get("sections", []),
-        "source_refs": _memo_source_refs(memo_json),
-        "supportability": memo_json.get("supportability", {}),
-        "client_ready_publication": "BLOCKED",
-    }
-
-
-def _memo_source_refs(memo_json: dict[str, Any]) -> list[str]:
-    manifest = memo_json.get("source_authority_manifest")
-    if not isinstance(manifest, dict):
-        return []
-    refs = manifest.get("source_refs")
-    if not isinstance(refs, list):
-        return []
-    return [item for item in refs if isinstance(item, str)]
 
 
 def _load_proposal_version(
