@@ -907,7 +907,7 @@ def test_proposal_simulation_skips_buy_intent_without_notional():
 
     with (
         patch(
-            "src.core.advisory_engine.build_proposal_security_trade_intent",
+            "src.core.advisory.simulation_intent_plan.build_proposal_security_trade_intent",
             return_value=(
                 SecurityTradeIntent(
                     intent_id="oi_1",
@@ -920,7 +920,7 @@ def test_proposal_simulation_skips_buy_intent_without_notional():
             ),
         ),
         patch(
-            "src.core.advisory_engine.build_auto_funding_plan",
+            "src.core.advisory.simulation_intent_plan.build_auto_funding_plan",
             return_value=([], {}, set(), [], False),
         ),
     ):
