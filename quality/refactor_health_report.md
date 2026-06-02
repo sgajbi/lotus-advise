@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `554439e10a48e4645790dec221e6f4c8da52016e`
-- Branch Commits Over Main: `5`
+- Head: `e9644e00077f904cb1eb3181c7b5bb0e330fb264`
+- Branch Commits Over Main: `8`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -14,6 +14,8 @@
   and decision-support modules with focused boundary tests.
 - Feature capability catalog assembly is split into foundation, evidence-product,
   and operational capability groups.
+- Workflow capability catalog assembly is split into foundation, evidence-product,
+  and operational workflow groups.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

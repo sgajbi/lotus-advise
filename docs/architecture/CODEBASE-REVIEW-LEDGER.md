@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-585
+
+- Scope: `/platform/capabilities` workflow capability catalog assembly
+- Pattern: Workflow publication should keep foundational, evidence-product, and operational
+  workflow rows in focused modules rather than one broad list literal.
+- Status: Hardened
+- Finding Class: API catalog modularity and source-contract maintainability
+- Summary: `src/api/capabilities/workflow_catalog.py` mirrored the old feature catalog shape and
+  owned a large `WorkflowCapability` list spanning proposal simulation, lifecycle, workspace,
+  AI-rationale, risk/reporting, RFC evidence products, bank-demo proof, and execution handoff.
+  This made workflow publication harder to review and extended the same monolithic source-contract
+  problem fixed for feature rows.
+- Evidence:
+  - Added `src/api/capabilities/workflow_catalog_foundation.py` for simulation, lifecycle,
+    workspace, AI-rationale, risk-lens, and reporting workflow rows.
+  - Added `src/api/capabilities/workflow_catalog_evidence_products.py` for RFC-0023 through
+    RFC-0028 evidence-product and bank-demo proof workflow rows.
+  - Added `src/api/capabilities/workflow_catalog_operations.py` for execution-handoff workflow
+    rows.
+  - Kept `build_workflow_capabilities` as the public coordinator and added an internal guard that
+    prevents raw `WorkflowCapability` rows from returning to the coordinator.
+  - Updated capability source-contract tests to scan the new workflow catalog owner modules.
+  - Focused capability API, RFC source-contract, trust telemetry, ruff, and targeted mypy checks
+    passed.
+- Consequence:
+  - `/platform/capabilities` workflow publication keeps the same runtime contract while matching
+    the grouped feature-catalog architecture and reducing future capability-change blast radius.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published workflow keys, behavior, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Continue using grouped owner modules for future capability additions so `/platform/capabilities`
+    remains auditable as evidence products grow.
+
 ## LA-REV-584
 
 - Scope: `/platform/capabilities` feature capability catalog assembly

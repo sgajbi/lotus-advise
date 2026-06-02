@@ -229,6 +229,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and decision-support modules with focused boundary tests.",
         "- Feature capability catalog assembly is split into foundation, evidence-product,",
         "  and operational capability groups.",
+        "- Workflow capability catalog assembly is split into foundation, evidence-product,",
+        "  and operational workflow groups.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
