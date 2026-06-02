@@ -253,6 +253,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  outside the shared memo section group coordinator.",
         "- Proposal memo API orchestration delegates report-package and AI-evidence payloads",
         "  to a focused external-package module.",
+        "- Alternative strategy construction delegates input DTOs, selection helpers,",
+        "  trade-payload formatting, and notional math to focused strategy modules.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-598
+
+- Scope: Advisory alternative strategy construction
+- Pattern: Alternative construction strategies should not own DTO declarations, instrument-selection
+  helpers, trade-payload formatting, and notional arithmetic in the same oversized module.
+- Status: Hardened
+- Finding Class: Advisory strategy modularity and deterministic construction maintainability
+- Summary: `src/core/advisory/alternatives_strategies.py` mixed strategy classes, public strategy
+  DTOs, deterministic selection helpers, turnover trade shaping, and Decimal-based money/quantity
+  arithmetic. That made the strategy registry harder to review and encouraged tests to reach into
+  private helpers on the orchestrator module.
+- Evidence:
+  - Added `src/core/advisory/alternatives_strategy_models.py` for strategy input/result DTOs while
+    preserving existing public imports from `src.core.advisory.alternatives_strategies`.
+  - Added `src/core/advisory/alternatives_strategy_support.py` for candidate IDs, sellable-position
+    selection, preferred buy selection, turnover trade payloads, and Decimal quantity/notional
+    helpers.
+  - Kept `src/core/advisory/alternatives_strategies.py` focused on strategy classes, registry
+    assembly, and objective orchestration.
+  - Added a boundary guard proving helper definitions stay in the support module and focused
+    alternatives tests now pass with 28 tests.
+  - Focused `ruff` and `mypy` checks passed for the touched strategy modules.
+- Consequence:
+  - Alternative construction behavior remains compatible while helper behavior can be tested and
+    reviewed independently from objective orchestration.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue splitting remaining alternatives strategy objective classes if future health reports
+    show the module is still a material production-code hotspot.
+
 ## LA-REV-597
 
 - Scope: Proposal memo API external package payloads
