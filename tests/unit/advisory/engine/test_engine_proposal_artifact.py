@@ -135,9 +135,7 @@ def test_artifact_helpers_cover_objective_tags_next_steps_and_cash_fallback():
     assert resolve_next_step(SimpleNamespace(gate_decision=compliance_gate)) == (
         "COMPLIANCE_REVIEW"
     )
-    assert resolve_next_step(SimpleNamespace(gate_decision=execution_gate)) == (
-        "EXECUTION_READY"
-    )
+    assert resolve_next_step(SimpleNamespace(gate_decision=execution_gate)) == ("EXECUTION_READY")
     assert resolve_next_step(SimpleNamespace(gate_decision=unknown_gate)) == "RISK_REVIEW"
     assert (
         resolve_next_step(
@@ -152,9 +150,7 @@ def test_artifact_helpers_cover_objective_tags_next_steps_and_cash_fallback():
         == "RISK_REVIEW"
     )
     assert (
-        resolve_next_step(
-            SimpleNamespace(gate_decision=None, suitability=None, status="BLOCKED")
-        )
+        resolve_next_step(SimpleNamespace(gate_decision=None, suitability=None, status="BLOCKED"))
         == "RISK_REVIEW"
     )
 
