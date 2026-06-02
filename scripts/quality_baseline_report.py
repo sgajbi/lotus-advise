@@ -239,6 +239,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  data-quality, trade-size, shorting, and cash-sufficiency evaluators.",
         "- Proposal memo source-readiness assembly is split into core, risk, and Advise",
         "  source-owner section groups.",
+        "- Bank-demo runtime summary sanitization is split into access helpers and",
+        "  focused projection builders.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

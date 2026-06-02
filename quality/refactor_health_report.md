@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `db1e157094d57918599ee14cf2292a9fc7408aba`
-- Branch Commits Over Main: `15`
+- Head: `594ab5038ec3af6393d977d754629fb2edf5a7af`
+- Branch Commits Over Main: `17`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -24,6 +24,8 @@
   data-quality, trade-size, shorting, and cash-sufficiency evaluators.
 - Proposal memo source-readiness assembly is split into core, risk, and Advise
   source-owner section groups.
+- Bank-demo runtime summary sanitization is split into access helpers and
+  focused projection builders.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

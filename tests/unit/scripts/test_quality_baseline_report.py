@@ -66,6 +66,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Bank-demo supported-claim register assembly is split" in refactor_health
     assert "Compliance rule evaluation is split" in refactor_health
     assert "Proposal memo source-readiness assembly is split" in refactor_health
+    assert "Bank-demo runtime summary sanitization is split" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
 
 

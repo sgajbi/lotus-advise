@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-590
+
+- Scope: Bank-demo runtime summary sanitization
+- Pattern: Sanitized proof projection should keep contract access helpers and per-surface
+  projection builders separate from the public runtime-summary entry point.
+- Status: Hardened
+- Finding Class: Bank-demo proof sanitization modularity and sensitive-data boundary
+  maintainability
+- Summary: `src/core/bank_demo_proof/runtime_summary.py` owned a 162-line
+  `sanitize_live_runtime_summary` function that mixed required contract lookups, projection shape,
+  lifecycle/workspace/narrative/memo/policy summaries, decision and alternative path projection,
+  and degraded-runtime projection. This widened a sensitive proof-sanitization boundary and made it
+  harder to review which fields are allowed into committed proof material.
+- Evidence:
+  - Added `src/core/bank_demo_proof/runtime_summary_access.py` for fail-closed contract access and
+    stable field selection helpers.
+  - Added `src/core/bank_demo_proof/runtime_summary_projection.py` for focused lifecycle,
+    workspace-rationale, narrative, memo, policy, decision-path, alternatives-path, and degraded
+    runtime projection builders.
+  - Kept `sanitize_live_runtime_summary`, `value_at`, and `select_fields` import-compatible from
+    `runtime_summary.py`.
+  - Added a source guard proving `runtime_summary.py` delegates projection ownership and does not
+    carry sensitive hash field names or path-loop projection logic.
+  - Existing runtime-summary and proof-capture tests still prove demo-safe field projection,
+    fail-closed missing-section handling, dotted-path missing-field errors, and shape preservation
+    for missing optional fields.
+- Consequence:
+  - The sanitized backend proof summary remains behavior-compatible while the sensitive-data
+    boundary is easier to audit and extend per proof surface.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published proof fields, API behavior, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Continue with the next production-code hotspot, likely commercial material pack assembly or
+    proposal artifact construction.
+
 ## LA-REV-589
 
 - Scope: Proposal memo source-readiness assembly
