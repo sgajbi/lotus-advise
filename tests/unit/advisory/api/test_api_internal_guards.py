@@ -566,6 +566,16 @@ def test_capabilities_service_delegates_feature_catalog_assembly():
     assert "FeatureCapability(" not in source
 
 
+def test_feature_catalog_delegates_capability_groups():
+    source = Path("src/api/capabilities/feature_catalog.py").read_text(encoding="utf-8")
+
+    assert "build_foundational_feature_capabilities" in source
+    assert "build_evidence_product_feature_capabilities" in source
+    assert "build_operational_feature_capabilities" in source
+    assert "FeatureCapability(" not in source
+    assert "advisory.bank_demo_proof" not in source
+
+
 def test_capabilities_service_delegates_workflow_catalog_assembly():
     source = Path("src/api/capabilities/service.py").read_text(encoding="utf-8")
 

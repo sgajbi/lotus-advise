@@ -12,6 +12,9 @@ TRUST_TELEMETRY_DIR = REPO_ROOT / "contracts" / "trust-telemetry"
 CAPABILITY_MODULE_PATHS = (
     REPO_ROOT / "src" / "api" / "capabilities" / "service.py",
     REPO_ROOT / "src" / "api" / "capabilities" / "feature_catalog.py",
+    REPO_ROOT / "src" / "api" / "capabilities" / "feature_catalog_foundation.py",
+    REPO_ROOT / "src" / "api" / "capabilities" / "feature_catalog_evidence_products.py",
+    REPO_ROOT / "src" / "api" / "capabilities" / "feature_catalog_operations.py",
     REPO_ROOT / "src" / "api" / "capabilities" / "workflow_catalog.py",
 )
 

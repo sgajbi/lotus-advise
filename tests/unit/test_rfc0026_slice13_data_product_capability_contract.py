@@ -16,6 +16,11 @@ WIKI_OPERATIONS_PATH = Path("wiki/Operations-Runbook.md")
 CAPABILITIES_PATH = Path("src/api/capabilities/service.py")
 CAPABILITIES_DEGRADED_REASONS_PATH = Path("src/api/capabilities/degraded_reasons.py")
 CAPABILITIES_FEATURE_CATALOG_PATH = Path("src/api/capabilities/feature_catalog.py")
+CAPABILITIES_FEATURE_EVIDENCE_PRODUCTS_PATH = Path(
+    "src/api/capabilities/feature_catalog_evidence_products.py"
+)
+CAPABILITIES_FEATURE_FOUNDATION_PATH = Path("src/api/capabilities/feature_catalog_foundation.py")
+CAPABILITIES_FEATURE_OPERATIONS_PATH = Path("src/api/capabilities/feature_catalog_operations.py")
 CAPABILITIES_WORKFLOW_CATALOG_PATH = Path("src/api/capabilities/workflow_catalog.py")
 COCKPIT_SERVICE_PATH = Path("src/core/advisor_cockpit/service.py")
 COCKPIT_SERVICE_PROJECTION_PATH = Path("src/core/advisor_cockpit/service_projection.py")
@@ -93,6 +98,9 @@ def test_rfc0026_slice13_code_paths_promote_capability_and_supportability() -> N
             _read(CAPABILITIES_PATH),
             _read(CAPABILITIES_DEGRADED_REASONS_PATH),
             _read(CAPABILITIES_FEATURE_CATALOG_PATH),
+            _read(CAPABILITIES_FEATURE_EVIDENCE_PRODUCTS_PATH),
+            _read(CAPABILITIES_FEATURE_FOUNDATION_PATH),
+            _read(CAPABILITIES_FEATURE_OPERATIONS_PATH),
             _read(CAPABILITIES_WORKFLOW_CATALOG_PATH),
         )
     )
