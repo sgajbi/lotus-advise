@@ -72,6 +72,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Advisory auto-funding planning delegates FX source selection" in refactor_health
     assert "Policy source-readiness assembly is split" in refactor_health
     assert "Proposal memo foundational sections are split" in refactor_health
+    assert "Proposal memo API orchestration delegates report-package" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
 
 

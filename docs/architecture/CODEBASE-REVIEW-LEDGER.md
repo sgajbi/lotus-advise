@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-597
+
+- Scope: Proposal memo API external package payloads
+- Pattern: Memo API orchestration should delegate lotus-report package payloads and Lotus AI memo
+  evidence payloads to a focused module.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and downstream payload maintainability
+- Summary: `src/core/proposals/memo_api.py` mixed memo API orchestration, review/report/AI event
+  idempotency, report-service request orchestration, and downstream memo package/evidence payload
+  construction. This made downstream payload shape harder to review separately from API event
+  semantics.
+- Evidence:
+  - Added `src/core/proposals/memo_external_packages.py` for report memo package payloads, AI memo
+    evidence payloads, and source-authority reference extraction.
+  - Kept `src/core/proposals/memo_api.py` responsible for API use-case orchestration, memo loading,
+    idempotency, review/report/AI event recording, and response assembly.
+  - Added a source guard proving `memo_api.py` delegates external package payload construction.
+  - Focused memo API tests, ruff, and mypy checks passed.
+- Consequence:
+  - Memo report and AI-commentary behavior remains compatible while downstream payload shape can be
+    reviewed independently from memo API event orchestration.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots in advisory alternatives strategy assembly, proposal
+    command builders, and memo API response/event projection.
+
 ## LA-REV-596
 
 - Scope: Proposal memo foundational section assembly
