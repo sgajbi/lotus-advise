@@ -1,10 +1,18 @@
+from pathlib import Path
 from types import SimpleNamespace
 
-import src.core.advisory.artifact as artifact_module
 from src.core.advisory.alternatives_models import ProposalAlternatives
 from src.core.advisory.artifact import build_proposal_artifact
+from src.core.advisory.artifact_portfolio import cash_weight, largest_weight_changes
+from src.core.advisory.artifact_summary import (
+    build_takeaways,
+    resolve_next_step,
+    resolve_objective_tags,
+)
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import EngineOptions, ProposalSimulateRequest
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def _build_request(options: EngineOptions | None = None) -> ProposalSimulateRequest:
@@ -101,9 +109,7 @@ def test_artifact_helpers_cover_objective_tags_next_steps_and_cash_fallback():
             SimpleNamespace(key="EQ_2", weight=0),
         ]
     )
-    assert (
-        artifact_module._largest_weight_changes(same_before_after, same_before_after, limit=5) == []
-    )
+    assert largest_weight_changes(same_before_after, same_before_after, limit=5) == []
 
     drift = SimpleNamespace(
         asset_class=SimpleNamespace(drift_total_before=0.20, drift_total_after=0.10)
@@ -114,7 +120,7 @@ def test_artifact_helpers_cover_objective_tags_next_steps_and_cash_fallback():
         proposed_cash_flows=[],
         drift_analysis=drift,
     )
-    tags = artifact_module._resolve_objective_tags(request=request, result=result)
+    tags = resolve_objective_tags(request=request, result=result)
     assert "DRIFT_REDUCTION" in tags
 
     ready_result = SimpleNamespace(gate_decision=None, suitability=None, status="READY")
@@ -124,38 +130,36 @@ def test_artifact_helpers_cover_objective_tags_next_steps_and_cash_fallback():
     unknown_gate = SimpleNamespace(gate="NONE", reasons=[])
     compliance_suitability = SimpleNamespace(recommended_gate="COMPLIANCE_REVIEW")
     risk_suitability = SimpleNamespace(recommended_gate="RISK_REVIEW")
-    assert artifact_module._resolve_next_step(ready_result) == "CLIENT_CONSENT"
-    assert artifact_module._resolve_next_step(pending_result) == "RISK_REVIEW"
-    assert artifact_module._resolve_next_step(SimpleNamespace(gate_decision=compliance_gate)) == (
+    assert resolve_next_step(ready_result) == "CLIENT_CONSENT"
+    assert resolve_next_step(pending_result) == "RISK_REVIEW"
+    assert resolve_next_step(SimpleNamespace(gate_decision=compliance_gate)) == (
         "COMPLIANCE_REVIEW"
     )
-    assert artifact_module._resolve_next_step(SimpleNamespace(gate_decision=execution_gate)) == (
+    assert resolve_next_step(SimpleNamespace(gate_decision=execution_gate)) == (
         "EXECUTION_READY"
     )
-    assert artifact_module._resolve_next_step(SimpleNamespace(gate_decision=unknown_gate)) == (
-        "RISK_REVIEW"
-    )
+    assert resolve_next_step(SimpleNamespace(gate_decision=unknown_gate)) == "RISK_REVIEW"
     assert (
-        artifact_module._resolve_next_step(
+        resolve_next_step(
             SimpleNamespace(gate_decision=None, suitability=compliance_suitability, status="READY")
         )
         == "COMPLIANCE_REVIEW"
     )
     assert (
-        artifact_module._resolve_next_step(
+        resolve_next_step(
             SimpleNamespace(gate_decision=None, suitability=risk_suitability, status="READY")
         )
         == "RISK_REVIEW"
     )
     assert (
-        artifact_module._resolve_next_step(
+        resolve_next_step(
             SimpleNamespace(gate_decision=None, suitability=None, status="BLOCKED")
         )
         == "RISK_REVIEW"
     )
 
     state_without_cash = SimpleNamespace(allocation_by_asset_class=[])
-    assert artifact_module._cash_weight(state_without_cash) == 0
+    assert cash_weight(state_without_cash) == 0
 
 
 def test_artifact_takeaways_include_drift_when_available():
@@ -167,8 +171,21 @@ def test_artifact_takeaways_include_drift_when_available():
             drift_total_after=result.after_simulated.allocation_by_asset_class[0].weight,
         )
     )
-    takeaways = artifact_module._build_takeaways(request=request, result=result)
+    takeaways = build_takeaways(request=request, result=result)
     assert any(t.code == "DRIFT" for t in takeaways)
+
+
+def test_proposal_artifact_builder_delegates_projection_helpers():
+    source = (REPO_ROOT / "src/core/advisory/artifact.py").read_text(encoding="utf-8")
+
+    assert "from src.core.advisory.artifact_portfolio import" in source
+    assert "from src.core.advisory.artifact_summary import" in source
+    assert "from src.core.advisory.artifact_trades import" in source
+    assert "from src.core.advisory.artifact_review import" in source
+    assert "def largest_weight_changes(" not in source
+    assert "def resolve_next_step(" not in source
+    assert "def build_trades_and_funding(" not in source
+    assert "def build_suitability_summary(" not in source
 
 
 def test_proposal_artifact_surfaces_concise_risk_lens_when_available():
