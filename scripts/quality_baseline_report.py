@@ -237,6 +237,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  backend-evidence, product-surface, and boundary claim groups.",
         "- Compliance rule evaluation is split into focused cash-band, concentration,",
         "  data-quality, trade-size, shorting, and cash-sufficiency evaluators.",
+        "- Proposal memo source-readiness assembly is split into core, risk, and Advise",
+        "  source-owner section groups.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

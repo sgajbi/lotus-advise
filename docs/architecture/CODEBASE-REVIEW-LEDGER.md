@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-589
+
+- Scope: Proposal memo source-readiness assembly
+- Pattern: Source-readiness manifests should keep source-owner section construction in focused
+  modules while the public builder owns evidence extraction, contract metadata, and posture
+  assembly.
+- Status: Hardened
+- Finding Class: Proposal evidence modularity and source-authority maintainability
+- Summary: `src/core/proposals/memo_source_readiness.py` carried a 195-line
+  `build_memo_source_readiness` function mixing Lotus Core holdings/cash/market/product evidence,
+  Lotus Risk concentration and extended memo evidence, and Advise decision/lifecycle sections. The
+  source-level hotspot scan identified it as the largest remaining production-code function after
+  the compliance rule split.
+- Evidence:
+  - Added `src/core/proposals/memo_source_readiness_sections.py` with grouped core, risk, and
+    Advise source-owner section builders.
+  - Kept `build_memo_source_readiness` as the stable public assembler for contract version,
+    capability posture, overall posture, source authority, section copy, and claim policy.
+  - Added a source guard proving the public builder delegates section ownership and no longer
+    constructs raw `source_readiness_section` rows or owns source-specific status helpers.
+  - Existing memo source-readiness tests still prove READY source-backed families, blocked missing
+    owner evidence, price/FX open-end date handling, and no invented memo claims.
+  - Refreshed quality reports; the largest-function table is now dominated by tests and live
+    validation scripts rather than production-code monoliths.
+- Consequence:
+  - Memo source authority remains deterministic and behavior-compatible while future source-owner
+    changes can land in the relevant section group without widening the public builder.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, supported features, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Apply the same grouped source-owner pattern to `policy_source_readiness.py` or bank-demo
+    runtime-summary projection when those become the next production-code hotspots.
+
 ## LA-REV-588
 
 - Scope: Core compliance rule evaluation
