@@ -225,6 +225,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Advisory-copilot API DTOs are split into request, response, limits, and compatibility",
         "  modules.",
         "- Advisory-copilot source projections and run-record limits have focused owner modules.",
+        "- Advisory simulation orchestration is split into intent planning, review policy,",
+        "  and decision-support modules with focused boundary tests.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

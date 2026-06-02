@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `advise-enterprise-hardening-slice-14`
-- Head: `0f6ffecc6af02481e4b72f9b720c85e18b9ffa16`
-- Branch Commits Over Main: `48`
+- Branch: `advise-enterprise-hardening-slice-15`
+- Head: `061e951b3e174be45cad03b6f4e72074bb41cc74`
+- Branch Commits Over Main: `3`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -10,6 +10,8 @@
 - Advisory-copilot API DTOs are split into request, response, limits, and compatibility
   modules.
 - Advisory-copilot source projections and run-record limits have focused owner modules.
+- Advisory simulation orchestration is split into intent planning, review policy,
+  and decision-support modules with focused boundary tests.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

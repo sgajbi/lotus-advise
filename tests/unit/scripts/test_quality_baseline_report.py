@@ -59,6 +59,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Documentation Gaps" in baseline
     assert "Observability Gaps" in baseline
     assert "Progressive Gate Phase" in scorecard
+    assert "Advisory simulation orchestration is split" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
 
 

@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-583
+
+- Scope: Advisory proposal simulation orchestration
+- Pattern: Core advisory simulation should orchestrate focused use-case modules rather than owning
+  intent planning, review policy, reconciliation, optional analytics, suitability, workflow gates,
+  and result assembly in one monolithic function.
+- Status: Hardened
+- Finding Class: Core service modularity and maintainability
+- Summary: `src/core/advisory_engine.py` still carried a large `run_proposal_simulation` function
+  that mixed cash-flow application, shelf validation, trade-intent creation, funding planning,
+  rule evaluation, reconciliation, drift analytics, suitability scanning, workflow-gate evaluation,
+  and result assembly. The quality baseline listed it as a top production hotspot before this
+  slice.
+- Evidence:
+  - Added `src/core/advisory/simulation_intent_plan.py` for cash-flow, security-trade,
+    funding, dependency, and executable-intent planning.
+  - Added `src/core/advisory/simulation_review.py` for rule evaluation, hard input guards,
+    funding-DQ review posture, value reconciliation, and final status policy.
+  - Added `src/core/advisory/simulation_decision_support.py` for drift analysis, suitability
+    scanning, and workflow-gate decision support.
+  - Added focused unit coverage for the extracted intent-plan, review-policy, and
+    decision-support boundaries while preserving existing `run_proposal_simulation` behavior.
+  - Refreshed `quality/baseline_report.md`; `run_proposal_simulation` no longer appears in the
+    top-10 largest-function hotspot list.
+- Consequence:
+  - Advisory proposal simulation now has clearer dependency flow: orchestration remains in the
+    public engine entry point while intent planning, review policy, and decision support have
+    separately testable owner modules.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, supported features, and operator workflows did not
+    change.
+- Follow-Up:
+  - Continue reducing remaining production hotspots such as proposal memo section building,
+    supported-claim register assembly, and feature-capability catalog construction.
+
 ## LA-REV-582
 
 - Scope: Advisory copilot idempotency-record limit ownership
