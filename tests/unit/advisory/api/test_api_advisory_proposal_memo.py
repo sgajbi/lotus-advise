@@ -30,6 +30,27 @@ def test_memo_api_delegates_external_package_payloads() -> None:
     assert "def build_memo_ai_evidence(" in package_source
 
 
+def test_memo_api_delegates_response_projection_helpers() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    projection_source = (REPO_ROOT / "src/core/proposals/memo_response_projection.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.proposals.memo_response_projection import" in source
+    for helper_name in (
+        "build_memo_response",
+        "to_audit_event",
+        "latest_event_posture",
+        "report_response_from_event",
+        "commentary_from_ai_event",
+        "archive_refs_from_report_posture",
+        "project_sections",
+        "memo_has_replay_metadata",
+    ):
+        assert f"def {helper_name}(" not in source
+        assert f"def {helper_name}(" in projection_source
+
+
 def _base_create_payload(portfolio_id: str = "pf_memo_api_1") -> dict:
     return {
         "created_by": "advisor_1",
