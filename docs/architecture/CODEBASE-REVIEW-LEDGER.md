@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-591
+
+- Scope: Bank-demo commercial material pack assembly
+- Pattern: Claim-governed commercial material rows should live in a focused catalog module while
+  the commercial material pack module owns validation, repository-local source-ref hygiene, and
+  supported-claim register alignment.
+- Status: Hardened
+- Finding Class: Bank-demo proof modularity and commercial material governance
+- Summary: `src/core/bank_demo_proof/commercial_materials.py` mixed Pydantic model validation,
+  source-reference sanitization, supported-claim register checks, and all product/RFP/security/demo
+  material rows in `build_commercial_material_pack`. This widened a commercial proof boundary that
+  must preserve blocked claims such as client-ready publication, external client communication,
+  bank-specific certification, legal/regulatory advice, and OMS/order/fill/settlement.
+- Evidence:
+  - Added `src/core/bank_demo_proof/commercial_material_catalog.py` for required claim ids,
+    blocked commercial claims, and the governed material row catalog.
+  - Kept `src/core/bank_demo_proof/commercial_materials.py` responsible for model validation,
+    repository-local source-ref checks, client-facing supported-claim alignment, and public pack
+    assembly.
+  - Added a source guard proving `build_commercial_material_pack` delegates catalog rows and does
+    not own raw `CommercialMaterial` row construction.
+  - Existing commercial-material tests still prove business-safe material copy, exact blocked-claim
+    exclusion, supported-claim register alignment, unknown/UI-pending/planned/unsupported claim
+    rejection, source-ref sanitization, duplicate rejection, and required-claim coverage.
+  - Refreshed quality reports to record the commercial material catalog split as current progress.
+- Consequence:
+  - Commercial/RFP/security/demo material governance remains behavior-compatible while future
+    material catalog changes can be reviewed separately from validation and supported-claim
+    alignment.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because published proof claims, material refs, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots such as proposal artifact construction, auto-funding
+    planning, policy source-readiness assembly, and proposal command builders.
+
 ## LA-REV-590
 
 - Scope: Bank-demo runtime summary sanitization

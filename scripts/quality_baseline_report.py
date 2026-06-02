@@ -241,6 +241,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  source-owner section groups.",
         "- Bank-demo runtime summary sanitization is split into access helpers and",
         "  focused projection builders.",
+        "- Bank-demo commercial material pack assembly delegates governed material rows to",
+        "  a focused catalog module.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
