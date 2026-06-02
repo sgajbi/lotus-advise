@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import cast
+from typing import Literal, cast
 
 from src.core.advisory.intents import expected_cash_delta_base
 from src.core.advisory.simulation_intent_plan import SimulationIntentPlan
@@ -15,7 +15,7 @@ from src.core.simulation_state_models import SimulatedState
 
 @dataclass(frozen=True)
 class SimulationReview:
-    final_status: str
+    final_status: Literal["READY", "BLOCKED", "PENDING_REVIEW"]
     rule_results: list[RuleResult]
     reconciliation: Reconciliation
 

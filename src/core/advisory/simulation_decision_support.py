@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from src.core.advisory.simulation_intent_plan import SimulationIntentPlan
 from src.core.common.drift_analytics import compute_drift_analysis
@@ -36,7 +36,7 @@ def build_simulation_decision_support(
     before: SimulatedState,
     after: SimulatedState,
     intent_plan: SimulationIntentPlan,
-    final_status: str,
+    final_status: Literal["READY", "BLOCKED", "PENDING_REVIEW"],
     rule_results: list[RuleResult],
     reference_model: ReferenceModel | None,
     policy_context: dict[str, Any] | None,
@@ -134,7 +134,7 @@ def _build_gate_decision(
     *,
     options: EngineOptions,
     diagnostics: DiagnosticsData,
-    final_status: str,
+    final_status: Literal["READY", "BLOCKED", "PENDING_REVIEW"],
     rule_results: list[RuleResult],
     suitability: SuitabilityResult | None,
 ) -> GateDecision | None:
