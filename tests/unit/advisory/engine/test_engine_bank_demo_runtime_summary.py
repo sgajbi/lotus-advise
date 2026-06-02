@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from src.core.bank_demo_proof.runtime_summary import (
@@ -20,6 +22,22 @@ def test_runtime_summary_projects_demo_safe_fields_without_source_hashes() -> No
     assert "memo_hash" not in summary["proposal_memo"]
     assert "source_input_hash" not in summary["proposal_memo"]
     assert "source_narrative_hash" not in summary["proposal_narrative"]
+
+
+def test_runtime_summary_delegates_projection_sections() -> None:
+    source = Path("src/core/bank_demo_proof/runtime_summary.py").read_text(encoding="utf-8")
+
+    assert "build_proposal_lifecycle_summary" in source
+    assert "build_workspace_rationale_summary" in source
+    assert "build_proposal_narrative_summary" in source
+    assert "build_proposal_memo_summary" in source
+    assert "build_proposal_policy_summary" in source
+    assert "build_decision_path_summaries" in source
+    assert "build_alternatives_path_summaries" in source
+    assert "build_degraded_runtime_summary" in source
+    assert "source_input_hash" not in source
+    assert "memo_hash" not in source
+    assert "for path_name in (" not in source
 
 
 def test_runtime_summary_fails_closed_when_required_contract_sections_are_missing() -> None:
