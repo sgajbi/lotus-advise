@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-588
+
+- Scope: Core compliance rule evaluation
+- Pattern: Rule-engine orchestration should call focused rule evaluators rather than owning every
+  rule implementation in one method.
+- Status: Hardened
+- Finding Class: Core compliance modularity and rule-boundary maintainability
+- Summary: `src/core/compliance.py` had a 199-line `RuleEngine.evaluate` method that mixed cash
+  band policy, single-position concentration, data quality blockers, suppressed-intent reporting,
+  no-shorting, and cash-sufficiency checks. The source-level hotspot scan identified it as the
+  largest remaining production-code function after the memo and supported-claim register splits.
+- Evidence:
+  - Added `src/core/compliance_rules.py` with focused evaluators for cash band, single-position
+    maximum, data quality, minimum trade-size reporting, no-shorting, and cash sufficiency.
+  - Kept `RuleEngine.evaluate` as the stable public orchestrator and preserved result order:
+    `CASH_BAND`, `SINGLE_POSITION_MAX`, `DATA_QUALITY`, `MIN_TRADE_SIZE`, `NO_SHORTING`, and
+    `INSUFFICIENT_CASH`.
+  - Added a source guard proving `RuleEngine.evaluate` delegates to the focused evaluators and no
+    longer constructs raw `RuleResult` rows.
+  - Existing compliance tests still prove pass/fail cash-band behavior, hard single-position
+    breaches, no-shorting failures, all-rule emission, tolerance boundaries, and suppressed-intent
+    reporting.
+  - Refreshed quality reports to record the compliance rule split as a current progress signal.
+- Consequence:
+  - Compliance behavior is unchanged, but each governed rule can now evolve independently with
+    focused tests and less risk of accidental changes to unrelated rule posture.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, supported features, and operator workflow truth did
+    not change.
+- Follow-Up:
+  - Consider applying the same per-rule decomposition to policy source-readiness builders when
+    they become the next production-code hotspot.
+
 ## LA-REV-587
 
 - Scope: Bank-demo supported-claim register assembly

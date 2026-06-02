@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `a96debc2054115accf66aa87abbcd03370f23423`
-- Branch Commits Over Main: `11`
+- Head: `8a03a94e6f4dff8dc50237f3c471193eed8fef24`
+- Branch Commits Over Main: `13`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -20,6 +20,8 @@
   operational, and appendix section groups.
 - Bank-demo supported-claim register assembly is split into artifact policy,
   backend-evidence, product-surface, and boundary claim groups.
+- Compliance rule evaluation is split into focused cash-band, concentration,
+  data-quality, trade-size, shorting, and cash-sufficiency evaluators.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

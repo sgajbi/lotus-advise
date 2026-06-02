@@ -235,6 +235,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  operational, and appendix section groups.",
         "- Bank-demo supported-claim register assembly is split into artifact policy,",
         "  backend-evidence, product-surface, and boundary claim groups.",
+        "- Compliance rule evaluation is split into focused cash-band, concentration,",
+        "  data-quality, trade-size, shorting, and cash-sufficiency evaluators.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
