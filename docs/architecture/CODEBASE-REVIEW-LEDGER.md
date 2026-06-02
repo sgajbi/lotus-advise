@@ -14,13 +14,17 @@
 - Evidence:
   - Added `src/core/advisory/alternatives_strategy_models.py` for strategy input/result DTOs while
     preserving existing public imports from `src.core.advisory.alternatives_strategies`.
+  - Added `src/core/advisory/alternatives_strategy_base.py` for the strategy interface, shared
+    seed construction, and rejection construction.
+  - Added `src/core/advisory/alternatives_strategy_objectives.py` for the five concrete objective
+    strategies.
   - Added `src/core/advisory/alternatives_strategy_support.py` for candidate IDs, sellable-position
     selection, preferred buy selection, turnover trade payloads, and Decimal quantity/notional
     helpers.
-  - Kept `src/core/advisory/alternatives_strategies.py` focused on strategy classes, registry
-    assembly, and objective orchestration.
-  - Added a boundary guard proving helper definitions stay in the support module and focused
-    alternatives tests now pass with 28 tests.
+  - Reduced `src/core/advisory/alternatives_strategies.py` from an 859-line hotspot to a 94-line
+    registry and candidate-plan entry point.
+  - Added a boundary guard proving objective classes stay in the objective module and helper
+    definitions stay in the support module; focused alternatives tests now pass with 28 tests.
   - Focused `ruff` and `mypy` checks passed for the touched strategy modules.
 - Consequence:
   - Alternative construction behavior remains compatible while helper behavior can be tested and

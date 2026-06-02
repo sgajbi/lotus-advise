@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `3e36306bec48dc6e4fee4b672fe2742d2f13b79f`
-- Branch Commits Over Main: `42`
+- Head: `7329a9fe2b8144679b71997b41290a2b6fc82c04`
+- Branch Commits Over Main: `46`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -38,8 +38,9 @@
   outside the shared memo section group coordinator.
 - Proposal memo API orchestration delegates report-package and AI-evidence payloads
   to a focused external-package module.
-- Alternative strategy construction delegates input DTOs, selection helpers,
-  trade-payload formatting, and notional math to focused strategy modules.
+- Alternative strategy construction delegates input DTOs, base mechanics,
+  objective classes, selection helpers, trade-payload formatting, and notional math
+  to focused strategy modules.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work
