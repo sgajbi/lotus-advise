@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-15`
-- Head: `ecef5b2619dabaf879d4c1b3ce2c0ca36c828f99`
-- Branch Commits Over Main: `28`
+- Head: `04f52fb0162d449a8719fd4eef2e81bf4c5e82cb`
+- Branch Commits Over Main: `31`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -28,8 +28,8 @@
   focused projection builders.
 - Bank-demo commercial material pack assembly delegates governed material rows to
   a focused catalog module.
-- Proposal artifact assembly delegates portfolio, summary, trade/funding, and review
-  projections to focused artifact modules.
+- Proposal artifact assembly delegates portfolio, summary, trade/funding, review,
+  evidence-bundle, and hash finalization to focused artifact modules.
 - Advisory auto-funding planning delegates FX source selection and missing-rate
   diagnostics to a focused funding-selection module.
 - Policy source-readiness assembly is split into Lotus Core, product-policy,

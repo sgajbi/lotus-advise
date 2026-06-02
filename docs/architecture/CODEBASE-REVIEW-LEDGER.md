@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-595
+
+- Scope: Advisory proposal artifact evidence bundle and canonical hashing
+- Pattern: Proposal artifact construction should delegate evidence-bundle serialization and
+  canonical artifact hash finalization to a focused evidence module.
+- Status: Hardened
+- Finding Class: Advisory artifact lineage and evidence-hash maintainability
+- Summary: After the projection split, `src/core/advisory/artifact.py` still owned request/result
+  evidence serialization, canonical payload exclusion rules, artifact hash mutation, optional
+  deterministic narrative generation, and narrative-aware hash recomputation. This kept lineage and
+  hash semantics coupled to the presentation artifact assembly path.
+- Evidence:
+  - Added `src/core/advisory/artifact_evidence.py` for evidence-bundle serialization and
+    canonical artifact hash finalization.
+  - Kept `build_proposal_artifact` as the stable public artifact entry point responsible for
+    proposal artifact orchestration and section assembly.
+  - Updated the artifact boundary guard to prove `artifact.py` delegates evidence-bundle creation
+    and no longer owns direct canonical hash calls.
+  - Focused proposal artifact tests, golden artifact scenarios, ruff, and mypy checks passed.
+- Consequence:
+  - Proposal artifact lineage behavior remains compatible while evidence-bundle serialization,
+    deterministic narrative integration, and canonical hash semantics can be reviewed independently.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots in proposal memo API, advisory alternatives strategy
+    assembly, and proposal command builders.
+
 ## LA-REV-594
 
 - Scope: RFC-0025 policy source-readiness assembly
