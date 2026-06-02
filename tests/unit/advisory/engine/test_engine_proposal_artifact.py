@@ -178,10 +178,13 @@ def test_proposal_artifact_builder_delegates_projection_helpers():
     assert "from src.core.advisory.artifact_summary import" in source
     assert "from src.core.advisory.artifact_trades import" in source
     assert "from src.core.advisory.artifact_review import" in source
+    assert "from src.core.advisory.artifact_evidence import" in source
     assert "def largest_weight_changes(" not in source
     assert "def resolve_next_step(" not in source
     assert "def build_trades_and_funding(" not in source
     assert "def build_suitability_summary(" not in source
+    assert "ProposalArtifactEvidenceBundle(" not in source
+    assert "hash_canonical_payload(" not in source
 
 
 def test_proposal_artifact_surfaces_concise_risk_lens_when_available():

@@ -1,14 +1,13 @@
 from datetime import datetime, timezone
-from typing import cast
 
+from src.core.advisory.artifact_evidence import (
+    build_artifact_evidence_bundle,
+    finalize_artifact_evidence_hashes,
+)
 from src.core.advisory.artifact_models import (
     ProposalArtifact,
     ProposalArtifactAssumptionsAndLimits,
     ProposalArtifactDisclosures,
-    ProposalArtifactEngineOutputs,
-    ProposalArtifactEvidenceBundle,
-    ProposalArtifactEvidenceInputs,
-    ProposalArtifactHashes,
     ProposalArtifactInclusionFlag,
     ProposalArtifactPortfolioDelta,
     ProposalArtifactPortfolioImpact,
@@ -31,8 +30,6 @@ from src.core.advisory.artifact_summary import (
 )
 from src.core.advisory.artifact_trades import build_trades_and_funding
 from src.core.advisory.decision_summary import build_proposal_decision_summary
-from src.core.advisory.narrative import build_deterministic_proposal_narrative
-from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.common.workflow_gates import evaluate_gate_decision
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposal_result_models import ProposalResult
@@ -147,50 +144,9 @@ def build_proposal_artifact(
                 for instrument_id in traded_instruments
             ],
         ),
-        evidence_bundle=ProposalArtifactEvidenceBundle(
-            inputs=ProposalArtifactEvidenceInputs(
-                portfolio_snapshot=request.portfolio_snapshot.model_dump(mode="json"),
-                market_data_snapshot=request.market_data_snapshot.model_dump(mode="json"),
-                shelf_entries=[entry.model_dump(mode="json") for entry in request.shelf_entries],
-                options=request.options.model_dump(mode="json"),
-                proposed_cash_flows=[
-                    item.model_dump(mode="json") for item in request.proposed_cash_flows
-                ],
-                proposed_trades=[item.model_dump(mode="json") for item in request.proposed_trades],
-                reference_model=(
-                    request.reference_model.model_dump(mode="json")
-                    if request.reference_model is not None
-                    else None
-                ),
-            ),
-            engine_outputs=ProposalArtifactEngineOutputs(
-                proposal_result=proposal_result.model_dump(mode="json")
-            ),
-            hashes=ProposalArtifactHashes(
-                request_hash=proposal_result.lineage.request_hash,
-                artifact_hash="",
-            ),
-            engine_version=proposal_result.lineage.engine_version or "unknown",
-        ),
-    )
-    payload = artifact.model_dump(mode="json")
-    base_canonical_payload = strip_keys(
-        payload, exclude={"created_at", "artifact_hash", "proposal_narrative"}
-    )
-    base_artifact_hash = hash_canonical_payload(base_canonical_payload)
-    payload["evidence_bundle"]["hashes"]["artifact_hash"] = base_artifact_hash
-    artifact = ProposalArtifact.model_validate(payload)
-
-    if request.narrative_request is not None:
-        narrative = build_deterministic_proposal_narrative(
-            artifact=artifact,
-            request=request.narrative_request,
+        evidence_bundle=build_artifact_evidence_bundle(
+            request=request,
+            proposal_result=proposal_result,
         )
-        payload = artifact.model_dump(mode="json")
-        payload["proposal_narrative"] = narrative.model_dump(mode="json")
-        narrative_canonical_payload = strip_keys(payload, exclude={"created_at", "artifact_hash"})
-        payload["evidence_bundle"]["hashes"]["artifact_hash"] = hash_canonical_payload(
-            narrative_canonical_payload
-        )
-
-    return cast(ProposalArtifact, ProposalArtifact.model_validate(payload))
+    )
+    return finalize_artifact_evidence_hashes(artifact=artifact, request=request)
