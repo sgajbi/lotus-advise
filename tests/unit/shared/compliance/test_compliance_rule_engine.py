@@ -4,6 +4,7 @@ Unit tests for the Rule Engine (RFC-0005/RFC-0006B).
 """
 
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -128,6 +129,21 @@ def test_always_emit_all_rules():
     spm = next(r for r in results if r.rule_id == "SINGLE_POSITION_MAX")
     assert spm.status == "PASS"
     assert spm.reason_code == "NO_LIMIT_SET"
+
+
+def test_rule_engine_delegates_focused_rule_evaluators():
+    source = Path("src/core/compliance.py").read_text(encoding="utf-8")
+
+    assert "from src.core.compliance_rules import" in source
+    assert "evaluate_cash_band" in source
+    assert "evaluate_single_position_max" in source
+    assert "evaluate_data_quality" in source
+    assert "evaluate_min_trade_size" in source
+    assert "evaluate_no_shorting" in source
+    assert "evaluate_sufficient_cash" in source
+    assert source.count("RuleResult(") == 0
+    assert "for pos in state.allocation_by_instrument" not in source
+    assert "for c in state.cash_balances" not in source
 
 
 @pytest.mark.parametrize(
