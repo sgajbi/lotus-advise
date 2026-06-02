@@ -247,6 +247,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  projections to focused artifact modules.",
         "- Advisory auto-funding planning delegates FX source selection and missing-rate",
         "  diagnostics to a focused funding-selection module.",
+        "- Policy source-readiness assembly is split into Lotus Core, product-policy,",
+        "  and Lotus Risk source-owner section modules.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

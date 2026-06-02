@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-594
+
+- Scope: RFC-0025 policy source-readiness assembly
+- Pattern: Policy source-readiness projection should keep Lotus Core profile/mandate/holdings
+  evidence, Lotus Core product-policy evidence, Lotus Risk policy metrics, and Advise runtime
+  posture in focused source-owner modules.
+- Status: Hardened
+- Finding Class: Policy source-readiness modularity and source-owner evidence maintainability
+- Summary: `src/core/proposals/policy_source_readiness.py` mixed public manifest assembly with
+  client-profile, mandate, holdings/market-data, product-policy, and risk-policy readiness rules.
+  That made source-owner evidence changes harder to review and increased the chance that product
+  policy or risk evidence behavior would be changed accidentally while adjusting the manifest
+  envelope.
+- Evidence:
+  - Added `src/core/proposals/policy_source_readiness_core.py` for Lotus Core client-profile,
+    mandate, and holdings/market-data source-owner sections.
+  - Added `src/core/proposals/policy_source_readiness_product.py` for product eligibility,
+    target-market, complexity, and private-asset/structured-product flag evidence.
+  - Added `src/core/proposals/policy_source_readiness_risk.py` for Lotus Risk policy-metric
+    readiness, degraded supportability handling, and risk-owner reason codes.
+  - Kept `build_policy_source_readiness` as the stable public manifest entry point responsible for
+    evidence-bundle extraction, Advise runtime posture, overall posture, source authority, and
+    claim policy.
+  - Added a source guard proving source-owner section policy is delegated out of the public
+    manifest builder.
+  - Focused policy source-readiness tests, ruff, and mypy checks passed.
+- Consequence:
+  - RFC-0025 source-readiness behavior remains compatible while private-banking source-owner
+    evidence rules can be reviewed and tested independently by source family.
+- Documentation:
+  - Review ledger and quality baseline/refactor-health reports updated. No README/wiki source
+    change is required because API behavior, published product truth, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing production-code hotspots in proposal command builders, proposal memo API, and
+    advisory alternatives strategy assembly.
+
 ## LA-REV-593
 
 - Scope: Advisory auto-funding source selection
