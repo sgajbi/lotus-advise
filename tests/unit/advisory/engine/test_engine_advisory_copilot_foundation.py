@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -35,6 +36,9 @@ from src.core.advisory_copilot.business_text import (
 )
 from src.core.advisory_copilot.business_text import (
     contains_copilot_business_technical_detail as focused_contains_technical_detail,
+)
+from src.core.advisory_copilot.business_text import (
+    normalize_required_copilot_business_text,
 )
 from src.core.advisory_copilot.catalog_models import (
     CopilotActionDefinition as FocusedCopilotActionDefinition,
@@ -103,11 +107,37 @@ from src.core.advisory_copilot.reference_models import (
 from src.core.advisory_copilot.reference_models import (
     CopilotSourceRef as FocusedCopilotSourceRef,
 )
+from src.core.advisory_copilot.reference_text import (
+    normalize_optional_copilot_reference_text,
+    normalize_required_copilot_reference_text,
+)
 from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection as FocusedCopilotEvidencePacketSection,
 )
 from src.core.advisory_copilot.section_models import (
     CopilotEvidenceSectionInput as FocusedCopilotEvidenceSectionInput,
+)
+from src.core.advisory_copilot.source_projection_cockpit import build_cockpit_actions_section
+from src.core.advisory_copilot.source_projection_operations import (
+    build_operations_handoff_section,
+    build_report_readiness_section,
+    has_operations_handoff,
+    has_report_readiness,
+)
+from src.core.advisory_copilot.source_projection_policy import build_policy_posture_section
+from src.core.advisory_copilot.source_projection_proposal import (
+    build_memo_evidence_section,
+    build_narrative_posture_section,
+    build_proposal_context_section,
+)
+from src.core.advisory_copilot.source_projection_refs import projection_source_ref
+from src.core.advisory_copilot.source_projection_text import (
+    bounded_content_hash,
+    bounded_projection_reference,
+    latest_reference,
+    projection_identifier,
+    projection_summary_item,
+    safe_nested_string,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily as FocusedCopilotActionFamily,
@@ -133,6 +163,13 @@ from src.core.advisory_copilot.type_models import (
 )
 from src.core.advisory_copilot.unsupported_models import (
     CopilotUnsupportedEvidence as FocusedCopilotUnsupportedEvidence,
+)
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
+from src.core.proposals.models import (
+    ProposalMemoRecord,
+    ProposalRecord,
+    ProposalVersionRecord,
+    ProposalWorkflowEventRecord,
 )
 
 ADVISORY_COPILOT_MODELS_PATH = Path("src/core/advisory_copilot/models.py")
@@ -175,6 +212,385 @@ def test_advisory_copilot_models_preserve_type_import_contract() -> None:
     assert CompatibilityCopilotUnsupportedEvidenceReason is (
         FocusedCopilotUnsupportedEvidenceReason
     )
+
+
+def test_advisory_copilot_business_text_normalizer_owns_required_business_copy() -> None:
+    section_source = Path("src/core/advisory_copilot/section_models.py").read_text(encoding="utf-8")
+
+    assert (
+        normalize_required_copilot_business_text(
+            "  Policy\nposture  ",
+            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        )
+        == "Policy posture"
+    )
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_SECTION_REQUIRED"):
+        normalize_required_copilot_business_text(
+            "   ",
+            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        )
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        normalize_required_copilot_business_text(
+            "raw prompt detail",
+            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        )
+    assert "def _normalize_required_text" not in section_source
+    assert "contains_copilot_business_technical_detail" not in section_source
+
+
+def test_copilot_packet_models_use_business_text_normalizer_for_identifiers() -> None:
+    packet_source = Path("src/core/advisory_copilot/packet_models.py").read_text(encoding="utf-8")
+
+    packet = CopilotEvidencePacket(
+        evidence_packet_id="  copilot_packet_pb_sg_001  ",
+        evidence_packet_hash="  sha256:copilot-packet  ",
+        action_family="PROPOSAL_EXPLANATION",
+        portfolio_id="  PB_SG_GLOBAL_BAL_001  ",
+        proposal_id="  proposal_sg_structured_note_001  ",
+        sections=(
+            CopilotEvidencePacketSection(
+                section_key="POLICY_POSTURE",
+                title="Policy posture",
+                evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+                source_refs=(
+                    CopilotSourceRef(
+                        source_system="lotus-advise",
+                        source_type="POLICY_EVALUATION",
+                        source_id="policy_eval_001",
+                        content_hash="sha256:policy",
+                        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+                    ),
+                ),
+                summary_items=("Policy evaluation requires compliance review.",),
+            ),
+        ),
+        retention_class="ADVISORY_REVIEW_RECORD",
+    )
+
+    assert packet.evidence_packet_id == "copilot_packet_pb_sg_001"
+    assert packet.proposal_id == "proposal_sg_structured_note_001"
+    with pytest.raises(ValidationError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        CopilotEvidencePacket(
+            **{
+                **packet.model_dump(),
+                "evidence_packet_id": "raw prompt packet",
+            }
+        )
+    assert "def _normalize_required_text" not in packet_source
+
+
+def test_copilot_catalog_projection_uses_business_text_normalizer() -> None:
+    catalog_source = Path("src/core/advisory_copilot/catalog_models.py").read_text(encoding="utf-8")
+
+    projection = CopilotBusinessProjection(
+        action_family="MEETING_PREPARATION",
+        label="  Meeting\npreparation  ",
+        summary="Prepare an advisor-reviewed meeting note from source-backed evidence.",
+        next_action_label="  Review draft  ",
+    )
+
+    assert projection.label == "Meeting preparation"
+    assert projection.next_action_label == "Review draft"
+    with pytest.raises(ValidationError, match="COPILOT_BUSINESS_PROJECTION_REQUIRED"):
+        CopilotBusinessProjection(
+            action_family="MEETING_PREPARATION",
+            label="   ",
+            summary="Prepare an advisor-reviewed meeting note.",
+            next_action_label="Review draft",
+        )
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        CopilotBusinessProjection(
+            action_family="MEETING_PREPARATION",
+            label="Meeting preparation",
+            summary="raw payload detail",
+            next_action_label="Review draft",
+        )
+    assert "def _normalize_required_text" not in catalog_source
+
+
+def test_copilot_unsupported_evidence_uses_business_text_normalizer() -> None:
+    unsupported_source = Path("src/core/advisory_copilot/unsupported_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    unsupported = CopilotUnsupportedEvidence(
+        reason_code="SOURCE_NOT_AVAILABLE",
+        source_dependency="RFC0025_POLICY_EVALUATION",
+        advisor_message="  Policy evidence\nis not available.  ",
+    )
+
+    assert unsupported.advisor_message == "Policy evidence is not available."
+    with pytest.raises(ValidationError, match="COPILOT_UNSUPPORTED_MESSAGE_REQUIRED"):
+        CopilotUnsupportedEvidence(
+            reason_code="SOURCE_NOT_AVAILABLE",
+            source_dependency="RFC0025_POLICY_EVALUATION",
+            advisor_message="   ",
+        )
+    with pytest.raises(ValidationError, match="COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL"):
+        CopilotUnsupportedEvidence(
+            reason_code="SOURCE_NOT_AVAILABLE",
+            source_dependency="RFC0025_POLICY_EVALUATION",
+            advisor_message="raw payload detail",
+        )
+    assert "def _normalize_required_text" not in unsupported_source
+    assert "contains_copilot_business_technical_detail" not in unsupported_source
+
+
+def test_copilot_source_projection_text_helpers_have_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert projection_identifier("Proposal/Version 1") == "proposal_version_1"
+    assert bounded_projection_reference("a" * 200, max_length=40).startswith("a" * 23)
+    assert len(bounded_projection_reference("a" * 200, max_length=40)) == 40
+    assert projection_summary_item(" first\nsecond ") == "first second"
+    assert bounded_content_hash("x" * 200).startswith("sha256:")
+    assert safe_nested_string({"a": {"b": "  value  "}}, "a", "b") == "value"
+    assert latest_reference([{"event_id": "old"}, {"archive_ref": "  latest  "}]) == "latest"
+    assert "def _summary_item" not in section_source
+    assert "def _bounded_content_hash" not in section_source
+    assert "def _safe_nested_string" not in section_source
+
+
+def test_copilot_source_projection_operations_have_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+    memo = ProposalMemoRecord(
+        memo_id="memo_sg_001",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_no=1,
+        proposal_version_id="version_sg_001",
+        artifact_id="artifact_sg_001",
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="FINALIZED",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        source_input_hash="sha256:memo-source",
+        memo_hash="sha256:memo",
+        memo_json={"memo_id": "memo_sg_001"},
+        report_package_events_json=[
+            {"event_id": "memo_report_pkg_001", "report_reference_id": "report_pkg_001"}
+        ],
+        archive_refs_json=[{"archive_ref": "archive_ref_001"}],
+    )
+    proposal = ProposalRecord(
+        proposal_id="proposal_sg_structured_note_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        last_event_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        current_state="DRAFT",
+        current_version_no=1,
+        title="Structured note proposal review",
+    )
+    event = ProposalWorkflowEventRecord(
+        event_id="event_execution_001",
+        proposal_id="proposal_sg_structured_note_001",
+        event_type="EXECUTION_REQUESTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="operations_123",
+        occurred_at=datetime(2026, 5, 28, 10, 0, tzinfo=UTC),
+        reason_json={"handoff": "ready"},
+        related_version_no=1,
+    )
+
+    report_section = build_report_readiness_section(memo=memo)
+    handoff_section = build_operations_handoff_section(proposal=proposal, events=[event])
+    source_ref = projection_source_ref(
+        source_type="PROPOSAL_WORKFLOW_EVENT",
+        source_id="x" * 220,
+        content_hash="y" * 220,
+        access_class="OPERATIONS_HANDOFF_EVIDENCE",
+    )
+
+    assert has_report_readiness(memo) is True
+    assert has_operations_handoff([event]) is True
+    assert report_section.section_key == "REPORT_READINESS"
+    assert report_section.source_refs[0].source_id == "report_pkg_001"
+    assert handoff_section.section_key == "OPERATIONS_HANDOFF"
+    assert handoff_section.source_refs[0].source_id == "event_execution_001"
+    assert len(source_ref.source_id) <= 160
+    assert source_ref.content_hash is not None
+    assert len(source_ref.content_hash) <= 128
+    assert "def _report_readiness_section" not in section_source
+    assert "def _operations_handoff_section" not in section_source
+    assert "def _source_ref" not in section_source
+
+
+def test_copilot_source_projection_policy_has_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+    older = PolicyEvaluationRecord(
+        evaluation_id="policy_eval_old",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_id="version_sg_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.04",
+        generated_at="2026-04-28T09:00:00+00:00",
+        created_by="advisor_123",
+        evaluation_status="READY",
+        policy_content_hash="sha256:policy-content-old",
+        source_evidence_hash="sha256:source-evidence-old",
+        evaluation_hash="sha256:policy-evaluation-old",
+        evaluation_json={"evaluation_status": "READY"},
+    )
+    latest = PolicyEvaluationRecord(
+        evaluation_id="policy_eval_latest",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_id="version_sg_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        generated_at="2026-05-28T09:00:00+00:00",
+        created_by="advisor_123",
+        evaluation_status="PENDING_REVIEW",
+        policy_content_hash="sha256:policy-content",
+        source_evidence_hash="sha256:source-evidence",
+        evaluation_hash="sha256:policy-evaluation",
+        evaluation_json={"evaluation_status": "PENDING_REVIEW"},
+        approval_dependencies=["COMPLIANCE_REVIEW"],
+        source_gaps=["MISSING_CLIENT_CONSENT"],
+    )
+
+    section = build_policy_posture_section(policy_evaluations=[older, latest])
+
+    assert section.section_key == "POLICY_POSTURE"
+    assert section.source_refs[0].source_id == "policy_eval_latest"
+    assert section.source_refs[0].content_hash == "sha256:policy-evaluation"
+    assert "PENDING_REVIEW" in section.summary_items[0]
+    assert any("COMPLIANCE_REVIEW" in item for item in section.summary_items)
+    assert "def _policy_posture_section" not in section_source
+
+
+def test_copilot_source_projection_cockpit_has_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+    proposal = ProposalRecord(
+        proposal_id="proposal_sg_structured_note_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        last_event_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        current_state="DRAFT",
+        current_version_no=1,
+        title="Structured note proposal review",
+    )
+
+    section = build_cockpit_actions_section(
+        proposal=proposal,
+        memos=[],
+        approvals=[],
+        events=[],
+        policy_evaluations=[],
+    )
+
+    assert section.section_key == "COCKPIT_ACTIONS"
+    assert section.source_refs[0].source_type == "ADVISOR_COCKPIT_ACTION"
+    assert section.source_refs[0].source_id.startswith("aci_")
+    assert section.summary_items
+    assert "owner is" in section.summary_items[0]
+    assert "def _cockpit_actions_section" not in section_source
+    assert "AdvisorCockpitSourceBatch" not in section_source
+
+
+def test_copilot_source_projection_proposal_sections_have_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/source_projection_sections.py").read_text(
+        encoding="utf-8"
+    )
+    proposal = ProposalRecord(
+        proposal_id="proposal_sg_structured_note_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        last_event_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        current_state="COMPLIANCE_REVIEW",
+        current_version_no=1,
+        title="Structured note proposal review",
+    )
+    version = ProposalVersionRecord(
+        proposal_version_id="version_sg_001",
+        proposal_id="proposal_sg_structured_note_001",
+        version_no=1,
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        request_hash="sha256:request",
+        artifact_hash="sha256:artifact",
+        simulation_hash="sha256:simulation",
+        status_at_creation="READY",
+        proposal_result_json={"status": "READY"},
+        artifact_json={"narrative": {"status": "REVIEW_REQUIRED"}},
+        evidence_bundle_json={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+    )
+    memo = ProposalMemoRecord(
+        memo_id="memo_sg_001",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_no=1,
+        proposal_version_id="version_sg_001",
+        artifact_id="artifact_sg_001",
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="FINALIZED",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=UTC),
+        source_input_hash="sha256:memo-source",
+        memo_hash="sha256:memo",
+        memo_json={"memo_id": "memo_sg_001"},
+    )
+
+    context_section = build_proposal_context_section(proposal=proposal, version=version)
+    narrative_section = build_narrative_posture_section(proposal=proposal, version=version)
+    memo_section = build_memo_evidence_section(memo=memo)
+
+    assert context_section.section_key == "PROPOSAL_CONTEXT"
+    assert context_section.source_refs[0].source_type == "PROPOSAL_VERSION"
+    assert "PB_SG_GLOBAL_BAL_001" in context_section.summary_items[0]
+    assert narrative_section.section_key == "NARRATIVE_POSTURE"
+    assert "REVIEW_REQUIRED" in narrative_section.summary_items[0]
+    assert memo_section.section_key == "MEMO_EVIDENCE"
+    assert memo_section.source_refs[0].source_id == "memo_sg_001"
+    assert "def _proposal_context_section" not in section_source
+    assert "def _narrative_posture_section" not in section_source
+    assert "def _memo_evidence_section" not in section_source
+
+
+def test_copilot_reference_models_use_reference_text_helpers() -> None:
+    reference_source = Path("src/core/advisory_copilot/reference_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        normalize_required_copilot_reference_text(
+            "  POLICY_EVALUATION  ",
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
+        == "POLICY_EVALUATION"
+    )
+    assert (
+        normalize_optional_copilot_reference_text(
+            "  sha256:source  ",
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
+        == "sha256:source"
+    )
+    assert (
+        normalize_optional_copilot_reference_text(
+            None,
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
+        is None
+    )
+    with pytest.raises(ValueError, match="COPILOT_SOURCE_REF_REQUIRED"):
+        normalize_required_copilot_reference_text(
+            "   ",
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
+    assert "def _normalize_required_text" not in reference_source
 
 
 def test_advisory_copilot_model_vocabulary_lives_in_focused_type_module() -> None:

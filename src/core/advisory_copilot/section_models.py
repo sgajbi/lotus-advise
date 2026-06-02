@@ -5,7 +5,7 @@ from typing import Any, cast
 from pydantic import BaseModel, Field, field_validator
 
 from src.core.advisory_copilot.business_text import (
-    contains_copilot_business_technical_detail,
+    normalize_required_copilot_business_text,
 )
 from src.core.advisory_copilot.reference_models import CopilotSourceRef
 from src.core.advisory_copilot.type_models import CopilotAudience, CopilotEvidenceAccessClass
@@ -50,13 +50,10 @@ class CopilotEvidencePacketSection(BaseModel):
     @field_validator("section_key", "title")
     @classmethod
     def _normalize_required_section_text(cls, value: str) -> str:
-        normalized = _normalize_required_text(
+        return normalize_required_copilot_business_text(
             value,
             error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
         )
-        if contains_copilot_business_technical_detail(normalized):
-            raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
-        return normalized
 
     @field_validator("summary_items", mode="before")
     @classmethod
@@ -102,13 +99,10 @@ class CopilotEvidenceSectionInput(BaseModel):
     @field_validator("section_key", "title")
     @classmethod
     def _normalize_required_section_text(cls, value: str) -> str:
-        normalized = _normalize_required_text(
+        return normalize_required_copilot_business_text(
             value,
             error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
         )
-        if contains_copilot_business_technical_detail(normalized):
-            raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
-        return normalized
 
     @field_validator("summary_items", mode="before")
     @classmethod
@@ -121,13 +115,6 @@ class CopilotEvidenceSectionInput(BaseModel):
         return _normalize_audience_tuple(value)
 
 
-def _normalize_required_text(value: str, *, error_code: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(error_code)
-    return normalized
-
-
 def _normalize_summary_tuple(value: Any, *, allow_empty: bool) -> tuple[str, ...]:
     if not isinstance(value, (list, tuple)):
         raise ValueError("COPILOT_EVIDENCE_SUMMARY_INVALID")
@@ -138,14 +125,12 @@ def _normalize_summary_tuple(value: Any, *, allow_empty: bool) -> tuple[str, ...
             raise ValueError("COPILOT_EVIDENCE_SUMMARY_TOO_LARGE")
         if not isinstance(item, str):
             raise ValueError("COPILOT_EVIDENCE_SUMMARY_INVALID")
-        summary = _normalize_required_text(
+        summary = normalize_required_copilot_business_text(
             item,
             error_code="COPILOT_EVIDENCE_SUMMARY_REQUIRED",
         )
         if len(summary) > _COPILOT_SUMMARY_ITEM_MAX_LENGTH:
             raise ValueError("COPILOT_EVIDENCE_SUMMARY_TOO_LARGE")
-        if contains_copilot_business_technical_detail(summary):
-            raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
         normalized.append(summary)
 
     if not normalized and not allow_empty:

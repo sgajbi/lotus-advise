@@ -21,19 +21,30 @@ from src.core.advisory_copilot.guardrails import (
     evaluate_copilot_guardrails,
     guardrail_reason_for_intent,
 )
+from src.core.advisory_copilot.idempotency_records import (
+    AdvisoryCopilotRunIdempotencyRecord,
+)
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
+from src.core.advisory_copilot.packet_persistence import (
+    load_advisory_copilot_evidence_packet,
+    save_advisory_copilot_evidence_packet,
+)
+from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
+from src.core.advisory_copilot.persistence_results import (
+    AdvisoryCopilotReviewResult,
+    AdvisoryCopilotRunPersistenceResult,
+)
 from src.core.advisory_copilot.projection import (
     COPILOT_BUSINESS_PROJECTIONS,
     business_projection_for_action,
 )
-from src.core.advisory_copilot.records import (
-    AdvisoryCopilotEvidencePacketRecord,
-    AdvisoryCopilotReviewRecord,
-    AdvisoryCopilotRunIdempotencyRecord,
-    AdvisoryCopilotRunRecord,
-)
 from src.core.advisory_copilot.reference_models import CopilotLineageRef, CopilotSourceRef
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
+from src.core.advisory_copilot.request_hashing import (
+    build_advisory_copilot_run_request_hash,
+    canonical_json_hash,
+)
+from src.core.advisory_copilot.retention_policy import retention_expires_at
 from src.core.advisory_copilot.review import (
     REVIEW_ACTION_TO_POSTURE,
     TERMINAL_REVIEW_POSTURES,
@@ -41,20 +52,19 @@ from src.core.advisory_copilot.review import (
     is_terminal_review_posture,
     review_posture_for_action,
 )
+from src.core.advisory_copilot.review_persistence import (
+    list_advisory_copilot_reviews,
+    record_advisory_copilot_review,
+)
+from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
+from src.core.advisory_copilot.run_persistence import persist_advisory_copilot_run
+from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
+from src.core.advisory_copilot.run_review_policy import (
+    can_attempt_advisory_copilot_run_refresh,
+)
 from src.core.advisory_copilot.section_models import (
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
-)
-from src.core.advisory_copilot.service import (
-    AdvisoryCopilotReviewResult,
-    AdvisoryCopilotRunPersistenceResult,
-    canonical_json_hash,
-    list_advisory_copilot_reviews,
-    load_advisory_copilot_evidence_packet,
-    persist_advisory_copilot_run,
-    record_advisory_copilot_review,
-    retention_expires_at,
-    save_advisory_copilot_evidence_packet,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotActionFamily,
@@ -112,7 +122,9 @@ __all__ = [
     "CopilotUnsupportedEvidence",
     "CopilotUnsupportedEvidenceReason",
     "business_projection_for_action",
+    "build_advisory_copilot_run_request_hash",
     "build_copilot_evidence_packet",
+    "can_attempt_advisory_copilot_run_refresh",
     "canonical_json_hash",
     "evaluate_copilot_guardrails",
     "get_copilot_action_definition",

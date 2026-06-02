@@ -11,3 +11,44 @@ ignore = []
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 97
+show_missing = true
+skip_covered = false
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "venv"]
+skips = []
+
+[tool.interrogate]
+ignore-init = true
+ignore-init-module = true
+ignore-magic = true
+ignore-semiprivate = false
+ignore-private = false
+fail-under = 0
+verbose = 1
+
+[tool.deptry]
+ignore_obsolete = [
+  "coverage",
+  "iniconfig",
+  "pip-audit",
+  "pluggy",
+  "pytest",
+  "pytest-cov",
+  "ruff",
+  "mypy",
+]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["coverage", "pytest-cov"]

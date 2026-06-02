@@ -1,5 +1,1174 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-582
+
+- Scope: Advisory copilot idempotency-record limit ownership
+- Pattern: Persisted idempotency-record schema limits should be owned by a focused module rather
+  than embedded as private constants inside the idempotency-record DTO.
+- Status: Hardened
+- Finding Class: Persistence model modularity and validation consistency
+- Summary: `idempotency_records.py` still carried local `_COPILOT_*` limits for request hashes and
+  run identifiers. This duplicated the record-limit pattern already extracted for run, packet, and
+  review records.
+- Evidence:
+  - Added `src/core/advisory_copilot/idempotency_record_limits.py` for idempotency-record schema
+    limits.
+  - Updated `idempotency_records.py` to consume named constants from the focused owner module.
+  - Updated persistence boundary tests to use named idempotency-record limits instead of magic
+    numbers.
+  - Added coverage proving idempotency-record limits have a focused owner and preventing the
+    private limit block from returning to `idempotency_records.py`.
+- Consequence:
+  - Advisory-copilot idempotency mapping validation limits are now reusable and auditable
+    independently from the persisted idempotency record DTO.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because persistence behavior,
+    API behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue record-model cleanup only where it reduces duplication and stays backed by focused
+    persistence tests.
+
+## LA-REV-581
+
+- Scope: Advisory copilot review-record limit ownership
+- Pattern: Persisted review-record schema limits should be owned by a focused module rather than
+  embedded as private constants inside the review-record DTO.
+- Status: Hardened
+- Finding Class: Persistence model modularity and validation consistency
+- Summary: `review_records.py` still carried local `_COPILOT_*` limits for actor ids, hashes,
+  identifiers, and bounded JSON fields. This duplicated run and packet record limit patterns and
+  kept durable review-record schema limits mixed with field declarations.
+- Evidence:
+  - Added `src/core/advisory_copilot/review_record_limits.py` for review-record schema limits.
+  - Updated `review_records.py` to consume named review-record constants from the focused owner
+    module.
+  - Updated persistence boundary tests to use named review-record limits instead of magic numbers.
+  - Added coverage proving review-record limits have a focused owner and preventing the private
+    limit block from returning to `review_records.py`.
+- Consequence:
+  - Review event validation limits are now reusable and auditable independently from the persisted
+    review record DTO.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because persistence behavior,
+    API behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue converging idempotency record limits and other schema constants only where tests can
+    prove the extraction is behavior-preserving.
+
+## LA-REV-580
+
+- Scope: Advisory copilot packet-record limit ownership
+- Pattern: Persisted evidence-packet record schema limits should be owned by a focused module
+  rather than embedded as private constants inside the packet-record DTO.
+- Status: Hardened
+- Finding Class: Persistence model modularity and validation consistency
+- Summary: `packet_records.py` still carried local `_COPILOT_*` limits for actor ids, hashes,
+  identifiers, and bounded JSON fields. This duplicated the run-record limit pattern and kept
+  durable packet-record schema limits mixed with field declarations.
+- Evidence:
+  - Added `src/core/advisory_copilot/packet_record_limits.py` for packet-record schema limits.
+  - Updated `packet_records.py` to consume named packet-record constants from the focused owner
+    module.
+  - Updated persistence boundary tests to use named packet-record limits instead of magic numbers.
+  - Added coverage proving packet-record limits have a focused owner and preventing the private
+    limit block from returning to `packet_records.py`.
+- Consequence:
+  - Evidence-packet record validation limits are now reusable and auditable independently from the
+    persisted packet record DTO.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because persistence behavior,
+    API behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue converging review and idempotency record limit constants into focused owner modules
+    where tests can prove the extraction is behavior-preserving.
+
+## LA-REV-579
+
+- Scope: Quality baseline and progressive governance reporting
+- Pattern: Enterprise hardening should be measured through repeatable report-only baselines before
+  new quality tools become blocking CI gates.
+- Status: Hardened
+- Finding Class: Engineering quality measurement and CI governance
+- Summary: The branch had repo-native gates and an engineering-health baseline, but the broader
+  enterprise-readiness objective required explicit quality artifacts covering code size,
+  maintainability hotspots, complexity posture, lint/type/coverage gates, dead code, dependencies,
+  security, OpenAPI, architecture boundaries, documentation gaps, and observability gaps.
+- Evidence:
+  - Added report-only quality tool configuration in `pyproject.toml`, `.importlinter`, and
+    `.spectral.yaml`.
+  - Added `scripts/quality_baseline_report.py`, `make quality-baseline`, and the report-only
+    `Quality Baseline Report` GitHub workflow.
+  - Added `quality/baseline_report.md`, `quality/refactor_health_report.md`,
+    `quality/quality_scorecard.md`, `quality/architecture_rules.md`, and
+    `quality/api_governance_rules.md`.
+  - Added current-state docs for architecture, API governance, observability, security, operations,
+    and supported features with explicit no-overclaim supportability boundaries.
+  - Added unit coverage for quality report generation and CLI output.
+- Consequence:
+  - Lotus Advise now has a measurable baseline/report-only quality layer that can progress toward
+    fail-on-new-regression gates before strict enterprise thresholds are enforced.
+- Documentation:
+  - Review ledger, repo-local docs, and quality artifacts updated. No wiki source update is
+    included in this slice because these are repository-local engineering governance artifacts;
+    wiki synchronization should still be checked before PR closure.
+- Follow-Up:
+  - Install and calibrate optional scanners such as vulture, deptry, bandit, import-linter,
+    Spectral, interrogate, radon/xenon, and optional schemathesis/load testing before enforcing
+    fail thresholds.
+
+## LA-REV-578
+
+- Scope: Advisory copilot run-record limit ownership
+- Pattern: Persisted run-record schema limits should be owned by a focused module rather than
+  embedded as private constants inside the run-record DTO.
+- Status: Hardened
+- Finding Class: Persistence model modularity and validation consistency
+- Summary: `run_records.py` still carried a local `_COPILOT_*` limit block for actor ids, app ids,
+  identifiers, hashes, JSON field sizes, output sections, review guidance, guardrail reasons, and
+  lineage version refs. That mixed durable schema definitions with field declarations and made
+  future persistence/replay modules harder to audit.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_record_limits.py` for advisory-copilot run-record schema
+    limits.
+  - Updated `run_records.py` to consume named run-record constants from the focused owner module.
+  - Updated persistence boundary tests to use named limits instead of magic numbers for run output,
+    review guidance, guardrail reason, and lineage bounds.
+  - Added coverage proving run-record limits have a focused owner and preventing the private limit
+    block from returning to `run_records.py`.
+- Consequence:
+  - Run-record validation limits are now reusable and easier to audit independently from persisted
+    record field declarations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because persistence behavior,
+    API behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue converging packet, review, idempotency, section, and reference model limit constants
+    into focused owner modules where reuse or auditability benefits are concrete.
+
+## LA-REV-577
+
+- Scope: Advisory copilot focused API model imports
+- Pattern: Production code should depend on focused request and response DTO modules rather than a
+  legacy compatibility facade once ownership has been split.
+- Status: Hardened
+- Finding Class: Dependency-flow clarity and API boundary modularity
+- Summary: After extracting request and response DTO modules, routes, application services,
+  supportability builders, persistence helpers, and tests still imported through `api_models.py`.
+  That preserved compatibility but kept production dependency flow pointed at the legacy facade
+  instead of the focused API boundary modules.
+- Evidence:
+  - Updated advisory-copilot routes and application/persistence/supportability modules to import
+    request DTOs from `api_request_models.py` and response DTOs from `api_response_models.py`.
+  - Updated advisory-copilot API and application tests to use focused DTO modules directly.
+  - Added source-level coverage proving no production `src/api` or `src/core` module imports from
+    the `api_models.py` compatibility facade.
+- Consequence:
+  - `api_models.py` is now a true compatibility facade, while production code follows explicit
+    request/response dependency boundaries.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior,
+    OpenAPI shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Keep the facade only for backward-compatible imports; remove it only if a future governed API
+    cleanup deliberately retires that import path.
+
+## LA-REV-576
+
+- Scope: Advisory copilot API request DTO ownership
+- Pattern: Request validation DTOs should have a focused owner instead of leaving `api_models.py`
+  as a mixed validation, request, response, and compatibility module.
+- Status: Hardened
+- Finding Class: API boundary modularity and validation maintainability
+- Summary: After response DTO extraction, `api_models.py` still owned all request DTO classes and
+  their validators. That kept request validation dependencies coupled to the compatibility import
+  surface and made future workflow-specific request splitting harder to audit.
+- Evidence:
+  - Added `src/core/advisory_copilot/api_request_models.py` for advisory-copilot evidence-packet,
+    proposal-version evidence, action, and review request DTOs.
+  - Converted `api_models.py` into a thin compatibility facade that re-exports request and
+    response DTOs without owning validation logic.
+  - Added unit coverage proving request DTO classes are owned by `api_request_models.py` and that
+    `api_models.py` does not regain validator logic.
+- Consequence:
+  - Advisory-copilot request validation is isolated from the legacy import facade, reducing a
+    remaining API-model hotspot while preserving existing imports for routes, services, and tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior,
+    OpenAPI shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Move production imports from the compatibility facade to focused request/response modules in a
+    later slice when the migration can be validated across API routes and services together.
+
+## LA-REV-575
+
+- Scope: Advisory copilot API response DTO ownership
+- Pattern: Request DTOs and response DTOs should not remain coupled in one oversized API model
+  module when they have different validation and persistence dependencies.
+- Status: Hardened
+- Finding Class: API boundary modularity and maintainability
+- Summary: `api_models.py` still owned both request validation DTOs and response-envelope DTOs,
+  keeping packet, run, review, pagination, supportability, and request-normalization dependencies
+  in one module. That made the advisory-copilot API model surface harder to audit and kept response
+  schema growth tied to request validation changes.
+- Evidence:
+  - Added `src/core/advisory_copilot/api_response_models.py` for advisory-copilot response
+    envelopes, supportability response, and run pagination DTOs.
+  - Kept `api_models.py` as the compatibility request-model facade with response re-exports so
+    existing route and service imports remain stable during the split.
+  - Added unit coverage proving response DTO classes are owned by `api_response_models.py` and do
+    not drift back into `api_models.py`.
+  - Focused `ruff`, `mypy`, and advisory-copilot application tests passed.
+- Consequence:
+  - Advisory-copilot response schema dependencies are now isolated from request validation models,
+    reducing the largest API-model hotspot without changing the public API contract.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior,
+    OpenAPI shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue splitting the remaining request DTOs by workflow once import compatibility is stable.
+
+## LA-REV-574
+
+- Scope: Advisory copilot API model limit ownership
+- Pattern: API request and response DTOs should consume named limit constants from a focused API
+  limits module instead of carrying local numeric aliases.
+- Status: Hardened
+- Finding Class: API boundary modularity and validation consistency
+- Summary: `api_models.py` still owned local `_COPILOT_*` numeric aliases for cursor length,
+  requested output limits, requested intent limits, supportability boundary limits, and status
+  lengths. That mixed schema declarations with reusable API boundary limits.
+- Evidence:
+  - Added `src/core/advisory_copilot/api_limits.py` for advisory-copilot API field limits.
+  - Updated `api_models.py` to consume focused API limit constants directly.
+  - Added coverage proving API limit values and preventing local `_COPILOT_*` aliases from
+    returning to `api_models.py`.
+- Consequence:
+  - Advisory-copilot API schema limits are now reusable and easier to audit independently from DTO
+    declarations.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior,
+    response shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue splitting request and response DTOs if `api_models.py` remains a top hotspot after the
+    next engineering-health comparison.
+
+## LA-REV-573
+
+- Scope: Engineering health phase comparison support
+- Pattern: Engineering-health reporting should support phase snapshots and baseline deltas so
+  refactoring progress is measurable across commits and PR batches.
+- Status: Hardened
+- Finding Class: Engineering quality measurement and CI-readiness
+- Summary: The new engineering-health baseline report captured a branch snapshot, but it did not
+  yet support comparing later refactoring phases against a saved JSON baseline.
+- Evidence:
+  - Added `--compare-to <snapshot.json>` support to `scripts/engineering_health_report.py` for
+    structural metric deltas.
+  - Added `make engineering-health-json` to emit `output/engineering-health-current.json` phase
+    snapshots without committing local run output.
+  - Extended unit coverage for JSON-backed baseline comparison and CLI rendering.
+  - Regenerated `docs/architecture/ENGINEERING-HEALTH-BASELINE.md` with comparison usage guidance.
+- Consequence:
+  - Future slices can show measurable movement in Python file count, package/module count, and
+    total Python lines against an explicit saved phase snapshot.
+- Documentation:
+  - Review ledger and architecture baseline report updated. No wiki source update is included in
+    this slice because the change is an internal engineering-health measurement mechanism.
+- Follow-Up:
+  - Add stable configured scanners and thresholds for complexity, dead-code, dependency hygiene,
+    security, OpenAPI linting, architecture boundaries, and docstring coverage.
+
+## LA-REV-572
+
+- Scope: Engineering health baseline reporting
+- Pattern: Refactoring progress should be backed by repeatable structural metrics and a
+  repo-native report command, not only local judgement.
+- Status: Hardened
+- Finding Class: Engineering quality measurement and governance evidence
+- Summary: The branch had strong repo-native gates, but no lightweight baseline artifact capturing
+  current code size, largest files, largest functions, router hotspots, and gate inventory for
+  repeated comparison across refactoring phases.
+- Evidence:
+  - Added `scripts/engineering_health_report.py` to collect deterministic structural metrics using
+    standard-library analysis.
+  - Added `make engineering-health` to regenerate
+    `docs/architecture/ENGINEERING-HEALTH-BASELINE.md`.
+  - Added unit coverage for report generation, router hotspot detection, Makefile gate inventory,
+    and Markdown rendering.
+  - Generated the current branch baseline report with Python file count, package/module count,
+    total Python lines, largest files, largest functions, router hotspots, and repo-native gates.
+- Consequence:
+  - Future refactoring phases can compare concrete engineering-health movement instead of relying
+    on subjective cleanup claims.
+- Documentation:
+  - Review ledger and architecture baseline report updated. No wiki source update is included in
+    this slice because the report is an internal engineering-health measurement artifact rather
+    than a client-facing capability or operator runbook.
+- Follow-Up:
+  - Add configured radon, vulture, deptry, bandit, pip-audit, Spectral, import-linter, and
+    interrogate phases once each tool has repo-native configuration and stable thresholds.
+
+## LA-REV-571
+
+- Scope: Advisory copilot source projection proposal evidence sections
+- Pattern: Proposal context, narrative posture, and memo evidence section builders should live in a
+  focused proposal source-projection module instead of the main section assembly file.
+- Status: Hardened
+- Finding Class: Source projection modularity and proposal evidence auditability
+- Summary: After extracting policy, cockpit, and operational sections, `source_projection_sections.py`
+  still owned proposal context, narrative posture, and memo evidence builders. Those functions were
+  source-evidence construction logic rather than section ordering.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_proposal.py` with
+    `build_proposal_context_section`, `build_narrative_posture_section`, and
+    `build_memo_evidence_section`.
+  - Updated `source_projection_sections.py` to delegate proposal, narrative, and memo evidence
+    construction to the focused proposal projection helper.
+  - Added coverage proving proposal source refs, narrative status projection, memo source refs, and
+    removal of the local proposal/narrative/memo builders from the main section assembly file.
+- Consequence:
+  - Proposal-version source projection now has focused modules for proposal, policy, cockpit, and
+    operational evidence while the main assembly file owns ordering and inclusion decisions.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because packet behavior,
+    endpoint behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Consider a lightweight import-boundary contract around source projection modules before
+    moving to non-copilot Advise backend hotspots.
+
+## LA-REV-570
+
+- Scope: Advisory copilot source projection cockpit action section
+- Pattern: Advisor cockpit read-model projection should live in a focused source-projection module
+  instead of the main proposal-version section assembly file.
+- Status: Hardened
+- Finding Class: Source projection modularity and dependency-flow clarity
+- Summary: `source_projection_sections.py` still imported the advisor cockpit source read model and
+  converted cockpit actions into copilot evidence sections inline. That coupled proposal-version
+  section assembly to the cockpit read-model dependency.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_cockpit.py` with
+    `build_cockpit_actions_section`.
+  - Updated `source_projection_sections.py` to delegate cockpit action section construction to the
+    focused cockpit projection helper.
+  - Added coverage proving the cockpit fallback source scope and preventing the local cockpit
+    builder/read-model dependency from returning to the main section assembly file.
+- Consequence:
+  - Proposal-version source projection now delegates policy, operational, and cockpit evidence
+    construction to focused modules, leaving the main file closer to orchestration.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because packet behavior,
+    endpoint behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting proposal context, narrative posture, and memo evidence into focused source
+    projection helpers if the next slice remains in advisory-copilot.
+
+## LA-REV-569
+
+- Scope: Advisory copilot source projection policy posture section
+- Pattern: Policy evaluation evidence projection should live in a focused source-projection module
+  instead of the main proposal-version section assembly file.
+- Status: Hardened
+- Finding Class: Source projection modularity and policy evidence auditability
+- Summary: `source_projection_sections.py` still owned latest policy evaluation selection, review
+  item summarization, policy source-ref construction, and policy posture section construction after
+  the operational evidence extraction.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_policy.py` with
+    `build_policy_posture_section`.
+  - Updated `source_projection_sections.py` to delegate policy posture section construction to the
+    focused policy projection helper.
+  - Added coverage proving latest policy evaluation selection, source-ref hash preservation,
+    policy summary content, and removal of the local policy posture builder.
+- Consequence:
+  - Policy source projection is independently testable and easier to review as private-banking
+    policy evidence logic rather than generic packet assembly.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because packet behavior,
+    endpoint behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting cockpit action projection when the read-model dependency can move cleanly.
+
+## LA-REV-568
+
+- Scope: Advisory copilot source projection operational evidence sections
+- Pattern: Operational handoff and report-readiness evidence builders should live in focused
+  source-projection modules instead of the main proposal-version section assembly file.
+- Status: Hardened
+- Finding Class: Source projection modularity and operational evidence auditability
+- Summary: `source_projection_sections.py` assembled proposal context, narrative, memo, policy,
+  cockpit, report-readiness, operations-handoff, and source-ref normalization in one file. The
+  operational evidence builders were coherent enough to extract without changing packet content.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_operations.py` for report-readiness and
+    operations-handoff section construction and presence checks.
+  - Added `src/core/advisory_copilot/source_projection_refs.py` for bounded source-ref projection.
+  - Updated `source_projection_sections.py` to delegate operational evidence sections and shared
+    source-ref construction to focused helpers.
+  - Added coverage proving section keys, source refs, bounded identifiers, bounded content hashes,
+    and removal of the local operational/source-ref helpers from the main section assembly file.
+- Consequence:
+  - Proposal-version source projection is easier to review by evidence class, and operational
+    handoff behavior is independently testable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because packet behavior,
+    endpoint behavior, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting policy and cockpit source-projection sections when the adjacent helpers can
+    move without broad behavior changes.
+
+## LA-REV-567
+
+- Scope: Advisory copilot proposal-version projection persistence
+- Pattern: Proposal-version evidence packet projection and persistence should live in a focused
+  helper instead of the application-service orchestration method.
+- Status: Hardened
+- Finding Class: Service boundary modularity and source-projection auditability
+- Summary: `AdvisoryCopilotApplicationService.create_proposal_version_evidence_packet` performed
+  proposal lookup, policy evaluation loading, source projection packet construction, persistence,
+  source-projection reason enrichment, and correlation fallback handling inline.
+- Evidence:
+  - Added `src/core/advisory_copilot/proposal_projection_persistence.py` with
+    `save_proposal_version_advisory_copilot_evidence_packet`.
+  - Updated the application service to retain proposal existence and portfolio-scoped policy
+    loading while delegating projection packet persistence to the focused helper.
+  - Added coverage proving persisted proposal-version reason/correlation behavior and preventing
+    source projection packet construction from returning to `application.py`.
+- Consequence:
+  - The application service is thinner, and proposal-version source projection persistence is now
+    reusable and independently testable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because endpoint behavior,
+    response shape, and operator-facing capability truth did not change.
+- Follow-Up:
+  - Consider moving proposal existence and portfolio policy-loading preflight into a typed
+    projection context when the source-projection boundary is ready for a larger slice.
+
+## LA-REV-566
+
+- Scope: Advisory copilot supportability response boundary
+- Pattern: Static supportability posture construction should live in a focused domain module
+  instead of the application-service orchestration module.
+- Status: Hardened
+- Finding Class: Service boundary modularity and API contract clarity
+- Summary: `AdvisoryCopilotApplicationService` and the advisory-copilot route depended on a
+  supportability response builder housed in `application.py`, even though supportability posture is
+  static API contract truth rather than workflow orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/supportability.py` with
+    `build_advisory_copilot_supportability_response`.
+  - Updated the application service and FastAPI route to import supportability posture from the
+    focused module.
+  - Added coverage proving the response preserves blocked client-ready posture and explicit
+    unsupported-boundary text while preventing the builder from returning to `application.py`.
+- Consequence:
+  - Advisory-copilot supportability posture is now independently reusable by service and route
+    layers without coupling static contract truth to application orchestration.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because endpoint behavior,
+    response shape, and operator-facing posture truth did not change.
+- Follow-Up:
+  - Review OpenAPI supportability examples after the service-boundary cleanup stabilizes.
+
+## LA-REV-565
+
+- Scope: Advisory copilot run idempotency replay preflight
+- Pattern: Pre-draft replay decisions should live in a focused run replay policy module rather
+  than inside the application-service orchestration method.
+- Status: Hardened
+- Finding Class: Service boundary modularity and idempotency auditability
+- Summary: `AdvisoryCopilotApplicationService.run_action` carried inline idempotency lookup,
+  request-hash conflict handling, orphan detection, and retryability branching before invoking the
+  draft generator. That made replay behavior harder to test independently from orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_replay_policy.py` with
+    `resolve_advisory_copilot_run_replay`.
+  - Updated `run_action` to delegate pre-draft replay decisions to the focused helper while
+    preserving request-hash construction and replay response semantics.
+  - Added coverage proving replay return for non-retryable matching runs, conflict rejection for
+    changed request hashes, and refresh allowance for retryable unavailable runs.
+- Consequence:
+  - Advisory-copilot idempotency replay behavior is now independently testable and the application
+    service no longer owns repository-specific replay branching.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue thinning the application service around proposal-version evidence lookup and
+    supportability response construction where useful.
+
+## LA-REV-564
+
+- Scope: Advisory copilot correlation resolution boundary
+- Pattern: Correlation-id normalization and deterministic fallback resolution should live in a
+  focused domain helper instead of the application service orchestration module.
+- Status: Hardened
+- Finding Class: Service boundary modularity and auditability
+- Summary: `AdvisoryCopilotApplicationService` carried local correlation fallback hashing while
+  also orchestrating packet creation, run persistence, and review submission. That mixed
+  audit-lineage policy with workflow coordination.
+- Evidence:
+  - Added `src/core/advisory_copilot/correlation.py` with
+    `resolve_advisory_copilot_correlation_id`.
+  - Updated the application service to delegate packet, run, and review correlation resolution to
+    the focused helper.
+  - Added coverage proving shared correlation validation, valid fallback preservation, and stable
+    hashed fallback generation when the fallback identifier is invalid.
+- Consequence:
+  - Advisory-copilot audit correlation behavior is now reusable and independently testable across
+    packet, run, and review boundaries.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting application-service idempotency and lookup policies where they can be
+    tested without controller or repository coupling.
+
+## LA-REV-563
+
+- Scope: Advisory copilot user-instruction API validation
+- Pattern: User-instruction normalization and length enforcement should live in the focused API
+  validation module with the other request-boundary helpers.
+- Status: Hardened
+- Finding Class: API boundary modularity and validation reuse
+- Summary: After extracting actor, identifier, and bounded tuple validators,
+  `AdvisoryCopilotActionRequest` still normalized user instructions inline and carried the
+  long-instruction error condition inside the DTO module.
+- Evidence:
+  - Added `normalize_copilot_user_instruction` and the user-instruction length constant to
+    `src/core/advisory_copilot/api_validation.py`.
+  - Updated `AdvisoryCopilotActionRequest` to delegate instruction normalization to the focused
+    API validation module.
+  - Extended API validation coverage to prove whitespace normalization and removal of the inline
+    long-instruction error branch from `api_models.py`.
+- Consequence:
+  - Advisory-copilot request DTOs now consistently delegate reusable request-boundary validation to
+    a focused module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Review OpenAPI examples and error descriptions for advisory-copilot endpoints after the API
+    boundary validation cleanup stabilizes.
+
+## LA-REV-562
+
+- Scope: Advisory copilot API request validation boundary
+- Pattern: API request DTOs should delegate reusable actor, identifier, and bounded tuple
+  normalization to a focused validation module.
+- Status: Hardened
+- Finding Class: API boundary modularity and validation reuse
+- Summary: `src/core/advisory_copilot/api_models.py` carried local actor-id, identifier, optional
+  identifier, and bounded string tuple helpers. That mixed request schema declarations with
+  reusable API-boundary validation policy.
+- Evidence:
+  - Added `src/core/advisory_copilot/api_validation.py` for copilot actor IDs, required/optional
+    identifiers, and bounded string tuples.
+  - Updated API request/response models to consume focused validation helpers.
+  - Added coverage proving helper behavior and removal of local helper definitions from
+    `api_models.py`.
+- Consequence:
+  - Advisory-copilot API DTOs are more declarative, and future API request models can reuse the
+    same normalization and bounds policy.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API shape and external
+    capability truth did not change.
+- Follow-Up:
+  - Continue reviewing API DTO modules for repeated validation helpers and OpenAPI example gaps.
+
+## LA-REV-561
+
+- Scope: Advisory copilot reference text normalization
+- Pattern: Source and lineage reference identifiers should use a focused reference-text normalizer
+  instead of local helper functions or business-copy validation.
+- Status: Hardened
+- Finding Class: Duplication reduction and domain modeling
+- Summary: `src/core/advisory_copilot/reference_models.py` carried the last local required-text
+  helper in the advisory-copilot model layer. Reference fields are identifiers and lineage values,
+  so forcing them through business-copy safety rules would over-constrain legitimate audit refs.
+- Evidence:
+  - Added `src/core/advisory_copilot/reference_text.py` with required and optional reference text
+    normalizers.
+  - Updated source and lineage reference models to use the focused helper.
+  - Added coverage proving required/optional normalization and removal of the reference-model local
+    helper.
+- Consequence:
+  - Advisory-copilot model text normalization now distinguishes business copy from audit/reference
+    identifiers while still removing duplicate helper logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue scanning adjacent advisory modules for repeated DTO validators and mapper helpers.
+
+## LA-REV-560
+
+- Scope: Advisory copilot source-projection text helper boundary
+- Pattern: Generic bounded reference, summary, hash, and nested-string helpers should be separated
+  from source-section construction.
+- Status: Hardened
+- Finding Class: Service decomposition and duplication reduction
+- Summary: `src/core/advisory_copilot/source_projection_sections.py` mixed proposal-version source
+  section construction with reusable text, identifier, bounded-reference, content-hash, nested
+  lookup, and latest-reference helpers. That kept the section builder broader than its business
+  responsibility.
+- Evidence:
+  - Added `src/core/advisory_copilot/source_projection_text.py` for projection identifiers,
+    bounded references, bounded summary text, bounded content hashes, nested string extraction, and
+    latest-reference selection.
+  - Updated source-projection section builders to consume the focused helpers.
+  - Added coverage proving helper behavior and removal of source-section-local helper definitions.
+- Consequence:
+  - Proposal-version source-section construction is now more focused on private-banking evidence
+    section assembly, while reusable projection text behavior has a separate owner.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue decomposing source projection sections by evidence-section family if further changes
+    are needed.
+
+## LA-REV-559
+
+- Scope: Advisory copilot unsupported-evidence advisor-message normalization
+- Pattern: Advisor-facing unsupported-evidence copy should reuse the shared business-text
+  normalizer while preserving its domain-specific error codes.
+- Status: Hardened
+- Finding Class: Duplication reduction and sensitive-data handling
+- Summary: `src/core/advisory_copilot/unsupported_models.py` still carried local required-text
+  normalization and a direct technical-detail check for advisor-facing unsupported-evidence
+  messages.
+- Evidence:
+  - Extended `assert_copilot_business_safe_text` and
+    `normalize_required_copilot_business_text` to accept a domain-specific technical-leak error
+    code.
+  - Updated unsupported-evidence advisor messages to use the shared normalizer while preserving
+    `COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL`.
+  - Added coverage proving whitespace normalization, blank rejection, technical-leak rejection,
+    and removal of the unsupported-model local helper.
+- Consequence:
+  - Unsupported-evidence messages now share the same normalization/sensitive-data boundary as other
+    advisory-copilot business copy without losing domain-specific validation errors.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API shape did not
+    change and validation behavior is preserved.
+- Follow-Up:
+  - Decide whether reference identifiers should adopt business-safe text normalization or retain
+    technical lineage semantics with a separate shared identifier helper.
+
+## LA-REV-558
+
+- Scope: Advisory copilot catalog projection business-text normalization
+- Pattern: Business-facing catalog projection copy should use the shared business-text normalizer
+  rather than local required-text helpers plus separate safety checks.
+- Status: Hardened
+- Finding Class: Duplication reduction and private-banking vocabulary safety
+- Summary: `src/core/advisory_copilot/catalog_models.py` still carried local blank/whitespace
+  normalization for business projection labels, summaries, and next-action labels before invoking
+  the business-safe text guard. That duplicated the centralized business-copy normalizer.
+- Evidence:
+  - Updated `CopilotBusinessProjection` validators to use
+    `normalize_required_copilot_business_text`.
+  - Removed the catalog-local required-text helper.
+  - Added coverage proving whitespace normalization, blank rejection, technical leakage rejection,
+    and removal of the duplicate helper.
+- Consequence:
+  - Business-facing copilot catalog copy now shares the same private-banking vocabulary safety
+    boundary as evidence section and packet text.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API shape did not
+    change; validation semantics remain aligned with existing technical-leak rejection.
+- Follow-Up:
+  - Continue consolidating reference and unsupported-evidence text normalization where semantics
+    match.
+
+## LA-REV-557
+
+- Scope: Advisory copilot packet business-text normalization
+- Pattern: Packet identifier normalization should reuse the shared business-text normalizer where
+  packet identifiers are persisted into audit and evidence payloads.
+- Status: Hardened
+- Finding Class: Duplication reduction and sensitive-data handling
+- Summary: `src/core/advisory_copilot/packet_models.py` still carried a local required-text
+  normalizer for evidence-packet ids, hashes, portfolio ids, and optional proposal ids. That
+  duplicated whitespace/blank handling and did not share the same technical-leak guard as evidence
+  section business copy.
+- Evidence:
+  - Updated packet model required and optional text validators to use
+    `normalize_required_copilot_business_text`.
+  - Removed the packet-local required-text helper.
+  - Added coverage proving packet identifiers normalize whitespace, reject technical leakage, and
+    no longer define the duplicate helper.
+- Consequence:
+  - Packet identifiers persisted in copilot evidence records now share the same business-safe text
+    boundary as section evidence text.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because public API shape did
+    not change; validation is stricter for sensitive technical leakage.
+- Follow-Up:
+  - Migrate catalog and reference model required-text normalization where business-safety semantics
+    match.
+
+## LA-REV-556
+
+- Scope: Advisory copilot evidence section business-text normalization
+- Pattern: Required business-copy normalization and technical-leak rejection should be centralized
+  in the business-text boundary instead of repeated inside each DTO module.
+- Status: Hardened
+- Finding Class: Duplication reduction and sensitive-data handling
+- Summary: `src/core/advisory_copilot/section_models.py` carried its own required-text normalizer
+  and direct technical-detail checks for section keys, titles, and summary items. That duplicated
+  business-copy policy already owned by `business_text.py`.
+- Evidence:
+  - Added `normalize_required_copilot_business_text` to
+    `src/core/advisory_copilot/business_text.py`.
+  - Updated evidence section models to use the focused business-text normalizer for required
+    section text and summary items.
+  - Added coverage proving blank values, technical leakage, whitespace normalization, and removal
+    of the section-local required-text helper.
+- Consequence:
+  - Evidence section DTOs now delegate business-safe copy policy to a reusable domain helper,
+    reducing duplicate validation logic and tightening sensitive-data handling ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Migrate packet, catalog, and reference model required-text normalization to the same helper
+    where business-safety semantics match.
+
+## LA-REV-555
+
+- Scope: Advisory copilot service facade regression guard
+- Pattern: Once the broad service module becomes a compatibility facade, production code should use
+  focused workflow modules directly and tests should guard against reintroducing implementation
+  logic.
+- Status: Hardened
+- Finding Class: Dependency boundary regression prevention
+- Summary: After extracting advisory-copilot packet, run, and review persistence workflows, the
+  broad service module became a compatibility surface. Without an explicit guard, future changes
+  could silently add workflow logic back to the facade or route production dependencies through it.
+- Evidence:
+  - Added AST coverage proving `src/core/advisory_copilot/service.py` defines no classes or
+    functions.
+  - Added source-scan coverage proving production code no longer imports
+    `src.core.advisory_copilot.service`.
+  - Kept explicit service compatibility import coverage for callers that still rely on the old
+    module path.
+- Consequence:
+  - Advisory-copilot workflow ownership is now protected at the module-boundary level, not only by
+    convention.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Apply the same pattern to adjacent oversized advisory workflow modules where compatibility
+    facades would reduce coupling.
+
+## LA-REV-554
+
+- Scope: Advisory copilot run persistence workflow boundary
+- Pattern: Run persistence orchestration should have a focused workflow owner, leaving the broad
+  service module as a compatibility facade.
+- Status: Hardened
+- Finding Class: Service decomposition and run auditability
+- Summary: After extracting evidence-packet persistence, review persistence, result DTOs, lineage
+  policy, hashing, retention policy, structured-payload safety, and review retryability policy,
+  `src/core/advisory_copilot/service.py` still owned the run persistence workflow. That prevented
+  the broad service module from becoming a stable compatibility surface.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_persistence.py` for advisory-copilot run persistence,
+    idempotency replay, retryable refresh, retention stamping, workflow-pack lineage, and output
+    hash storage.
+  - Converted `src/core/advisory_copilot/service.py` into a compatibility facade that re-exports
+    the focused packet, run, review, and result workflow surfaces.
+  - Updated the application service and package export to import run persistence from the focused
+    workflow module.
+  - Added coverage proving `service.py` no longer defines the run persistence function and public
+    imports resolve to the focused implementation.
+- Consequence:
+  - Advisory-copilot persistence workflows now have focused owners, and the broad service module no
+    longer carries workflow implementation logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Add a pure-facade AST guard for the advisory-copilot service module and continue similar
+    decomposition on adjacent oversized advisory workflow modules.
+
+## LA-REV-553
+
+- Scope: Advisory copilot review persistence workflow boundary
+- Pattern: Human-review append/list workflows should have a focused persistence owner instead of
+  living inside run persistence orchestration.
+- Status: Hardened
+- Finding Class: Service decomposition and review auditability
+- Summary: `src/core/advisory_copilot/service.py` still owned review idempotency replay, terminal
+  posture checks, review event construction, run posture updates, and review listing. That kept
+  human-review mutation logic coupled to copilot run persistence.
+- Evidence:
+  - Added `src/core/advisory_copilot/review_persistence.py` for review append and review listing
+    workflows.
+  - Updated the application service and package export to import review workflows from the focused
+    module while preserving service compatibility imports.
+  - Added coverage proving `service.py` no longer defines review persistence functions and public
+    imports resolve to the focused implementations.
+- Consequence:
+  - Human-review audit behavior now has a focused workflow owner, leaving the service module closer
+    to a run-persistence compatibility boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract run persistence construction into a focused workflow module.
+
+## LA-REV-552
+
+- Scope: Advisory copilot persistence result DTO boundary
+- Pattern: Workflow result DTOs should have a focused model owner instead of being defined inside
+  the persistence service implementation module.
+- Status: Hardened
+- Finding Class: DTO ownership and service decomposition
+- Summary: `src/core/advisory_copilot/service.py` still defined the run persistence and review
+  result DTOs even after persistence records, packet workflows, lineage policy, hashing, and
+  retention policy were split into focused modules. That kept response/result model ownership
+  coupled to workflow orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/persistence_results.py` for advisory-copilot run persistence
+    and review result DTOs.
+  - Updated package exports and service compatibility imports to resolve result models from the
+    focused module.
+  - Added coverage proving `service.py` no longer defines the result classes and the public
+    package result exports resolve to the focused DTO owner.
+- Consequence:
+  - Advisory-copilot workflow result contracts now have a reusable model boundary separate from
+    run/review mutation logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract run persistence construction or review append workflows into focused modules.
+
+## LA-REV-551
+
+- Scope: Advisory copilot evidence-packet persistence workflow boundary
+- Pattern: Evidence-packet save/load persistence should have a focused workflow owner instead of
+  living inside the broader advisory-copilot service module.
+- Status: Hardened
+- Finding Class: Service decomposition and evidence auditability
+- Summary: `src/core/advisory_copilot/service.py` still owned evidence-packet persistence and
+  hydration alongside run persistence and review mutation workflows. That kept evidence-packet
+  audit handling coupled to unrelated run/review orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/packet_persistence.py` for evidence-packet save/load
+    workflows.
+  - Updated the application service and package export to import evidence-packet persistence from
+    the focused module while retaining service compatibility imports.
+  - Added coverage proving `service.py` no longer defines the evidence-packet save/load helpers
+    and compatibility imports resolve to the focused implementations.
+- Consequence:
+  - Evidence-packet persistence is now isolated from run persistence and human-review mutation
+    workflows, making the advisory-copilot service boundary easier to review and reuse.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract run persistence construction or review append workflows into focused modules.
+
+## LA-REV-550
+
+- Scope: Advisory copilot run lineage defaults and record identity boundary
+- Pattern: Stable copilot record identifiers and Lotus AI lineage default constants should have a
+  focused owner outside persistence orchestration.
+- Status: Hardened
+- Finding Class: Lineage and identifier policy modularity
+- Summary: `src/core/advisory_copilot/service.py` still owned stable record-id generation plus
+  default caller, tenant, prompt-template, output-schema, and evaluation-pack lineage constants.
+  That mixed identifier and lineage fallback policy into workflow persistence code.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_lineage.py` for stable record IDs, optional lineage text
+    normalization, and advisory-copilot default lineage constants.
+  - Updated the persistence service to consume those focused helpers and constants.
+  - Added coverage proving service no longer defines the private ID/text helpers or caller-app
+    constant while validating the focused defaults and stable ID prefix behavior.
+- Consequence:
+  - Advisory-copilot lineage defaults and deterministic record identity can now be reviewed and
+    reused independently from persistence orchestration.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue decomposing advisory-copilot persistence orchestration around run construction and
+    review append workflows.
+
+## LA-REV-549
+
+- Scope: Advisory copilot run review and retryability policy boundary
+- Pattern: Draft-status review posture mapping and retryability rules should have a focused policy
+  owner outside persistence orchestration.
+- Status: Hardened
+- Finding Class: Domain policy modularity and replay behavior auditability
+- Summary: `src/core/advisory_copilot/service.py` still owned draft-status-to-review-posture
+  mapping and retryability checks for unavailable or guardrail-rejected copilot runs. Those rules
+  are used by both application replay decisions and persistence refresh decisions.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_review_policy.py` for draft review posture mapping and
+    retryable run refresh checks.
+  - Updated the application service, persistence service, and package exports to import the policy
+    from the focused module.
+  - Added coverage proving the service no longer defines the retryability/public posture helper
+    and validating fallback posture behavior plus unavailable-run refresh eligibility.
+- Consequence:
+  - Advisory-copilot replay and review-posture policy can now evolve independently from storage
+    workflow code.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue decomposing advisory-copilot persistence orchestration around packet save, run save,
+    and review append workflows.
+
+## LA-REV-548
+
+- Scope: Advisory copilot retention expiry policy boundary
+- Pattern: Advisory-copilot retention windows should have a focused policy owner instead of living
+  in the workflow persistence service.
+- Status: Hardened
+- Finding Class: Domain policy modularity and auditability
+- Summary: `src/core/advisory_copilot/service.py` still owned retention-expiry calculation for
+  standard advisory records and supportability diagnostics. That buried an audit-relevant data
+  retention rule inside persistence orchestration.
+- Evidence:
+  - Added `src/core/advisory_copilot/retention_policy.py` for advisory-copilot retention expiry
+    calculation.
+  - Updated the service and package export to use the focused retention policy module.
+  - Added coverage proving service no longer defines the retention helper and validating both the
+    90-day diagnostic and seven-year standard advisory retention windows.
+- Consequence:
+  - Advisory-copilot retention policy is now isolated for audit review and future retention-class
+    expansion.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract retryability/review-posture policy helpers from the advisory-copilot service.
+
+## LA-REV-547
+
+- Scope: Advisory copilot run request hashing boundary
+- Pattern: Canonical request hashing and run-request summary assembly should be owned by a focused
+  idempotency-support module instead of the workflow persistence service.
+- Status: Hardened
+- Finding Class: Idempotency and lineage modularity
+- Summary: `src/core/advisory_copilot/service.py` still owned canonical JSON hashing and copilot
+  run request-summary construction even though those functions are reused by application-level
+  idempotency replay checks before a run is persisted.
+- Evidence:
+  - Added `src/core/advisory_copilot/request_hashing.py` for canonical JSON hashes, user
+    instruction hashing, run request summaries, and advisory-copilot run request hashes.
+  - Updated the application service and package exports to import request hashing from the focused
+    module.
+  - Added coverage proving service no longer defines the public request-hashing helpers and the
+    focused hash function remains order-stable.
+- Consequence:
+  - Advisory-copilot idempotency and lineage hash behavior now has a reusable owner outside the
+    persistence workflow service.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue extracting retention and retryability policy helpers from the advisory-copilot
+    service.
+
+## LA-REV-546
+
+- Scope: Advisory copilot structured payload safety boundary
+- Pattern: Sensitive-payload rejection rules should have a focused domain owner instead of living
+  inside the workflow persistence service.
+- Status: Hardened
+- Finding Class: Sensitive-data handling modularity and regression prevention
+- Summary: `src/core/advisory_copilot/service.py` owned public persistence workflows and the
+  recursive structured-payload safety rules that reject raw AI payloads, provider traces, oversized
+  payloads, and technical leakage. That made sensitive-data policy harder to reuse and review.
+- Evidence:
+  - Added `src/core/advisory_copilot/structured_payload.py` for raw AI key rejection, payload size
+    limits, and technical-detail checks.
+  - Updated the advisory-copilot service to call the focused payload-safety helper.
+  - Added coverage proving the service no longer owns raw AI key constants or private payload
+    safety helpers, while the focused helper still rejects raw-prompt payload keys.
+- Consequence:
+  - Advisory-copilot sensitive-data retention policy now has a focused module that can be reused
+    by future run, review, or API boundary hardening without expanding the service module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract request-hash and run-request-summary assembly from the advisory-copilot service.
+
+## LA-REV-545
+
+- Scope: Advisory copilot records facade production import boundary
+- Pattern: Production code should import focused advisory-copilot persistence records from their
+  owner modules instead of the broad compatibility facade.
+- Status: Hardened
+- Finding Class: Modularity and dependency boundary regression prevention
+- Summary: After `src/core/advisory_copilot/records.py` became a pure compatibility facade,
+  production service, API, repository, and infrastructure code still imported from that facade.
+  That preserved runtime behavior but left the old broad module on the active dependency path.
+- Evidence:
+  - Moved production imports to the focused run, evidence-packet, idempotency, and review record
+    modules.
+  - Added source-scan coverage proving production code no longer imports
+    `src.core.advisory_copilot.records`.
+  - Kept compatibility import-contract coverage for callers that still rely on the old public
+    module path.
+- Consequence:
+  - The compatibility facade remains available for stable imports, while active application code
+    now depends on the focused persistence-record owners.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Continue splitting advisory-copilot service logic around evidence-packet assembly, run
+    persistence, and review workflows.
+
+## LA-REV-544
+
+- Scope: Advisory copilot review record facade closure
+- Pattern: The broad advisory-copilot record module should become a compatibility facade once
+  focused persistence record modules own each audit boundary
+- Status: Hardened
+- Finding Class: Modularity and dependency boundary regression prevention
+- Summary: After extracting run, evidence-packet, and idempotency records, the human-review event
+  record was the last real DTO still defined in `src/core/advisory_copilot/records.py`. That kept
+  the broad record module as an implementation owner instead of a compatibility surface.
+- Evidence:
+  - Added `src/core/advisory_copilot/review_records.py` for review event records and review schema
+    version.
+  - Converted `src/core/advisory_copilot/records.py` into a compatibility facade with no class or
+    function definitions.
+  - Moved package-level review record exports to the focused review record module.
+  - Added import-contract and AST coverage proving compatibility imports resolve to the focused
+    review record class and the broad records module is a pure facade.
+- Consequence:
+  - Advisory-copilot persistence model ownership is now split across focused run, packet,
+    idempotency, review, and shared record-text modules instead of one broad record module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Add production-import guard coverage preventing new imports from the advisory-copilot records
+    compatibility facade.
+
+## LA-REV-543
+
+- Scope: Advisory copilot run idempotency persistence record
+- Pattern: Idempotency mapping records should have focused model ownership outside the broad
+  advisory-copilot record module
+- Status: Hardened
+- Finding Class: Modularity and replay-safety boundary ownership
+- Summary: `AdvisoryCopilotRunIdempotencyRecord` stores request-hash-to-run replay identity for
+  advisory-copilot action execution. Keeping it in the broad `records.py` module mixed replay
+  identity ownership with evidence-packet and human-review event records.
+- Evidence:
+  - Added `src/core/advisory_copilot/idempotency_records.py` for run idempotency records.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/records.py` and package
+    exports.
+  - Added import-contract and AST coverage proving compatibility imports resolve to the focused
+    idempotency record class and `records.py` no longer defines
+    `AdvisoryCopilotRunIdempotencyRecord`.
+- Consequence:
+  - Advisory-copilot replay identity now has a focused persistence model boundary, leaving the
+    broad record module with review event ownership only.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract advisory-copilot review event records and convert `records.py` to a pure compatibility
+    facade.
+
+## LA-REV-542
+
+- Scope: Advisory copilot evidence-packet persistence record
+- Pattern: Evidence-packet persistence records should have focused model ownership outside the broad
+  advisory-copilot record module
+- Status: Hardened
+- Finding Class: Modularity and evidence audit boundary ownership
+- Summary: `AdvisoryCopilotEvidencePacketRecord` stores source-scoped evidence packet identity,
+  hash, packet JSON, creation reason, actor, and correlation evidence. Keeping it inside the broad
+  `records.py` module mixed evidence-packet audit ownership with run, idempotency, and review event
+  records.
+- Evidence:
+  - Added `src/core/advisory_copilot/packet_records.py` for evidence-packet persistence records.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/records.py` and the package
+    surface.
+  - Moved package-level exports to the focused packet record module.
+  - Added import-contract and AST coverage proving compatibility imports resolve to the focused
+    packet record class and `records.py` no longer defines `AdvisoryCopilotEvidencePacketRecord`.
+- Consequence:
+  - Advisory-copilot evidence-packet audit records now have a focused owner, leaving the broad
+    record module with idempotency and review event ownership only.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract advisory-copilot run idempotency and review record DTOs, then convert `records.py` to a
+    pure compatibility facade.
+
+## LA-REV-541
+
+- Scope: Advisory copilot run persistence record
+- Pattern: Long-running advisory-copilot run records should have focused model ownership outside
+  the broad persistence record module
+- Status: Hardened
+- Finding Class: Modularity and audit record boundary ownership
+- Summary: `AdvisoryCopilotRunRecord` is the largest advisory-copilot persistence record and carries
+  workflow-pack lineage, request/output hashes, retention posture, correlation id, and guarded
+  review guidance. Keeping it in `src/core/advisory_copilot/records.py` mixed run audit ownership
+  with evidence-packet, idempotency, and review record models.
+- Evidence:
+  - Added `src/core/advisory_copilot/run_records.py` for the run record DTO and schema version.
+  - Preserved compatibility re-exports from `src/core/advisory_copilot/records.py` and the package
+    surface.
+  - Moved run-cursor pagination and package exports to the focused run record module.
+  - Added import-contract and AST coverage proving compatibility imports resolve to the focused run
+    record class and the broad records module no longer defines `AdvisoryCopilotRunRecord`.
+- Consequence:
+  - Advisory-copilot run audit records now have a focused owner, reducing the remaining persistence
+    record module to packet, idempotency, and review event ownership.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because API behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract advisory-copilot evidence-packet, idempotency, and review record DTOs into focused
+    modules, then convert `records.py` to a compatibility facade.
+
+## LA-REV-540
+
+- Scope: Advisory copilot persistence record text validation
+- Pattern: Shared persistence-record text normalization should live in a focused helper module
+  rather than remaining embedded in the broad record DTO module
+- Status: Hardened
+- Finding Class: Modularity and persistence validation reuse
+- Summary: `src/core/advisory_copilot/records.py` still owned all string normalization and bounded
+  review-guidance/guardrail-list validation helpers inline. That kept every future record DTO split
+  coupled to private helper functions in the broad record module and encouraged duplicated
+  validation logic when extracting run, packet, idempotency, and review record models.
+- Evidence:
+  - Added `src/core/advisory_copilot/record_text.py` for required, optional, and bounded-list record
+    text normalization.
+  - Updated advisory-copilot persistence record validators to use the focused helpers.
+  - Added focused unit coverage for whitespace normalization, optional text handling, bounded list
+    normalization, and invalid empty/oversized input rejection.
+- Consequence:
+  - Advisory-copilot persistence validation now has a reusable boundary that can support subsequent
+    record model extraction without duplicating helper logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because runtime behavior and
+    operator-facing capability truth did not change.
+- Follow-Up:
+  - Extract advisory-copilot run, evidence-packet, idempotency, and review record models into
+    focused modules while preserving package and compatibility import contracts.
+
 ## LA-REV-539
 
 - Scope: Advisory copilot compatibility facade production import boundary

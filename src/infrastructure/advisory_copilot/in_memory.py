@@ -3,18 +3,16 @@ from __future__ import annotations
 from copy import deepcopy
 from threading import Lock
 
+from src.core.advisory_copilot.idempotency_records import AdvisoryCopilotRunIdempotencyRecord
+from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
 from src.core.advisory_copilot.pagination import (
     decode_copilot_run_cursor,
     encode_copilot_run_cursor,
     run_is_after_cursor,
 )
-from src.core.advisory_copilot.records import (
-    AdvisoryCopilotEvidencePacketRecord,
-    AdvisoryCopilotReviewRecord,
-    AdvisoryCopilotRunIdempotencyRecord,
-    AdvisoryCopilotRunRecord,
-)
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
+from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
+from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 
 
 class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):

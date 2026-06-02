@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from src.core.advisory_copilot.records import (
-    AdvisoryCopilotEvidencePacketRecord,
-    AdvisoryCopilotReviewRecord,
-    AdvisoryCopilotRunIdempotencyRecord,
-    AdvisoryCopilotRunRecord,
-)
+from src.core.advisory_copilot.idempotency_records import AdvisoryCopilotRunIdempotencyRecord
+from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
+from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
+from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
 
 
 class AdvisoryCopilotRepository(Protocol):

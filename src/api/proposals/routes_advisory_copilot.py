@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from fastapi import Depends, status
 
 from src.api.proposals import router as shared
@@ -22,12 +24,14 @@ from src.api.proposals.copilot_parameters import (
     AdvisoryCopilotRunIdPath,
     AdvisoryCopilotRunLimitQuery,
 )
-from src.core.advisory_copilot.api_models import (
+from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
-    AdvisoryCopilotEvidencePacketResponse,
     AdvisoryCopilotProposalVersionEvidenceRequest,
     AdvisoryCopilotReviewRequest,
+)
+from src.core.advisory_copilot.api_response_models import (
+    AdvisoryCopilotEvidencePacketResponse,
     AdvisoryCopilotReviewResponse,
     AdvisoryCopilotRunPage,
     AdvisoryCopilotRunResponse,
@@ -35,6 +39,8 @@ from src.core.advisory_copilot.api_models import (
 )
 from src.core.advisory_copilot.application import (
     AdvisoryCopilotApplicationService,
+)
+from src.core.advisory_copilot.supportability import (
     build_advisory_copilot_supportability_response,
 )
 from src.core.proposals.repository import ProposalRepository
@@ -58,11 +64,14 @@ def create_advisory_copilot_evidence_packet(
     correlation_id: AdvisoryCopilotCorrelationIdHeader = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
-    return run_copilot_operation(
-        lambda: service.create_evidence_packet(
-            payload=payload,
-            correlation_id=correlation_id,
-        )
+    return cast(
+        AdvisoryCopilotEvidencePacketResponse,
+        run_copilot_operation(
+            lambda: service.create_evidence_packet(
+                payload=payload,
+                correlation_id=correlation_id,
+            )
+        ),
     )
 
 
@@ -87,12 +96,15 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
     proposal_repository: ProposalRepository = Depends(get_advisory_proposal_repository),
 ) -> AdvisoryCopilotEvidencePacketResponse:
-    return run_copilot_operation(
-        lambda: service.create_proposal_version_evidence_packet(
-            payload=payload,
-            proposal_repository=proposal_repository,
-            correlation_id=correlation_id,
-        )
+    return cast(
+        AdvisoryCopilotEvidencePacketResponse,
+        run_copilot_operation(
+            lambda: service.create_proposal_version_evidence_packet(
+                payload=payload,
+                proposal_repository=proposal_repository,
+                correlation_id=correlation_id,
+            )
+        ),
     )
 
 
@@ -109,8 +121,11 @@ def get_advisory_copilot_evidence_packet(
     evidence_packet_id: AdvisoryCopilotEvidencePacketIdPath,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
-    return run_copilot_operation(
-        lambda: service.get_evidence_packet(evidence_packet_id=evidence_packet_id)
+    return cast(
+        AdvisoryCopilotEvidencePacketResponse,
+        run_copilot_operation(
+            lambda: service.get_evidence_packet(evidence_packet_id=evidence_packet_id)
+        ),
     )
 
 
@@ -133,12 +148,15 @@ def run_advisory_copilot_action(
     correlation_id: AdvisoryCopilotCorrelationIdHeader = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
-    return run_copilot_operation(
-        lambda: service.run_action(
-            payload=payload,
-            correlation_id=correlation_id,
-            idempotency_key=idempotency_key,
-        )
+    return cast(
+        AdvisoryCopilotRunResponse,
+        run_copilot_operation(
+            lambda: service.run_action(
+                payload=payload,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+            )
+        ),
     )
 
 
@@ -155,7 +173,10 @@ def get_advisory_copilot_run(
     run_id: AdvisoryCopilotRunIdPath,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
-    return run_copilot_operation(lambda: service.get_run(run_id=run_id))
+    return cast(
+        AdvisoryCopilotRunResponse,
+        run_copilot_operation(lambda: service.get_run(run_id=run_id)),
+    )
 
 
 @shared.router.post(
@@ -178,13 +199,16 @@ def review_advisory_copilot_run(
     correlation_id: AdvisoryCopilotCorrelationIdHeader = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotReviewResponse:
-    return run_copilot_operation(
-        lambda: service.review_run(
-            run_id=run_id,
-            payload=payload,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-        )
+    return cast(
+        AdvisoryCopilotReviewResponse,
+        run_copilot_operation(
+            lambda: service.review_run(
+                run_id=run_id,
+                payload=payload,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            )
+        ),
     )
 
 
@@ -223,11 +247,14 @@ def list_proposal_version_copilot_runs(
     cursor: AdvisoryCopilotRunCursorQuery = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunPage:
-    return run_copilot_operation(
-        lambda: service.list_proposal_version_runs(
-            proposal_id=proposal_id,
-            version_id=version_id,
-            limit=limit,
-            cursor=cursor,
-        )
+    return cast(
+        AdvisoryCopilotRunPage,
+        run_copilot_operation(
+            lambda: service.list_proposal_version_runs(
+                proposal_id=proposal_id,
+                version_id=version_id,
+                limit=limit,
+                cursor=cursor,
+            )
+        ),
     )

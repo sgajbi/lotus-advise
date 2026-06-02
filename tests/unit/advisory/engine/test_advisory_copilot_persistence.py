@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ast
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -10,7 +12,9 @@ from pydantic import ValidationError
 from src.core.advisory_copilot import (
     AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
+    AdvisoryCopilotReviewResult,
     AdvisoryCopilotRunIdempotencyRecord,
+    AdvisoryCopilotRunPersistenceResult,
     AdvisoryCopilotRunRecord,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
@@ -22,6 +26,99 @@ from src.core.advisory_copilot import (
     record_advisory_copilot_review,
     save_advisory_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.idempotency_record_limits import (
+    COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH,
+)
+from src.core.advisory_copilot.idempotency_records import (
+    AdvisoryCopilotRunIdempotencyRecord as FocusedAdvisoryCopilotRunIdempotencyRecord,
+)
+from src.core.advisory_copilot.packet_persistence import (
+    load_advisory_copilot_evidence_packet as focused_load_advisory_copilot_evidence_packet,
+)
+from src.core.advisory_copilot.packet_persistence import (
+    save_advisory_copilot_evidence_packet as focused_save_advisory_copilot_evidence_packet,
+)
+from src.core.advisory_copilot.packet_record_limits import (
+    COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH,
+    COPILOT_PACKET_RECORD_JSON_FIELD_MAX_ITEMS,
+)
+from src.core.advisory_copilot.packet_records import (
+    AdvisoryCopilotEvidencePacketRecord as FocusedAdvisoryCopilotEvidencePacketRecord,
+)
+from src.core.advisory_copilot.persistence_results import (
+    AdvisoryCopilotReviewResult as FocusedAdvisoryCopilotReviewResultModel,
+)
+from src.core.advisory_copilot.persistence_results import (
+    AdvisoryCopilotRunPersistenceResult as FocusedAdvisoryCopilotRunPersistenceResult,
+)
+from src.core.advisory_copilot.record_text import (
+    normalize_bounded_record_text_list,
+    normalize_optional_record_text,
+    normalize_required_record_text,
+)
+from src.core.advisory_copilot.records import (
+    AdvisoryCopilotEvidencePacketRecord as CompatibilityAdvisoryCopilotEvidencePacketRecord,
+)
+from src.core.advisory_copilot.records import (
+    AdvisoryCopilotReviewRecord as CompatibilityAdvisoryCopilotReviewRecord,
+)
+from src.core.advisory_copilot.records import (
+    AdvisoryCopilotRunIdempotencyRecord as CompatibilityAdvisoryCopilotRunIdempotencyRecord,
+)
+from src.core.advisory_copilot.records import (
+    AdvisoryCopilotRunRecord as CompatibilityAdvisoryCopilotRunRecord,
+)
+from src.core.advisory_copilot.request_hashing import (
+    build_advisory_copilot_run_request_hash,
+    canonical_json_hash,
+)
+from src.core.advisory_copilot.retention_policy import retention_expires_at
+from src.core.advisory_copilot.review_persistence import (
+    list_advisory_copilot_reviews as focused_list_advisory_copilot_reviews,
+)
+from src.core.advisory_copilot.review_persistence import (
+    record_advisory_copilot_review as focused_record_advisory_copilot_review,
+)
+from src.core.advisory_copilot.review_record_limits import (
+    COPILOT_REVIEW_RECORD_ACTOR_ID_MAX_LENGTH,
+    COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH,
+    COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS,
+)
+from src.core.advisory_copilot.review_records import (
+    AdvisoryCopilotReviewRecord as FocusedAdvisoryCopilotReviewRecord,
+)
+from src.core.advisory_copilot.run_lineage import (
+    DEFAULT_CALLER_APP,
+    DEFAULT_EVALUATION_PACK_REF,
+    DEFAULT_OUTPUT_SCHEMA_VERSION,
+    DEFAULT_PROMPT_TEMPLATE_VERSION,
+    DEFAULT_TENANT_ID,
+    optional_lineage_text,
+    stable_copilot_record_id,
+)
+from src.core.advisory_copilot.run_persistence import (
+    persist_advisory_copilot_run as focused_persist_advisory_copilot_run,
+)
+from src.core.advisory_copilot.run_record_limits import (
+    COPILOT_RUN_GUARDRAIL_REASON_LIMIT,
+    COPILOT_RUN_GUARDRAIL_REASON_MAX_LENGTH,
+    COPILOT_RUN_IDENTIFIER_MAX_LENGTH,
+    COPILOT_RUN_JSON_FIELD_MAX_ITEMS,
+    COPILOT_RUN_OUTPUT_SECTION_LIMIT,
+    COPILOT_RUN_REVIEW_GUIDANCE_LIMIT,
+)
+from src.core.advisory_copilot.run_records import (
+    AdvisoryCopilotRunRecord as FocusedAdvisoryCopilotRunRecord,
+)
+from src.core.advisory_copilot.run_replay_policy import resolve_advisory_copilot_run_replay
+from src.core.advisory_copilot.run_review_policy import (
+    can_attempt_advisory_copilot_run_refresh,
+    review_posture_from_draft_status,
+)
+from src.core.advisory_copilot.service import (
+    persist_advisory_copilot_run as service_persist_advisory_copilot_run,
+)
+from src.core.advisory_copilot.structured_payload import assert_safe_structured_payload
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
 from src.infrastructure.advisory_copilot.postgres import PostgresAdvisoryCopilotRepository
 
@@ -93,6 +190,253 @@ _REVIEW_COLUMNS = (
     "idempotency_key",
     "correlation_id",
 )
+
+ADVISORY_COPILOT_RECORDS_PATH = Path("src/core/advisory_copilot/records.py")
+ADVISORY_COPILOT_SERVICE_PATH = Path("src/core/advisory_copilot/service.py")
+SRC_ROOT = Path("src")
+
+
+def test_advisory_copilot_record_text_helpers_normalize_audit_text() -> None:
+    assert (
+        normalize_required_record_text("  advisor\nreview  ", error_code="COPILOT_RECORD_REQUIRED")
+        == "advisor review"
+    )
+    assert normalize_optional_record_text(None, error_code="COPILOT_RECORD_REQUIRED") is None
+    assert normalize_bounded_record_text_list(
+        ["  first\nitem  ", "second item"],
+        max_items=2,
+        max_item_length=20,
+        error_code="COPILOT_RECORD_LIST_INVALID",
+    ) == ["first item", "second item"]
+
+    with pytest.raises(ValueError, match="COPILOT_RECORD_REQUIRED"):
+        normalize_required_record_text("   ", error_code="COPILOT_RECORD_REQUIRED")
+    with pytest.raises(ValueError, match="COPILOT_RECORD_LIST_INVALID"):
+        normalize_bounded_record_text_list(
+            ["first", "second", "third"],
+            max_items=2,
+            max_item_length=20,
+            error_code="COPILOT_RECORD_LIST_INVALID",
+        )
+
+
+def test_advisory_copilot_records_preserve_run_record_import_contract() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert AdvisoryCopilotRunRecord is FocusedAdvisoryCopilotRunRecord
+    assert CompatibilityAdvisoryCopilotRunRecord is FocusedAdvisoryCopilotRunRecord
+    assert "AdvisoryCopilotRunRecord" not in [
+        node.name for node in tree.body if isinstance(node, ast.ClassDef)
+    ]
+
+
+def test_advisory_copilot_records_preserve_packet_record_import_contract() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert AdvisoryCopilotEvidencePacketRecord is FocusedAdvisoryCopilotEvidencePacketRecord
+    assert (
+        CompatibilityAdvisoryCopilotEvidencePacketRecord
+        is FocusedAdvisoryCopilotEvidencePacketRecord
+    )
+    assert "AdvisoryCopilotEvidencePacketRecord" not in [
+        node.name for node in tree.body if isinstance(node, ast.ClassDef)
+    ]
+
+
+def test_advisory_copilot_records_preserve_idempotency_record_import_contract() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert AdvisoryCopilotRunIdempotencyRecord is FocusedAdvisoryCopilotRunIdempotencyRecord
+    assert (
+        CompatibilityAdvisoryCopilotRunIdempotencyRecord
+        is FocusedAdvisoryCopilotRunIdempotencyRecord
+    )
+    assert "AdvisoryCopilotRunIdempotencyRecord" not in [
+        node.name for node in tree.body if isinstance(node, ast.ClassDef)
+    ]
+
+
+def test_advisory_copilot_records_preserve_review_record_import_contract() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert AdvisoryCopilotReviewRecord is FocusedAdvisoryCopilotReviewRecord
+    assert CompatibilityAdvisoryCopilotReviewRecord is FocusedAdvisoryCopilotReviewRecord
+    assert "AdvisoryCopilotReviewRecord" not in [
+        node.name for node in tree.body if isinstance(node, ast.ClassDef)
+    ]
+
+
+def test_advisory_copilot_records_is_pure_compatibility_facade() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_RECORDS_PATH.read_text(encoding="utf-8"))
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+
+def test_production_code_uses_focused_advisory_copilot_record_imports() -> None:
+    compatibility_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != ADVISORY_COPILOT_RECORDS_PATH.as_posix()
+        and "src.core.advisory_copilot.records" in path.read_text(encoding="utf-8")
+    )
+
+    assert compatibility_importers == []
+
+
+def test_advisory_copilot_structured_payload_safety_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "RAW_AI_STORAGE_KEYS" not in service_source
+    assert "_assert_safe_structured_payload" not in service_source
+    assert_safe_structured_payload({"business_reason": "Prepare advisor review."})
+    with pytest.raises(ValueError, match="COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED"):
+        assert_safe_structured_payload({"raw-prompt": "provider payload"})
+
+
+def test_advisory_copilot_run_request_hashing_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "def canonical_json_hash" not in service_source
+    assert "def build_advisory_copilot_run_request_hash" not in service_source
+    assert canonical_json_hash({"b": 2, "a": 1}) == canonical_json_hash({"a": 1, "b": 2})
+    assert build_advisory_copilot_run_request_hash(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=("advisor_review_summary",),
+        requested_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+        requested_intents=("explain_policy_posture",),
+        user_instruction="Summarize the advisory evidence for internal review.",
+    ).startswith("sha256:")
+
+
+def test_advisory_copilot_retention_policy_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+    created_at = datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc)
+
+    assert "def retention_expires_at" not in service_source
+    assert retention_expires_at(
+        retention_class="SUPPORTABILITY_DIAGNOSTIC",
+        created_at=created_at,
+    ) == datetime(2026, 8, 26, 9, 0, tzinfo=timezone.utc)
+    assert retention_expires_at(
+        retention_class="STANDARD_ADVISORY_RECORD",
+        created_at=created_at,
+    ) == datetime(2033, 5, 26, 9, 0, tzinfo=timezone.utc)
+
+
+def test_advisory_copilot_run_review_policy_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+    repository = InMemoryAdvisoryCopilotRepository()
+
+    assert "def can_attempt_advisory_copilot_run_refresh" not in service_source
+    assert "def _review_posture_from_draft" not in service_source
+    assert review_posture_from_draft_status("APPROVED_FOR_INTERNAL_USE") == (
+        "APPROVED_FOR_INTERNAL_USE"
+    )
+    assert review_posture_from_draft_status("UNKNOWN_DRAFT_STATUS") == "REVIEW_REQUIRED"
+
+    result = _persist_run(
+        repository,
+        draft_status="UNAVAILABLE",
+        lineage={"fallback_reason": "LOTUS_AI_UNAVAILABLE"},
+    )
+
+    assert can_attempt_advisory_copilot_run_refresh(result.run) is True
+
+
+def test_advisory_copilot_run_lineage_defaults_have_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert 'DEFAULT_CALLER_APP = "lotus-advise"' not in service_source
+    assert "def _stable_id" not in service_source
+    assert "def _optional_str" not in service_source
+    assert DEFAULT_CALLER_APP == "lotus-advise"
+    assert DEFAULT_TENANT_ID == "tenant-sg-001"
+    assert DEFAULT_PROMPT_TEMPLATE_VERSION == "advisory-copilot-prompt-template.v1"
+    assert DEFAULT_OUTPUT_SCHEMA_VERSION == "advisory-copilot-output-schema.v1"
+    assert DEFAULT_EVALUATION_PACK_REF == "advisory-copilot-eval-pack.v1"
+    assert optional_lineage_text("  packrun_001  ") == "packrun_001"
+    assert optional_lineage_text("   ") is None
+    assert stable_copilot_record_id(prefix="copilot_run", value="sha256:request").startswith(
+        "copilot_run_"
+    )
+
+
+def test_advisory_copilot_packet_persistence_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "def save_advisory_copilot_evidence_packet" not in service_source
+    assert "def load_advisory_copilot_evidence_packet" not in service_source
+    assert save_advisory_copilot_evidence_packet is focused_save_advisory_copilot_evidence_packet
+    assert load_advisory_copilot_evidence_packet is focused_load_advisory_copilot_evidence_packet
+
+
+def test_advisory_copilot_persistence_results_have_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+    run_result = _persist_run(InMemoryAdvisoryCopilotRepository())
+    review_record = AdvisoryCopilotReviewRecord(
+        review_id="review_001",
+        run_id=run_result.run.run_id,
+        action="APPROVE_FOR_INTERNAL_USE",
+        previous_posture="REVIEW_REQUIRED",
+        new_posture="APPROVED_FOR_INTERNAL_USE",
+        actor_id="advisor_123",
+        occurred_at=datetime(2026, 5, 28, 9, 10, tzinfo=timezone.utc),
+        reason_json={"business_reason": "Internal review complete."},
+        request_hash="sha256:review",
+        idempotency_key=None,
+        correlation_id="corr_review_001",
+    )
+
+    assert "class AdvisoryCopilotRunPersistenceResult" not in service_source
+    assert "class AdvisoryCopilotReviewResult" not in service_source
+    assert AdvisoryCopilotRunPersistenceResult is FocusedAdvisoryCopilotRunPersistenceResult
+    assert AdvisoryCopilotReviewResult is FocusedAdvisoryCopilotReviewResultModel
+    assert FocusedAdvisoryCopilotRunPersistenceResult(run=run_result.run, replayed=False).run == (
+        run_result.run
+    )
+    assert (
+        FocusedAdvisoryCopilotReviewResultModel(
+            run=run_result.run,
+            review=review_record,
+            replayed=False,
+        ).review
+        == review_record
+    )
+
+
+def test_advisory_copilot_review_persistence_has_focused_owner() -> None:
+    service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
+
+    assert "def record_advisory_copilot_review" not in service_source
+    assert "def list_advisory_copilot_reviews" not in service_source
+    assert record_advisory_copilot_review is focused_record_advisory_copilot_review
+    assert list_advisory_copilot_reviews is focused_list_advisory_copilot_reviews
+
+
+def test_advisory_copilot_run_persistence_has_focused_owner() -> None:
+    service_source = ADVISORY_COPILOT_SERVICE_PATH.read_text(encoding="utf-8")
+
+    assert "def persist_advisory_copilot_run" not in service_source
+    assert "__all__" in service_source
+    assert persist_advisory_copilot_run is focused_persist_advisory_copilot_run
+    assert service_persist_advisory_copilot_run is focused_persist_advisory_copilot_run
+
+
+def test_advisory_copilot_service_is_pure_compatibility_facade() -> None:
+    tree = ast.parse(ADVISORY_COPILOT_SERVICE_PATH.read_text(encoding="utf-8"))
+    production_importers = sorted(
+        path.as_posix()
+        for path in SRC_ROOT.rglob("*.py")
+        if path.as_posix() != ADVISORY_COPILOT_SERVICE_PATH.as_posix()
+        and "src.core.advisory_copilot.service" in path.read_text(encoding="utf-8")
+    )
+
+    assert not [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    assert not [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+    assert production_importers == []
 
 
 class _FakePostgresConnection:
@@ -394,7 +738,8 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
             **{
                 **result.run.model_dump(),
                 "output_sections_json": [
-                    {"section_key": f"SECTION_{index}"} for index in range(65)
+                    {"section_key": f"SECTION_{index}"}
+                    for index in range(COPILOT_RUN_OUTPUT_SECTION_LIMIT + 1)
                 ],
             }
         )
@@ -402,21 +747,25 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
         AdvisoryCopilotRunRecord(
             **{
                 **result.run.model_dump(),
-                "review_guidance_json": [f"Guidance {index}" for index in range(17)],
+                "review_guidance_json": [
+                    f"Guidance {index}" for index in range(COPILOT_RUN_REVIEW_GUIDANCE_LIMIT + 1)
+                ],
             }
         )
     with pytest.raises(ValidationError):
         AdvisoryCopilotRunRecord(
             **{
                 **result.run.model_dump(),
-                "guardrail_results_json": ["x" * 161],
+                "guardrail_results_json": ["x" * (COPILOT_RUN_GUARDRAIL_REASON_MAX_LENGTH + 1)],
             }
         )
     with pytest.raises(ValidationError):
         AdvisoryCopilotRunRecord(
             **{
                 **result.run.model_dump(),
-                "lineage_json": {f"key_{index}": index for index in range(65)},
+                "lineage_json": {
+                    f"key_{index}": index for index in range(COPILOT_RUN_JSON_FIELD_MAX_ITEMS + 1)
+                },
             }
         )
 
@@ -440,13 +789,19 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
     assert normalized_packet.proposal_id == "proposal_trimmed"
     with pytest.raises(ValidationError):
         AdvisoryCopilotEvidencePacketRecord(
-            **{**packet_record.model_dump(), "evidence_packet_id": "x" * 161}
+            **{
+                **packet_record.model_dump(),
+                "evidence_packet_id": "x" * (COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH + 1),
+            }
         )
     with pytest.raises(ValidationError):
         AdvisoryCopilotEvidencePacketRecord(
             **{
                 **packet_record.model_dump(),
-                "reason_json": {f"key_{index}": index for index in range(65)},
+                "reason_json": {
+                    f"key_{index}": index
+                    for index in range(COPILOT_PACKET_RECORD_JSON_FIELD_MAX_ITEMS + 1)
+                },
             }
         )
 
@@ -461,7 +816,7 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
         AdvisoryCopilotRunIdempotencyRecord(
             idempotency_key="x" * 129,
             request_hash=result.run.request_hash,
-            run_id=result.run.run_id,
+            run_id="x" * (COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH + 1),
             created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
         )
 
@@ -485,14 +840,69 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
     assert normalized_review.review_id == "copilot_review_trimmed"
     assert normalized_review.idempotency_key == "copilot-review-idem-trimmed"
     with pytest.raises(ValidationError):
-        AdvisoryCopilotReviewRecord(**{**review.model_dump(), "actor_id": "x" * 129})
+        AdvisoryCopilotReviewRecord(
+            **{
+                **review.model_dump(),
+                "actor_id": "x" * (COPILOT_REVIEW_RECORD_ACTOR_ID_MAX_LENGTH + 1),
+            }
+        )
     with pytest.raises(ValidationError):
         AdvisoryCopilotReviewRecord(
             **{
                 **review.model_dump(),
-                "reason_json": {f"key_{index}": index for index in range(65)},
+                "reason_json": {
+                    f"key_{index}": index
+                    for index in range(COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS + 1)
+                },
             }
         )
+
+
+def test_copilot_run_record_limits_have_focused_owner() -> None:
+    run_records_source = Path("src/core/advisory_copilot/run_records.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert COPILOT_RUN_IDENTIFIER_MAX_LENGTH == 160
+    assert COPILOT_RUN_OUTPUT_SECTION_LIMIT == 64
+    assert COPILOT_RUN_REVIEW_GUIDANCE_LIMIT == 16
+    assert COPILOT_RUN_GUARDRAIL_REASON_LIMIT == 16
+    assert "_COPILOT_OUTPUT_SECTION_LIMIT = 64" not in run_records_source
+    assert "_COPILOT_REVIEW_GUIDANCE_LIMIT = 16" not in run_records_source
+    assert "_COPILOT_GUARDRAIL_REASON_LIMIT = 16" not in run_records_source
+
+
+def test_copilot_packet_record_limits_have_focused_owner() -> None:
+    packet_records_source = Path("src/core/advisory_copilot/packet_records.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH == 160
+    assert COPILOT_PACKET_RECORD_JSON_FIELD_MAX_ITEMS == 64
+    assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in packet_records_source
+    assert "_COPILOT_JSON_FIELD_MAX_ITEMS = 64" not in packet_records_source
+
+
+def test_copilot_review_record_limits_have_focused_owner() -> None:
+    review_records_source = Path("src/core/advisory_copilot/review_records.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH == 160
+    assert COPILOT_REVIEW_RECORD_ACTOR_ID_MAX_LENGTH == 128
+    assert COPILOT_REVIEW_RECORD_JSON_FIELD_MAX_ITEMS == 64
+    assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in review_records_source
+    assert "_COPILOT_ACTOR_ID_MAX_LENGTH = 128" not in review_records_source
+
+
+def test_copilot_idempotency_record_limits_have_focused_owner() -> None:
+    idempotency_records_source = Path("src/core/advisory_copilot/idempotency_records.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH == 160
+    assert "_COPILOT_IDENTIFIER_MAX_LENGTH = 160" not in idempotency_records_source
+    assert "_COPILOT_HASH_MAX_LENGTH = 128" not in idempotency_records_source
 
 
 def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:
@@ -614,6 +1024,50 @@ def test_retrying_false_positive_output_guardrail_refreshes_same_idempotent_requ
     assert refreshed.run.review_posture == "REVIEW_REQUIRED"
     assert refreshed.run.guardrail_results_json == []
     assert refreshed.run.output_sections_json[0]["section_key"] == "NARRATIVE_POSTURE"
+
+
+def test_copilot_run_replay_policy_separates_replay_from_retryable_refresh() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    first = _persist_run(repository).run
+
+    assert (
+        resolve_advisory_copilot_run_replay(
+            repository=repository,
+            idempotency_key="copilot-action-idem-001",
+            request_hash=first.request_hash,
+        )
+        == first
+    )
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT"):
+        resolve_advisory_copilot_run_replay(
+            repository=repository,
+            idempotency_key="copilot-action-idem-001",
+            request_hash="sha256:different-request",
+        )
+
+    retryable_repository = InMemoryAdvisoryCopilotRepository()
+    retryable = _persist_run(
+        retryable_repository,
+        draft_status="UNAVAILABLE",
+        output_sections=(),
+        lineage={
+            "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+            "workflow_pack_version": "v1",
+            "workflow_run_id": None,
+            "model_version": None,
+            "proposal_version_no": 1,
+            "fallback_reason": "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+        },
+    ).run
+
+    assert (
+        resolve_advisory_copilot_run_replay(
+            repository=retryable_repository,
+            idempotency_key="copilot-action-idem-001",
+            request_hash=retryable.request_hash,
+        )
+        is None
+    )
 
 
 def test_copilot_run_idempotency_rejects_changed_request() -> None:

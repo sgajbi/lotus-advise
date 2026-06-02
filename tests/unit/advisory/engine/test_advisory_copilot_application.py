@@ -1,18 +1,41 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
-from src.core.advisory_copilot.api_models import (
+from src.core.advisory_copilot.api_limits import (
+    COPILOT_REQUESTED_OUTPUT_LIMIT,
+    COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
+    COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
+)
+from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
     AdvisoryCopilotProposalVersionEvidenceRequest,
     AdvisoryCopilotReviewRequest,
 )
+from src.core.advisory_copilot.api_response_models import (
+    AdvisoryCopilotSupportabilityResponse,
+)
+from src.core.advisory_copilot.api_validation import (
+    normalize_bounded_copilot_string_tuple,
+    normalize_copilot_actor_id,
+    normalize_copilot_user_instruction,
+    normalize_optional_copilot_identifier,
+    normalize_required_copilot_identifier,
+)
 from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
+from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
+from src.core.advisory_copilot.proposal_projection_persistence import (
+    save_proposal_version_advisory_copilot_evidence_packet,
+)
+from src.core.advisory_copilot.supportability import (
+    build_advisory_copilot_supportability_response,
+)
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
@@ -62,6 +85,104 @@ def test_copilot_action_request_normalizes_and_bounds_advisor_input() -> None:
             requested_by="advisor_123",
             user_instruction="x" * 1001,
         )
+
+
+def test_copilot_api_validation_has_focused_owner() -> None:
+    api_models_source = Path("src/core/advisory_copilot/api_models.py").read_text(encoding="utf-8")
+
+    assert normalize_copilot_actor_id("  advisor_123  ") == "advisor_123"
+    assert (
+        normalize_required_copilot_identifier(
+            "  copilot_packet_pb_sg_001  ",
+            error_code="COPILOT_IDENTIFIER_REQUIRED",
+        )
+        == "copilot_packet_pb_sg_001"
+    )
+    assert normalize_optional_copilot_identifier(None) is None
+    assert normalize_bounded_copilot_string_tuple(
+        [" advisor_review_summary ", "advisor_review_summary", "risk_flags"],
+        error_code="COPILOT_REQUESTED_OUTPUT_REQUIRED",
+        max_items=8,
+        max_item_length=96,
+        allow_empty=False,
+    ) == ("advisor_review_summary", "risk_flags")
+    assert normalize_copilot_user_instruction("  Summarize\nadvisor evidence.  ") == (
+        "Summarize advisor evidence."
+    )
+    with pytest.raises(ValueError, match="COPILOT_USER_INSTRUCTION_TOO_LONG"):
+        normalize_copilot_user_instruction("x" * 1001)
+
+    with pytest.raises(ValueError, match="COPILOT_IDENTIFIER_REQUIRED"):
+        normalize_required_copilot_identifier(
+            "   ",
+            error_code="COPILOT_IDENTIFIER_REQUIRED",
+        )
+    with pytest.raises(ValueError, match="COPILOT_REQUESTED_OUTPUT_REQUIRED"):
+        normalize_bounded_copilot_string_tuple(
+            [],
+            error_code="COPILOT_REQUESTED_OUTPUT_REQUIRED",
+            max_items=8,
+            max_item_length=96,
+            allow_empty=False,
+        )
+    assert "def _normalize_copilot_actor_id(value: str)" not in api_models_source
+    assert "def _normalize_required_identifier(value: str" not in api_models_source
+    assert "def _normalize_bounded_string_tuple(" not in api_models_source
+    assert "COPILOT_USER_INSTRUCTION_TOO_LONG" not in api_models_source
+
+
+def test_copilot_api_limits_have_focused_owner() -> None:
+    api_models_source = Path("src/core/advisory_copilot/api_models.py").read_text(encoding="utf-8")
+
+    assert COPILOT_REQUESTED_OUTPUT_LIMIT == 8
+    assert COPILOT_REQUESTED_OUTPUT_MAX_LENGTH == 96
+    assert COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT == 12
+    assert "_COPILOT_REQUESTED_OUTPUT_LIMIT" not in api_models_source
+    assert "_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT" not in api_models_source
+    assert "COPILOT_REQUESTED_OUTPUT_LIMIT = 8" not in api_models_source
+
+
+def test_copilot_api_response_models_have_focused_owner() -> None:
+    api_models_source = Path("src/core/advisory_copilot/api_models.py").read_text(encoding="utf-8")
+    response_models_source = Path("src/core/advisory_copilot/api_response_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert AdvisoryCopilotSupportabilityResponse.__module__.endswith("api_response_models")
+    assert "class AdvisoryCopilotSupportabilityResponse" not in api_models_source
+    assert "class AdvisoryCopilotRunResponse" not in api_models_source
+    assert "class AdvisoryCopilotRunPage" not in api_models_source
+    assert "class AdvisoryCopilotSupportabilityResponse" in response_models_source
+
+
+def test_copilot_api_request_models_have_focused_owner() -> None:
+    api_models_source = Path("src/core/advisory_copilot/api_models.py").read_text(encoding="utf-8")
+    request_models_source = Path("src/core/advisory_copilot/api_request_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert AdvisoryCopilotActionRequest.__module__.endswith("api_request_models")
+    assert "class AdvisoryCopilotActionRequest" not in api_models_source
+    assert "class AdvisoryCopilotEvidencePacketCreateRequest" not in api_models_source
+    assert "field_validator" not in api_models_source
+    assert "class AdvisoryCopilotActionRequest" in request_models_source
+
+
+def test_copilot_api_models_facade_is_not_used_by_production_code() -> None:
+    production_sources = [
+        path
+        for root in (Path("src/api"), Path("src/core"))
+        for path in root.rglob("*.py")
+        if path.as_posix() != "src/core/advisory_copilot/api_models.py"
+    ]
+
+    offenders = [
+        path.as_posix()
+        for path in production_sources
+        if "src.core.advisory_copilot.api_models import" in path.read_text(encoding="utf-8")
+    ]
+
+    assert offenders == []
 
 
 def test_copilot_evidence_packet_requests_normalize_and_bound_identifiers() -> None:
@@ -126,6 +247,47 @@ def test_copilot_review_request_bounds_actor_id() -> None:
             actor_id="x" * 129,
             reason={"decision": "Reviewed against cited source evidence."},
         )
+
+
+def test_copilot_correlation_resolution_uses_shared_validation_and_stable_fallback() -> None:
+    assert (
+        resolve_advisory_copilot_correlation_id(
+            "  corr-advisor-request-001  ",
+            fallback="corr-fallback",
+        )
+        == "corr-advisor-request-001"
+    )
+    assert (
+        resolve_advisory_copilot_correlation_id(
+            None,
+            fallback="corr-copilot_packet_pb_sg_001",
+        )
+        == "corr-copilot_packet_pb_sg_001"
+    )
+
+    resolved = resolve_advisory_copilot_correlation_id(
+        None,
+        fallback="x" * 129,
+    )
+
+    assert resolved.startswith("corr-")
+    assert len(resolved) == 29
+
+
+def test_copilot_supportability_response_has_focused_owner() -> None:
+    application_source = Path("src/core/advisory_copilot/application.py").read_text(
+        encoding="utf-8"
+    )
+    route_source = Path("src/api/proposals/routes_advisory_copilot.py").read_text(encoding="utf-8")
+
+    response = build_advisory_copilot_supportability_response()
+
+    assert response.support_status == "ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
+    assert response.client_ready_publication == "BLOCKED"
+    assert response.supported_action_families
+    assert "CLIENT_READY_PUBLICATION is blocked" in response.boundaries
+    assert "def build_advisory_copilot_supportability_response" not in application_source
+    assert "from src.core.advisory_copilot.supportability import" in route_source
 
 
 def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:
@@ -291,6 +453,36 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
     assert response.record.reason_json["source_projection"] == "PROPOSAL_VERSION"
     assert response.record.correlation_id == "corr_projection_001"
     assert response.record.created_by == "advisor_123"
+
+
+def test_copilot_proposal_projection_persistence_has_focused_owner() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    application_source = Path("src/core/advisory_copilot/application.py").read_text(
+        encoding="utf-8"
+    )
+
+    response = save_proposal_version_advisory_copilot_evidence_packet(
+        repository=copilot_repository,
+        proposal_repository=proposal_repository,
+        payload=AdvisoryCopilotProposalVersionEvidenceRequest(
+            proposal_id="proposal_sg_structured_note_001",
+            proposal_version_no=1,
+            action_family="PROPOSAL_EXPLANATION",
+            audience="ADVISOR",
+            created_by="advisor_123",
+            reason={"business_reason": "Prepare advisor copilot review."},
+        ),
+        policy_evaluations=(_policy_evaluation(),),
+        correlation_id="corr_projection_owner_001",
+    )
+
+    assert response.record.reason_json["source_projection"] == "PROPOSAL_VERSION"
+    assert response.record.correlation_id == "corr_projection_owner_001"
+    assert response.evidence_packet.proposal_id == "proposal_sg_structured_note_001"
+    assert "build_proposal_version_copilot_evidence_packet" not in application_source
+    assert '"source_projection": "PROPOSAL_VERSION"' not in application_source
 
 
 def test_application_service_bounds_source_projection_evidence_text() -> None:

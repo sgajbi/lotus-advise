@@ -16,8 +16,10 @@ import src.api.proposals.routes_advisory_copilot as copilot_routes
 from src.api.main import app
 from src.api.proposals.copilot_errors import raise_copilot_http_exception
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
-from src.core.advisory_copilot.api_models import (
+from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotEvidencePacketCreateRequest,
+)
+from src.core.advisory_copilot.api_response_models import (
     AdvisoryCopilotRunPage,
     AdvisoryCopilotSupportabilityResponse,
 )

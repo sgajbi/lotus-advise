@@ -1,0 +1,32 @@
+extends:
+  - spectral:oas
+
+rules:
+  operation-operationId:
+    description: Every operation must have a stable operationId.
+    severity: warn
+    given: $.paths[*][*]
+    then:
+      field: operationId
+      function: truthy
+  operation-description:
+    description: Every operation must describe behavior and supportability boundaries.
+    severity: warn
+    given: $.paths[*][*]
+    then:
+      field: description
+      function: truthy
+  operation-tags:
+    description: Every operation must be assigned to at least one API tag.
+    severity: warn
+    given: $.paths[*][*]
+    then:
+      field: tags
+      function: truthy
+  lotus-standard-errors:
+    description: Public operations should document standard error responses.
+    severity: warn
+    given: $.paths[*][*]
+    then:
+      field: responses
+      function: truthy

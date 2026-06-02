@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, field_validator
 
 from src.core.advisory_copilot.business_text import (
-    contains_copilot_business_technical_detail,
+    normalize_required_copilot_business_text,
 )
 from src.core.advisory_copilot.type_models import (
     CopilotSourceDependency,
@@ -33,17 +33,8 @@ class CopilotUnsupportedEvidence(BaseModel):
     @field_validator("advisor_message")
     @classmethod
     def _normalize_advisor_message(cls, value: str) -> str:
-        normalized = _normalize_required_text(
+        return normalize_required_copilot_business_text(
             value,
             error_code="COPILOT_UNSUPPORTED_MESSAGE_REQUIRED",
+            technical_error_code="COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL",
         )
-        if contains_copilot_business_technical_detail(normalized):
-            raise ValueError("COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL")
-        return normalized
-
-
-def _normalize_required_text(value: str, *, error_code: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(error_code)
-    return normalized

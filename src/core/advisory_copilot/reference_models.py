@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.core.advisory_copilot.reference_text import (
+    normalize_optional_copilot_reference_text,
+    normalize_required_copilot_reference_text,
+)
 from src.core.advisory_copilot.type_models import CopilotEvidenceAccessClass
 
 _COPILOT_SOURCE_SYSTEM_MAX_LENGTH = 64
@@ -46,14 +50,18 @@ class CopilotSourceRef(BaseModel):
     @field_validator("source_system", "source_type", "source_id")
     @classmethod
     def _normalize_required_ref_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_SOURCE_REF_REQUIRED")
+        return normalize_required_copilot_reference_text(
+            value,
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
 
     @field_validator("content_hash")
     @classmethod
     def _normalize_optional_ref_text(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        return _normalize_required_text(value, error_code="COPILOT_SOURCE_REF_REQUIRED")
+        return normalize_optional_copilot_reference_text(
+            value,
+            error_code="COPILOT_SOURCE_REF_REQUIRED",
+        )
 
 
 class CopilotLineageRef(BaseModel):
@@ -79,11 +87,7 @@ class CopilotLineageRef(BaseModel):
     @field_validator("lineage_type", "lineage_id", "source_system")
     @classmethod
     def _normalize_required_lineage_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_LINEAGE_REF_REQUIRED")
-
-
-def _normalize_required_text(value: str, *, error_code: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(error_code)
-    return normalized
+        return normalize_required_copilot_reference_text(
+            value,
+            error_code="COPILOT_LINEAGE_REF_REQUIRED",
+        )
