@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T16:54:07.054886+00:00`
+- Generated At: `2026-06-04T17:14:44.927783+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `e43dedecfa89613fc55c14c036f4034e97acdb41`
-- Branch Commits Over Main: `11`
+- Head: `b699ef0fa833947e30a5ccc1033810f9b0f8cc4a`
+- Branch Commits Over Main: `12`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `914`
 - Packages: `38`
 - Modules: `876`
-- Total Python lines: `137763`
+- Total Python lines: `138024`
 
 ## Largest Files
 
@@ -41,15 +41,15 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 216 |
+| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 218 |
 
 ## Complexity
 
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3019`
-- Radon complexity rank inventory: `A=2721, B=228, C=62, D=6, E=2`
+- Radon analyzed block inventory: `3025`
+- Radon complexity rank inventory: `A=2720, B=234, C=63, D=6, E=2`
 - Radon worst complexity: `rank=E, complexity=32`
 - Xenon remains report-only until current Radon thresholds are classified.
 
@@ -98,8 +98,8 @@
 - Spectral rules present: `True`
 - Spectral config executable: `True`
 - Spectral OpenAPI path inventory: `84`
-- Spectral current issue inventory: `54`
-- Spectral severity inventory: `error=54`
+- Spectral current issue inventory: `0`
+- Spectral severity inventory: `none`
 - Spectral remains report-only until warning inventory is stable enough for
   fail-on-new-regression enforcement.
 
@@ -115,7 +115,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3385, missing=3350, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3391, missing=3356, covered=35, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

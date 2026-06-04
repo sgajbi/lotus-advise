@@ -91,18 +91,22 @@ def build_spectral_report(repo_root: Path) -> dict[str, object]:
             "stderr": completed.stderr.strip(),
         }
 
-    try:
-        payload = json.loads(completed.stdout or "[]")
-    except json.JSONDecodeError:
-        return {
-            "spectralExecutable": False,
-            "returnCode": completed.returncode,
-            "openapiPathCount": len(paths) if isinstance(paths, dict) else 0,
-            "issueCount": None,
-            "severityInventory": {},
-            "findings": [],
-            "stderr": "Spectral did not emit valid JSON.",
-        }
+    stdout_text = completed.stdout.strip()
+    if stdout_text:
+        try:
+            payload, _ = json.JSONDecoder().raw_decode(stdout_text)
+        except json.JSONDecodeError:
+            return {
+                "spectralExecutable": False,
+                "returnCode": completed.returncode,
+                "openapiPathCount": len(paths) if isinstance(paths, dict) else 0,
+                "issueCount": None,
+                "severityInventory": {},
+                "findings": [],
+                "stderr": "Spectral did not emit valid JSON.",
+            }
+    else:
+        payload = []
 
     if not isinstance(payload, list):
         return {

@@ -77,7 +77,7 @@ def _example_for_object_schema(
     if not isinstance(required, list) or not required:
         selected_names = list(properties.keys())[:3]
     else:
-        selected_names = [str(name) for name in required[:4]]
+        selected_names = [str(name) for name in required]
     example: dict[str, Any] = {}
     for prop_name in selected_names:
         prop_schema = properties.get(prop_name)
@@ -93,7 +93,9 @@ def _infer_ref_example(prop_schema: dict[str, Any], components: dict[str, Any]) 
     model_name = _ref_name(ref)
     model_schema = components.get(model_name or "")
     if isinstance(model_name, str) and isinstance(model_schema, dict):
-        return _example_for_object_schema(model_name, model_schema, components)
+        if isinstance(model_schema.get("properties"), dict):
+            return _example_for_object_schema(model_name, model_schema, components)
+        return _infer_example(model_name, model_schema, components)
     return None
 
 
@@ -202,6 +204,101 @@ def _infer_untyped_example(prop_name: str) -> str:
         entity = key[: -len("_id")]
         return f"{entity.upper()}_001"
     return f"{key}_example"
+
+
+def _resolved_example_schema(
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any]:
+    ref = prop_schema.get("$ref")
+    if isinstance(ref, str):
+        model_name = _ref_name(ref)
+        model_schema = components.get(model_name or "")
+        if isinstance(model_schema, dict):
+            return model_schema
+    for composite_key in ("allOf", "anyOf", "oneOf"):
+        composite_schemas = prop_schema.get(composite_key)
+        if not isinstance(composite_schemas, list):
+            continue
+        for candidate in composite_schemas:
+            if isinstance(candidate, dict) and candidate.get("type") != "null":
+                return _resolved_example_schema(candidate, components)
+    return prop_schema
+
+
+def _repair_scalar_example(
+    prop_name: str,
+    example: Any,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> Any:
+    enum_values = prop_schema.get("enum")
+    if isinstance(enum_values, list) and enum_values and example not in enum_values:
+        return _infer_example(prop_name, prop_schema, components)
+    schema_type = prop_schema.get("type")
+    if schema_type == "string" and not isinstance(example, str):
+        return _infer_example(prop_name, prop_schema, components)
+    if schema_type == "integer":
+        maximum = prop_schema.get("maximum")
+        if not isinstance(example, int):
+            return _infer_example(prop_name, prop_schema, components)
+        if isinstance(maximum, (int, float)) and example > maximum:
+            return _infer_example(prop_name, prop_schema, components)
+    return example
+
+
+def _repair_example_against_schema(
+    prop_name: str,
+    example: Any,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> Any:
+    resolved_schema = _resolved_example_schema(prop_schema, components)
+    schema_type = resolved_schema.get("type")
+    if schema_type == "array" and isinstance(example, list):
+        item_schema = resolved_schema.get("items")
+        if isinstance(item_schema, dict):
+            return [
+                _repair_example_against_schema(f"{prop_name}_item", item, item_schema, components)
+                for item in example
+            ]
+    properties = resolved_schema.get("properties")
+    if isinstance(properties, dict) and isinstance(example, dict):
+        repaired = dict(example)
+        required = resolved_schema.get("required")
+        if isinstance(required, list):
+            for required_name in required:
+                if required_name not in repaired:
+                    required_schema = properties.get(str(required_name))
+                    if isinstance(required_schema, dict):
+                        repaired[str(required_name)] = _infer_example(
+                            str(required_name),
+                            required_schema,
+                            components,
+                        )
+        for existing_name, existing_value in list(repaired.items()):
+            existing_schema = properties.get(existing_name)
+            if isinstance(existing_schema, dict):
+                repaired[existing_name] = _repair_example_against_schema(
+                    existing_name,
+                    existing_value,
+                    existing_schema,
+                    components,
+                )
+        return repaired
+    if schema_type == "object" and isinstance(example, dict):
+        additional_schema = resolved_schema.get("additionalProperties")
+        if isinstance(additional_schema, dict):
+            return {
+                key: _repair_example_against_schema(
+                    str(key),
+                    value,
+                    additional_schema,
+                    components,
+                )
+                for key, value in example.items()
+            }
+    return _repair_scalar_example(prop_name, example, resolved_schema, components)
 
 
 def _infer_example(prop_name: str, prop_schema: dict[str, Any], components: dict[str, Any]) -> Any:
@@ -323,6 +420,13 @@ def _ensure_schema_documentation(schema: dict[str, Any]) -> None:
     for model_name, model_schema in schemas.items():
         if not isinstance(model_schema, dict):
             continue
+        if "example" in model_schema:
+            model_schema["example"] = _repair_example_against_schema(
+                str(model_name),
+                model_schema["example"],
+                model_schema,
+                schemas,
+            )
         properties = model_schema.get("properties", {})
         if not isinstance(properties, dict):
             continue
@@ -333,6 +437,67 @@ def _ensure_schema_documentation(schema: dict[str, Any]) -> None:
                 prop_schema["description"] = _infer_description(model_name, prop_name, prop_schema)
             if "example" not in prop_schema:
                 prop_schema["example"] = _infer_example(prop_name, prop_schema, schemas)
+            else:
+                prop_schema["example"] = _repair_example_against_schema(
+                    prop_name,
+                    prop_schema["example"],
+                    prop_schema,
+                    schemas,
+                )
+
+
+def _ensure_media_example_documentation(schema: dict[str, Any]) -> None:
+    components = schema.get("components", {})
+    schemas = components.get("schemas", {})
+    if not isinstance(schemas, dict):
+        schemas = {}
+    paths = schema.get("paths", {})
+    if not isinstance(paths, dict):
+        return
+    for methods in paths.values():
+        if not isinstance(methods, dict):
+            continue
+        for operation in methods.values():
+            if not isinstance(operation, dict):
+                continue
+            responses = operation.get("responses")
+            if isinstance(responses, dict):
+                _repair_response_media_examples(responses, schemas)
+
+
+def _repair_response_media_examples(responses: dict[str, Any], schemas: dict[str, Any]) -> None:
+    for response in responses.values():
+        if not isinstance(response, dict):
+            continue
+        content = response.get("content")
+        if not isinstance(content, dict):
+            continue
+        for media in content.values():
+            if isinstance(media, dict):
+                _repair_media_examples(media, schemas)
+
+
+def _repair_media_examples(media: dict[str, Any], schemas: dict[str, Any]) -> None:
+    media_schema = media.get("schema")
+    if not isinstance(media_schema, dict):
+        return
+    examples = media.get("examples")
+    if isinstance(examples, dict):
+        for example_name, example in examples.items():
+            if isinstance(example, dict) and "value" in example:
+                example["value"] = _repair_example_against_schema(
+                    str(example_name),
+                    example["value"],
+                    media_schema,
+                    schemas,
+                )
+    if "example" in media:
+        media["example"] = _repair_example_against_schema(
+            "media_example",
+            media["example"],
+            media_schema,
+            schemas,
+        )
 
 
 def enrich_openapi_schema(schema: dict[str, Any], service_name: str) -> dict[str, Any]:
@@ -361,4 +526,5 @@ def enrich_openapi_schema(schema: dict[str, Any], service_name: str) -> dict[str
 
     _ensure_operation_documentation(schema, service_name=service_name)
     _ensure_schema_documentation(schema)
+    _ensure_media_example_documentation(schema)
     return schema

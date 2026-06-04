@@ -569,7 +569,7 @@ def render_baseline_report(context: QualityContext) -> str:
         f"{severity}={count}" for severity, count in context.spectral_severity_counts.items()
     )
     if not spectral_severity_inventory:
-        spectral_severity_inventory = "not run"
+        spectral_severity_inventory = "none" if context.spectral_issue_count == 0 else "not run"
     lines = [
         "# Lotus Advise Quality Baseline Report",
         "",

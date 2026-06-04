@@ -65,3 +65,29 @@ def test_spectral_report_records_execution_failure(monkeypatch, tmp_path: Path) 
     assert report["returnCode"] == 2
     assert report["issueCount"] is None
     assert report["stderr"] == "Error running Spectral!"
+
+
+def test_spectral_report_accepts_empty_success_output(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        openapi_spectral_report.app,
+        "openapi",
+        lambda: {"paths": {"/advisory/example": {}}},
+    )
+
+    def fake_run(*args, **kwargs) -> CompletedProcess[str]:
+        return CompletedProcess(
+            args=args,
+            returncode=0,
+            stdout="[]No results with a severity of 'error' found!",
+            stderr="",
+        )
+
+    monkeypatch.setattr(openapi_spectral_report.subprocess, "run", fake_run)
+
+    report = openapi_spectral_report.build_spectral_report(tmp_path)
+
+    assert report["spectralExecutable"] is True
+    assert report["openapiPathCount"] == 1
+    assert report["issueCount"] == 0
+    assert report["severityInventory"] == {}
+    assert report["findings"] == []

@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-689
+
+- Scope: OpenAPI object and media example completeness
+- Pattern: Generated OpenAPI examples should be repaired against declared response and component
+  schemas before Spectral is promoted from report-only inventory to enforcement
+- Status: Improved
+- Finding Class: OpenAPI contract quality and generated-client supportability
+- Summary: After scalar example cleanup, the Spectral backlog consisted only of required-field
+  completeness issues in component examples and documented response media examples.
+- Evidence:
+  - Expanded referenced-object example inference to include all required fields.
+  - Added schema-example repair for existing examples that omit required fields or contradict
+    referenced scalar components.
+  - Added response media-example repair against each declared response schema.
+  - Updated the Spectral report parser to accept Stoplight Spectral's zero-finding CLI output.
+  - `make openapi-spectral-report` now reports `0` findings, down from `54`.
+- Consequence:
+  - The generated OpenAPI contract is now Spectral-clean under the current `.spectral.yaml`
+    baseline, creating a credible path to fail-on-new-regression enforcement.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is generated API documentation and reporting hardening for existing behavior.
+- Follow-Up:
+  - Promote Spectral from report-only inventory to an enforced regression gate once CI behavior is
+    stable on the branch.
+
 ## LA-REV-688
 
 - Scope: OpenAPI constrained scalar examples
