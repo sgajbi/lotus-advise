@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `6f79550e52690c6c6a50c24b9a1ab2920212cc18`
-- Branch Commits Over Main: `18`
+- Head: `34e01ca9952a36bd95a6b583a2bb76840581cfd1`
+- Branch Commits Over Main: `20`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -125,6 +125,8 @@
   source-projection module while preserving the existing read-model facade.
 - Advisor cockpit source projection delegates policy-review and memo package blockage
   source rules to a focused policy/memo projection module.
+- Advisor cockpit source projection delegates proposal meeting-preparation, client
+  follow-up, and approval-dependency rules to a focused proposal projection module.
 - Advisor cockpit service delegates repository-backed source loading and tactical
   house-view source mapping to a focused source-loader module.
 - Proposal workflow delivery operations delegate execution handoff, status, summary,

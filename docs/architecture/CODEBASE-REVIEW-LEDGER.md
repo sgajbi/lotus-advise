@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-662
+
+- Scope: Advisor cockpit proposal source projection ownership
+- Pattern: Proposal meeting-preparation, client follow-up, and approval-dependency source rules
+  should be owned by a proposal source-family module instead of the broad cockpit projection facade.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and reviewability
+- Summary: `src/core/advisor_cockpit/source_projection.py` still owned proposal activity source
+  rules after the policy/memo split, including active-state vocabulary, client-consent follow-up
+  rules, approval dependency state mapping, latest rejected approval selection, and dependency
+  summary construction. These rules are source-family-specific and were coupled to report/archive
+  and execution projection behavior.
+- Evidence:
+  - Added `src/core/advisor_cockpit/source_projection_proposal.py` for proposal active-state,
+    follow-up, approval dependency vocabulary, meeting-preparation sources, client follow-up
+    sources, and approval dependency sources.
+  - Kept `src/core/advisor_cockpit/source_projection.py` as the existing import facade for
+    `source_read_model.py` while delegating proposal implementation to the focused module.
+  - Updated source-read-model boundary tests to require proposal helpers in the focused owner and
+    keep both the read model and broad projection facade free of proposal helper implementations.
+  - Updated RFC-0026 slice 5 source-read-model contract coverage so durable source evidence
+    includes the focused proposal projection module.
+  - Focused ruff, ruff format check, and mypy passed for touched files; advisor cockpit source
+    read-model and RFC-0026 slice 5 contract tests passed with 13 tests.
+- Consequence:
+  - Advisor cockpit source aggregation behavior remains stable while proposal action-source rules
+    can be reviewed independently from policy/memo, report/archive, and execution source
+    projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor-cockpit source projection modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting `source_projection.py` by source family when touching report/archive or
+    execution projection behavior.
+
 ## LA-REV-661
 
 - Scope: Bank-demo journey integration proof model ownership

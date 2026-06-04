@@ -340,6 +340,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit source projection delegates policy-review and memo package blockage",
         "  source rules to a focused policy/memo projection module.",
+        "- Advisor cockpit source projection delegates proposal meeting-preparation, client",
+        "  follow-up, and approval-dependency rules to a focused proposal projection module.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",
         "  house-view source mapping to a focused source-loader module.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
