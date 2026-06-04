@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `f61e1f41d2d25854dbf0648b7e79dc02c6d9d0c9`
-- Branch Commits Over Main: `26`
+- Head: `eb60baec6870ddcd967f931f3443e334625a6285`
+- Branch Commits Over Main: `29`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -135,6 +135,8 @@
   batching, recoverable-operation selection, and copy semantics to focused helpers.
 - Advisor cockpit service delegates acknowledgement idempotency, replay,
   persistence payload, and response projection to a focused service boundary.
+- Engine option models delegate suitability threshold DTOs, group constraints,
+  and reusable validators to focused owner modules while preserving public imports.
 - Proposal workflow delivery operations delegate execution handoff, status, summary,
   history, and execution-update replay behavior to a focused service boundary.
 - Proposal workflow narrative operations delegate narrative read/regeneration/review

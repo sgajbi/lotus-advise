@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-666
+
+- Scope: Engine option suitability model ownership
+- Pattern: Engine option facade models should preserve public imports while delegating suitability
+  threshold DTOs, group constraints, and reusable validation helpers to focused owner modules.
+- Status: Hardened
+- Finding Class: Core model modularity and validation reviewability
+- Summary: `src/core/engine_options_models.py` combined `EngineOptions`, suitability threshold DTOs,
+  group constraint DTOs, and reusable validation helpers in one 393-line model file. This mixed
+  broad simulation option configuration with suitability-specific model validation and made the
+  public model facade harder to review by owner family.
+- Evidence:
+  - Added `src/core/engine_option_suitability_models.py` for `GroupConstraint` and
+    `SuitabilityThresholds`.
+  - Added `src/core/engine_option_validation.py` for group-constraint key validation, optional ratio
+    validation, and non-negative currency amount validation.
+  - Kept `src/core/engine_options_models.py` as the public `EngineOptions` owner and compatibility
+    export path for existing imports of `GroupConstraint` and `SuitabilityThresholds`.
+  - Reduced `src/core/engine_options_models.py` from 393 lines to 295 lines while preserving model
+    import contracts.
+  - Added contract coverage proving the `engine_options_models.py` facade delegates suitability
+    models to the focused owner module.
+  - Focused ruff, ruff format check, and mypy passed for touched files; shared contract model and
+    RFC-0026 slice 7 contract tests passed with 45 tests; repo-native `make lint` passed.
+- Consequence:
+  - Engine option behavior and public imports remain stable while suitability model validation can be
+    reviewed independently from the broad engine option configuration surface.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal core model modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting large core model files by model family when compatibility facades and contract
+    tests can preserve existing imports.
+
 ## LA-REV-665
 
 - Scope: Advisor cockpit acknowledgement service boundary
