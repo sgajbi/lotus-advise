@@ -9,6 +9,8 @@ WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_evaluations.py")
 WORKFLOW_SOURCE_PATH = Path("src/core/policy_packs/workflow.py")
+WORKFLOW_DECISION_SOURCE_PATH = Path("src/core/policy_packs/workflow_decision.py")
+WORKFLOW_PROJECTION_SOURCE_PATH = Path("src/core/policy_packs/workflow_projection.py")
 SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
 WORKFLOW_MODELS_SOURCE_PATH = Path("src/core/policy_packs/workflow_models.py")
@@ -51,6 +53,11 @@ def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> 
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     workflow_source = WORKFLOW_SOURCE_PATH.read_text(encoding="utf-8")
+    workflow_decision_source = WORKFLOW_DECISION_SOURCE_PATH.read_text(encoding="utf-8")
+    workflow_projection_source = WORKFLOW_PROJECTION_SOURCE_PATH.read_text(encoding="utf-8")
+    workflow_contract_source = (
+        f"{workflow_source}\n{workflow_decision_source}\n{workflow_projection_source}"
+    )
     workflow_models_source = WORKFLOW_MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
     compatibility_models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
@@ -61,8 +68,9 @@ def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> 
     assert "/advisory/policy-evaluations/{evaluation_id}/workflow" in routes_source
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in routes_source
     assert "rfc0025.policy-sign-off-workflow.v1" in supportability_source
-    assert "POLICY_EVALUATION_SIGN_OFF_REQUIRES_MAKER_CHECKER" in workflow_source
-    assert "CONFLICT_REVIEW_OUTCOME_REQUIRED" in workflow_source
+    assert "POLICY_EVALUATION_SIGN_OFF_REQUIRES_MAKER_CHECKER" in workflow_contract_source
+    assert "CONFLICT_REVIEW_OUTCOME_REQUIRED" in workflow_contract_source
+    assert "build_policy_evaluation_workflow_projection" in workflow_contract_source
     assert "PolicyEvaluationWorkflowResponse" in workflow_models_source
     assert "PolicyEvaluationSignOffDecisionRequest" in workflow_models_source
     assert "PolicyEvaluationWorkflowResponse" in compatibility_models_source

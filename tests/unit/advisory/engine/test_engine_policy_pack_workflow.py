@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from src.core.policy_packs import (
@@ -15,10 +17,33 @@ from src.core.policy_packs import (
 )
 from src.core.proposals.exceptions import ProposalValidationError
 
+REPO_ROOT = Path(__file__).resolve().parents[4]
+
 
 def setup_function() -> None:
     reset_policy_pack_catalog_for_tests()
     reset_policy_evaluation_store_for_tests()
+
+
+def test_policy_workflow_delegates_projection_and_decision_helpers() -> None:
+    workflow_source = (REPO_ROOT / "src/core/policy_packs/workflow.py").read_text(encoding="utf-8")
+    projection_source = (REPO_ROOT / "src/core/policy_packs/workflow_projection.py").read_text(
+        encoding="utf-8"
+    )
+    decision_source = (REPO_ROOT / "src/core/policy_packs/workflow_decision.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.policy_packs.workflow_projection import" in workflow_source
+    assert "from src.core.policy_packs.workflow_decision import" in workflow_source
+    assert "def build_policy_evaluation_workflow_projection(" not in workflow_source
+    assert "def validate_policy_sign_off_decision(" not in workflow_source
+    assert "def build_policy_evaluation_workflow_projection(" in projection_source
+    assert "def validate_policy_sign_off_decision(" in decision_source
+    assert "POLICY_EVALUATION_SIGN_OFF_REQUIRES_MAKER_CHECKER" not in workflow_source
+    assert "POLICY_EVALUATION_SIGN_OFF_REQUIRES_MAKER_CHECKER" in decision_source
+    assert "CONFLICT_REVIEW_OUTCOME_REQUIRED" not in workflow_source
+    assert "CONFLICT_REVIEW_OUTCOME_REQUIRED" in decision_source
 
 
 def _base_evidence_bundle() -> dict:
