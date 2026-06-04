@@ -265,6 +265,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  currency-alignment, and deferred restricted-product modules.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
+        "- Advisor cockpit service delegates repository-backed source loading and tactical",
+        "  house-view source mapping to a focused source-loader module.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
         "  history, and execution-update replay behavior to a focused service boundary.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",

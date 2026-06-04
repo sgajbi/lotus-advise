@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-618
+
+- Scope: Advisor cockpit service source loading
+- Pattern: The route-facing advisor cockpit service should not own repository-backed source loading
+  and tactical house-view source mapping directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and source-loading maintainability
+- Summary: `src/core/advisor_cockpit/service.py` mixed public action/snapshot/preparation/
+  supportability/acknowledgement methods with proposal, memo, approval, workflow-event, policy,
+  and tactical-house-view source loading. That made pagination, caller projection, snapshot
+  assembly, acknowledgement idempotency, and source retrieval change in the same module.
+- Evidence:
+  - Added `src/core/advisor_cockpit/service_source_loader.py` for bounded proposal source loading,
+    policy evaluation lookup, batched memo/approval/workflow-event reads, tactical house-view
+    source mapping, and source-read-model construction.
+  - Kept `AdvisorCockpitService` as the stable facade for listing actions, snapshots, preparation
+    packets, supportability, and acknowledgements.
+  - Updated cockpit service tests to patch source dependencies at the new source-loader boundary
+    and added a source-boundary guard proving bulk source read helpers stay outside the service.
+  - Focused cockpit service lint, mypy, and behavior tests passed with 14 tests.
+- Consequence:
+  - Advisor cockpit behavior remains compatible while repository access and source mapping are now
+    isolated from caller projection, pagination, snapshot supportability, and acknowledgement
+    idempotency logic.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `AdvisorCockpitService` by extracting acknowledgement idempotency or snapshot
+    assembly once the corresponding behavior seams are covered by focused tests.
+
 ## LA-REV-617
 
 - Scope: Proposal memo external request orchestration
