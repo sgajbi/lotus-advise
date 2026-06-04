@@ -29,25 +29,16 @@ from src.core.proposals.memo_request_context import (
     validate_source_memo_hash,
 )
 from src.core.proposals.memo_response_projection import (
-    archive_refs_from_report_posture as _archive_refs_from_report_posture,
-)
-from src.core.proposals.memo_response_projection import (
+    build_memo_lineage_response,
+    build_memo_projection_response,
+    build_memo_replay_evidence_response,
     build_memo_response,
 )
 from src.core.proposals.memo_response_projection import (
     commentary_from_ai_event as _commentary_from_ai_event,
 )
 from src.core.proposals.memo_response_projection import (
-    latest_event_posture as _latest_event_posture,
-)
-from src.core.proposals.memo_response_projection import (
-    memo_has_replay_metadata as _memo_has_replay_metadata,
-)
-from src.core.proposals.memo_response_projection import (
     memo_report_status as _memo_report_status,
-)
-from src.core.proposals.memo_response_projection import (
-    project_sections as _project_sections,
 )
 from src.core.proposals.memo_response_projection import (
     report_response_from_event as _report_response_from_event,
@@ -59,7 +50,6 @@ from src.core.proposals.models import (
     ProposalMemoAiCommentaryRequest,
     ProposalMemoAiCommentaryResponse,
     ProposalMemoCreateRequest,
-    ProposalMemoLineageItem,
     ProposalMemoLineageResponse,
     ProposalMemoProjectionResponse,
     ProposalMemoReplayEvidenceResponse,
@@ -146,26 +136,7 @@ def get_memo_projection_response(
         proposal_id=proposal_id,
         version_no=version_no,
     )
-    sections = _project_sections(memo_response.memo, audience=audience)
-    return ProposalMemoProjectionResponse(
-        proposal=memo_response.proposal,
-        proposal_version_no=memo_response.proposal_version_no,
-        memo_id=memo_response.memo_id,
-        memo_hash=memo_response.memo_hash,
-        audience=audience,
-        projection=memo_response.projection,
-        sections=sections,
-        projection_posture={
-            "source": "PERSISTED_MEMO_RECORD",
-            "mutation_performed": False,
-            "audience_filter": audience,
-            "client_ready_publication": memo_response.projection.get(
-                "client_ready_publication", "BLOCKED"
-            ),
-            "gateway_supported": False,
-            "workbench_supported": False,
-        },
-    )
+    return build_memo_projection_response(memo_response=memo_response, audience=audience)
 
 
 def record_memo_review_response(
@@ -481,40 +452,10 @@ def get_memo_lineage_response(
     if proposal is None:
         raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
     memos = repository.list_memos(proposal_id=proposal_id)
-    items = []
-    for memo in memos:
-        events = repository.list_memo_events(memo_id=memo.memo_id)
-        report_posture = _latest_event_posture(events, event_type="MEMO_REPORT_PACKAGE_RECORDED")
-        ai_posture = _latest_event_posture(events, event_type="MEMO_AI_REFERENCE_RECORDED")
-        items.append(
-            ProposalMemoLineageItem(
-                memo_id=memo.memo_id,
-                proposal_version_no=memo.proposal_version_no,
-                proposal_version_id=memo.proposal_version_id,
-                memo_status=memo.memo_status,
-                lifecycle_status=memo.lifecycle_status,
-                memo_hash=memo.memo_hash,
-                source_input_hash=memo.source_input_hash,
-                created_at=memo.created_at.isoformat(),
-                event_count=len(events),
-                report_package_posture=report_posture,
-                archive_refs=_archive_refs_from_report_posture(report_posture),
-                ai_commentary_posture=ai_posture,
-            )
-        )
-    return ProposalMemoLineageResponse(
-        proposal=to_proposal_summary(proposal),
-        memo_count=len(items),
-        latest_memo_id=items[-1].memo_id if items else None,
-        lineage_complete=all(_memo_has_replay_metadata(memo) for memo in memos),
-        memos=items,
-        lineage_posture={
-            "source": "PERSISTED_MEMO_RECORDS",
-            "memo_api_supported": True,
-            "gateway_supported": False,
-            "workbench_supported": False,
-            "client_ready_publication": "BLOCKED",
-        },
+    return build_memo_lineage_response(
+        repository=repository,
+        proposal=proposal,
+        memos=memos,
     )
 
 
@@ -529,40 +470,10 @@ def get_memo_replay_evidence_response(
         proposal_id=proposal_id,
         version_no=version_no,
     )
-    replay_metadata = memo_response.replay_metadata
-    return ProposalMemoReplayEvidenceResponse(
-        subject={
-            "proposal_id": proposal_id,
-            "proposal_version_no": version_no,
-            "proposal_version_id": memo_response.proposal_version_id,
-            "memo_id": memo_response.memo_id,
-        },
-        hashes={
-            "memo_hash": memo_response.memo_hash,
-            "source_input_hash": memo_response.source_input_hash,
-            "proposal_request_hash": replay_metadata.get("proposal_request_hash"),
-            "proposal_artifact_hash": replay_metadata.get("proposal_artifact_hash"),
-            "proposal_simulation_hash": replay_metadata.get("proposal_simulation_hash"),
-            "memo_request_hash": replay_metadata.get("memo_request_hash"),
-        },
-        replay_metadata=replay_metadata,
-        audit_events=memo_response.audit_events,
-        evidence={
-            "memo_status": memo_response.memo_status,
-            "lifecycle_status": memo_response.lifecycle_status,
-            "projection": memo_response.projection,
-            "review_posture": memo_response.review_posture,
-            "report_package_posture": memo_response.report_package_posture,
-            "ai_commentary_posture": memo_response.ai_commentary_posture,
-        },
-        explanation={
-            "source": "PERSISTED_MEMO_RECORD",
-            "replay_policy": replay_metadata.get("replay_policy", "EXACT_SOURCE_HASH_MATCH"),
-            "mutation_performed": False,
-            "client_ready_publication": "BLOCKED",
-            "gateway_supported": False,
-            "workbench_supported": False,
-        },
+    return build_memo_replay_evidence_response(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        memo_response=memo_response,
     )
 
 

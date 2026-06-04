@@ -46,9 +46,18 @@ def test_memo_api_delegates_response_projection_helpers() -> None:
         "archive_refs_from_report_posture",
         "project_sections",
         "memo_has_replay_metadata",
+        "build_memo_projection_response",
+        "build_memo_lineage_response",
+        "build_memo_replay_evidence_response",
     ):
         assert f"def {helper_name}(" not in source
         assert f"def {helper_name}(" in projection_source
+    assert "ProposalMemoProjectionResponse(" not in source
+    assert "ProposalMemoLineageItem(" not in source
+    assert "ProposalMemoReplayEvidenceResponse(" not in source
+    assert "ProposalMemoProjectionResponse(" in projection_source
+    assert "ProposalMemoLineageItem(" in projection_source
+    assert "ProposalMemoReplayEvidenceResponse(" in projection_source
 
 
 def test_memo_api_delegates_event_recording_helpers() -> None:
