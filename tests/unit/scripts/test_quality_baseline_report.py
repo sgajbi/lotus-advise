@@ -66,6 +66,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Bandit current issue inventory" in baseline
     assert "Bandit severity inventory" in baseline
     assert "OpenAPI Gaps" in baseline
+    assert "Spectral config executable" in baseline
+    assert "Spectral current issue inventory" in baseline
+    assert "Spectral severity inventory" in baseline
     assert "Architecture Violations" in baseline
     assert "Import-linter config executable" in baseline
     assert "Import-linter contract inventory" in baseline
@@ -79,6 +82,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Executable Vulture inventory" in scorecard
     assert "Enforced plus deptry inventory" in scorecard
     assert "Partially enforced plus Bandit inventory" in scorecard
+    assert "Enforced plus Spectral inventory" in scorecard
     assert "make lint runs import-linter architecture contracts" in scorecard
     assert "Gap tracked plus Interrogate inventory" in scorecard
     assert "Diagnostics target added" in scorecard
@@ -144,6 +148,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Vulture dead-code inventory" in refactor_health
     assert "Interrogate docstring inventory" in refactor_health
     assert "Bandit security inventory" in refactor_health
+    assert "Spectral OpenAPI warning inventory" in refactor_health
     assert "deptry dependency inventory" in refactor_health
 
 

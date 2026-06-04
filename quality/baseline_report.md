@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T16:10:42.625023+00:00`
+- Generated At: `2026-06-04T16:23:01.480770+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `357de2e2e9cbebdb4ce944c292a80e5b667e5904`
-- Branch Commits Over Main: `7`
+- Head: `dece63e9317eea5bc9195e451628127eac2d27f3`
+- Branch Commits Over Main: `8`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `912`
+- Python files: `913`
 - Packages: `38`
-- Modules: `874`
-- Total Python lines: `137262`
+- Modules: `875`
+- Total Python lines: `137507`
 
 ## Largest Files
 
@@ -41,7 +41,7 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 623 | 200 |
+| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 487 | 219 |
 
 ## Complexity
 
@@ -96,7 +96,12 @@
 
 - Repo-native OpenAPI gate configured: `True`
 - Spectral rules present: `True`
-- Spectral is report-only until Node/Spectral execution is added to CI.
+- Spectral config executable: `True`
+- Spectral OpenAPI path inventory: `84`
+- Spectral current issue inventory: `283`
+- Spectral severity inventory: `error=277, warn=6`
+- Spectral remains report-only until warning inventory is stable enough for
+  fail-on-new-regression enforcement.
 
 ## Architecture Violations
 
@@ -110,7 +115,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3368, missing=3333, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3375, missing=3340, covered=35, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

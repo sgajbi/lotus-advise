@@ -17,13 +17,14 @@ vocabulary checks, no-alias checks, and current report-only Spectral rules.
 ## Current Evidence
 
 - `make openapi-gate`
+- `make openapi-spectral-report`
 - `make no-alias-gate`
 - `make api-vocabulary-gate`
-- `.spectral.yaml` for report-only API documentation rules
+- `.spectral.yaml` for report-only API documentation rules and warning inventory
 - `quality/api_governance_rules.md`
 
 ## Current Gaps
 
-- Spectral execution is configured but not yet enforced in CI.
+- Spectral execution is report-only and not yet promoted to fail-on-new-regression enforcement.
 - RFC 7807/problem-details is a future migration unless a route family already implements it.
 - Filtering, sorting, pagination, and deprecation rules still need full cross-endpoint inventory.

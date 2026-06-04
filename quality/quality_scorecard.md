@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `357de2e2e9cbebdb4ce944c292a80e5b667e5904`
+- Head: `dece63e9317eea5bc9195e451628127eac2d27f3`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |
@@ -15,7 +15,7 @@
 | Dead code | Executable Vulture inventory | vulture issue and confidence counts |
 | Dependencies | Enforced plus deptry inventory | dependency health check + pip-audit posture + deptry issue count |
 | Security | Partially enforced plus Bandit inventory | security-audit + Bandit severity counts |
-| OpenAPI | Enforced plus report-only | openapi-gate + Spectral config |
+| OpenAPI | Enforced plus Spectral inventory | openapi-gate + Spectral warning counts |
 | Architecture boundaries | Enforced | make lint runs import-linter architecture contracts |
 | Docs | Gap tracked plus Interrogate inventory | requested docs + docstring coverage inventory |
 | Observability | Diagnostics target added | make observability-diagnostics |

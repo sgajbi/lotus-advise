@@ -186,7 +186,7 @@ class EngineOptions(BaseModel):
             "Attach BUY intent dependency to a same-currency SELL intent. "
             "When null, advisory runtime keeps the default disabled unless explicitly enabled."
         ),
-        examples=[None, True, False],
+        examples=[True, False],
     )
     enable_drift_analytics: bool = Field(
         default=True,

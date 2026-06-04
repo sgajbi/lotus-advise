@@ -21,12 +21,12 @@
 
 - `.spectral.yaml` defines report-only OpenAPI rules for operation IDs, descriptions, tags, and
   response documentation.
+- `make openapi-spectral-report` exports the generated OpenAPI document and records a pinned
+  Spectral warning inventory in `output/openapi-spectral-report.json`.
 - `scripts/openapi_quality_gate.py` remains the repo-native OpenAPI gate.
-- `quality/baseline_report.md` records Spectral execution as report-only pending Node/Spectral CI
-  installation.
+- `quality/baseline_report.md` records Spectral executability, OpenAPI path count, issue count, and
+  severity inventory.
 
 ## Next Gate
 
-- Add Spectral execution as report-only CI.
-- Capture OpenAPI warning inventory.
 - Move to fail-on-new-regression after the warning inventory is stable.

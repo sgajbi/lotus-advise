@@ -13,3 +13,4 @@ env/
 .ruff_cache/
 .mypy_cache/
 output/
+node_modules/

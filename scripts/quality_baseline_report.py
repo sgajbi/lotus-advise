@@ -72,6 +72,10 @@ class QualityContext:
     vulture_config_valid: bool
     vulture_issue_count: int | None
     vulture_confidence_counts: dict[str, int]
+    spectral_config_valid: bool
+    spectral_issue_count: int | None
+    spectral_severity_counts: dict[str, int]
+    spectral_openapi_path_count: int | None
     interrogate_config_valid: bool
     interrogate_total_count: int | None
     interrogate_missing_count: int | None
@@ -335,6 +339,57 @@ def _interrogate_inventory(
     )
 
 
+def _spectral_openapi_inventory(
+    repo_root: Path,
+) -> tuple[bool, int | None, dict[str, int], int | None]:
+    if (
+        not (repo_root / ".spectral.yaml").exists()
+        or not (repo_root / "scripts" / "openapi_spectral_report.py").exists()
+    ):
+        return False, None, {}, None
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
+        output_path = Path(handle.name)
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "scripts/openapi_spectral_report.py",
+                "--output",
+                str(output_path),
+            ],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if not output_path.exists() or completed.returncode not in {0, 1}:
+            return False, None, {}, None
+        try:
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return False, None, {}, None
+        if not isinstance(payload, dict) or payload.get("spectralExecutable") is not True:
+            return False, None, {}, None
+        issue_count = payload.get("issueCount")
+        path_count = payload.get("openapiPathCount")
+        severity_inventory = payload.get("severityInventory")
+        if not isinstance(issue_count, int) or not isinstance(severity_inventory, dict):
+            return False, None, {}, None
+        severity_counts = {
+            str(severity): int(count)
+            for severity, count in severity_inventory.items()
+            if isinstance(count, int)
+        }
+        return (
+            True,
+            issue_count,
+            severity_counts,
+            path_count if isinstance(path_count, int) else None,
+        )
+    finally:
+        output_path.unlink(missing_ok=True)
+
+
 def build_quality_context(repo_root: Path) -> QualityContext:
     available_tools = tuple(name for name, module in QUALITY_TOOLS if _tool_available(module))
     unavailable_tools = tuple(name for name, module in QUALITY_TOOLS if not _tool_available(module))
@@ -366,6 +421,12 @@ def build_quality_context(repo_root: Path) -> QualityContext:
     vulture_config_valid, vulture_issue_count, vulture_confidence_counts = _vulture_issue_inventory(
         repo_root
     )
+    (
+        spectral_config_valid,
+        spectral_issue_count,
+        spectral_severity_counts,
+        spectral_openapi_path_count,
+    ) = _spectral_openapi_inventory(repo_root)
     (
         interrogate_config_valid,
         interrogate_total_count,
@@ -405,6 +466,10 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         vulture_config_valid=vulture_config_valid,
         vulture_issue_count=vulture_issue_count,
         vulture_confidence_counts=vulture_confidence_counts,
+        spectral_config_valid=spectral_config_valid,
+        spectral_issue_count=spectral_issue_count,
+        spectral_severity_counts=spectral_severity_counts,
+        spectral_openapi_path_count=spectral_openapi_path_count,
         interrogate_config_valid=interrogate_config_valid,
         interrogate_total_count=interrogate_total_count,
         interrogate_missing_count=interrogate_missing_count,
@@ -492,6 +557,19 @@ def render_baseline_report(context: QualityContext) -> str:
         else "not run"
     )
     interrogate_coverage_percent = context.interrogate_coverage_percent or "not run"
+    spectral_issue_count = (
+        str(context.spectral_issue_count) if context.spectral_issue_count is not None else "not run"
+    )
+    spectral_path_count = (
+        str(context.spectral_openapi_path_count)
+        if context.spectral_openapi_path_count is not None
+        else "not run"
+    )
+    spectral_severity_inventory = ", ".join(
+        f"{severity}={count}" for severity, count in context.spectral_severity_counts.items()
+    )
+    if not spectral_severity_inventory:
+        spectral_severity_inventory = "not run"
     lines = [
         "# Lotus Advise Quality Baseline Report",
         "",
@@ -586,7 +664,12 @@ def render_baseline_report(context: QualityContext) -> str:
             "",
             f"- Repo-native OpenAPI gate configured: `{'openapi-gate' in gates}`",
             f"- Spectral rules present: `{context.spectral_present}`",
-            "- Spectral is report-only until Node/Spectral execution is added to CI.",
+            f"- Spectral config executable: `{context.spectral_config_valid}`",
+            f"- Spectral OpenAPI path inventory: `{spectral_path_count}`",
+            f"- Spectral current issue inventory: `{spectral_issue_count}`",
+            f"- Spectral severity inventory: `{spectral_severity_inventory}`",
+            "- Spectral remains report-only until warning inventory is stable enough for",
+            "  fail-on-new-regression enforcement.",
             "",
             "## Architecture Violations",
             "",
@@ -801,7 +884,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
-        "- Calibrate report-only tools: xenon, Spectral, and optional schemathesis/load testing.",
+        "- Calibrate remaining report-only tools: xenon and optional schemathesis/load testing.",
+        "- Convert the Spectral OpenAPI warning inventory into a fail-on-new-regression gate",
+        "  after classifying current findings.",
         "- Convert the Interrogate docstring inventory into a targeted documentation-quality gate",
         "  after classifying public API and module ownership thresholds.",
         "- Convert the Vulture dead-code inventory into a fail-on-new-regression gate after",
@@ -849,7 +934,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Partially enforced plus Bandit inventory",
             "security-audit + Bandit severity counts",
         ),
-        ("OpenAPI", "Enforced plus report-only", "openapi-gate + Spectral config"),
+        (
+            "OpenAPI",
+            "Enforced plus Spectral inventory",
+            "openapi-gate + Spectral warning counts",
+        ),
         (
             "Architecture boundaries",
             "Enforced",

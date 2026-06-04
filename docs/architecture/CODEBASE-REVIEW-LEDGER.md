@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-685
+
+- Scope: OpenAPI Spectral warning inventory
+- Pattern: Report-only API governance tools should be pinned, executable, and counted before they
+  are promoted to fail-on-new-regression gates
+- Status: Improved
+- Finding Class: API governance and CI measurement
+- Summary: `.spectral.yaml` existed as a report-only ruleset, but the quality baseline could only
+  record that the rules file was present. That left OpenAPI documentation linting unmeasured and
+  made it impossible to prove whether warning counts improved before enforcing Spectral in CI.
+- Evidence:
+  - Added a pinned `@stoplight/spectral-cli` dev dependency and lockfile.
+  - Added `scripts/openapi_spectral_report.py` to export the generated FastAPI OpenAPI document and
+    record Spectral issue/severity inventory as JSON.
+  - Added `make openapi-spectral-report` and installed Node dependencies in the
+    Quality Baseline Report workflow before generating reports.
+  - Extended generated quality reports with Spectral executability, OpenAPI path count, issue
+    count, and severity inventory.
+  - Updated API governance docs and quality-report tests.
+- Consequence:
+  - OpenAPI governance now has a reproducible Spectral baseline that can be compared across commits
+    before becoming an enforced regression gate.
+- Documentation:
+  - Review ledger and API governance docs updated. No wiki source change is required because this is
+    CI/reporting governance for existing API contracts.
+- Follow-Up:
+  - Classify current Spectral findings, fix true API-documentation gaps, then promote the inventory
+    to fail-on-new-regression enforcement.
+
 ## LA-REV-684
 
 - Scope: Observability diagnostics contract
