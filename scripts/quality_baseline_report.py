@@ -348,6 +348,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  house-view source mapping to a focused source-loader module.",
         "- In-memory proposal repository adapters delegate pure filtering, ordering,",
         "  batching, recoverable-operation selection, and copy semantics to focused helpers.",
+        "- Advisor cockpit service delegates acknowledgement idempotency, replay,",
+        "  persistence payload, and response projection to a focused service boundary.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
         "  history, and execution-update replay behavior to a focused service boundary.",
         "- Proposal workflow narrative operations delegate narrative read/regeneration/review",

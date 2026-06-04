@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-665
+
+- Scope: Advisor cockpit acknowledgement service boundary
+- Pattern: Advisor cockpit service orchestration should delegate acknowledgement replay,
+  idempotency conflict handling, acknowledgement persistence payloads, and response projection to a
+  focused acknowledgement boundary.
+- Status: Hardened
+- Finding Class: Advisor cockpit service modularity and idempotency reviewability
+- Summary: `src/core/advisor_cockpit/service.py` still owned acknowledgement request hashing,
+  idempotency replay/conflict behavior, persistence record construction, acknowledgement-state
+  projection, and response audit projection inside the broad service class. That mixed
+  acknowledgement-specific idempotency behavior with list/snapshot/supportability orchestration and
+  made the replay boundary harder to review independently.
+- Evidence:
+  - Added `src/core/advisor_cockpit/service_acknowledgement.py` for cockpit acknowledgement
+    idempotency validation, canonical request hashing, replay/conflict handling, persistence
+    payload construction, acknowledgement-state projection, and response audit projection.
+  - Kept `AdvisorCockpitService` as the action-resolution and orchestration owner while delegating
+    acknowledgement processing to the focused boundary.
+  - Reduced `src/core/advisor_cockpit/service.py` from 404 lines to 313 lines while preserving the
+    public service API and behavior.
+  - Added a cockpit service boundary test requiring acknowledgement helpers and canonical hashing to
+    live in the focused acknowledgement module instead of the broad service.
+  - Focused ruff, ruff format check, and mypy passed for touched files; advisor cockpit service
+    tests passed with 15 tests; repo-native `make lint` passed.
+- Consequence:
+  - Cockpit acknowledgement behavior remains stable while idempotency replay and response projection
+    can be reviewed independently from action listing, snapshots, supportability, and source loading.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor-cockpit service modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting service orchestration where a focused use-case boundary can retain existing
+    behavior and receive direct boundary tests.
+
 ## LA-REV-664
 
 - Scope: In-memory proposal repository query helper ownership
