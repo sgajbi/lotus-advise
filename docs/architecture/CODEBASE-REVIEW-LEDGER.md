@@ -1,5 +1,44 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-653
+
+- Scope: Proposal context resolution, request hashing, and evidence ownership
+- Pattern: Proposal context resolution should not own canonical request hashing and advisory
+  context evidence projection in the same runtime module.
+- Status: Hardened
+- Finding Class: Proposal lifecycle context modularity and dependency-flow maintainability
+- Summary: `src/core/proposals/context.py` mixed stateful/stateless/legacy input-mode
+  resolution, resolved-context dataclasses, canonical request payload hashing, and persisted
+  context-resolution evidence projection. That made proposal create/version commands, advisory
+  simulation, workspace reevaluation, workspace handoff, and async submission hashing depend on a
+  broad facade even when each caller needed only one responsibility.
+- Evidence:
+  - Added `src/core/proposals/context_resolution.py` for proposal context dataclasses, domain
+    resolution errors, and create/simulation/version request resolution.
+  - Added `src/core/proposals/context_hashing.py` for canonical create, simulation, and version
+    request payload hashes.
+  - Added `src/core/proposals/context_evidence.py` for advisory policy context and resolved
+    context evidence projection.
+  - Reduced `src/core/proposals/context.py` to a compatibility facade preserving existing public
+    imports.
+  - Updated proposal create/version commands, async payload hashing, advisory simulation services,
+    workspace reevaluation, and workspace handoff to import focused owner modules directly.
+  - Added contract coverage proving the facade re-exports focused owner objects, production
+    runtime modules avoid the broad facade, and the facade remains thin.
+  - Focused ruff and mypy passed for the touched files; proposal context, async payload,
+    workflow service, advisory simulation validation/evaluation, workspace handoff, and workspace
+    reevaluation tests passed with 109 tests.
+- Consequence:
+  - Proposal context behavior, request hashes, and evidence payload shape remain stable while
+    future context-resolution changes can be reviewed independently from hashing and evidence
+    projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal lifecycle modularity for existing behavior.
+- Follow-Up:
+  - Keep runtime proposal/workspace/advisory simulation modules importing context resolution,
+    hashing, and evidence helpers from focused owner modules instead of the compatibility facade.
+
 ## LA-REV-652
 
 - Scope: Proposal input request and context DTO ownership

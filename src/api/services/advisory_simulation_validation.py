@@ -5,7 +5,7 @@ from typing import cast
 from src.api.services.advisory_simulation_errors import simulation_validation_exception
 from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.proposal_request_models import ProposalSimulateRequest
-from src.core.proposals.context import (
+from src.core.proposals.context_resolution import (
     ProposalContextResolutionError,
     ResolvedSimulationContext,
     resolve_simulation_request,

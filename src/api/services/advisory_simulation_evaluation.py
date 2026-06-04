@@ -2,10 +2,8 @@ from src.api.services.advisory_simulation_errors import simulation_validation_ex
 from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.proposal_result_models import ProposalResult
-from src.core.proposals.context import (
-    ResolvedSimulationContext,
-    build_context_resolution_evidence,
-)
+from src.core.proposals.context_evidence import build_context_resolution_evidence
+from src.core.proposals.context_resolution import ResolvedSimulationContext
 from src.core.proposals.correlation import resolve_correlation_id
 
 

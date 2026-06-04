@@ -5,10 +5,10 @@ from datetime import datetime
 from typing import Any
 
 from src.core.proposals.command_validation import validate_proposal_simulation_flag
-from src.core.proposals.context import (
+from src.core.proposals.context_evidence import build_context_resolution_evidence
+from src.core.proposals.context_hashing import build_create_request_hash
+from src.core.proposals.context_resolution import (
     ProposalContextResolutionError,
-    build_context_resolution_evidence,
-    build_create_request_hash,
     resolve_create_request,
 )
 from src.core.proposals.create_persistence import persist_created_proposal

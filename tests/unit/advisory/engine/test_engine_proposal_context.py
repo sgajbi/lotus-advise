@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import pytest
 
+import src.core.proposals.context as context_facade
 from src.core.proposals.context import (
     ProposalContextResolutionError,
     build_create_request_hash,
@@ -8,6 +11,9 @@ from src.core.proposals.context import (
     resolve_simulation_request,
     resolve_version_request,
 )
+from src.core.proposals.context_evidence import build_context_resolution_evidence
+from src.core.proposals.context_hashing import build_simulation_request_hash
+from src.core.proposals.context_resolution import ResolvedSimulationContext
 from src.core.proposals.models import (
     ProposalCreateRequest,
     ProposalSimulationRequest,
@@ -172,3 +178,40 @@ def test_context_resolution_uses_domain_errors_for_constructed_invalid_payloads(
 ):
     with pytest.raises(ProposalContextResolutionError, match=expected_message):
         resolver(payload)
+
+
+def test_proposal_context_facade_reexports_focused_owner_modules():
+    assert context_facade.resolve_create_request is resolve_create_request
+    assert context_facade.build_simulation_request_hash is build_simulation_request_hash
+    assert context_facade.build_context_resolution_evidence is build_context_resolution_evidence
+    assert context_facade.ResolvedSimulationContext is ResolvedSimulationContext
+
+
+def test_proposal_runtime_context_imports_use_focused_owner_modules():
+    runtime_paths = [
+        Path("src/core/proposals/create_command.py"),
+        Path("src/core/proposals/version_command.py"),
+        Path("src/core/proposals/async_payloads.py"),
+        Path("src/core/workspace/reevaluation.py"),
+        Path("src/core/workspace/handoff.py"),
+        Path("src/api/services/advisory_simulation_service.py"),
+        Path("src/api/services/advisory_simulation_validation.py"),
+        Path("src/api/services/advisory_simulation_evaluation.py"),
+    ]
+
+    for path in runtime_paths:
+        source = path.read_text(encoding="utf-8")
+
+        assert "from src.core.proposals.context import" not in source
+        assert "src.core.proposals.context_" in source
+
+
+def test_proposal_context_facade_stays_thin():
+    source = Path("src/core/proposals/context.py").read_text(encoding="utf-8")
+
+    assert "def resolve_create_request(" not in source
+    assert "def build_create_request_hash(" not in source
+    assert "def build_context_resolution_evidence(" not in source
+    assert "from src.core.proposals.context_resolution import" in source
+    assert "from src.core.proposals.context_hashing import" in source
+    assert "from src.core.proposals.context_evidence import" in source

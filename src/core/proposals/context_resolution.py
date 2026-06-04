@@ -1,0 +1,304 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import cast
+
+from src.core.advisory.policy_context import ProposalPolicySelectors
+from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposals.models import (
+    ProposalCreateMetadata,
+    ProposalCreateRequest,
+    ProposalInputMode,
+    ProposalResolvedContext,
+    ProposalSimulationRequest,
+    ProposalStatefulInput,
+    ProposalVersionRequest,
+)
+from src.integrations.lotus_core import (
+    LotusCoreContextResolutionError,
+    resolve_lotus_core_advisory_context,
+)
+
+
+class ProposalContextResolutionError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class ResolvedProposalContext:
+    input_mode: ProposalInputMode
+    resolution_source: str
+    simulate_request: ProposalSimulateRequest
+    resolved_context: ProposalResolvedContext
+    metadata: ProposalCreateMetadata
+    policy_selectors: ProposalPolicySelectors
+    used_legacy_contract: bool
+
+
+@dataclass(frozen=True)
+class ResolvedSimulationContext:
+    input_mode: ProposalInputMode
+    resolution_source: str
+    simulate_request: ProposalSimulateRequest
+    resolved_context: ProposalResolvedContext
+    policy_selectors: ProposalPolicySelectors
+    used_legacy_contract: bool
+
+
+def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalContext:
+    if payload.input_mode == "stateful":
+        stateful_input = _require_stateful_input(payload.stateful_input)
+        simulate_request, resolved_context = _resolve_stateful_input(stateful_input)
+        metadata = _metadata_with_stateful_defaults(payload.metadata, stateful_input)
+        return ResolvedProposalContext(
+            input_mode="stateful",
+            resolution_source="LOTUS_CORE",
+            simulate_request=simulate_request,
+            resolved_context=resolved_context,
+            metadata=metadata,
+            policy_selectors=_policy_selectors(
+                metadata=metadata,
+                stateful_input=stateful_input,
+            ),
+            used_legacy_contract=False,
+        )
+
+    if payload.input_mode == "stateless":
+        simulate_request = _require_stateless_simulate_request(payload)
+        return ResolvedProposalContext(
+            input_mode="stateless",
+            resolution_source="DIRECT_REQUEST",
+            simulate_request=simulate_request,
+            resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+            metadata=payload.metadata.model_copy(deep=True),
+            policy_selectors=_policy_selectors(metadata=payload.metadata),
+            used_legacy_contract=False,
+        )
+
+    simulate_request = _require_legacy_simulate_request(payload.simulate_request)
+    return ResolvedProposalContext(
+        input_mode="stateless",
+        resolution_source="DIRECT_REQUEST",
+        simulate_request=simulate_request,
+        resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+        metadata=payload.metadata.model_copy(deep=True),
+        policy_selectors=_policy_selectors(metadata=payload.metadata),
+        used_legacy_contract=True,
+    )
+
+
+def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSimulationContext:
+    if payload.input_mode == "stateful":
+        stateful_input = _require_stateful_input(payload.stateful_input)
+        simulate_request, resolved_context = _resolve_stateful_input(stateful_input)
+        simulate_request = _merge_alternatives_request(
+            simulate_request,
+            alternatives_request=payload.alternatives_request,
+        )
+        return ResolvedSimulationContext(
+            input_mode="stateful",
+            resolution_source="LOTUS_CORE",
+            simulate_request=simulate_request,
+            resolved_context=resolved_context,
+            policy_selectors=_policy_selectors(stateful_input=stateful_input),
+            used_legacy_contract=False,
+        )
+
+    if payload.input_mode == "stateless":
+        simulate_request = _require_stateless_simulate_request(payload)
+        return ResolvedSimulationContext(
+            input_mode="stateless",
+            resolution_source="DIRECT_REQUEST",
+            simulate_request=simulate_request,
+            resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+            policy_selectors=_policy_selectors(),
+            used_legacy_contract=False,
+        )
+
+    simulate_request = _require_legacy_simulate_request(payload.simulate_request)
+    return ResolvedSimulationContext(
+        input_mode="stateless",
+        resolution_source="DIRECT_REQUEST",
+        simulate_request=simulate_request,
+        resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+        policy_selectors=_policy_selectors(),
+        used_legacy_contract=True,
+    )
+
+
+def resolve_version_request(payload: ProposalVersionRequest) -> ResolvedProposalContext:
+    metadata = ProposalCreateMetadata()
+    if payload.input_mode == "stateful":
+        stateful_input = _require_stateful_input(payload.stateful_input)
+        simulate_request, resolved_context = _resolve_stateful_input(stateful_input)
+        resolved_metadata = _metadata_with_stateful_defaults(metadata, stateful_input)
+        return ResolvedProposalContext(
+            input_mode="stateful",
+            resolution_source="LOTUS_CORE",
+            simulate_request=simulate_request,
+            resolved_context=resolved_context,
+            metadata=resolved_metadata,
+            policy_selectors=_policy_selectors(
+                metadata=resolved_metadata,
+                stateful_input=stateful_input,
+            ),
+            used_legacy_contract=False,
+        )
+
+    if payload.input_mode == "stateless":
+        simulate_request = _require_stateless_simulate_request(payload)
+        return ResolvedProposalContext(
+            input_mode="stateless",
+            resolution_source="DIRECT_REQUEST",
+            simulate_request=simulate_request,
+            resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+            metadata=metadata,
+            policy_selectors=_policy_selectors(metadata=metadata),
+            used_legacy_contract=False,
+        )
+
+    simulate_request = _require_legacy_simulate_request(payload.simulate_request)
+    return ResolvedProposalContext(
+        input_mode="stateless",
+        resolution_source="DIRECT_REQUEST",
+        simulate_request=simulate_request,
+        resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+        metadata=metadata,
+        policy_selectors=_policy_selectors(metadata=metadata),
+        used_legacy_contract=True,
+    )
+
+
+def _require_stateful_input(
+    stateful_input: ProposalStatefulInput | None,
+) -> ProposalStatefulInput:
+    if stateful_input is None:
+        raise ProposalContextResolutionError("PROPOSAL_STATEFUL_INPUT_REQUIRED")
+    return stateful_input
+
+
+def _require_stateless_simulate_request(
+    payload: ProposalCreateRequest | ProposalSimulationRequest | ProposalVersionRequest,
+) -> ProposalSimulateRequest:
+    if payload.stateless_input is None:
+        raise ProposalContextResolutionError("PROPOSAL_STATELESS_INPUT_REQUIRED")
+    return cast(
+        ProposalSimulateRequest,
+        payload.stateless_input.simulate_request.model_copy(deep=True),
+    )
+
+
+def _require_legacy_simulate_request(
+    simulate_request: ProposalSimulateRequest | None,
+) -> ProposalSimulateRequest:
+    if simulate_request is None:
+        raise ProposalContextResolutionError("PROPOSAL_SIMULATE_REQUEST_REQUIRED")
+    return cast(ProposalSimulateRequest, simulate_request.model_copy(deep=True))
+
+
+def _current_business_date_iso() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+def _build_resolved_context_from_simulate_request(
+    simulate_request: ProposalSimulateRequest,
+) -> ProposalResolvedContext:
+    return ProposalResolvedContext(
+        portfolio_id=simulate_request.portfolio_snapshot.portfolio_id,
+        as_of=simulate_request.reference_model.as_of
+        if simulate_request.reference_model is not None
+        else _current_business_date_iso(),
+        portfolio_snapshot_id=simulate_request.portfolio_snapshot.snapshot_id,
+        market_data_snapshot_id=simulate_request.market_data_snapshot.snapshot_id,
+    )
+
+
+def _metadata_with_stateful_defaults(
+    metadata: ProposalCreateMetadata,
+    stateful_input: ProposalStatefulInput | None,
+) -> ProposalCreateMetadata:
+    if stateful_input is None or metadata.mandate_id is not None:
+        return cast(ProposalCreateMetadata, metadata.model_copy(deep=True))
+    return cast(
+        ProposalCreateMetadata,
+        metadata.model_copy(update={"mandate_id": stateful_input.mandate_id}),
+    )
+
+
+def _merge_alternatives_request(
+    simulate_request: ProposalSimulateRequest,
+    *,
+    alternatives_request: object | None,
+) -> ProposalSimulateRequest:
+    if alternatives_request is None:
+        return simulate_request
+    return cast(
+        ProposalSimulateRequest,
+        simulate_request.model_copy(
+            update={"alternatives_request": alternatives_request},
+            deep=True,
+        ),
+    )
+
+
+def _merge_stateful_narrative_request(
+    simulate_request: ProposalSimulateRequest,
+    *,
+    stateful_input: ProposalStatefulInput,
+) -> ProposalSimulateRequest:
+    if stateful_input.narrative_request is None:
+        return simulate_request
+    return cast(
+        ProposalSimulateRequest,
+        simulate_request.model_copy(
+            update={"narrative_request": stateful_input.narrative_request},
+            deep=True,
+        ),
+    )
+
+
+def _resolve_stateful_input(
+    stateful_input: ProposalStatefulInput,
+) -> tuple[ProposalSimulateRequest, ProposalResolvedContext]:
+    try:
+        resolved = resolve_lotus_core_advisory_context(stateful_input)
+    except LotusCoreContextResolutionError as exc:
+        raise ProposalContextResolutionError(
+            "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+        ) from exc
+
+    return (
+        _merge_stateful_narrative_request(
+            resolved.simulate_request,
+            stateful_input=stateful_input,
+        ),
+        ProposalResolvedContext.model_validate(resolved.resolved_context.model_dump(mode="json")),
+    )
+
+
+def _policy_selectors(
+    *,
+    metadata: ProposalCreateMetadata | None = None,
+    stateful_input: ProposalStatefulInput | None = None,
+) -> ProposalPolicySelectors:
+    return ProposalPolicySelectors(
+        household_id=stateful_input.household_id if stateful_input is not None else None,
+        mandate_id=(
+            metadata.mandate_id
+            if metadata is not None and metadata.mandate_id is not None
+            else (stateful_input.mandate_id if stateful_input is not None else None)
+        ),
+        jurisdiction=metadata.jurisdiction if metadata is not None else None,
+        benchmark_id=stateful_input.benchmark_id if stateful_input is not None else None,
+    )
+
+
+__all__ = [
+    "ProposalContextResolutionError",
+    "ResolvedProposalContext",
+    "ResolvedSimulationContext",
+    "resolve_create_request",
+    "resolve_simulation_request",
+    "resolve_version_request",
+]

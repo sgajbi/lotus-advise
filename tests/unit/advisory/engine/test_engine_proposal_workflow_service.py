@@ -519,7 +519,7 @@ def test_service_create_proposal_persists_policy_context_for_stateful_requests(m
         )
 
     monkeypatch.setattr(
-        "src.core.proposals.context.resolve_lotus_core_advisory_context",
+        "src.core.proposals.context_resolution.resolve_lotus_core_advisory_context",
         _resolved_stateful_context,
     )
 

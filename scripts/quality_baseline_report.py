@@ -224,6 +224,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "- Proposal input models are split into focused context DTOs, request-envelope DTOs,",
         "  and a compatibility facade.",
+        "- Proposal context resolution, canonical request hashing, and context evidence",
+        "  projection are split into focused owner modules with a compatibility facade.",
         "- Advisory-copilot API DTOs are split into request, response, limits, and compatibility",
         "  modules.",
         "- Advisory-copilot source projections and run-record limits have focused owner modules.",
