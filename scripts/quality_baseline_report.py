@@ -275,6 +275,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  idempotency, version, and replay views to a focused service boundary.",
         "- Policy evaluation persistence delegates lineage/posture projection and audit-event",
         "  attachment mapping to a focused projection module.",
+        "- Policy evaluation persistence delegates replay hash comparison and replay response",
+        "  assembly to a focused replay module.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

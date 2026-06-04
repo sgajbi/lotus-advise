@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-622
+
+- Scope: Policy evaluation replay assembly
+- Pattern: The policy evaluation persistence store should not own replay hash comparison and
+  replay response assembly directly.
+- Status: Hardened
+- Finding Class: Persistence boundary modularity and replay evidence maintainability
+- Summary: `src/core/policy_packs/persistence.py` still mixed in-memory record loading and
+  idempotent persistence behavior with replay source-hash calculation, policy content comparison,
+  replayed evaluation hashing, and `PolicyEvaluationReplayResponse` construction. That made replay
+  evidence behavior change in the same module as finalization, audit-event creation, and store
+  lookup behavior.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_replay.py` for replay hash comparison and replay
+    response assembly.
+  - Kept `PolicyEvaluationRecordStore.replay_policy_evaluation_record` as the stable public store
+    boundary, delegating replay evidence reconstruction after loading the persisted record.
+  - Added a source-boundary test proving replay response construction and policy evaluation hash
+    comparison stay outside the persistence store module.
+  - Focused policy evaluation persistence lint, mypy, and behavior tests passed with 8 tests.
+- Consequence:
+  - Replay behavior remains compatible while replay evidence reconstruction is easier to test and
+    review separately from persistence, idempotency, and audit-event storage.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing policy persistence by extracting request hash/idempotency command handling
+    once a focused seam can preserve conflict behavior and duplicate-identity replay semantics.
+
 ## LA-REV-621
 
 - Scope: Policy evaluation persistence projections
