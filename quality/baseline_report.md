@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T16:23:01.480770+00:00`
+- Generated At: `2026-06-04T16:30:44.719934+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `dece63e9317eea5bc9195e451628127eac2d27f3`
-- Branch Commits Over Main: `8`
+- Head: `71d3c201ef071a27092f28621fd5d859ec09c823`
+- Branch Commits Over Main: `9`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `913`
+- Python files: `914`
 - Packages: `38`
-- Modules: `875`
-- Total Python lines: `137507`
+- Modules: `876`
+- Total Python lines: `137599`
 
 ## Largest Files
 
@@ -41,7 +41,7 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 487 | 219 |
+| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 216 |
 
 ## Complexity
 
@@ -98,8 +98,8 @@
 - Spectral rules present: `True`
 - Spectral config executable: `True`
 - Spectral OpenAPI path inventory: `84`
-- Spectral current issue inventory: `283`
-- Spectral severity inventory: `error=277, warn=6`
+- Spectral current issue inventory: `277`
+- Spectral severity inventory: `error=277`
 - Spectral remains report-only until warning inventory is stable enough for
   fail-on-new-regression enforcement.
 

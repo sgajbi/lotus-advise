@@ -34,6 +34,13 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         ),
     },
     {
+        "name": "Advisory Policy Packs",
+        "description": (
+            "Policy-pack catalog endpoints for governed version lookup, validation, activation, "
+            "and supportability evidence used by advisory policy evaluation workflows."
+        ),
+    },
+    {
         "name": "Advisor Cockpit",
         "description": (
             "RFC-0026 Advise-owned cockpit APIs for source-backed action lists, snapshots, "

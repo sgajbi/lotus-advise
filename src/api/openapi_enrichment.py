@@ -205,10 +205,25 @@ def enrich_openapi_schema(schema: dict[str, Any], service_name: str) -> dict[str
     """Mutate schema in-place to ensure minimum documentation completeness."""
     info = schema.setdefault("info", {})
     info.setdefault("title", "Lotus Advise API")
+    info.setdefault(
+        "contact",
+        {
+            "name": "Lotus Platform Engineering",
+        },
+    )
     if "lotus" not in (info.get("description") or "").lower():
         branded_desc = (info.get("description") or "").strip()
         prefix = "Lotus platform API contract."
         info["description"] = f"{prefix} {branded_desc}".strip()
+    schema.setdefault(
+        "servers",
+        [
+            {
+                "url": "/",
+                "description": "Relative Lotus Advise service root.",
+            }
+        ],
+    )
 
     _ensure_operation_documentation(schema, service_name=service_name)
     _ensure_schema_documentation(schema)

@@ -52,7 +52,11 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
     enriched = enrich_openapi_schema(schema, service_name="lotus-advise")
 
     assert enriched["info"]["title"] == "Lotus Advise API"
+    assert enriched["info"]["contact"] == {"name": "Lotus Platform Engineering"}
     assert enriched["info"]["description"].startswith("Lotus platform API contract.")
+    assert enriched["servers"] == [
+        {"url": "/", "description": "Relative Lotus Advise service root."}
+    ]
     health = enriched["paths"]["/health"]["get"]
     metrics = enriched["paths"]["/metrics"]["get"]
     proposal = enriched["paths"]["/advisory/proposals"]["post"]
@@ -109,6 +113,7 @@ def test_openapi_enrichment_preserves_existing_lotus_description_and_error_respo
 
     operation = enriched["paths"]["/custom"]["get"]
     assert enriched["info"]["title"] == "Custom API"
+    assert enriched["info"]["contact"] == {"name": "Lotus Platform Engineering"}
     assert enriched["info"]["description"] == "Lotus custom contract."
     assert operation["summary"] == "Existing summary"
     assert operation["description"] == "Existing description"

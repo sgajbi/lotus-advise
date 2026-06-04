@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-686
+
+- Scope: OpenAPI metadata and tag governance
+- Pattern: Generated OpenAPI contracts should define global metadata and every route tag before
+  deeper schema-example remediation begins
+- Status: Hardened
+- Finding Class: API governance and generated-contract quality
+- Summary: The first executable Spectral inventory found six metadata/tag findings: missing
+  `servers`, missing `info.contact`, and four `Advisory Policy Packs` operations using a tag that
+  was not declared in the global OpenAPI tag catalog.
+- Evidence:
+  - Added generated OpenAPI contact metadata for Lotus Platform Engineering.
+  - Added a relative service-root OpenAPI `servers` entry.
+  - Added the `Advisory Policy Packs` global tag with governed policy-pack catalog language.
+  - Extended OpenAPI enrichment and lifecycle contract tests.
+  - `make openapi-spectral-report` now reports `277` findings, down from `283`; remaining findings
+    are schema/media example validation issues.
+- Consequence:
+  - The generated Advise API contract has a cleaner self-service discovery surface and the Spectral
+    backlog is narrowed to example-validity remediation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is generated API metadata hardening for existing endpoints.
+- Follow-Up:
+  - Reduce the remaining Spectral example-validation findings by fixing reusable OpenAPI example
+    inference and source DTO examples.
+
 ## LA-REV-685
 
 - Scope: OpenAPI Spectral warning inventory
