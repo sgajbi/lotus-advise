@@ -19,12 +19,29 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactRiskLens,
     ProposalArtifactSuitabilitySummary,
     ProposalArtifactSummary,
+    ProposalArtifactSummaryNote,
     ProposalArtifactTakeaway,
     ProposalArtifactTrade,
     ProposalArtifactTradeRationale,
     ProposalArtifactTradesAndFunding,
 )
+from src.core.advisory.artifact_summary_models import (
+    ProposalArtifactSummary as OwnedProposalArtifactSummary,
+)
+from src.core.advisory.artifact_summary_models import (
+    ProposalArtifactSummaryNote as OwnedProposalArtifactSummaryNote,
+)
+from src.core.advisory.artifact_summary_models import (
+    ProposalArtifactTakeaway as OwnedProposalArtifactTakeaway,
+)
 from src.core.models import GateDecision, GateDecisionSummary, Money
+
+
+def test_proposal_artifact_summary_models_keep_stable_facade_imports():
+    assert ProposalArtifactSummary is OwnedProposalArtifactSummary
+    assert ProposalArtifactSummaryNote is OwnedProposalArtifactSummaryNote
+    assert ProposalArtifactTakeaway is OwnedProposalArtifactTakeaway
+    assert ProposalArtifactSummary.__module__ == "src.core.advisory.artifact_summary_models"
 
 
 def test_proposal_artifact_contract_shape():

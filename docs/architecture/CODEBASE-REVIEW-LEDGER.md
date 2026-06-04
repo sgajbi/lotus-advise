@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-636
+
+- Scope: Proposal artifact summary DTO ownership
+- Pattern: Artifact presentation summary DTOs should live in a focused model module instead of the
+  top-level artifact envelope contract.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and OpenAPI contract maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned summary notes, summary takeaways,
+  and the summary section model directly. Those classes are a coherent presentation-summary
+  contract and can be evolved independently from portfolio impact, trades/funding, review,
+  assumptions, evidence, and the top-level artifact envelope.
+- Evidence:
+  - Extracted summary notes, takeaways, and summary section DTOs to
+    `src/core/advisory/artifact_summary_models.py`.
+  - Kept `src/core/advisory/artifact_models.py` as the stable compatibility facade used by routes,
+    artifact assembly, and OpenAPI schema generation.
+  - Added contract coverage proving facade imports still resolve to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 24 tests.
+- Consequence:
+  - Proposal artifact summary contracts now have a narrow owner module, reducing churn in the
+    top-level artifact envelope while preserving existing API schema names and imports.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting portfolio impact, trade/funding, review, assumptions/disclosures, and
+    evidence DTO groups out of the artifact envelope.
+
 ## LA-REV-635
 
 - Scope: Policy evaluation source-readiness and mandate rule family
