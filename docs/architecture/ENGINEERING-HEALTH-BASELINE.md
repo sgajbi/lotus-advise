@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-04T23:12:43.505241+00:00`
+- Generated At: `2026-06-04T23:21:43.612983+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `fc7bf038aa6b81da1ef6b686255b037502bf393c`
-- Python Files: `916`
+- Head: `6bf44233c90fc4fb937af47474aa23a985803a6a`
+- Python Files: `918`
 - Packages: `38`
-- Modules: `878`
-- Total Python Lines: `138226`
+- Modules: `880`
+- Total Python Lines: `138462`
 
 ## Largest Files
 
@@ -22,7 +22,7 @@
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 9 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 | 10 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
-| 11 | `scripts/quality_baseline_report.py` | 1004 |
+| 11 | `scripts/quality_baseline_report.py` | 1007 |
 | 12 | `tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py` | 975 |
 | 13 | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 862 |
 | 14 | `tests/unit/advisory/api/test_api_advisory_copilot.py` | 830 |
@@ -46,8 +46,8 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 218 |
-| 11 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 708 | 201 |
+| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 221 |
+| 11 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 201 |
 | 12 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 370 | 200 |
 | 13 | `_live_runtime_payload` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` | 23 | 187 |
 | 14 | `test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples` | `tests/unit/advisory/api/test_openapi_enrichment.py` | 6 | 179 |
@@ -103,6 +103,7 @@
 | `lint` | `python -m ruff format --check .` |
 | `lint` | `$(MAKE) monetary-float-guard` |
 | `lint` | `$(MAKE) architecture-boundaries` |
+| `lint` | `$(MAKE) complexity-regression-gate` |
 | `verify-dependencies` | `python scripts/dependency_health_check.py --requirements requirements.txt --dev-requirements requirements-dev.txt --outdated-scope direct --skip-audit` |
 | `security-audit` | `python scripts/dependency_health_check.py --requirements requirements.txt --dev-requirements requirements-dev.txt --outdated-scope direct` |
 | `security-audit` | `$(MAKE) bandit-high-severity-gate` |
@@ -118,6 +119,6 @@
 - Use `--format json` to save a phase snapshot and `--compare-to <snapshot.json>`
   to render structural metric deltas in later refactoring phases.
 - External scanner inventories should move from measurement to repo-native gates in
-  calibrated slices; coverage, import-linter, Spectral, and Bandit high severity
-  now have enforced paths while radon, vulture, deptry, and interrogate remain
-  measured backlog.
+  calibrated slices; coverage, import-linter, Spectral, Bandit high severity,
+  and Radon F-ranked complexity now have enforced paths while vulture, deptry,
+  interrogate, and stricter complexity thresholds remain measured backlog.

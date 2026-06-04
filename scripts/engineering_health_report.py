@@ -327,9 +327,9 @@ def render_markdown(
             "- Use `--format json` to save a phase snapshot and `--compare-to <snapshot.json>`",
             "  to render structural metric deltas in later refactoring phases.",
             "- External scanner inventories should move from measurement to repo-native gates in",
-            "  calibrated slices; coverage, import-linter, Spectral, and Bandit high severity",
-            "  now have enforced paths while radon, vulture, deptry, and interrogate remain",
-            "  measured backlog.",
+            "  calibrated slices; coverage, import-linter, Spectral, Bandit high severity,",
+            "  and Radon F-ranked complexity now have enforced paths while vulture, deptry,",
+            "  interrogate, and stricter complexity thresholds remain measured backlog.",
         ]
     )
     return "\n".join(lines) + "\n"

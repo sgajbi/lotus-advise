@@ -1,13 +1,13 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `fc7bf038aa6b81da1ef6b686255b037502bf393c`
+- Head: `6bf44233c90fc4fb937af47474aa23a985803a6a`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Code size and hotspots | Baseline active | engineering-health + quality baseline |
-| Complexity | Executable Radon inventory | radon rank and worst-complexity counts |
+| Complexity | No-F gate plus Radon inventory | complexity-regression-gate + radon rank and worst-complexity counts |
 | Maintainability | Improving | modularity slices and review ledger |
 | Lint | Enforced | make lint |
 | Type safety | Enforced | make typecheck |

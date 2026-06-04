@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-692
+
+- Scope: Radon no-F complexity regression gate
+- Pattern: A zero-count F-ranked complexity inventory should be promoted into the repo-native lint
+  lane before broader service decomposition continues
+- Status: Enforced
+- Finding Class: Complexity and maintainability quality gate hardening
+- Summary: Radon reported no F-ranked blocks, but complexity was still only recorded as inventory.
+  Future oversized functions or methods could therefore regress into F-ranked complexity while
+  `make lint` stayed green.
+- Evidence:
+  - Added `scripts/radon_complexity_gate.py` to run Radon against `src` and fail on F-ranked blocks.
+  - Wired `make lint` to run `make complexity-regression-gate` after monetary and architecture
+    boundary checks.
+  - Added focused unit coverage for nested Radon block parsing, passing no-F output, failing F-rank
+    output, and invalid Radon JSON output.
+  - Updated generated quality-report wording to distinguish no-F enforcement from remaining
+    E-ranked hotspot classification.
+- Consequence:
+  - Feature Lane and repo-native lint now fail if a refactor introduces F-ranked complexity while
+    current E-ranked hotspots remain measured backlog for targeted decomposition.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is repo-local quality-gate calibration for existing source analysis.
+- Follow-Up:
+  - Classify current E-ranked hotspots, extract focused use-case helpers where behavior is stable,
+    and consider stricter fail-on-new complexity thresholds after classification.
+
 ## LA-REV-691
 
 - Scope: Bandit high-severity security gate
