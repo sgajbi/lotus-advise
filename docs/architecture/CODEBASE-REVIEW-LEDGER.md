@@ -1,5 +1,43 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-601
+
+- Scope: Advisor-review proposal narrative construction
+- Pattern: Narrative construction should not mix grounding-packet extraction, deterministic section
+  copy, AI-assisted section replacement, guardrail evaluation, and narrative identity assembly in a
+  single module.
+- Status: Hardened
+- Finding Class: Proposal narrative modularity and advisor-review evidence maintainability
+- Summary: `src/core/advisory/narrative.py` mixed artifact fact extraction, source-reference
+  construction, missing-evidence policy, deterministic advisor-facing section rendering, Lotus AI
+  draft replacement, guardrail evaluation, payload hashing, and status selection. This made
+  evidence grounding and narrative copy harder to review independently and increased coupling
+  between AI integration posture and deterministic narrative generation.
+- Evidence:
+  - Added `src/core/advisory/narrative_grounding.py` for artifact fact extraction, source refs,
+    missing-evidence records, grounding-packet identity, and deterministic narrative policy version.
+  - Added `src/core/advisory/narrative_sections.py` for deterministic advisor-review section copy,
+    source-ref selection, limitation refs, executive-summary text, and alternatives text.
+  - Added `src/core/advisory/narrative_ai.py` for Lotus AI draft-section replacement and fallback
+    lineage handling.
+  - Kept `src/core/advisory/narrative.py` as the public orchestration module for
+    `build_deterministic_proposal_narrative` and the stable
+    `build_proposal_narrative_grounding_packet` re-export.
+  - Added a source-boundary guard proving grounding, section-rendering, and AI helper logic stays
+    outside the public narrative orchestration module.
+  - Focused narrative lint, format, mypy, adapter/policy, and artifact golden tests passed with 17
+    focused tests.
+- Consequence:
+  - Advisor-review narrative behavior remains compatible while evidence grounding, deterministic
+    business copy, and AI-assisted drafting posture can now be reviewed and changed independently.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing policy-pack persistence/evaluation/catalog and proposal service hotspots
+    where cohesive domain boundaries exist.
+
 ## LA-REV-600
 
 - Scope: Core suitability scanner modularity
