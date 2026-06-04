@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-04T23:29:07.127107+00:00`
+- Generated At: `2026-06-04T23:40:17.958630+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `8cec8d325b6d4d89310e7760fafc30fcb8312eba`
+- Head: `d5be4067bdd3f4297292d552291e67ee2e3bd0a0`
 - Python Files: `918`
 - Packages: `38`
 - Modules: `880`
-- Total Python Lines: `138483`
+- Total Python Lines: `138606`
 
 ## Largest Files
 
@@ -22,7 +22,7 @@
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 9 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 | 10 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
-| 11 | `scripts/quality_baseline_report.py` | 1009 |
+| 11 | `scripts/quality_baseline_report.py` | 1011 |
 | 12 | `tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py` | 975 |
 | 13 | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 862 |
 | 14 | `tests/unit/advisory/api/test_api_advisory_copilot.py` | 830 |
@@ -47,7 +47,7 @@
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
 | 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 221 |
-| 11 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 203 |
+| 11 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 205 |
 | 12 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 370 | 200 |
 | 13 | `_live_runtime_payload` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` | 23 | 187 |
 | 14 | `test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples` | `tests/unit/advisory/api/test_openapi_enrichment.py` | 6 | 179 |

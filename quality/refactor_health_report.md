@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `8cec8d325b6d4d89310e7760fafc30fcb8312eba`
-- Branch Commits Over Main: `17`
+- Head: `d5be4067bdd3f4297292d552291e67ee2e3bd0a0`
+- Branch Commits Over Main: `19`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -26,6 +26,8 @@
   backend-evidence, product-surface, and boundary claim groups.
 - Compliance rule evaluation is split into focused cash-band, concentration,
   data-quality, trade-size, shorting, and cash-sufficiency evaluators.
+- Target-generation solver orchestration delegates sell-only redistribution, solver
+  indexing, constraint assembly, and solved-weight application to focused helpers.
 - Proposal memo source-readiness assembly is split into core, risk, and Advise
   source-owner section groups.
 - Proposal memo source-readiness owner groups are split into focused Lotus Core,

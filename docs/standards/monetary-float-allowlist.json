@@ -46,6 +46,18 @@
       "review_by": "2026-08-24"
     },
     {
+      "finding": "src/core/target_generation.py:278:) + float(group_locked_weight)",
+      "justification": "Temporary approved monetary float usage for cvxpy solver bridge; migrate to Decimal where supported.",
+      "owner": "platform-governance",
+      "review_by": "2026-08-24"
+    },
+    {
+      "finding": "src/core/target_generation.py:294:[float(model_weights.get(i_id, Decimal(\"0.0\"))) for i_id in solver_index.tradeable_ids]",
+      "justification": "Temporary approved monetary float usage for cvxpy solver bridge; migrate to Decimal where supported.",
+      "owner": "platform-governance",
+      "review_by": "2026-08-24"
+    },
+    {
       "finding": "src/integrations/lotus_core/runtime_config.py:13:parsed = float(raw_value)",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",

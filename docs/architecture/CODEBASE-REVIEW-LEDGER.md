@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-694
+
+- Scope: Target-generation solver orchestration
+- Pattern: Solver orchestration should delegate indexing, constraint assembly, and solved-weight
+  application to focused helpers so optimization behavior is easier to review
+- Status: Improved
+- Finding Class: Complexity reduction and target-generation maintainability
+- Summary: `generate_targets_solver` combined sell-only redistribution, tradeable/locked indexing,
+  cash-band constraints, single-position constraints, group constraints, solver execution, failure
+  handling, and solved-weight mutation in one E-ranked function.
+- Evidence:
+  - Extracted sell-only redistribution, solver index construction, cash-band constraints, group
+    constraints, target solver problem construction, and solved-weight application helpers.
+  - Preserved existing solver dependency loading, solver fallback behavior, infeasibility warning
+    behavior, target trace construction, and mutation semantics for `eligible_targets`.
+  - Focused target-generation dependency, suitability scanner, and advisory proposal simulation
+    tests pass.
+  - Radon now reports `generate_targets_solver` as A-ranked complexity; repo worst complexity drops
+    from E/32 to D/25.
+- Consequence:
+  - The remaining E-ranked Radon hotspot is removed, making the target-generation optimization path
+    easier to audit before any future solver or constraint behavior changes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal modularity hardening for existing target-generation behavior.
+- Follow-Up:
+  - Continue classifying D-ranked helper complexity and add direct solver constraint tests before
+    changing optimization behavior or thresholds.
+
 ## LA-REV-693
 
 - Scope: Proposal narrative grounding fact projection
