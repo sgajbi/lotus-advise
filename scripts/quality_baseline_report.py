@@ -261,6 +261,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  to focused strategy modules.",
         "- Alternatives objective strategies are split into portfolio/cash, baseline-trade,",
         "  currency-alignment, and deferred restricted-product modules.",
+        "- Advisor cockpit source read models delegate source projection helpers to a focused",
+        "  source-projection module while preserving the existing read-model facade.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
         "  history, and execution-update replay behavior to a focused service boundary.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",

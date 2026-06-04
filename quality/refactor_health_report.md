@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-16`
-- Head: `de526419712afcddbdd0211ba95f6c57a9c88f4c`
-- Branch Commits Over Main: `31`
+- Head: `02d6850c47182aed09a40fbf15d17c75254a7356`
+- Branch Commits Over Main: `33`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -46,6 +46,8 @@
   to focused strategy modules.
 - Alternatives objective strategies are split into portfolio/cash, baseline-trade,
   currency-alignment, and deferred restricted-product modules.
+- Advisor cockpit source read models delegate source projection helpers to a focused
+  source-projection module while preserving the existing read-model facade.
 - Proposal workflow delivery operations delegate execution handoff, status, summary,
   history, and execution-update replay behavior to a focused service boundary.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.

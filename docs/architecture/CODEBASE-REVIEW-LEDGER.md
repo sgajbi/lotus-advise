@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-616
+
+- Scope: Advisor cockpit source read-model projection helpers
+- Pattern: Cockpit source batch DTOs and read-model orchestration should not own every individual
+  source-to-action projection helper.
+- Status: Hardened
+- Finding Class: Advisor cockpit read-model modularity and supportability maintainability
+- Summary: `src/core/advisor_cockpit/source_read_model.py` mixed Pydantic source batch/read-model
+  DTOs, source count orchestration, source grouping helpers, policy/memo/approval/report/execution
+  source projection functions, and compatibility constants. That made source projection behavior
+  harder to review separately from the public read-model contract used by the cockpit service.
+- Evidence:
+  - Added `src/core/advisor_cockpit/source_projection.py` for source filter constants, grouping
+    helpers, and policy, memo, meeting, follow-up, approval, report/archive, execution handoff, and
+    execution status projection helpers.
+  - Kept `AdvisorCockpitSourceBatch`, `AdvisorCockpitSourceReadModel`, and
+    `build_advisor_cockpit_source_read_model` in the original module as the stable facade.
+  - Added a source-boundary test proving individual projection helper implementations stay outside
+    the read-model DTO/orchestration module.
+  - Focused cockpit source-read-model lint, mypy, and behavior tests passed with 8 tests.
+- Consequence:
+  - Cockpit behavior remains compatible while advisor action source projection logic now has a
+    focused owner module for future observability, supportability, and private-banking workflow
+    additions.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing the adjacent advisor cockpit service hotspot by separating repository/source
+    loading from snapshot assembly where tests already protect action ordering.
+
 ## LA-REV-615
 
 - Scope: Alternatives objective strategy modules
