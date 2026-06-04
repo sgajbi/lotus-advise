@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-609
+
+- Scope: Proposal memo read response builders
+- Pattern: Memo API orchestration should not own projection, lineage, and replay-evidence response
+  construction.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and read-model maintainability
+- Summary: After extracting request-context helpers, `src/core/proposals/memo_api.py` still owned
+  projection response construction, memo lineage item assembly, archive-ref projection, replay
+  metadata proof assembly, and read posture dictionaries. These are read-model projection concerns
+  that should be reviewed separately from API use-case orchestration and downstream command flows.
+- Evidence:
+  - Added `build_memo_projection_response`, `build_memo_lineage_response`, and
+    `build_memo_replay_evidence_response` to `src/core/proposals/memo_response_projection.py`.
+  - Kept `src/core/proposals/memo_api.py` focused on loading, idempotency normalization, command
+    delegation, downstream Lotus Report and Lotus AI orchestration, and response-builder calls.
+  - Extended memo API source-boundary guards so projection, lineage, and replay-evidence response
+    model construction remains outside the API orchestration module.
+  - Focused memo API/projection lint, format, mypy, and unit tests passed with 15 tests.
+- Consequence:
+  - Memo read behavior remains compatible while replay evidence, lineage, and projection response
+    shape can be reviewed and extended independently from command orchestration.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal service, memo API command-flow, and remaining advisory read-model
+    hotspots where cohesive boundaries are clear.
+
 ## LA-REV-608
 
 - Scope: Proposal memo request context
