@@ -51,16 +51,44 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
     projection_source = (REPO_ROOT / "src/core/advisor_cockpit/source_projection.py").read_text(
         encoding="utf-8"
     )
+    policy_memo_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/source_projection_policy_memo.py"
+    ).read_text(encoding="utf-8")
 
     for helper_name in (
-        "_policy_review_source",
-        "_memo_block_source",
         "_approval_dependency_source",
         "_report_readiness_source",
         "_execution_status_source",
     ):
         assert f"def {helper_name}(" not in read_model_source
         assert f"def {helper_name}(" in projection_source
+
+    for helper_name in (
+        "_policy_review_source",
+        "_memo_block_source",
+        "_memo_blockage_code",
+    ):
+        assert f"def {helper_name}(" not in read_model_source
+        assert f"def {helper_name}(" not in projection_source
+        assert f"def {helper_name}(" in policy_memo_source
+
+
+def test_source_projection_delegates_policy_and_memo_projection_rules() -> None:
+    projection_source = (REPO_ROOT / "src/core/advisor_cockpit/source_projection.py").read_text(
+        encoding="utf-8"
+    )
+    policy_memo_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/source_projection_policy_memo.py"
+    ).read_text(encoding="utf-8")
+
+    assert "from src.core.advisor_cockpit.source_projection_policy_memo import" in (
+        projection_source
+    )
+    assert "COCKPIT_POLICY_REVIEW_STATUSES" in projection_source
+    assert "build_policy_review_sources" in projection_source
+    assert "build_memo_block_sources" in projection_source
+    assert "COCKPIT_POLICY_REVIEW_STATUSES = frozenset" not in projection_source
+    assert "COCKPIT_POLICY_REVIEW_STATUSES = frozenset" in policy_memo_source
 
 
 def test_source_read_model_rejects_unbounded_source_batches() -> None:
