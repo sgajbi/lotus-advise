@@ -10,7 +10,7 @@ from src.core.policy_packs import (
     reset_policy_pack_catalog_for_tests,
     validate_policy_pack_version,
 )
-from src.core.policy_packs.evaluation import _artifact_section, _section, _source_refs
+from src.core.policy_packs.evaluation_rules import _artifact_section, _section, _source_refs
 from src.core.proposals.exceptions import ProposalValidationError
 
 SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
@@ -130,6 +130,23 @@ def test_policy_pack_applicability_selection_stays_in_focused_module() -> None:
     assert "def _matches_scope" in applicability
     assert "def _client_segment_matches_scope" in applicability
     assert "PRIVATE_BANKING_CLIENT_CLASSIFICATIONS" in applicability
+
+
+def test_policy_pack_material_rule_evaluators_stay_in_focused_module() -> None:
+    evaluation = (SOURCE_ROOT / "evaluation.py").read_text(encoding="utf-8")
+    rules = (SOURCE_ROOT / "evaluation_rules.py").read_text(encoding="utf-8")
+
+    assert "evaluate_policy_rule" in evaluation
+    assert "def _evaluate_sg_product_eligibility" not in evaluation
+    assert "def _evaluate_sg_complex_product_disclosure" not in evaluation
+    assert "def _evaluate_best_interest_cost" not in evaluation
+    assert "def _evaluate_conflict_disclosure" not in evaluation
+
+    assert "def evaluate_policy_rule" in rules
+    assert "def _evaluate_sg_product_eligibility" in rules
+    assert "def _evaluate_sg_complex_product_disclosure" in rules
+    assert "def _evaluate_best_interest_cost" in rules
+    assert "def _evaluate_conflict_disclosure" in rules
 
 
 def test_policy_evaluation_ready_path_uses_active_pack_and_source_refs() -> None:
