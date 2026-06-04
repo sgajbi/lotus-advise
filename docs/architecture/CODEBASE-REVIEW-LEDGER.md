@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-607
+
+- Scope: Proposal memo event recording
+- Pattern: Memo API use-case orchestration should not own idempotent event append/replay plumbing
+  and canonical event request-hash construction.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and idempotency maintainability
+- Summary: `src/core/proposals/memo_api.py` still mixed advisor-review, report-package, and
+  AI-commentary use-case orchestration with memo event request-hash construction,
+  idempotency-conflict detection, replay lookup, and append-only event record construction. That
+  made command intent harder to review separately from audit/idempotency mechanics.
+- Evidence:
+  - Added `src/core/proposals/memo_event_recording.py` for canonical memo event request hashes,
+    append-or-replay event recording, and idempotency replay conflict detection.
+  - Kept `src/core/proposals/memo_api.py` focused on proposal/memo loading, source-hash checks,
+    advisor-use review gating, downstream Lotus Report and Lotus AI request orchestration, and
+    response assembly.
+  - Added a memo API source-boundary guard proving event-record construction stays outside the API
+    orchestration module.
+  - Focused memo API lint, format, mypy, and unit tests passed with 12 tests.
+- Consequence:
+  - Memo event replay behavior remains compatible while audit/idempotency mechanics can be reviewed
+    and reused independently from advisor-review, report-package, and AI-commentary workflows.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal memo API orchestration and proposal service hotspots around
+    load/validation workflow boundaries where behavior remains cohesive.
+
 ## LA-REV-606
 
 - Scope: Policy-pack reference catalog data
