@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-682
+
+- Scope: Architecture-boundary gate enforcement
+- Pattern: Passing architecture contracts should graduate from report-only inventory to a
+  repo-native gate once the dependency is pinned and the contract output is clean.
+- Status: Hardened
+- Finding Class: Architecture governance enforcement
+- Summary: Import-linter contracts were executable and passing, but still only represented as a
+  report-only inventory. This left API-to-infrastructure boundary protection dependent on manual
+  inspection instead of the Feature Lane lint path.
+- Evidence:
+  - Added `import-linter==2.11` to development requirements so clean CI installs can run the gate.
+  - Added the `architecture-boundaries` Makefile target using the Python import-linter entry point.
+  - Wired `make lint` to run architecture-boundary contracts after Ruff and monetary-float checks.
+  - Updated quality scorecard generation so architecture boundaries are reported as enforced by
+    `make lint`.
+- Consequence:
+  - API-to-infrastructure, core-to-FastAPI, and infrastructure-to-API contracts are now enforced by
+    the same repo-native lint command used by Feature Lane, PR Merge Gate, and Main Releasability.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this changes repo-local quality gate posture, not operator-facing runtime truth.
+- Follow-Up:
+  - Expand import-linter contracts only after additional boundaries are proven clean locally and in
+    GitHub CI.
+
 ## LA-REV-681
 
 - Scope: Dead-code inventory calibration

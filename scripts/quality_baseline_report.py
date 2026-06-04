@@ -726,7 +726,6 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  classifying validator and compatibility-facade findings.",
         "- Convert the Radon complexity inventory into a fail-on-new-regression gate after",
         "  classifying current high-complexity blocks.",
-        "- Convert the kept import-linter architecture contracts into a blocking CI gate.",
         "- Convert the Bandit security inventory into a fail-on-new-regression gate after",
         "  classifying current SQL-construction findings and resolving true positives.",
         "- Convert the deptry dependency inventory into a fail-on-new-regression gate after",
@@ -771,8 +770,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
         ("OpenAPI", "Enforced plus report-only", "openapi-gate + Spectral config"),
         (
             "Architecture boundaries",
-            "Executable report-only contracts",
-            "import-linter kept/broken contract inventory",
+            "Enforced",
+            "make lint runs import-linter architecture contracts",
         ),
         ("Docs", "Gap tracked", "requested docs tracked in baseline report"),
         ("Observability", "Gap tracked", "observability doc and diagnostics gates pending"),

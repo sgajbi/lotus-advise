@@ -1,4 +1,4 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run verify-dependencies check-deps check-deps-strict security-audit openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries format clean run verify-dependencies check-deps check-deps-strict security-audit openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
 install: install-ci
 	python -m pre_commit install
@@ -93,9 +93,13 @@ lint:
 	python -m ruff check .
 	python -m ruff format --check .
 	$(MAKE) monetary-float-guard
+	$(MAKE) architecture-boundaries
 
 monetary-float-guard:
 	python scripts/check_monetary_float_usage.py
+
+architecture-boundaries:
+	python -c "from importlinter.cli import lint_imports_command; lint_imports_command(args=['--config','.importlinter'], standalone_mode=True)"
 
 format:
 	python -m ruff format .
