@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -16,6 +17,30 @@ from src.core.bank_demo_proof import (
     build_journey_integration_proof_summary,
 )
 from tests.unit.advisory.engine.test_engine_bank_demo_proof_capture import _live_runtime_payload
+
+
+def test_journey_integration_proof_models_have_focused_owner() -> None:
+    builder_source = Path("src/core/bank_demo_proof/integration_proof.py").read_text(
+        encoding="utf-8"
+    )
+    model_source = Path("src/core/bank_demo_proof/integration_proof_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.bank_demo_proof.integration_proof_models import" in builder_source
+    assert "class AdvisoryJourneyIntegrationProofSummary" not in builder_source
+    assert "class AiModelRiskControlProof" not in builder_source
+    assert "class PolicyEvidenceProof" not in builder_source
+    assert "class CockpitEvidenceProof" not in builder_source
+    assert "BaseModel" not in builder_source
+    assert "field_validator" not in builder_source
+    assert "model_validator" not in builder_source
+
+    assert "class AdvisoryJourneyIntegrationProofSummary" in model_source
+    assert "class AiModelRiskControlProof" in model_source
+    assert "class PolicyEvidenceProof" in model_source
+    assert "class CockpitEvidenceProof" in model_source
+    assert "normalize_rfc28_business_text" in model_source
 
 
 def _ai_control() -> AiModelRiskControlProof:
