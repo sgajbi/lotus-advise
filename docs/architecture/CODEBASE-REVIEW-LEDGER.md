@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-630
+
+- Scope: Proposal memo lineage and replay response DTO boundaries
+- Pattern: Memo lineage and replay-evidence response envelopes should have a focused owner instead
+  of living inside the core memo response module.
+- Status: Hardened
+- Finding Class: DTO modularity and lineage maintainability
+- Summary: `src/core/proposals/memo_response_models.py` still implemented memo lineage item,
+  memo lineage response, and replay-evidence response DTOs alongside core memo responses and
+  operation responses. These DTOs are supportability and replay-proof contracts that depend on memo
+  audit events but do not need to be implemented inside the broader memo response module.
+- Evidence:
+  - Extracted `ProposalMemoLineageItem`, `ProposalMemoLineageResponse`, and
+    `ProposalMemoReplayEvidenceResponse` to
+    `src/core/proposals/memo_lineage_response_models.py`.
+  - Reused the focused `ProposalMemoAuditEvent` model from `memo_event_models.py`.
+  - Kept memo response and public proposal response facade imports stable for routers, OpenAPI,
+    and existing public model imports.
+  - Extended proposal model boundary tests to prove lineage/replay DTOs are implemented in the
+    focused lineage response module and still flow through public facades.
+  - Focused `ruff`, `mypy`, proposal model boundary tests, and OpenAPI lifecycle documentation
+    tests passed with 19 tests.
+- Consequence:
+  - Memo replay proof and lineage response contracts now have a clearer ownership boundary,
+    reducing coupling with core memo response DTO changes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented memo behavior.
+- Follow-Up:
+  - Continue reducing remaining memo response operation-envelope DTOs where request, event, and
+    core response dependencies can be composed through focused modules.
+
 ## LA-REV-629
 
 - Scope: Proposal memo audit event DTO boundary

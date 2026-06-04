@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-17`
-- Head: `6639a7df9f0dfd6892c5655547dc7208b6445613`
-- Branch Commits Over Main: `5`
+- Head: `d3894e54864cb497385879640124ed2150b9c3d6`
+- Branch Commits Over Main: `6`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -60,6 +60,8 @@
   response, lineage, and replay evidence models.
 - Proposal memo audit event DTOs are split into a focused append-only
   event model module.
+- Proposal memo lineage and replay evidence DTOs are split into a
+  focused lineage response module.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
 - Advisor cockpit service delegates repository-backed source loading and tactical

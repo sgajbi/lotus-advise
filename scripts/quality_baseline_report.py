@@ -275,6 +275,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  response, lineage, and replay evidence models.",
         "- Proposal memo audit event DTOs are split into a focused append-only",
         "  event model module.",
+        "- Proposal memo lineage and replay evidence DTOs are split into a",
+        "  focused lineage response module.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",

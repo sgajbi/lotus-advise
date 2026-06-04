@@ -21,6 +21,15 @@ from src.core.proposals.input_models import ProposalCreateRequest as InputPropos
 from src.core.proposals.memo_event_models import (
     ProposalMemoAuditEvent as EventProposalMemoAuditEvent,
 )
+from src.core.proposals.memo_lineage_response_models import (
+    ProposalMemoLineageItem as LineageProposalMemoLineageItem,
+)
+from src.core.proposals.memo_lineage_response_models import (
+    ProposalMemoLineageResponse as LineageProposalMemoLineageResponse,
+)
+from src.core.proposals.memo_lineage_response_models import (
+    ProposalMemoReplayEvidenceResponse as LineageProposalMemoReplayEvidenceResponse,
+)
 from src.core.proposals.memo_request_models import (
     ProposalMemoAiCommentaryRequest as RequestProposalMemoAiCommentaryRequest,
 )
@@ -62,6 +71,15 @@ from src.core.proposals.response_models import (
     ProposalMemoCreateRequest as ResponseProposalMemoCreateRequest,
 )
 from src.core.proposals.response_models import (
+    ProposalMemoLineageItem as ResponseProposalMemoLineageItem,
+)
+from src.core.proposals.response_models import (
+    ProposalMemoLineageResponse as ResponseProposalMemoLineageResponse,
+)
+from src.core.proposals.response_models import (
+    ProposalMemoReplayEvidenceResponse as ResponseProposalMemoReplayEvidenceResponse,
+)
+from src.core.proposals.response_models import (
     ProposalMemoReportPackageEventRequest as ResponseProposalMemoReportPackageEventRequest,
 )
 from src.core.proposals.response_models import (
@@ -101,6 +119,14 @@ def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert ResponseProposalMemoResponse is MemoProposalMemoResponse
     assert models.ProposalMemoAuditEvent is ResponseProposalMemoAuditEvent
     assert ResponseProposalMemoAuditEvent is EventProposalMemoAuditEvent
+    assert models.ProposalMemoLineageItem is ResponseProposalMemoLineageItem
+    assert ResponseProposalMemoLineageItem is LineageProposalMemoLineageItem
+    assert models.ProposalMemoLineageResponse is ResponseProposalMemoLineageResponse
+    assert ResponseProposalMemoLineageResponse is LineageProposalMemoLineageResponse
+    assert models.ProposalMemoReplayEvidenceResponse is ResponseProposalMemoReplayEvidenceResponse
+    assert (
+        ResponseProposalMemoReplayEvidenceResponse is LineageProposalMemoReplayEvidenceResponse
+    )
     assert models.ProposalMemoCreateRequest is ResponseProposalMemoCreateRequest
     assert ResponseProposalMemoCreateRequest is RequestProposalMemoCreateRequest
     assert models.ProposalMemoReviewRequest is ResponseProposalMemoReviewRequest
@@ -192,3 +218,21 @@ def test_memo_event_model_is_split_from_memo_response_boundary() -> None:
 
     assert "class ProposalMemoAuditEvent" not in facade
     assert "class ProposalMemoAuditEvent" in event_models
+
+
+def test_memo_lineage_models_are_split_from_memo_response_boundary() -> None:
+    from pathlib import Path
+
+    source_root = Path(__file__).resolve().parents[4] / "src" / "core" / "proposals"
+    facade = (source_root / "memo_response_models.py").read_text(encoding="utf-8")
+    lineage_models = (source_root / "memo_lineage_response_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    for class_name in (
+        "ProposalMemoLineageItem",
+        "ProposalMemoLineageResponse",
+        "ProposalMemoReplayEvidenceResponse",
+    ):
+        assert f"class {class_name}" not in facade
+        assert f"class {class_name}" in lineage_models

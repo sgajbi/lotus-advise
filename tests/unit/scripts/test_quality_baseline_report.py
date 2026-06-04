@@ -83,6 +83,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal alternatives ranking delegates comparator" in refactor_health
     assert "Proposal memo request DTOs and memo vocabulary literals are split" in refactor_health
     assert "Proposal memo audit event DTOs are split" in refactor_health
+    assert "Proposal memo lineage and replay evidence DTOs are split" in refactor_health
     assert (
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )
