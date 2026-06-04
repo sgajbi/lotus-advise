@@ -31,7 +31,7 @@ def test_policy_evaluation_persistence_record_builder_stays_focused() -> None:
     record_builder = (SOURCE_ROOT / "persistence_record_builder.py").read_text(encoding="utf-8")
 
     assert "build_policy_evaluation_record" in persistence
-    assert "policy_evaluation_hash" in persistence
+    assert "policy_evaluation_hash" not in persistence
     assert "def _portfolio_id" not in persistence
     assert "def _approval_dependencies" not in persistence
     assert "def _disclosure_requirements" not in persistence
@@ -60,6 +60,21 @@ def test_policy_evaluation_persistence_projection_stays_focused() -> None:
     assert "PolicyEvaluationLineageResponse(" in projection
     assert "policy_runtime_supportability" not in persistence
     assert "policy_runtime_supportability" in projection
+
+
+def test_policy_evaluation_persistence_replay_stays_focused() -> None:
+    persistence = (SOURCE_ROOT / "persistence.py").read_text(encoding="utf-8")
+    replay = (SOURCE_ROOT / "persistence_replay.py").read_text(encoding="utf-8")
+
+    assert "from src.core.policy_packs.persistence_replay import" in persistence
+    assert "def build_policy_evaluation_replay_response(" not in persistence
+    assert "def build_policy_evaluation_replay_response(" in replay
+    assert "policy_evaluation_hash" not in persistence
+    assert "policy_evaluation_hash" in replay
+    assert "evaluate_policy_pack_version" in persistence
+    assert "evaluate_policy_pack_version" in replay
+    assert "PolicyEvaluationReplayResponse(" not in persistence
+    assert "PolicyEvaluationReplayResponse(" in replay
 
 
 def _base_evidence_bundle() -> dict:
