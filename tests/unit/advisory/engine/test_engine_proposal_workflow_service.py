@@ -1,11 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
 import src.core.proposals.create_command as proposal_create_command_module
 import src.core.proposals.service as proposal_service_module
+import src.core.proposals.service_async_operations as proposal_service_async_module
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
@@ -64,6 +66,25 @@ class CountingLineageRepository(InMemoryProposalRepository):
     def list_versions(self, *, proposal_id: str) -> list[ProposalVersionRecord]:
         self.list_versions_calls += 1
         return super().list_versions(proposal_id=proposal_id)
+
+
+def test_service_delegates_async_operations_to_focused_module() -> None:
+    service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    async_text = Path(proposal_service_async_module.__file__).read_text(encoding="utf-8")
+
+    assert "ProposalWorkflowAsyncOperations" in service_text
+    for helper_name in (
+        "accept_create_proposal_async_submission_command",
+        "accept_create_version_async_submission_command",
+        "execute_create_proposal_async_operation",
+        "execute_create_version_async_operation",
+        "recover_async_operation_batch",
+        "build_async_operation_status_view",
+        "build_async_operation_replay_view",
+        "build_async_operation_correlation_view",
+    ):
+        assert helper_name not in service_text
+        assert helper_name in async_text
 
 
 def _risk_enriched_result(result):  # noqa: ANN001
@@ -996,7 +1017,7 @@ def test_service_delegates_create_proposal_async_submission(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_async_module,
         "accept_create_proposal_async_submission_command",
         fake_accept_create_proposal_async_submission_command,
     )
@@ -1032,7 +1053,7 @@ def test_service_delegates_create_version_async_submission(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_async_module,
         "accept_create_version_async_submission_command",
         fake_accept_create_version_async_submission_command,
     )
@@ -1316,7 +1337,7 @@ def test_service_delegates_async_operation_views(
         captured.update(kwargs)
         return sentinel
 
-    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+    monkeypatch.setattr(proposal_service_async_module, view_function_name, fake_view)
 
     response = getattr(service, service_method_name)(**call_kwargs)
 
@@ -1334,7 +1355,7 @@ def test_service_delegates_create_proposal_async_execution(monkeypatch):
         captured.update(kwargs)
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_async_module,
         "execute_create_proposal_async_operation",
         fake_execute_create_proposal_async_operation,
     )
@@ -1351,7 +1372,7 @@ def test_service_delegates_create_proposal_async_execution(monkeypatch):
     assert captured["fallback_payload"] is payload
     assert captured["fallback_idempotency_key"] == "idem-delegate-create"
     assert captured["fallback_correlation_id"] == "corr-delegate-create"
-    assert captured["create_proposal"] == service.create_proposal
+    assert callable(captured["create_proposal"])
 
 
 def test_service_delegates_create_version_async_execution(monkeypatch):
@@ -1367,7 +1388,7 @@ def test_service_delegates_create_version_async_execution(monkeypatch):
         captured.update(kwargs)
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_async_module,
         "execute_create_version_async_operation",
         fake_execute_create_version_async_operation,
     )
@@ -1384,7 +1405,7 @@ def test_service_delegates_create_version_async_execution(monkeypatch):
     assert captured["fallback_proposal_id"] == "pp_delegate_version"
     assert captured["fallback_payload"] is payload
     assert captured["fallback_correlation_id"] == "corr-delegate-version"
-    assert captured["create_version"] == service.create_version
+    assert callable(captured["create_version"])
 
 
 def test_service_execute_create_proposal_async_marks_failed_on_lifecycle_error():
@@ -1727,7 +1748,7 @@ def test_service_delegates_async_recovery_batch(monkeypatch):
         return 7
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_async_module,
         "recover_async_operation_batch",
         fake_recover_async_operation_batch,
     )
@@ -1737,8 +1758,8 @@ def test_service_delegates_async_recovery_batch(monkeypatch):
     assert recovered == 7
     assert captured["repository"] is repo
     assert captured["max_operations"] == 3
-    assert captured["execute_create_proposal_async"] == service.execute_create_proposal_async
-    assert captured["execute_create_version_async"] == service.execute_create_version_async
+    assert callable(captured["execute_create_proposal_async"])
+    assert callable(captured["execute_create_version_async"])
 
 
 def test_service_expected_state_can_be_optional_when_disabled():

@@ -8,26 +8,9 @@ from src.core.proposals.activity_views import (
     build_execution_status_view,
     build_workflow_timeline_view,
 )
-from src.core.proposals.async_operation_execution import (
-    execute_create_proposal_async_operation,
-    execute_create_version_async_operation,
-)
-from src.core.proposals.async_operation_recovery import (
-    ASYNC_RECOVERY_BATCH_SIZE,
-    recover_async_operation_batch,
-)
-from src.core.proposals.async_operation_views import (
-    build_async_operation_correlation_view,
-    build_async_operation_replay_view,
-    build_async_operation_status_view,
-)
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
-)
-from src.core.proposals.async_submission_commands import (
-    accept_create_proposal_async_submission_command,
-    accept_create_version_async_submission_command,
 )
 from src.core.proposals.create_command import create_proposal_command
 from src.core.proposals.exceptions import (
@@ -93,11 +76,13 @@ from src.core.proposals.replay_views import (
 )
 from src.core.proposals.report_request_command import record_proposal_report_request
 from src.core.proposals.repository import ProposalRepository
+from src.core.proposals.service_async_operations import (
+    ASYNC_RECOVERY_BATCH_SIZE,
+    ProposalWorkflowAsyncOperations,
+)
 from src.core.proposals.version_command import create_proposal_version
 from src.core.proposals.workflow_rules import TERMINAL_STATES
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-
-ASYNC_DEFAULT_MAX_ATTEMPTS = 3
 
 __all__ = [
     "ProposalIdempotencyConflictError",
@@ -126,6 +111,13 @@ class ProposalWorkflowService:
         self._allow_portfolio_id_change_on_new_version = allow_portfolio_id_change_on_new_version
         self._require_proposal_simulation_flag = require_proposal_simulation_flag
         self._async_create_submission_stats = AsyncCreateSubmissionStatsTracker()
+        self._async_operations = ProposalWorkflowAsyncOperations(
+            repository=self._repository,
+            create_submission_stats=self._async_create_submission_stats,
+            utc_now=_utc_now,
+            create_proposal=lambda **kwargs: self.create_proposal(**kwargs),
+            create_version=lambda **kwargs: self.create_version(**kwargs),
+        )
 
     def create_proposal(
         self,
@@ -159,14 +151,10 @@ class ProposalWorkflowService:
         idempotency_key: str,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        return accept_create_proposal_async_submission_command(
-            repository=self._repository,
+        return self._async_operations.accept_create_proposal_submission(
             payload=payload,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
-            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
-            utc_now=_utc_now,
-            submission_stats=self._async_create_submission_stats,
         )
 
     def submit_create_proposal_async(
@@ -191,14 +179,11 @@ class ProposalWorkflowService:
         idempotency_key: Optional[str] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
-        execute_create_proposal_async_operation(
-            repository=self._repository,
+        self._async_operations.execute_create_proposal(
             operation_id=operation_id,
-            fallback_payload=payload,
-            fallback_idempotency_key=idempotency_key,
-            fallback_correlation_id=correlation_id,
-            utc_now=_utc_now,
-            create_proposal=self.create_proposal,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
         )
 
     def get_proposal(
@@ -290,24 +275,15 @@ class ProposalWorkflowService:
         )
 
     def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
-        return build_async_operation_status_view(
-            repository=self._repository,
-            operation_id=operation_id,
-        )
+        return self._async_operations.get_status(operation_id=operation_id)
 
     def get_async_operation_replay(self, *, operation_id: str) -> AdvisoryReplayEvidenceResponse:
-        return build_async_operation_replay_view(
-            repository=self._repository,
-            operation_id=operation_id,
-        )
+        return self._async_operations.get_replay(operation_id=operation_id)
 
     def get_async_operation_by_correlation(
         self, *, correlation_id: str
     ) -> ProposalAsyncOperationStatusResponse:
-        return build_async_operation_correlation_view(
-            repository=self._repository,
-            correlation_id=correlation_id,
-        )
+        return self._async_operations.get_by_correlation(correlation_id=correlation_id)
 
     def get_version(
         self,
@@ -368,13 +344,10 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        return accept_create_version_async_submission_command(
-            repository=self._repository,
+        return self._async_operations.accept_create_version_submission(
             proposal_id=proposal_id,
             payload=payload,
             correlation_id=correlation_id,
-            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
-            utc_now=_utc_now,
         )
 
     def execute_create_version_async(
@@ -385,24 +358,15 @@ class ProposalWorkflowService:
         payload: Optional[ProposalVersionRequest] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
-        execute_create_version_async_operation(
-            repository=self._repository,
+        self._async_operations.execute_create_version(
             operation_id=operation_id,
-            fallback_proposal_id=proposal_id,
-            fallback_payload=payload,
-            fallback_correlation_id=correlation_id,
-            utc_now=_utc_now,
-            create_version=self.create_version,
+            proposal_id=proposal_id,
+            payload=payload,
+            correlation_id=correlation_id,
         )
 
     def recover_async_operations(self, *, max_operations: int = ASYNC_RECOVERY_BATCH_SIZE) -> int:
-        return recover_async_operation_batch(
-            repository=self._repository,
-            max_operations=max_operations,
-            utc_now=_utc_now,
-            execute_create_proposal_async=self.execute_create_proposal_async,
-            execute_create_version_async=self.execute_create_version_async,
-        )
+        return self._async_operations.recover_pending(max_operations=max_operations)
 
     def transition_state(
         self,
