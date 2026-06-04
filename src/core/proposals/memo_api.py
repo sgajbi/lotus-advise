@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
-from src.core.common.canonical import hash_canonical_payload
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
@@ -11,6 +10,11 @@ from src.core.proposals.exceptions import (
     ProposalValidationError,
 )
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
+from src.core.proposals.memo_event_recording import (
+    append_or_replay_memo_event,
+    find_replayed_memo_event,
+    memo_event_request_hash,
+)
 from src.core.proposals.memo_external_packages import (
     build_memo_ai_evidence,
     build_report_memo_package,
@@ -66,7 +70,6 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.persistence_models import (
     ProposalMemoEventRecord,
-    ProposalMemoEventType,
     ProposalMemoRecord,
 )
 from src.core.proposals.projections import to_proposal_summary
@@ -185,7 +188,7 @@ def record_memo_review_response(
     _validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
     if payload.client_ready_release_requested:
         raise ProposalValidationError("MEMO_CLIENT_READY_RELEASE_NOT_SUPPORTED")
-    request_hash = _request_hash(
+    request_hash = memo_event_request_hash(
         {
             "operation": "MEMO_REVIEW_RECORDED",
             "memo_id": memo.memo_id,
@@ -196,7 +199,7 @@ def record_memo_review_response(
             "client_ready_release_requested": payload.client_ready_release_requested,
         }
     )
-    event, replayed = _append_or_replay_memo_event(
+    event, replayed = append_or_replay_memo_event(
         repository=repository,
         memo=memo,
         event_id=event_id,
@@ -238,7 +241,7 @@ def record_memo_report_package_event_response(
     )
     memo = _load_memo(repository=repository, proposal_id=proposal_id, version_no=version_no)
     _validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
-    request_hash = _request_hash(
+    request_hash = memo_event_request_hash(
         {
             "operation": "MEMO_REPORT_PACKAGE_RECORDED",
             "memo_id": memo.memo_id,
@@ -249,7 +252,7 @@ def record_memo_report_package_event_response(
             "reason": payload.reason,
         }
     )
-    event, replayed = _append_or_replay_memo_event(
+    event, replayed = append_or_replay_memo_event(
         repository=repository,
         memo=memo,
         event_id=event_id,
@@ -297,7 +300,7 @@ def request_memo_report_package_response(
     memo_events = repository.list_memo_events(memo_id=memo.memo_id)
     review_posture = _require_advisor_use_review(memo=memo, events=memo_events)
 
-    request_hash = _request_hash(
+    request_hash = memo_event_request_hash(
         {
             "operation": "MEMO_REPORT_PACKAGE_REQUESTED",
             "memo_id": memo.memo_id,
@@ -310,7 +313,7 @@ def request_memo_report_package_response(
     )
     replayed_event = None
     if idempotency_key:
-        replayed_event = _find_replayed_event(
+        replayed_event = find_replayed_memo_event(
             repository=repository,
             memo=memo,
             idempotency_key=idempotency_key,
@@ -340,7 +343,7 @@ def request_memo_report_package_response(
             "reason": payload.reason,
         }
     )
-    event, replayed = _append_or_replay_memo_event(
+    event, replayed = append_or_replay_memo_event(
         repository=repository,
         memo=memo,
         event_id=event_id,
@@ -393,7 +396,7 @@ def request_memo_ai_commentary_response(
     memo_events = repository.list_memo_events(memo_id=memo.memo_id)
     review_posture = _require_advisor_use_review(memo=memo, events=memo_events)
     requested_sections = [str(section) for section in payload.requested_sections]
-    request_hash = _request_hash(
+    request_hash = memo_event_request_hash(
         {
             "operation": "MEMO_AI_REFERENCE_REQUESTED",
             "memo_id": memo.memo_id,
@@ -404,7 +407,7 @@ def request_memo_ai_commentary_response(
         }
     )
     if idempotency_key:
-        replayed_event = _find_replayed_event(
+        replayed_event = find_replayed_memo_event(
             repository=repository,
             memo=memo,
             idempotency_key=idempotency_key,
@@ -431,7 +434,7 @@ def request_memo_ai_commentary_response(
         commentary = build_proposal_memo_ai_unavailable_commentary(str(exc))
         ai_status = "UNAVAILABLE"
 
-    event, replayed = _append_or_replay_memo_event(
+    event, replayed = append_or_replay_memo_event(
         repository=repository,
         memo=memo,
         event_id=event_id,
@@ -588,63 +591,6 @@ def _load_memo(
     return memo
 
 
-def _append_or_replay_memo_event(
-    *,
-    repository: ProposalRepository,
-    memo: ProposalMemoRecord,
-    event_id: str,
-    event_type: ProposalMemoEventType,
-    actor_id: str,
-    occurred_at: datetime,
-    idempotency_key: str | None,
-    request_hash: str,
-    reason: dict[str, Any],
-) -> tuple[ProposalMemoEventRecord, bool]:
-    if idempotency_key:
-        replayed = _find_replayed_event(
-            repository=repository,
-            memo=memo,
-            idempotency_key=idempotency_key,
-            request_hash=request_hash,
-        )
-        if replayed is not None:
-            return replayed, True
-    event = ProposalMemoEventRecord(
-        event_id=event_id,
-        memo_id=memo.memo_id,
-        proposal_id=memo.proposal_id,
-        proposal_version_no=memo.proposal_version_no,
-        event_type=event_type,
-        actor_id=actor_id,
-        occurred_at=occurred_at,
-        reason_json={
-            **reason,
-            "memo_hash": memo.memo_hash,
-            "source_input_hash": memo.source_input_hash,
-            "idempotency_key": idempotency_key,
-            "idempotency_request_hash": request_hash,
-        },
-    )
-    repository.append_memo_event(event)
-    return event, False
-
-
-def _find_replayed_event(
-    *,
-    repository: ProposalRepository,
-    memo: ProposalMemoRecord,
-    idempotency_key: str,
-    request_hash: str,
-) -> ProposalMemoEventRecord | None:
-    for event in repository.list_memo_events(memo_id=memo.memo_id):
-        if event.reason_json.get("idempotency_key") != idempotency_key:
-            continue
-        if event.reason_json.get("idempotency_request_hash") != request_hash:
-            raise ProposalIdempotencyConflictError("MEMO_EVENT_IDEMPOTENCY_KEY_CONFLICT")
-        return event
-    return None
-
-
 def _require_advisor_use_review(
     *,
     memo: ProposalMemoRecord,
@@ -655,16 +601,12 @@ def _require_advisor_use_review(
         raise ProposalValidationError("MEMO_REPORT_PACKAGE_REQUIRES_ADVISOR_USE_REVIEW")
     if posture.get("memo_hash") != memo.memo_hash:
         raise ProposalValidationError("MEMO_REVIEW_SOURCE_HASH_MISMATCH")
-    return posture
+    return cast("dict[str, Any]", posture)
 
 
 def _validate_source_memo_hash(*, memo: ProposalMemoRecord, source_memo_hash: str) -> None:
     if source_memo_hash != memo.memo_hash:
         raise ProposalValidationError("MEMO_SOURCE_HASH_MISMATCH")
-
-
-def _request_hash(payload: dict[str, Any]) -> str:
-    return str(hash_canonical_payload(payload))
 
 
 def _raise_api_error(exc: ProposalMemoPersistenceError) -> None:

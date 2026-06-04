@@ -51,6 +51,24 @@ def test_memo_api_delegates_response_projection_helpers() -> None:
         assert f"def {helper_name}(" in projection_source
 
 
+def test_memo_api_delegates_event_recording_helpers() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    event_source = (REPO_ROOT / "src/core/proposals/memo_event_recording.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.proposals.memo_event_recording import" in source
+    for helper_name in (
+        "append_or_replay_memo_event",
+        "find_replayed_memo_event",
+        "memo_event_request_hash",
+    ):
+        assert f"def {helper_name}(" not in source
+        assert f"def {helper_name}(" in event_source
+    assert "ProposalMemoEventRecord(" not in source
+    assert "ProposalMemoEventRecord(" in event_source
+
+
 def _base_create_payload(portfolio_id: str = "pf_memo_api_1") -> dict:
     return {
         "created_by": "advisor_1",
