@@ -2,9 +2,6 @@ from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
-from src.core.proposals.activity_views import (
-    build_workflow_timeline_view,
-)
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
@@ -52,17 +49,6 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
     ProposalWorkflowTimelineResponse,
 )
-from src.core.proposals.read_views import (
-    build_idempotency_lookup_view,
-    build_proposal_approvals_view,
-    build_proposal_detail_view,
-    build_proposal_lineage_view,
-    build_proposal_list_view,
-    build_proposal_version_view,
-)
-from src.core.proposals.replay_views import (
-    build_proposal_version_replay_view,
-)
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.service_async_operations import (
     ASYNC_RECOVERY_BATCH_SIZE,
@@ -72,6 +58,7 @@ from src.core.proposals.service_delivery_operations import ProposalWorkflowDeliv
 from src.core.proposals.service_narrative_operations import (
     ProposalWorkflowNarrativeOperations,
 )
+from src.core.proposals.service_read_operations import ProposalWorkflowReadOperations
 from src.core.proposals.version_command import create_proposal_version
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 
@@ -118,6 +105,7 @@ class ProposalWorkflowService:
             repository=self._repository,
             utc_now=_utc_now,
         )
+        self._read_operations = ProposalWorkflowReadOperations(repository=self._repository)
 
     def create_proposal(
         self,
@@ -192,8 +180,7 @@ class ProposalWorkflowService:
     def get_proposal(
         self, *, proposal_id: str, include_evidence: bool = True
     ) -> ProposalDetailResponse:
-        return build_proposal_detail_view(
-            repository=self._repository,
+        return self._read_operations.get_proposal(
             proposal_id=proposal_id,
             include_evidence=include_evidence,
         )
@@ -209,8 +196,7 @@ class ProposalWorkflowService:
         limit: int,
         cursor: Optional[str],
     ) -> ProposalListResponse:
-        return build_proposal_list_view(
-            repository=self._repository,
+        return self._read_operations.list_proposals(
             portfolio_id=portfolio_id,
             state=state,
             created_by=created_by,
@@ -221,13 +207,13 @@ class ProposalWorkflowService:
         )
 
     def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:
-        return build_workflow_timeline_view(repository=self._repository, proposal_id=proposal_id)
+        return self._read_operations.get_workflow_timeline(proposal_id=proposal_id)
 
     def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
-        return build_proposal_approvals_view(repository=self._repository, proposal_id=proposal_id)
+        return self._read_operations.get_approvals(proposal_id=proposal_id)
 
     def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:
-        return build_proposal_lineage_view(repository=self._repository, proposal_id=proposal_id)
+        return self._read_operations.get_lineage(proposal_id=proposal_id)
 
     def request_execution_handoff(
         self,
@@ -263,10 +249,7 @@ class ProposalWorkflowService:
         )
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
-        return build_idempotency_lookup_view(
-            repository=self._repository,
-            idempotency_key=idempotency_key,
-        )
+        return self._read_operations.get_idempotency_lookup(idempotency_key=idempotency_key)
 
     def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
         return self._async_operations.get_status(operation_id=operation_id)
@@ -286,8 +269,7 @@ class ProposalWorkflowService:
         version_no: int,
         include_evidence: bool = True,
     ) -> ProposalVersionDetail:
-        return build_proposal_version_view(
-            repository=self._repository,
+        return self._read_operations.get_version(
             proposal_id=proposal_id,
             version_no=version_no,
             include_evidence=include_evidence,
@@ -403,8 +385,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         version_no: int,
     ) -> AdvisoryReplayEvidenceResponse:
-        return build_proposal_version_replay_view(
-            repository=self._repository,
+        return self._read_operations.get_version_replay(
             proposal_id=proposal_id,
             version_no=version_no,
         )

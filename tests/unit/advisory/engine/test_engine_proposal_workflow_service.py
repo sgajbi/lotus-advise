@@ -10,6 +10,7 @@ import src.core.proposals.service as proposal_service_module
 import src.core.proposals.service_async_operations as proposal_service_async_module
 import src.core.proposals.service_delivery_operations as proposal_service_delivery_module
 import src.core.proposals.service_narrative_operations as proposal_service_narrative_module
+import src.core.proposals.service_read_operations as proposal_service_read_module
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
@@ -121,6 +122,27 @@ def test_service_delegates_narrative_operations_to_focused_module() -> None:
         assert helper_name not in service_text
         assert helper_name in narrative_text
     assert "record_narrative_review" in narrative_text
+
+
+def test_service_delegates_read_operations_to_focused_module() -> None:
+    service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    read_text = Path(proposal_service_read_module.__file__).read_text(encoding="utf-8")
+
+    assert "ProposalWorkflowReadOperations" in service_text
+    for import_name in (
+        "from src.core.proposals.activity_views import",
+        "from src.core.proposals.read_views import",
+        "from src.core.proposals.replay_views import",
+    ):
+        assert import_name not in service_text
+        assert import_name in read_text
+    for helper_name in (
+        "build_proposal_detail_view",
+        "build_proposal_list_view",
+        "build_proposal_version_replay_view",
+    ):
+        assert helper_name not in service_text
+        assert helper_name in read_text
 
 
 def _risk_enriched_result(result):  # noqa: ANN001
@@ -798,7 +820,7 @@ def test_service_delegates_activity_views(
         captured.update(kwargs)
         return sentinel
 
-    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+    monkeypatch.setattr(proposal_service_read_module, view_function_name, fake_view)
 
     response = getattr(service, service_method_name)(proposal_id="pp_activity_view")
 
@@ -901,7 +923,7 @@ def test_service_delegates_simple_read_views(
         captured.update(kwargs)
         return sentinel
 
-    monkeypatch.setattr(proposal_service_module, view_function_name, fake_view)
+    monkeypatch.setattr(proposal_service_read_module, view_function_name, fake_view)
 
     response = getattr(service, service_method_name)(**call_kwargs)
 
@@ -922,7 +944,7 @@ def test_service_delegates_proposal_list_view(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_read_module,
         "build_proposal_list_view",
         fake_build_proposal_list_view,
     )
@@ -961,7 +983,7 @@ def test_service_delegates_version_replay_view(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_read_module,
         "build_proposal_version_replay_view",
         fake_build_proposal_version_replay_view,
     )
