@@ -256,6 +256,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Proposal memo API response assembly delegates memo, audit-event, report replay,",
         "  AI commentary, archive-ref, section, and replay-metadata projection to a",
         "  focused response projection module.",
+        "- Proposal memo API external request orchestration delegates report-package and",
+        "  AI-commentary integration flows to a focused operations module.",
         "- Alternative strategy construction delegates input DTOs, base mechanics,",
         "  objective classes, selection helpers, trade-payload formatting, and notional math",
         "  to focused strategy modules.",

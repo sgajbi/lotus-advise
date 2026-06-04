@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-617
+
+- Scope: Proposal memo external request orchestration
+- Pattern: The proposal memo API facade should not own lotus-report materialization and Lotus AI
+  commentary request orchestration directly.
+- Status: Hardened
+- Finding Class: Integration boundary modularity and memo workflow maintainability
+- Summary: `src/core/proposals/memo_api.py` still mixed memo create/read/review/lineage facade
+  methods with downstream lotus-report package materialization, Lotus AI commentary request
+  handling, advisor-use review gating, idempotent replay checks, and append-only memo event
+  recording. That made route-facing memo behavior harder to review separately from external
+  integration orchestration.
+- Evidence:
+  - Added `src/core/proposals/memo_external_request_operations.py` for report-package and
+    AI-commentary request flows, including review gating, idempotent replay, downstream request
+    payload assembly, fallback AI posture, and append-only event recording.
+  - Kept `request_memo_report_package_response` and `request_memo_ai_commentary_response` in
+    `memo_api.py` as stable facade functions that pass explicit downstream callables.
+  - Updated memo API boundary tests to prove external request operations and package payload
+    builders remain in focused modules outside the facade.
+  - Focused memo API lint, mypy, and behavior tests passed with 14 tests.
+- Consequence:
+  - Memo API behavior remains compatible while external integration orchestration is easier to test,
+    review, and evolve without touching unrelated memo create/read/review/lineage behavior.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `memo_api.py` by separating remaining create/read/review/lineage facade
+    responsibilities where existing boundary tests already preserve behavior.
+
 ## LA-REV-616
 
 - Scope: Advisor cockpit source read-model projection helpers

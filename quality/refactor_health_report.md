@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-16`
-- Head: `02d6850c47182aed09a40fbf15d17c75254a7356`
-- Branch Commits Over Main: `33`
+- Head: `a2d3cb7fb47ced2a7ad5dfb3ed6111b776a90fe9`
+- Branch Commits Over Main: `35`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -41,6 +41,8 @@
 - Proposal memo API response assembly delegates memo, audit-event, report replay,
   AI commentary, archive-ref, section, and replay-metadata projection to a
   focused response projection module.
+- Proposal memo API external request orchestration delegates report-package and
+  AI-commentary integration flows to a focused operations module.
 - Alternative strategy construction delegates input DTOs, base mechanics,
   objective classes, selection helpers, trade-payload formatting, and notional math
   to focused strategy modules.

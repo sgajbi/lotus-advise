@@ -74,6 +74,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal memo foundational sections are split" in refactor_health
     assert "Proposal memo API orchestration delegates report-package" in refactor_health
     assert "Proposal memo API response assembly delegates memo" in refactor_health
+    assert "Proposal memo API external request orchestration delegates" in refactor_health
     assert "Alternative strategy construction delegates input DTOs" in refactor_health
     assert "Alternatives objective strategies are split" in refactor_health
     assert (
