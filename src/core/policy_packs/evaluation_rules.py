@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 from src.core.policy_packs.evaluation_models import PolicyRuleEvaluationResult
-from src.core.policy_packs.evaluation_product_helpers import (
-    proposed_shelf_rows as _proposed_shelf_rows,
-)
 from src.core.policy_packs.evaluation_product_rules import (
     evaluate_sg_complex_product_disclosure as _evaluate_sg_complex_product_disclosure,
 )
@@ -24,7 +21,13 @@ from src.core.policy_packs.evaluation_result_builders import (
 from src.core.policy_packs.evaluation_result_builders import (
     unique_strings as _unique,
 )
-from src.core.proposals.source_readiness_common import dict_at, list_at
+from src.core.policy_packs.evaluation_review_rules import (
+    evaluate_best_interest_cost as _evaluate_best_interest_cost,
+)
+from src.core.policy_packs.evaluation_review_rules import (
+    evaluate_conflict_disclosure as _evaluate_conflict_disclosure,
+)
+from src.core.proposals.source_readiness_common import list_at
 
 FIELD_TO_SOURCE_SECTION = {
     "private_asset_or_structured_product_flag": "core_product_eligibility_target_market_complexity",
@@ -142,100 +145,6 @@ def _evaluate_mandate_rule(
         evidence_refs=restrictions,
         source_authority_refs=["lotus-core:core_mandate_objectives_restrictions"],
     )
-
-
-def _evaluate_best_interest_cost(
-    *, rule: dict[str, Any], evidence_bundle: dict[str, Any]
-) -> PolicyRuleEvaluationResult:
-    assumptions = _artifact_section(evidence_bundle, "assumptions_and_limits")
-    costs = dict_at(assumptions, "costs_and_fees")
-    tax = dict_at(assumptions, "tax")
-    execution = dict_at(assumptions, "execution")
-    missing = []
-    if not costs.get("included"):
-        missing.extend(["fee_evidence", "cost_evidence"])
-    if not tax.get("included"):
-        missing.append("tax_evidence")
-    if not execution.get("included"):
-        missing.append("execution_friction_evidence")
-    if missing:
-        return _rule_pending(
-            rule,
-            outcome="BEST_INTEREST_COST_REASONABLENESS_REVIEW_REQUIRED",
-            missing_evidence=_unique(missing),
-            reason_codes=["BEST_INTEREST_COST_TAX_FRICTION_EVIDENCE_NOT_MODELED"],
-            required_actions=["REVIEW_COST_TAX_AND_EXECUTION_FRICTION"],
-        )
-    return _rule_ready(
-        rule,
-        "BEST_INTEREST_COST_TAX_AND_FRICTION_EVIDENCE_READY_FOR_REVIEW",
-        evidence_refs=["artifact.assumptions_and_limits"],
-        source_authority_refs=["lotus-advise:proposal_artifact_assumptions"],
-    )
-
-
-def _evaluate_conflict_disclosure(
-    *, rule: dict[str, Any], evidence_bundle: dict[str, Any]
-) -> PolicyRuleEvaluationResult:
-    conflict_evidence = dict_at(evidence_bundle, "conflict_evidence")
-    disclosures = _artifact_section(evidence_bundle, "disclosures")
-    documented = {
-        str(row.get("instrument_id"))
-        for row in list_at(disclosures, "product_docs")
-        if isinstance(row, dict) and row.get("instrument_id")
-    }
-    proposed = set(_proposed_shelf_rows(evidence_bundle))
-    missing_docs = sorted(proposed - documented)
-    missing: list[str] = []
-    reasons: list[str] = []
-    required_actions: list[str] = []
-    if not conflict_evidence:
-        missing.append("conflict_evidence")
-        reasons.append("CONFLICT_EVIDENCE_NOT_PROVIDED")
-        required_actions.append("REVIEW_CONFLICT_OF_INTEREST")
-    if conflict_evidence.get("material_conflict") is True:
-        reasons.append("MATERIAL_CONFLICT_REQUIRES_SUPERVISORY_REVIEW")
-        required_actions.append("SUPERVISORY_CONFLICT_REVIEW")
-    if missing_docs:
-        missing.extend(f"product_document:{instrument_id}" for instrument_id in missing_docs)
-        reasons.append("PRODUCT_DOCUMENTATION_INCOMPLETE_FOR_PROPOSED_TRADES")
-        required_actions.extend(
-            f"REVIEW_PRODUCT_DOCUMENT:{instrument_id}" for instrument_id in missing_docs
-        )
-    if conflict_evidence.get("material_conflict") is True:
-        return _rule_blocked(
-            rule,
-            outcome="CONFLICT_AND_DISCLOSURE_REVIEW_REQUIRED",
-            missing_evidence=_unique(missing),
-            reason_codes=_unique(reasons),
-            required_actions=_unique(required_actions),
-        )
-    if missing:
-        return _rule_pending(
-            rule,
-            outcome="CONFLICT_AND_DISCLOSURE_REVIEW_REQUIRED",
-            missing_evidence=_unique(missing),
-            reason_codes=_unique(reasons),
-            required_actions=_unique(required_actions),
-            evidence_refs=["artifact.disclosures.product_docs"],
-            source_authority_refs=["lotus-advise:proposal_artifact_disclosures"],
-        )
-    return _rule_ready(
-        rule,
-        "CONFLICT_AND_PRODUCT_DOCUMENT_EVIDENCE_READY_FOR_REVIEW",
-        evidence_refs=["artifact.disclosures.product_docs", "evidence_bundle.conflict_evidence"],
-        source_authority_refs=[
-            "lotus-advise:proposal_artifact_disclosures",
-            "lotus-advise:conflict_evidence",
-        ],
-    )
-
-
-def _artifact_section(evidence_bundle: dict[str, Any], section: str) -> dict[str, Any]:
-    artifact = dict_at(evidence_bundle, "artifact")
-    if artifact:
-        return cast(dict[str, Any], dict_at(artifact, section))
-    return cast(dict[str, Any], dict_at(evidence_bundle, section))
 
 
 def _section(source_posture: dict[str, Any], key: str) -> dict[str, Any]:

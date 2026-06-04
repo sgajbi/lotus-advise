@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-634
+
+- Scope: Policy evaluation cost and conflict review rule family
+- Pattern: Best-interest cost and conflict/product-document review rules should be implemented in a
+  focused review-rule module instead of the shared dispatcher module.
+- Status: Hardened
+- Finding Class: Policy rule-family modularity and advisor review evidence maintainability
+- Summary: `src/core/policy_packs/evaluation_rules.py` still implemented best-interest
+  cost/tax/execution-friction review and conflict/product-document review directly. These rules
+  share proposal-artifact evidence interpretation and advisor/compliance review posture, and are
+  distinct from product eligibility and source-readiness dispatch.
+- Evidence:
+  - Extracted `evaluate_best_interest_cost`, `evaluate_conflict_disclosure`, and shared
+    artifact-section lookup to `src/core/policy_packs/evaluation_review_rules.py`.
+  - Kept `evaluate_policy_rule` dispatcher behavior unchanged by importing the focused review rule
+    functions through private aliases.
+  - Added focused tests for cost evidence ready/pending posture and conflict/documentation
+    ready/blocked posture.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new review
+    rule tests passed with 16 tests.
+- Consequence:
+  - Advisor/compliance review policy behavior is easier to evolve independently from product
+    eligibility and source-readiness rule handling.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Continue reducing the shared policy evaluation dispatcher by extracting source-readiness and
+    mandate rule handling where appropriate.
+
 ## LA-REV-633
 
 - Scope: Policy evaluation Singapore product rule family
