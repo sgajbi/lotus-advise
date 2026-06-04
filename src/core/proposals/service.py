@@ -12,20 +12,15 @@ from src.core.proposals.exceptions import (
 )
 from src.core.proposals.models import (
     ProposalApprovalRequest,
-    ProposalApprovalsResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDeliveryHistoryResponse,
     ProposalDeliverySummaryResponse,
-    ProposalDetailResponse,
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
     ProposalExecutionStatusResponse,
     ProposalExecutionUpdateRequest,
-    ProposalIdempotencyLookupResponse,
     ProposalLifecycleOrigin,
-    ProposalLineageResponse,
-    ProposalListResponse,
     ProposalNarrativeReadResponse,
     ProposalNarrativeRegenerationRequest,
     ProposalNarrativeRegenerationResponse,
@@ -33,17 +28,15 @@ from src.core.proposals.models import (
     ProposalReportResponse,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
-    ProposalVersionDetail,
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
-    ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.service_async_facade import ProposalWorkflowAsyncFacadeMixin
 from src.core.proposals.service_operation_registry import (
     build_proposal_workflow_operation_registry,
 )
-from src.core.replay.models import AdvisoryReplayEvidenceResponse
+from src.core.proposals.service_read_facade import ProposalWorkflowReadFacadeMixin
 
 __all__ = [
     "ProposalIdempotencyConflictError",
@@ -56,7 +49,7 @@ __all__ = [
 ]
 
 
-class ProposalWorkflowService(ProposalWorkflowAsyncFacadeMixin):
+class ProposalWorkflowService(ProposalWorkflowAsyncFacadeMixin, ProposalWorkflowReadFacadeMixin):
     def __init__(
         self,
         *,
@@ -109,44 +102,6 @@ class ProposalWorkflowService(ProposalWorkflowAsyncFacadeMixin):
             context_resolution_override=context_resolution_override,
         )
 
-    def get_proposal(
-        self, *, proposal_id: str, include_evidence: bool = True
-    ) -> ProposalDetailResponse:
-        return self._read_operations.get_proposal(
-            proposal_id=proposal_id,
-            include_evidence=include_evidence,
-        )
-
-    def list_proposals(
-        self,
-        *,
-        portfolio_id: Optional[str],
-        state: Optional[str],
-        created_by: Optional[str],
-        created_from: Optional[datetime],
-        created_to: Optional[datetime],
-        limit: int,
-        cursor: Optional[str],
-    ) -> ProposalListResponse:
-        return self._read_operations.list_proposals(
-            portfolio_id=portfolio_id,
-            state=state,
-            created_by=created_by,
-            created_from=created_from,
-            created_to=created_to,
-            limit=limit,
-            cursor=cursor,
-        )
-
-    def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:
-        return self._read_operations.get_workflow_timeline(proposal_id=proposal_id)
-
-    def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
-        return self._read_operations.get_approvals(proposal_id=proposal_id)
-
-    def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:
-        return self._read_operations.get_lineage(proposal_id=proposal_id)
-
     def request_execution_handoff(
         self,
         *,
@@ -178,22 +133,6 @@ class ProposalWorkflowService(ProposalWorkflowAsyncFacadeMixin):
         return self._delivery_operations.record_execution_update(
             proposal_id=proposal_id,
             payload=payload,
-        )
-
-    def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
-        return self._read_operations.get_idempotency_lookup(idempotency_key=idempotency_key)
-
-    def get_version(
-        self,
-        *,
-        proposal_id: str,
-        version_no: int,
-        include_evidence: bool = True,
-    ) -> ProposalVersionDetail:
-        return self._read_operations.get_version(
-            proposal_id=proposal_id,
-            version_no=version_no,
-            include_evidence=include_evidence,
         )
 
     def create_version(
@@ -237,17 +176,6 @@ class ProposalWorkflowService(ProposalWorkflowAsyncFacadeMixin):
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
-        )
-
-    def get_version_replay(
-        self,
-        *,
-        proposal_id: str,
-        version_no: int,
-    ) -> AdvisoryReplayEvidenceResponse:
-        return self._read_operations.get_version_replay(
-            proposal_id=proposal_id,
-            version_no=version_no,
         )
 
     def get_narrative(

@@ -13,6 +13,7 @@ import src.core.proposals.service_command_operations as proposal_service_command
 import src.core.proposals.service_delivery_operations as proposal_service_delivery_module
 import src.core.proposals.service_narrative_operations as proposal_service_narrative_module
 import src.core.proposals.service_operation_registry as proposal_service_operation_registry_module
+import src.core.proposals.service_read_facade as proposal_service_read_facade_module
 import src.core.proposals.service_read_operations as proposal_service_read_module
 from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
@@ -180,10 +181,20 @@ def test_service_delegates_read_operations_to_focused_module() -> None:
     registry_text = Path(proposal_service_operation_registry_module.__file__).read_text(
         encoding="utf-8"
     )
+    read_facade_text = Path(proposal_service_read_facade_module.__file__).read_text(
+        encoding="utf-8"
+    )
     read_text = Path(proposal_service_read_module.__file__).read_text(encoding="utf-8")
 
     assert "build_proposal_workflow_operation_registry" in service_text
+    assert "ProposalWorkflowReadFacadeMixin" in service_text
     assert "ProposalWorkflowReadOperations" in registry_text
+    assert "def get_proposal(" not in service_text
+    assert "def list_proposals(" not in service_text
+    assert "def get_version_replay(" not in service_text
+    assert "def get_proposal(" in read_facade_text
+    assert "def list_proposals(" in read_facade_text
+    assert "def get_version_replay(" in read_facade_text
     for import_name in (
         "from src.core.proposals.activity_views import",
         "from src.core.proposals.read_views import",
