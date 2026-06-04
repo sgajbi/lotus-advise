@@ -269,6 +269,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  house-view source mapping to a focused source-loader module.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
         "  history, and execution-update replay behavior to a focused service boundary.",
+        "- Proposal workflow narrative operations delegate narrative read/regeneration/review",
+        "  and report-request event recording to a focused service boundary.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",

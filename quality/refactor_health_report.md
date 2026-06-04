@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-16`
-- Head: `e3933873926acec90d8bdebe79dbdf875c7ea22e`
-- Branch Commits Over Main: `37`
+- Head: `c2a6b05e0403303b82e087e2eee04fef56f17a90`
+- Branch Commits Over Main: `39`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -54,6 +54,8 @@
   house-view source mapping to a focused source-loader module.
 - Proposal workflow delivery operations delegate execution handoff, status, summary,
   history, and execution-update replay behavior to a focused service boundary.
+- Proposal workflow narrative operations delegate narrative read/regeneration/review
+  and report-request event recording to a focused service boundary.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

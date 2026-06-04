@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-619
+
+- Scope: Proposal workflow narrative and report operations
+- Pattern: The API-facing proposal workflow service should not own narrative read/regeneration/
+  review helpers and report-request event recording directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and narrative/report workflow maintainability
+- Summary: `src/core/proposals/service.py` still mixed the public proposal workflow facade with
+  narrative read projection, narrative regeneration, narrative review event recording, workflow
+  event id creation, and proposal report-request event recording. That made narrative/report
+  workflow behavior change in the same module as create/version/read/lifecycle facade behavior.
+- Evidence:
+  - Added `src/core/proposals/service_narrative_operations.py` for narrative read, regeneration,
+    review, and report-request recording operations.
+  - Kept `ProposalWorkflowService` as the stable public facade, delegating narrative and
+    report-request methods to `ProposalWorkflowNarrativeOperations`.
+  - Added a source-boundary test proving narrative view helpers and report-request command imports
+    stay outside the workflow service facade.
+  - Focused proposal workflow service lint, mypy, and behavior tests passed with 75 tests.
+- Consequence:
+  - Narrative and report-request workflow behavior remains compatible while the public service
+    facade is clearer and safer to evolve separately from narrative/report event recording.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `ProposalWorkflowService` by extracting read-view and lifecycle operation
+    groups where existing delegation tests can preserve route-facing behavior.
+
 ## LA-REV-618
 
 - Scope: Advisor cockpit service source loading
