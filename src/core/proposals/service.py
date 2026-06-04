@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.proposals.activity_views import (
@@ -151,10 +151,13 @@ class ProposalWorkflowService:
         idempotency_key: str,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        return self._async_operations.accept_create_proposal_submission(
-            payload=payload,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
+        return cast(
+            "tuple[ProposalAsyncAcceptedResponse, bool]",
+            self._async_operations.accept_create_proposal_submission(
+                payload=payload,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            ),
         )
 
     def submit_create_proposal_async(
@@ -233,23 +236,35 @@ class ProposalWorkflowService:
         payload: ProposalExecutionHandoffRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalExecutionHandoffResponse:
-        return request_proposal_execution_handoff(
-            repository=self._repository,
-            proposal_id=proposal_id,
-            payload=payload,
-            idempotency_key=idempotency_key,
-            require_expected_state=self._require_expected_state,
-            occurred_at=_utc_now(),
+        return cast(
+            ProposalExecutionHandoffResponse,
+            request_proposal_execution_handoff(
+                repository=self._repository,
+                proposal_id=proposal_id,
+                payload=payload,
+                idempotency_key=idempotency_key,
+                require_expected_state=self._require_expected_state,
+                occurred_at=_utc_now(),
+            ),
         )
 
     def get_execution_status(self, *, proposal_id: str) -> ProposalExecutionStatusResponse:
-        return build_execution_status_view(repository=self._repository, proposal_id=proposal_id)
+        return cast(
+            ProposalExecutionStatusResponse,
+            build_execution_status_view(repository=self._repository, proposal_id=proposal_id),
+        )
 
     def get_delivery_summary(self, *, proposal_id: str) -> ProposalDeliverySummaryResponse:
-        return build_delivery_summary_view(repository=self._repository, proposal_id=proposal_id)
+        return cast(
+            ProposalDeliverySummaryResponse,
+            build_delivery_summary_view(repository=self._repository, proposal_id=proposal_id),
+        )
 
     def get_delivery_history(self, *, proposal_id: str) -> ProposalDeliveryHistoryResponse:
-        return build_delivery_history_view(repository=self._repository, proposal_id=proposal_id)
+        return cast(
+            ProposalDeliveryHistoryResponse,
+            build_delivery_history_view(repository=self._repository, proposal_id=proposal_id),
+        )
 
     def record_execution_update(
         self,
@@ -265,7 +280,7 @@ class ProposalWorkflowService:
             default_occurred_at=_utc_now(),
         )
         if replay_response is not None:
-            return replay_response
+            return cast(ProposalExecutionStatusResponse, replay_response)
         return self.get_execution_status(proposal_id=proposal_id)
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
@@ -344,10 +359,13 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        return self._async_operations.accept_create_version_submission(
-            proposal_id=proposal_id,
-            payload=payload,
-            correlation_id=correlation_id,
+        return cast(
+            "tuple[ProposalAsyncAcceptedResponse, bool]",
+            self._async_operations.accept_create_version_submission(
+                proposal_id=proposal_id,
+                payload=payload,
+                correlation_id=correlation_id,
+            ),
         )
 
     def execute_create_version_async(
@@ -366,7 +384,7 @@ class ProposalWorkflowService:
         )
 
     def recover_async_operations(self, *, max_operations: int = ASYNC_RECOVERY_BATCH_SIZE) -> int:
-        return self._async_operations.recover_pending(max_operations=max_operations)
+        return cast(int, self._async_operations.recover_pending(max_operations=max_operations))
 
     def transition_state(
         self,
