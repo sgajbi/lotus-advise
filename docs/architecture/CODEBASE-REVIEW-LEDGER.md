@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-647
+
+- Scope: Proposal narrative policy and guardrail DTO ownership
+- Pattern: Disclosure policy, policy context, narrative policy, and guardrail result DTOs should
+  live in a focused model module aligned with narrative policy evaluation.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and policy contract maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned narrative policy context,
+  disclosure, guardrail result, and policy DTOs directly. These DTOs are produced and interpreted by
+  `src/core/advisory/narrative_policy.py` and are distinct from request, grounding, section,
+  AI-lineage, envelope, and review DTOs.
+- Evidence:
+  - Extracted `ProposalNarrativePolicyContext`, `ProposalNarrativeDisclosure`,
+    `ProposalNarrativeGuardrailResult`, and `ProposalNarrativePolicy` to
+    `src/core/advisory/narrative_policy_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving policy DTO facade imports resolve to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 32 tests.
+- Consequence:
+  - Narrative disclosure and guardrail contracts now have a narrow owner module aligned with policy
+    evaluation, reducing DTO churn in the narrative model facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting AI-lineage, envelope, and review DTO groups out of the narrative model
+    facade, then redirect narrative builders to focused owner imports.
+
 ## LA-REV-646
 
 - Scope: Proposal narrative section DTO ownership

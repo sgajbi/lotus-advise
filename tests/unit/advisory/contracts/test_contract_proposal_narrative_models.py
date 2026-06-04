@@ -10,6 +10,18 @@ from src.core.advisory.narrative_grounding_models import (
 from src.core.advisory.narrative_grounding_models import (
     ProposalNarrativeSourceRef as OwnedProposalNarrativeSourceRef,
 )
+from src.core.advisory.narrative_policy_models import (
+    ProposalNarrativeDisclosure as OwnedProposalNarrativeDisclosure,
+)
+from src.core.advisory.narrative_policy_models import (
+    ProposalNarrativeGuardrailResult as OwnedProposalNarrativeGuardrailResult,
+)
+from src.core.advisory.narrative_policy_models import (
+    ProposalNarrativePolicy as OwnedProposalNarrativePolicy,
+)
+from src.core.advisory.narrative_policy_models import (
+    ProposalNarrativePolicyContext as OwnedProposalNarrativePolicyContext,
+)
 from src.core.advisory.narrative_request_models import (
     ProposalNarrativeRequest as OwnedProposalNarrativeRequest,
 )
@@ -73,4 +85,17 @@ def test_proposal_narrative_section_model_keeps_stable_facade_import() -> None:
     assert (
         narrative_models.ProposalNarrativeSection.__module__
         == "src.core.advisory.narrative_section_models"
+    )
+
+
+def test_proposal_narrative_policy_models_keep_stable_facade_imports() -> None:
+    assert narrative_models.ProposalNarrativeDisclosure is OwnedProposalNarrativeDisclosure
+    assert narrative_models.ProposalNarrativeGuardrailResult is (
+        OwnedProposalNarrativeGuardrailResult
+    )
+    assert narrative_models.ProposalNarrativePolicy is OwnedProposalNarrativePolicy
+    assert narrative_models.ProposalNarrativePolicyContext is OwnedProposalNarrativePolicyContext
+    assert (
+        narrative_models.ProposalNarrativePolicy.__module__
+        == "src.core.advisory.narrative_policy_models"
     )

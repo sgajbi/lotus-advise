@@ -100,6 +100,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal narrative request DTOs are split" in refactor_health
     assert "Proposal narrative grounding DTOs are split" in refactor_health
     assert "Proposal narrative section DTOs are split" in refactor_health
+    assert "Proposal narrative policy and guardrail DTOs are split" in refactor_health
     assert (
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )
