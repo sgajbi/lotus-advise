@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-638
+
+- Scope: Proposal artifact trade/funding DTO ownership
+- Pattern: Trade list, FX funding, execution-note, and trade-rationale DTOs should live in a
+  focused model module aligned with the artifact trade builder.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and execution-evidence maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned the trade/funding DTO family even
+  though `src/core/advisory/artifact_trades.py` already owns the corresponding builder logic. This
+  kept execution-evidence contracts coupled to the top-level artifact envelope and made the DTO file
+  harder to review.
+- Evidence:
+  - Extracted trade rationale, security trade, FX funding, execution-note, and trades/funding DTOs
+    to `src/core/advisory/artifact_trade_models.py`.
+  - Removed the now-unneeded `Money` dependency from the top-level artifact envelope module.
+  - Kept existing `src/core/advisory/artifact_models.py` facade imports stable for artifact
+    assembly, route response schemas, and OpenAPI generation.
+  - Added contract coverage proving trade/funding facade imports resolve to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 26 tests.
+- Consequence:
+  - Proposal artifact execution-evidence contracts now have a narrow owner module aligned with the
+    existing trade/funding builder, reducing DTO coupling in the artifact envelope.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting review, assumptions/disclosures, and evidence DTO groups out of the artifact
+    envelope.
+
 ## LA-REV-637
 
 - Scope: Proposal artifact portfolio-impact DTO ownership

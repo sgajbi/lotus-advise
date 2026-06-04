@@ -43,6 +43,21 @@ from src.core.advisory.artifact_summary_models import (
 from src.core.advisory.artifact_summary_models import (
     ProposalArtifactTakeaway as OwnedProposalArtifactTakeaway,
 )
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactExecutionNote as OwnedProposalArtifactExecutionNote,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactFx as OwnedProposalArtifactFx,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactTrade as OwnedProposalArtifactTrade,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactTradeRationale as OwnedProposalArtifactTradeRationale,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactTradesAndFunding as OwnedProposalArtifactTradesAndFunding,
+)
 from src.core.models import GateDecision, GateDecisionSummary, Money
 
 
@@ -59,6 +74,17 @@ def test_proposal_artifact_portfolio_models_keep_stable_facade_imports():
     assert ProposalArtifactPortfolioImpact is OwnedProposalArtifactPortfolioImpact
     assert ProposalArtifactPortfolioImpact.__module__ == (
         "src.core.advisory.artifact_portfolio_models"
+    )
+
+
+def test_proposal_artifact_trade_models_keep_stable_facade_imports():
+    assert ProposalArtifactExecutionNote is OwnedProposalArtifactExecutionNote
+    assert ProposalArtifactFx is OwnedProposalArtifactFx
+    assert ProposalArtifactTrade is OwnedProposalArtifactTrade
+    assert ProposalArtifactTradeRationale is OwnedProposalArtifactTradeRationale
+    assert ProposalArtifactTradesAndFunding is OwnedProposalArtifactTradesAndFunding
+    assert ProposalArtifactTradesAndFunding.__module__ == (
+        "src.core.advisory.artifact_trade_models"
     )
 
 
