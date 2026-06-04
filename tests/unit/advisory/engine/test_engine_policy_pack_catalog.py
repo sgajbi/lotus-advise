@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from src.core.policy_packs import (
@@ -12,9 +14,26 @@ from src.core.proposals.exceptions import (
     ProposalValidationError,
 )
 
+SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
+
 
 def setup_function() -> None:
     reset_policy_pack_catalog_for_tests()
+
+
+def test_policy_pack_catalog_definition_helpers_stay_focused() -> None:
+    catalog = (SOURCE_ROOT / "catalog.py").read_text(encoding="utf-8")
+    definitions = (SOURCE_ROOT / "catalog_definitions.py").read_text(encoding="utf-8")
+
+    assert "summary_from_definition" in catalog
+    assert "validate_definition" in catalog
+    assert "def _validate_definition" not in catalog
+    assert "def _summary_from_definition" not in catalog
+    assert "def _prepare_definition" not in catalog
+
+    assert "def validate_definition" in definitions
+    assert "def summary_from_definition" in definitions
+    assert "def prepare_definition" in definitions
 
 
 def test_policy_pack_validation_is_hash_backed_and_idempotent() -> None:

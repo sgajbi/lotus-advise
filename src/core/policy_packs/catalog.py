@@ -5,18 +5,21 @@ from datetime import UTC, datetime
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.policy_packs.catalog_definitions import (
+    CATALOG_CONTRACT_VERSION,
+    REFERENCE_POSTURE,
+    catalog_posture,
+    definition_key,
+    prepare_definition,
+    summary_from_definition,
+    validate_definition,
+)
 from src.core.policy_packs.catalog_models import (
     PolicyPackActivationResponse,
     PolicyPackAuditEvent,
     PolicyPackDetailResponse,
     PolicyPackListResponse,
-    PolicyPackSummary,
     PolicyPackValidationResponse,
-)
-from src.core.policy_packs.supportability import (
-    POLICY_CATALOG_CONTRACT_VERSION,
-    REFERENCE_POLICY_PACK_POSTURE,
-    policy_runtime_supportability,
 )
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
@@ -25,8 +28,8 @@ from src.core.proposals.exceptions import (
 )
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 
-_CATALOG_CONTRACT_VERSION = POLICY_CATALOG_CONTRACT_VERSION
-_REFERENCE_POSTURE = REFERENCE_POLICY_PACK_POSTURE
+_CATALOG_CONTRACT_VERSION = CATALOG_CONTRACT_VERSION
+_REFERENCE_POSTURE = REFERENCE_POSTURE
 
 
 def list_policy_pack_versions() -> PolicyPackListResponse:
@@ -91,7 +94,7 @@ class PolicyPackCatalogStore:
 
     def reset(self) -> None:
         self._definitions = {
-            _definition_key(definition): _prepare_definition(definition)
+            definition_key(definition): prepare_definition(definition)
             for definition in deepcopy(self._source_definitions)
         }
         self._events: dict[tuple[str, str], list[PolicyPackAuditEvent]] = {
@@ -102,13 +105,13 @@ class PolicyPackCatalogStore:
     def list_policy_pack_versions(self) -> PolicyPackListResponse:
         return PolicyPackListResponse(
             items=[
-                _summary_from_definition(definition)
+                summary_from_definition(definition)
                 for definition in sorted(
                     self._definitions.values(),
                     key=lambda item: (item["policy_pack_id"], item["policy_version"]),
                 )
             ],
-            catalog_posture=_catalog_posture(),
+            catalog_posture=catalog_posture(),
         )
 
     def get_policy_pack_version(
@@ -149,14 +152,14 @@ class PolicyPackCatalogStore:
         )
         if replayed is not None:
             return PolicyPackValidationResponse(
-                policy_pack=_summary_from_definition(definition),
+                policy_pack=summary_from_definition(definition),
                 validation_status="READY",
                 diagnostics=list(replayed.reason.get("diagnostics", [])),
                 validation_event=replayed,
                 replayed=True,
             )
 
-        diagnostics = _validate_definition(definition)
+        diagnostics = validate_definition(definition)
         if diagnostics:
             raise ProposalValidationError(";".join(diagnostics))
         event = self._append_event(
@@ -177,7 +180,7 @@ class PolicyPackCatalogStore:
             },
         )
         return PolicyPackValidationResponse(
-            policy_pack=_summary_from_definition(definition),
+            policy_pack=summary_from_definition(definition),
             validation_status="READY",
             diagnostics=[],
             validation_event=event,
@@ -214,7 +217,7 @@ class PolicyPackCatalogStore:
         )
         if replayed is not None:
             return PolicyPackActivationResponse(
-                policy_pack=_summary_from_definition(definition),
+                policy_pack=summary_from_definition(definition),
                 activation_event=replayed,
                 replayed=True,
             )
@@ -223,7 +226,7 @@ class PolicyPackCatalogStore:
             raise ProposalValidationError("POLICY_PACK_CONTENT_HASH_MISMATCH")
         if definition["activation_state"] == "ACTIVE":
             raise ProposalValidationError("POLICY_PACK_VERSION_ALREADY_ACTIVE_IMMUTABLE")
-        diagnostics = _validate_definition(definition)
+        diagnostics = validate_definition(definition)
         if diagnostics:
             raise ProposalValidationError(";".join(diagnostics))
         validation_event = self._latest_validation_event(
@@ -254,7 +257,7 @@ class PolicyPackCatalogStore:
             },
         )
         return PolicyPackActivationResponse(
-            policy_pack=_summary_from_definition(definition),
+            policy_pack=summary_from_definition(definition),
             activation_event=event,
             replayed=False,
         )
@@ -266,9 +269,9 @@ class PolicyPackCatalogStore:
         return definition
 
     def _detail_from_definition(self, definition: dict[str, Any]) -> PolicyPackDetailResponse:
-        key = _definition_key(definition)
+        key = definition_key(definition)
         return PolicyPackDetailResponse(
-            policy_pack=_summary_from_definition(definition),
+            policy_pack=summary_from_definition(definition),
             applicability=deepcopy(definition["applicability"]),
             source_requirements=list(definition["source_requirements"]),
             rules=deepcopy(definition["rules"]),
@@ -277,7 +280,7 @@ class PolicyPackCatalogStore:
             approval_routes=deepcopy(definition["approval_routes"]),
             sample_fixture_refs=list(definition["sample_fixture_refs"]),
             supportability={
-                **_catalog_posture(),
+                **catalog_posture(),
                 "activation_lifecycle": "SUPPORTED_BY_RFC0025_SLICE5",
             },
             audit_events=list(self._events[key]),
@@ -333,73 +336,6 @@ class PolicyPackCatalogStore:
             if event.event_type == "POLICY_PACK_VALIDATED":
                 return event
         return None
-
-
-def _definition_key(definition: dict[str, Any]) -> tuple[str, str]:
-    return (str(definition["policy_pack_id"]), str(definition["policy_version"]))
-
-
-def _prepare_definition(definition: dict[str, Any]) -> dict[str, Any]:
-    prepared = deepcopy(definition)
-    prepared["reference_posture"] = _REFERENCE_POSTURE
-    prepared["content_hash"] = hash_canonical_payload(
-        {
-            key: value
-            for key, value in prepared.items()
-            if key not in {"activation_state", "content_hash"}
-        }
-    )
-    return prepared
-
-
-def _summary_from_definition(definition: dict[str, Any]) -> PolicyPackSummary:
-    return PolicyPackSummary(
-        policy_pack_id=str(definition["policy_pack_id"]),
-        policy_version=str(definition["policy_version"]),
-        policy_family=str(definition["policy_family"]),
-        display_name=str(definition["display_name"]),
-        activation_state=definition["activation_state"],
-        reference_posture=str(definition["reference_posture"]),
-        maker_checker_required=bool(definition["maker_checker_required"]),
-        content_hash=str(definition["content_hash"]),
-    )
-
-
-def _catalog_posture() -> dict[str, Any]:
-    return policy_runtime_supportability()
-
-
-def _validate_definition(definition: dict[str, Any]) -> list[str]:
-    diagnostics = []
-    for key in (
-        "policy_pack_id",
-        "policy_version",
-        "policy_family",
-        "applicability",
-        "source_requirements",
-        "rules",
-        "sample_fixture_refs",
-        "schema_version",
-    ):
-        if not definition.get(key):
-            diagnostics.append(f"{key.upper()}_REQUIRED")
-    if definition.get("reference_posture") != _REFERENCE_POSTURE:
-        diagnostics.append("REFERENCE_POSTURE_NOT_DECLARED")
-    if not isinstance(definition.get("rules"), list):
-        diagnostics.append("RULES_MUST_BE_LIST")
-        return diagnostics
-    for rule in definition["rules"]:
-        if not isinstance(rule, dict):
-            diagnostics.append("RULE_MUST_BE_OBJECT")
-            continue
-        rule_id = str(rule.get("rule_id") or "")
-        if not rule_id or rule_id.upper() != rule_id or "-" in rule_id:
-            diagnostics.append("RULE_ID_NOT_UPPER_SNAKE_CASE")
-        if not rule.get("required_evidence_fields"):
-            diagnostics.append(f"{rule_id or 'RULE'}_REQUIRED_EVIDENCE_FIELDS_REQUIRED")
-        if "positive_wording_when_missing_evidence" in rule:
-            diagnostics.append(f"{rule_id or 'RULE'}_FORBIDDEN_POSITIVE_MISSING_EVIDENCE_WORDING")
-    return diagnostics
 
 
 _REFERENCE_PACKS: list[dict[str, Any]] = [
