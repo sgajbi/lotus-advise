@@ -31,6 +31,12 @@ from src.core.advisory.narrative_policy_models import (
 from src.core.advisory.narrative_request_models import (
     ProposalNarrativeRequest as OwnedProposalNarrativeRequest,
 )
+from src.core.advisory.narrative_review_models import (
+    ProposalNarrativeReviewRecord as OwnedProposalNarrativeReviewRecord,
+)
+from src.core.advisory.narrative_review_models import (
+    ProposalNarrativeReviewRequest as OwnedProposalNarrativeReviewRequest,
+)
 from src.core.advisory.narrative_section_models import (
     ProposalNarrativeSection as OwnedProposalNarrativeSection,
 )
@@ -120,4 +126,13 @@ def test_proposal_narrative_envelope_model_keeps_stable_facade_import() -> None:
     assert (
         narrative_models.ProposalNarrative.__module__
         == "src.core.advisory.narrative_envelope_models"
+    )
+
+
+def test_proposal_narrative_review_models_keep_stable_facade_imports() -> None:
+    assert narrative_models.ProposalNarrativeReviewRecord is OwnedProposalNarrativeReviewRecord
+    assert narrative_models.ProposalNarrativeReviewRequest is OwnedProposalNarrativeReviewRequest
+    assert (
+        narrative_models.ProposalNarrativeReviewRecord.__module__
+        == "src.core.advisory.narrative_review_models"
     )

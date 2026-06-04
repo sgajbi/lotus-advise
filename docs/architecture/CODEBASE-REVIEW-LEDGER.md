@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-650
+
+- Scope: Proposal narrative review DTO ownership
+- Pattern: Persisted narrative review request and review record DTOs should live in a focused
+  model module instead of the broad narrative compatibility facade.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and review workflow maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrativeReviewRequest`
+  and `ProposalNarrativeReviewRecord` directly after the narrative envelope was split. Those DTOs
+  are consumed by proposal workflow review APIs and persistence/replay logic, distinct from
+  transient narrative generation and AI integration contracts.
+- Evidence:
+  - Extracted `ProposalNarrativeReviewRequest` and `ProposalNarrativeReviewRecord` to
+    `src/core/advisory/narrative_review_models.py`.
+  - Reduced `src/core/advisory/narrative_models.py` to a compatibility facade for existing imports
+    and OpenAPI schema generation.
+  - Added contract coverage proving the review DTO facade imports resolve to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, proposal workflow service, and narrative model
+    contract tests passed with 99 tests.
+- Consequence:
+  - Narrative review workflow contracts now have a narrow owner module, and the legacy narrative
+    model file is a compatibility facade rather than a DTO monolith.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Redirect workflow/API modules to focused narrative review owner imports where compatibility
+    facade usage is no longer needed.
+
 ## LA-REV-649
 
 - Scope: Proposal narrative envelope DTO ownership
