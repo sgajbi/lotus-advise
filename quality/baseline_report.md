@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T05:20:59.611877+00:00`
+- Generated At: `2026-06-04T05:27:45.892048+00:00`
 - Branch: `advise-enterprise-hardening-slice-16`
-- Head: `9a6e6c3e61965a3a30e6f0412206f91c2b4139a4`
-- Branch Commits Over Main: `25`
+- Head: `1c4465323c49653726ec151182a7f16dcae1ff62`
+- Branch Commits Over Main: `27`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `813`
+- Python files: `814`
 - Packages: `37`
-- Modules: `776`
-- Total Python lines: `132290`
+- Modules: `777`
+- Total Python lines: `132332`
 
 ## Largest Files
 
@@ -23,7 +23,7 @@
 | 4 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2389 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
-| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1570 |
+| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 9 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 | 10 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |

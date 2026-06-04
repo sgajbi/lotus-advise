@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-613
+
+- Scope: Advisory copilot Postgres record mapping
+- Pattern: Infrastructure repository SQL orchestration should not own row-to-record mapping,
+  JSON serialization, run-value projection, and source-projection refresh policy helpers.
+- Status: Hardened
+- Finding Class: Infrastructure adapter modularity and persistence mapping maintainability
+- Summary: `src/infrastructure/advisory_copilot/postgres.py` was the largest production hotspot
+  and mixed Postgres connection/migration setup, SQL command/query orchestration, idempotency
+  conflict handling, keyset pagination, row mapping, JSON serialization, run insert/update value
+  projection, and source-projection packet refresh policy. That made SQL behavior harder to review
+  separately from deterministic record mapping.
+- Evidence:
+  - Added `src/infrastructure/advisory_copilot/postgres_records.py` for run value projection,
+    run/evidence-packet/review row mapping, JSON serialization/deserialization, optional datetime
+    parsing, and source-projection refresh eligibility.
+  - Kept `src/infrastructure/advisory_copilot/postgres.py` focused on connection setup,
+    migrations, SQL statements, transactions, idempotency conflict checks, and pagination.
+  - Added a source-boundary guard proving Postgres row mapping and serialization helpers stay
+    outside the repository SQL orchestration module.
+  - Focused advisory copilot Postgres lint, format, mypy, and persistence tests passed with 39
+    tests.
+- Consequence:
+  - Persistence behavior remains compatible while record mapping can be reviewed independently from
+    SQL transaction and pagination behavior.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because persistence behavior, supported feature posture, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing remaining Postgres SQL orchestration, advisor cockpit read-model/service, and
+    proposal memo/model hotspots where cohesive boundaries remain clear.
+
 ## LA-REV-612
 
 - Scope: Proposal workflow service typed facade returns
