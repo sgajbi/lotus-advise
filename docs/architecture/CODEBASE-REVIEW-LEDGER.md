@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-667
+
+- Scope: Tactical house-view model and rule ownership
+- Pattern: Tactical house-view source product code should preserve its public facade while
+  separating DTO ownership from eligibility/supportability rules and cohort store behavior.
+- Status: Hardened
+- Finding Class: Core data-product modularity and reviewability
+- Summary: `src/core/tactical_house_view.py` combined Pydantic DTOs, source-ref validation,
+  eligibility rules, supportability projection, source-ref de-duplication, cohort construction,
+  hashing, and in-memory store behavior in one 381-line module. That made the source-backed
+  tactical house-view product harder to review by responsibility and harder to extend without
+  touching unrelated model or rule code.
+- Evidence:
+  - Added `src/core/tactical_house_view_models.py` for tactical house-view request, source-ref,
+    candidate, affected/excluded portfolio, supportability, and cohort DTOs.
+  - Added `src/core/tactical_house_view_rules.py` for portfolio-type normalization, candidate
+    inclusion/exclusion reason rules, supportability projection, and source-ref de-duplication.
+  - Kept `src/core/tactical_house_view.py` as the public compatibility facade, cohort builder, hash
+    owner, and in-memory cohort store owner.
+  - Reduced `src/core/tactical_house_view.py` from 381 lines to 171 lines while preserving the
+    public import path used by the API router and advisor cockpit source loader.
+  - Added boundary coverage proving tactical house-view models and rule helpers live in focused
+    owner modules instead of the facade.
+  - Focused ruff, ruff format check, and mypy passed for touched files; tactical house-view,
+    tactical house-view API, and advisor cockpit service tests passed with 24 tests; repo-native
+    `make lint` passed.
+- Consequence:
+  - Tactical house-view cohort behavior remains stable while source product DTOs and eligibility
+    rules can be reviewed independently from cohort construction and storage.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal data-product modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting remaining large source products and workflows by model, rule, projection, and
+    persistence ownership when compatibility facades can keep public imports stable.
+
 ## LA-REV-666
 
 - Scope: Engine option suitability model ownership
