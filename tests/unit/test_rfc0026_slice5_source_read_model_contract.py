@@ -13,6 +13,8 @@ SOURCE_POLICY_MEMO_PROJECTION_PATH = Path(
     "src/core/advisor_cockpit/source_projection_policy_memo.py"
 )
 SOURCE_PROPOSAL_PROJECTION_PATH = Path("src/core/advisor_cockpit/source_projection_proposal.py")
+SOURCE_REPORTING_PROJECTION_PATH = Path("src/core/advisor_cockpit/source_projection_reporting.py")
+SOURCE_EXECUTION_PROJECTION_PATH = Path("src/core/advisor_cockpit/source_projection_execution.py")
 BEHAVIOR_TEST_PATH = Path(
     "tests/unit/advisory/engine/test_engine_advisor_cockpit_source_read_model.py"
 )
@@ -58,9 +60,12 @@ def test_rfc0026_slice5_contract_is_backed_by_code_and_behavior_tests() -> None:
     source_projection = _read(SOURCE_PROJECTION_PATH)
     source_policy_memo_projection = _read(SOURCE_POLICY_MEMO_PROJECTION_PATH)
     source_proposal_projection = _read(SOURCE_PROPOSAL_PROJECTION_PATH)
+    source_reporting_projection = _read(SOURCE_REPORTING_PROJECTION_PATH)
+    source_execution_projection = _read(SOURCE_EXECUTION_PROJECTION_PATH)
     source_contract = (
         f"{source_read_model}\n{source_projection}\n{source_policy_memo_projection}\n"
-        f"{source_proposal_projection}"
+        f"{source_proposal_projection}\n{source_reporting_projection}\n"
+        f"{source_execution_projection}"
     )
     behavior_tests = _read(BEHAVIOR_TEST_PATH)
 

@@ -57,13 +57,25 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
     proposal_source = (
         REPO_ROOT / "src/core/advisor_cockpit/source_projection_proposal.py"
     ).read_text(encoding="utf-8")
+    reporting_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/source_projection_reporting.py"
+    ).read_text(encoding="utf-8")
+    execution_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/source_projection_execution.py"
+    ).read_text(encoding="utf-8")
+
+    assert "def _report_readiness_source(" not in read_model_source
+    assert "def _report_readiness_source(" not in projection_source
+    assert "def _report_readiness_source(" in reporting_source
 
     for helper_name in (
-        "_report_readiness_source",
+        "_execution_handoff_source",
         "_execution_status_source",
+        "_latest_execution_event",
     ):
         assert f"def {helper_name}(" not in read_model_source
-        assert f"def {helper_name}(" in projection_source
+        assert f"def {helper_name}(" not in projection_source
+        assert f"def {helper_name}(" in execution_source
 
     for helper_name in (
         "_policy_review_source",
@@ -121,6 +133,39 @@ def test_source_projection_delegates_proposal_projection_rules() -> None:
     assert "build_approval_dependency_sources" in projection_source
     assert "ACTIVE_PROPOSAL_STATES = frozenset" not in projection_source
     assert "ACTIVE_PROPOSAL_STATES = frozenset" in proposal_source
+
+
+def test_source_projection_delegates_reporting_projection_rules() -> None:
+    projection_source = (REPO_ROOT / "src/core/advisor_cockpit/source_projection.py").read_text(
+        encoding="utf-8"
+    )
+    reporting_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/source_projection_reporting.py"
+    ).read_text(encoding="utf-8")
+
+    assert "from src.core.advisor_cockpit.source_projection_reporting import" in projection_source
+    assert "build_report_render_archive_sources" in projection_source
+    assert "def _report_readiness_source(" not in projection_source
+    assert "def _report_readiness_source(" in reporting_source
+
+
+def test_source_projection_delegates_execution_projection_rules() -> None:
+    projection_source = (REPO_ROOT / "src/core/advisor_cockpit/source_projection.py").read_text(
+        encoding="utf-8"
+    )
+    execution_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/source_projection_execution.py"
+    ).read_text(encoding="utf-8")
+
+    assert "from src.core.advisor_cockpit.source_projection_execution import" in projection_source
+    assert "build_execution_handoff_sources" in projection_source
+    assert "build_execution_status_sources" in projection_source
+    assert "def _execution_handoff_source(" not in projection_source
+    assert "def _execution_status_source(" not in projection_source
+    assert "def _latest_execution_event(" not in projection_source
+    assert "def _execution_handoff_source(" in execution_source
+    assert "def _execution_status_source(" in execution_source
+    assert "def _latest_execution_event(" in execution_source
 
 
 def test_source_read_model_rejects_unbounded_source_batches() -> None:
