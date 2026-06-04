@@ -1,0 +1,212 @@
+from copy import deepcopy
+from datetime import datetime
+from typing import Iterable, Optional, TypeVar
+
+from src.core.proposals.models import (
+    ProposalApprovalRecordData,
+    ProposalAsyncOperationRecord,
+    ProposalMemoEventRecord,
+    ProposalMemoRecord,
+    ProposalRecord,
+    ProposalVersionRecord,
+    ProposalWorkflowEventRecord,
+)
+
+RecordT = TypeVar("RecordT")
+
+
+def copy_optional(record: RecordT | None) -> RecordT | None:
+    return deepcopy(record) if record is not None else None
+
+
+def copy_record(record: RecordT) -> RecordT:
+    return deepcopy(record)
+
+
+def copy_records(records: Iterable[RecordT]) -> list[RecordT]:
+    return [deepcopy(record) for record in records]
+
+
+def filtered_proposal_page(
+    rows: Iterable[ProposalRecord],
+    *,
+    portfolio_id: Optional[str],
+    state: Optional[str],
+    created_by: Optional[str],
+    created_from: Optional[datetime],
+    created_to: Optional[datetime],
+    limit: int,
+    cursor: Optional[str],
+) -> tuple[list[ProposalRecord], Optional[str]]:
+    filtered = sorted(rows, key=lambda row: (row.created_at, row.proposal_id), reverse=True)
+
+    if portfolio_id is not None:
+        filtered = [row for row in filtered if row.portfolio_id == portfolio_id]
+    if state is not None:
+        filtered = [row for row in filtered if row.current_state == state]
+    if created_by is not None:
+        filtered = [row for row in filtered if row.created_by == created_by]
+    if created_from is not None:
+        filtered = [row for row in filtered if row.created_at >= created_from]
+    if created_to is not None:
+        filtered = [row for row in filtered if row.created_at <= created_to]
+
+    if cursor:
+        row_ids = [row.proposal_id for row in filtered]
+        if cursor in row_ids:
+            filtered = filtered[row_ids.index(cursor) + 1 :]
+
+    page = filtered[:limit]
+    next_cursor = page[-1].proposal_id if len(filtered) > limit else None
+    return copy_records(page), next_cursor
+
+
+def ordered_memos_for_proposal(
+    memos: Iterable[ProposalMemoRecord],
+    *,
+    proposal_id: str,
+) -> list[ProposalMemoRecord]:
+    filtered = [memo for memo in memos if memo.proposal_id == proposal_id]
+    filtered.sort(key=lambda memo: (memo.proposal_version_no, memo.created_at, memo.memo_id))
+    return copy_records(filtered)
+
+
+def ordered_memos_for_proposals(
+    memos: Iterable[ProposalMemoRecord],
+    *,
+    proposal_ids: list[str],
+) -> list[ProposalMemoRecord]:
+    if not proposal_ids:
+        return []
+    proposal_id_set = set(proposal_ids)
+    memo_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+    filtered = [memo for memo in memos if memo.proposal_id in proposal_id_set]
+    filtered.sort(
+        key=lambda memo: (
+            memo_order[memo.proposal_id],
+            memo.proposal_version_no,
+            memo.created_at,
+            memo.memo_id,
+        )
+    )
+    return copy_records(filtered)
+
+
+def ordered_memo_events(
+    events: Iterable[ProposalMemoEventRecord],
+) -> list[ProposalMemoEventRecord]:
+    sorted_events = sorted(events, key=lambda event: (event.occurred_at, event.event_id))
+    return copy_records(sorted_events)
+
+
+def ordered_events_for_proposals(
+    event_groups: Iterable[list[ProposalWorkflowEventRecord]],
+    *,
+    proposal_ids: list[str],
+) -> list[ProposalWorkflowEventRecord]:
+    if not proposal_ids:
+        return []
+    proposal_id_set = set(proposal_ids)
+    event_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+    events = [
+        event
+        for proposal_events in event_groups
+        for event in proposal_events
+        if event.proposal_id in proposal_id_set
+    ]
+    events.sort(
+        key=lambda event: (
+            event_order[event.proposal_id],
+            event.occurred_at,
+            event.event_id,
+        )
+    )
+    return copy_records(events)
+
+
+def ordered_approvals_for_proposals(
+    approval_groups: Iterable[list[ProposalApprovalRecordData]],
+    *,
+    proposal_ids: list[str],
+) -> list[ProposalApprovalRecordData]:
+    if not proposal_ids:
+        return []
+    proposal_id_set = set(proposal_ids)
+    approval_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+    approvals = [
+        approval
+        for proposal_approvals in approval_groups
+        for approval in proposal_approvals
+        if approval.proposal_id in proposal_id_set
+    ]
+    approvals.sort(
+        key=lambda approval: (
+            approval_order[approval.proposal_id],
+            approval.occurred_at,
+            approval.approval_id,
+        )
+    )
+    return copy_records(approvals)
+
+
+def ordered_versions_for_proposal(
+    versions: Iterable[ProposalVersionRecord],
+    *,
+    proposal_id: str,
+) -> list[ProposalVersionRecord]:
+    filtered = [version for version in versions if version.proposal_id == proposal_id]
+    filtered.sort(key=lambda version: version.version_no)
+    return copy_records(filtered)
+
+
+def current_version_for_proposal(
+    versions: Iterable[ProposalVersionRecord],
+    *,
+    proposal_id: str,
+) -> ProposalVersionRecord | None:
+    filtered = [version for version in versions if version.proposal_id == proposal_id]
+    if not filtered:
+        return None
+    filtered.sort(key=lambda version: version.version_no, reverse=True)
+    return copy_optional(filtered[0])
+
+
+def recoverable_operations(
+    operations: Iterable[ProposalAsyncOperationRecord],
+    *,
+    as_of: datetime,
+    limit: Optional[int],
+) -> list[ProposalAsyncOperationRecord]:
+    if limit is not None and limit <= 0:
+        return []
+    recoverable = [
+        operation
+        for operation in operations
+        if operation.status == "PENDING"
+        or (
+            operation.status == "RUNNING"
+            and operation.finished_at is None
+            and operation.lease_expires_at is not None
+            and operation.lease_expires_at <= as_of
+        )
+    ]
+    recoverable.sort(key=lambda operation: (operation.created_at, operation.operation_id))
+    if limit is not None:
+        recoverable = recoverable[:limit]
+    return copy_records(recoverable)
+
+
+__all__ = [
+    "copy_optional",
+    "copy_record",
+    "copy_records",
+    "current_version_for_proposal",
+    "filtered_proposal_page",
+    "ordered_approvals_for_proposals",
+    "ordered_events_for_proposals",
+    "ordered_memo_events",
+    "ordered_memos_for_proposal",
+    "ordered_memos_for_proposals",
+    "ordered_versions_for_proposal",
+    "recoverable_operations",
+]

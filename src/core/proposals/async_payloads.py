@@ -3,9 +3,11 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 
 from src.core.common.canonical import hash_canonical_payload
-from src.core.proposals.context import (
+from src.core.proposals.context_hashing import (
     canonicalize_create_request_payload,
     canonicalize_version_request_payload,
+)
+from src.core.proposals.context_resolution import (
     resolve_create_request,
     resolve_version_request,
 )

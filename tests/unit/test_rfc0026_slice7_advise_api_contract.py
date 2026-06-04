@@ -12,6 +12,7 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 SERVICE_PATH = Path("src/core/advisor_cockpit/service.py")
+SERVICE_ACKNOWLEDGEMENT_PATH = Path("src/core/advisor_cockpit/service_acknowledgement.py")
 SERVICE_SOURCE_LOADER_PATH = Path("src/core/advisor_cockpit/service_source_loader.py")
 ROUTES_PATH = Path("src/api/proposals/routes_advisor_cockpit.py")
 MIGRATION_PATH = Path(
@@ -57,6 +58,8 @@ def test_rfc0026_slice7_records_api_support_before_product_promotion_slice() -> 
 
 def test_rfc0026_slice7_code_paths_and_openapi_are_present() -> None:
     service = _read(SERVICE_PATH)
+    service_acknowledgement = _read(SERVICE_ACKNOWLEDGEMENT_PATH)
+    service_contract = f"{service}\n{service_acknowledgement}"
     service_source_loader = _read(SERVICE_SOURCE_LOADER_PATH)
     routes = _read(ROUTES_PATH)
     migration = _read(MIGRATION_PATH)
@@ -69,7 +72,7 @@ def test_rfc0026_slice7_code_paths_and_openapi_are_present() -> None:
         "ADVISOR_COCKPIT_ACTION_VERSION_STALE",
         "ADVISOR_COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_CONFLICT",
     ):
-        assert marker in service
+        assert marker in service_contract
     assert "list_memos_for_proposals" in service_source_loader
 
     for route in (

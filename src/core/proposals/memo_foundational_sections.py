@@ -3,6 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from src.core.proposals.memo_foundational_summaries import (
+    alternatives_summary,
+    decision_summary_text,
+    objective_summary,
+    recommendation_summary,
+    risk_summary,
+)
 from src.core.proposals.memo_models import (
     ProposalMemoAudience,
     ProposalMemoMaterialClaim,
@@ -97,7 +104,7 @@ def _build_executive_summary_section(
     section_factory: SectionFactory,
     claims_factory: ClaimsFactory,
 ) -> ProposalMemoSection:
-    summary = _decision_summary_text(artifact)
+    summary = decision_summary_text(artifact)
     return section_factory(
         section_id="EXECUTIVE_SUMMARY",
         title="Executive Summary",
@@ -147,7 +154,7 @@ def _build_advisory_objective_section(
     section_factory: SectionFactory,
     claims_factory: ClaimsFactory,
 ) -> ProposalMemoSection:
-    summary = _objective_summary(artifact)
+    summary = objective_summary(artifact)
     return section_factory(
         section_id="ADVISORY_OBJECTIVE_AND_CONSTRAINTS",
         title="Advisory Objective And Constraints",
@@ -176,7 +183,7 @@ def _build_recommendation_section(
     section_factory: SectionFactory,
     claims_factory: ClaimsFactory,
 ) -> ProposalMemoSection:
-    summary = _recommendation_summary(artifact)
+    summary = recommendation_summary(artifact)
     return section_factory(
         section_id="RECOMMENDATION",
         title="Recommendation",
@@ -211,7 +218,7 @@ def _build_rejected_alternatives_section(
     section_factory: SectionFactory,
     claims_factory: ClaimsFactory,
 ) -> ProposalMemoSection:
-    summary = _alternatives_summary(artifact)
+    summary = alternatives_summary(artifact)
     return section_factory(
         section_id="REJECTED_ALTERNATIVES",
         title="Rejected Alternatives",
@@ -268,7 +275,7 @@ def _build_risk_context_section(
     section_factory: SectionFactory,
     claims_factory: ClaimsFactory,
 ) -> ProposalMemoSection:
-    summary = _risk_summary(artifact)
+    summary = risk_summary(artifact)
     return section_factory(
         section_id="RISK_AND_SCENARIO_CONTEXT",
         title="Risk And Scenario Context",
@@ -290,60 +297,3 @@ def _build_risk_context_section(
             reason_codes=["RISK_LENS_CAPTURED"],
         ),
     )
-
-
-def _decision_summary_text(artifact: dict[str, Any]) -> str:
-    decision = _dict_at(artifact, "proposal_decision_summary")
-    return str(
-        decision.get("primary_summary")
-        or decision.get("summary")
-        or "Proposal decision summary is not available from persisted evidence."
-    )
-
-
-def _objective_summary(artifact: dict[str, Any]) -> str:
-    tags = _strings(_dict_at(artifact, "summary").get("objective_tags"))
-    if not tags:
-        return "Advisory objective tags are not available from the proposal artifact."
-    return "Proposal objective tags: " + ", ".join(tags) + "."
-
-
-def _recommendation_summary(artifact: dict[str, Any]) -> str:
-    decision = _dict_at(artifact, "proposal_decision_summary")
-    action = decision.get("recommended_next_action") or _dict_at(artifact, "summary").get(
-        "recommended_next_step"
-    )
-    if not action:
-        return "Recommendation posture is pending review."
-    return f"Recommended next action is {action}."
-
-
-def _alternatives_summary(artifact: dict[str, Any]) -> str:
-    alternatives = _list_at(_dict_at(artifact, "proposal_alternatives"), "alternatives")
-    rejected = [
-        item for item in alternatives if isinstance(item, dict) and not item.get("selected")
-    ]
-    if not alternatives:
-        return "Proposal alternatives are not available from persisted evidence."
-    return f"{len(rejected)} rejected alternatives are available for review."
-
-
-def _risk_summary(artifact: dict[str, Any]) -> str:
-    risk = _dict_at(artifact, "risk_lens")
-    return str(risk.get("summary") or "Risk lens evidence is pending review.")
-
-
-def _dict_at(payload: dict[str, Any], key: str) -> dict[str, Any]:
-    value = payload.get(key)
-    return value if isinstance(value, dict) else {}
-
-
-def _list_at(payload: dict[str, Any], key: str) -> list[Any]:
-    value = payload.get(key)
-    return value if isinstance(value, list) else []
-
-
-def _strings(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [str(item) for item in value if item is not None]

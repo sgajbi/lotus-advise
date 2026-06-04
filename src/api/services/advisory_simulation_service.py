@@ -14,10 +14,8 @@ from src.api.services.advisory_simulation_validation import (
     resolve_simulation_input as resolve_simulation_input_with_validation,
 )
 from src.core.proposal_result_models import ProposalResult
-from src.core.proposals.context import (
-    ResolvedSimulationContext,
-    build_simulation_request_hash,
-)
+from src.core.proposals.context_hashing import build_simulation_request_hash
+from src.core.proposals.context_resolution import ResolvedSimulationContext
 from src.core.proposals.models import ProposalSimulationRequest
 
 

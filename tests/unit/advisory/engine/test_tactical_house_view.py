@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -6,6 +7,8 @@ from src.core.tactical_house_view import (
     TacticalHouseViewCohortRequest,
     build_tactical_house_view_affected_cohort,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def _request() -> TacticalHouseViewCohortRequest:
@@ -76,6 +79,25 @@ def _request() -> TacticalHouseViewCohortRequest:
             "correlation_id": "corr-thv-001",
         }
     )
+
+
+def test_tactical_house_view_facade_delegates_models_and_rules() -> None:
+    facade_source = (REPO_ROOT / "src/core/tactical_house_view.py").read_text(encoding="utf-8")
+    model_source = (REPO_ROOT / "src/core/tactical_house_view_models.py").read_text(
+        encoding="utf-8"
+    )
+    rule_source = (REPO_ROOT / "src/core/tactical_house_view_rules.py").read_text(encoding="utf-8")
+
+    assert "from src.core.tactical_house_view_models import" in facade_source
+    assert "from src.core.tactical_house_view_rules import" in facade_source
+    assert "class TacticalHouseViewCohortRequest(" not in facade_source
+    assert "class TacticalHouseViewAffectedCohort(" not in facade_source
+    assert "def candidate_exclusion_reasons(" not in facade_source
+    assert "def supportability(" not in facade_source
+    assert "class TacticalHouseViewCohortRequest(" in model_source
+    assert "class TacticalHouseViewAffectedCohort(" in model_source
+    assert "def candidate_exclusion_reasons(" in rule_source
+    assert "def supportability(" in rule_source
 
 
 def test_tactical_house_view_cohort_preserves_source_backed_inclusions_and_exclusions() -> None:

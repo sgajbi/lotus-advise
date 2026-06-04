@@ -3,11 +3,9 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from src.core.proposals.memo_source_readiness_sections import (
-    build_advise_memo_source_sections,
-    build_core_memo_source_sections,
-    build_risk_memo_source_sections,
-)
+from src.core.proposals.memo_source_readiness_advise import build_advise_memo_source_sections
+from src.core.proposals.memo_source_readiness_core import build_core_memo_source_sections
+from src.core.proposals.memo_source_readiness_risk import build_risk_memo_source_sections
 from src.core.proposals.source_readiness_common import (
     dict_at,
     list_at,

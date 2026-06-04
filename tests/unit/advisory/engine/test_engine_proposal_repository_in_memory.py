@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -14,6 +15,10 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
 )
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+IN_MEMORY_REPOSITORY_PATH = REPO_ROOT / "src/infrastructure/proposals/in_memory.py"
+IN_MEMORY_QUERY_PATH = REPO_ROOT / "src/infrastructure/proposals/in_memory_query.py"
 
 
 def _now() -> datetime:
@@ -34,6 +39,23 @@ def _proposal(proposal_id: str, created_by: str, state: str = "DRAFT") -> Propos
         current_version_no=1,
         title="repo test",
     )
+
+
+def test_in_memory_repository_delegates_query_helpers() -> None:
+    repository_source = IN_MEMORY_REPOSITORY_PATH.read_text(encoding="utf-8")
+    query_source = IN_MEMORY_QUERY_PATH.read_text(encoding="utf-8")
+
+    assert "from src.infrastructure.proposals.in_memory_query import" in repository_source
+    assert "def filtered_proposal_page(" not in repository_source
+    assert "def ordered_memos_for_proposals(" not in repository_source
+    assert "def ordered_events_for_proposals(" not in repository_source
+    assert "def ordered_approvals_for_proposals(" not in repository_source
+    assert "def recoverable_operations(" not in repository_source
+    assert "def filtered_proposal_page(" in query_source
+    assert "def ordered_memos_for_proposals(" in query_source
+    assert "def ordered_events_for_proposals(" in query_source
+    assert "def ordered_approvals_for_proposals(" in query_source
+    assert "def recoverable_operations(" in query_source
 
 
 def test_repository_idempotency_roundtrip_and_update_proposal():

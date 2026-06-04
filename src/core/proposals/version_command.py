@@ -6,10 +6,10 @@ from typing import Any
 
 from src.core.proposals.command_read_model import load_proposal_command_read_model
 from src.core.proposals.command_validation import validate_proposal_simulation_flag
-from src.core.proposals.context import (
+from src.core.proposals.context_evidence import build_context_resolution_evidence
+from src.core.proposals.context_hashing import build_version_request_hash
+from src.core.proposals.context_resolution import (
     ProposalContextResolutionError,
-    build_context_resolution_evidence,
-    build_version_request_hash,
     resolve_version_request,
 )
 from src.core.proposals.create_persistence import persist_created_proposal_version

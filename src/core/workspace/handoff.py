@@ -2,10 +2,8 @@ from typing import Any, cast
 
 from src.core.advisory.policy_context import ProposalPolicySelectors
 from src.core.proposal_request_models import ProposalSimulateRequest
-from src.core.proposals.context import (
-    ResolvedProposalContext,
-    build_context_resolution_evidence,
-)
+from src.core.proposals.context_evidence import build_context_resolution_evidence
+from src.core.proposals.context_resolution import ResolvedProposalContext
 from src.core.proposals.models import (
     ProposalCreateMetadata,
     ProposalCreateRequest,

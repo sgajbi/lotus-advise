@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import (
@@ -13,6 +15,23 @@ from src.core.models import (
     ShelfEntry,
     SuitabilityResult,
 )
+
+
+def test_decision_summary_delegates_status_rules_to_focused_module() -> None:
+    summary_source = Path("src/core/advisory/decision_summary.py").read_text(encoding="utf-8")
+    status_rules_source = Path("src/core/advisory/decision_summary_status_rules.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.advisory.decision_summary_status_rules import" in summary_source
+    assert "def derive_decision_status(" not in summary_source
+    assert "def primary_decision_reason_code(" not in summary_source
+    assert "def recommended_decision_next_action(" not in summary_source
+    assert "def decision_confidence(" not in summary_source
+    assert "def derive_decision_status(" in status_rules_source
+    assert "def primary_decision_reason_code(" in status_rules_source
+    assert "def recommended_decision_next_action(" in status_rules_source
+    assert "def decision_confidence(" in status_rules_source
 
 
 def _base_result() -> ProposalResult:

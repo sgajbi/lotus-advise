@@ -1,13 +1,15 @@
 from datetime import datetime
 from typing import Optional, Protocol
 
+from src.core.proposals.memo_persistence_models import (
+    ProposalMemoEventRecord,
+    ProposalMemoIdempotencyRecord,
+    ProposalMemoRecord,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
-    ProposalMemoEventRecord,
-    ProposalMemoIdempotencyRecord,
-    ProposalMemoRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,

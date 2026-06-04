@@ -299,9 +299,34 @@ def test_foundational_memo_sections_use_focused_section_builders() -> None:
     foundational_source = (
         REPO_ROOT / "src/core/proposals/memo_foundational_sections.py"
     ).read_text(encoding="utf-8")
+    summaries_source = (REPO_ROOT / "src/core/proposals/memo_foundational_summaries.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "from src.core.proposals.memo_foundational_sections import" in groups_source
+    assert "from src.core.proposals.memo_foundational_summaries import" in foundational_source
     assert "def _build_executive_summary_section(" not in groups_source
     assert "def _build_risk_context_section(" not in groups_source
     assert "def _build_executive_summary_section(" in foundational_source
     assert "def _build_risk_context_section(" in foundational_source
+    assert "def decision_summary_text(" not in foundational_source
+    assert "def risk_summary(" not in foundational_source
+    assert "def decision_summary_text(" in summaries_source
+    assert "def risk_summary(" in summaries_source
+
+
+def test_memo_builder_delegates_section_factory_helpers() -> None:
+    builder_source = (REPO_ROOT / "src/core/proposals/memo_builder.py").read_text(encoding="utf-8")
+    factory_source = (REPO_ROOT / "src/core/proposals/memo_section_factory.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.proposals.memo_section_factory import" in builder_source
+    assert "build_memo_section" in builder_source
+    assert "build_memo_claims" in builder_source
+    assert "build_appendix_section" in builder_source
+    assert "def _section(" not in builder_source
+    assert "def _claims(" not in builder_source
+    assert "def build_memo_section(" in factory_source
+    assert "def build_memo_claims(" in factory_source
+    assert "def build_appendix_section(" in factory_source

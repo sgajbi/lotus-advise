@@ -1,6 +1,10 @@
 from pathlib import Path
 
+import src.core.proposals.memo_source_readiness_sections as sections_facade
 from src.core.proposals.memo_source_readiness import build_memo_source_readiness
+from src.core.proposals.memo_source_readiness_advise import build_advise_memo_source_sections
+from src.core.proposals.memo_source_readiness_core import build_core_memo_source_sections
+from src.core.proposals.memo_source_readiness_risk import build_risk_memo_source_sections
 
 
 def _base_evidence_bundle() -> dict:
@@ -96,13 +100,28 @@ def test_memo_source_readiness_marks_source_backed_families_ready_without_memo_c
 def test_memo_source_readiness_delegates_source_owner_sections():
     source = Path("src/core/proposals/memo_source_readiness.py").read_text(encoding="utf-8")
 
-    assert "build_core_memo_source_sections" in source
-    assert "build_risk_memo_source_sections" in source
-    assert "build_advise_memo_source_sections" in source
+    assert "from src.core.proposals.memo_source_readiness_core import" in source
+    assert "from src.core.proposals.memo_source_readiness_risk import" in source
+    assert "from src.core.proposals.memo_source_readiness_advise import" in source
+    assert "from src.core.proposals.memo_source_readiness_sections import" not in source
     assert "source_readiness_section(" not in source
     assert "_core_holdings_cash_status" not in source
     assert "_risk_concentration_status" not in source
     assert "_advise_boundary_status" not in source
+
+
+def test_memo_source_readiness_sections_facade_reexports_owner_modules():
+    facade_source = Path("src/core/proposals/memo_source_readiness_sections.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert sections_facade.build_core_memo_source_sections is build_core_memo_source_sections
+    assert sections_facade.build_risk_memo_source_sections is build_risk_memo_source_sections
+    assert sections_facade.build_advise_memo_source_sections is build_advise_memo_source_sections
+    assert "def build_core_memo_source_sections(" not in facade_source
+    assert "def _core_holdings_cash_status(" not in facade_source
+    assert "def _risk_concentration_status(" not in facade_source
+    assert "def _advise_boundary_status(" not in facade_source
 
 
 def test_memo_source_readiness_blocks_missing_owner_evidence_without_inventing_facts():

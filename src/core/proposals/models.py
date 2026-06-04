@@ -22,15 +22,17 @@ from src.core.proposals.input_request_models import (
     ProposalSimulationRequest,
     ProposalVersionRequest,
 )
-from src.core.proposals.persistence_models import (
-    ProposalApprovalRecordData,
-    ProposalAsyncOperationRecord,
-    ProposalIdempotencyRecord,
+from src.core.proposals.memo_persistence_models import (
     ProposalMemoEventRecord,
     ProposalMemoEventType,
     ProposalMemoIdempotencyRecord,
     ProposalMemoLifecycleStatus,
     ProposalMemoRecord,
+)
+from src.core.proposals.persistence_models import (
+    ProposalApprovalRecordData,
+    ProposalAsyncOperationRecord,
+    ProposalIdempotencyRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,

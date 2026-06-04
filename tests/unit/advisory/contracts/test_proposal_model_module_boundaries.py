@@ -54,6 +54,15 @@ from src.core.proposals.memo_lineage_response_models import (
 from src.core.proposals.memo_lineage_response_models import (
     ProposalMemoReplayEvidenceResponse as LineageProposalMemoReplayEvidenceResponse,
 )
+from src.core.proposals.memo_persistence_models import (
+    ProposalMemoEventRecord as MemoPersistenceProposalMemoEventRecord,
+)
+from src.core.proposals.memo_persistence_models import (
+    ProposalMemoIdempotencyRecord as MemoPersistenceProposalMemoIdempotencyRecord,
+)
+from src.core.proposals.memo_persistence_models import (
+    ProposalMemoRecord as MemoPersistenceProposalMemoRecord,
+)
 from src.core.proposals.memo_request_models import (
     ProposalMemoAiCommentaryRequest as RequestProposalMemoAiCommentaryRequest,
 )
@@ -77,6 +86,15 @@ from src.core.proposals.narrative_response_models import (
 )
 from src.core.proposals.operation_response_models import (
     ProposalAsyncOperationStatusResponse as OperationProposalAsyncOperationStatusResponse,
+)
+from src.core.proposals.persistence_models import (
+    ProposalMemoEventRecord as PersistenceProposalMemoEventRecord,
+)
+from src.core.proposals.persistence_models import (
+    ProposalMemoIdempotencyRecord as PersistenceProposalMemoIdempotencyRecord,
+)
+from src.core.proposals.persistence_models import (
+    ProposalMemoRecord as PersistenceProposalMemoRecord,
 )
 from src.core.proposals.persistence_models import ProposalRecord as PersistenceProposalRecord
 from src.core.proposals.response_models import (
@@ -185,6 +203,12 @@ def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert models.ProposalWorkflowTimelineResponse is ResponseProposalWorkflowTimelineResponse
     assert ResponseProposalWorkflowTimelineResponse is WorkflowProposalWorkflowTimelineResponse
     assert models.ProposalRecord is PersistenceProposalRecord
+    assert models.ProposalMemoRecord is MemoPersistenceProposalMemoRecord
+    assert PersistenceProposalMemoRecord is MemoPersistenceProposalMemoRecord
+    assert models.ProposalMemoIdempotencyRecord is MemoPersistenceProposalMemoIdempotencyRecord
+    assert PersistenceProposalMemoIdempotencyRecord is MemoPersistenceProposalMemoIdempotencyRecord
+    assert models.ProposalMemoEventRecord is MemoPersistenceProposalMemoEventRecord
+    assert PersistenceProposalMemoEventRecord is MemoPersistenceProposalMemoEventRecord
 
 
 def test_proposal_model_schema_titles_remain_contract_stable() -> None:
@@ -299,3 +323,22 @@ def test_memo_lineage_models_are_split_from_memo_response_boundary() -> None:
     ):
         assert f"class {class_name}" not in facade
         assert f"class {class_name}" in lineage_models
+
+
+def test_memo_persistence_models_are_split_from_persistence_facade() -> None:
+    from pathlib import Path
+
+    source_root = Path(__file__).resolve().parents[4] / "src" / "core" / "proposals"
+    facade = (source_root / "persistence_models.py").read_text(encoding="utf-8")
+    memo_persistence = (source_root / "memo_persistence_models.py").read_text(encoding="utf-8")
+
+    for class_name in (
+        "ProposalMemoRecord",
+        "ProposalMemoIdempotencyRecord",
+        "ProposalMemoEventRecord",
+    ):
+        assert f"class {class_name}" not in facade
+        assert f"class {class_name}" in memo_persistence
+
+    assert "ProposalMemoLifecycleStatus = Literal" not in facade
+    assert "ProposalMemoLifecycleStatus = Literal" in memo_persistence

@@ -28,9 +28,11 @@ def setup_function() -> None:
 
 def test_policy_evaluation_persistence_record_builder_stays_focused() -> None:
     persistence = (SOURCE_ROOT / "persistence.py").read_text(encoding="utf-8")
+    store = (SOURCE_ROOT / "persistence_store.py").read_text(encoding="utf-8")
     record_builder = (SOURCE_ROOT / "persistence_record_builder.py").read_text(encoding="utf-8")
 
-    assert "build_policy_evaluation_record" in persistence
+    assert "build_policy_evaluation_record" not in persistence
+    assert "build_policy_evaluation_record" in store
     assert "policy_evaluation_hash" not in persistence
     assert "def _portfolio_id" not in persistence
     assert "def _approval_dependencies" not in persistence
@@ -45,9 +47,11 @@ def test_policy_evaluation_persistence_record_builder_stays_focused() -> None:
 
 def test_policy_evaluation_persistence_projection_stays_focused() -> None:
     persistence = (SOURCE_ROOT / "persistence.py").read_text(encoding="utf-8")
+    store = (SOURCE_ROOT / "persistence_store.py").read_text(encoding="utf-8")
     projection = (SOURCE_ROOT / "persistence_projection.py").read_text(encoding="utf-8")
 
-    assert "from src.core.policy_packs.persistence_projection import" in persistence
+    assert "from src.core.policy_packs.persistence_projection import" not in persistence
+    assert "from src.core.policy_packs.persistence_projection import" in store
     for helper_name in (
         "attach_policy_evaluation_event",
         "build_policy_evaluation_lineage_response",
@@ -64,17 +68,35 @@ def test_policy_evaluation_persistence_projection_stays_focused() -> None:
 
 def test_policy_evaluation_persistence_replay_stays_focused() -> None:
     persistence = (SOURCE_ROOT / "persistence.py").read_text(encoding="utf-8")
+    store = (SOURCE_ROOT / "persistence_store.py").read_text(encoding="utf-8")
     replay = (SOURCE_ROOT / "persistence_replay.py").read_text(encoding="utf-8")
 
-    assert "from src.core.policy_packs.persistence_replay import" in persistence
+    assert "from src.core.policy_packs.persistence_replay import" not in persistence
+    assert "from src.core.policy_packs.persistence_replay import" in store
     assert "def build_policy_evaluation_replay_response(" not in persistence
     assert "def build_policy_evaluation_replay_response(" in replay
     assert "policy_evaluation_hash" not in persistence
     assert "policy_evaluation_hash" in replay
-    assert "evaluate_policy_pack_version" in persistence
+    assert "evaluate_policy_pack_version" not in persistence
+    assert "evaluate_policy_pack_version" in store
     assert "evaluate_policy_pack_version" in replay
     assert "PolicyEvaluationReplayResponse(" not in persistence
     assert "PolicyEvaluationReplayResponse(" in replay
+
+
+def test_policy_evaluation_persistence_store_stays_focused() -> None:
+    persistence = (SOURCE_ROOT / "persistence.py").read_text(encoding="utf-8")
+    store = (SOURCE_ROOT / "persistence_store.py").read_text(encoding="utf-8")
+
+    assert "from src.core.policy_packs.persistence_store import PolicyEvaluationRecordStore" in (
+        persistence
+    )
+    assert "class PolicyEvaluationRecordStore" not in persistence
+    assert "class PolicyEvaluationRecordStore" in store
+    assert "def _find_replayed_event(" not in persistence
+    assert "def _find_replayed_event(" in store
+    assert "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT" not in persistence
+    assert "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT" in store
 
 
 def _base_evidence_bundle() -> dict:

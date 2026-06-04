@@ -1,14 +1,16 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `advise-proposal-input-boundary-hardening`
-- Head: `5b144e30fe1b264b05884a4fa452c446be4cadd7`
-- Branch Commits Over Main: `0`
+- Branch: `harden/proposal-context-boundaries`
+- Head: `f6a82186ed52e3eb3568ae0de2bbb2919f18f90d`
+- Branch Commits Over Main: `49`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
 
 - Proposal input models are split into focused context DTOs, request-envelope DTOs,
   and a compatibility facade.
+- Proposal context resolution, canonical request hashing, and context evidence
+  projection are split into focused owner modules with a compatibility facade.
 - Advisory-copilot API DTOs are split into request, response, limits, and compatibility
   modules.
 - Advisory-copilot source projections and run-record limits have focused owner modules.
@@ -26,10 +28,14 @@
   data-quality, trade-size, shorting, and cash-sufficiency evaluators.
 - Proposal memo source-readiness assembly is split into core, risk, and Advise
   source-owner section groups.
+- Proposal memo source-readiness owner groups are split into focused Lotus Core,
+  Lotus Risk, and Lotus Advise modules with a compatibility facade.
 - Bank-demo runtime summary sanitization is split into access helpers and
   focused projection builders.
 - Bank-demo commercial material pack assembly delegates governed material rows to
   a focused catalog module.
+- Bank-demo journey integration proof DTOs and validators are split into a focused
+  model owner while preserving the proof summary builder and public import path.
 - Proposal artifact assembly delegates portfolio, summary, trade/funding, review,
   evidence-bundle, and hash finalization to focused artifact modules.
 - Advisory auto-funding planning delegates FX source selection and missing-rate
@@ -38,8 +44,17 @@
   and Lotus Risk source-owner section modules.
 - Proposal memo foundational sections are split into focused per-section builders
   outside the shared memo section group coordinator.
+- Proposal memo foundational sections delegate summary extraction and value
+  normalization to a focused helper module while preserving section construction.
+- Proposal memo evidence-pack assembly delegates deterministic section, appendix,
+  and material-claim construction to a focused section factory.
 - Proposal memo API orchestration delegates report-package and AI-evidence payloads
   to a focused external-package module.
+- Proposal memo API routes are split into command, external-package, and read/projection
+  route modules while preserving the route loader and OpenAPI surface.
+- Policy evaluation API routes are split into command, read/projection, workflow,
+  and external-package route modules while preserving the route loader and OpenAPI
+  surface.
 - Proposal memo API response assembly delegates memo, audit-event, report replay,
   AI commentary, archive-ref, section, and replay-metadata projection to a
   focused response projection module.
@@ -60,6 +75,8 @@
   and selected-alternative projection to a focused ranking module.
 - Proposal memo request DTOs and memo vocabulary literals are split from
   response, lineage, and replay evidence models.
+- Proposal memo persistence records are split into a focused owner module
+  while preserving the existing persistence model facade.
 - Proposal memo audit event DTOs are split into a focused append-only
   event model module.
 - Proposal memo lineage and replay evidence DTOs are split into a
@@ -108,8 +125,39 @@
   instead of routing DTOs through the narrative model facade.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
+- Advisor cockpit source projection delegates policy-review and memo package blockage
+  source rules to a focused policy/memo projection module.
+- Advisor cockpit source projection delegates proposal meeting-preparation, client
+  follow-up, and approval-dependency rules to a focused proposal projection module.
+- Advisor cockpit source projection delegates report/archive readiness and execution
+  handoff/status rules to focused source-family projection modules.
 - Advisor cockpit service delegates repository-backed source loading and tactical
   house-view source mapping to a focused source-loader module.
+- In-memory proposal repository adapters delegate pure filtering, ordering,
+  batching, recoverable-operation selection, and copy semantics to focused helpers.
+- Advisor cockpit service delegates acknowledgement idempotency, replay,
+  persistence payload, and response projection to a focused service boundary.
+- Engine option models delegate suitability threshold DTOs, group constraints,
+  and reusable validators to focused owner modules while preserving public imports.
+- Tactical house-view source products delegate DTOs and eligibility/supportability
+  rules to focused owner modules while preserving the public cohort facade.
+- Policy evaluation workflow commands delegate projection and sign-off decision
+  validation to focused workflow owner modules.
+- Integration capability response models delegate feature/workflow, readiness,
+  and supportability DTO families to focused owner modules while preserving
+  the public response facade.
+- Proposal workflow service construction delegates operation-owner wiring to
+  a focused registry while preserving the public service facade.
+- Proposal workflow service async submission, execution, replay, correlation
+  lookup, recovery, and test-stat facade methods live in a focused mixin.
+- Proposal workflow service read, timeline, approval, lineage, version, replay,
+  and idempotency lookup facade methods live in a focused read mixin.
+- Advisory workspace routes are split into session/version, assistant-rationale,
+  and lifecycle-handoff route modules behind the public aggregate router.
+- Policy-pack catalog state delegates validation/activation commands, audit-event
+  mechanics, and detail projection to focused owner modules.
+- Proposal decision-summary assembly delegates status, reason, next-action,
+  and confidence rules to a focused decision-status module.
 - Proposal workflow delivery operations delegate execution handoff, status, summary,
   history, and execution-update replay behavior to a focused service boundary.
 - Proposal workflow narrative operations delegate narrative read/regeneration/review
@@ -122,6 +170,8 @@
   attachment mapping to a focused projection module.
 - Policy evaluation persistence delegates replay hash comparison and replay response
   assembly to a focused replay module.
+- Policy evaluation persistence delegates mutable record storage, idempotency replay,
+  event construction, and store-backed projections to a focused record-store module.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

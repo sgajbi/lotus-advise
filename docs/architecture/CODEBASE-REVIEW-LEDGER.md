@@ -1,5 +1,851 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-676
+
+- Scope: Proposal workflow read facade ownership
+- Pattern: The public proposal workflow service should remain a compatibility facade while proposal
+  detail, list, timeline, approval, lineage, version, replay, and idempotency lookup methods live in
+  a focused read facade module.
+- Status: Hardened
+- Finding Class: Proposal workflow service modularity and read-boundary reviewability
+- Summary: `src/core/proposals/service.py` still owned public read facade methods even after read
+  behavior had moved into `ProposalWorkflowReadOperations`. That kept read method surface mixed with
+  command, delivery, narrative, and async method groups in the aggregate service hotspot.
+- Evidence:
+  - Added `src/core/proposals/service_read_facade.py` for public proposal read, timeline, approval,
+    lineage, version, replay, and idempotency lookup facade methods.
+  - Made `ProposalWorkflowService` inherit `ProposalWorkflowReadFacadeMixin` while preserving the
+    existing public `src.core.proposals.service.ProposalWorkflowService` import path.
+  - Reduced `src/core/proposals/service.py` from 315 lines to 243 lines while preserving existing
+    read, replay, and idempotency lookup behavior.
+  - Updated workflow service boundary coverage proving read facade methods live outside the
+    aggregate service while read implementation remains in the focused operation module.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; proposal workflow
+    service tests passed with 78 tests; repo-native `make lint` passed.
+- Consequence:
+  - Proposal read method-surface changes can be reviewed independently from the aggregate workflow
+    service facade and independently from read view implementation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal workflow service modularity for existing behavior.
+- Follow-Up:
+  - Evaluate whether command, delivery, and narrative facade groups should move behind similar
+    focused mixins after final branch validation, without changing the public service contract.
+
+## LA-REV-675
+
+- Scope: Proposal workflow async facade ownership
+- Pattern: The public proposal workflow service should remain a compatibility facade while async
+  submission, execution, replay, correlation lookup, recovery, and test-stat accessors live in a
+  focused facade module.
+- Status: Hardened
+- Finding Class: Proposal workflow service modularity and async boundary reviewability
+- Summary: `src/core/proposals/service.py` still owned public async submission, execution, status,
+  replay, correlation lookup, recovery, and test-stat facade methods even after async operation
+  behavior had moved into focused operation owners. That kept the aggregate service hotspot larger
+  than necessary and mixed async method surface with create/read/delivery/narrative facade methods.
+- Evidence:
+  - Added `src/core/proposals/service_async_facade.py` for public async facade methods and localized
+    typed casts around async operation owner returns.
+  - Made `ProposalWorkflowService` inherit `ProposalWorkflowAsyncFacadeMixin` while preserving the
+    existing public `src.core.proposals.service.ProposalWorkflowService` import path.
+  - Reduced `src/core/proposals/service.py` from 427 lines to 315 lines while preserving async
+    submission, execution, status, replay, correlation lookup, recovery, and test-stat behavior.
+  - Updated workflow service boundary coverage proving async facade methods live outside the
+    aggregate service while async operation implementation remains in the focused operation module.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; proposal workflow
+    service tests passed with 78 tests; repo-native `make lint` passed.
+- Consequence:
+  - Proposal async workflow method-surface changes can be reviewed independently from the aggregate
+    workflow service facade and independently from async operation implementation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal workflow service modularity for existing behavior.
+- Follow-Up:
+  - Continue moving remaining command, read, delivery, and narrative facade method groups out of the
+    aggregate service only where inheritance or composition keeps the public import contract stable.
+
+## LA-REV-674
+
+- Scope: Proposal memo foundational summary helper ownership
+- Pattern: Foundational memo section construction should own section assembly while pure summary
+  extraction and value normalization live in focused helper modules.
+- Status: Hardened
+- Finding Class: Proposal memo modularity and summary-rule reviewability
+- Summary: `src/core/proposals/memo_foundational_sections.py` combined foundational section
+  builders with decision, objective, recommendation, alternatives, risk, dictionary, list, and
+  string summary helpers. That made memo output review harder by mixing section construction with
+  summary/value derivation rules.
+- Evidence:
+  - Added `src/core/proposals/memo_foundational_summaries.py` for decision, objective,
+    recommendation, alternatives, risk, dictionary, list, and string summary helpers.
+  - Kept `src/core/proposals/memo_foundational_sections.py` as the foundational section
+    construction owner.
+  - Reduced `src/core/proposals/memo_foundational_sections.py` from 349 lines to 299 lines while
+    preserving existing memo section behavior.
+  - Updated boundary coverage proving foundational sections import summary helpers from the focused
+    owner module.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; proposal memo builder
+    tests passed with 7 tests; repo-native `make lint` passed.
+- Consequence:
+  - Foundational memo section rendering can be reviewed independently from summary extraction and
+    value-normalization rules.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal memo modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting remaining memo and proposal service hotspots where focused helper ownership
+    can preserve memo, artifact, and OpenAPI behavior.
+
+## LA-REV-673
+
+- Scope: Proposal decision-summary status-rule ownership
+- Pattern: Proposal decision-summary assembly should delegate deterministic status, reason, summary,
+  next-action, and confidence rules to a focused rule module while retaining evidence and posture
+  projection in the summary assembler.
+- Status: Hardened
+- Finding Class: Decision-support modularity and rule reviewability
+- Summary: `src/core/advisory/decision_summary.py` combined summary assembly with decision-status
+  derivation, primary reason selection, primary summary text, recommended next-action routing,
+  confidence calculation, suitability posture, risk posture, client/mandate posture, missing
+  evidence, action-item, and evidence-ref projection in one 348-line module. That made deterministic
+  rule changes harder to review independently from evidence projection.
+- Evidence:
+  - Added `src/core/advisory/decision_summary_status_rules.py` for decision status, primary reason,
+    primary summary, next action, and confidence rules.
+  - Kept `src/core/advisory/decision_summary.py` as the public decision-summary assembler and
+    evidence/posture projection owner.
+  - Reduced `src/core/advisory/decision_summary.py` from 348 lines to 240 lines while preserving the
+    public `build_proposal_decision_summary` entry point.
+  - Added boundary coverage proving status-rule functions live in the focused owner module.
+  - Updated the RFC-0025 slice 5 catalog contract to include the focused catalog command owner after
+    the prior catalog split moved maker-checker evidence out of the catalog facade.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; decision-summary,
+    RFC-0025 slice 2 cleanup, and RFC-0025 slice 5 catalog contract tests passed with 17 tests;
+    repo-native `make lint` passed.
+- Consequence:
+  - Proposal decision status and next-action rules can be reviewed independently from evidence,
+    risk, suitability, and client/mandate posture projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal decision-summary modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting remaining decision-support projection modules where focused rule families can
+    preserve proposal simulation and artifact behavior.
+
+## LA-REV-672
+
+- Scope: Policy-pack catalog command, event, and projection ownership
+- Pattern: The policy-pack catalog store should own in-memory state while validation/activation
+  commands, idempotent audit events, and detail projection live in focused helper modules.
+- Status: Hardened
+- Finding Class: Policy catalog modularity and state-boundary reviewability
+- Summary: `src/core/policy_packs/catalog.py` combined public catalog functions, in-memory store
+  state, validation command behavior, activation command behavior, request hashing, idempotent
+  replay detection, audit-event construction, latest-validation lookup, and detail response
+  projection in one 342-line module. That made catalog lifecycle changes harder to review without
+  also touching state storage and public facade behavior.
+- Evidence:
+  - Added `src/core/policy_packs/catalog_commands.py` for validation and activation command
+    behavior, request hashing, diagnostics, maker-checker enforcement, and immutable activation
+    checks.
+  - Added `src/core/policy_packs/catalog_events.py` for audit-event construction, idempotency replay
+    detection, and latest-validation lookup.
+  - Added `src/core/policy_packs/catalog_projection.py` for policy-pack detail response projection.
+  - Kept `src/core/policy_packs/catalog.py` as the public catalog facade and in-memory store owner.
+  - Reduced `src/core/policy_packs/catalog.py` from 342 lines to 180 lines while preserving public
+    functions, `PolicyPackCatalogStore`, and RFC-0025 catalog behavior.
+  - Updated boundary tests to prove command, event, and detail projection logic live in focused
+    modules instead of the catalog store facade.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; policy-pack catalog,
+    policy-pack API, and policy-pack model contract tests passed with 18 tests; repo-native
+    `make lint` passed.
+- Consequence:
+  - Policy-pack catalog validation and activation behavior can be reviewed independently from
+    in-memory state ownership and public catalog facade functions.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy-pack catalog modularity for existing behavior.
+- Follow-Up:
+  - Continue reducing stateful store and persistence hotspots where command helpers can preserve
+    idempotency, replay, and OpenAPI behavior.
+
+## LA-REV-671
+
+- Scope: Advisory workspace API route ownership
+- Pattern: Workspace API routing should preserve the public aggregate router while delegating
+  session/version, assistant-rationale, and lifecycle-handoff endpoints to focused route modules.
+- Status: Hardened
+- Finding Class: API route modularity and OpenAPI reviewability
+- Summary: `src/api/workspaces/router.py` combined workspace session creation/read, draft actions,
+  evaluation, saved-version save/list/replay/resume/compare, assistant rationale, rationale review
+  actions, and lifecycle handoff in one 363-line route module. That made OpenAPI review and route
+  exception-boundary changes harder by mixing independent workspace route families in one file.
+- Evidence:
+  - Added `src/api/workspaces/routes_session.py` for workspace session, draft/evaluate,
+    saved-version, replay, resume, and compare endpoints.
+  - Added `src/api/workspaces/routes_assistant.py` for workspace rationale generation and rationale
+    review-action endpoints.
+  - Added `src/api/workspaces/routes_handoff.py` for workspace-to-proposal lifecycle handoff
+    routing and proposal-exception translation.
+  - Kept `src/api/workspaces/router.py` as the public aggregate router used by `src.api.main`.
+  - Reduced `src/api/workspaces/router.py` from 363 lines to 10 lines while preserving the public
+    route paths and OpenAPI registration surface.
+  - Updated boundary tests to prove the aggregate router delegates route families and focused
+    modules own response metadata, parameter contracts, and redaction test monkeypatch points.
+  - Focused ruff, ruff format check, and mypy passed for touched route files; workspace API,
+    internal API guard, and OpenAPI lifecycle contract tests passed with 113 tests; repo-native
+    `make lint` passed.
+- Consequence:
+  - Workspace route families can be reviewed independently while the application keeps the same
+    aggregate router import and public API surface.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal route modularity for existing API behavior.
+- Follow-Up:
+  - Continue splitting remaining API route hotspots by route family when OpenAPI and behavior tests
+    can prove public contract stability.
+
+## LA-REV-670
+
+- Scope: Proposal workflow service operation wiring
+- Pattern: The public proposal workflow service facade should preserve the API method surface while
+  delegating construction of command, async, delivery, narrative, and read operation owners to a
+  focused registry module.
+- Status: Hardened
+- Finding Class: Service-facade modularity and dependency ownership
+- Summary: `src/core/proposals/service.py` already delegated behavior to focused operation owners,
+  but it still constructed every operation owner directly in the public service initializer. That
+  kept command, async, delivery, narrative, and read wiring knowledge inside the public service
+  facade and made future dependency changes harder to review independently from API method
+  delegation.
+- Evidence:
+  - Added `src/core/proposals/service_operation_registry.py` with
+    `ProposalWorkflowOperationRegistry` and `build_proposal_workflow_operation_registry`.
+  - Moved construction of command, async, delivery, narrative, and read operation owners into the
+    focused registry module.
+  - Kept `src/core/proposals/service.py` as the public proposal workflow service facade and method
+    delegation surface.
+  - Reduced `src/core/proposals/service.py` from 446 lines to 427 lines while preserving the public
+    service API.
+  - Updated boundary tests to prove the service delegates operation wiring to the registry and the
+    registry owns operation-class construction.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; proposal workflow
+    service behavior and boundary tests passed with 78 tests; repo-native `make lint` passed.
+- Consequence:
+  - Proposal workflow service construction can evolve independently from public API delegation,
+    reducing facade coupling while keeping behavior-compatible service methods.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal workflow service wiring for existing behavior.
+- Follow-Up:
+  - Continue reducing proposal service facade size when method families can be delegated without
+    weakening the public service contract or route compatibility.
+
+## LA-REV-669
+
+- Scope: Integration capability response model ownership
+- Pattern: Capability response models should preserve the public response facade while delegating
+  feature/workflow, readiness, and supportability DTO families to focused owner modules.
+- Status: Hardened
+- Finding Class: API model modularity and OpenAPI reviewability
+- Summary: `src/api/capabilities/models.py` combined integration capability response ownership with
+  feature/workflow capability DTOs, dependency readiness DTOs, operational readiness DTOs, advisory
+  supportability literals, metric-label documentation, and bounded supportability DTOs in one
+  402-line model module. That made API schema review harder by forcing unrelated capability,
+  readiness, and supportability changes through one file.
+- Evidence:
+  - Added `src/api/capabilities/feature_models.py` for consumer-system vocabulary plus feature and
+    workflow capability DTOs.
+  - Added `src/api/capabilities/readiness_models.py` for readiness-basis vocabulary plus dependency
+    and operational readiness DTOs.
+  - Added `src/api/capabilities/supportability_models.py` for advisory supportability state, reason,
+    freshness, metric-label, and supportability DTO ownership.
+  - Kept `src/api/capabilities/models.py` as the public integration capability response facade and
+    compatibility export surface.
+  - Reduced `src/api/capabilities/models.py` from 402 lines to 133 lines while preserving public
+    imports and the existing OpenAPI response model.
+  - Added boundary coverage proving capability model families live in focused owner modules instead
+    of the response facade.
+  - Focused ruff, ruff format check, and mypy passed for touched files; capabilities/internal API
+    guard, RFC-0026 data-product capability, RFC-0028 data-product posture, and OpenAPI lifecycle
+    contract tests passed with 75 tests.
+- Consequence:
+  - Integration capability schemas remain behavior-compatible while feature/workflow, readiness, and
+    supportability model families can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API model modularity for an existing compatible contract surface.
+- Follow-Up:
+  - Continue splitting remaining API model and route hotspots when compatibility facades and
+    OpenAPI/contract tests can preserve the public surface.
+
+## LA-REV-668
+
+- Scope: Policy evaluation workflow projection and decision ownership
+- Pattern: Policy workflow command functions should delegate workflow projection and sign-off
+  decision validation to focused owner modules instead of owning every helper in one workflow file.
+- Status: Hardened
+- Finding Class: Policy workflow modularity and reviewability
+- Summary: `src/core/policy_packs/workflow.py` combined public workflow retrieval and sign-off
+  decision recording with requirement projection, conflict posture projection, SLA projection,
+  sign-off status selection, maker-checker validation, approval/disclosure/consent blocker
+  derivation, and date parsing in one 379-line module. That made RFC-0025 workflow behavior harder
+  to review by responsibility and increased the chance of changing projection behavior while
+  editing decision validation.
+- Evidence:
+  - Added `src/core/policy_packs/workflow_projection.py` for policy workflow response projection,
+    requirement/SLA/conflict posture derivation, sign-off status selection, and shared projection
+    helpers.
+  - Added `src/core/policy_packs/workflow_decision.py` for sign-off decision validation,
+    maker-checker enforcement, conflict review outcome requirements, and approval/disclosure/consent
+    blocker derivation.
+  - Kept `src/core/policy_packs/workflow.py` as the public workflow command facade for retrieving
+    workflow state and recording sign-off decisions.
+  - Reduced `src/core/policy_packs/workflow.py` from 379 lines to 109 lines while preserving the
+    public API and RFC-0025 workflow behavior.
+  - Added boundary coverage proving workflow projection and decision helpers live in focused modules
+    and updated RFC-0025 slice 9 contract coverage to include the focused owner modules.
+  - Focused ruff, ruff format check, and mypy passed for touched files; policy workflow and RFC-0025
+    workflow/hardening contract tests passed with 9 tests; repo-native `make lint` passed.
+- Consequence:
+  - Policy evaluation workflow behavior remains stable while projection and decision validation can
+    be reviewed independently from persistence orchestration and public workflow commands.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy workflow modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting remaining policy-pack catalog and API-model hotspots by owner boundary when
+    contract tests can preserve existing RFC evidence.
+
+## LA-REV-667
+
+- Scope: Tactical house-view model and rule ownership
+- Pattern: Tactical house-view source product code should preserve its public facade while
+  separating DTO ownership from eligibility/supportability rules and cohort store behavior.
+- Status: Hardened
+- Finding Class: Core data-product modularity and reviewability
+- Summary: `src/core/tactical_house_view.py` combined Pydantic DTOs, source-ref validation,
+  eligibility rules, supportability projection, source-ref de-duplication, cohort construction,
+  hashing, and in-memory store behavior in one 381-line module. That made the source-backed
+  tactical house-view product harder to review by responsibility and harder to extend without
+  touching unrelated model or rule code.
+- Evidence:
+  - Added `src/core/tactical_house_view_models.py` for tactical house-view request, source-ref,
+    candidate, affected/excluded portfolio, supportability, and cohort DTOs.
+  - Added `src/core/tactical_house_view_rules.py` for portfolio-type normalization, candidate
+    inclusion/exclusion reason rules, supportability projection, and source-ref de-duplication.
+  - Kept `src/core/tactical_house_view.py` as the public compatibility facade, cohort builder, hash
+    owner, and in-memory cohort store owner.
+  - Reduced `src/core/tactical_house_view.py` from 381 lines to 171 lines while preserving the
+    public import path used by the API router and advisor cockpit source loader.
+  - Added boundary coverage proving tactical house-view models and rule helpers live in focused
+    owner modules instead of the facade.
+  - Focused ruff, ruff format check, and mypy passed for touched files; tactical house-view,
+    tactical house-view API, and advisor cockpit service tests passed with 24 tests; repo-native
+    `make lint` passed.
+- Consequence:
+  - Tactical house-view cohort behavior remains stable while source product DTOs and eligibility
+    rules can be reviewed independently from cohort construction and storage.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal data-product modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting remaining large source products and workflows by model, rule, projection, and
+    persistence ownership when compatibility facades can keep public imports stable.
+
+## LA-REV-666
+
+- Scope: Engine option suitability model ownership
+- Pattern: Engine option facade models should preserve public imports while delegating suitability
+  threshold DTOs, group constraints, and reusable validation helpers to focused owner modules.
+- Status: Hardened
+- Finding Class: Core model modularity and validation reviewability
+- Summary: `src/core/engine_options_models.py` combined `EngineOptions`, suitability threshold DTOs,
+  group constraint DTOs, and reusable validation helpers in one 393-line model file. This mixed
+  broad simulation option configuration with suitability-specific model validation and made the
+  public model facade harder to review by owner family.
+- Evidence:
+  - Added `src/core/engine_option_suitability_models.py` for `GroupConstraint` and
+    `SuitabilityThresholds`.
+  - Added `src/core/engine_option_validation.py` for group-constraint key validation, optional ratio
+    validation, and non-negative currency amount validation.
+  - Kept `src/core/engine_options_models.py` as the public `EngineOptions` owner and compatibility
+    export path for existing imports of `GroupConstraint` and `SuitabilityThresholds`.
+  - Reduced `src/core/engine_options_models.py` from 393 lines to 295 lines while preserving model
+    import contracts.
+  - Added contract coverage proving the `engine_options_models.py` facade delegates suitability
+    models to the focused owner module.
+  - Focused ruff, ruff format check, and mypy passed for touched files; shared contract model and
+    RFC-0026 slice 7 contract tests passed with 45 tests; repo-native `make lint` passed.
+- Consequence:
+  - Engine option behavior and public imports remain stable while suitability model validation can be
+    reviewed independently from the broad engine option configuration surface.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal core model modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting large core model files by model family when compatibility facades and contract
+    tests can preserve existing imports.
+
+## LA-REV-665
+
+- Scope: Advisor cockpit acknowledgement service boundary
+- Pattern: Advisor cockpit service orchestration should delegate acknowledgement replay,
+  idempotency conflict handling, acknowledgement persistence payloads, and response projection to a
+  focused acknowledgement boundary.
+- Status: Hardened
+- Finding Class: Advisor cockpit service modularity and idempotency reviewability
+- Summary: `src/core/advisor_cockpit/service.py` still owned acknowledgement request hashing,
+  idempotency replay/conflict behavior, persistence record construction, acknowledgement-state
+  projection, and response audit projection inside the broad service class. That mixed
+  acknowledgement-specific idempotency behavior with list/snapshot/supportability orchestration and
+  made the replay boundary harder to review independently.
+- Evidence:
+  - Added `src/core/advisor_cockpit/service_acknowledgement.py` for cockpit acknowledgement
+    idempotency validation, canonical request hashing, replay/conflict handling, persistence
+    payload construction, acknowledgement-state projection, and response audit projection.
+  - Kept `AdvisorCockpitService` as the action-resolution and orchestration owner while delegating
+    acknowledgement processing to the focused boundary.
+  - Reduced `src/core/advisor_cockpit/service.py` from 404 lines to 313 lines while preserving the
+    public service API and behavior.
+  - Added a cockpit service boundary test requiring acknowledgement helpers and canonical hashing to
+    live in the focused acknowledgement module instead of the broad service.
+  - Focused ruff, ruff format check, and mypy passed for touched files; advisor cockpit service
+    tests passed with 15 tests; repo-native `make lint` passed.
+- Consequence:
+  - Cockpit acknowledgement behavior remains stable while idempotency replay and response projection
+    can be reviewed independently from action listing, snapshots, supportability, and source loading.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor-cockpit service modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting service orchestration where a focused use-case boundary can retain existing
+    behavior and receive direct boundary tests.
+
+## LA-REV-664
+
+- Scope: In-memory proposal repository query helper ownership
+- Pattern: In-memory repository adapters should keep state mutation and locking while delegating
+  pure ordering, pagination, batching, recoverable-operation selection, and defensive-copy behavior
+  to focused helpers.
+- Status: Hardened
+- Finding Class: Infrastructure repository modularity and testability
+- Summary: `src/infrastructure/proposals/in_memory.py` combined in-memory state storage, locking,
+  mutation, query filtering, batching sort rules, recoverable async-operation selection, and
+  defensive-copy mechanics in one 427-line adapter. This made test/runtime repository behavior
+  harder to review and kept reusable pure query rules embedded in mutation-heavy methods.
+- Evidence:
+  - Added `src/infrastructure/proposals/in_memory_query.py` for proposal pagination/filtering,
+    memo/event/approval/version ordering, recoverable async-operation selection, and defensive
+    copy helpers.
+  - Kept `InMemoryProposalRepository` as the stateful adapter owner for locks, dictionaries, writes,
+    idempotency conflict checks, and transition transaction behavior.
+  - Reduced `src/infrastructure/proposals/in_memory.py` from 427 lines to 357 lines while preserving
+    public repository behavior and import paths.
+  - Added an in-memory repository boundary test requiring query helpers to live in the focused
+    helper module instead of the adapter.
+  - Focused ruff, ruff format check, and mypy passed for touched files; in-memory proposal
+    repository tests passed with 8 tests; repo-native `make lint` passed.
+- Consequence:
+  - In-memory proposal repository behavior remains stable while pure query semantics are easier to
+    test, review, and reuse independently from state mutation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal infrastructure repository modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting oversized repository and service adapters by state family or use-case
+    boundary when the resulting owner modules can be pinned by focused tests.
+
+## LA-REV-663
+
+- Scope: Advisor cockpit reporting and execution source projection ownership
+- Pattern: Report/archive readiness and execution handoff/status source rules should be owned by
+  focused source-family modules instead of the broad cockpit projection facade.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and reviewability
+- Summary: `src/core/advisor_cockpit/source_projection.py` still owned report/render/archive
+  readiness and execution handoff/status projection rules after the policy/memo and proposal
+  source-family splits. That kept private helper logic for reporting and execution mixed with
+  grouping helpers and facade reexports, making source-family review and future hardening harder.
+- Evidence:
+  - Added `src/core/advisor_cockpit/source_projection_reporting.py` for report package and archive
+    reference readiness source projection.
+  - Added `src/core/advisor_cockpit/source_projection_execution.py` for execution handoff readiness,
+    execution status attention projection, and latest execution-event selection.
+  - Kept `src/core/advisor_cockpit/source_projection.py` as the existing facade and grouping helper
+    owner while reexporting focused source-family builders for compatibility.
+  - Updated advisor cockpit source-read-model boundary tests to require reporting and execution
+    helpers in their focused owner modules and not in the facade.
+  - Updated RFC-0026 slice 5 source-read-model contract coverage so durable source evidence includes
+    the focused reporting and execution projection modules.
+  - Focused ruff, ruff format check, and mypy passed for touched files; advisor cockpit source
+    read-model and RFC-0026 slice 5 contract tests passed with 15 tests.
+- Consequence:
+  - Advisor cockpit source aggregation behavior remains stable while reporting/archive and execution
+    action-source rules can be reviewed independently from proposal and policy/memo projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor-cockpit source projection modularity for existing behavior.
+- Follow-Up:
+  - Continue reducing oversized proposal and advisor-cockpit service boundaries with focused
+    owner modules and boundary tests.
+
+## LA-REV-662
+
+- Scope: Advisor cockpit proposal source projection ownership
+- Pattern: Proposal meeting-preparation, client follow-up, and approval-dependency source rules
+  should be owned by a proposal source-family module instead of the broad cockpit projection facade.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and reviewability
+- Summary: `src/core/advisor_cockpit/source_projection.py` still owned proposal activity source
+  rules after the policy/memo split, including active-state vocabulary, client-consent follow-up
+  rules, approval dependency state mapping, latest rejected approval selection, and dependency
+  summary construction. These rules are source-family-specific and were coupled to report/archive
+  and execution projection behavior.
+- Evidence:
+  - Added `src/core/advisor_cockpit/source_projection_proposal.py` for proposal active-state,
+    follow-up, approval dependency vocabulary, meeting-preparation sources, client follow-up
+    sources, and approval dependency sources.
+  - Kept `src/core/advisor_cockpit/source_projection.py` as the existing import facade for
+    `source_read_model.py` while delegating proposal implementation to the focused module.
+  - Updated source-read-model boundary tests to require proposal helpers in the focused owner and
+    keep both the read model and broad projection facade free of proposal helper implementations.
+  - Updated RFC-0026 slice 5 source-read-model contract coverage so durable source evidence
+    includes the focused proposal projection module.
+  - Focused ruff, ruff format check, and mypy passed for touched files; advisor cockpit source
+    read-model and RFC-0026 slice 5 contract tests passed with 13 tests.
+- Consequence:
+  - Advisor cockpit source aggregation behavior remains stable while proposal action-source rules
+    can be reviewed independently from policy/memo, report/archive, and execution source
+    projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor-cockpit source projection modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting `source_projection.py` by source family when touching report/archive or
+    execution projection behavior.
+
+## LA-REV-661
+
+- Scope: Bank-demo journey integration proof model ownership
+- Pattern: Integration proof payload assembly should not own Pydantic DTO definitions, validators,
+  and bounded business-text rules in the same module.
+- Status: Hardened
+- Finding Class: Bank-demo proof model modularity and claim-boundary maintainability
+- Summary: `src/core/bank_demo_proof/integration_proof.py` built the RFC-0028 journey integration
+  proof summary and also defined the AI/model-risk, policy evidence, cockpit evidence, and summary
+  DTOs with their validation rules. That coupled source payload assembly to proof contract
+  validation and made client-ready, AI-authority, and sensitive-text guardrails harder to review as
+  a reusable contract boundary.
+- Evidence:
+  - Added `src/core/bank_demo_proof/integration_proof_models.py` for `IntegrationProofPosture`,
+    `AiEvidenceFamily`, `AiModelRiskControlProof`, `PolicyEvidenceProof`,
+    `CockpitEvidenceProof`, and `AdvisoryJourneyIntegrationProofSummary`.
+  - Kept `src/core/bank_demo_proof/integration_proof.py` as the proof summary assembly owner and
+    compatibility reexport path for existing imports.
+  - Added boundary coverage proving the builder module imports the focused model owner and no
+    longer defines Pydantic models or validators directly.
+  - Focused ruff, ruff format check, and mypy passed for touched files; bank-demo integration
+    proof, proof capture, and RFC-0028 backend-proof capture tests passed with 26 tests.
+- Consequence:
+  - RFC-0028 journey integration proof behavior and public imports remain stable while proof DTO
+    validation and proof payload assembly can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proof-contract model modularity for existing behavior.
+- Follow-Up:
+  - Keep proof DTOs and claim-boundary validators in `integration_proof_models.py`; keep
+    source-payload extraction and summary assembly in `integration_proof.py`.
+
+## LA-REV-660
+
+- Scope: Advisor cockpit policy and memo source projection ownership
+- Pattern: Source-read-model projection rules should be grouped by action-source family instead of
+  concentrating policy review, memo package, proposal, approval, report, and execution rules in one
+  projection module.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and reviewability
+- Summary: `src/core/advisor_cockpit/source_projection.py` owned indexing helpers and every
+  action-source projection family, including policy-review source projection and memo package
+  blockage projection. That made cockpit source aggregation harder to review by source family and
+  left memo/policy lineage behavior coupled to unrelated approval, report, and execution rules.
+- Evidence:
+  - Added `src/core/advisor_cockpit/source_projection_policy_memo.py` for policy-review source
+    projection, memo package blockage projection, cockpit policy review status vocabulary, and memo
+    blockage-code derivation.
+  - Kept `src/core/advisor_cockpit/source_projection.py` as the existing import facade for
+    `source_read_model.py` while delegating policy/memo implementation to the focused module.
+  - Updated source-read-model boundary tests to require policy/memo helpers in the focused owner
+    module and keep the read model free of source-family helper implementations.
+  - Updated RFC-0026 slice 5 source-read-model contract coverage so durable source evidence
+    includes the focused policy/memo projection module.
+  - Focused ruff, ruff format check, and mypy passed for touched files; advisor cockpit source
+    read-model, RFC-0026 slice 5, and RFC-0025 slice 15 contract tests passed with 14 tests.
+- Consequence:
+  - Advisor cockpit source aggregation behavior remains stable while policy-review and memo-package
+    action-source rules can be reviewed independently from proposal, approval, report, and execution
+    source projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor-cockpit source projection modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting `source_projection.py` by source family when touching proposal, approval,
+    report/archive, or execution projection behavior.
+
+## LA-REV-659
+
+- Scope: Policy evaluation persistence store ownership
+- Pattern: Public policy evaluation persistence functions should be a facade over a focused record
+  store rather than sharing one module with in-memory storage, idempotency, and event mechanics.
+- Status: Hardened
+- Finding Class: Policy evaluation persistence modularity and auditability
+- Summary: `src/core/policy_packs/persistence.py` exposed public RFC-0025 persistence functions and
+  also owned record storage dictionaries, identity indexes, idempotency replay lookup, event
+  construction, projection assembly, and replay response delegation. This coupled public API
+  normalization to mutable store internals and made persistence behavior harder to review as a
+  reusable boundary.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_store.py` as the focused owner for
+    `PolicyEvaluationRecordStore`, record/event dictionaries, identity indexing, idempotency replay,
+    audit-event construction, lineage/sign-off package projection, and replay delegation.
+  - Reduced `src/core/policy_packs/persistence.py` to public persistence functions, idempotency-key
+    normalization, and the store instance facade.
+  - Updated policy persistence boundary tests to require storage/idempotency mechanics in the store
+    owner and to keep the public facade free of projection, record-builder, replay, and store
+    helper implementations.
+  - Updated RFC-0025 slice 7 contract coverage so durable evidence points to the store module for
+    idempotency-conflict behavior while preserving the public facade import path.
+  - Focused ruff, ruff format check, and mypy passed for touched files; policy persistence,
+    RFC-0025 slice 7, policy evaluation engine, policy evaluation API, and internal route guard
+    tests passed with 92 tests.
+- Consequence:
+  - Public policy evaluation persistence imports and behavior remain stable while mutable in-memory
+    store mechanics can be reviewed and replaced independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal persistence modularity for existing policy evaluation behavior.
+- Follow-Up:
+  - Keep public normalization and facade functions in `persistence.py`; keep record/event storage
+    mechanics and idempotency replay lookup in `persistence_store.py`.
+
+## LA-REV-658
+
+- Scope: Policy evaluation API route ownership
+- Pattern: Policy evaluation API route registration should be split by command/read/workflow/
+  external-package boundary instead of mixing all RFC-0025 evaluation endpoints in one route module.
+- Status: Hardened
+- Finding Class: API route modularity and OpenAPI-governance maintainability
+- Summary: `src/api/proposals/routes_policy_evaluations.py` mixed policy evaluation create/event
+  commands, queue/record/replay/lineage reads, workflow and sign-off decisions, Lotus Report
+  package requests, and AI evidence requests. That made shared response metadata, parameter
+  contracts, proposal error boundaries, and external dependency handling harder to review as
+  separate API ownership concerns.
+- Evidence:
+  - Added `src/api/proposals/routes_policy_evaluation_commands.py` for policy evaluation create/
+    replay and append-only event endpoints.
+  - Added `src/api/proposals/routes_policy_evaluation_reads.py` for review queue, record, replay,
+    lineage, and sign-off package read/projection endpoints.
+  - Added `src/api/proposals/routes_policy_evaluation_workflow.py` for workflow and sign-off
+    decision endpoints.
+  - Added `src/api/proposals/routes_policy_evaluation_packages.py` for Lotus Report package and
+    AI policy-evidence request endpoints.
+  - Reduced `src/api/proposals/routes_policy_evaluations.py` to the compatibility route-loader
+    module imported by the shared proposal router while retaining RFC evidence breadcrumbs.
+  - Updated internal route-boundary tests to verify the focused modules use shared response
+    metadata, shared parameter contracts, and shared proposal/report error boundaries.
+  - Focused ruff and mypy passed for touched files; policy evaluation API, RFC-0025 API/workflow/
+    report/AI evidence, route guard, and OpenAPI lifecycle documentation tests passed with 85
+    tests.
+- Consequence:
+  - Policy evaluation OpenAPI paths, operation behavior, response metadata, and parameter contracts
+    remain stable while command, read/projection, workflow, and external-package route behavior can
+    be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API route modularity for existing policy evaluation behavior.
+- Follow-Up:
+  - Keep future policy evaluation endpoints in the focused route module matching their API
+    boundary and use `routes_policy_evaluations.py` only as the shared router loader.
+
+## LA-REV-657
+
+- Scope: Proposal memo API route ownership
+- Pattern: Memo API route registration should be split by command/read/external package boundary
+  instead of mixing all memo endpoints in one route module.
+- Status: Hardened
+- Finding Class: API route modularity and OpenAPI-governance maintainability
+- Summary: `src/api/proposals/routes_memo.py` mixed memo create/review/report-package-event
+  command endpoints, Lotus Report and AI commentary request endpoints, and memo read/projection/
+  lineage/replay endpoints. That made response metadata, parameter contracts, lifecycle gate use,
+  and external dependency handling harder to review independently.
+- Evidence:
+  - Added `src/api/proposals/routes_memo_commands.py` for memo create, review, and
+    report-package event endpoints.
+  - Added `src/api/proposals/routes_memo_packages.py` for Lotus Report memo package requests and
+    AI commentary requests.
+  - Added `src/api/proposals/routes_memo_reads.py` for memo read, projection, lineage, and replay
+    evidence endpoints.
+  - Added `src/api/proposals/routes_memo_common.py` for shared route timestamp handling.
+  - Reduced `src/api/proposals/routes_memo.py` to the route-loader compatibility module imported
+    by the shared proposal router.
+  - Updated route-boundary tests to verify focused modules still use shared response metadata and
+    parameter contracts while the loader owns no route decorators.
+  - Focused ruff and mypy passed for touched files; internal route guard, advisory proposal memo,
+    and OpenAPI lifecycle documentation tests passed with 80 tests.
+- Consequence:
+  - Memo OpenAPI paths, operation function names, response metadata, and parameter contracts remain
+    stable while command, external-package, and read/projection route behavior can be reviewed
+    independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API route modularity for existing memo behavior.
+- Follow-Up:
+  - Keep future memo route behavior in the focused route module matching its API boundary and use
+    `routes_memo.py` only as the shared router loader.
+
+## LA-REV-656
+
+- Scope: Proposal memo section factory ownership
+- Pattern: Memo evidence-pack orchestration should not also own deterministic section, appendix,
+  and material-claim construction.
+- Status: Hardened
+- Finding Class: Memo builder modularity and deterministic projection maintainability
+- Summary: `src/core/proposals/memo_builder.py` assembled the overall memo evidence pack and also
+  owned generic section construction, appendix construction, material-claim creation, section
+  source-readiness lookup, section status derivation, evidence/source-ref aggregation, and section
+  hash construction. That coupled pack-level orchestration to reusable section-factory mechanics.
+- Evidence:
+  - Added `src/core/proposals/memo_section_factory.py` for deterministic memo section, appendix,
+    and material-claim construction.
+  - Updated `src/core/proposals/memo_builder.py` to keep source manifest, pack assembly, projection
+    policy, supportability, and memo hash orchestration while delegating section factories.
+  - Added boundary coverage proving the memo builder imports the focused section factory and no
+    longer owns section/claim helper implementations.
+  - Focused ruff and mypy passed for touched files; proposal memo builder tests passed with 7
+    tests.
+- Consequence:
+  - Memo pack behavior and hashes remain stable while future section construction rules can be
+    reviewed independently from pack-level source manifest and supportability posture.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal memo builder modularity for existing behavior.
+- Follow-Up:
+  - Keep generic section, appendix, and claim construction in `memo_section_factory.py`; keep
+    `memo_builder.py` focused on evidence-pack assembly.
+
+## LA-REV-655
+
+- Scope: Proposal memo persistence DTO ownership
+- Pattern: Durable memo persistence records should live in a focused owner module instead of the
+  broad proposal persistence facade.
+- Status: Hardened
+- Finding Class: Memo persistence contract modularity and type-boundary maintainability
+- Summary: `src/core/proposals/persistence_models.py` mixed proposal aggregate/version/workflow
+  records, idempotency records, async operation records, transition result DTOs, and memo
+  persistence records. Memo lifecycle, memo idempotency, and memo event records are specific to the
+  memo persistence workflow and were consumed by memo event recording, memo request context,
+  response projection, external package assembly, and repository protocols.
+- Evidence:
+  - Added `src/core/proposals/memo_persistence_models.py` for `ProposalMemoRecord`,
+    `ProposalMemoIdempotencyRecord`, `ProposalMemoEventRecord`, `ProposalMemoLifecycleStatus`, and
+    `ProposalMemoEventType`.
+  - Reduced `src/core/proposals/persistence_models.py` toward a compatibility facade for memo
+    persistence DTO imports while leaving non-memo persistence records in place for later slices.
+  - Updated memo event recording, memo request context, memo response projection, memo external
+    packages, repository protocol typing, and public proposal model aggregation to import memo
+    persistence DTOs from the focused owner module.
+  - Added contract coverage proving public `models.py`, `persistence_models.py`, and
+    `memo_persistence_models.py` resolve to the same memo persistence classes while the broad
+    persistence facade no longer defines memo record classes directly.
+  - Focused ruff and mypy passed for touched files; proposal model boundary, memo persistence, and
+    memo response projection tests passed with 13 tests.
+- Consequence:
+  - Memo persistence behavior and schema titles remain stable while memo lifecycle/event/idempotency
+    DTO changes can be reviewed separately from proposal aggregate and workflow persistence records.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal memo persistence modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting non-memo persistence DTO families only when a concrete runtime or repository
+    boundary slice needs it.
+
+## LA-REV-654
+
+- Scope: Proposal memo source-readiness owner modules
+- Pattern: Memo source-readiness checks should be owned by the source-authority family they
+  evaluate instead of sharing one broad section module.
+- Status: Hardened
+- Finding Class: Memo evidence source-authority modularity and reviewability
+- Summary: `src/core/proposals/memo_source_readiness_sections.py` owned Lotus Core portfolio,
+  market-data, client-context, and product-readiness checks; Lotus Risk concentration and extended
+  evidence checks; and Lotus Advise decision-summary and execution-boundary checks. This made
+  source-owner readiness behavior harder to review independently and kept the memo readiness
+  coordinator coupled to a broad compatibility module.
+- Evidence:
+  - Added `src/core/proposals/memo_source_readiness_core.py` for Lotus Core-owned memo readiness
+    sections covering holdings/cash, client context, market data, FX rates, and product
+    eligibility/complexity.
+  - Added `src/core/proposals/memo_source_readiness_risk.py` for Lotus Risk-owned concentration
+    and extended memo evidence posture.
+  - Added `src/core/proposals/memo_source_readiness_advise.py` for Lotus Advise-owned decision
+    summary and advisory lifecycle/execution-boundary posture.
+  - Reduced `src/core/proposals/memo_source_readiness_sections.py` to a compatibility facade.
+  - Updated `src/core/proposals/memo_source_readiness.py` to import focused owner modules
+    directly.
+  - Added boundary coverage proving the coordinator uses owner modules and the facade only
+    re-exports owner builders.
+  - Focused ruff and mypy passed for touched files; memo source-readiness and proposal memo builder
+    tests passed with 11 tests.
+- Consequence:
+  - Memo readiness behavior and source-authority output remain stable while future Lotus Core,
+    Lotus Risk, and Lotus Advise readiness changes can be reviewed in their owner modules.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal memo evidence modularity for existing behavior.
+- Follow-Up:
+  - Keep future memo source-readiness logic in the source-authority owner modules and use
+    `memo_source_readiness_sections.py` only as a compatibility facade.
+
+## LA-REV-653
+
+- Scope: Proposal context resolution, request hashing, and evidence ownership
+- Pattern: Proposal context resolution should not own canonical request hashing and advisory
+  context evidence projection in the same runtime module.
+- Status: Hardened
+- Finding Class: Proposal lifecycle context modularity and dependency-flow maintainability
+- Summary: `src/core/proposals/context.py` mixed stateful/stateless/legacy input-mode
+  resolution, resolved-context dataclasses, canonical request payload hashing, and persisted
+  context-resolution evidence projection. That made proposal create/version commands, advisory
+  simulation, workspace reevaluation, workspace handoff, and async submission hashing depend on a
+  broad facade even when each caller needed only one responsibility.
+- Evidence:
+  - Added `src/core/proposals/context_resolution.py` for proposal context dataclasses, domain
+    resolution errors, and create/simulation/version request resolution.
+  - Added `src/core/proposals/context_hashing.py` for canonical create, simulation, and version
+    request payload hashes.
+  - Added `src/core/proposals/context_evidence.py` for advisory policy context and resolved
+    context evidence projection.
+  - Reduced `src/core/proposals/context.py` to a compatibility facade preserving existing public
+    imports.
+  - Updated proposal create/version commands, async payload hashing, advisory simulation services,
+    workspace reevaluation, and workspace handoff to import focused owner modules directly.
+  - Added contract coverage proving the facade re-exports focused owner objects, production
+    runtime modules avoid the broad facade, and the facade remains thin.
+  - Focused ruff and mypy passed for the touched files; proposal context, async payload,
+    workflow service, advisory simulation validation/evaluation, workspace handoff, and workspace
+    reevaluation tests passed with 109 tests.
+- Consequence:
+  - Proposal context behavior, request hashes, and evidence payload shape remain stable while
+    future context-resolution changes can be reviewed independently from hashing and evidence
+    projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal lifecycle modularity for existing behavior.
+- Follow-Up:
+  - Keep runtime proposal/workspace/advisory simulation modules importing context resolution,
+    hashing, and evidence helpers from focused owner modules instead of the compatibility facade.
+
 ## LA-REV-652
 
 - Scope: Proposal input request and context DTO ownership

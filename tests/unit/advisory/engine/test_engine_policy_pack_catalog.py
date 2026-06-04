@@ -26,7 +26,8 @@ def test_policy_pack_catalog_definition_helpers_stay_focused() -> None:
     definitions = (SOURCE_ROOT / "catalog_definitions.py").read_text(encoding="utf-8")
 
     assert "summary_from_definition" in catalog
-    assert "validate_definition" in catalog
+    assert "validate_policy_pack_catalog_definition" in catalog
+    assert "validate_definition" not in catalog
     assert "def _validate_definition" not in catalog
     assert "def _summary_from_definition" not in catalog
     assert "def _prepare_definition" not in catalog
@@ -34,6 +35,28 @@ def test_policy_pack_catalog_definition_helpers_stay_focused() -> None:
     assert "def validate_definition" in definitions
     assert "def summary_from_definition" in definitions
     assert "def prepare_definition" in definitions
+
+
+def test_policy_pack_catalog_delegates_commands_events_and_projection() -> None:
+    catalog = (SOURCE_ROOT / "catalog.py").read_text(encoding="utf-8")
+    commands = (SOURCE_ROOT / "catalog_commands.py").read_text(encoding="utf-8")
+    events = (SOURCE_ROOT / "catalog_events.py").read_text(encoding="utf-8")
+    projection = (SOURCE_ROOT / "catalog_projection.py").read_text(encoding="utf-8")
+
+    assert "from src.core.policy_packs.catalog_commands import" in catalog
+    assert "from src.core.policy_packs.catalog_projection import" in catalog
+    assert "hash_canonical_payload" not in catalog
+    assert "datetime.now(UTC)" not in catalog
+    assert "PolicyPackActivationResponse(" not in catalog
+    assert "PolicyPackValidationResponse(" not in catalog
+    assert "PolicyPackDetailResponse(" not in catalog
+    assert "def validate_policy_pack_catalog_definition(" in commands
+    assert "def activate_policy_pack_catalog_definition(" in commands
+    assert "hash_canonical_payload" in commands
+    assert "def append_policy_pack_catalog_event(" in events
+    assert "def find_replayed_policy_pack_catalog_event(" in events
+    assert "def latest_policy_pack_validation_event(" in events
+    assert "PolicyPackDetailResponse(" in projection
 
 
 def test_policy_pack_reference_data_stays_outside_catalog_store() -> None:

@@ -7,10 +7,13 @@ import pytest
 
 import src.core.proposals.create_command as proposal_create_command_module
 import src.core.proposals.service as proposal_service_module
+import src.core.proposals.service_async_facade as proposal_service_async_facade_module
 import src.core.proposals.service_async_operations as proposal_service_async_module
 import src.core.proposals.service_command_operations as proposal_service_command_module
 import src.core.proposals.service_delivery_operations as proposal_service_delivery_module
 import src.core.proposals.service_narrative_operations as proposal_service_narrative_module
+import src.core.proposals.service_operation_registry as proposal_service_operation_registry_module
+import src.core.proposals.service_read_facade as proposal_service_read_facade_module
 import src.core.proposals.service_read_operations as proposal_service_read_module
 from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
@@ -74,9 +77,23 @@ class CountingLineageRepository(InMemoryProposalRepository):
 
 def test_service_delegates_async_operations_to_focused_module() -> None:
     service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    async_facade_text = Path(proposal_service_async_facade_module.__file__).read_text(
+        encoding="utf-8"
+    )
+    registry_text = Path(proposal_service_operation_registry_module.__file__).read_text(
+        encoding="utf-8"
+    )
     async_text = Path(proposal_service_async_module.__file__).read_text(encoding="utf-8")
 
-    assert "ProposalWorkflowAsyncOperations" in service_text
+    assert "build_proposal_workflow_operation_registry" in service_text
+    assert "ProposalWorkflowAsyncFacadeMixin" in service_text
+    assert "ProposalWorkflowAsyncOperations" in registry_text
+    assert "def accept_create_proposal_async_submission(" not in service_text
+    assert "def execute_create_version_async(" not in service_text
+    assert "def recover_async_operations(" not in service_text
+    assert "def accept_create_proposal_async_submission(" in async_facade_text
+    assert "def execute_create_version_async(" in async_facade_text
+    assert "def recover_async_operations(" in async_facade_text
     for helper_name in (
         "accept_create_proposal_async_submission_command",
         "accept_create_version_async_submission_command",
@@ -93,9 +110,13 @@ def test_service_delegates_async_operations_to_focused_module() -> None:
 
 def test_service_delegates_command_operations_to_focused_module() -> None:
     service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    registry_text = Path(proposal_service_operation_registry_module.__file__).read_text(
+        encoding="utf-8"
+    )
     command_text = Path(proposal_service_command_module.__file__).read_text(encoding="utf-8")
 
-    assert "ProposalWorkflowCommandOperations" in service_text
+    assert "build_proposal_workflow_operation_registry" in service_text
+    assert "ProposalWorkflowCommandOperations" in registry_text
     for import_name in (
         "from src.core.proposals.create_command import",
         "from src.core.proposals.lifecycle_command import",
@@ -115,9 +136,13 @@ def test_service_delegates_command_operations_to_focused_module() -> None:
 
 def test_service_delegates_delivery_operations_to_focused_module() -> None:
     service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    registry_text = Path(proposal_service_operation_registry_module.__file__).read_text(
+        encoding="utf-8"
+    )
     delivery_text = Path(proposal_service_delivery_module.__file__).read_text(encoding="utf-8")
 
-    assert "ProposalWorkflowDeliveryOperations" in service_text
+    assert "build_proposal_workflow_operation_registry" in service_text
+    assert "ProposalWorkflowDeliveryOperations" in registry_text
     for helper_name in (
         "request_proposal_execution_handoff",
         "record_proposal_execution_update",
@@ -132,9 +157,13 @@ def test_service_delegates_delivery_operations_to_focused_module() -> None:
 
 def test_service_delegates_narrative_operations_to_focused_module() -> None:
     service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    registry_text = Path(proposal_service_operation_registry_module.__file__).read_text(
+        encoding="utf-8"
+    )
     narrative_text = Path(proposal_service_narrative_module.__file__).read_text(encoding="utf-8")
 
-    assert "ProposalWorkflowNarrativeOperations" in service_text
+    assert "build_proposal_workflow_operation_registry" in service_text
+    assert "ProposalWorkflowNarrativeOperations" in registry_text
     assert "from src.core.proposals.narrative_views import" not in service_text
     assert "from src.core.proposals.report_request_command import" not in service_text
     for helper_name in (
@@ -149,9 +178,23 @@ def test_service_delegates_narrative_operations_to_focused_module() -> None:
 
 def test_service_delegates_read_operations_to_focused_module() -> None:
     service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    registry_text = Path(proposal_service_operation_registry_module.__file__).read_text(
+        encoding="utf-8"
+    )
+    read_facade_text = Path(proposal_service_read_facade_module.__file__).read_text(
+        encoding="utf-8"
+    )
     read_text = Path(proposal_service_read_module.__file__).read_text(encoding="utf-8")
 
-    assert "ProposalWorkflowReadOperations" in service_text
+    assert "build_proposal_workflow_operation_registry" in service_text
+    assert "ProposalWorkflowReadFacadeMixin" in service_text
+    assert "ProposalWorkflowReadOperations" in registry_text
+    assert "def get_proposal(" not in service_text
+    assert "def list_proposals(" not in service_text
+    assert "def get_version_replay(" not in service_text
+    assert "def get_proposal(" in read_facade_text
+    assert "def list_proposals(" in read_facade_text
+    assert "def get_version_replay(" in read_facade_text
     for import_name in (
         "from src.core.proposals.activity_views import",
         "from src.core.proposals.read_views import",
@@ -166,6 +209,29 @@ def test_service_delegates_read_operations_to_focused_module() -> None:
     ):
         assert helper_name not in service_text
         assert helper_name in read_text
+
+
+def test_service_delegates_operation_wiring_to_registry_module() -> None:
+    service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    registry_text = Path(proposal_service_operation_registry_module.__file__).read_text(
+        encoding="utf-8"
+    )
+
+    assert "build_proposal_workflow_operation_registry" in service_text
+    assert "ProposalWorkflowOperationRegistry" in registry_text
+    assert "ProposalWorkflowCommandOperations" not in service_text
+    assert "ProposalWorkflowAsyncOperations" not in service_text
+    assert "ProposalWorkflowDeliveryOperations" not in service_text
+    assert "ProposalWorkflowNarrativeOperations" not in service_text
+    assert "ProposalWorkflowReadOperations" not in service_text
+    for operation_owner in (
+        "ProposalWorkflowCommandOperations",
+        "ProposalWorkflowAsyncOperations",
+        "ProposalWorkflowDeliveryOperations",
+        "ProposalWorkflowNarrativeOperations",
+        "ProposalWorkflowReadOperations",
+    ):
+        assert operation_owner in registry_text
 
 
 def _risk_enriched_result(result):  # noqa: ANN001
@@ -519,7 +585,7 @@ def test_service_create_proposal_persists_policy_context_for_stateful_requests(m
         )
 
     monkeypatch.setattr(
-        "src.core.proposals.context.resolve_lotus_core_advisory_context",
+        "src.core.proposals.context_resolution.resolve_lotus_core_advisory_context",
         _resolved_stateful_context,
     )
 
