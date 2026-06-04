@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-675
+
+- Scope: Proposal workflow async facade ownership
+- Pattern: The public proposal workflow service should remain a compatibility facade while async
+  submission, execution, replay, correlation lookup, recovery, and test-stat accessors live in a
+  focused facade module.
+- Status: Hardened
+- Finding Class: Proposal workflow service modularity and async boundary reviewability
+- Summary: `src/core/proposals/service.py` still owned public async submission, execution, status,
+  replay, correlation lookup, recovery, and test-stat facade methods even after async operation
+  behavior had moved into focused operation owners. That kept the aggregate service hotspot larger
+  than necessary and mixed async method surface with create/read/delivery/narrative facade methods.
+- Evidence:
+  - Added `src/core/proposals/service_async_facade.py` for public async facade methods and localized
+    typed casts around async operation owner returns.
+  - Made `ProposalWorkflowService` inherit `ProposalWorkflowAsyncFacadeMixin` while preserving the
+    existing public `src.core.proposals.service.ProposalWorkflowService` import path.
+  - Reduced `src/core/proposals/service.py` from 427 lines to 315 lines while preserving async
+    submission, execution, status, replay, correlation lookup, recovery, and test-stat behavior.
+  - Updated workflow service boundary coverage proving async facade methods live outside the
+    aggregate service while async operation implementation remains in the focused operation module.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; proposal workflow
+    service tests passed with 78 tests; repo-native `make lint` passed.
+- Consequence:
+  - Proposal async workflow method-surface changes can be reviewed independently from the aggregate
+    workflow service facade and independently from async operation implementation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal workflow service modularity for existing behavior.
+- Follow-Up:
+  - Continue moving remaining command, read, delivery, and narrative facade method groups out of the
+    aggregate service only where inheritance or composition keeps the public import contract stable.
+
 ## LA-REV-674
 
 - Scope: Proposal memo foundational summary helper ownership

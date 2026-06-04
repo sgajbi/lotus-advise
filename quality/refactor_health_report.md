@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `ead10a94eb4ade49785a726779371a0d6a047f80`
-- Branch Commits Over Main: `45`
+- Head: `5cf2fbc749aa9f250f9e0a59659a434035751932`
+- Branch Commits Over Main: `47`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -148,6 +148,8 @@
   the public response facade.
 - Proposal workflow service construction delegates operation-owner wiring to
   a focused registry while preserving the public service facade.
+- Proposal workflow service async submission, execution, replay, correlation
+  lookup, recovery, and test-stat facade methods live in a focused mixin.
 - Advisory workspace routes are split into session/version, assistant-rationale,
   and lifecycle-handoff route modules behind the public aggregate router.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
