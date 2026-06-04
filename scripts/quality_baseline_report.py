@@ -273,6 +273,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and report-request event recording to a focused service boundary.",
         "- Proposal workflow read operations delegate proposal, timeline, approval, lineage,",
         "  idempotency, version, and replay views to a focused service boundary.",
+        "- Proposal workflow command operations delegate create, version, transition, and",
+        "  approval commands to a focused service boundary.",
         "- Policy evaluation persistence delegates lineage/posture projection and audit-event",
         "  attachment mapping to a focused projection module.",
         "- Policy evaluation persistence delegates replay hash comparison and replay response",

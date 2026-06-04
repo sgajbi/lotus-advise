@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-623
+
+- Scope: Proposal workflow command and lifecycle operations
+- Pattern: The API-facing proposal workflow service should not own create, version, transition,
+  and approval command invocation directly while other operation families are delegated.
+- Status: Hardened
+- Finding Class: Service boundary modularity and command workflow maintainability
+- Summary: `src/core/proposals/service.py` still mixed the route-facing facade with proposal
+  create command invocation, version command invocation, lifecycle transition command invocation,
+  and approval command invocation. That left command behavior in the same facade that already
+  delegates async, delivery, narrative, and read operations.
+- Evidence:
+  - Added `src/core/proposals/service_command_operations.py` for create proposal, create version,
+    state transition, and approval command delegation.
+  - Kept `ProposalWorkflowService` as the stable public facade, delegating command/lifecycle
+    methods to `ProposalWorkflowCommandOperations`.
+  - Added a source-boundary test proving create/lifecycle/version command imports and helper calls
+    stay outside the route-facing workflow service facade.
+  - Focused proposal workflow service lint, mypy, and behavior tests passed with 77 tests.
+- Consequence:
+  - Proposal command behavior remains compatible while the public workflow service has a clearer
+    separation between command orchestration and async/read/delivery/narrative facade methods.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `ProposalWorkflowService` only where a stable operation-family seam exists;
+    avoid splitting thin facade delegates without behavior or boundary evidence.
+
 ## LA-REV-622
 
 - Scope: Policy evaluation replay assembly
