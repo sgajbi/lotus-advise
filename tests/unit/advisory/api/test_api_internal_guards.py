@@ -675,6 +675,28 @@ def test_workflow_catalog_delegates_capability_groups():
     assert "advisory_bank_demo_proof" not in source
 
 
+def test_capabilities_models_delegate_model_families():
+    facade_source = Path("src/api/capabilities/models.py").read_text(encoding="utf-8")
+    feature_source = Path("src/api/capabilities/feature_models.py").read_text(encoding="utf-8")
+    readiness_source = Path("src/api/capabilities/readiness_models.py").read_text(encoding="utf-8")
+    supportability_source = Path("src/api/capabilities/supportability_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.api.capabilities.feature_models import" in facade_source
+    assert "from src.api.capabilities.readiness_models import" in facade_source
+    assert "from src.api.capabilities.supportability_models import" in facade_source
+    assert "class FeatureCapability(" not in facade_source
+    assert "class WorkflowCapability(" not in facade_source
+    assert "class DependencyReadiness(" not in facade_source
+    assert "class AdvisorySupportability(" not in facade_source
+    assert "class FeatureCapability(" in feature_source
+    assert "class WorkflowCapability(" in feature_source
+    assert "class DependencyReadiness(" in readiness_source
+    assert "class OperationalReadiness(" in readiness_source
+    assert "class AdvisorySupportability(" in supportability_source
+
+
 def test_bank_demo_proof_routes_use_shared_response_metadata():
     source = inspect.getsource(bank_demo_proof_router)
 
