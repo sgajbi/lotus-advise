@@ -9,6 +9,7 @@ import src.core.proposals.create_command as proposal_create_command_module
 import src.core.proposals.service as proposal_service_module
 import src.core.proposals.service_async_operations as proposal_service_async_module
 import src.core.proposals.service_delivery_operations as proposal_service_delivery_module
+import src.core.proposals.service_narrative_operations as proposal_service_narrative_module
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
@@ -103,6 +104,23 @@ def test_service_delegates_delivery_operations_to_focused_module() -> None:
     ):
         assert helper_name not in service_text
         assert helper_name in delivery_text
+
+
+def test_service_delegates_narrative_operations_to_focused_module() -> None:
+    service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    narrative_text = Path(proposal_service_narrative_module.__file__).read_text(encoding="utf-8")
+
+    assert "ProposalWorkflowNarrativeOperations" in service_text
+    assert "from src.core.proposals.narrative_views import" not in service_text
+    assert "from src.core.proposals.report_request_command import" not in service_text
+    for helper_name in (
+        "build_narrative_view",
+        "regenerate_narrative_view",
+        "record_proposal_report_request",
+    ):
+        assert helper_name not in service_text
+        assert helper_name in narrative_text
+    assert "record_narrative_review" in narrative_text
 
 
 def _risk_enriched_result(result):  # noqa: ANN001
@@ -1132,7 +1150,7 @@ def test_service_delegates_narrative_read_view(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_narrative_module,
         "build_narrative_view",
         fake_build_narrative_view,
     )
@@ -1159,7 +1177,7 @@ def test_service_delegates_narrative_regeneration_view(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_narrative_module,
         "regenerate_narrative_view",
         fake_regenerate_narrative_view,
     )
@@ -1191,7 +1209,7 @@ def test_service_delegates_narrative_review_command(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_narrative_module,
         "record_narrative_review",
         fake_record_narrative_review,
     )

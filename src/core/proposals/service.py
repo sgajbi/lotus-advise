@@ -18,7 +18,6 @@ from src.core.proposals.exceptions import (
     ProposalTransitionError,
     ProposalValidationError,
 )
-from src.core.proposals.identifiers import new_workflow_event_id
 from src.core.proposals.lifecycle_command import (
     record_proposal_approval,
     transition_proposal_state,
@@ -53,11 +52,6 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
     ProposalWorkflowTimelineResponse,
 )
-from src.core.proposals.narrative_views import (
-    build_narrative_view,
-    record_narrative_review,
-    regenerate_narrative_view,
-)
 from src.core.proposals.read_views import (
     build_idempotency_lookup_view,
     build_proposal_approvals_view,
@@ -69,13 +63,15 @@ from src.core.proposals.read_views import (
 from src.core.proposals.replay_views import (
     build_proposal_version_replay_view,
 )
-from src.core.proposals.report_request_command import record_proposal_report_request
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.service_async_operations import (
     ASYNC_RECOVERY_BATCH_SIZE,
     ProposalWorkflowAsyncOperations,
 )
 from src.core.proposals.service_delivery_operations import ProposalWorkflowDeliveryOperations
+from src.core.proposals.service_narrative_operations import (
+    ProposalWorkflowNarrativeOperations,
+)
 from src.core.proposals.version_command import create_proposal_version
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 
@@ -116,6 +112,10 @@ class ProposalWorkflowService:
         self._delivery_operations = ProposalWorkflowDeliveryOperations(
             repository=self._repository,
             require_expected_state=self._require_expected_state,
+            utc_now=_utc_now,
+        )
+        self._narrative_operations = ProposalWorkflowNarrativeOperations(
+            repository=self._repository,
             utc_now=_utc_now,
         )
 
@@ -415,8 +415,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         version_no: int,
     ) -> ProposalNarrativeReadResponse:
-        return build_narrative_view(
-            repository=self._repository,
+        return self._narrative_operations.get_narrative(
             proposal_id=proposal_id,
             version_no=version_no,
         )
@@ -428,8 +427,7 @@ class ProposalWorkflowService:
         version_no: int,
         payload: ProposalNarrativeRegenerationRequest,
     ) -> ProposalNarrativeRegenerationResponse:
-        return regenerate_narrative_view(
-            repository=self._repository,
+        return self._narrative_operations.regenerate_narrative(
             proposal_id=proposal_id,
             version_no=version_no,
             payload=payload,
@@ -443,14 +441,11 @@ class ProposalWorkflowService:
         payload: ProposalNarrativeReviewRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalNarrativeReviewResponse:
-        return record_narrative_review(
-            repository=self._repository,
+        return self._narrative_operations.record_narrative_review(
             proposal_id=proposal_id,
             version_no=version_no,
             payload=payload,
             idempotency_key=idempotency_key,
-            event_id=new_workflow_event_id(),
-            occurred_at=_utc_now,
         )
 
     def record_report_request(
@@ -464,10 +459,8 @@ class ProposalWorkflowService:
         include_reviewed_narrative: bool = False,
         proposal_narrative_package: dict[str, Any] | None = None,
     ) -> ProposalWorkflowEventRecord:
-        return record_proposal_report_request(
-            repository=self._repository,
+        return self._narrative_operations.record_report_request(
             proposal_id=proposal_id,
-            event_id=new_workflow_event_id(),
             report_response=report_response,
             requested_by=requested_by,
             related_version_no=related_version_no,
