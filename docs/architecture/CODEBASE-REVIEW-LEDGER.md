@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-610
+
+- Scope: Proposal workflow async operations
+- Pattern: Proposal workflow service should not own async submission, async execution, recovery,
+  and async operation read-view wiring directly.
+- Status: Hardened
+- Finding Class: Proposal workflow service modularity and async-orchestration maintainability
+- Summary: `src/core/proposals/service.py` had become the largest hotspot and mixed the
+  router-facing workflow service facade with async create submission, async version submission,
+  restart-safe execution, recovery batch orchestration, and async operation status/replay/correlation
+  read views. That made synchronous proposal commands harder to review separately from operational
+  async mechanics.
+- Evidence:
+  - Added `src/core/proposals/service_async_operations.py` for async submission delegation,
+    async operation execution, restart recovery, and async operation status/replay/correlation
+    views.
+  - Kept `ProposalWorkflowService` as the stable API-facing facade while delegating async behavior
+    through `ProposalWorkflowAsyncOperations`.
+  - Preserved test access to create-submission statistics and callback behavior for retry/failure
+    execution paths.
+  - Added a source-boundary guard proving async command, recovery, and async view helpers stay
+    outside `src/core/proposals/service.py`.
+  - Focused workflow service lint, format, mypy, and unit tests passed with 73 tests.
+- Consequence:
+  - Proposal workflow behavior remains compatible while async operational mechanics can be reviewed
+    independently from direct create/version, lifecycle, execution, narrative, and report workflows.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal service and remaining read-model/model hotspots where cohesive
+    command/read boundaries remain clear.
+
 ## LA-REV-609
 
 - Scope: Proposal memo read response builders
