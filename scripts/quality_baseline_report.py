@@ -307,6 +307,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  while preserving the existing narrative model facade.",
         "- Proposal narrative grounding DTOs are split into a focused evidence model module",
         "  while preserving the existing narrative model facade.",
+        "- Proposal narrative section DTOs are split into a focused section model module",
+        "  while preserving the existing narrative model facade.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",

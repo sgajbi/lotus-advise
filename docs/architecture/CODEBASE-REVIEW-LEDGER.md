@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-646
+
+- Scope: Proposal narrative section DTO ownership
+- Pattern: Rendered narrative section DTOs should live in a focused model module aligned with
+  narrative section rendering.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and section rendering maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrativeSection`
+  directly after grounding DTOs were split. The section DTO is produced by
+  `src/core/advisory/narrative_sections.py` and is distinct from request, grounding, policy,
+  AI-lineage, envelope, and review DTOs.
+- Evidence:
+  - Extracted `ProposalNarrativeSection` to
+    `src/core/advisory/narrative_section_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving the section DTO facade import resolves to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 31 tests.
+- Consequence:
+  - Narrative section rendering contracts now have a narrow owner module aligned with section
+    rendering, reducing DTO churn in the narrative model facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting policy/guardrail, AI-lineage, envelope, and review DTO groups out of the
+    narrative model facade.
+
 ## LA-REV-645
 
 - Scope: Proposal narrative grounding DTO ownership

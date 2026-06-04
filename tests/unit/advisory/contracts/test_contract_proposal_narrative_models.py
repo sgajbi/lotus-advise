@@ -13,6 +13,9 @@ from src.core.advisory.narrative_grounding_models import (
 from src.core.advisory.narrative_request_models import (
     ProposalNarrativeRequest as OwnedProposalNarrativeRequest,
 )
+from src.core.advisory.narrative_section_models import (
+    ProposalNarrativeSection as OwnedProposalNarrativeSection,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
@@ -62,4 +65,12 @@ def test_proposal_narrative_grounding_models_keep_stable_facade_imports() -> Non
     assert (
         narrative_models.ProposalNarrativeGroundingPacket.__module__
         == "src.core.advisory.narrative_grounding_models"
+    )
+
+
+def test_proposal_narrative_section_model_keeps_stable_facade_import() -> None:
+    assert narrative_models.ProposalNarrativeSection is OwnedProposalNarrativeSection
+    assert (
+        narrative_models.ProposalNarrativeSection.__module__
+        == "src.core.advisory.narrative_section_models"
     )
