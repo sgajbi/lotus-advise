@@ -1,5 +1,44 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-658
+
+- Scope: Policy evaluation API route ownership
+- Pattern: Policy evaluation API route registration should be split by command/read/workflow/
+  external-package boundary instead of mixing all RFC-0025 evaluation endpoints in one route module.
+- Status: Hardened
+- Finding Class: API route modularity and OpenAPI-governance maintainability
+- Summary: `src/api/proposals/routes_policy_evaluations.py` mixed policy evaluation create/event
+  commands, queue/record/replay/lineage reads, workflow and sign-off decisions, Lotus Report
+  package requests, and AI evidence requests. That made shared response metadata, parameter
+  contracts, proposal error boundaries, and external dependency handling harder to review as
+  separate API ownership concerns.
+- Evidence:
+  - Added `src/api/proposals/routes_policy_evaluation_commands.py` for policy evaluation create/
+    replay and append-only event endpoints.
+  - Added `src/api/proposals/routes_policy_evaluation_reads.py` for review queue, record, replay,
+    lineage, and sign-off package read/projection endpoints.
+  - Added `src/api/proposals/routes_policy_evaluation_workflow.py` for workflow and sign-off
+    decision endpoints.
+  - Added `src/api/proposals/routes_policy_evaluation_packages.py` for Lotus Report package and
+    AI policy-evidence request endpoints.
+  - Reduced `src/api/proposals/routes_policy_evaluations.py` to the compatibility route-loader
+    module imported by the shared proposal router while retaining RFC evidence breadcrumbs.
+  - Updated internal route-boundary tests to verify the focused modules use shared response
+    metadata, shared parameter contracts, and shared proposal/report error boundaries.
+  - Focused ruff and mypy passed for touched files; policy evaluation API, RFC-0025 API/workflow/
+    report/AI evidence, route guard, and OpenAPI lifecycle documentation tests passed with 85
+    tests.
+- Consequence:
+  - Policy evaluation OpenAPI paths, operation behavior, response metadata, and parameter contracts
+    remain stable while command, read/projection, workflow, and external-package route behavior can
+    be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API route modularity for existing policy evaluation behavior.
+- Follow-Up:
+  - Keep future policy evaluation endpoints in the focused route module matching their API
+    boundary and use `routes_policy_evaluations.py` only as the shared router loader.
+
 ## LA-REV-657
 
 - Scope: Proposal memo API route ownership
