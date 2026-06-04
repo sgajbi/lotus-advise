@@ -8,6 +8,7 @@ import pytest
 import src.core.proposals.create_command as proposal_create_command_module
 import src.core.proposals.service as proposal_service_module
 import src.core.proposals.service_async_operations as proposal_service_async_module
+import src.core.proposals.service_command_operations as proposal_service_command_module
 import src.core.proposals.service_delivery_operations as proposal_service_delivery_module
 import src.core.proposals.service_narrative_operations as proposal_service_narrative_module
 import src.core.proposals.service_read_operations as proposal_service_read_module
@@ -88,6 +89,28 @@ def test_service_delegates_async_operations_to_focused_module() -> None:
     ):
         assert helper_name not in service_text
         assert helper_name in async_text
+
+
+def test_service_delegates_command_operations_to_focused_module() -> None:
+    service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    command_text = Path(proposal_service_command_module.__file__).read_text(encoding="utf-8")
+
+    assert "ProposalWorkflowCommandOperations" in service_text
+    for import_name in (
+        "from src.core.proposals.create_command import",
+        "from src.core.proposals.lifecycle_command import",
+        "from src.core.proposals.version_command import",
+    ):
+        assert import_name not in service_text
+        assert import_name in command_text
+    for helper_name in (
+        "create_proposal_command",
+        "create_proposal_version",
+        "transition_proposal_state",
+        "record_proposal_approval",
+    ):
+        assert helper_name not in service_text
+        assert helper_name in command_text
 
 
 def test_service_delegates_delivery_operations_to_focused_module() -> None:
@@ -1020,7 +1043,7 @@ def test_service_delegates_create_version_command(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_command_module,
         "create_proposal_version",
         fake_create_proposal_version,
     )
@@ -1064,7 +1087,7 @@ def test_service_delegates_create_proposal_command(monkeypatch):
         return sentinel
 
     monkeypatch.setattr(
-        proposal_service_module,
+        proposal_service_command_module,
         "create_proposal_command",
         fake_create_proposal_command,
     )

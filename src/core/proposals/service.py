@@ -6,7 +6,6 @@ from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
 )
-from src.core.proposals.create_command import create_proposal_command
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalLifecycleError,
@@ -14,10 +13,6 @@ from src.core.proposals.exceptions import (
     ProposalStateConflictError,
     ProposalTransitionError,
     ProposalValidationError,
-)
-from src.core.proposals.lifecycle_command import (
-    record_proposal_approval,
-    transition_proposal_state,
 )
 from src.core.proposals.models import (
     ProposalApprovalRequest,
@@ -54,12 +49,12 @@ from src.core.proposals.service_async_operations import (
     ASYNC_RECOVERY_BATCH_SIZE,
     ProposalWorkflowAsyncOperations,
 )
+from src.core.proposals.service_command_operations import ProposalWorkflowCommandOperations
 from src.core.proposals.service_delivery_operations import ProposalWorkflowDeliveryOperations
 from src.core.proposals.service_narrative_operations import (
     ProposalWorkflowNarrativeOperations,
 )
 from src.core.proposals.service_read_operations import ProposalWorkflowReadOperations
-from src.core.proposals.version_command import create_proposal_version
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 
 __all__ = [
@@ -89,6 +84,16 @@ class ProposalWorkflowService:
         self._allow_portfolio_id_change_on_new_version = allow_portfolio_id_change_on_new_version
         self._require_proposal_simulation_flag = require_proposal_simulation_flag
         self._async_create_submission_stats = AsyncCreateSubmissionStatsTracker()
+        self._command_operations = ProposalWorkflowCommandOperations(
+            repository=self._repository,
+            store_evidence_bundle=self._store_evidence_bundle,
+            require_expected_state=self._require_expected_state,
+            allow_portfolio_id_change_on_new_version=(
+                self._allow_portfolio_id_change_on_new_version
+            ),
+            require_proposal_simulation_flag=self._require_proposal_simulation_flag,
+            utc_now=_utc_now,
+        )
         self._async_operations = ProposalWorkflowAsyncOperations(
             repository=self._repository,
             create_submission_stats=self._async_create_submission_stats,
@@ -118,8 +123,7 @@ class ProposalWorkflowService:
         replay_lineage: Optional[dict[str, Any]] = None,
         context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
-        return create_proposal_command(
-            repository=self._repository,
+        return self._command_operations.create_proposal(
             payload=payload,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
@@ -127,9 +131,6 @@ class ProposalWorkflowService:
             source_workspace_id=source_workspace_id,
             replay_lineage=replay_lineage,
             context_resolution_override=context_resolution_override,
-            store_evidence_bundle=self._store_evidence_bundle,
-            require_proposal_simulation_flag=self._require_proposal_simulation_flag,
-            utc_now=_utc_now,
         )
 
     def accept_create_proposal_async_submission(
@@ -284,19 +285,12 @@ class ProposalWorkflowService:
         replay_lineage: Optional[dict[str, Any]] = None,
         context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
-        return create_proposal_version(
-            repository=self._repository,
+        return self._command_operations.create_version(
             proposal_id=proposal_id,
             payload=payload,
             correlation_id=correlation_id,
             replay_lineage=replay_lineage,
             context_resolution_override=context_resolution_override,
-            store_evidence_bundle=self._store_evidence_bundle,
-            require_proposal_simulation_flag=self._require_proposal_simulation_flag,
-            allow_portfolio_id_change_on_new_version=(
-                self._allow_portfolio_id_change_on_new_version
-            ),
-            utc_now=_utc_now,
         )
 
     def submit_create_version_async(
@@ -354,13 +348,10 @@ class ProposalWorkflowService:
         payload: ProposalStateTransitionRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
-        return transition_proposal_state(
-            repository=self._repository,
+        return self._command_operations.transition_state(
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
-            require_expected_state=self._require_expected_state,
-            occurred_at=_utc_now(),
         )
 
     def record_approval(
@@ -370,13 +361,10 @@ class ProposalWorkflowService:
         payload: ProposalApprovalRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
-        return record_proposal_approval(
-            repository=self._repository,
+        return self._command_operations.record_approval(
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
-            require_expected_state=self._require_expected_state,
-            occurred_at=_utc_now(),
         )
 
     def get_version_replay(
