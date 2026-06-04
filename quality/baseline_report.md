@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T16:07:18.917592+00:00`
+- Generated At: `2026-06-04T16:10:42.625023+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `b78572c0f4ffcfe428225552dbf97e80dedf31f8`
-- Branch Commits Over Main: `6`
+- Head: `357de2e2e9cbebdb4ce944c292a80e5b667e5904`
+- Branch Commits Over Main: `7`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `911`
+- Python files: `912`
 - Packages: `38`
-- Modules: `873`
-- Total Python lines: `137152`
+- Modules: `874`
+- Total Python lines: `137262`
 
 ## Largest Files
 
@@ -41,7 +41,7 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 620 | 200 |
+| 10 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 623 | 200 |
 
 ## Complexity
 
@@ -116,5 +116,8 @@
 
 ## Observability Gaps
 
-- Observability documentation and service-level diagnostics are tracked as baseline
-  gaps until `docs/observability.md` and operational diagnostics gates are added.
+- Observability documentation is present.
+- Observability diagnostics target: `make observability-diagnostics`
+- Focused diagnostics currently verify correlation, request, trace,
+  and structured-log propagation.
+- Dashboard, alert, SLO, and distributed-tracing evidence remain tracked gaps.

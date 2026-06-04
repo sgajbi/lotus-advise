@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-684
+
+- Scope: Observability diagnostics contract
+- Pattern: Observability posture should be backed by executable diagnostics for request identity,
+  trace propagation, and structured logging before broader SLO/dashboard claims are made.
+- Status: Hardened
+- Finding Class: Observability diagnostics and quality-gate readiness
+- Summary: Observability was documented as a gap even though middleware already propagated
+  correlation, request, and trace identifiers and emitted structured logs. The repository lacked a
+  focused diagnostics test target proving that contract.
+- Evidence:
+  - Added focused observability API tests for correlation ID, request ID, traceparent/trace ID, and
+    structured JSON log context.
+  - Added `make observability-diagnostics` as the repo-native diagnostics target.
+  - Updated quality reports to record the diagnostics target while preserving remaining
+    SLO/dashboard/distributed-tracing gaps.
+  - Updated `docs/observability.md` to reflect implemented middleware, Prometheus instrumentation,
+    and current diagnostics coverage.
+- Consequence:
+  - Observability posture now has executable request/trace/log propagation evidence instead of only
+    gap text.
+- Documentation:
+  - Review ledger, observability doc, and generated quality reports updated. No wiki source change
+    is required because this is repo-local quality and operations posture evidence.
+- Follow-Up:
+  - Extend diagnostics into background workflows, downstream integration calls, dashboard evidence,
+    alert evidence, and SLO threshold definitions before claiming production observability
+    completeness.
+
 ## LA-REV-683
 
 - Scope: Documentation-quality inventory calibration

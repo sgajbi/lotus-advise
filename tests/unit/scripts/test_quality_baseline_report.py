@@ -73,6 +73,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Interrogate config executable" in baseline
     assert "Interrogate docstring inventory" in baseline
     assert "Observability Gaps" in baseline
+    assert "make observability-diagnostics" in baseline
     assert "Progressive Gate Phase" in scorecard
     assert "Executable Radon inventory" in scorecard
     assert "Executable Vulture inventory" in scorecard
@@ -80,6 +81,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Partially enforced plus Bandit inventory" in scorecard
     assert "make lint runs import-linter architecture contracts" in scorecard
     assert "Gap tracked plus Interrogate inventory" in scorecard
+    assert "Diagnostics target added" in scorecard
     assert "Proposal input models are split" in refactor_health
     assert "Advisory simulation orchestration is split" in refactor_health
     assert "Feature capability catalog assembly is split" in refactor_health

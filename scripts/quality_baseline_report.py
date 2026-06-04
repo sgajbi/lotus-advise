@@ -609,8 +609,11 @@ def render_baseline_report(context: QualityContext) -> str:
             "",
             "## Observability Gaps",
             "",
-            "- Observability documentation and service-level diagnostics are tracked as baseline",
-            "  gaps until `docs/observability.md` and operational diagnostics gates are added.",
+            "- Observability documentation is present.",
+            "- Observability diagnostics target: `make observability-diagnostics`",
+            "- Focused diagnostics currently verify correlation, request, trace,",
+            "  and structured-log propagation.",
+            "- Dashboard, alert, SLO, and distributed-tracing evidence remain tracked gaps.",
             "",
         ]
     )
@@ -857,7 +860,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Gap tracked plus Interrogate inventory",
             "requested docs + docstring coverage inventory",
         ),
-        ("Observability", "Gap tracked", "observability doc and diagnostics gates pending"),
+        (
+            "Observability",
+            "Diagnostics target added",
+            "make observability-diagnostics",
+        ),
     ]
     lines = [
         "# Lotus Advise Quality Scorecard",

@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `b78572c0f4ffcfe428225552dbf97e80dedf31f8`
+- Head: `357de2e2e9cbebdb4ce944c292a80e5b667e5904`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |
@@ -18,4 +18,4 @@
 | OpenAPI | Enforced plus report-only | openapi-gate + Spectral config |
 | Architecture boundaries | Enforced | make lint runs import-linter architecture contracts |
 | Docs | Gap tracked plus Interrogate inventory | requested docs + docstring coverage inventory |
-| Observability | Gap tracked | observability doc and diagnostics gates pending |
+| Observability | Diagnostics target added | make observability-diagnostics |
