@@ -336,6 +336,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  instead of routing DTOs through the narrative model facade.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
+        "- Advisor cockpit source projection delegates policy-review and memo package blockage",
+        "  source rules to a focused policy/memo projection module.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",
         "  house-view source mapping to a focused source-loader module.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",

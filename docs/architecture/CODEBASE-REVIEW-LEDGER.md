@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-660
+
+- Scope: Advisor cockpit policy and memo source projection ownership
+- Pattern: Source-read-model projection rules should be grouped by action-source family instead of
+  concentrating policy review, memo package, proposal, approval, report, and execution rules in one
+  projection module.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and reviewability
+- Summary: `src/core/advisor_cockpit/source_projection.py` owned indexing helpers and every
+  action-source projection family, including policy-review source projection and memo package
+  blockage projection. That made cockpit source aggregation harder to review by source family and
+  left memo/policy lineage behavior coupled to unrelated approval, report, and execution rules.
+- Evidence:
+  - Added `src/core/advisor_cockpit/source_projection_policy_memo.py` for policy-review source
+    projection, memo package blockage projection, cockpit policy review status vocabulary, and memo
+    blockage-code derivation.
+  - Kept `src/core/advisor_cockpit/source_projection.py` as the existing import facade for
+    `source_read_model.py` while delegating policy/memo implementation to the focused module.
+  - Updated source-read-model boundary tests to require policy/memo helpers in the focused owner
+    module and keep the read model free of source-family helper implementations.
+  - Updated RFC-0026 slice 5 source-read-model contract coverage so durable source evidence
+    includes the focused policy/memo projection module.
+  - Focused ruff, ruff format check, and mypy passed for touched files; advisor cockpit source
+    read-model, RFC-0026 slice 5, and RFC-0025 slice 15 contract tests passed with 14 tests.
+- Consequence:
+  - Advisor cockpit source aggregation behavior remains stable while policy-review and memo-package
+    action-source rules can be reviewed independently from proposal, approval, report, and execution
+    source projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor-cockpit source projection modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting `source_projection.py` by source family when touching proposal, approval,
+    report/archive, or execution projection behavior.
+
 ## LA-REV-659
 
 - Scope: Policy evaluation persistence store ownership
