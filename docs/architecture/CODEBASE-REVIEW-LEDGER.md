@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-659
+
+- Scope: Policy evaluation persistence store ownership
+- Pattern: Public policy evaluation persistence functions should be a facade over a focused record
+  store rather than sharing one module with in-memory storage, idempotency, and event mechanics.
+- Status: Hardened
+- Finding Class: Policy evaluation persistence modularity and auditability
+- Summary: `src/core/policy_packs/persistence.py` exposed public RFC-0025 persistence functions and
+  also owned record storage dictionaries, identity indexes, idempotency replay lookup, event
+  construction, projection assembly, and replay response delegation. This coupled public API
+  normalization to mutable store internals and made persistence behavior harder to review as a
+  reusable boundary.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_store.py` as the focused owner for
+    `PolicyEvaluationRecordStore`, record/event dictionaries, identity indexing, idempotency replay,
+    audit-event construction, lineage/sign-off package projection, and replay delegation.
+  - Reduced `src/core/policy_packs/persistence.py` to public persistence functions, idempotency-key
+    normalization, and the store instance facade.
+  - Updated policy persistence boundary tests to require storage/idempotency mechanics in the store
+    owner and to keep the public facade free of projection, record-builder, replay, and store
+    helper implementations.
+  - Updated RFC-0025 slice 7 contract coverage so durable evidence points to the store module for
+    idempotency-conflict behavior while preserving the public facade import path.
+  - Focused ruff, ruff format check, and mypy passed for touched files; policy persistence,
+    RFC-0025 slice 7, policy evaluation engine, policy evaluation API, and internal route guard
+    tests passed with 92 tests.
+- Consequence:
+  - Public policy evaluation persistence imports and behavior remain stable while mutable in-memory
+    store mechanics can be reviewed and replaced independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal persistence modularity for existing policy evaluation behavior.
+- Follow-Up:
+  - Keep public normalization and facade functions in `persistence.py`; keep record/event storage
+    mechanics and idempotency replay lookup in `persistence_store.py`.
+
 ## LA-REV-658
 
 - Scope: Policy evaluation API route ownership

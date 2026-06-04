@@ -350,6 +350,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  attachment mapping to a focused projection module.",
         "- Policy evaluation persistence delegates replay hash comparison and replay response",
         "  assembly to a focused replay module.",
+        "- Policy evaluation persistence delegates mutable record storage, idempotency replay,",
+        "  event construction, and store-backed projections to a focused record-store module.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
