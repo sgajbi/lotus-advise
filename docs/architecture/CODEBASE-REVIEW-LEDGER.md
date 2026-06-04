@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-645
+
+- Scope: Proposal narrative grounding DTO ownership
+- Pattern: Narrative source references, missing evidence, and grounding packets should live in a
+  focused model module aligned with narrative grounding assembly.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and grounding evidence maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned grounding source references,
+  missing-evidence records, and grounding packet DTOs directly. These DTOs are built by
+  `src/core/advisory/narrative_grounding.py` and carry source/evidence lineage rather than
+  narrative envelope or policy semantics.
+- Evidence:
+  - Extracted `ProposalNarrativeSourceRef`, `ProposalNarrativeMissingEvidence`, and
+    `ProposalNarrativeGroundingPacket` to
+    `src/core/advisory/narrative_grounding_models.py`.
+  - Removed generic grounding payload typing from the narrative model facade.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving grounding DTO facade imports resolve to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 30 tests.
+- Consequence:
+  - Narrative grounding evidence contracts now have a narrow owner module aligned with the
+    grounding builder, reducing coupling in the narrative DTO facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting policy/guardrail, AI-lineage, envelope, and review DTO groups out of the
+    narrative model facade.
+
 ## LA-REV-644
 
 - Scope: Proposal narrative request DTO ownership

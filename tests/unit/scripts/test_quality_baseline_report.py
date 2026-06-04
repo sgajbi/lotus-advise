@@ -98,6 +98,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal artifact builders import focused DTO owner modules directly" in refactor_health
     assert "Proposal narrative vocabulary Literal aliases are split" in refactor_health
     assert "Proposal narrative request DTOs are split" in refactor_health
+    assert "Proposal narrative grounding DTOs are split" in refactor_health
     assert (
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )

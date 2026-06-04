@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `advise-enterprise-hardening-slice-17`
-- Head: `3dbe2bf46a924a15d4d5a60072987648618d9bee`
+- Head: `f815d84046642e529c3bcaf71e80aaa6fb42d491`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |
