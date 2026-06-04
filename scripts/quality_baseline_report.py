@@ -69,6 +69,9 @@ class QualityContext:
     radon_rank_counts: dict[str, int]
     radon_worst_rank: str | None
     radon_worst_complexity: int | None
+    vulture_config_valid: bool
+    vulture_issue_count: int | None
+    vulture_confidence_counts: dict[str, int]
 
 
 def _run_git(repo_root: Path, args: list[str]) -> str:
@@ -267,6 +270,27 @@ def _radon_complexity_inventory(
     )
 
 
+def _vulture_issue_inventory(repo_root: Path) -> tuple[bool, int | None, dict[str, int]]:
+    if not _tool_available("vulture"):
+        return False, None, {}
+    completed = subprocess.run(
+        [sys.executable, "-m", "vulture", "src", "scripts", "--min-confidence", "80"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode not in {0, 1, 3}:
+        return False, None, {}
+    findings = [line for line in completed.stdout.splitlines() if line.strip()]
+    confidence_counts: Counter[str] = Counter()
+    for finding in findings:
+        confidence_match = re.search(r"\((?P<confidence>\d+)% confidence\)", finding)
+        if confidence_match is not None:
+            confidence_counts[confidence_match.group("confidence")] += 1
+    return True, len(findings), dict(sorted(confidence_counts.items()))
+
+
 def build_quality_context(repo_root: Path) -> QualityContext:
     available_tools = tuple(name for name, module in QUALITY_TOOLS if _tool_available(module))
     unavailable_tools = tuple(name for name, module in QUALITY_TOOLS if not _tool_available(module))
@@ -295,6 +319,9 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         radon_worst_rank,
         radon_worst_complexity,
     ) = _radon_complexity_inventory(repo_root)
+    vulture_config_valid, vulture_issue_count, vulture_confidence_counts = _vulture_issue_inventory(
+        repo_root
+    )
     return QualityContext(
         report=build_report(repo_root),
         branch_commit_count=_branch_commit_count(repo_root),
@@ -324,6 +351,9 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         radon_rank_counts=radon_rank_counts,
         radon_worst_rank=radon_worst_rank,
         radon_worst_complexity=radon_worst_complexity,
+        vulture_config_valid=vulture_config_valid,
+        vulture_issue_count=vulture_issue_count,
+        vulture_confidence_counts=vulture_confidence_counts,
     )
 
 
@@ -382,6 +412,14 @@ def render_baseline_report(context: QualityContext) -> str:
         if context.radon_worst_rank is not None and context.radon_worst_complexity is not None
         else "not run"
     )
+    vulture_issue_count = (
+        str(context.vulture_issue_count) if context.vulture_issue_count is not None else "not run"
+    )
+    vulture_confidence_inventory = ", ".join(
+        f"{confidence}%={count}" for confidence, count in context.vulture_confidence_counts.items()
+    )
+    if not vulture_confidence_inventory:
+        vulture_confidence_inventory = "not run"
     lines = [
         "# Lotus Advise Quality Baseline Report",
         "",
@@ -445,7 +483,11 @@ def render_baseline_report(context: QualityContext) -> str:
             "",
             "## Dead Code",
             "",
-            "- `vulture` is tracked as report-only pending installation and allowlist calibration.",
+            f"- Vulture config executable: `{context.vulture_config_valid}`",
+            f"- Vulture current issue inventory: `{vulture_issue_count}`",
+            f"- Vulture confidence inventory: `{vulture_confidence_inventory}`",
+            "- Vulture remains report-only until validator false positives and compatibility",
+            "  facade imports are classified.",
             "- Current dead-code cleanup remains code-led through review-ledger slices.",
             "",
             "## Dependencies",
@@ -678,8 +720,10 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
-        "- Calibrate report-only tools: xenon, vulture,",
+        "- Calibrate report-only tools: xenon,",
         "  Spectral, interrogate, and optional schemathesis/load testing.",
+        "- Convert the Vulture dead-code inventory into a fail-on-new-regression gate after",
+        "  classifying validator and compatibility-facade findings.",
         "- Convert the Radon complexity inventory into a fail-on-new-regression gate after",
         "  classifying current high-complexity blocks.",
         "- Convert the kept import-linter architecture contracts into a blocking CI gate.",
@@ -709,7 +753,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
         ("Lint", "Enforced", "make lint"),
         ("Type safety", "Enforced", "make typecheck"),
         ("Coverage", "Enforced", "make coverage-combined fail-under 97"),
-        ("Dead code", "Report-only gap", "vulture pending calibration"),
+        (
+            "Dead code",
+            "Executable Vulture inventory",
+            "vulture issue and confidence counts",
+        ),
         (
             "Dependencies",
             "Enforced plus deptry inventory",

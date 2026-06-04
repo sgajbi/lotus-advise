@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `d55355f6e941a224ae033d16660aee26f5967565`
-- Branch Commits Over Main: `3`
+- Head: `aa87bf51e0b5a4223607fbbb1b4a0a2213b4d618`
+- Branch Commits Over Main: `4`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -176,8 +176,10 @@
 
 ## Remaining Enterprise-Readiness Work
 
-- Calibrate report-only tools: xenon, vulture,
+- Calibrate report-only tools: xenon,
   Spectral, interrogate, and optional schemathesis/load testing.
+- Convert the Vulture dead-code inventory into a fail-on-new-regression gate after
+  classifying validator and compatibility-facade findings.
 - Convert the Radon complexity inventory into a fail-on-new-regression gate after
   classifying current high-complexity blocks.
 - Convert the kept import-linter architecture contracts into a blocking CI gate.

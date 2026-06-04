@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T15:54:24.782040+00:00`
+- Generated At: `2026-06-04T15:58:26.485744+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `d55355f6e941a224ae033d16660aee26f5967565`
-- Branch Commits Over Main: `3`
+- Head: `aa87bf51e0b5a4223607fbbb1b4a0a2213b4d618`
+- Branch Commits Over Main: `4`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `911`
 - Packages: `38`
 - Modules: `873`
-- Total Python lines: `137014`
+- Total Python lines: `137067`
 
 ## Largest Files
 
@@ -41,7 +41,7 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 370 | 200 |
+| 10 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 542 | 200 |
 
 ## Complexity
 
@@ -66,7 +66,11 @@
 
 ## Dead Code
 
-- `vulture` is tracked as report-only pending installation and allowlist calibration.
+- Vulture config executable: `True`
+- Vulture current issue inventory: `142`
+- Vulture confidence inventory: `100%=135, 90%=7`
+- Vulture remains report-only until validator false positives and compatibility
+  facade imports are classified.
 - Current dead-code cleanup remains code-led through review-ledger slices.
 
 ## Dependencies

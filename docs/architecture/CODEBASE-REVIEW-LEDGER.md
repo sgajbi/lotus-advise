@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-681
+
+- Scope: Dead-code inventory calibration
+- Pattern: Dead-code scanners need an explicit current inventory and false-positive classification
+  before becoming blocking gates in Pydantic-heavy compatibility-facade codebases.
+- Status: Hardened
+- Finding Class: Dead-code measurement and CI readiness
+- Summary: Vulture was available but the quality scorecard still described dead-code posture as a
+  pending calibration gap. Current Vulture output includes many Pydantic validator `cls` false
+  positives and compatibility-facade imports, so immediate enforcement would be noisy without a
+  classified baseline.
+- Evidence:
+  - Updated `scripts/quality_baseline_report.py` to execute Vulture in report-only mode and record
+    total issue count plus confidence distribution.
+  - Updated report tests to pin Vulture inventory fields and scorecard wording.
+  - Regenerated quality reports so dead-code posture now records executable Vulture evidence.
+- Consequence:
+  - Dead-code posture moved from generic pending-tool text to measurable Vulture inventory evidence
+    while preserving report-only behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local quality measurement posture, not new operator-facing wiki truth.
+- Follow-Up:
+  - Classify validator false positives, compatibility-facade imports, and true unused code before
+    adding fail-on-regression enforcement.
+
 ## LA-REV-680
 
 - Scope: Complexity inventory calibration

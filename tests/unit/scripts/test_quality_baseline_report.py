@@ -57,6 +57,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Radon complexity rank inventory" in baseline
     assert "Radon worst complexity" in baseline
     assert "Dead Code" in baseline
+    assert "Vulture config executable" in baseline
+    assert "Vulture current issue inventory" in baseline
+    assert "Vulture confidence inventory" in baseline
     assert "Deptry config executable" in baseline
     assert "Deptry current issue inventory" in baseline
     assert "Bandit config executable" in baseline
@@ -70,6 +73,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Observability Gaps" in baseline
     assert "Progressive Gate Phase" in scorecard
     assert "Executable Radon inventory" in scorecard
+    assert "Executable Vulture inventory" in scorecard
     assert "Enforced plus deptry inventory" in scorecard
     assert "Partially enforced plus Bandit inventory" in scorecard
     assert "Executable report-only contracts" in scorecard
@@ -132,6 +136,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Policy evaluation persistence delegates replay hash comparison" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Radon complexity inventory" in refactor_health
+    assert "Vulture dead-code inventory" in refactor_health
     assert "Bandit security inventory" in refactor_health
     assert "deptry dependency inventory" in refactor_health
     assert "import-linter architecture contracts" in refactor_health
