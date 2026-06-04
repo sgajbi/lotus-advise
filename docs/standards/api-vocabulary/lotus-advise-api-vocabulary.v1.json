@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-06-04T12:51:46.080338+00:00",
+  "generatedAt": "2026-06-04T23:17:08.768137+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -43,7 +43,7 @@
       "canonicalTerm": "acknowledged_at",
       "preferredName": "acknowledged_at",
       "description": "UTC ISO8601 acknowledgement timestamp.",
-      "example": "acknowledged_at_example",
+      "example": "example_acknowledged_at",
       "type": "object",
       "locations": [
         "body"
@@ -57,7 +57,7 @@
       "canonicalTerm": "acknowledged_by",
       "preferredName": "acknowledged_by",
       "description": "Actor that acknowledged the action item.",
-      "example": "acknowledged_by_example",
+      "example": "example_acknowledged_by",
       "type": "object",
       "locations": [
         "body"
@@ -116,7 +116,7 @@
       "canonicalTerm": "acknowledgement_note",
       "preferredName": "acknowledgement_note",
       "description": "Support-safe acknowledgement note.",
-      "example": "acknowledgement_note_example",
+      "example": "example_acknowledgement_note",
       "type": "object",
       "locations": [
         "body"
@@ -161,7 +161,7 @@
       "preferredName": "action_counts",
       "description": "Action counts by family, status, priority, owner role, or SLA band.",
       "example": {
-        "key": "sample_text"
+        "sample_key": 10
       },
       "type": "object",
       "locations": [
@@ -336,7 +336,7 @@
       "canonicalTerm": "advisor_notes",
       "preferredName": "advisor_notes",
       "description": "Optional free-text advisor notes captured at proposal creation.",
-      "example": "advisor_notes_example",
+      "example": "example_advisor_notes",
       "type": "object",
       "locations": [
         "body"
@@ -366,7 +366,19 @@
       "preferredName": "affected_portfolios",
       "description": "Source-backed portfolios affected by the tactical house view.",
       "example": [
-        "affected_portfolios_item_example"
+        {
+          "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+          "inclusion_reason_codes": [
+            "example_inclusion_reason_codes_item"
+          ],
+          "source_refs": [
+            {
+              "source_system": "example_source_system",
+              "source_type": "example_source_type",
+              "source_id": "SOURCE_001"
+            }
+          ]
+        }
       ],
       "type": "array",
       "locations": [
@@ -446,7 +458,13 @@
       "canonicalTerm": "ai_lineage",
       "preferredName": "ai_lineage",
       "description": "AI adapter lineage or deterministic fallback evidence for AI-assisted requests.",
-      "example": "ai_lineage_example",
+      "example": {
+        "requested_generation_mode": "DETERMINISTIC_TEMPLATE",
+        "adapter_version": "example_adapter_version",
+        "workflow_pack_id": "WORKFLOW_PACK_001",
+        "workflow_pack_version": "example_workflow_pack_version",
+        "prompt_template_version": "example_prompt_template_version"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -461,7 +479,16 @@
       "preferredName": "ai_model_risk_controls",
       "description": "AI and model-risk control proof rows for the shown advisory evidence.",
       "example": [
-        "ai_model_risk_controls_item_example"
+        {
+          "evidence_family": "PROPOSAL_NARRATIVE",
+          "proof_posture": "IMPLEMENTATION_BACKED",
+          "ai_status": "ACTIVE",
+          "authoritative_for_advice": true,
+          "human_review_required": true,
+          "raw_prompt_retained": true,
+          "raw_source_evidence_included": true,
+          "guardrail_status": "ACTIVE"
+        }
       ],
       "type": "array",
       "locations": [
@@ -505,7 +532,14 @@
       "preferredName": "allocation",
       "description": "Legacy allocation view, aligned to allocation_by_instrument.",
       "example": [
-        "allocation_item_example"
+        {
+          "key": "example_key",
+          "weight": "0.125",
+          "value": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -521,7 +555,14 @@
       "preferredName": "allocation_by_asset_class",
       "description": "Allocation grouped by asset class plus CASH bucket.",
       "example": [
-        "allocation_by_asset_class_item_example"
+        {
+          "key": "example_key",
+          "weight": "0.125",
+          "value": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -537,7 +578,16 @@
       "preferredName": "allocation_by_attribute",
       "description": "Allocation grouped by configured shelf attributes.",
       "example": {
-        "key": "sample_text"
+        "sample_key": [
+          {
+            "key": "example_key",
+            "weight": "0.125",
+            "value": {
+              "amount": "0.125",
+              "currency": "USD"
+            }
+          }
+        ]
       },
       "type": "object",
       "locations": [
@@ -553,7 +603,14 @@
       "preferredName": "allocation_by_instrument",
       "description": "Allocation grouped by instrument id.",
       "example": [
-        "allocation_by_instrument_item_example"
+        {
+          "key": "example_key",
+          "weight": "0.125",
+          "value": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -585,7 +642,13 @@
       "preferredName": "allocation_views",
       "description": "Canonical proposal allocation views computed by the lotus-core allocation calculator for curated front-office dimensions.",
       "example": [
-        "allocation_views_item_example"
+        {
+          "dimension": "asset_class",
+          "total_value": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -630,7 +693,7 @@
       "canonicalTerm": "allowed_floor",
       "preferredName": "allowed_floor",
       "description": "Configured allowed floor for that currency/day.",
-      "example": "example_allowed_floor",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -660,7 +723,7 @@
       "canonicalTerm": "allowed_quantity",
       "preferredName": "allowed_quantity",
       "description": "Allowed sell quantity after budget constraint.",
-      "example": "example_allowed_quantity",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -690,7 +753,20 @@
       "canonicalTerm": "alternatives_request",
       "preferredName": "alternatives_request",
       "description": "Optional backend-owned alternatives request. On stateful simulation requests this is merged onto the authoritative resolved simulation payload before evaluation.",
-      "example": "alternatives_request_example",
+      "example": {
+        "enabled": true,
+        "objectives": [
+          "REDUCE_CONCENTRATION"
+        ],
+        "constraints": {
+          "cash_floor": {
+            "amount": 125000.5,
+            "currency": "USD"
+          },
+          "max_turnover_pct": 10.5,
+          "max_trade_count": 10
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -704,7 +780,7 @@
       "canonicalTerm": "amount",
       "preferredName": "amount",
       "description": "Monetary amount as decimal string/number.",
-      "example": 125000.5,
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -734,7 +810,14 @@
       "canonicalTerm": "approval",
       "preferredName": "approval",
       "description": "Approval record created by this operation when applicable.",
-      "example": "approval_example",
+      "example": {
+        "approval_id": "APPROVAL_001",
+        "proposal_id": "pp_001",
+        "approval_type": "RISK",
+        "approved": true,
+        "actor_id": "ACTOR_001",
+        "occurred_at": "example_occurred_at"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -792,7 +875,7 @@
       "canonicalTerm": "approval_implication",
       "preferredName": "approval_implication",
       "description": "Approval or review implication triggered by this issue.",
-      "example": "approval_implication_example",
+      "example": "example_approval_implication",
       "type": "object",
       "locations": [
         "body"
@@ -839,7 +922,14 @@
       "preferredName": "approvals",
       "description": "Structured approval/consent records ordered by occurrence.",
       "example": [
-        "approvals_item_example"
+        {
+          "approval_id": "APPROVAL_001",
+          "proposal_id": "pp_001",
+          "approval_type": "RISK",
+          "approved": true,
+          "actor_id": "ACTOR_001",
+          "occurred_at": "example_occurred_at"
+        }
       ],
       "type": "array",
       "locations": [
@@ -1004,7 +1094,7 @@
       "canonicalTerm": "artifact_url",
       "preferredName": "artifact_url",
       "description": "Optional lotus-report artifact URL when available.",
-      "example": "artifact_url_example",
+      "example": "example_artifact_url",
       "type": "object",
       "locations": [
         "body"
@@ -1089,7 +1179,15 @@
       "preferredName": "assets",
       "description": "Proof asset index.",
       "example": [
-        "assets_item_example"
+        {
+          "asset_id": "ASSET_001",
+          "asset_type": "API_RESPONSE_SUMMARY",
+          "source_repository": "example_source_repository",
+          "uri": "example_uri",
+          "access_class": "COMMIT_SAFE_SUMMARY",
+          "retention_class": "COMMIT_SOURCE",
+          "commit_allowed": true
+        }
       ],
       "type": "array",
       "locations": [
@@ -1148,7 +1246,7 @@
       "canonicalTerm": "async_operation_type",
       "preferredName": "async_operation_type",
       "description": "Async operation type linked to the replay evidence when applicable.",
-      "example": "async_operation_type_example",
+      "example": "example_async_operation_type",
       "type": "object",
       "locations": [
         "body"
@@ -1176,7 +1274,7 @@
       "canonicalTerm": "audience",
       "preferredName": "audience",
       "description": "Narrative audience.",
-      "example": "example_audience",
+      "example": "ADVISOR_REVIEW",
       "type": "string",
       "locations": [
         "body",
@@ -1224,7 +1322,16 @@
       "canonicalTerm": "audit_event",
       "preferredName": "audit_event",
       "description": "Audit event created or replayed for this persistence command.",
-      "example": "audit_event_example",
+      "example": {
+        "event_id": "EVENT_001",
+        "evaluation_id": "EVALUATION_001",
+        "proposal_id": "pp_001",
+        "proposal_version_id": "PROPOSAL_VERSION_001",
+        "event_type": "POLICY_EVALUATION_FINALIZED",
+        "actor_id": "ACTOR_001",
+        "occurred_at": "example_occurred_at",
+        "content_hash": "example_content_hash"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -1239,7 +1346,12 @@
       "preferredName": "audit_events",
       "description": "Append-only memo audit events ordered by occurrence.",
       "example": [
-        "audit_events_item_example"
+        {
+          "event_id": "EVENT_001",
+          "event_type": "example_event_type",
+          "actor_id": "ACTOR_001",
+          "occurred_at": "example_occurred_at"
+        }
       ],
       "type": "array",
       "locations": [
@@ -1282,7 +1394,7 @@
       "canonicalTerm": "available_before_fx",
       "preferredName": "available_before_fx",
       "description": "Available amount in target currency before generated FX.",
-      "example": "example_available_before_fx",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -1429,7 +1541,7 @@
       "canonicalTerm": "booking_center_code",
       "preferredName": "booking_center_code",
       "description": "Booking center or market context for cohort review.",
-      "example": "booking_center_code_example",
+      "example": "example_booking_center_code",
       "type": "object",
       "locations": [
         "body"
@@ -1473,7 +1585,7 @@
       "canonicalTerm": "bucket_type",
       "preferredName": "bucket_type",
       "description": "Bucket type used for weight-change entries.",
-      "example": "example_bucket_type",
+      "example": "INSTRUMENT",
       "type": "string",
       "locations": [
         "body"
@@ -1488,7 +1600,15 @@
       "preferredName": "buckets",
       "description": "Sorted allocation buckets for this dimension.",
       "example": [
-        "buckets_item_example"
+        {
+          "key": "example_key",
+          "weight": "0.125",
+          "value": {
+            "amount": "0.125",
+            "currency": "USD"
+          },
+          "position_count": 10
+        }
       ],
       "type": "array",
       "locations": [
@@ -1562,7 +1682,18 @@
       "preferredName": "candidate_portfolios",
       "description": "Caller-supplied source-backed candidate portfolios. This product does not discover the global portfolio universe.",
       "example": [
-        "2026-03-02"
+        {
+          "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+          "portfolio_type": "example_portfolio_type",
+          "discretionary_mandate": true,
+          "source_refs": [
+            {
+              "source_system": "example_source_system",
+              "source_type": "example_source_type",
+              "source_id": "SOURCE_001"
+            }
+          ]
+        }
       ],
       "type": "array",
       "locations": [
@@ -1592,7 +1723,10 @@
       "preferredName": "cash_balances",
       "description": "Cash balances by currency.",
       "example": [
-        "cash_balances_item_example"
+        {
+          "currency": "USD",
+          "amount": "0.125"
+        }
       ],
       "type": "array",
       "locations": [
@@ -1607,7 +1741,7 @@
       "canonicalTerm": "cash_band_max_weight",
       "preferredName": "cash_band_max_weight",
       "description": "Upper soft bound for cash weight.",
-      "example": "example_cash_band_max_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -1621,7 +1755,7 @@
       "canonicalTerm": "cash_band_min_weight",
       "preferredName": "cash_band_min_weight",
       "description": "Lower soft bound for cash weight.",
-      "example": "example_cash_band_min_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -1681,7 +1815,13 @@
       "preferredName": "cash_flow_drafts",
       "description": "Current ordered cash-flow draft items in the workspace.",
       "example": [
-        "cash_flow_drafts_item_example"
+        {
+          "workspace_cash_flow_id": "WORKSPACE_CASH_FLOW_001",
+          "cash_flow": {
+            "currency": "USD",
+            "amount": "0.125"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -1697,7 +1837,11 @@
       "preferredName": "cash_ladder",
       "description": "Settlement-aware projected cash ladder points.",
       "example": [
-        "cash_ladder_item_example"
+        {
+          "date_offset": 10,
+          "currency": "USD",
+          "projected_balance": "0.125"
+        }
       ],
       "type": "array",
       "locations": [
@@ -1713,7 +1857,13 @@
       "preferredName": "cash_ladder_breaches",
       "description": "Settlement ladder breaches that trigger blocks.",
       "example": [
-        "cash_ladder_breaches_item_example"
+        {
+          "date_offset": 10,
+          "currency": "USD",
+          "projected_balance": "0.125",
+          "allowed_floor": "0.125",
+          "reason_code": "example_reason_code"
+        }
       ],
       "type": "array",
       "locations": [
@@ -1803,7 +1953,15 @@
       "preferredName": "claims",
       "description": "Governed claim inventory.",
       "example": [
-        "claims_item_example"
+        {
+          "claim_id": "CLAIM_001",
+          "title": "example_title",
+          "classification": "IMPLEMENTATION_BACKED",
+          "audiences": [
+            "DEVELOPER"
+          ],
+          "claim_text": "example_claim_text"
+        }
       ],
       "type": "array",
       "locations": [
@@ -1960,7 +2118,7 @@
       "canonicalTerm": "client_ref",
       "preferredName": "client_ref",
       "description": "Source-backed client reference.",
-      "example": "client_ref_example",
+      "example": "example_client_ref",
       "type": "object",
       "locations": [
         "body"
@@ -2094,7 +2252,7 @@
       "canonicalTerm": "compare_target_methods_tolerance",
       "preferredName": "compare_target_methods_tolerance",
       "description": "Tolerance used when comparing method outputs.",
-      "example": "example_compare_target_methods_tolerance",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -2138,7 +2296,7 @@
       "canonicalTerm": "conflict_review_outcome",
       "preferredName": "conflict_review_outcome",
       "description": "Conflict review outcome where conflict evidence was required.",
-      "example": "conflict_review_outcome_example",
+      "example": "example_conflict_review_outcome",
       "type": "object",
       "locations": [
         "body"
@@ -2291,7 +2449,7 @@
       "canonicalTerm": "contract_name",
       "preferredName": "contract_name",
       "description": "advisory demo scenario contract field: contract name.",
-      "example": "example_contract_name",
+      "example": "AdvisoryDemoScenarioContract",
       "type": "string",
       "locations": [
         "body"
@@ -2451,7 +2609,14 @@
       "canonicalTerm": "current_evaluation_summary",
       "preferredName": "current_evaluation_summary",
       "description": "Current evaluation summary for the active workspace draft.",
-      "example": "current_evaluation_summary_example",
+      "example": {
+        "status": "READY",
+        "impact_summary": {
+          "portfolio_value_delta_base_ccy": "example_portfolio_value_delta_base_ccy",
+          "trade_count": 10,
+          "cash_flow_count": 10
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -2465,7 +2630,7 @@
       "canonicalTerm": "current_exposure_weight",
       "preferredName": "current_exposure_weight",
       "description": "Optional source-owned exposure weight to the tactical theme.",
-      "example": "current_exposure_weight_example",
+      "example": 0.125,
       "type": "object",
       "locations": [
         "body"
@@ -2493,7 +2658,11 @@
       "canonicalTerm": "current_replay_evidence",
       "preferredName": "current_replay_evidence",
       "description": "Current replay evidence for the active workspace draft.",
-      "example": "current_replay_evidence_example",
+      "example": {
+        "input_mode": "stateless",
+        "draft_state_hash": "example_draft_state_hash",
+        "captured_at": "example_captured_at"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -2594,7 +2763,9 @@
       "preferredName": "data_quality",
       "description": "Data-quality issue buckets and affected keys.",
       "example": {
-        "key": "sample_text"
+        "sample_key": [
+          "example_data_quality_value_item"
+        ]
       },
       "type": "object",
       "locations": [
@@ -2651,7 +2822,7 @@
       "canonicalTerm": "deficit",
       "preferredName": "deficit",
       "description": "Deficit amount in the funding currency.",
-      "example": "example_deficit",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -2693,7 +2864,7 @@
       "canonicalTerm": "degraded_reason",
       "preferredName": "degraded_reason",
       "description": "Bounded degraded reason when report/render/archive is unavailable.",
-      "example": "degraded_reason_example",
+      "example": "example_degraded_reason",
       "type": "object",
       "locations": [
         "body"
@@ -2829,7 +3000,12 @@
       "preferredName": "dependency_readiness",
       "description": "Dependency readiness posture relevant to the action.",
       "example": [
-        "dependency_readiness_item_example"
+        {
+          "dependency": "example_dependency",
+          "state": "READY",
+          "reason_code": "example_reason_code",
+          "summary": "example_summary"
+        }
       ],
       "type": "array",
       "locations": [
@@ -2874,7 +3050,7 @@
       "preferredName": "details",
       "description": "Deterministic structured details for the reason.",
       "example": {
-        "key": "sample_text"
+        "sample_key": "example_details_value"
       },
       "type": "object",
       "locations": [
@@ -3090,7 +3266,21 @@
       "preferredName": "documents",
       "description": "Document proof rows included in the RFC-0028 proof pack.",
       "example": [
-        "documents_item_example"
+        {
+          "document_family": "PROPOSAL_MEMO",
+          "claim_posture": "ADVISOR_USE_SUPPORTED",
+          "report_status": "ACTIVE",
+          "report_package_status": "ACTIVE",
+          "requested_output_formats": [
+            "example_requested_output_formats_item"
+          ],
+          "render_ref_status": "ACTIVE",
+          "archive_ref_status": "ACTIVE",
+          "archive_retention_posture": "example_archive_retention_posture",
+          "archive_legal_hold_posture": "example_archive_legal_hold_posture",
+          "archive_access_audit_ref_status": "ACTIVE",
+          "client_ready_document_status": "ACTIVE"
+        }
       ],
       "type": "array",
       "locations": [
@@ -3121,7 +3311,7 @@
       "canonicalTerm": "draft_state_hash",
       "preferredName": "draft_state_hash",
       "description": "Canonical workspace draft-state hash when workspace replay evidence exists.",
-      "example": "draft_state_hash_example",
+      "example": "example_draft_state_hash",
       "type": "object",
       "locations": [
         "body"
@@ -3136,7 +3326,40 @@
       "canonicalTerm": "drift_analysis",
       "preferredName": "drift_analysis",
       "description": "Reference-model drift analytics when provided and enabled.",
-      "example": "drift_analysis_example",
+      "example": {
+        "reference_model": {
+          "model_id": "MODEL_001",
+          "as_of": "example_as_of",
+          "base_currency": "USD"
+        },
+        "asset_class": {
+          "drift_total_before": "0.125",
+          "drift_total_after": "0.125",
+          "drift_total_delta": "0.125"
+        },
+        "highlights": {
+          "largest_improvements": [
+            {
+              "bucket": "example_bucket",
+              "improvement": "0.125"
+            }
+          ],
+          "largest_deteriorations": [
+            {
+              "bucket": "example_bucket",
+              "improvement": "0.125"
+            }
+          ],
+          "unmodeled_exposures": [
+            {
+              "bucket": "example_bucket",
+              "portfolio_weight_before": "0.125",
+              "portfolio_weight_after": "0.125",
+              "max_portfolio_weight": "0.125"
+            }
+          ]
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -3164,7 +3387,7 @@
       "canonicalTerm": "drift_unmodeled_exposure_threshold",
       "preferredName": "drift_unmodeled_exposure_threshold",
       "description": "Minimum exposure threshold for unmodeled-exposure highlights.",
-      "example": "example_drift_unmodeled_exposure_threshold",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -3179,7 +3402,15 @@
       "preferredName": "dropped_intents",
       "description": "Intents dropped by turnover control.",
       "example": [
-        "dropped_intents_item_example"
+        {
+          "instrument_id": "EQ_US_AAPL",
+          "reason": "example_reason",
+          "potential_notional": {
+            "amount": "0.125",
+            "currency": "USD"
+          },
+          "score": "0.125"
+        }
       ],
       "type": "array",
       "locations": [
@@ -3194,7 +3425,7 @@
       "canonicalTerm": "due_at",
       "preferredName": "due_at",
       "description": "UTC ISO8601 due time derived from the evaluation timestamp and review SLA.",
-      "example": "due_at_example",
+      "example": "example_due_at",
       "type": "object",
       "locations": [
         "body"
@@ -3208,7 +3439,10 @@
       "canonicalTerm": "dust_trade_threshold",
       "preferredName": "dust_trade_threshold",
       "description": "Reserved field; currently not consumed by engine logic.",
-      "example": "dust_trade_threshold_example",
+      "example": {
+        "amount": "0.125",
+        "currency": "USD"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -3379,7 +3613,10 @@
       "preferredName": "endpoints",
       "description": "Sanitized health, readiness, capability, and runtime evidence.",
       "example": [
-        "endpoints_item_example"
+        {
+          "endpoint": "example_endpoint",
+          "posture": "READY"
+        }
       ],
       "type": "array",
       "locations": [
@@ -3410,7 +3647,7 @@
       "canonicalTerm": "engine_version",
       "preferredName": "engine_version",
       "description": "Engine version identifier.",
-      "example": "engine_version_example",
+      "example": "example_engine_version",
       "type": "object",
       "locations": [
         "body"
@@ -3440,7 +3677,10 @@
       "canonicalTerm": "error",
       "preferredName": "error",
       "description": "Failure details when status is FAILED.",
-      "example": "error_example",
+      "example": {
+        "code": "example_code",
+        "message": "example_message"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -3454,7 +3694,10 @@
       "canonicalTerm": "estimated_notional",
       "preferredName": "estimated_notional",
       "description": "Estimated trade notional in instrument currency.",
-      "example": "estimated_notional_example",
+      "example": {
+        "amount": "0.125",
+        "currency": "USD"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -3468,7 +3711,10 @@
       "canonicalTerm": "estimated_notional_base",
       "preferredName": "estimated_notional_base",
       "description": "Estimated trade notional in portfolio base currency.",
-      "example": "estimated_notional_base_example",
+      "example": {
+        "amount": "0.125",
+        "currency": "USD"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -3571,7 +3817,7 @@
       "canonicalTerm": "evaluation_request_hash",
       "preferredName": "evaluation_request_hash",
       "description": "Canonical evaluation-request hash captured during workspace replay evidence.",
-      "example": "evaluation_request_hash_example",
+      "example": "example_evaluation_request_hash",
       "type": "object",
       "locations": [
         "body"
@@ -3615,7 +3861,14 @@
       "canonicalTerm": "evaluation_summary",
       "preferredName": "evaluation_summary",
       "description": "Current workspace evaluation summary for advisor and reviewer workflows.",
-      "example": "evaluation_summary_example",
+      "example": {
+        "status": "READY",
+        "impact_summary": {
+          "portfolio_value_delta_base_ccy": "example_portfolio_value_delta_base_ccy",
+          "trade_count": 10,
+          "cash_flow_count": 10
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -3673,7 +3926,14 @@
       "preferredName": "events",
       "description": "Append-only workflow events ordered by event occurrence.",
       "example": [
-        "events_item_example"
+        {
+          "event_id": "EVENT_001",
+          "proposal_id": "pp_001",
+          "event_type": "CREATED",
+          "to_state": "DRAFT",
+          "actor_id": "ACTOR_001",
+          "occurred_at": "example_occurred_at"
+        }
       ],
       "type": "array",
       "locations": [
@@ -3872,7 +4132,13 @@
       "preferredName": "evidence_refs",
       "description": "Source-owned evidence references that justify the action.",
       "example": [
-        "evidence_refs_item_example"
+        {
+          "evidence_id": "EVIDENCE_001",
+          "evidence_type": "example_evidence_type",
+          "source_system": "example_source_system",
+          "access_class": "CUSTOMER_CONSUMABLE_SUMMARY",
+          "summary": "example_summary"
+        }
       ],
       "type": "array",
       "locations": [
@@ -3932,7 +4198,19 @@
       "preferredName": "excluded_portfolios",
       "description": "Source-backed portfolios excluded from the cohort.",
       "example": [
-        "excluded_portfolios_item_example"
+        {
+          "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+          "exclusion_reason_codes": [
+            "example_exclusion_reason_codes_item"
+          ],
+          "source_refs": [
+            {
+              "source_system": "example_source_system",
+              "source_type": "example_source_type",
+              "source_id": "SOURCE_001"
+            }
+          ]
+        }
       ],
       "type": "array",
       "locations": [
@@ -3963,7 +4241,7 @@
       "canonicalTerm": "executed_at",
       "preferredName": "executed_at",
       "description": "UTC ISO8601 timestamp when execution completed, when known.",
-      "example": "executed_at_example",
+      "example": "example_executed_at",
       "type": "object",
       "locations": [
         "body"
@@ -3995,7 +4273,10 @@
       "preferredName": "execution_notes",
       "description": "Structured deterministic execution notes.",
       "example": [
-        "execution_notes_item_example"
+        {
+          "code": "example_code",
+          "text": "example_text"
+        }
       ],
       "type": "array",
       "locations": [
@@ -4011,7 +4292,7 @@
       "preferredName": "execution_ownership",
       "description": "Explicit ownership boundary showing that lotus-advise records handoff posture while the downstream execution provider remains the system of record.",
       "example": {
-        "key": "sample_text"
+        "sample_key": "example_execution_ownership_value"
       },
       "type": "object",
       "locations": [
@@ -4041,7 +4322,7 @@
       "canonicalTerm": "execution_ref",
       "preferredName": "execution_ref",
       "description": "Source-backed execution handoff/status reference.",
-      "example": "execution_ref_example",
+      "example": "example_execution_ref",
       "type": "object",
       "locations": [
         "body"
@@ -4070,7 +4351,7 @@
       "canonicalTerm": "expected_current_version_no",
       "preferredName": "expected_current_version_no",
       "description": "Optional optimistic concurrency guard requiring the persisted proposal to still be at this current version number before creating a new version.",
-      "example": "expected_current_version_no_example",
+      "example": 1,
       "type": "object",
       "locations": [
         "body"
@@ -4098,7 +4379,7 @@
       "canonicalTerm": "expected_state",
       "preferredName": "expected_state",
       "description": "Optimistic concurrency check against current proposal state.",
-      "example": "expected_state_example",
+      "example": "DRAFT",
       "type": "object",
       "locations": [
         "body"
@@ -4187,7 +4468,14 @@
       "preferredName": "features",
       "description": "Feature-level capability flags and ownership.",
       "example": [
-        "features_item_example"
+        {
+          "key": "example_key",
+          "enabled": true,
+          "operational_ready": true,
+          "owner_service": "example_owner_service",
+          "description": "example_description",
+          "fallback_mode": "example_fallback_mode"
+        }
       ],
       "type": "array",
       "locations": [
@@ -4231,7 +4519,11 @@
       "preferredName": "findings",
       "description": "Workflow-pack supportability findings preserved from lotus-ai.",
       "example": [
-        "findings_item_example"
+        {
+          "finding_id": "FINDING_001",
+          "severity": "example_severity",
+          "summary": "example_summary"
+        }
       ],
       "type": "array",
       "locations": [
@@ -4246,7 +4538,7 @@
       "canonicalTerm": "finished_at",
       "preferredName": "finished_at",
       "description": "UTC ISO8601 timestamp when execution finished.",
-      "example": "finished_at_example",
+      "example": "example_finished_at",
       "type": "object",
       "locations": [
         "body"
@@ -4274,7 +4566,7 @@
       "canonicalTerm": "from_state",
       "preferredName": "from_state",
       "description": "Previous workflow state before this event.",
-      "example": "from_state_example",
+      "example": "DRAFT",
       "type": "object",
       "locations": [
         "body"
@@ -4302,7 +4594,7 @@
       "canonicalTerm": "funding_mode",
       "preferredName": "funding_mode",
       "description": "Advisory proposal funding mode.",
-      "example": "example_funding_mode",
+      "example": "AUTO_FX",
       "type": "string",
       "locations": [
         "body"
@@ -4317,7 +4609,12 @@
       "preferredName": "funding_plan",
       "description": "Advisory funding plan details for generated FX intents.",
       "example": [
-        "funding_plan_item_example"
+        {
+          "target_currency": "USD",
+          "required": "0.125",
+          "available_before_fx": "0.125",
+          "fx_needed": "0.125"
+        }
       ],
       "type": "array",
       "locations": [
@@ -4346,7 +4643,7 @@
       "canonicalTerm": "fx_buffer_pct",
       "preferredName": "fx_buffer_pct",
       "description": "Buffer applied when generating FX funding intents.",
-      "example": "example_fx_buffer_pct",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -4374,7 +4671,7 @@
       "canonicalTerm": "fx_generation_policy",
       "preferredName": "fx_generation_policy",
       "description": "FX intent generation policy for advisory auto-funding.",
-      "example": "example_fx_generation_policy",
+      "example": "ONE_FX_PER_CCY",
       "type": "string",
       "locations": [
         "body"
@@ -4389,7 +4686,12 @@
       "preferredName": "fx_list",
       "description": "Deterministically ordered FX intents for funding.",
       "example": [
-        "fx_list_item_example"
+        {
+          "intent_id": "INTENT_001",
+          "pair": "example_pair",
+          "buy_amount": "example_buy_amount",
+          "sell_amount_estimated": "example_sell_amount_estimated"
+        }
       ],
       "type": "array",
       "locations": [
@@ -4404,7 +4706,7 @@
       "canonicalTerm": "fx_needed",
       "preferredName": "fx_needed",
       "description": "Generated FX buy amount needed in target currency.",
-      "example": "example_fx_needed",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -4418,7 +4720,7 @@
       "canonicalTerm": "fx_pair",
       "preferredName": "fx_pair",
       "description": "Resolved FX pair used for funding, when available.",
-      "example": "fx_pair_example",
+      "example": "example_fx_pair",
       "type": "object",
       "locations": [
         "body"
@@ -4432,7 +4734,7 @@
       "canonicalTerm": "fx_settlement_days",
       "preferredName": "fx_settlement_days",
       "description": "Settlement lag used for generated FX intents.",
-      "example": 24,
+      "example": 5,
       "type": "integer",
       "locations": [
         "body"
@@ -4474,7 +4776,16 @@
       "canonicalTerm": "gate_decision",
       "preferredName": "gate_decision",
       "description": "Deterministic workflow gate decision for advisory workflow routing.",
-      "example": "gate_decision_example",
+      "example": {
+        "gate": "BLOCKED",
+        "recommended_next_step": "FIX_INPUT",
+        "summary": {
+          "hard_fail_count": 10,
+          "soft_fail_count": 10,
+          "new_high_suitability_count": 10,
+          "new_medium_suitability_count": 10
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -4562,7 +4873,13 @@
       "preferredName": "group_constraint_events",
       "description": "Group constraint capping/redistribution events.",
       "example": [
-        "group_constraint_events_item_example"
+        {
+          "constraint_key": "example_constraint_key",
+          "group_weight_before": "0.125",
+          "max_weight": "0.125",
+          "released_weight": "0.125",
+          "status": "CAPPED"
+        }
       ],
       "type": "array",
       "locations": [
@@ -4578,7 +4895,9 @@
       "preferredName": "group_constraints",
       "description": "Group constraint map keyed by '<attribute_key>:<attribute_value>'.",
       "example": {
-        "key": "sample_text"
+        "sample_key": {
+          "max_weight": "0.125"
+        }
       },
       "type": "object",
       "locations": [
@@ -4593,7 +4912,7 @@
       "canonicalTerm": "group_weight_before",
       "preferredName": "group_weight_before",
       "description": "Group weight before capping.",
-      "example": "example_group_weight_before",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -4622,7 +4941,11 @@
       "preferredName": "guardrail_results",
       "description": "Deterministic unsupported-claim and source-reference guardrail results.",
       "example": [
-        "guardrail_results_item_example"
+        {
+          "guardrail_id": "GUARDRAIL_001",
+          "status": "PASS",
+          "message": "example_message"
+        }
       ],
       "type": "array",
       "locations": [
@@ -4667,7 +4990,7 @@
       "canonicalTerm": "handoff_action",
       "preferredName": "handoff_action",
       "description": "Workspace-to-lifecycle handoff action represented by this replay continuity.",
-      "example": "handoff_action_example",
+      "example": "example_handoff_action",
       "type": "object",
       "locations": [
         "body"
@@ -4682,7 +5005,7 @@
       "canonicalTerm": "handoff_at",
       "preferredName": "handoff_at",
       "description": "UTC ISO8601 timestamp of the continuity-preserving handoff, when known.",
-      "example": "handoff_at_example",
+      "example": "example_handoff_at",
       "type": "object",
       "locations": [
         "body"
@@ -4696,7 +5019,7 @@
       "canonicalTerm": "handoff_by",
       "preferredName": "handoff_by",
       "description": "Actor identifier that performed the continuity-preserving handoff.",
-      "example": "handoff_by_example",
+      "example": "example_handoff_by",
       "type": "object",
       "locations": [
         "body"
@@ -4711,7 +5034,7 @@
       "canonicalTerm": "handoff_requested_at",
       "preferredName": "handoff_requested_at",
       "description": "UTC ISO8601 timestamp of the latest execution handoff request.",
-      "example": "handoff_requested_at_example",
+      "example": "example_handoff_requested_at",
       "type": "object",
       "locations": [
         "body"
@@ -4787,7 +5110,7 @@
       "canonicalTerm": "highest_severity_new",
       "preferredName": "highest_severity_new",
       "description": "Highest severity among NEW issues when present.",
-      "example": "highest_severity_new_example",
+      "example": "LOW",
       "type": "object",
       "locations": [
         "body"
@@ -4817,7 +5140,7 @@
       "canonicalTerm": "household_ref",
       "preferredName": "household_ref",
       "description": "Source-backed household reference when available.",
-      "example": "household_ref_example",
+      "example": "example_household_ref",
       "type": "object",
       "locations": [
         "body"
@@ -4831,7 +5154,7 @@
       "canonicalTerm": "http_status",
       "preferredName": "http_status",
       "description": "Observed HTTP status, or null when the endpoint was not probed.",
-      "example": "ACTIVE",
+      "example": 10,
       "type": "object",
       "locations": [
         "body"
@@ -4965,7 +5288,7 @@
       "preferredName": "input_hashes",
       "description": "Available source-input hashes used to bind narrative to proposal evidence.",
       "example": {
-        "key": "sample_text"
+        "sample_key": "example_input_hashes_value"
       },
       "type": "object",
       "locations": [
@@ -4980,7 +5303,7 @@
       "canonicalTerm": "input_mode",
       "preferredName": "input_mode",
       "description": "Optional proposal input mode. Omit for legacy direct `simulate_request` create requests, or set explicitly to `stateless`/`stateful` for the normalized contract.",
-      "example": "input_mode_example",
+      "example": "stateless",
       "type": "object",
       "locations": [
         "body"
@@ -5054,7 +5377,10 @@
       "preferredName": "insufficient_cash",
       "description": "Funding deficits that block proposal simulation.",
       "example": [
-        "insufficient_cash_item_example"
+        {
+          "currency": "USD",
+          "deficit": "0.125"
+        }
       ],
       "type": "array",
       "locations": [
@@ -5099,7 +5425,7 @@
       "canonicalTerm": "intent_type",
       "preferredName": "intent_type",
       "description": "Intent discriminator for advisory security trades.",
-      "example": "example_intent_type",
+      "example": "SECURITY_TRADE",
       "type": "string",
       "locations": [
         "body"
@@ -5114,7 +5440,11 @@
       "preferredName": "intents",
       "description": "Deterministically ordered proposal intents applied during simulation.",
       "example": [
-        "intents_item_example"
+        {
+          "intent_id": "INTENT_001",
+          "currency": "USD",
+          "amount": "0.125"
+        }
       ],
       "type": "array",
       "locations": [
@@ -5157,7 +5487,7 @@
       "canonicalTerm": "issuer_max_weight",
       "preferredName": "issuer_max_weight",
       "description": "Maximum advisory suitability aggregate weight per issuer.",
-      "example": "example_issuer_max_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -5172,7 +5502,22 @@
       "preferredName": "issues",
       "description": "Detailed deterministic suitability issue list.",
       "example": [
-        "issues_item_example"
+        {
+          "issue_id": "ISSUE_001",
+          "issue_key": "example_issue_key",
+          "dimension": "CONCENTRATION",
+          "severity": "LOW",
+          "status_change": "NEW",
+          "classification": "NEW",
+          "summary": "example_summary",
+          "evidence": {
+            "as_of": "example_as_of",
+            "snapshot_ids": {
+              "portfolio_snapshot_id": "PORTFOLIO_SNAPSHOT_001",
+              "market_data_snapshot_id": "MARKET_DATA_SNAPSHOT_001"
+            }
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -5188,7 +5533,16 @@
       "preferredName": "items",
       "description": "Paginated proposal summary rows.",
       "example": [
-        "items_item_example"
+        {
+          "proposal_id": "pp_001",
+          "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+          "created_by": "example_created_by",
+          "created_at": "2026-03-02T10:30:00Z",
+          "last_event_at": "example_last_event_at",
+          "current_state": "DRAFT",
+          "current_version_no": 1,
+          "lifecycle_origin": "DIRECT_CREATE"
+        }
       ],
       "type": "array",
       "locations": [
@@ -5219,7 +5573,7 @@
       "canonicalTerm": "jurisdiction",
       "preferredName": "jurisdiction",
       "description": "Optional proposal jurisdiction code.",
-      "example": "jurisdiction_example",
+      "example": "example_jurisdiction",
       "type": "object",
       "locations": [
         "body"
@@ -5249,7 +5603,10 @@
       "preferredName": "key_takeaways",
       "description": "Deterministic machine-derived proposal takeaways.",
       "example": [
-        "key_takeaways_item_example"
+        {
+          "code": "example_code",
+          "value": "example_value"
+        }
       ],
       "type": "array",
       "locations": [
@@ -5265,7 +5622,13 @@
       "preferredName": "largest_weight_changes",
       "description": "Top absolute instrument weight changes in deterministic order.",
       "example": [
-        "largest_weight_changes_item_example"
+        {
+          "bucket_type": "INSTRUMENT",
+          "bucket_id": "BUCKET_001",
+          "weight_before": "example_weight_before",
+          "weight_after": "example_weight_after",
+          "delta": "example_delta"
+        }
       ],
       "type": "array",
       "locations": [
@@ -5294,7 +5657,16 @@
       "canonicalTerm": "last_gate_decision",
       "preferredName": "last_gate_decision",
       "description": "Gate decision from current version.",
-      "example": "last_gate_decision_example",
+      "example": {
+        "gate": "BLOCKED",
+        "recommended_next_step": "FIX_INPUT",
+        "summary": {
+          "hard_fail_count": 10,
+          "soft_fail_count": 10,
+          "new_high_suitability_count": 10,
+          "new_medium_suitability_count": 10
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -5308,7 +5680,7 @@
       "canonicalTerm": "latency_ms",
       "preferredName": "latency_ms",
       "description": "Bounded endpoint probe latency in milliseconds, when observed.",
-      "example": "latency_ms_example",
+      "example": 10,
       "type": "object",
       "locations": [
         "body"
@@ -5322,7 +5694,7 @@
       "canonicalTerm": "latest_approval_at",
       "preferredName": "latest_approval_at",
       "description": "UTC ISO8601 timestamp of the latest returned approval or consent record.",
-      "example": "latest_approval_at_example",
+      "example": "example_latest_approval_at",
       "type": "object",
       "locations": [
         "body"
@@ -5336,7 +5708,14 @@
       "canonicalTerm": "latest_event",
       "preferredName": "latest_event",
       "description": "Latest workflow event in the append-only timeline.",
-      "example": "latest_event_example",
+      "example": {
+        "event_id": "EVENT_001",
+        "proposal_id": "pp_001",
+        "event_type": "CREATED",
+        "to_state": "DRAFT",
+        "actor_id": "ACTOR_001",
+        "occurred_at": "example_occurred_at"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -5364,7 +5743,19 @@
       "canonicalTerm": "latest_narrative_review",
       "preferredName": "latest_narrative_review",
       "description": "Latest review event for the current persisted narrative, when present.",
-      "example": "latest_narrative_review_example",
+      "example": {
+        "review_id": "REVIEW_001",
+        "proposal_id": "pp_001",
+        "proposal_version_no": 1,
+        "narrative_id": "NARRATIVE_001",
+        "action": "APPROVE",
+        "review_state": "APPROVED_FOR_ADVISOR_USE",
+        "client_ready_status": "NOT_REQUESTED",
+        "reviewed_by": "example_reviewed_by",
+        "reviewed_at": "example_reviewed_at",
+        "reason": "example_reason",
+        "source_narrative_hash": "example_source_narrative_hash"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -5378,7 +5769,45 @@
       "canonicalTerm": "latest_proposal_result",
       "preferredName": "latest_proposal_result",
       "description": "Optional latest full proposal result associated with the workspace draft.",
-      "example": "latest_proposal_result_example",
+      "example": {
+        "proposal_run_id": "pr_001",
+        "correlation_id": "corr_proposal_001",
+        "status": "READY",
+        "before": {
+          "total_value": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        },
+        "intents": [
+          {
+            "intent_id": "INTENT_001",
+            "currency": "USD",
+            "amount": "0.125"
+          }
+        ],
+        "after_simulated": {
+          "total_value": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        },
+        "explanation": {
+          "key": "sample_text"
+        },
+        "diagnostics": {
+          "data_quality": {
+            "sample_key": [
+              "example_data_quality_value_item"
+            ]
+          }
+        },
+        "lineage": {
+          "portfolio_snapshot_id": "PORTFOLIO_SNAPSHOT_001",
+          "market_data_snapshot_id": "MARKET_DATA_SNAPSHOT_001",
+          "request_hash": "sha256:example_hash"
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -5392,7 +5821,11 @@
       "canonicalTerm": "latest_replay_evidence",
       "preferredName": "latest_replay_evidence",
       "description": "Latest replay-safe evidence captured for the current workspace draft.",
-      "example": "latest_replay_evidence_example",
+      "example": {
+        "input_mode": "stateless",
+        "draft_state_hash": "example_draft_state_hash",
+        "captured_at": "example_captured_at"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -5406,7 +5839,12 @@
       "canonicalTerm": "latest_saved_version",
       "preferredName": "latest_saved_version",
       "description": "Latest saved workspace version summary, when one exists.",
-      "example": "latest_saved_version_example",
+      "example": {
+        "workspace_version_id": "WORKSPACE_VERSION_001",
+        "version_number": 1,
+        "saved_by": "example_saved_by",
+        "saved_at": "example_saved_at"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -5420,7 +5858,16 @@
       "canonicalTerm": "latest_sign_off_event",
       "preferredName": "latest_sign_off_event",
       "description": "Latest append-only policy sign-off event where one exists.",
-      "example": "latest_sign_off_event_example",
+      "example": {
+        "event_id": "EVENT_001",
+        "evaluation_id": "EVALUATION_001",
+        "proposal_id": "pp_001",
+        "proposal_version_id": "PROPOSAL_VERSION_001",
+        "event_type": "POLICY_EVALUATION_FINALIZED",
+        "actor_id": "ACTOR_001",
+        "occurred_at": "example_occurred_at",
+        "content_hash": "example_content_hash"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -5434,7 +5881,7 @@
       "canonicalTerm": "latest_version_created_at",
       "preferredName": "latest_version_created_at",
       "description": "UTC ISO8601 timestamp of the latest persisted proposal version in lineage.",
-      "example": "latest_version_created_at_example",
+      "example": "example_latest_version_created_at",
       "type": "object",
       "locations": [
         "body"
@@ -5448,7 +5895,7 @@
       "canonicalTerm": "latest_version_no",
       "preferredName": "latest_version_no",
       "description": "Highest persisted proposal version number currently available in lineage.",
-      "example": "latest_version_no_example",
+      "example": 1,
       "type": "object",
       "locations": [
         "body"
@@ -5479,7 +5926,7 @@
       "canonicalTerm": "lease_expires_at",
       "preferredName": "lease_expires_at",
       "description": "UTC ISO8601 timestamp when the current execution lease expires, when running.",
-      "example": "lease_expires_at_example",
+      "example": "example_lease_expires_at",
       "type": "object",
       "locations": [
         "body"
@@ -5521,7 +5968,12 @@
       "canonicalTerm": "lifecycle_link",
       "preferredName": "lifecycle_link",
       "description": "Current persisted proposal lifecycle link, when the workspace has been handed off.",
-      "example": "lifecycle_link_example",
+      "example": {
+        "proposal_id": "pp_001",
+        "current_version_no": 1,
+        "last_handoff_at": "example_last_handoff_at",
+        "last_handoff_by": "example_last_handoff_by"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -5609,7 +6061,11 @@
       "preferredName": "limitations",
       "description": "Explicit limitations and missing evidence for this narrative.",
       "example": [
-        "limitations_item_example"
+        {
+          "evidence_key": "risk_lens",
+          "required_for": "example_required_for",
+          "message": "example_message"
+        }
       ],
       "type": "array",
       "locations": [
@@ -5717,7 +6173,10 @@
       "preferredName": "lineage_refs",
       "description": "Lineage references for audit and replay.",
       "example": [
-        "lineage_refs_item_example"
+        {
+          "lineage_id": "LINEAGE_001",
+          "source_system": "example_source_system"
+        }
       ],
       "type": "array",
       "locations": [
@@ -5746,7 +6205,7 @@
       "canonicalTerm": "link_buy_to_same_currency_sell_dependency",
       "preferredName": "link_buy_to_same_currency_sell_dependency",
       "description": "Attach BUY intent dependency to a same-currency SELL intent. When null, advisory runtime keeps the default disabled unless explicitly enabled.",
-      "example": "USD",
+      "example": true,
       "type": "object",
       "locations": [
         "body"
@@ -5776,7 +6235,7 @@
       "canonicalTerm": "live_suite_bundle_ref",
       "preferredName": "live_suite_bundle_ref",
       "description": "Optional local-only relative reference to the source live runtime evidence bundle. URL schemes, credentials, query strings, fragments, traversal, and access tokens are rejected.",
-      "example": "live_suite_bundle_ref_example",
+      "example": "example_live_suite_bundle_ref",
       "type": "object",
       "locations": [
         "body"
@@ -5790,7 +6249,7 @@
       "canonicalTerm": "live_suite_result_ref",
       "preferredName": "live_suite_result_ref",
       "description": "Optional local-only relative reference to the source live runtime result. URL schemes, credentials, query strings, fragments, traversal, and access tokens are rejected.",
-      "example": "live_suite_result_ref_example",
+      "example": "example_live_suite_result_ref",
       "type": "object",
       "locations": [
         "body"
@@ -5834,7 +6293,7 @@
       "canonicalTerm": "lotus_ai_model_version",
       "preferredName": "lotus_ai_model_version",
       "description": "Model or provider version reported by lotus-ai when available.",
-      "example": "lotus_ai_model_version_example",
+      "example": "example_lotus_ai_model_version",
       "type": "object",
       "locations": [
         "body"
@@ -5937,7 +6396,13 @@
       "preferredName": "material_field_reviews",
       "description": "Material field review rows used for supported-claim gating.",
       "example": [
-        "material_field_reviews_item_example"
+        {
+          "review_id": "REVIEW_001",
+          "source_path": "example_source_path",
+          "observed_value": "observed_value_example",
+          "expected_posture": "example_expected_posture",
+          "review_posture": "PASS"
+        }
       ],
       "type": "array",
       "locations": [
@@ -6023,7 +6488,18 @@
       "preferredName": "materials",
       "description": "Governed material inventory.",
       "example": [
-        "materials_item_example"
+        {
+          "material_id": "MATERIAL_001",
+          "title": "example_title",
+          "material_type": "PRODUCT_ONE_PAGER",
+          "source_ref": "example_source_ref",
+          "mapped_claim_ids": [
+            "example_mapped_claim_ids_item"
+          ],
+          "allowed_audiences": [
+            "DEVELOPER"
+          ]
+        }
       ],
       "type": "array",
       "locations": [
@@ -6053,7 +6529,7 @@
       "preferredName": "max_overdraft_by_ccy",
       "description": "Optional overdraft allowance by currency for settlement ladder.",
       "example": {
-        "key": "sample_text"
+        "USD": "0.125"
       },
       "type": "object",
       "locations": [
@@ -6068,7 +6544,7 @@
       "canonicalTerm": "max_realized_capital_gains",
       "preferredName": "max_realized_capital_gains",
       "description": "Optional run-level realized capital gains budget in base currency.",
-      "example": "max_realized_capital_gains_example",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -6082,7 +6558,7 @@
       "canonicalTerm": "max_turnover_pct",
       "preferredName": "max_turnover_pct",
       "description": "Optional turnover cap as percentage of portfolio value.",
-      "example": "max_turnover_pct_example",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -6096,7 +6572,7 @@
       "canonicalTerm": "max_weight",
       "preferredName": "max_weight",
       "description": "Configured maximum allowed group weight.",
-      "example": "example_max_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -6111,7 +6587,7 @@
       "preferredName": "max_weight_by_liquidity_tier",
       "description": "Maximum advisory suitability aggregate weight by liquidity tier, for example {'L4': '0.10', 'L5': '0.05'}.",
       "example": {
-        "key": "sample_text"
+        "sample_key": "0.125"
       },
       "type": "object",
       "locations": [
@@ -6126,7 +6602,7 @@
       "canonicalTerm": "measured",
       "preferredName": "measured",
       "description": "Measured value used in evaluation.",
-      "example": "example_measured",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -6229,7 +6705,16 @@
       "preferredName": "memos",
       "description": "Persisted memo lineage ordered by proposal version.",
       "example": [
-        "memos_item_example"
+        {
+          "memo_id": "MEMO_001",
+          "proposal_version_no": 1,
+          "memo_status": "ACTIVE",
+          "lifecycle_status": "DRAFT",
+          "memo_hash": "example_memo_hash",
+          "source_input_hash": "example_source_input_hash",
+          "created_at": "2026-03-02T10:30:00Z",
+          "event_count": 10
+        }
       ],
       "type": "array",
       "locations": [
@@ -6292,7 +6777,7 @@
       "canonicalTerm": "min_cash_buffer_pct",
       "preferredName": "min_cash_buffer_pct",
       "description": "Minimum cash buffer preserved during target generation.",
-      "example": "example_min_cash_buffer_pct",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -6306,7 +6791,7 @@
       "canonicalTerm": "min_exposure_weight",
       "preferredName": "min_exposure_weight",
       "description": "Optional minimum source-owned exposure weight required for inclusion.",
-      "example": "min_exposure_weight_example",
+      "example": 0.125,
       "type": "object",
       "locations": [
         "body"
@@ -6320,7 +6805,10 @@
       "canonicalTerm": "min_trade_notional",
       "preferredName": "min_trade_notional",
       "description": "Request-level minimum trade notional threshold.",
-      "example": "min_trade_notional_example",
+      "example": {
+        "amount": "0.125",
+        "currency": "USD"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -6335,7 +6823,11 @@
       "preferredName": "missing_evidence",
       "description": "Explicit missing evidence that limits narrative readiness or audience scope.",
       "example": [
-        "missing_evidence_item_example"
+        {
+          "evidence_key": "risk_lens",
+          "required_for": "example_required_for",
+          "message": "example_message"
+        }
       ],
       "type": "array",
       "locations": [
@@ -6412,7 +6904,19 @@
       "canonicalTerm": "narrative_review",
       "preferredName": "narrative_review",
       "description": "Latest review event for this narrative, when one has been recorded.",
-      "example": "narrative_review_example",
+      "example": {
+        "review_id": "REVIEW_001",
+        "proposal_id": "pp_001",
+        "proposal_version_no": 1,
+        "narrative_id": "NARRATIVE_001",
+        "action": "APPROVE",
+        "review_state": "APPROVED_FOR_ADVISOR_USE",
+        "client_ready_status": "NOT_REQUESTED",
+        "reviewed_by": "example_reviewed_by",
+        "reviewed_at": "example_reviewed_at",
+        "reason": "example_reason",
+        "source_narrative_hash": "example_source_narrative_hash"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -6483,7 +6987,7 @@
       "canonicalTerm": "next_cursor",
       "preferredName": "next_cursor",
       "description": "Opaque cursor for pagination of subsequent pages.",
-      "example": "next_cursor_example",
+      "example": "example_next_cursor",
       "type": "object",
       "locations": [
         "body"
@@ -6526,7 +7030,10 @@
       "canonicalTerm": "notional",
       "preferredName": "notional",
       "description": "Trade notional in instrument currency. Required when `quantity` is not provided.",
-      "example": "notional_example",
+      "example": {
+        "amount": "0.125",
+        "currency": "USD"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -6878,7 +7385,7 @@
       "canonicalTerm": "pending",
       "preferredName": "pending",
       "description": "Optional pending cash amount for informational reporting.",
-      "example": "pending_example",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -7132,7 +7639,20 @@
       "preferredName": "positions",
       "description": "Position-level simulated state.",
       "example": [
-        "positions_item_example"
+        {
+          "instrument_id": "EQ_US_AAPL",
+          "quantity": "0.125",
+          "instrument_currency": "USD",
+          "value_in_instrument_ccy": {
+            "amount": "0.125",
+            "currency": "USD"
+          },
+          "value_in_base_ccy": {
+            "amount": "0.125",
+            "currency": "USD"
+          },
+          "weight": "0.125"
+        }
       ],
       "type": "array",
       "locations": [
@@ -7178,7 +7698,12 @@
       "preferredName": "preparation_packets",
       "description": "Source-backed meeting-preparation packets visible to the caller.",
       "example": [
-        "preparation_packets_item_example"
+        {
+          "packet_id": "PACKET_001",
+          "context_type": "PORTFOLIO",
+          "context_ref": "example_context_ref",
+          "status": "READY"
+        }
       ],
       "type": "array",
       "locations": [
@@ -7207,7 +7732,10 @@
       "canonicalTerm": "price",
       "preferredName": "price",
       "description": "Price used in valuation.",
-      "example": 182.35,
+      "example": {
+        "amount": "0.125",
+        "currency": "USD"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -7280,7 +7808,10 @@
       "preferredName": "product_docs",
       "description": "Product-document references for traded instruments.",
       "example": [
-        "product_docs_item_example"
+        {
+          "instrument_id": "EQ_US_AAPL",
+          "doc_ref": "example_doc_ref"
+        }
       ],
       "type": "array",
       "locations": [
@@ -7295,7 +7826,7 @@
       "canonicalTerm": "product_name",
       "preferredName": "product_name",
       "description": "Domain data product emitted by lotus-advise.",
-      "example": "example_product_name",
+      "example": "TacticalHouseViewAffectedCohort",
       "type": "string",
       "locations": [
         "body"
@@ -7323,7 +7854,9 @@
       "canonicalTerm": "product_types",
       "preferredName": "product_types",
       "description": "Optional product-type override for disclosure policy selection.",
-      "example": "product_types_example",
+      "example": [
+        "example_product_types_item"
+      ],
       "type": "object",
       "locations": [
         "body"
@@ -7338,7 +7871,7 @@
       "canonicalTerm": "product_version",
       "preferredName": "product_version",
       "description": "Product version.",
-      "example": "example_product_version",
+      "example": "v1",
       "type": "string",
       "locations": [
         "body"
@@ -7368,7 +7901,7 @@
       "canonicalTerm": "projected_balance",
       "preferredName": "projected_balance",
       "description": "Projected cumulative balance on the day.",
-      "example": "example_projected_balance",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -7487,7 +8020,10 @@
       "preferredName": "proof_requirements",
       "description": "Proof requirements that must be satisfied before promotion.",
       "example": [
-        "proof_requirements_item_example"
+        {
+          "requirement_id": "REQUIREMENT_001",
+          "evidence_ref": "example_evidence_ref"
+        }
       ],
       "type": "array",
       "locations": [
@@ -7519,7 +8055,13 @@
       "canonicalTerm": "proposal_alternatives",
       "preferredName": "proposal_alternatives",
       "description": "Backend-owned proposal alternatives envelope when alternatives are requested.",
-      "example": "proposal_alternatives_example",
+      "example": {
+        "requested_objectives": [
+          "REDUCE_CONCENTRATION"
+        ],
+        "selected_alternative_id": "SELECTED_ALTERNATIVE_001",
+        "candidate_generation_policy_id": "CANDIDATE_GENERATION_POLICY_001"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -7561,7 +8103,15 @@
       "canonicalTerm": "proposal_decision_summary",
       "preferredName": "proposal_decision_summary",
       "description": "Backend-owned advisory decision summary for UI, artifact, and replay consumers.",
-      "example": "proposal_decision_summary_example",
+      "example": {
+        "decision_status": "READY_FOR_CLIENT_REVIEW",
+        "top_level_status": "READY",
+        "primary_reason_code": "example_primary_reason_code",
+        "primary_summary": "example_primary_summary",
+        "recommended_next_action": "FIX_INPUT",
+        "decision_policy_version": "example_decision_policy_version",
+        "confidence": "HIGH"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -7591,7 +8141,26 @@
       "canonicalTerm": "proposal_narrative",
       "preferredName": "proposal_narrative",
       "description": "Optional advisor-review narrative generated from artifact evidence when explicitly requested. Supports deterministic template mode and opt-in `AI_ASSISTED_DRAFT`; client-ready narrative remains gated.",
-      "example": "proposal_narrative_example",
+      "example": {
+        "narrative_id": "NARRATIVE_001",
+        "status": "READY_FOR_ADVISOR_REVIEW",
+        "audience": "ADVISOR_REVIEW",
+        "policy_version": "advisory.v1",
+        "narrative_policy": {
+          "policy_version": "advisory.v1",
+          "status": "READY_FOR_ADVISOR_REVIEW",
+          "context": {
+            "jurisdiction": "example_jurisdiction",
+            "risk_posture": "STANDARD",
+            "client_audience": "ADVISOR_REVIEW"
+          }
+        },
+        "grounding_packet": {
+          "packet_id": "PACKET_001",
+          "policy_version": "advisory.v1",
+          "audience": "ADVISOR_REVIEW"
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -7618,10 +8187,27 @@
         "intents": [],
         "lineage": {
           "idempotency_key": "idem-1",
-          "request_hash": "sha256:..."
+          "request_hash": "sha256:...",
+          "portfolio_snapshot_id": "PORTFOLIO_SNAPSHOT_001",
+          "market_data_snapshot_id": "MARKET_DATA_SNAPSHOT_001"
         },
         "proposal_run_id": "pr_abc12345",
-        "status": "READY"
+        "status": "READY",
+        "before": {
+          "total_value": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        },
+        "after_simulated": {
+          "total_value": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        },
+        "explanation": {
+          "key": "sample_text"
+        }
       },
       "type": "ProposalResult",
       "locations": [
@@ -7732,7 +8318,7 @@
       "canonicalTerm": "publication_posture",
       "preferredName": "publication_posture",
       "description": "Commercial publication posture for the material pack.",
-      "example": "example_publication_posture",
+      "example": "CUSTOMER_CONSUMABLE_WITH_BOUNDARIES",
       "type": "string",
       "locations": [
         "body"
@@ -7746,7 +8332,7 @@
       "canonicalTerm": "quantity",
       "preferredName": "quantity",
       "description": "Simulated quantity.",
-      "example": 100.0,
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -7777,7 +8363,7 @@
       "canonicalTerm": "rate",
       "preferredName": "rate",
       "description": "Resolved FX rate string when available from market snapshot.",
-      "example": 1.3524,
+      "example": "example_rate",
       "type": "object",
       "locations": [
         "body"
@@ -7990,7 +8576,11 @@
       "preferredName": "reasons",
       "description": "Deterministic ordered reasons explaining the gate.",
       "example": [
-        "reasons_item_example"
+        {
+          "reason_code": "example_reason_code",
+          "severity": "LOW",
+          "source": "RULE_ENGINE"
+        }
       ],
       "type": "array",
       "locations": [
@@ -8006,7 +8596,7 @@
       "preferredName": "recipients",
       "description": "Redistribution recipients and allocated weight shares.",
       "example": {
-        "key": "sample_text"
+        "sample_key": "0.125"
       },
       "type": "object",
       "locations": [
@@ -8035,7 +8625,25 @@
       "canonicalTerm": "reconciliation",
       "preferredName": "reconciliation",
       "description": "Reconciliation output.",
-      "example": "reconciliation_example",
+      "example": {
+        "before_total_value": {
+          "amount": "0.125",
+          "currency": "USD"
+        },
+        "after_total_value": {
+          "amount": "0.125",
+          "currency": "USD"
+        },
+        "delta": {
+          "amount": "0.125",
+          "currency": "USD"
+        },
+        "tolerance": {
+          "amount": "0.125",
+          "currency": "USD"
+        },
+        "status": "OK"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -8108,7 +8716,9 @@
       "canonicalTerm": "reference_model",
       "preferredName": "reference_model",
       "description": "Original optional reference model payload.",
-      "example": "reference_model_example",
+      "example": {
+        "key": "sample_text"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -8196,7 +8806,7 @@
       "canonicalTerm": "related_version_no",
       "preferredName": "related_version_no",
       "description": "Optional proposal version number referenced by this event.",
-      "example": "related_version_no_example",
+      "example": 1,
       "type": "object",
       "locations": [
         "body"
@@ -8210,7 +8820,7 @@
       "canonicalTerm": "released_weight",
       "preferredName": "released_weight",
       "description": "Weight released by cap operation.",
-      "example": "example_released_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -8224,7 +8834,7 @@
       "canonicalTerm": "remediation",
       "preferredName": "remediation",
       "description": "Deterministic advisor remediation guidance for the issue.",
-      "example": "remediation_example",
+      "example": "example_remediation",
       "type": "object",
       "locations": [
         "body"
@@ -8238,7 +8848,7 @@
       "canonicalTerm": "remediation_hint",
       "preferredName": "remediation_hint",
       "description": "Optional guidance on remediation.",
-      "example": "remediation_hint_example",
+      "example": "example_remediation_hint",
       "type": "object",
       "locations": [
         "body"
@@ -8479,7 +9089,7 @@
       "canonicalTerm": "report_ref",
       "preferredName": "report_ref",
       "description": "Source-backed report reference.",
-      "example": "report_ref_example",
+      "example": "example_report_ref",
       "type": "object",
       "locations": [
         "body"
@@ -8563,7 +9173,15 @@
       "canonicalTerm": "reporting",
       "preferredName": "reporting",
       "description": "Normalized reporting delivery summary derived from append-only workflow events.",
-      "example": "reporting_example",
+      "example": {
+        "report_request_id": "REPORT_REQUEST_001",
+        "report_type": "PORTFOLIO_REVIEW",
+        "report_service": "example_report_service",
+        "status": "READY",
+        "requested_by": "example_requested_by",
+        "include_execution_summary": true,
+        "generated_at": "2026-03-02T10:30:00Z"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -8577,7 +9195,7 @@
       "canonicalTerm": "repository_sha",
       "preferredName": "repository_sha",
       "description": "Optional lotus-advise commit SHA. When omitted, the service uses configured runtime metadata and falls back to runtime-unknown.",
-      "example": "repository_sha_example",
+      "example": "example_repository_sha",
       "type": "object",
       "locations": [
         "body"
@@ -8593,7 +9211,7 @@
       "preferredName": "repository_shas",
       "description": "Repository commit SHAs included in the proof pack.",
       "example": {
-        "key": "sample_text"
+        "sample_key": "example_repository_shas_value"
       },
       "type": "object",
       "locations": [
@@ -8717,7 +9335,7 @@
       "canonicalTerm": "requested_quantity",
       "preferredName": "requested_quantity",
       "description": "Requested sell quantity before budget limit.",
-      "example": "example_requested_quantity",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -8747,7 +9365,7 @@
       "canonicalTerm": "required",
       "preferredName": "required",
       "description": "Total required amount in target currency.",
-      "example": "example_required",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -8778,7 +9396,15 @@
       "preferredName": "required_disclosures",
       "description": "Approved disclosures selected by deterministic policy.",
       "example": [
-        "required_disclosures_item_example"
+        {
+          "disclosure_id": "DISCLOSURE_001",
+          "jurisdiction": "example_jurisdiction",
+          "product_type": "example_product_type",
+          "required_for": "ADVISOR_REVIEW",
+          "text": "example_text",
+          "source_authority": "example_source_authority",
+          "policy_version": "advisory.v1"
+        }
       ],
       "type": "array",
       "locations": [
@@ -8871,7 +9497,7 @@
       "canonicalTerm": "required_workbench_panel",
       "preferredName": "required_workbench_panel",
       "description": "Governed Workbench panel required for cockpit product proof.",
-      "example": "example_required_workbench_panel",
+      "example": "advisory.advisor_cockpit",
       "type": "string",
       "locations": [
         "body"
@@ -8945,7 +9571,10 @@
       "canonicalTerm": "resolved_context",
       "preferredName": "resolved_context",
       "description": "Normalized resolved advisory context captured by the replayable evidence.",
-      "example": "resolved_context_example",
+      "example": {
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "as_of": "example_as_of"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -8973,7 +9602,190 @@
       "canonicalTerm": "result",
       "preferredName": "result",
       "description": "Successful operation result payload when status is SUCCEEDED.",
-      "example": "result_example",
+      "example": {
+        "proposal": {
+          "proposal_id": "pp_001",
+          "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+          "created_by": "example_created_by",
+          "created_at": "2026-03-02T10:30:00Z",
+          "last_event_at": "example_last_event_at",
+          "current_state": "DRAFT",
+          "current_version_no": 1,
+          "lifecycle_origin": "DIRECT_CREATE"
+        },
+        "version": {
+          "proposal_version_id": "PROPOSAL_VERSION_001",
+          "proposal_id": "pp_001",
+          "version_no": 1,
+          "created_at": "2026-03-02T10:30:00Z",
+          "request_hash": "sha256:example_hash",
+          "artifact_hash": "example_artifact_hash",
+          "simulation_hash": "example_simulation_hash",
+          "status_at_creation": "READY",
+          "proposal_result": {
+            "proposal_run_id": "pr_001",
+            "correlation_id": "corr_proposal_001",
+            "status": "READY",
+            "before": {
+              "total_value": {
+                "amount": "0.125",
+                "currency": "USD"
+              }
+            },
+            "intents": [
+              {
+                "intent_id": "INTENT_001",
+                "currency": "USD",
+                "amount": "0.125"
+              }
+            ],
+            "after_simulated": {
+              "total_value": {
+                "amount": "0.125",
+                "currency": "USD"
+              }
+            },
+            "explanation": {
+              "key": "sample_text"
+            },
+            "diagnostics": {
+              "data_quality": {
+                "sample_key": [
+                  "example_data_quality_value_item"
+                ]
+              }
+            },
+            "lineage": {
+              "portfolio_snapshot_id": "PORTFOLIO_SNAPSHOT_001",
+              "market_data_snapshot_id": "MARKET_DATA_SNAPSHOT_001",
+              "request_hash": "sha256:example_hash"
+            }
+          },
+          "artifact": {
+            "artifact_id": "ARTIFACT_001",
+            "proposal_run_id": "pr_001",
+            "correlation_id": "corr_proposal_001",
+            "created_at": "2026-03-02T10:30:00Z",
+            "status": "READY",
+            "gate_decision": {
+              "gate": "BLOCKED",
+              "recommended_next_step": "FIX_INPUT",
+              "summary": {
+                "hard_fail_count": 10,
+                "soft_fail_count": 10,
+                "new_high_suitability_count": 10,
+                "new_medium_suitability_count": 10
+              }
+            },
+            "summary": {
+              "title": "example_title",
+              "recommended_next_step": "CLIENT_CONSENT"
+            },
+            "portfolio_impact": {
+              "before": {
+                "total_value": {
+                  "amount": "0.125",
+                  "currency": "USD"
+                }
+              },
+              "after": {
+                "total_value": {
+                  "amount": "0.125",
+                  "currency": "USD"
+                }
+              },
+              "delta": {
+                "total_value_delta": {
+                  "amount": "0.125",
+                  "currency": "USD"
+                }
+              }
+            },
+            "trades_and_funding": {
+              "ordering_policy": "example_ordering_policy"
+            },
+            "risk_lens": {
+              "status": "AVAILABLE",
+              "summary": "example_summary"
+            },
+            "suitability_summary": {
+              "status": "AVAILABLE",
+              "new_issues": 10,
+              "resolved_issues": 10,
+              "persistent_issues": 10
+            },
+            "assumptions_and_limits": {
+              "pricing": {
+                "market_data_snapshot_id": "MARKET_DATA_SNAPSHOT_001",
+                "prices_as_of": "example_prices_as_of",
+                "fx_as_of": "example_fx_as_of",
+                "valuation_mode": "example_valuation_mode"
+              },
+              "costs_and_fees": {
+                "included": true,
+                "notes": "example_notes"
+              },
+              "tax": {
+                "included": true,
+                "notes": "example_notes"
+              },
+              "execution": {
+                "included": true,
+                "notes": "example_notes"
+              }
+            },
+            "disclosures": {
+              "risk_disclaimer": "example_risk_disclaimer"
+            },
+            "evidence_bundle": {
+              "inputs": {
+                "portfolio_snapshot": {
+                  "key": "sample_text"
+                },
+                "market_data_snapshot": {
+                  "key": "sample_text"
+                },
+                "shelf_entries": [
+                  {
+                    "key": "sample_text"
+                  }
+                ],
+                "options": {
+                  "key": "sample_text"
+                },
+                "proposed_cash_flows": [
+                  {
+                    "key": "sample_text"
+                  }
+                ],
+                "proposed_trades": [
+                  {
+                    "key": "sample_text"
+                  }
+                ]
+              },
+              "engine_outputs": {
+                "proposal_result": {
+                  "key": "sample_text"
+                }
+              },
+              "hashes": {
+                "request_hash": "sha256:example_hash",
+                "artifact_hash": "example_artifact_hash"
+              },
+              "engine_version": "example_engine_version"
+            }
+          }
+        },
+        "latest_workflow_event": {
+          "event_id": "EVENT_001",
+          "proposal_id": "pp_001",
+          "event_type": "CREATED",
+          "to_state": "DRAFT",
+          "actor_id": "ACTOR_001",
+          "occurred_at": "example_occurred_at"
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -9001,7 +9813,7 @@
       "canonicalTerm": "retention_expires_at",
       "preferredName": "retention_expires_at",
       "description": "UTC timestamp when retention may expire unless legal hold applies.",
-      "example": "retention_expires_at_example",
+      "example": "2026-03-02T10:30:00Z",
       "type": "object",
       "locations": [
         "body"
@@ -9140,7 +9952,7 @@
       "canonicalTerm": "review_sla",
       "preferredName": "review_sla",
       "description": "Configured review service level where known.",
-      "example": "review_sla_example",
+      "example": "example_review_sla",
       "type": "object",
       "locations": [
         "body"
@@ -9154,7 +9966,7 @@
       "canonicalTerm": "review_state",
       "preferredName": "review_state",
       "description": "Review state for the advisor-review narrative projection.",
-      "example": "example_review_state",
+      "example": "DRAFT",
       "type": "string",
       "locations": [
         "body"
@@ -9197,7 +10009,20 @@
       "preferredName": "reviews",
       "description": "Ordered review audit events for the run.",
       "example": [
-        "reviews_item_example"
+        {
+          "review_id": "REVIEW_001",
+          "run_id": "RUN_001",
+          "action": "APPROVE_FOR_INTERNAL_USE",
+          "previous_posture": "REVIEW_REQUIRED",
+          "new_posture": "REVIEW_REQUIRED",
+          "actor_id": "ACTOR_001",
+          "occurred_at": "2026-03-02T10:30:00Z",
+          "reason_json": {
+            "key": "sample_text"
+          },
+          "request_hash": "sha256:example_hash",
+          "correlation_id": "corr_proposal_001"
+        }
       ],
       "type": "array",
       "locations": [
@@ -9287,7 +10112,7 @@
       "preferredName": "rule_result_hashes",
       "description": "Canonical hash of each persisted rule result by rule identifier.",
       "example": {
-        "key": "sample_text"
+        "sample_key": "example_rule_result_hashes_value"
       },
       "type": "object",
       "locations": [
@@ -9303,7 +10128,16 @@
       "preferredName": "rule_results",
       "description": "Rule engine evaluations.",
       "example": [
-        "rule_results_item_example"
+        {
+          "rule_id": "RULE_001",
+          "severity": "HARD",
+          "status": "PASS",
+          "measured": "0.125",
+          "threshold": {
+            "sample_key": "0.125"
+          },
+          "reason_code": "example_reason_code"
+        }
       ],
       "type": "array",
       "locations": [
@@ -9534,7 +10368,43 @@
       "preferredName": "saved_versions",
       "description": "Saved workspace versions available for compare and resume workflows.",
       "example": [
-        "saved_versions_item_example"
+        {
+          "workspace_version_id": "WORKSPACE_VERSION_001",
+          "version_number": 1,
+          "saved_by": "example_saved_by",
+          "saved_at": "example_saved_at",
+          "draft_state": {
+            "options": {
+              "valuation_mode": "CALCULATED",
+              "target_method": "HEURISTIC",
+              "compare_target_methods": true
+            },
+            "alternatives_request": {
+              "enabled": true,
+              "objectives": [
+                "REDUCE_CONCENTRATION"
+              ],
+              "constraints": {
+                "cash_floor": {
+                  "amount": "0.125",
+                  "currency": "USD"
+                },
+                "max_turnover_pct": "0.125",
+                "max_trade_count": 10
+              }
+            },
+            "reference_model": {
+              "model_id": "MODEL_001",
+              "as_of": "example_as_of",
+              "base_currency": "USD"
+            }
+          },
+          "replay_evidence": {
+            "input_mode": "stateless",
+            "draft_state_hash": "example_draft_state_hash",
+            "captured_at": "example_captured_at"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -9593,7 +10463,7 @@
       "canonicalTerm": "schema_version",
       "preferredName": "schema_version",
       "description": "Stable schema version for persisted advisory copilot run records.",
-      "example": "example_schema_version",
+      "example": "advisory-copilot-run-record.v1",
       "type": "string",
       "locations": [
         "body"
@@ -9621,7 +10491,7 @@
       "canonicalTerm": "score",
       "preferredName": "score",
       "description": "Ranking score used in turnover selection.",
-      "example": "example_score",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -9650,7 +10520,9 @@
       "canonicalTerm": "sections",
       "preferredName": "sections",
       "description": "Optional ordered section allowlist. When omitted, the current persisted narrative section set is regenerated.",
-      "example": "sections_example",
+      "example": [
+        "EXECUTIVE_SUMMARY"
+      ],
       "type": "object",
       "locations": [
         "body"
@@ -9695,7 +10567,7 @@
       "canonicalTerm": "service_name",
       "preferredName": "service_name",
       "description": "backend runtime posture field: service name.",
-      "example": "example_service_name",
+      "example": "lotus-advise",
       "type": "string",
       "locations": [
         "body"
@@ -9709,7 +10581,7 @@
       "canonicalTerm": "service_version",
       "preferredName": "service_version",
       "description": "Optional service version recorded in proof metadata.",
-      "example": "service_version_example",
+      "example": "example_service_version",
       "type": "object",
       "locations": [
         "body"
@@ -9724,7 +10596,7 @@
       "canonicalTerm": "settled",
       "preferredName": "settled",
       "description": "Optional settled cash amount used by settlement-aware ladder.",
-      "example": "settled_example",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -9738,7 +10610,7 @@
       "canonicalTerm": "settlement_horizon_days",
       "preferredName": "settlement_horizon_days",
       "description": "Settlement ladder horizon in day offsets from T+0.",
-      "example": 24,
+      "example": 5,
       "type": "integer",
       "locations": [
         "body"
@@ -9862,7 +10734,34 @@
       "canonicalTerm": "simulate_request",
       "preferredName": "simulate_request",
       "description": "Legacy full advisory simulation payload persisted as version evidence input. Prefer `stateless_input` or `stateful_input` for new proposal create callers.",
-      "example": "simulate_request_example",
+      "example": {
+        "portfolio_snapshot": {
+          "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+          "base_currency": "USD"
+        },
+        "market_data_snapshot": {
+          "snapshot_id": "SNAPSHOT_001",
+          "prices": [
+            {
+              "instrument_id": "EQ_US_AAPL",
+              "price": 1.2345,
+              "currency": "USD"
+            }
+          ],
+          "fx_rates": [
+            {
+              "pair": "example_pair",
+              "rate": 1.2345
+            }
+          ]
+        },
+        "shelf_entries": [
+          {
+            "instrument_id": "EQ_US_AAPL",
+            "status": "APPROVED"
+          }
+        ]
+      },
       "type": "object",
       "locations": [
         "body"
@@ -9876,7 +10775,7 @@
       "canonicalTerm": "simulation_contract_version",
       "preferredName": "simulation_contract_version",
       "description": "Canonical simulation contract version used for this result.",
-      "example": "simulation_contract_version_example",
+      "example": "example_simulation_contract_version",
       "type": "object",
       "locations": [
         "body"
@@ -9905,7 +10804,7 @@
       "canonicalTerm": "single_position_max_weight",
       "preferredName": "single_position_max_weight",
       "description": "Hard maximum weight allowed for a single position.",
-      "example": "single_position_max_weight_example",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -10050,7 +10949,7 @@
       "canonicalTerm": "source_dependency",
       "preferredName": "source_dependency",
       "description": "Source dependency that prevented support when applicable.",
-      "example": "source_dependency_example",
+      "example": "RFC0023_PROPOSAL_NARRATIVE",
       "type": "object",
       "locations": [
         "body"
@@ -10209,7 +11108,12 @@
       "preferredName": "source_readiness_gaps",
       "description": "Missing, stale, degraded, or unsupported source evidence gaps.",
       "example": [
-        "source_readiness_gaps_item_example"
+        {
+          "source_family": "example_source_family",
+          "gap_code": "example_gap_code",
+          "owner_role": "ADVISOR",
+          "message": "example_message"
+        }
       ],
       "type": "array",
       "locations": [
@@ -10239,7 +11143,11 @@
       "preferredName": "source_refs",
       "description": "Allowed source references supplied to deterministic narrative rendering.",
       "example": [
-        "source_refs_item_example"
+        {
+          "ref_type": "proposal_artifact",
+          "ref_id": "REF_001",
+          "field_path": "example_field_path"
+        }
       ],
       "type": "array",
       "locations": [
@@ -10299,7 +11207,25 @@
       "preferredName": "source_sections",
       "description": "Bounded source-backed evidence sections to project into the packet.",
       "example": [
-        "source_sections_item_example"
+        {
+          "section_key": "example_section_key",
+          "title": "example_title",
+          "evidence_class": "ADVISOR_USE_SUMMARY",
+          "source_refs": [
+            {
+              "source_system": "example_source_system",
+              "source_type": "example_source_type",
+              "source_id": "SOURCE_001",
+              "access_class": "ADVISOR_USE_SUMMARY"
+            }
+          ],
+          "summary_items": [
+            "example_summary_items_item"
+          ],
+          "allowed_audiences": [
+            "ADVISOR"
+          ]
+        }
       ],
       "type": "array",
       "locations": [
@@ -10371,7 +11297,7 @@
       "canonicalTerm": "source_version",
       "preferredName": "source_version",
       "description": "Source contract or product version when available.",
-      "example": "source_version_example",
+      "example": "example_source_version",
       "type": "object",
       "locations": [
         "body"
@@ -10399,7 +11325,7 @@
       "canonicalTerm": "started_at",
       "preferredName": "started_at",
       "description": "UTC ISO8601 timestamp when execution started.",
-      "example": "started_at_example",
+      "example": "example_started_at",
       "type": "object",
       "locations": [
         "body"
@@ -10429,7 +11355,10 @@
       "canonicalTerm": "stateful_input",
       "preferredName": "stateful_input",
       "description": "Identifier-based authoritative input payload for normalized stateful proposal create requests.",
-      "example": "stateful_input_example",
+      "example": {
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "as_of": "example_as_of"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -10443,7 +11372,36 @@
       "canonicalTerm": "stateless_input",
       "preferredName": "stateless_input",
       "description": "Direct advisory payload for normalized stateless proposal create requests.",
-      "example": "stateless_input_example",
+      "example": {
+        "simulate_request": {
+          "portfolio_snapshot": {
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "base_currency": "USD"
+          },
+          "market_data_snapshot": {
+            "snapshot_id": "SNAPSHOT_001",
+            "prices": [
+              {
+                "instrument_id": "EQ_US_AAPL",
+                "price": 1.2345,
+                "currency": "USD"
+              }
+            ],
+            "fx_rates": [
+              {
+                "pair": "example_pair",
+                "rate": 1.2345
+              }
+            ]
+          },
+          "shelf_entries": [
+            {
+              "instrument_id": "EQ_US_AAPL",
+              "status": "APPROVED"
+            }
+          ]
+        }
+      },
       "type": "object",
       "locations": [
         "body"
@@ -10528,7 +11486,11 @@
       "preferredName": "steps",
       "description": "Business scenario steps in demo order.",
       "example": [
-        "steps_item_example"
+        {
+          "step_id": "STEP_001",
+          "title": "example_title",
+          "owner_repository": "example_owner_repository"
+        }
       ],
       "type": "array",
       "locations": [
@@ -10560,7 +11522,14 @@
       "canonicalTerm": "suitability",
       "preferredName": "suitability",
       "description": "Advisory suitability scanner output with NEW/RESOLVED/PERSISTENT issues.",
-      "example": "suitability_example",
+      "example": {
+        "summary": {
+          "new_count": 10,
+          "resolved_count": 10,
+          "persistent_count": 10
+        },
+        "recommended_gate": "NONE"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -10779,7 +11748,18 @@
       "preferredName": "suppressed_intents",
       "description": "Intents suppressed during generation (for example dust suppression).",
       "example": [
-        "suppressed_intents_item_example"
+        {
+          "instrument_id": "EQ_US_AAPL",
+          "reason": "example_reason",
+          "intended_notional": {
+            "amount": "0.125",
+            "currency": "USD"
+          },
+          "threshold": {
+            "amount": "0.125",
+            "currency": "USD"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -10897,7 +11877,12 @@
       "preferredName": "tax_budget_constraint_events",
       "description": "Tax budget constraint events by instrument.",
       "example": [
-        "tax_budget_constraint_events_item_example"
+        {
+          "instrument_id": "EQ_US_AAPL",
+          "requested_quantity": "0.125",
+          "allowed_quantity": "0.125",
+          "reason_code": "example_reason_code"
+        }
       ],
       "type": "array",
       "locations": [
@@ -10956,7 +11941,7 @@
       "preferredName": "threshold",
       "description": "Threshold values applied by the rule.",
       "example": {
-        "key": "sample_text"
+        "sample_key": "0.125"
       },
       "type": "object",
       "locations": [
@@ -10972,7 +11957,7 @@
       "canonicalTerm": "title",
       "preferredName": "title",
       "description": "Optional advisor-facing proposal title.",
-      "example": "title_example",
+      "example": "example_title",
       "type": "object",
       "locations": [
         "body"
@@ -11002,7 +11987,18 @@
       "preferredName": "top_priority_actions",
       "description": "Bounded top-priority actions for cockpit summary display.",
       "example": [
-        "top_priority_actions_item_example"
+        {
+          "action_item_id": "ACTION_ITEM_001",
+          "action_item_version": 1,
+          "action_family": "CLIENT_MEETING_PREPARATION",
+          "status": "READY",
+          "priority": "CRITICAL",
+          "owner_role": "ADVISOR",
+          "owning_system": "example_owning_system",
+          "title": "example_title",
+          "next_required_action": "example_next_required_action",
+          "sla_age_band": "NOT_DUE"
+        }
       ],
       "type": "array",
       "locations": [
@@ -11017,7 +12013,7 @@
       "canonicalTerm": "total_count",
       "preferredName": "total_count",
       "description": "Optional count when computed without unsafe full-book scans.",
-      "example": "total_count_example",
+      "example": 10,
       "type": "object",
       "locations": [
         "body"
@@ -11110,7 +12106,13 @@
       "preferredName": "trade_drafts",
       "description": "Current ordered trade draft items in the workspace.",
       "example": [
-        "trade_drafts_item_example"
+        {
+          "workspace_trade_id": "WORKSPACE_TRADE_001",
+          "trade": {
+            "side": "BUY",
+            "instrument_id": "EQ_US_AAPL"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -11126,7 +12128,17 @@
       "preferredName": "trade_list",
       "description": "Deterministically ordered security trades.",
       "example": [
-        "trade_list_item_example"
+        {
+          "intent_id": "INTENT_001",
+          "type": "SECURITY_TRADE",
+          "instrument_id": "EQ_US_AAPL",
+          "side": "BUY",
+          "quantity": "example_quantity",
+          "rationale": {
+            "code": "example_code",
+            "message": "example_message"
+          }
+        }
       ],
       "type": "array",
       "locations": [
@@ -11157,7 +12169,7 @@
       "canonicalTerm": "type",
       "preferredName": "type",
       "description": "Artifact trade entry type.",
-      "example": "example_type",
+      "example": "SECURITY_TRADE",
       "type": "string",
       "locations": [
         "body"
@@ -11220,7 +12232,10 @@
       "preferredName": "unsupported_evidence",
       "description": "Controlled unsupported-evidence posture for missing or restricted sources.",
       "example": [
-        "unsupported_evidence_item_example"
+        {
+          "reason_code": "SOURCE_NOT_IMPLEMENTED",
+          "advisor_message": "example_advisor_message"
+        }
       ],
       "type": "array",
       "locations": [
@@ -11443,7 +12458,7 @@
       "canonicalTerm": "version_label",
       "preferredName": "version_label",
       "description": "Optional advisor-facing label for the saved workspace version.",
-      "example": "version_label_example",
+      "example": "example_version_label",
       "type": "object",
       "locations": [
         "body"
@@ -11487,7 +12502,15 @@
       "preferredName": "versions",
       "description": "Immutable proposal version lineage ordered by version number ascending.",
       "example": [
-        "versions_item_example"
+        {
+          "proposal_version_id": "PROPOSAL_VERSION_001",
+          "version_no": 1,
+          "created_at": "2026-03-02T10:30:00Z",
+          "status_at_creation": "READY",
+          "request_hash": "sha256:example_hash",
+          "simulation_hash": "example_simulation_hash",
+          "artifact_hash": "example_artifact_hash"
+        }
       ],
       "type": "array",
       "locations": [
@@ -11518,7 +12541,7 @@
       "canonicalTerm": "weight",
       "preferredName": "weight",
       "description": "Portfolio weight in base currency terms.",
-      "example": "example_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -11634,7 +12657,16 @@
       "canonicalTerm": "workflow_pack_run",
       "preferredName": "workflow_pack_run",
       "description": "Bounded lotus-ai workflow-pack run posture preserved for this workspace rationale when the governed explicit execution boundary succeeds.",
-      "example": "workflow_pack_run_example",
+      "example": {
+        "run_id": "RUN_001",
+        "runtime_state": "2026-03-02T10:30:00Z",
+        "review_state": "example_review_state",
+        "supportability_status": "ACTIVE",
+        "review_pending": true,
+        "superseded": true,
+        "workflow_authority_owner": "example_workflow_authority_owner",
+        "current_summary_note": "example_current_summary_note"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -11692,7 +12724,11 @@
       "preferredName": "workflows",
       "description": "Workflow-level capability flags and feature dependencies.",
       "example": [
-        "workflows_item_example"
+        {
+          "workflow_key": "advisory_proposal_lifecycle",
+          "enabled": true,
+          "operational_ready": true
+        }
       ],
       "type": "array",
       "locations": [
