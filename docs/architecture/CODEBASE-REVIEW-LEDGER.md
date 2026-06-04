@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-606
+
+- Scope: Policy-pack reference catalog data
+- Pattern: Policy-pack catalog store behavior should not own static reference-pack source data.
+- Status: Hardened
+- Finding Class: Policy-pack catalog modularity and reference-data maintainability
+- Summary: After extracting catalog definition helpers, `src/core/policy_packs/catalog.py` still
+  mixed public catalog facade functions, in-memory store mutation, idempotent validation and
+  activation workflows, audit-event handling, and large static reference-pack literals. That kept
+  reference data review coupled to maker-checker store behavior.
+- Evidence:
+  - Added `src/core/policy_packs/catalog_reference_packs.py` for the global private-banking and
+    Singapore private-banking reference pack definitions.
+  - Exposed `reference_policy_packs()` as a defensive-copy accessor so catalog store reset behavior
+    cannot mutate the authored reference definitions.
+  - Kept `src/core/policy_packs/catalog.py` focused on public catalog facade functions, store
+    state, validation/activation workflows, idempotency replay, and audit-event projection.
+  - Added a source-boundary guard proving reference-pack literals stay outside the catalog store
+    module.
+  - Focused policy-pack catalog lint, format, mypy, and unit tests passed with 6 tests.
+- Consequence:
+  - Policy-pack catalog behavior remains compatible while static policy source data can be reviewed
+    separately from command semantics, idempotency replay, and maker-checker activation behavior.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal memo/service, persistence, and advisory read-model hotspots where
+    cohesive behavior/data boundaries remain clear.
+
 ## LA-REV-605
 
 - Scope: Policy-pack catalog definition helpers
