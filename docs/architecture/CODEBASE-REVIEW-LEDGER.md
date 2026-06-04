@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-671
+
+- Scope: Advisory workspace API route ownership
+- Pattern: Workspace API routing should preserve the public aggregate router while delegating
+  session/version, assistant-rationale, and lifecycle-handoff endpoints to focused route modules.
+- Status: Hardened
+- Finding Class: API route modularity and OpenAPI reviewability
+- Summary: `src/api/workspaces/router.py` combined workspace session creation/read, draft actions,
+  evaluation, saved-version save/list/replay/resume/compare, assistant rationale, rationale review
+  actions, and lifecycle handoff in one 363-line route module. That made OpenAPI review and route
+  exception-boundary changes harder by mixing independent workspace route families in one file.
+- Evidence:
+  - Added `src/api/workspaces/routes_session.py` for workspace session, draft/evaluate,
+    saved-version, replay, resume, and compare endpoints.
+  - Added `src/api/workspaces/routes_assistant.py` for workspace rationale generation and rationale
+    review-action endpoints.
+  - Added `src/api/workspaces/routes_handoff.py` for workspace-to-proposal lifecycle handoff
+    routing and proposal-exception translation.
+  - Kept `src/api/workspaces/router.py` as the public aggregate router used by `src.api.main`.
+  - Reduced `src/api/workspaces/router.py` from 363 lines to 10 lines while preserving the public
+    route paths and OpenAPI registration surface.
+  - Updated boundary tests to prove the aggregate router delegates route families and focused
+    modules own response metadata, parameter contracts, and redaction test monkeypatch points.
+  - Focused ruff, ruff format check, and mypy passed for touched route files; workspace API,
+    internal API guard, and OpenAPI lifecycle contract tests passed with 113 tests; repo-native
+    `make lint` passed.
+- Consequence:
+  - Workspace route families can be reviewed independently while the application keeps the same
+    aggregate router import and public API surface.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal route modularity for existing API behavior.
+- Follow-Up:
+  - Continue splitting remaining API route hotspots by route family when OpenAPI and behavior tests
+    can prove public contract stability.
+
 ## LA-REV-670
 
 - Scope: Proposal workflow service operation wiring

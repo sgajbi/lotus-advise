@@ -361,6 +361,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  the public response facade.",
         "- Proposal workflow service construction delegates operation-owner wiring to",
         "  a focused registry while preserving the public service facade.",
+        "- Advisory workspace routes are split into session/version, assistant-rationale,",
+        "  and lifecycle-handoff route modules behind the public aggregate router.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
         "  history, and execution-update replay behavior to a focused service boundary.",
         "- Proposal workflow narrative operations delegate narrative read/regeneration/review",
