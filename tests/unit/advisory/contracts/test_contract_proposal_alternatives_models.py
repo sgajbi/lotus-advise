@@ -6,6 +6,15 @@ from src.core.advisory import (
     ProposalAlternativesConstraints,
     ProposalAlternativesRequest,
 )
+from src.core.advisory.alternatives_models import (
+    AlternativeCandidateSeed,
+    AlternativeComparisonSummary,
+    AlternativeConstraintResult,
+    AlternativeRankingProjection,
+    AlternativeTradeoff,
+    ProposalAlternatives,
+    RejectedAlternativeCandidate,
+)
 
 
 def test_alternatives_request_defaults_to_bounded_rejected_visible_contract():
@@ -98,3 +107,27 @@ def test_proposal_alternative_allows_canonical_summary_payload_shape():
     assert alternative.selected is False
     assert alternative.rank is None
     assert alternative.proposal_decision_summary["decision_status"] == "REQUIRES_RISK_REVIEW"
+
+
+def test_alternatives_models_keep_request_and_response_boundaries_split():
+    request_models = {
+        ProposalAlternativesConstraints,
+        ProposalAlternativesRequest,
+    }
+    response_models = {
+        AlternativeCandidateSeed,
+        AlternativeComparisonSummary,
+        AlternativeConstraintResult,
+        AlternativeRankingProjection,
+        AlternativeTradeoff,
+        ProposalAlternative,
+        ProposalAlternatives,
+        RejectedAlternativeCandidate,
+    }
+
+    assert {model.__module__ for model in request_models} == {
+        "src.core.advisory.alternatives_request_models"
+    }
+    assert {model.__module__ for model in response_models} == {
+        "src.core.advisory.alternatives_response_models"
+    }

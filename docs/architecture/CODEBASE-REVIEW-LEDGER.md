@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-624
+
+- Scope: Proposal alternatives model boundaries
+- Pattern: Alternatives request validation contracts and response/evidence envelopes should not
+  live in one oversized model module.
+- Status: Hardened
+- Finding Class: DTO modularity and advisory alternatives maintainability
+- Summary: `src/core/advisory/alternatives_models.py` mixed alternatives vocabulary literals,
+  request constraint validation, candidate seed DTOs, ranking projections, rejected-candidate
+  envelopes, and proposal-alternatives response models in one 458-line module. That made the
+  alternatives contract harder to review and increased the risk that request validation changes
+  would accidentally disturb response evidence contracts.
+- Evidence:
+  - Split alternatives vocabulary literals into `src/core/advisory/alternatives_types.py`.
+  - Split alternatives request constraint and request validation DTOs into
+    `src/core/advisory/alternatives_request_models.py`.
+  - Split alternatives candidate, ranking, rejected-candidate, and response envelope DTOs into
+    `src/core/advisory/alternatives_response_models.py`.
+  - Kept `src/core/advisory/alternatives_models.py` as a compatibility facade for existing API,
+    strategy, projection, and artifact imports.
+  - Added a contract test proving request and response model implementations remain separated
+    while the facade continues to export the public alternatives contracts.
+  - Focused `ruff`, `mypy`, and proposal-alternatives contract tests passed with 10 tests.
+- Consequence:
+  - Advisory alternatives contracts now have clearer ownership between input validation and
+    lifecycle/evidence projection without changing public model names or API behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented alternatives behavior.
+- Follow-Up:
+  - Continue splitting the remaining alternatives projection and advisory model hotspots where
+    ranking, comparison, artifact, or narrative concerns are still co-located.
+
 ## LA-REV-623
 
 - Scope: Proposal workflow command and lifecycle operations

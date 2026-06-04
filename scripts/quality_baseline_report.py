@@ -263,6 +263,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  to focused strategy modules.",
         "- Alternatives objective strategies are split into portfolio/cash, baseline-trade,",
         "  currency-alignment, and deferred restricted-product modules.",
+        "- Proposal alternatives models are split into vocabulary, request-validation,",
+        "  response/evidence, and compatibility facade modules.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",
@@ -331,13 +333,13 @@ def write_quality_reports(repo_root: Path, output_dir: Path) -> None:
     context = build_quality_context(repo_root)
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "baseline_report.md").write_text(
-        render_baseline_report(context), encoding="utf-8"
+        render_baseline_report(context), encoding="utf-8", newline="\n"
     )
     (output_dir / "refactor_health_report.md").write_text(
-        render_refactor_health_report(context), encoding="utf-8"
+        render_refactor_health_report(context), encoding="utf-8", newline="\n"
     )
     (output_dir / "quality_scorecard.md").write_text(
-        render_quality_scorecard(context), encoding="utf-8"
+        render_quality_scorecard(context), encoding="utf-8", newline="\n"
     )
 
 
