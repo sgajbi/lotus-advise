@@ -18,6 +18,9 @@ from src.core.proposals.delivery_summary_models import (
     ProposalDeliverySummaryResponse as SummaryProposalDeliverySummaryResponse,
 )
 from src.core.proposals.input_models import ProposalCreateRequest as InputProposalCreateRequest
+from src.core.proposals.memo_event_models import (
+    ProposalMemoAuditEvent as EventProposalMemoAuditEvent,
+)
 from src.core.proposals.memo_request_models import (
     ProposalMemoAiCommentaryRequest as RequestProposalMemoAiCommentaryRequest,
 )
@@ -51,6 +54,9 @@ from src.core.proposals.response_models import (
 )
 from src.core.proposals.response_models import (
     ProposalMemoAiCommentaryRequest as ResponseProposalMemoAiCommentaryRequest,
+)
+from src.core.proposals.response_models import (
+    ProposalMemoAuditEvent as ResponseProposalMemoAuditEvent,
 )
 from src.core.proposals.response_models import (
     ProposalMemoCreateRequest as ResponseProposalMemoCreateRequest,
@@ -93,6 +99,8 @@ def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert DeliveryProposalDeliverySummaryResponse is SummaryProposalDeliverySummaryResponse
     assert models.ProposalMemoResponse is ResponseProposalMemoResponse
     assert ResponseProposalMemoResponse is MemoProposalMemoResponse
+    assert models.ProposalMemoAuditEvent is ResponseProposalMemoAuditEvent
+    assert ResponseProposalMemoAuditEvent is EventProposalMemoAuditEvent
     assert models.ProposalMemoCreateRequest is ResponseProposalMemoCreateRequest
     assert ResponseProposalMemoCreateRequest is RequestProposalMemoCreateRequest
     assert models.ProposalMemoReviewRequest is ResponseProposalMemoReviewRequest
@@ -173,3 +181,14 @@ def test_memo_request_models_are_split_from_memo_response_boundary() -> None:
 
     assert "ProposalMemoReviewAction = Literal" in types
     assert "ProposalMemoCommentarySection = Literal" in types
+
+
+def test_memo_event_model_is_split_from_memo_response_boundary() -> None:
+    from pathlib import Path
+
+    source_root = Path(__file__).resolve().parents[4] / "src" / "core" / "proposals"
+    facade = (source_root / "memo_response_models.py").read_text(encoding="utf-8")
+    event_models = (source_root / "memo_event_models.py").read_text(encoding="utf-8")
+
+    assert "class ProposalMemoAuditEvent" not in facade
+    assert "class ProposalMemoAuditEvent" in event_models

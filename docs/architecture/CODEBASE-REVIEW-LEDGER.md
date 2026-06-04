@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-629
+
+- Scope: Proposal memo audit event DTO boundary
+- Pattern: Shared memo audit event envelopes should not be implemented inside the memo response
+  module that consumes them.
+- Status: Hardened
+- Finding Class: DTO modularity and auditability maintainability
+- Summary: `src/core/proposals/memo_response_models.py` still implemented
+  `ProposalMemoAuditEvent` alongside core memo responses, operation responses, lineage, and replay
+  evidence models. The audit event DTO is a shared append-only lineage primitive used across
+  review, report-package, AI-commentary, and replay evidence responses, so keeping it embedded in
+  the response module made later lineage/replay splits harder.
+- Evidence:
+  - Extracted `ProposalMemoAuditEvent` to `src/core/proposals/memo_event_models.py`.
+  - Kept memo response and public proposal response facade imports stable.
+  - Extended proposal model boundary tests to prove the audit event DTO is implemented in the
+    focused event module and still flows through public facades.
+  - Focused `ruff`, `mypy`, proposal model boundary tests, and OpenAPI lifecycle documentation
+    tests passed with 18 tests.
+- Consequence:
+  - Memo auditability has a clearer DTO owner, and lineage/replay evidence response models can now
+    depend on a focused event contract instead of the broader response module.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented memo behavior.
+- Follow-Up:
+  - Split memo lineage and replay evidence response DTOs onto the focused audit event contract.
+
 ## LA-REV-628
 
 - Scope: Proposal memo request DTO boundaries

@@ -273,6 +273,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and selected-alternative projection to a focused ranking module.",
         "- Proposal memo request DTOs and memo vocabulary literals are split from",
         "  response, lineage, and replay evidence models.",
+        "- Proposal memo audit event DTOs are split into a focused append-only",
+        "  event model module.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",
