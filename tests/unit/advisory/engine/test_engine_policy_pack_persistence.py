@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
@@ -17,10 +18,29 @@ from src.core.policy_packs import (
 )
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError
 
+SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
+
 
 def setup_function() -> None:
     reset_policy_pack_catalog_for_tests()
     reset_policy_evaluation_store_for_tests()
+
+
+def test_policy_evaluation_persistence_record_builder_stays_focused() -> None:
+    persistence = (SOURCE_ROOT / "persistence.py").read_text(encoding="utf-8")
+    record_builder = (SOURCE_ROOT / "persistence_record_builder.py").read_text(encoding="utf-8")
+
+    assert "build_policy_evaluation_record" in persistence
+    assert "policy_evaluation_hash" in persistence
+    assert "def _portfolio_id" not in persistence
+    assert "def _approval_dependencies" not in persistence
+    assert "def _disclosure_requirements" not in persistence
+    assert "def _consent_requirements" not in persistence
+
+    assert "def build_policy_evaluation_record" in record_builder
+    assert "def policy_evaluation_hash" in record_builder
+    assert "def _portfolio_id" in record_builder
+    assert "def _approval_dependencies" in record_builder
 
 
 def _base_evidence_bundle() -> dict:
