@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from src.core.advisor_cockpit.action_sources import HouseViewImpactActionSource
 from src.core.advisor_cockpit.reference_models import CockpitCallerContext
 from src.core.advisor_cockpit.repository import AdvisorCockpitRepository
@@ -7,6 +9,7 @@ from src.core.advisor_cockpit.source_read_model import (
     build_advisor_cockpit_source_read_model,
 )
 from src.core.policy_packs.persistence import list_policy_evaluation_records
+from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.tactical_house_view import (
     TacticalHouseViewAffectedCohort,
     list_tactical_house_view_affected_cohorts,
@@ -20,6 +23,9 @@ def load_advisor_cockpit_source_read_model(
     portfolio_id: str | None,
     correlation_id: str | None,
     source_limit: int,
+    list_policy_evaluations: Callable[
+        ..., list[PolicyEvaluationRecord]
+    ] = list_policy_evaluation_records,
 ) -> AdvisorCockpitSourceReadModel:
     proposals, _next_cursor = repository.list_proposals(
         portfolio_id=portfolio_id,
@@ -34,7 +40,7 @@ def load_advisor_cockpit_source_read_model(
     return build_advisor_cockpit_source_read_model(
         AdvisorCockpitSourceBatch(
             proposals=proposals,
-            policy_evaluations=list_policy_evaluation_records(
+            policy_evaluations=list_policy_evaluations(
                 evaluation_status=None,
                 portfolio_id=portfolio_id,
             )[:source_limit],

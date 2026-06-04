@@ -50,6 +50,7 @@ from src.core.advisor_cockpit.source_read_model import (
     AdvisorCockpitSourceReadModel,
 )
 from src.core.common.canonical import hash_canonical_payload
+from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
@@ -336,6 +337,7 @@ class AdvisorCockpitService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             source_limit=COCKPIT_SOURCE_LIMIT,
+            list_policy_evaluations=list_policy_evaluation_records,
         )
         action_items = [
             self._attach_runtime_state(action=action, correlation_id=correlation_id)

@@ -19,6 +19,9 @@ from src.core.advisory.narrative_policy import (
 )
 from src.core.advisory.narrative_sections import render_sections
 from src.core.common.canonical import hash_canonical_payload
+from src.integrations.lotus_ai.proposal_narrative import (
+    generate_proposal_narrative_draft_with_lotus_ai,
+)
 
 _ALL_SECTIONS: tuple[ProposalNarrativeSectionKey, ...] = (
     "EXECUTIVE_SUMMARY",
@@ -50,6 +53,7 @@ def build_deterministic_proposal_narrative(
             request=request,
             deterministic_sections=rendered,
             requested_sections=requested,
+            generate_ai_draft=generate_proposal_narrative_draft_with_lotus_ai,
         )
     guardrail_results = evaluate_proposal_narrative_guardrails(rendered)
     payload = {

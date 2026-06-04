@@ -8,6 +8,7 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 SOURCE_READ_MODEL_PATH = Path("src/core/advisor_cockpit/source_read_model.py")
+SOURCE_PROJECTION_PATH = Path("src/core/advisor_cockpit/source_projection.py")
 BEHAVIOR_TEST_PATH = Path(
     "tests/unit/advisory/engine/test_engine_advisor_cockpit_source_read_model.py"
 )
@@ -50,6 +51,8 @@ def test_rfc0026_slice5_records_non_promoting_source_aggregation_posture() -> No
 
 def test_rfc0026_slice5_contract_is_backed_by_code_and_behavior_tests() -> None:
     source_read_model = _read(SOURCE_READ_MODEL_PATH)
+    source_projection = _read(SOURCE_PROJECTION_PATH)
+    source_contract = f"{source_read_model}\n{source_projection}"
     behavior_tests = _read(BEHAVIOR_TEST_PATH)
 
     required_markers = (
@@ -63,7 +66,7 @@ def test_rfc0026_slice5_contract_is_backed_by_code_and_behavior_tests() -> None:
         "PolicyEvaluationRecord",
     )
     for marker in required_markers:
-        assert marker in source_read_model
+        assert marker in source_contract
         assert marker in behavior_tests
 
     for marker in (
@@ -74,5 +77,5 @@ def test_rfc0026_slice5_contract_is_backed_by_code_and_behavior_tests() -> None:
         "source_counts",
         "lineage_id",
     ):
-        assert marker in source_read_model
+        assert marker in source_contract
         assert marker in behavior_tests

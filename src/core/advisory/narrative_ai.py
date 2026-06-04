@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from src.core.advisory.narrative_models import (
     ProposalNarrativeAiLineage,
     ProposalNarrativeGenerationMode,
@@ -11,6 +13,7 @@ from src.core.advisory.narrative_models import (
 )
 from src.integrations.lotus_ai.proposal_narrative import (
     LotusAIProposalNarrativeUnavailableError,
+    ProposalNarrativeDraftResponse,
     build_ai_fallback_lineage,
     generate_proposal_narrative_draft_with_lotus_ai,
 )
@@ -23,6 +26,9 @@ def apply_ai_draft_sections(
     request: ProposalNarrativeRequest,
     deterministic_sections: list[ProposalNarrativeSection],
     requested_sections: list[ProposalNarrativeSectionKey],
+    generate_ai_draft: Callable[
+        ..., ProposalNarrativeDraftResponse
+    ] = generate_proposal_narrative_draft_with_lotus_ai,
 ) -> tuple[
     list[ProposalNarrativeSection],
     ProposalNarrativeAiLineage,
@@ -30,7 +36,7 @@ def apply_ai_draft_sections(
 ]:
     section_by_key = {section.section_key: section for section in deterministic_sections}
     try:
-        ai_response = generate_proposal_narrative_draft_with_lotus_ai(
+        ai_response = generate_ai_draft(
             grounding_packet=packet,
             narrative_policy=narrative_policy,
             requested_sections=requested_sections,
