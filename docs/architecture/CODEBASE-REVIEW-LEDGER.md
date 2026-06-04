@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-642
+
+- Scope: Proposal artifact builder DTO dependency flow
+- Pattern: Artifact builders should import focused DTO owner modules directly instead of relying on
+  the top-level artifact compatibility facade.
+- Status: Hardened
+- Finding Class: Advisory artifact dependency flow and facade-coupling reduction
+- Summary: After splitting artifact DTOs into focused owner modules, artifact builder modules still
+  imported section DTOs from `src/core/advisory/artifact_models.py`. That preserved behavior but
+  kept builder dependencies routed through the compatibility facade instead of the modules that own
+  the DTO contracts.
+- Evidence:
+  - Updated the artifact assembler to import assumptions, portfolio-impact, and summary DTOs from
+    their focused owner modules while keeping only the top-level `ProposalArtifact` envelope from
+    `artifact_models.py`.
+  - Updated portfolio, summary, trade/funding, review, and evidence builders to import their DTOs
+    from focused owner modules.
+  - Added artifact engine contract coverage preventing helper builders from regressing to
+    `artifact_models.py` facade imports for section DTOs.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 29 tests.
+- Consequence:
+  - Artifact builder dependency flow now follows section ownership, while `artifact_models.py`
+    remains available as a stable compatibility and OpenAPI envelope facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal dependency-flow hardening for existing implemented artifact behavior.
+- Follow-Up:
+  - Keep new artifact section builders importing focused DTO owner modules directly.
+
 ## LA-REV-641
 
 - Scope: Proposal artifact evidence DTO ownership

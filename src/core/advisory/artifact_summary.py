@@ -1,6 +1,6 @@
 from src.core.advisory.artifact_formatting import quantized_weight_str
-from src.core.advisory.artifact_models import ProposalArtifactTakeaway
 from src.core.advisory.artifact_portfolio import cash_weight
+from src.core.advisory.artifact_summary_models import ProposalArtifactTakeaway
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposal_result_models import ProposalResult
 
