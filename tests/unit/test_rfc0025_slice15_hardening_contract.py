@@ -38,8 +38,10 @@ def test_rfc0025_slice15_supportability_truth_is_centralized_and_current() -> No
     evaluation = _read("src/core/policy_packs/evaluation.py")
     persistence = _read("src/core/policy_packs/persistence.py")
     persistence_projection = _read("src/core/policy_packs/persistence_projection.py")
+    persistence_store = _read("src/core/policy_packs/persistence_store.py")
     workflow = _read("src/core/policy_packs/workflow.py")
     policy_api_routes = _read("src/api/proposals/routes_policy_evaluations.py")
+    policy_api_command_routes = _read("src/api/proposals/routes_policy_evaluation_commands.py")
 
     assert "def policy_runtime_supportability" in supportability
     assert '"gateway_supported": True' in supportability
@@ -60,14 +62,18 @@ def test_rfc0025_slice15_supportability_truth_is_centralized_and_current() -> No
     assert "catalog_posture()" in catalog
     assert "policy_runtime_supportability()" in catalog_definitions
     assert "policy_runtime_supportability()" in evaluation
-    assert "policy_evaluation_api_posture()" in persistence
+    assert "PolicyEvaluationRecordStore" in persistence
+    assert "policy_evaluation_api_posture()" in persistence_store
     assert "policy_runtime_supportability()" in persistence_projection
     assert "policy_sign_off_package_posture()" in workflow
 
-    combined = "\n".join([catalog, evaluation, persistence, workflow, policy_api_routes])
+    combined = "\n".join(
+        [catalog, evaluation, persistence, workflow, policy_api_routes, policy_api_command_routes]
+    )
     assert '"gateway_supported": False' not in combined
     assert '"workbench_supported": False' not in combined
     assert "report realization, and client-ready publication remain gated" not in combined
-    assert "Gateway/Workbench consumption and signed-off report-package handoff are supported" in (
-        policy_api_routes
+    assert (
+        "Gateway/Workbench consumption and signed-off report-package handoff are supported"
+        in policy_api_command_routes
     )
