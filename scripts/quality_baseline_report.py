@@ -243,6 +243,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  data-quality, trade-size, shorting, and cash-sufficiency evaluators.",
         "- Proposal memo source-readiness assembly is split into core, risk, and Advise",
         "  source-owner section groups.",
+        "- Proposal memo source-readiness owner groups are split into focused Lotus Core,",
+        "  Lotus Risk, and Lotus Advise modules with a compatibility facade.",
         "- Bank-demo runtime summary sanitization is split into access helpers and",
         "  focused projection builders.",
         "- Bank-demo commercial material pack assembly delegates governed material rows to",

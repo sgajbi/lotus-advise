@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-654
+
+- Scope: Proposal memo source-readiness owner modules
+- Pattern: Memo source-readiness checks should be owned by the source-authority family they
+  evaluate instead of sharing one broad section module.
+- Status: Hardened
+- Finding Class: Memo evidence source-authority modularity and reviewability
+- Summary: `src/core/proposals/memo_source_readiness_sections.py` owned Lotus Core portfolio,
+  market-data, client-context, and product-readiness checks; Lotus Risk concentration and extended
+  evidence checks; and Lotus Advise decision-summary and execution-boundary checks. This made
+  source-owner readiness behavior harder to review independently and kept the memo readiness
+  coordinator coupled to a broad compatibility module.
+- Evidence:
+  - Added `src/core/proposals/memo_source_readiness_core.py` for Lotus Core-owned memo readiness
+    sections covering holdings/cash, client context, market data, FX rates, and product
+    eligibility/complexity.
+  - Added `src/core/proposals/memo_source_readiness_risk.py` for Lotus Risk-owned concentration
+    and extended memo evidence posture.
+  - Added `src/core/proposals/memo_source_readiness_advise.py` for Lotus Advise-owned decision
+    summary and advisory lifecycle/execution-boundary posture.
+  - Reduced `src/core/proposals/memo_source_readiness_sections.py` to a compatibility facade.
+  - Updated `src/core/proposals/memo_source_readiness.py` to import focused owner modules
+    directly.
+  - Added boundary coverage proving the coordinator uses owner modules and the facade only
+    re-exports owner builders.
+  - Focused ruff and mypy passed for touched files; memo source-readiness and proposal memo builder
+    tests passed with 11 tests.
+- Consequence:
+  - Memo readiness behavior and source-authority output remain stable while future Lotus Core,
+    Lotus Risk, and Lotus Advise readiness changes can be reviewed in their owner modules.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal memo evidence modularity for existing behavior.
+- Follow-Up:
+  - Keep future memo source-readiness logic in the source-authority owner modules and use
+    `memo_source_readiness_sections.py` only as a compatibility facade.
+
 ## LA-REV-653
 
 - Scope: Proposal context resolution, request hashing, and evidence ownership
