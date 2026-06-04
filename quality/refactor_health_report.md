@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-17`
-- Head: `88e86f38cab2def70b2300200489c198e69294a5`
-- Branch Commits Over Main: `3`
+- Head: `a52c8616fc75fc9570d052d83f1aab6ce3117440`
+- Branch Commits Over Main: `4`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -56,6 +56,8 @@
   currency, and tradeoff deltas to a focused projection module.
 - Proposal alternatives ranking delegates comparator, reason-code, rank,
   and selected-alternative projection to a focused ranking module.
+- Proposal memo request DTOs and memo vocabulary literals are split from
+  response, lineage, and replay evidence models.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
 - Advisor cockpit service delegates repository-backed source loading and tactical

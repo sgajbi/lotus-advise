@@ -18,6 +18,21 @@ from src.core.proposals.delivery_summary_models import (
     ProposalDeliverySummaryResponse as SummaryProposalDeliverySummaryResponse,
 )
 from src.core.proposals.input_models import ProposalCreateRequest as InputProposalCreateRequest
+from src.core.proposals.memo_request_models import (
+    ProposalMemoAiCommentaryRequest as RequestProposalMemoAiCommentaryRequest,
+)
+from src.core.proposals.memo_request_models import (
+    ProposalMemoCreateRequest as RequestProposalMemoCreateRequest,
+)
+from src.core.proposals.memo_request_models import (
+    ProposalMemoReportPackageEventRequest as RequestProposalMemoReportPackageEventRequest,
+)
+from src.core.proposals.memo_request_models import (
+    ProposalMemoReportPackageRequest as RequestProposalMemoReportPackageRequest,
+)
+from src.core.proposals.memo_request_models import (
+    ProposalMemoReviewRequest as RequestProposalMemoReviewRequest,
+)
 from src.core.proposals.memo_response_models import (
     ProposalMemoResponse as MemoProposalMemoResponse,
 )
@@ -35,7 +50,22 @@ from src.core.proposals.response_models import (
     ProposalCreateResponse as ResponseProposalCreateResponse,
 )
 from src.core.proposals.response_models import (
+    ProposalMemoAiCommentaryRequest as ResponseProposalMemoAiCommentaryRequest,
+)
+from src.core.proposals.response_models import (
+    ProposalMemoCreateRequest as ResponseProposalMemoCreateRequest,
+)
+from src.core.proposals.response_models import (
+    ProposalMemoReportPackageEventRequest as ResponseProposalMemoReportPackageEventRequest,
+)
+from src.core.proposals.response_models import (
+    ProposalMemoReportPackageRequest as ResponseProposalMemoReportPackageRequest,
+)
+from src.core.proposals.response_models import (
     ProposalMemoResponse as ResponseProposalMemoResponse,
+)
+from src.core.proposals.response_models import (
+    ProposalMemoReviewRequest as ResponseProposalMemoReviewRequest,
 )
 from src.core.proposals.response_models import (
     ProposalNarrativeReviewResponse as ResponseProposalNarrativeReviewResponse,
@@ -63,6 +93,22 @@ def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert DeliveryProposalDeliverySummaryResponse is SummaryProposalDeliverySummaryResponse
     assert models.ProposalMemoResponse is ResponseProposalMemoResponse
     assert ResponseProposalMemoResponse is MemoProposalMemoResponse
+    assert models.ProposalMemoCreateRequest is ResponseProposalMemoCreateRequest
+    assert ResponseProposalMemoCreateRequest is RequestProposalMemoCreateRequest
+    assert models.ProposalMemoReviewRequest is ResponseProposalMemoReviewRequest
+    assert ResponseProposalMemoReviewRequest is RequestProposalMemoReviewRequest
+    assert (
+        models.ProposalMemoReportPackageEventRequest
+        is ResponseProposalMemoReportPackageEventRequest
+    )
+    assert (
+        ResponseProposalMemoReportPackageEventRequest
+        is RequestProposalMemoReportPackageEventRequest
+    )
+    assert models.ProposalMemoReportPackageRequest is ResponseProposalMemoReportPackageRequest
+    assert ResponseProposalMemoReportPackageRequest is RequestProposalMemoReportPackageRequest
+    assert models.ProposalMemoAiCommentaryRequest is ResponseProposalMemoAiCommentaryRequest
+    assert ResponseProposalMemoAiCommentaryRequest is RequestProposalMemoAiCommentaryRequest
     assert models.ProposalNarrativeReviewResponse is ResponseProposalNarrativeReviewResponse
     assert ResponseProposalNarrativeReviewResponse is NarrativeProposalNarrativeReviewResponse
     assert (
@@ -105,3 +151,25 @@ def test_delivery_response_models_are_split_by_delivery_boundary() -> None:
     assert "class ProposalExecutionStatusResponse" in execution
     assert "class ProposalDeliveryExecutionSummary" in summary
     assert "class ProposalDeliveryHistoryResponse" in summary
+
+
+def test_memo_request_models_are_split_from_memo_response_boundary() -> None:
+    from pathlib import Path
+
+    source_root = Path(__file__).resolve().parents[4] / "src" / "core" / "proposals"
+    facade = (source_root / "memo_response_models.py").read_text(encoding="utf-8")
+    requests = (source_root / "memo_request_models.py").read_text(encoding="utf-8")
+    types = (source_root / "memo_types.py").read_text(encoding="utf-8")
+
+    for class_name in (
+        "ProposalMemoCreateRequest",
+        "ProposalMemoReviewRequest",
+        "ProposalMemoReportPackageEventRequest",
+        "ProposalMemoReportPackageRequest",
+        "ProposalMemoAiCommentaryRequest",
+    ):
+        assert f"class {class_name}" not in facade
+        assert f"class {class_name}" in requests
+
+    assert "ProposalMemoReviewAction = Literal" in types
+    assert "ProposalMemoCommentarySection = Literal" in types

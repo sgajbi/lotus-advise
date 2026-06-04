@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-628
+
+- Scope: Proposal memo request DTO boundaries
+- Pattern: Memo mutation request DTOs and memo vocabulary literals should not be implemented in
+  the same oversized module as memo response, lineage, and replay evidence envelopes.
+- Status: Hardened
+- Finding Class: DTO modularity and OpenAPI maintainability
+- Summary: `src/core/proposals/memo_response_models.py` mixed memo lifecycle/review/report/AI
+  vocabulary literals, create/review/report-package/AI request DTOs, core memo responses, lineage
+  responses, and replay-evidence responses in one 450-line module. That increased review risk for
+  OpenAPI request-schema changes because request validation edits sat beside response and replay
+  evidence contracts.
+- Evidence:
+  - Extracted memo vocabulary literals to `src/core/proposals/memo_types.py`.
+  - Extracted memo create, review, report-package event, report-package request, and AI commentary
+    request DTOs to `src/core/proposals/memo_request_models.py`.
+  - Kept `src/core/proposals/memo_response_models.py` and
+    `src/core/proposals/response_models.py` compatibility imports stable for existing routers,
+    OpenAPI schemas, and public proposal model facades.
+  - Extended proposal model boundary tests to prove memo request DTOs are no longer implemented in
+    the response module and still flow through the public facades.
+  - Focused `ruff`, `mypy`, proposal model boundary tests, and OpenAPI lifecycle documentation
+    tests passed with 17 tests.
+- Consequence:
+  - Proposal memo request-schema evolution is now separated from response, lineage, and replay
+    evidence DTOs while preserving public API model names.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented memo behavior.
+- Follow-Up:
+  - Continue splitting memo response lineage/replay DTOs into focused modules while preserving
+    schema-title and facade compatibility.
+
 ## LA-REV-627
 
 - Scope: Proposal alternatives ranking projection
