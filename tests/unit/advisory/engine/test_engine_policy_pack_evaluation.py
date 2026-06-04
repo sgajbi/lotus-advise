@@ -1,4 +1,5 @@
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
@@ -11,6 +12,8 @@ from src.core.policy_packs import (
 )
 from src.core.policy_packs.evaluation import _artifact_section, _section, _source_refs
 from src.core.proposals.exceptions import ProposalValidationError
+
+SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
 
 
 def setup_function() -> None:
@@ -112,6 +115,21 @@ def _activate_sg_policy_pack() -> None:
 
 def _rule(result, rule_id: str):
     return next(rule for rule in result.rule_results if rule.rule_id == rule_id)
+
+
+def test_policy_pack_applicability_selection_stays_in_focused_module() -> None:
+    evaluation = (SOURCE_ROOT / "evaluation.py").read_text(encoding="utf-8")
+    applicability = (SOURCE_ROOT / "evaluation_applicability.py").read_text(encoding="utf-8")
+
+    assert "evaluate_policy_pack_applicability" in evaluation
+    assert "def _matches_scope" not in evaluation
+    assert "def _client_segment_matches_scope" not in evaluation
+    assert "PRIVATE_BANKING_CLIENT_CLASSIFICATIONS" not in evaluation
+
+    assert "def evaluate_policy_pack_applicability" in applicability
+    assert "def _matches_scope" in applicability
+    assert "def _client_segment_matches_scope" in applicability
+    assert "PRIVATE_BANKING_CLIENT_CLASSIFICATIONS" in applicability
 
 
 def test_policy_evaluation_ready_path_uses_active_pack_and_source_refs() -> None:

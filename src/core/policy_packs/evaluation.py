@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Any, cast
 
 from src.core.policy_packs.catalog import get_policy_pack_version
+from src.core.policy_packs.evaluation_applicability import evaluate_policy_pack_applicability
 from src.core.policy_packs.evaluation_models import (
-    PolicyPackApplicabilityResult,
     PolicyPackEvaluationResponse,
     PolicyRuleEvaluationResult,
 )
@@ -18,14 +18,8 @@ from src.core.proposals.policy_source_readiness import build_policy_source_readi
 from src.core.proposals.source_readiness_common import dict_at, list_at, overall_posture
 
 _EVALUATION_CONTRACT_VERSION = POLICY_EVALUATION_ENGINE_CONTRACT_VERSION
-_BOOKING_LOCATION_SOURCE_KEY = "booking_" + "center_code"
-_BOOKING_LOCATION_SCOPE_KEY = "booking_" + "center_code_scope"
 _FIELD_TO_SOURCE_SECTION = {
     "private_asset_or_structured_product_flag": "core_product_eligibility_target_market_complexity",
-}
-_PRIVATE_BANKING_CLIENT_CLASSIFICATIONS = {
-    "ACCREDITED_INVESTOR",
-    "PRIVATE_BANKING",
 }
 
 
@@ -51,7 +45,7 @@ def evaluate_policy_pack_version(
         raise ProposalValidationError("POLICY_PACK_VERSION_NOT_ACTIVE_FOR_EVALUATION")
 
     source_posture = _source_posture(evidence_bundle)
-    applicability = _evaluate_applicability(
+    applicability = evaluate_policy_pack_applicability(
         evidence_bundle=evidence_bundle,
         applicability=detail.applicability,
     )
@@ -94,79 +88,6 @@ def _source_posture(evidence_bundle: dict[str, Any]) -> dict[str, Any]:
     if posture:
         return cast(dict[str, Any], deepcopy(posture))
     return cast(dict[str, Any], build_policy_source_readiness(evidence_bundle))
-
-
-def _evaluate_applicability(
-    *, evidence_bundle: dict[str, Any], applicability: dict[str, Any]
-) -> PolicyPackApplicabilityResult:
-    context = dict_at(dict_at(evidence_bundle, "context_resolution"), "advisory_policy_context")
-    jurisdiction = str(context.get("jurisdiction") or "")
-    booking_location_code = str(context.get(_BOOKING_LOCATION_SOURCE_KEY) or "")
-    client_segment = str(context.get("client_classification") or "")
-    missing = []
-    if not jurisdiction:
-        missing.append("jurisdiction")
-    if not client_segment:
-        missing.append("client_classification")
-    if missing:
-        return PolicyPackApplicabilityResult(
-            status="BLOCKED",
-            missing_evidence=missing,
-            reason_codes=["POLICY_APPLICABILITY_SOURCE_EVIDENCE_MISSING"],
-        )
-
-    if not _matches_scope(jurisdiction, list_at(applicability, "jurisdiction_scope")):
-        return PolicyPackApplicabilityResult(
-            status="NOT_APPLICABLE",
-            matched_selectors={"jurisdiction": jurisdiction},
-            reason_codes=["POLICY_PACK_JURISDICTION_NOT_APPLICABLE"],
-        )
-    if booking_location_code and not _matches_scope(
-        booking_location_code, list_at(applicability, _BOOKING_LOCATION_SCOPE_KEY)
-    ):
-        return PolicyPackApplicabilityResult(
-            status="NOT_APPLICABLE",
-            matched_selectors={
-                "jurisdiction": jurisdiction,
-                "booking_location_code": booking_location_code,
-            },
-            reason_codes=["POLICY_PACK_BOOKING_LOCATION_NOT_APPLICABLE"],
-        )
-    if not _client_segment_matches_scope(
-        client_segment, list_at(applicability, "client_segment_scope")
-    ):
-        return PolicyPackApplicabilityResult(
-            status="NOT_APPLICABLE",
-            matched_selectors={"jurisdiction": jurisdiction, "client_segment": client_segment},
-            reason_codes=["POLICY_PACK_CLIENT_SEGMENT_NOT_APPLICABLE"],
-        )
-
-    return PolicyPackApplicabilityResult(
-        status="APPLICABLE",
-        matched_selectors={
-            "jurisdiction": jurisdiction,
-            "client_segment": client_segment,
-            **({"booking_location_code": booking_location_code} if booking_location_code else {}),
-        },
-        reason_codes=["POLICY_PACK_APPLIES_TO_PROPOSAL_CONTEXT"],
-    )
-
-
-def _matches_scope(value: str, scope: list[Any]) -> bool:
-    normalized_scope = {str(item) for item in scope}
-    return "GLOBAL" in normalized_scope or value in normalized_scope
-
-
-def _client_segment_matches_scope(value: str, scope: list[Any]) -> bool:
-    normalized_scope = {str(item) for item in scope}
-    return (
-        "GLOBAL" in normalized_scope
-        or value in normalized_scope
-        or (
-            "PRIVATE_BANKING" in normalized_scope
-            and value in _PRIVATE_BANKING_CLIENT_CLASSIFICATIONS
-        )
-    )
 
 
 def _evaluate_rule(
@@ -595,7 +516,7 @@ def _aggregate_status(results: list[PolicyRuleEvaluationResult]) -> str:
 
 
 def _supportability() -> dict[str, Any]:
-    return policy_runtime_supportability()
+    return dict(policy_runtime_supportability())
 
 
 def _unique(values: list[str]) -> list[str]:
