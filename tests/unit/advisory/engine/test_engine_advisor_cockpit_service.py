@@ -51,6 +51,23 @@ def test_cockpit_service_delegates_source_loading_to_focused_module() -> None:
         assert repository_call in loader_source
 
 
+def test_cockpit_service_delegates_acknowledgement_helpers() -> None:
+    service_source = (REPO_ROOT / "src/core/advisor_cockpit/service.py").read_text(encoding="utf-8")
+    acknowledgement_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/service_acknowledgement.py"
+    ).read_text(encoding="utf-8")
+
+    assert "from src.core.advisor_cockpit.service_acknowledgement import" in service_source
+    assert "def acknowledge_cockpit_action(" not in service_source
+    assert "def acknowledgement_response(" not in service_source
+    assert "def acknowledgement_state(" not in service_source
+    assert "hash_canonical_payload" not in service_source
+    assert "CockpitAcknowledgementIdempotencyRecord" not in service_source
+    assert "def acknowledge_cockpit_action(" in acknowledgement_source
+    assert "def acknowledgement_response(" in acknowledgement_source
+    assert "def acknowledgement_state(" in acknowledgement_source
+
+
 class CountingCockpitRepository(InMemoryProposalRepository):
     def __init__(self) -> None:
         super().__init__()
