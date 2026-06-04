@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -63,6 +64,11 @@ class QualityContext:
     importlinter_contract_count: int | None
     importlinter_kept_count: int | None
     importlinter_broken_count: int | None
+    radon_config_valid: bool
+    radon_analyzed_block_count: int | None
+    radon_rank_counts: dict[str, int]
+    radon_worst_rank: str | None
+    radon_worst_complexity: int | None
 
 
 def _run_git(repo_root: Path, args: list[str]) -> str:
@@ -200,6 +206,67 @@ def _importlinter_contract_counts(
     return completed.returncode in {0, 1}, kept + broken, kept, broken
 
 
+def _radon_complexity_inventory(
+    repo_root: Path,
+) -> tuple[bool, int | None, dict[str, int], str | None, int | None]:
+    if not _tool_available("radon"):
+        return False, None, {}, None, None
+    completed = subprocess.run(
+        [sys.executable, "-m", "radon", "cc", "src", "-s", "-j"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        return False, None, {}, None, None
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return False, None, {}, None, None
+    if not isinstance(payload, dict):
+        return False, None, {}, None, None
+    blocks: list[dict[str, object]] = []
+
+    def _collect(block: object) -> None:
+        if not isinstance(block, dict):
+            return
+        blocks.append(block)
+        for child_key in ("methods", "closures"):
+            children = block.get(child_key)
+            if isinstance(children, list):
+                for child in children:
+                    _collect(child)
+
+    for file_blocks in payload.values():
+        if isinstance(file_blocks, list):
+            for block in file_blocks:
+                _collect(block)
+    rank_counts = Counter(
+        str(block.get("rank"))
+        for block in blocks
+        if isinstance(block.get("rank"), str) and block.get("rank")
+    )
+
+    def _complexity(block: dict[str, object]) -> int:
+        value = block.get("complexity")
+        return value if isinstance(value, int) else 0
+
+    worst_block = max(blocks, key=_complexity, default=None)
+    if worst_block is None:
+        return True, 0, {}, None, None
+    worst_complexity_value = worst_block.get("complexity")
+    worst_rank = worst_block.get("rank")
+    worst_complexity = worst_complexity_value if isinstance(worst_complexity_value, int) else None
+    return (
+        True,
+        len(blocks),
+        dict(sorted(rank_counts.items())),
+        str(worst_rank) if isinstance(worst_rank, str) else None,
+        worst_complexity,
+    )
+
+
 def build_quality_context(repo_root: Path) -> QualityContext:
     available_tools = tuple(name for name, module in QUALITY_TOOLS if _tool_available(module))
     unavailable_tools = tuple(name for name, module in QUALITY_TOOLS if not _tool_available(module))
@@ -221,6 +288,13 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         importlinter_kept_count,
         importlinter_broken_count,
     ) = _importlinter_contract_counts(repo_root)
+    (
+        radon_config_valid,
+        radon_analyzed_block_count,
+        radon_rank_counts,
+        radon_worst_rank,
+        radon_worst_complexity,
+    ) = _radon_complexity_inventory(repo_root)
     return QualityContext(
         report=build_report(repo_root),
         branch_commit_count=_branch_commit_count(repo_root),
@@ -245,6 +319,11 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         importlinter_contract_count=importlinter_contract_count,
         importlinter_kept_count=importlinter_kept_count,
         importlinter_broken_count=importlinter_broken_count,
+        radon_config_valid=radon_config_valid,
+        radon_analyzed_block_count=radon_analyzed_block_count,
+        radon_rank_counts=radon_rank_counts,
+        radon_worst_rank=radon_worst_rank,
+        radon_worst_complexity=radon_worst_complexity,
     )
 
 
@@ -286,6 +365,21 @@ def render_baseline_report(context: QualityContext) -> str:
     importlinter_broken_count = (
         str(context.importlinter_broken_count)
         if context.importlinter_broken_count is not None
+        else "not run"
+    )
+    radon_block_count = (
+        str(context.radon_analyzed_block_count)
+        if context.radon_analyzed_block_count is not None
+        else "not run"
+    )
+    radon_rank_inventory = ", ".join(
+        f"{rank}={count}" for rank, count in context.radon_rank_counts.items()
+    )
+    if not radon_rank_inventory:
+        radon_rank_inventory = "not run"
+    radon_worst = (
+        f"rank={context.radon_worst_rank}, complexity={context.radon_worst_complexity}"
+        if context.radon_worst_rank is not None and context.radon_worst_complexity is not None
         else "not run"
     )
     lines = [
@@ -332,8 +426,11 @@ def render_baseline_report(context: QualityContext) -> str:
             "",
             "- Current baseline uses largest-function and router-hotspot evidence as deterministic",
             "  complexity proxies.",
-            "- `radon` and `xenon` are tracked as report-only follow-up tools until installed and",
-            "  calibrated against current Lotus Advise behavior.",
+            f"- Radon config executable: `{context.radon_config_valid}`",
+            f"- Radon analyzed block inventory: `{radon_block_count}`",
+            f"- Radon complexity rank inventory: `{radon_rank_inventory}`",
+            f"- Radon worst complexity: `{radon_worst}`",
+            "- Xenon remains report-only until current Radon thresholds are classified.",
             "",
             "## Lint And Type Issues",
             "",
@@ -581,8 +678,10 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
-        "- Calibrate report-only tools: radon/xenon, vulture,",
+        "- Calibrate report-only tools: xenon, vulture,",
         "  Spectral, interrogate, and optional schemathesis/load testing.",
+        "- Convert the Radon complexity inventory into a fail-on-new-regression gate after",
+        "  classifying current high-complexity blocks.",
         "- Convert the kept import-linter architecture contracts into a blocking CI gate.",
         "- Convert the Bandit security inventory into a fail-on-new-regression gate after",
         "  classifying current SQL-construction findings and resolving true positives.",
@@ -601,7 +700,11 @@ def render_refactor_health_report(context: QualityContext) -> str:
 def render_quality_scorecard(context: QualityContext) -> str:
     rows = [
         ("Code size and hotspots", "Baseline active", "engineering-health + quality baseline"),
-        ("Complexity", "Report-only gap", "radon/xenon pending calibration"),
+        (
+            "Complexity",
+            "Executable Radon inventory",
+            "radon rank and worst-complexity counts",
+        ),
         ("Maintainability", "Improving", "modularity slices and review ledger"),
         ("Lint", "Enforced", "make lint"),
         ("Type safety", "Enforced", "make typecheck"),

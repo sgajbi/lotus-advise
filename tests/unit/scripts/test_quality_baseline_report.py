@@ -53,6 +53,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
 
     assert "Code Size" in baseline
     assert "Complexity" in baseline
+    assert "Radon config executable" in baseline
+    assert "Radon complexity rank inventory" in baseline
+    assert "Radon worst complexity" in baseline
     assert "Dead Code" in baseline
     assert "Deptry config executable" in baseline
     assert "Deptry current issue inventory" in baseline
@@ -66,6 +69,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Documentation Gaps" in baseline
     assert "Observability Gaps" in baseline
     assert "Progressive Gate Phase" in scorecard
+    assert "Executable Radon inventory" in scorecard
     assert "Enforced plus deptry inventory" in scorecard
     assert "Partially enforced plus Bandit inventory" in scorecard
     assert "Executable report-only contracts" in scorecard
@@ -127,6 +131,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Policy evaluation persistence delegates lineage/posture projection" in refactor_health
     assert "Policy evaluation persistence delegates replay hash comparison" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
+    assert "Radon complexity inventory" in refactor_health
     assert "Bandit security inventory" in refactor_health
     assert "deptry dependency inventory" in refactor_health
     assert "import-linter architecture contracts" in refactor_health

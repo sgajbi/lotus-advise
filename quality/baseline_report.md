@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T15:49:17.319658+00:00`
+- Generated At: `2026-06-04T15:54:24.782040+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `29134a22b0da7f05dea71848b29a95b1df298c5c`
-- Branch Commits Over Main: `2`
+- Head: `d55355f6e941a224ae033d16660aee26f5967565`
+- Branch Commits Over Main: `3`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `911`
 - Packages: `38`
 - Modules: `873`
-- Total Python lines: `136906`
+- Total Python lines: `137014`
 
 ## Largest Files
 
@@ -47,8 +47,11 @@
 
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
-- `radon` and `xenon` are tracked as report-only follow-up tools until installed and
-  calibrated against current Lotus Advise behavior.
+- Radon config executable: `True`
+- Radon analyzed block inventory: `3009`
+- Radon complexity rank inventory: `A=2715, B=225, C=60, D=7, E=2`
+- Radon worst complexity: `rank=E, complexity=32`
+- Xenon remains report-only until current Radon thresholds are classified.
 
 ## Lint And Type Issues
 

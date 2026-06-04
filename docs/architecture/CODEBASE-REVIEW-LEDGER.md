@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-680
+
+- Scope: Complexity inventory calibration
+- Pattern: Complexity controls should start with compact, repeatable current-state inventory before
+  enforcing absolute thresholds.
+- Status: Hardened
+- Finding Class: Complexity measurement and CI readiness
+- Summary: The quality scorecard listed Radon/Xenon as pending complexity tooling even though Radon
+  is installed and can produce deterministic JSON output for current code complexity. The branch
+  lacked a compact baseline count that could support fail-on-new-regression threshold design.
+- Evidence:
+  - Updated `scripts/quality_baseline_report.py` to execute Radon in report-only mode and record
+    analyzed block count, rank inventory, and worst complexity.
+  - Updated report tests to pin Radon inventory fields and scorecard wording.
+  - Regenerated quality reports so complexity now records executable Radon evidence.
+- Consequence:
+  - Complexity posture moved from proxy-only report text to measurable Radon inventory evidence
+    while preserving report-only behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local quality measurement posture, not new operator-facing wiki truth.
+- Follow-Up:
+  - Classify current high-complexity blocks, set an agreed threshold, and add fail-on-regression
+    enforcement before introducing a blocking Xenon gate.
+
 ## LA-REV-679
 
 - Scope: API-to-infrastructure boundary enforcement calibration
