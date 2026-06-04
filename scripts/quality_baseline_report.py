@@ -53,6 +53,11 @@ class QualityContext:
     unavailable_tools: tuple[str, ...]
     deptry_config_valid: bool
     deptry_issue_count: int | None
+    bandit_config_valid: bool
+    bandit_issue_count: int | None
+    bandit_high_count: int | None
+    bandit_medium_count: int | None
+    bandit_low_count: int | None
 
 
 def _run_git(repo_root: Path, args: list[str]) -> str:
@@ -113,6 +118,53 @@ def _deptry_issue_count(repo_root: Path) -> tuple[bool, int | None]:
         output_path.unlink(missing_ok=True)
 
 
+def _bandit_issue_counts(
+    repo_root: Path,
+) -> tuple[bool, int | None, int | None, int | None, int | None]:
+    if not _tool_available("bandit") or not (repo_root / "pyproject.toml").exists():
+        return False, None, None, None, None
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "bandit",
+            "-q",
+            "-r",
+            "src",
+            "-c",
+            "pyproject.toml",
+            "-f",
+            "json",
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode not in {0, 1}:
+        return False, None, None, None, None
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return False, None, None, None, None
+    if not isinstance(payload, dict):
+        return False, None, None, None, None
+    results = payload.get("results")
+    metrics = payload.get("metrics")
+    if not isinstance(results, list) or not isinstance(metrics, dict):
+        return False, None, None, None, None
+    totals = metrics.get("_totals")
+    if not isinstance(totals, dict):
+        return False, None, None, None, None
+    return (
+        True,
+        len(results),
+        int(totals.get("SEVERITY.HIGH", 0)),
+        int(totals.get("SEVERITY.MEDIUM", 0)),
+        int(totals.get("SEVERITY.LOW", 0)),
+    )
+
+
 def build_quality_context(repo_root: Path) -> QualityContext:
     available_tools = tuple(name for name, module in QUALITY_TOOLS if _tool_available(module))
     unavailable_tools = tuple(name for name, module in QUALITY_TOOLS if not _tool_available(module))
@@ -121,6 +173,13 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         path for path in REQUESTED_DOCS if not (repo_root / path).exists()
     )
     deptry_config_valid, deptry_issue_count = _deptry_issue_count(repo_root)
+    (
+        bandit_config_valid,
+        bandit_issue_count,
+        bandit_high_count,
+        bandit_medium_count,
+        bandit_low_count,
+    ) = _bandit_issue_counts(repo_root)
     return QualityContext(
         report=build_report(repo_root),
         branch_commit_count=_branch_commit_count(repo_root),
@@ -136,6 +195,11 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         unavailable_tools=unavailable_tools,
         deptry_config_valid=deptry_config_valid,
         deptry_issue_count=deptry_issue_count,
+        bandit_config_valid=bandit_config_valid,
+        bandit_issue_count=bandit_issue_count,
+        bandit_high_count=bandit_high_count,
+        bandit_medium_count=bandit_medium_count,
+        bandit_low_count=bandit_low_count,
     )
 
 
@@ -151,6 +215,18 @@ def render_baseline_report(context: QualityContext) -> str:
     report = context.report
     deptry_issue_count = (
         str(context.deptry_issue_count) if context.deptry_issue_count is not None else "not run"
+    )
+    bandit_issue_count = (
+        str(context.bandit_issue_count) if context.bandit_issue_count is not None else "not run"
+    )
+    bandit_high_count = (
+        str(context.bandit_high_count) if context.bandit_high_count is not None else "not run"
+    )
+    bandit_medium_count = (
+        str(context.bandit_medium_count) if context.bandit_medium_count is not None else "not run"
+    )
+    bandit_low_count = (
+        str(context.bandit_low_count) if context.bandit_low_count is not None else "not run"
     )
     lines = [
         "# Lotus Advise Quality Baseline Report",
@@ -223,6 +299,10 @@ def render_baseline_report(context: QualityContext) -> str:
             f"- Pending optional tools: `{', '.join(context.unavailable_tools)}`",
             f"- Deptry config executable: `{context.deptry_config_valid}`",
             f"- Deptry current issue inventory: `{deptry_issue_count}`",
+            f"- Bandit config executable: `{context.bandit_config_valid}`",
+            f"- Bandit current issue inventory: `{bandit_issue_count}`",
+            f"- Bandit severity inventory: `high={bandit_high_count}, "
+            f"medium={bandit_medium_count}, low={bandit_low_count}`",
             "",
             "## Security",
             "",
@@ -439,8 +519,10 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
-        "- Calibrate report-only tools: radon/xenon, vulture, bandit, import-linter,",
+        "- Calibrate report-only tools: radon/xenon, vulture, import-linter,",
         "  Spectral, interrogate, and optional schemathesis/load testing.",
+        "- Convert the Bandit security inventory into a fail-on-new-regression gate after",
+        "  classifying current SQL-construction findings and resolving true positives.",
         "- Convert the deptry dependency inventory into a fail-on-new-regression gate after",
         "  classifying current dependency findings.",
         "- Convert baseline reports into fail-on-new-regression gates before enforcing absolute",
@@ -467,7 +549,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Enforced plus deptry inventory",
             "dependency health check + pip-audit posture + deptry issue count",
         ),
-        ("Security", "Partially enforced", "security-audit plus pending bandit baseline"),
+        (
+            "Security",
+            "Partially enforced plus Bandit inventory",
+            "security-audit + Bandit severity counts",
+        ),
         ("OpenAPI", "Enforced plus report-only", "openapi-gate + Spectral config"),
         ("Architecture boundaries", "Report-only gap", "import-linter config added"),
         ("Docs", "Gap tracked", "requested docs tracked in baseline report"),

@@ -101,11 +101,15 @@ def build_dependency_state(
         readiness_basis = "configuration_only"
         degraded_reason = None
     else:
-        assert public_base_url is not None
-        operational_ready = probe_dependency_health(public_base_url)
-        readiness_basis = "probe_succeeded" if operational_ready else "probe_failed"
-        if operational_ready:
-            degraded_reason = None
+        probe_base_url = public_base_url
+        if probe_base_url is None:
+            operational_ready = False
+            readiness_basis = "invalid_configuration"
+        else:
+            operational_ready = probe_dependency_health(probe_base_url)
+            readiness_basis = "probe_succeeded" if operational_ready else "probe_failed"
+            if operational_ready:
+                degraded_reason = None
 
     return IntegrationDependencyState(
         key=key,

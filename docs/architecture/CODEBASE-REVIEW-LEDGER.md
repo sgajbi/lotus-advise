@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-678
+
+- Scope: Security scanner inventory and runtime assertion hardening
+- Pattern: Runtime readiness code should not depend on `assert`, and report-only security scanners
+  must emit measurable severity counts before they become fail-on-new-regression gates.
+- Status: Hardened
+- Finding Class: Security hardening and CI measurement readiness
+- Summary: Bandit was configured but the quality baseline only recorded that configuration existed.
+  The repository could not yet show current Bandit issue count or severity distribution in the
+  before/after scorecard, and runtime dependency probing contained an `assert` that optimized
+  Python execution can remove.
+- Evidence:
+  - Replaced the runtime dependency probing `assert` with explicit guarded readiness logic in
+    `src/integrations/base.py`.
+  - Updated `scripts/quality_baseline_report.py` to execute Bandit in report-only mode and record
+    whether the config is executable plus current total, high, medium, and low severity counts.
+  - Updated quality report tests to pin the Bandit inventory signal and scorecard wording.
+- Consequence:
+  - Security posture now has measurable Bandit inventory evidence while preserving report-only
+    behavior until current SQL-construction findings are classified.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local security measurement posture, not new operator-facing wiki
+    truth.
+- Follow-Up:
+  - Classify Bandit SQL-construction findings as true positives or parameterized-query false
+    positives, then convert Bandit into a fail-on-new-regression gate.
+
 ## LA-REV-677
 
 - Scope: Dependency hygiene report-only deptry calibration
