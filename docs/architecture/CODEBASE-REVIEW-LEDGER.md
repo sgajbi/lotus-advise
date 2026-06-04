@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-663
+
+- Scope: Advisor cockpit reporting and execution source projection ownership
+- Pattern: Report/archive readiness and execution handoff/status source rules should be owned by
+  focused source-family modules instead of the broad cockpit projection facade.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and reviewability
+- Summary: `src/core/advisor_cockpit/source_projection.py` still owned report/render/archive
+  readiness and execution handoff/status projection rules after the policy/memo and proposal
+  source-family splits. That kept private helper logic for reporting and execution mixed with
+  grouping helpers and facade reexports, making source-family review and future hardening harder.
+- Evidence:
+  - Added `src/core/advisor_cockpit/source_projection_reporting.py` for report package and archive
+    reference readiness source projection.
+  - Added `src/core/advisor_cockpit/source_projection_execution.py` for execution handoff readiness,
+    execution status attention projection, and latest execution-event selection.
+  - Kept `src/core/advisor_cockpit/source_projection.py` as the existing facade and grouping helper
+    owner while reexporting focused source-family builders for compatibility.
+  - Updated advisor cockpit source-read-model boundary tests to require reporting and execution
+    helpers in their focused owner modules and not in the facade.
+  - Updated RFC-0026 slice 5 source-read-model contract coverage so durable source evidence includes
+    the focused reporting and execution projection modules.
+  - Focused ruff, ruff format check, and mypy passed for touched files; advisor cockpit source
+    read-model and RFC-0026 slice 5 contract tests passed with 15 tests.
+- Consequence:
+  - Advisor cockpit source aggregation behavior remains stable while reporting/archive and execution
+    action-source rules can be reviewed independently from proposal and policy/memo projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor-cockpit source projection modularity for existing behavior.
+- Follow-Up:
+  - Continue reducing oversized proposal and advisor-cockpit service boundaries with focused
+    owner modules and boundary tests.
+
 ## LA-REV-662
 
 - Scope: Advisor cockpit proposal source projection ownership
