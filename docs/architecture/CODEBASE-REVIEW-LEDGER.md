@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-608
+
+- Scope: Proposal memo request context
+- Pattern: Memo API command orchestration should not own proposal-version lookup, memo lookup,
+  source-hash validation, and advisor-use review posture validation.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and validation-boundary maintainability
+- Summary: After extracting event recording, `src/core/proposals/memo_api.py` still mixed
+  use-case orchestration with proposal-version replay referent loading, memo lookup diagnostics,
+  source memo hash validation, and advisor-use review posture validation. These are reusable
+  request-context checks that should be reviewed separately from report/AI command flow.
+- Evidence:
+  - Added `src/core/proposals/memo_request_context.py` for proposal-version loading, memo loading,
+    source memo hash validation, and advisor-use review posture enforcement.
+  - Kept `src/core/proposals/memo_api.py` focused on memo use-case orchestration, idempotency key
+    normalization, event recording delegation, downstream Lotus Report and Lotus AI calls, and
+    response assembly.
+  - Added a source-boundary guard proving replay referent loading and request-context helper
+    definitions stay outside the memo API orchestration module.
+  - Focused memo API lint, format, mypy, and unit tests passed with 13 tests.
+- Consequence:
+  - Memo API behavior remains compatible while missing-proposal, missing-memo, source-hash, and
+    advisor-use review validation can be reviewed independently from downstream command workflows.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal service and remaining memo API orchestration hotspots where
+    cohesive workflow boundaries remain clear.
+
 ## LA-REV-607
 
 - Scope: Proposal memo event recording
