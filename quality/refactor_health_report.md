@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `942bfe143fc15e76906d042926340b8c6466482b`
-- Branch Commits Over Main: `7`
+- Head: `60ddd23ab503bf766b5cce0aecf49aaf0606abd1`
+- Branch Commits Over Main: `9`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -46,6 +46,8 @@
   and material-claim construction to a focused section factory.
 - Proposal memo API orchestration delegates report-package and AI-evidence payloads
   to a focused external-package module.
+- Proposal memo API routes are split into command, external-package, and read/projection
+  route modules while preserving the route loader and OpenAPI surface.
 - Proposal memo API response assembly delegates memo, audit-event, report replay,
   AI commentary, archive-ref, section, and replay-metadata projection to a
   focused response projection module.

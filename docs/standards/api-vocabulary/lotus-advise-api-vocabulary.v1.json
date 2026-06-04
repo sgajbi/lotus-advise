@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-06-04T12:35:00.290127+00:00",
+  "generatedAt": "2026-06-04T12:42:58.140330+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -12459,42 +12459,6 @@
       "attributeRef": "#/attributeCatalog/lotus.version_no"
     },
     {
-      "name": "audience",
-      "kind": "request_option",
-      "location": "query",
-      "required": false,
-      "type": "object",
-      "description": "Optional memo audience filter such as `ADVISOR` or `COMPLIANCE`.",
-      "example": "STANDARD_TEXT",
-      "allowedValues": [],
-      "semanticId": "lotus.audience",
-      "attributeRef": "#/attributeCatalog/lotus.audience"
-    },
-    {
-      "name": "proposal_id",
-      "kind": "request_option",
-      "location": "path",
-      "required": true,
-      "type": "string",
-      "description": "Persisted proposal identifier.",
-      "example": "ENTITY_001",
-      "allowedValues": [],
-      "semanticId": "lotus.proposal_id",
-      "attributeRef": "#/attributeCatalog/lotus.proposal_id"
-    },
-    {
-      "name": "version_no",
-      "kind": "request_option",
-      "location": "path",
-      "required": true,
-      "type": "integer",
-      "description": "Immutable proposal version number used as memo source.",
-      "example": 1,
-      "allowedValues": [],
-      "semanticId": "lotus.version_no",
-      "attributeRef": "#/attributeCatalog/lotus.version_no"
-    },
-    {
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "header",
@@ -12613,6 +12577,42 @@
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
       "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+    },
+    {
+      "name": "proposal_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Persisted proposal identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.proposal_id",
+      "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+    },
+    {
+      "name": "version_no",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "integer",
+      "description": "Immutable proposal version number used as memo source.",
+      "example": 1,
+      "allowedValues": [],
+      "semanticId": "lotus.version_no",
+      "attributeRef": "#/attributeCatalog/lotus.version_no"
+    },
+    {
+      "name": "audience",
+      "kind": "request_option",
+      "location": "query",
+      "required": false,
+      "type": "object",
+      "description": "Optional memo audience filter such as `ADVISOR` or `COMPLIANCE`.",
+      "example": "STANDARD_TEXT",
+      "allowedValues": [],
+      "semanticId": "lotus.audience",
+      "attributeRef": "#/attributeCatalog/lotus.audience"
     },
     {
       "name": "proposal_id",
@@ -32098,205 +32098,6 @@
     },
     {
       "domain": "advisory_proposal_memo",
-      "method": "GET",
-      "path": "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/projection",
-      "operationId": "get_proposal_memo_projection_advisory_proposals__proposal_id__versions__version_no__memo_projection_get",
-      "summary": "Read Proposal Memo Projection",
-      "request": {
-        "fields": [
-          {
-            "name": "proposal_id",
-            "location": "path",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.proposal_id",
-            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
-          },
-          {
-            "name": "version_no",
-            "location": "path",
-            "required": true,
-            "type": "integer",
-            "semanticId": "lotus.version_no",
-            "attributeRef": "#/attributeCatalog/lotus.version_no"
-          },
-          {
-            "name": "audience",
-            "location": "query",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.audience",
-            "attributeRef": "#/attributeCatalog/lotus.audience"
-          }
-        ]
-      },
-      "response": {
-        "fields": [
-          {
-            "name": "proposal",
-            "location": "body",
-            "required": true,
-            "type": "ProposalSummary",
-            "semanticId": "lotus.proposal",
-            "attributeRef": "#/attributeCatalog/lotus.proposal"
-          },
-          {
-            "name": "proposal.proposal_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.proposal_id",
-            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
-          },
-          {
-            "name": "proposal.portfolio_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.portfolio_id",
-            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
-          },
-          {
-            "name": "proposal.mandate_id",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.mandate_id",
-            "attributeRef": "#/attributeCatalog/lotus.mandate_id"
-          },
-          {
-            "name": "proposal.jurisdiction",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.jurisdiction",
-            "attributeRef": "#/attributeCatalog/lotus.jurisdiction"
-          },
-          {
-            "name": "proposal.created_by",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.created_by",
-            "attributeRef": "#/attributeCatalog/lotus.created_by"
-          },
-          {
-            "name": "proposal.created_at",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.created_at",
-            "attributeRef": "#/attributeCatalog/lotus.created_at"
-          },
-          {
-            "name": "proposal.last_event_at",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.last_event_at",
-            "attributeRef": "#/attributeCatalog/lotus.last_event_at"
-          },
-          {
-            "name": "proposal.current_state",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.current_state",
-            "attributeRef": "#/attributeCatalog/lotus.current_state"
-          },
-          {
-            "name": "proposal.current_version_no",
-            "location": "body",
-            "required": true,
-            "type": "integer",
-            "semanticId": "lotus.current_version_no",
-            "attributeRef": "#/attributeCatalog/lotus.current_version_no"
-          },
-          {
-            "name": "proposal.title",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.title",
-            "attributeRef": "#/attributeCatalog/lotus.title"
-          },
-          {
-            "name": "proposal.lifecycle_origin",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.lifecycle_origin",
-            "attributeRef": "#/attributeCatalog/lotus.lifecycle_origin"
-          },
-          {
-            "name": "proposal.source_workspace_id",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.source_workspace_id",
-            "attributeRef": "#/attributeCatalog/lotus.source_workspace_id"
-          },
-          {
-            "name": "proposal_version_no",
-            "location": "body",
-            "required": true,
-            "type": "integer",
-            "semanticId": "lotus.proposal_version_no",
-            "attributeRef": "#/attributeCatalog/lotus.proposal_version_no"
-          },
-          {
-            "name": "memo_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.memo_id",
-            "attributeRef": "#/attributeCatalog/lotus.memo_id"
-          },
-          {
-            "name": "memo_hash",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.memo_hash",
-            "attributeRef": "#/attributeCatalog/lotus.memo_hash"
-          },
-          {
-            "name": "audience",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.audience",
-            "attributeRef": "#/attributeCatalog/lotus.audience"
-          },
-          {
-            "name": "projection",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.projection",
-            "attributeRef": "#/attributeCatalog/lotus.projection"
-          },
-          {
-            "name": "sections",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.sections",
-            "attributeRef": "#/attributeCatalog/lotus.sections"
-          },
-          {
-            "name": "projection_posture",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.projection_posture",
-            "attributeRef": "#/attributeCatalog/lotus.projection_posture"
-          }
-        ]
-      }
-    },
-    {
-      "domain": "advisory_proposal_memo",
       "method": "POST",
       "path": "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/review",
       "operationId": "review_proposal_memo_advisory_proposals__proposal_id__versions__version_no__memo_review_post",
@@ -34319,6 +34120,205 @@
             "type": "boolean",
             "semanticId": "lotus.replayed",
             "attributeRef": "#/attributeCatalog/lotus.replayed"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_proposal_memo",
+      "method": "GET",
+      "path": "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/projection",
+      "operationId": "get_proposal_memo_projection_advisory_proposals__proposal_id__versions__version_no__memo_projection_get",
+      "summary": "Read Proposal Memo Projection",
+      "request": {
+        "fields": [
+          {
+            "name": "proposal_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "version_no",
+            "location": "path",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.version_no",
+            "attributeRef": "#/attributeCatalog/lotus.version_no"
+          },
+          {
+            "name": "audience",
+            "location": "query",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.audience",
+            "attributeRef": "#/attributeCatalog/lotus.audience"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "proposal",
+            "location": "body",
+            "required": true,
+            "type": "ProposalSummary",
+            "semanticId": "lotus.proposal",
+            "attributeRef": "#/attributeCatalog/lotus.proposal"
+          },
+          {
+            "name": "proposal.proposal_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "proposal.portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
+          },
+          {
+            "name": "proposal.mandate_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.mandate_id",
+            "attributeRef": "#/attributeCatalog/lotus.mandate_id"
+          },
+          {
+            "name": "proposal.jurisdiction",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.jurisdiction",
+            "attributeRef": "#/attributeCatalog/lotus.jurisdiction"
+          },
+          {
+            "name": "proposal.created_by",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.created_by",
+            "attributeRef": "#/attributeCatalog/lotus.created_by"
+          },
+          {
+            "name": "proposal.created_at",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.created_at",
+            "attributeRef": "#/attributeCatalog/lotus.created_at"
+          },
+          {
+            "name": "proposal.last_event_at",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.last_event_at",
+            "attributeRef": "#/attributeCatalog/lotus.last_event_at"
+          },
+          {
+            "name": "proposal.current_state",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.current_state",
+            "attributeRef": "#/attributeCatalog/lotus.current_state"
+          },
+          {
+            "name": "proposal.current_version_no",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.current_version_no",
+            "attributeRef": "#/attributeCatalog/lotus.current_version_no"
+          },
+          {
+            "name": "proposal.title",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.title",
+            "attributeRef": "#/attributeCatalog/lotus.title"
+          },
+          {
+            "name": "proposal.lifecycle_origin",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.lifecycle_origin",
+            "attributeRef": "#/attributeCatalog/lotus.lifecycle_origin"
+          },
+          {
+            "name": "proposal.source_workspace_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_workspace_id"
+          },
+          {
+            "name": "proposal_version_no",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.proposal_version_no",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_no"
+          },
+          {
+            "name": "memo_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.memo_id",
+            "attributeRef": "#/attributeCatalog/lotus.memo_id"
+          },
+          {
+            "name": "memo_hash",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.memo_hash",
+            "attributeRef": "#/attributeCatalog/lotus.memo_hash"
+          },
+          {
+            "name": "audience",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.audience",
+            "attributeRef": "#/attributeCatalog/lotus.audience"
+          },
+          {
+            "name": "projection",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.projection",
+            "attributeRef": "#/attributeCatalog/lotus.projection"
+          },
+          {
+            "name": "sections",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.sections",
+            "attributeRef": "#/attributeCatalog/lotus.sections"
+          },
+          {
+            "name": "projection_posture",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.projection_posture",
+            "attributeRef": "#/attributeCatalog/lotus.projection_posture"
           }
         ]
       }
