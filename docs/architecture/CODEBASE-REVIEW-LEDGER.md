@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-611
+
+- Scope: Proposal delivery response models
+- Pattern: Delivery response DTOs should not mix reporting, execution, and delivery-summary
+  schemas in one hotspot module.
+- Status: Hardened
+- Finding Class: API DTO modularity and delivery-boundary maintainability
+- Summary: `src/core/proposals/delivery_response_models.py` had become the largest production
+  hotspot and mixed lotus-report request/response contracts, execution handoff/update contracts,
+  execution status responses, and delivery summary/history read models. This made OpenAPI DTO
+  review harder because unrelated reporting and execution vocabulary changed in the same module.
+- Evidence:
+  - Added `src/core/proposals/delivery_report_models.py` for report request/response DTOs.
+  - Added `src/core/proposals/delivery_execution_models.py` for execution handoff/update/status
+    DTOs and execution ownership boundary fields.
+  - Added `src/core/proposals/delivery_summary_models.py` for delivery execution/reporting summary
+    and delivery history DTOs.
+  - Kept `src/core/proposals/delivery_response_models.py` as a stable compatibility facade so
+    existing public imports and OpenAPI schema names remain unchanged.
+  - Extended proposal model-boundary tests proving public imports are stable and definitions live
+    in focused delivery modules.
+  - Focused delivery model lint, format, mypy, OpenAPI contract, and execution command tests passed
+    with 44 tests.
+- Consequence:
+  - API behavior and schema titles remain compatible while reporting, execution, and delivery
+    summary DTOs can be reviewed independently.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, schema names, supported feature posture, and operator workflow
+    truth did not change.
+- Follow-Up:
+  - Continue reducing remaining infrastructure, advisor cockpit, proposal memo, and policy-pack
+    hotspots where cohesive data/model or adapter boundaries are clear.
+
 ## LA-REV-610
 
 - Scope: Proposal workflow async operations
