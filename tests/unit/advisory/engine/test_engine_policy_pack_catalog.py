@@ -36,6 +36,21 @@ def test_policy_pack_catalog_definition_helpers_stay_focused() -> None:
     assert "def prepare_definition" in definitions
 
 
+def test_policy_pack_reference_data_stays_outside_catalog_store() -> None:
+    catalog = (SOURCE_ROOT / "catalog.py").read_text(encoding="utf-8")
+    reference_packs = (SOURCE_ROOT / "catalog_reference_packs.py").read_text(encoding="utf-8")
+
+    assert "reference_policy_packs" in catalog
+    assert "_REFERENCE_PACKS" not in catalog
+    assert "SG_PRIVATE_BANKING_REFERENCE" not in catalog
+    assert "GLOBAL_PRIVATE_BANKING_BASELINE" not in catalog
+
+    assert "def reference_policy_packs" in reference_packs
+    assert "_REFERENCE_PACKS" in reference_packs
+    assert "SG_PRIVATE_BANKING_REFERENCE" in reference_packs
+    assert "GLOBAL_PRIVATE_BANKING_BASELINE" in reference_packs
+
+
 def test_policy_pack_validation_is_hash_backed_and_idempotent() -> None:
     detail = get_policy_pack_version(
         policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
