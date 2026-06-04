@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T23:46:04.051748+00:00`
+- Generated At: `2026-06-04T23:52:13.345079+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `d5be4067bdd3f4297292d552291e67ee2e3bd0a0`
-- Branch Commits Over Main: `19`
+- Head: `877ca5d2ddc56fce40016fb912c87fb534f4dcc8`
+- Branch Commits Over Main: `20`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -51,7 +51,7 @@
 - Radon analyzed block inventory: `3037`
 - Radon complexity rank inventory: `A=2729, B=237, C=65, D=6`
 - Radon worst complexity: `rank=D, complexity=25`
-- Radon F-ranked block enforcement is repo-native through
+- Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
 - Xenon and stricter Radon thresholds remain report-only until current
   D-ranked helpers are classified.

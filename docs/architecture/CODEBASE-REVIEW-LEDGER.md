@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-695
+
+- Scope: Radon no-E/no-F complexity regression gate
+- Pattern: Once E-ranked complexity is eliminated, the repo-native lint lane should prevent
+  regression back to E or F while D-ranked helpers remain classified backlog
+- Status: Enforced
+- Finding Class: Complexity quality gate hardening
+- Summary: After target-generation and narrative-grounding refactors, Radon reported no E-ranked or
+  F-ranked blocks. The complexity gate still only failed on F-ranked blocks, so future changes could
+  reintroduce E-ranked hotspots without failing `make lint`.
+- Evidence:
+  - Promoted `make complexity-regression-gate` to run `scripts/radon_complexity_gate.py --fail-rank
+    E`.
+  - Updated generated quality-report wording and scorecard evidence from no-F enforcement to
+    no-E/no-F enforcement.
+- Consequence:
+  - Feature Lane and repo-native lint now fail if a change introduces E-ranked or F-ranked
+    complexity, while D-ranked helpers remain measured backlog for focused refactoring.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is repo-local quality-gate calibration for existing source analysis.
+- Follow-Up:
+  - Classify current D-ranked helpers and consider a stricter fail-on-new-D gate only after direct
+    helper coverage is sufficient.
+
 ## LA-REV-694
 
 - Scope: Target-generation solver orchestration

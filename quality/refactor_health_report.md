@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `d5be4067bdd3f4297292d552291e67ee2e3bd0a0`
-- Branch Commits Over Main: `19`
+- Head: `877ca5d2ddc56fce40016fb912c87fb534f4dcc8`
+- Branch Commits Over Main: `20`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -186,7 +186,7 @@
   after classifying public API and module ownership thresholds.
 - Convert the Vulture dead-code inventory into a fail-on-new-regression gate after
   classifying validator and compatibility-facade findings.
-- Expand Radon complexity enforcement beyond F-ranked blocks after classifying
+- Expand Radon complexity enforcement beyond E/F-ranked blocks after classifying
   current high-complexity blocks.
 - Expand Bandit security enforcement beyond high severity after classifying current
   SQL-construction findings and resolving true positives.

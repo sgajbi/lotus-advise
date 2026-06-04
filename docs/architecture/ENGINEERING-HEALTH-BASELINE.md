@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-04T23:40:17.958630+00:00`
+- Generated At: `2026-06-04T23:53:05.380054+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `d5be4067bdd3f4297292d552291e67ee2e3bd0a0`
+- Head: `877ca5d2ddc56fce40016fb912c87fb534f4dcc8`
 - Python Files: `918`
 - Packages: `38`
 - Modules: `880`
-- Total Python Lines: `138606`
+- Total Python Lines: `138603`
 
 ## Largest Files
 
@@ -120,5 +120,5 @@
   to render structural metric deltas in later refactoring phases.
 - External scanner inventories should move from measurement to repo-native gates in
   calibrated slices; coverage, import-linter, Spectral, Bandit high severity,
-  and Radon F-ranked complexity now have enforced paths while vulture, deptry,
+  and Radon E/F-ranked complexity now have enforced paths while vulture, deptry,
   interrogate, and stricter complexity thresholds remain measured backlog.

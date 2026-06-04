@@ -328,7 +328,7 @@ def render_markdown(
             "  to render structural metric deltas in later refactoring phases.",
             "- External scanner inventories should move from measurement to repo-native gates in",
             "  calibrated slices; coverage, import-linter, Spectral, Bandit high severity,",
-            "  and Radon F-ranked complexity now have enforced paths while vulture, deptry,",
+            "  and Radon E/F-ranked complexity now have enforced paths while vulture, deptry,",
             "  interrogate, and stricter complexity thresholds remain measured backlog.",
         ]
     )

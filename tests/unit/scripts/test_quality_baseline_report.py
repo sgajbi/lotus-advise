@@ -78,7 +78,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Observability Gaps" in baseline
     assert "make observability-diagnostics" in baseline
     assert "Progressive Gate Phase" in scorecard
-    assert "No-F gate plus Radon inventory" in scorecard
+    assert "No-E/F gate plus Radon inventory" in scorecard
     assert "Executable Vulture inventory" in scorecard
     assert "Enforced plus deptry inventory" in scorecard
     assert "High-severity enforced plus Bandit inventory" in scorecard
@@ -146,7 +146,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Policy evaluation persistence delegates lineage/posture projection" in refactor_health
     assert "Policy evaluation persistence delegates replay hash comparison" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
-    assert "Expand Radon complexity enforcement beyond F-ranked blocks" in refactor_health
+    assert "Expand Radon complexity enforcement beyond E/F-ranked blocks" in refactor_health
     assert "Vulture dead-code inventory" in refactor_health
     assert "Interrogate docstring inventory" in refactor_health
     assert "Expand Bandit security enforcement beyond high severity" in refactor_health
