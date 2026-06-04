@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-656
+
+- Scope: Proposal memo section factory ownership
+- Pattern: Memo evidence-pack orchestration should not also own deterministic section, appendix,
+  and material-claim construction.
+- Status: Hardened
+- Finding Class: Memo builder modularity and deterministic projection maintainability
+- Summary: `src/core/proposals/memo_builder.py` assembled the overall memo evidence pack and also
+  owned generic section construction, appendix construction, material-claim creation, section
+  source-readiness lookup, section status derivation, evidence/source-ref aggregation, and section
+  hash construction. That coupled pack-level orchestration to reusable section-factory mechanics.
+- Evidence:
+  - Added `src/core/proposals/memo_section_factory.py` for deterministic memo section, appendix,
+    and material-claim construction.
+  - Updated `src/core/proposals/memo_builder.py` to keep source manifest, pack assembly, projection
+    policy, supportability, and memo hash orchestration while delegating section factories.
+  - Added boundary coverage proving the memo builder imports the focused section factory and no
+    longer owns section/claim helper implementations.
+  - Focused ruff and mypy passed for touched files; proposal memo builder tests passed with 7
+    tests.
+- Consequence:
+  - Memo pack behavior and hashes remain stable while future section construction rules can be
+    reviewed independently from pack-level source manifest and supportability posture.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal memo builder modularity for existing behavior.
+- Follow-Up:
+  - Keep generic section, appendix, and claim construction in `memo_section_factory.py`; keep
+    `memo_builder.py` focused on evidence-pack assembly.
+
 ## LA-REV-655
 
 - Scope: Proposal memo persistence DTO ownership
