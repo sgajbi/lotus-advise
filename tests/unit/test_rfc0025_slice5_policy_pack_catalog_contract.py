@@ -8,6 +8,7 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 CATALOG_SOURCE_PATH = Path("src/core/policy_packs/catalog.py")
+CATALOG_COMMANDS_SOURCE_PATH = Path("src/core/policy_packs/catalog_commands.py")
 SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_packs.py")
 
@@ -41,7 +42,12 @@ def test_rfc0025_slice5_policy_pack_catalog_evidence_is_indexed() -> None:
 def test_rfc0025_slice5_promotes_catalog_without_policy_evaluation_claims() -> None:
     slice5_text = SLICE5_PATH.read_text(encoding="utf-8")
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
-    catalog_source = CATALOG_SOURCE_PATH.read_text(encoding="utf-8")
+    catalog_source = "\n".join(
+        (
+            CATALOG_SOURCE_PATH.read_text(encoding="utf-8"),
+            CATALOG_COMMANDS_SOURCE_PATH.read_text(encoding="utf-8"),
+        )
+    )
     supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
     route_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     capabilities_source = read_capability_source()
