@@ -261,6 +261,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and material-claim construction to a focused section factory.",
         "- Proposal memo API orchestration delegates report-package and AI-evidence payloads",
         "  to a focused external-package module.",
+        "- Proposal memo API routes are split into command, external-package, and read/projection",
+        "  route modules while preserving the route loader and OpenAPI surface.",
         "- Proposal memo API response assembly delegates memo, audit-event, report replay,",
         "  AI commentary, archive-ref, section, and replay-metadata projection to a",
         "  focused response projection module.",

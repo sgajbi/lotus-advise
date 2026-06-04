@@ -13,7 +13,9 @@ from src.api.proposals import (
     routes_async,
     routes_delivery,
     routes_lifecycle,
-    routes_memo,
+    routes_memo_commands,
+    routes_memo_packages,
+    routes_memo_reads,
     routes_policy_evaluations,
     routes_policy_packs,
     routes_support,
@@ -135,31 +137,56 @@ def test_api_main_uses_shared_problem_detail_builder():
 
 
 def test_memo_routes_use_shared_response_metadata():
-    source = inspect.getsource(routes_memo)
+    command_source = inspect.getsource(routes_memo_commands)
+    package_source = inspect.getsource(routes_memo_packages)
+    read_source = inspect.getsource(routes_memo_reads)
+    combined_source = "\n".join([command_source, package_source, read_source])
 
-    assert "responses={" not in source
-    assert "responses=MEMO_CREATE_RESPONSES" in source
-    assert "responses=MEMO_REPORT_PACKAGE_RESPONSES" in source
-    assert "responses=MEMO_AI_COMMENTARY_RESPONSES" in source
-    assert "raise_proposal_http_exception" not in source
-    assert "ProposalNotFoundError" not in source
-    assert "LotusReportUnavailableError" not in source
-    assert "run_lotus_report_operation" in source
-    assert source.count("run_proposal_operation(") == 9
+    assert "responses={" not in combined_source
+    assert "responses=MEMO_CREATE_RESPONSES" in command_source
+    assert "responses=MEMO_REVIEW_RESPONSES" in command_source
+    assert "responses=MEMO_REPORT_PACKAGE_EVENT_RESPONSES" in command_source
+    assert "responses=MEMO_REPORT_PACKAGE_RESPONSES" in package_source
+    assert "responses=MEMO_AI_COMMENTARY_RESPONSES" in package_source
+    assert "responses=MEMO_READ_RESPONSES" in read_source
+    assert "responses=MEMO_LINEAGE_RESPONSES" in read_source
+    assert "raise_proposal_http_exception" not in combined_source
+    assert "ProposalNotFoundError" not in combined_source
+    assert "LotusReportUnavailableError" not in combined_source
+    assert "run_lotus_report_operation" in package_source
+    assert combined_source.count("run_proposal_operation(") == 9
 
 
 def test_memo_routes_use_shared_parameter_contracts():
+    command_source = Path("src/api/proposals/routes_memo_commands.py").read_text(encoding="utf-8")
+    package_source = Path("src/api/proposals/routes_memo_packages.py").read_text(encoding="utf-8")
+    read_source = Path("src/api/proposals/routes_memo_reads.py").read_text(encoding="utf-8")
+    combined_source = "\n".join([command_source, package_source, read_source])
+
+    assert "from fastapi import Depends, status" in command_source
+    assert "from fastapi import Depends, status" in package_source
+    assert "from fastapi import Depends, status" in read_source
+    assert "Header(" not in combined_source
+    assert "Path(" not in combined_source
+    assert "Query(" not in combined_source
+    assert "ProposalIdPath" in combined_source
+    assert "ProposalMemoSourceVersionNoPath" in combined_source
+    assert "ProposalMemoCreateIdempotencyKeyHeader" in command_source
+    assert "ProposalMemoReviewIdempotencyKeyHeader" in command_source
+    assert "ProposalMemoReportPackageIdempotencyKeyHeader" in package_source
+    assert "ProposalMemoAiCommentaryIdempotencyKeyHeader" in package_source
+    assert "ProposalMemoAudienceQuery" in read_source
+
+
+def test_memo_route_loader_delegates_to_focused_route_modules():
     source = Path("src/api/proposals/routes_memo.py").read_text(encoding="utf-8")
 
-    assert "from fastapi import Depends, status" in source
-    assert "Header(" not in source
-    assert "Path(" not in source
-    assert "Query(" not in source
-    assert "ProposalIdPath" in source
-    assert "ProposalMemoSourceVersionNoPath" in source
-    assert "ProposalMemoCreateIdempotencyKeyHeader" in source
-    assert "ProposalMemoReviewIdempotencyKeyHeader" in source
-    assert "ProposalMemoAudienceQuery" in source
+    assert "routes_memo_commands" in source
+    assert "routes_memo_packages" in source
+    assert "routes_memo_reads" in source
+    assert "@shared.router." not in source
+    assert "def create_proposal_memo(" not in source
+    assert "def get_proposal_memo(" not in source
 
 
 def test_memo_builder_delegates_section_catalog_groups():

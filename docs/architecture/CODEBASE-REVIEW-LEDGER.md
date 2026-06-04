@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-657
+
+- Scope: Proposal memo API route ownership
+- Pattern: Memo API route registration should be split by command/read/external package boundary
+  instead of mixing all memo endpoints in one route module.
+- Status: Hardened
+- Finding Class: API route modularity and OpenAPI-governance maintainability
+- Summary: `src/api/proposals/routes_memo.py` mixed memo create/review/report-package-event
+  command endpoints, Lotus Report and AI commentary request endpoints, and memo read/projection/
+  lineage/replay endpoints. That made response metadata, parameter contracts, lifecycle gate use,
+  and external dependency handling harder to review independently.
+- Evidence:
+  - Added `src/api/proposals/routes_memo_commands.py` for memo create, review, and
+    report-package event endpoints.
+  - Added `src/api/proposals/routes_memo_packages.py` for Lotus Report memo package requests and
+    AI commentary requests.
+  - Added `src/api/proposals/routes_memo_reads.py` for memo read, projection, lineage, and replay
+    evidence endpoints.
+  - Added `src/api/proposals/routes_memo_common.py` for shared route timestamp handling.
+  - Reduced `src/api/proposals/routes_memo.py` to the route-loader compatibility module imported
+    by the shared proposal router.
+  - Updated route-boundary tests to verify focused modules still use shared response metadata and
+    parameter contracts while the loader owns no route decorators.
+  - Focused ruff and mypy passed for touched files; internal route guard, advisory proposal memo,
+    and OpenAPI lifecycle documentation tests passed with 80 tests.
+- Consequence:
+  - Memo OpenAPI paths, operation function names, response metadata, and parameter contracts remain
+    stable while command, external-package, and read/projection route behavior can be reviewed
+    independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API route modularity for existing memo behavior.
+- Follow-Up:
+  - Keep future memo route behavior in the focused route module matching its API boundary and use
+    `routes_memo.py` only as the shared router loader.
+
 ## LA-REV-656
 
 - Scope: Proposal memo section factory ownership
