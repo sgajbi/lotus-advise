@@ -80,7 +80,7 @@ class ProposalNarrativePolicy(BaseModel):
     )
     client_ready_blockers: List[str] = Field(
         default_factory=list,
-        description="Policy blockers preventing client-ready posture.",
+        description="Policy posture that keeps client-ready release blocked.",
     )
     prohibited_claims: List[str] = Field(
         default_factory=list,

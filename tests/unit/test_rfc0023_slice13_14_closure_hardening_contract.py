@@ -27,12 +27,12 @@ def test_rfc0023_slice13_14_closure_hardening_is_indexed() -> None:
 def test_rfc0023_slice13_14_supported_truth_keeps_client_ready_gated() -> None:
     supported = _read("wiki/Supported-Features.md")
     repo_context = _read("REPOSITORY-ENGINEERING-CONTEXT.md")
-    narrative_models = _read("src/core/advisory/narrative_models.py")
+    narrative_policy_models = _read("src/core/advisory/narrative_policy_models.py")
     narrative_review = _read("src/core/proposals/narrative_review.py")
 
     assert "Slice 13/14 hardens the closure boundary" in supported
     assert "after Slice 13/14" in supported
     assert "cannot return `APPROVED_FOR_CLIENT_READY`" in repo_context
-    assert "keeps client-ready release blocked" in narrative_models
+    assert "keeps client-ready release blocked" in narrative_policy_models
     assert 'return "APPROVED_FOR_CLIENT_READY"' not in narrative_review
     assert "Client-ready proposal commentary | Supported" not in supported
