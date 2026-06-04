@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-683
+
+- Scope: Documentation-quality inventory calibration
+- Pattern: Documentation quality gates should start with a measured current baseline before setting
+  thresholds, especially in a large backend with many generated DTOs, validators, and scripts.
+- Status: Hardened
+- Finding Class: Documentation measurement and CI readiness
+- Summary: Interrogate was configured and installed, but the scorecard only tracked requested docs
+  presence. The repository did not yet record current docstring inventory, so documentation quality
+  could not be improved or enforced from measurable evidence.
+- Evidence:
+  - Updated `scripts/quality_baseline_report.py` to execute Interrogate in report-only mode and
+    record total, missing, covered, and coverage percent.
+  - Updated report tests to pin Interrogate inventory fields and scorecard wording.
+  - Regenerated quality reports so documentation posture now records docstring coverage inventory.
+- Consequence:
+  - Documentation posture now has measurable current-state evidence while preserving report-only
+    behavior until public API and module ownership thresholds are classified.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local documentation measurement posture, not operator-facing runtime
+    truth.
+- Follow-Up:
+  - Classify docstring expectations for public API modules, runtime providers, scripts, DTOs, and
+    compatibility facades before adding a fail-on-regression or threshold gate.
+
 ## LA-REV-682
 
 - Scope: Architecture-boundary gate enforcement

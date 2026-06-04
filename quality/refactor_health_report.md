@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `8f366239677720ed391a788fb50e087f227705d6`
-- Branch Commits Over Main: `5`
+- Head: `b78572c0f4ffcfe428225552dbf97e80dedf31f8`
+- Branch Commits Over Main: `6`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -176,8 +176,9 @@
 
 ## Remaining Enterprise-Readiness Work
 
-- Calibrate report-only tools: xenon,
-  Spectral, interrogate, and optional schemathesis/load testing.
+- Calibrate report-only tools: xenon, Spectral, and optional schemathesis/load testing.
+- Convert the Interrogate docstring inventory into a targeted documentation-quality gate
+  after classifying public API and module ownership thresholds.
 - Convert the Vulture dead-code inventory into a fail-on-new-regression gate after
   classifying validator and compatibility-facade findings.
 - Convert the Radon complexity inventory into a fail-on-new-regression gate after

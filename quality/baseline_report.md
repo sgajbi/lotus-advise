@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T16:01:48.884047+00:00`
+- Generated At: `2026-06-04T16:07:18.917592+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `8f366239677720ed391a788fb50e087f227705d6`
-- Branch Commits Over Main: `5`
+- Head: `b78572c0f4ffcfe428225552dbf97e80dedf31f8`
+- Branch Commits Over Main: `6`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `911`
 - Packages: `38`
 - Modules: `873`
-- Total Python lines: `137065`
+- Total Python lines: `137152`
 
 ## Largest Files
 
@@ -41,7 +41,7 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 370 | 200 |
+| 10 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 620 | 200 |
 
 ## Complexity
 
@@ -109,6 +109,10 @@
 
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
+- Interrogate config executable: `True`
+- Interrogate docstring inventory: `total=3368, missing=3333, covered=35, coverage=1.0%`
+- Interrogate remains report-only until public API and module ownership thresholds
+  are classified.
 
 ## Observability Gaps
 

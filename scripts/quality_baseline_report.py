@@ -72,6 +72,11 @@ class QualityContext:
     vulture_config_valid: bool
     vulture_issue_count: int | None
     vulture_confidence_counts: dict[str, int]
+    interrogate_config_valid: bool
+    interrogate_total_count: int | None
+    interrogate_missing_count: int | None
+    interrogate_covered_count: int | None
+    interrogate_coverage_percent: str | None
 
 
 def _run_git(repo_root: Path, args: list[str]) -> str:
@@ -291,6 +296,45 @@ def _vulture_issue_inventory(repo_root: Path) -> tuple[bool, int | None, dict[st
     return True, len(findings), dict(sorted(confidence_counts.items()))
 
 
+def _interrogate_inventory(
+    repo_root: Path,
+) -> tuple[bool, int | None, int | None, int | None, str | None]:
+    if not _tool_available("interrogate") or not (repo_root / "pyproject.toml").exists():
+        return False, None, None, None, None
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "interrogate",
+            "src",
+            "scripts",
+            "--config",
+            "pyproject.toml",
+            "-v",
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode not in {0, 1}:
+        return False, None, None, None, None
+    total_match = re.search(
+        r"\|\s+TOTAL\s+\|\s+(?P<total>\d+)\s+\|\s+(?P<miss>\d+)\s+\|"
+        r"\s+(?P<cover>\d+)\s+\|\s+(?P<percent>[0-9.]+%)\s+\|",
+        completed.stdout,
+    )
+    if total_match is None:
+        return False, None, None, None, None
+    return (
+        True,
+        int(total_match.group("total")),
+        int(total_match.group("miss")),
+        int(total_match.group("cover")),
+        total_match.group("percent"),
+    )
+
+
 def build_quality_context(repo_root: Path) -> QualityContext:
     available_tools = tuple(name for name, module in QUALITY_TOOLS if _tool_available(module))
     unavailable_tools = tuple(name for name, module in QUALITY_TOOLS if not _tool_available(module))
@@ -322,6 +366,13 @@ def build_quality_context(repo_root: Path) -> QualityContext:
     vulture_config_valid, vulture_issue_count, vulture_confidence_counts = _vulture_issue_inventory(
         repo_root
     )
+    (
+        interrogate_config_valid,
+        interrogate_total_count,
+        interrogate_missing_count,
+        interrogate_covered_count,
+        interrogate_coverage_percent,
+    ) = _interrogate_inventory(repo_root)
     return QualityContext(
         report=build_report(repo_root),
         branch_commit_count=_branch_commit_count(repo_root),
@@ -354,6 +405,11 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         vulture_config_valid=vulture_config_valid,
         vulture_issue_count=vulture_issue_count,
         vulture_confidence_counts=vulture_confidence_counts,
+        interrogate_config_valid=interrogate_config_valid,
+        interrogate_total_count=interrogate_total_count,
+        interrogate_missing_count=interrogate_missing_count,
+        interrogate_covered_count=interrogate_covered_count,
+        interrogate_coverage_percent=interrogate_coverage_percent,
     )
 
 
@@ -420,6 +476,22 @@ def render_baseline_report(context: QualityContext) -> str:
     )
     if not vulture_confidence_inventory:
         vulture_confidence_inventory = "not run"
+    interrogate_total_count = (
+        str(context.interrogate_total_count)
+        if context.interrogate_total_count is not None
+        else "not run"
+    )
+    interrogate_missing_count = (
+        str(context.interrogate_missing_count)
+        if context.interrogate_missing_count is not None
+        else "not run"
+    )
+    interrogate_covered_count = (
+        str(context.interrogate_covered_count)
+        if context.interrogate_covered_count is not None
+        else "not run"
+    )
+    interrogate_coverage_percent = context.interrogate_coverage_percent or "not run"
     lines = [
         "# Lotus Advise Quality Baseline Report",
         "",
@@ -528,6 +600,12 @@ def render_baseline_report(context: QualityContext) -> str:
             "",
             f"- Requested docs present: `{', '.join(context.requested_docs_present) or 'none'}`",
             f"- Requested docs missing: `{', '.join(context.requested_docs_missing) or 'none'}`",
+            f"- Interrogate config executable: `{context.interrogate_config_valid}`",
+            f"- Interrogate docstring inventory: `total={interrogate_total_count}, "
+            f"missing={interrogate_missing_count}, covered={interrogate_covered_count}, "
+            f"coverage={interrogate_coverage_percent}`",
+            "- Interrogate remains report-only until public API and module ownership thresholds",
+            "  are classified.",
             "",
             "## Observability Gaps",
             "",
@@ -720,8 +798,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
-        "- Calibrate report-only tools: xenon,",
-        "  Spectral, interrogate, and optional schemathesis/load testing.",
+        "- Calibrate report-only tools: xenon, Spectral, and optional schemathesis/load testing.",
+        "- Convert the Interrogate docstring inventory into a targeted documentation-quality gate",
+        "  after classifying public API and module ownership thresholds.",
         "- Convert the Vulture dead-code inventory into a fail-on-new-regression gate after",
         "  classifying validator and compatibility-facade findings.",
         "- Convert the Radon complexity inventory into a fail-on-new-regression gate after",
@@ -773,7 +852,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Enforced",
             "make lint runs import-linter architecture contracts",
         ),
-        ("Docs", "Gap tracked", "requested docs tracked in baseline report"),
+        (
+            "Docs",
+            "Gap tracked plus Interrogate inventory",
+            "requested docs + docstring coverage inventory",
+        ),
         ("Observability", "Gap tracked", "observability doc and diagnostics gates pending"),
     ]
     lines = [
