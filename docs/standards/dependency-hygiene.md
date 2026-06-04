@@ -20,6 +20,12 @@ This repository adopts the platform-wide standard defined in:
   - `python -m pip check`
 - CI-aligned security audit target:
   - `make security-audit`
+- Report-only dependency inventory:
+  - `python -m deptry . --config pyproject.toml --json-output output/deptry-report.json`
+
+Deptry is calibrated as report-only. Current quality reports record whether the deptry
+configuration is executable and the current issue count. Findings must be classified before deptry
+becomes a fail-on-new-regression or blocking CI gate.
 
 ## Update Cadence
 
@@ -30,4 +36,5 @@ This repository adopts the platform-wide standard defined in:
 ## Evidence
 
 - CI job: `PR Merge Gate / Lint Typecheck Governance`
+- Quality artifact: `quality/baseline_report.md`
 - Platform conformance artifacts under `lotus-platform/output/`

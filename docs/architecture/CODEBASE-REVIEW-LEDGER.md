@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-677
+
+- Scope: Dependency hygiene report-only deptry calibration
+- Pattern: Report-only dependency hygiene tools must be executable and produce measurable current
+  inventory before they can become fail-on-new-regression gates.
+- Status: Hardened
+- Finding Class: Dependency governance and CI measurement readiness
+- Summary: `pyproject.toml` contained an outdated deptry option (`ignore_obsolete`) that prevented
+  the installed deptry 0.25.1 scanner from running. The quality scorecard therefore listed deptry
+  as a report-only follow-up, but the repository could not yet produce a real deptry issue
+  inventory.
+- Evidence:
+  - Updated `[tool.deptry]` to use the supported `per_rule_ignores` mapping while preserving the
+    existing intent to suppress known development-tooling obsolete-dependency noise.
+  - Updated `scripts/quality_baseline_report.py` to execute deptry in report-only mode and record
+    whether the config is executable plus the current issue count.
+  - Regenerated quality reports; `quality/baseline_report.md` now records deptry config executable
+    as `True` and the current dependency issue inventory as `14`.
+  - Updated dependency hygiene documentation and report tests to pin the deptry inventory signal.
+- Consequence:
+  - Dependency hygiene now has an executable deptry baseline that can be classified and converted
+    into a fail-on-new-regression gate in a later slice.
+- Documentation:
+  - Review ledger, dependency hygiene standard alignment, and generated quality reports updated. No
+    README/wiki source change is required because this records repo-local CI measurement posture,
+    not new operator-facing wiki truth.
+- Follow-Up:
+  - Classify the 14 deptry findings into required runtime dependency, transitive dependency,
+    dev-only dependency, or removable dependency before enforcing deptry in CI.
+
 ## LA-REV-676
 
 - Scope: Proposal workflow read facade ownership

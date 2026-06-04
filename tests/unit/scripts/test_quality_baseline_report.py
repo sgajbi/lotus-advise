@@ -54,11 +54,14 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Code Size" in baseline
     assert "Complexity" in baseline
     assert "Dead Code" in baseline
+    assert "Deptry config executable" in baseline
+    assert "Deptry current issue inventory" in baseline
     assert "OpenAPI Gaps" in baseline
     assert "Architecture Violations" in baseline
     assert "Documentation Gaps" in baseline
     assert "Observability Gaps" in baseline
     assert "Progressive Gate Phase" in scorecard
+    assert "Enforced plus deptry inventory" in scorecard
     assert "Proposal input models are split" in refactor_health
     assert "Advisory simulation orchestration is split" in refactor_health
     assert "Feature capability catalog assembly is split" in refactor_health
@@ -117,6 +120,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Policy evaluation persistence delegates lineage/posture projection" in refactor_health
     assert "Policy evaluation persistence delegates replay hash comparison" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
+    assert "deptry dependency inventory" in refactor_health
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

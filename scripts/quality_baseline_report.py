@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import subprocess
+import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -48,6 +51,8 @@ class QualityContext:
     requested_docs_missing: tuple[str, ...]
     available_tools: tuple[str, ...]
     unavailable_tools: tuple[str, ...]
+    deptry_config_valid: bool
+    deptry_issue_count: int | None
 
 
 def _run_git(repo_root: Path, args: list[str]) -> str:
@@ -73,6 +78,41 @@ def _tool_available(module_name: str) -> bool:
     return importlib.util.find_spec(module_name) is not None
 
 
+def _deptry_issue_count(repo_root: Path) -> tuple[bool, int | None]:
+    if not _tool_available("deptry") or not (repo_root / "pyproject.toml").exists():
+        return False, None
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
+        output_path = Path(handle.name)
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "deptry",
+                ".",
+                "--config",
+                "pyproject.toml",
+                "--json-output",
+                str(output_path),
+            ],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if not output_path.exists() or completed.returncode not in {0, 1}:
+            return False, None
+        try:
+            findings = json.loads(output_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return False, None
+        if not isinstance(findings, list):
+            return False, None
+        return True, len(findings)
+    finally:
+        output_path.unlink(missing_ok=True)
+
+
 def build_quality_context(repo_root: Path) -> QualityContext:
     available_tools = tuple(name for name, module in QUALITY_TOOLS if _tool_available(module))
     unavailable_tools = tuple(name for name, module in QUALITY_TOOLS if not _tool_available(module))
@@ -80,6 +120,7 @@ def build_quality_context(repo_root: Path) -> QualityContext:
     requested_docs_missing = tuple(
         path for path in REQUESTED_DOCS if not (repo_root / path).exists()
     )
+    deptry_config_valid, deptry_issue_count = _deptry_issue_count(repo_root)
     return QualityContext(
         report=build_report(repo_root),
         branch_commit_count=_branch_commit_count(repo_root),
@@ -93,6 +134,8 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         requested_docs_missing=requested_docs_missing,
         available_tools=available_tools,
         unavailable_tools=unavailable_tools,
+        deptry_config_valid=deptry_config_valid,
+        deptry_issue_count=deptry_issue_count,
     )
 
 
@@ -106,6 +149,9 @@ def _gate_commands(context: QualityContext) -> dict[str, list[str]]:
 def render_baseline_report(context: QualityContext) -> str:
     gates = _gate_commands(context)
     report = context.report
+    deptry_issue_count = (
+        str(context.deptry_issue_count) if context.deptry_issue_count is not None else "not run"
+    )
     lines = [
         "# Lotus Advise Quality Baseline Report",
         "",
@@ -175,6 +221,8 @@ def render_baseline_report(context: QualityContext) -> str:
             f"- Security audit configured: `{'security-audit' in gates}`",
             f"- Available dependency/security tools: `{', '.join(context.available_tools)}`",
             f"- Pending optional tools: `{', '.join(context.unavailable_tools)}`",
+            f"- Deptry config executable: `{context.deptry_config_valid}`",
+            f"- Deptry current issue inventory: `{deptry_issue_count}`",
             "",
             "## Security",
             "",
@@ -391,8 +439,10 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
-        "- Calibrate report-only tools: radon/xenon, vulture, deptry, bandit, import-linter,",
+        "- Calibrate report-only tools: radon/xenon, vulture, bandit, import-linter,",
         "  Spectral, interrogate, and optional schemathesis/load testing.",
+        "- Convert the deptry dependency inventory into a fail-on-new-regression gate after",
+        "  classifying current dependency findings.",
         "- Convert baseline reports into fail-on-new-regression gates before enforcing absolute",
         "  thresholds.",
         "- Continue moving oversized proposal/advisory service modules into focused use-case and",
@@ -412,7 +462,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
         ("Type safety", "Enforced", "make typecheck"),
         ("Coverage", "Enforced", "make coverage-combined fail-under 97"),
         ("Dead code", "Report-only gap", "vulture pending calibration"),
-        ("Dependencies", "Enforced", "dependency health check + pip-audit posture"),
+        (
+            "Dependencies",
+            "Enforced plus deptry inventory",
+            "dependency health check + pip-audit posture + deptry issue count",
+        ),
         ("Security", "Partially enforced", "security-audit plus pending bandit baseline"),
         ("OpenAPI", "Enforced plus report-only", "openapi-gate + Spectral config"),
         ("Architecture boundaries", "Report-only gap", "import-linter config added"),

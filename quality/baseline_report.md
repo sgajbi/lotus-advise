@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T15:12:09.526365+00:00`
-- Branch: `harden/proposal-context-boundaries`
-- Head: `f6a82186ed52e3eb3568ae0de2bbb2919f18f90d`
-- Branch Commits Over Main: `49`
+- Generated At: `2026-06-04T15:35:58.645869+00:00`
+- Branch: `harden/quality-gate-calibration`
+- Head: `0518f315bf8c6653cad2a6428c84e9fc50ab416d`
+- Branch Commits Over Main: `0`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `908`
 - Packages: `37`
 - Modules: `871`
-- Total Python lines: `136626`
+- Total Python lines: `136686`
 
 ## Largest Files
 
@@ -72,6 +72,8 @@
 - Security audit configured: `True`
 - Available dependency/security tools: `ruff, mypy, pytest, coverage.py, pip-audit, radon, xenon, vulture, deptry, bandit, interrogate`
 - Pending optional tools: ``
+- Deptry config executable: `True`
+- Deptry current issue inventory: `14`
 
 ## Security
 

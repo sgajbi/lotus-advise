@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/proposal-context-boundaries`
-- Head: `f6a82186ed52e3eb3568ae0de2bbb2919f18f90d`
-- Branch Commits Over Main: `49`
+- Branch: `harden/quality-gate-calibration`
+- Head: `0518f315bf8c6653cad2a6428c84e9fc50ab416d`
+- Branch Commits Over Main: `0`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -176,8 +176,10 @@
 
 ## Remaining Enterprise-Readiness Work
 
-- Calibrate report-only tools: radon/xenon, vulture, deptry, bandit, import-linter,
+- Calibrate report-only tools: radon/xenon, vulture, bandit, import-linter,
   Spectral, interrogate, and optional schemathesis/load testing.
+- Convert the deptry dependency inventory into a fail-on-new-regression gate after
+  classifying current dependency findings.
 - Convert baseline reports into fail-on-new-regression gates before enforcing absolute
   thresholds.
 - Continue moving oversized proposal/advisory service modules into focused use-case and
