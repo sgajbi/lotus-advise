@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `e92a26f7ae39c9bea7496e1121788484de6cd855`
-- Branch Commits Over Main: `22`
+- Head: `8e161324b9d0815c65ed38cd83226d523f3e786d`
+- Branch Commits Over Main: `24`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -131,6 +131,8 @@
   handoff/status rules to focused source-family projection modules.
 - Advisor cockpit service delegates repository-backed source loading and tactical
   house-view source mapping to a focused source-loader module.
+- In-memory proposal repository adapters delegate pure filtering, ordering,
+  batching, recoverable-operation selection, and copy semantics to focused helpers.
 - Proposal workflow delivery operations delegate execution handoff, status, summary,
   history, and execution-update replay behavior to a focused service boundary.
 - Proposal workflow narrative operations delegate narrative read/regeneration/review

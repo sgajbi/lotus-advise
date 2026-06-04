@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-664
+
+- Scope: In-memory proposal repository query helper ownership
+- Pattern: In-memory repository adapters should keep state mutation and locking while delegating
+  pure ordering, pagination, batching, recoverable-operation selection, and defensive-copy behavior
+  to focused helpers.
+- Status: Hardened
+- Finding Class: Infrastructure repository modularity and testability
+- Summary: `src/infrastructure/proposals/in_memory.py` combined in-memory state storage, locking,
+  mutation, query filtering, batching sort rules, recoverable async-operation selection, and
+  defensive-copy mechanics in one 427-line adapter. This made test/runtime repository behavior
+  harder to review and kept reusable pure query rules embedded in mutation-heavy methods.
+- Evidence:
+  - Added `src/infrastructure/proposals/in_memory_query.py` for proposal pagination/filtering,
+    memo/event/approval/version ordering, recoverable async-operation selection, and defensive
+    copy helpers.
+  - Kept `InMemoryProposalRepository` as the stateful adapter owner for locks, dictionaries, writes,
+    idempotency conflict checks, and transition transaction behavior.
+  - Reduced `src/infrastructure/proposals/in_memory.py` from 427 lines to 357 lines while preserving
+    public repository behavior and import paths.
+  - Added an in-memory repository boundary test requiring query helpers to live in the focused
+    helper module instead of the adapter.
+  - Focused ruff, ruff format check, and mypy passed for touched files; in-memory proposal
+    repository tests passed with 8 tests; repo-native `make lint` passed.
+- Consequence:
+  - In-memory proposal repository behavior remains stable while pure query semantics are easier to
+    test, review, and reuse independently from state mutation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal infrastructure repository modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting oversized repository and service adapters by state family or use-case
+    boundary when the resulting owner modules can be pinned by focused tests.
+
 ## LA-REV-663
 
 - Scope: Advisor cockpit reporting and execution source projection ownership
