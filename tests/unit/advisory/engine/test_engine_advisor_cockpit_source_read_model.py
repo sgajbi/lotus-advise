@@ -54,9 +54,11 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
     policy_memo_source = (
         REPO_ROOT / "src/core/advisor_cockpit/source_projection_policy_memo.py"
     ).read_text(encoding="utf-8")
+    proposal_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/source_projection_proposal.py"
+    ).read_text(encoding="utf-8")
 
     for helper_name in (
-        "_approval_dependency_source",
         "_report_readiness_source",
         "_execution_status_source",
     ):
@@ -71,6 +73,17 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
         assert f"def {helper_name}(" not in read_model_source
         assert f"def {helper_name}(" not in projection_source
         assert f"def {helper_name}(" in policy_memo_source
+
+    for helper_name in (
+        "_meeting_preparation_source",
+        "_client_follow_up_source",
+        "_approval_dependency_source",
+        "_latest_rejected_approval",
+        "_approval_dependency_summary",
+    ):
+        assert f"def {helper_name}(" not in read_model_source
+        assert f"def {helper_name}(" not in projection_source
+        assert f"def {helper_name}(" in proposal_source
 
 
 def test_source_projection_delegates_policy_and_memo_projection_rules() -> None:
@@ -89,6 +102,25 @@ def test_source_projection_delegates_policy_and_memo_projection_rules() -> None:
     assert "build_memo_block_sources" in projection_source
     assert "COCKPIT_POLICY_REVIEW_STATUSES = frozenset" not in projection_source
     assert "COCKPIT_POLICY_REVIEW_STATUSES = frozenset" in policy_memo_source
+
+
+def test_source_projection_delegates_proposal_projection_rules() -> None:
+    projection_source = (REPO_ROOT / "src/core/advisor_cockpit/source_projection.py").read_text(
+        encoding="utf-8"
+    )
+    proposal_source = (
+        REPO_ROOT / "src/core/advisor_cockpit/source_projection_proposal.py"
+    ).read_text(encoding="utf-8")
+
+    assert "from src.core.advisor_cockpit.source_projection_proposal import" in projection_source
+    assert "ACTIVE_PROPOSAL_STATES" in projection_source
+    assert "FOLLOW_UP_PROPOSAL_STATES" in projection_source
+    assert "APPROVAL_DEPENDENCY_STATES" in projection_source
+    assert "build_meeting_preparation_sources" in projection_source
+    assert "build_client_follow_up_sources" in projection_source
+    assert "build_approval_dependency_sources" in projection_source
+    assert "ACTIVE_PROPOSAL_STATES = frozenset" not in projection_source
+    assert "ACTIVE_PROPOSAL_STATES = frozenset" in proposal_source
 
 
 def test_source_read_model_rejects_unbounded_source_batches() -> None:
