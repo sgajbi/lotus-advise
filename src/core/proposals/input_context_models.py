@@ -1,0 +1,117 @@
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
+from src.core.proposal_request_models import ProposalSimulateRequest
+
+
+class ProposalCreateMetadata(BaseModel):
+    title: Optional[str] = Field(
+        default=None,
+        description="Optional advisor-facing proposal title.",
+        examples=["2026 client portfolio transition plan"],
+    )
+    advisor_notes: Optional[str] = Field(
+        default=None,
+        description="Optional free-text advisor notes captured at proposal creation.",
+        examples=["Client asked for controlled equity rotation with cash discipline."],
+    )
+    jurisdiction: Optional[str] = Field(
+        default=None,
+        description="Optional proposal jurisdiction code.",
+        examples=["SG"],
+    )
+    mandate_id: Optional[str] = Field(
+        default=None,
+        description="Optional mandate identifier for the proposal context.",
+        examples=["mandate_growth_01"],
+    )
+
+
+class ProposalStatelessInput(BaseModel):
+    simulate_request: ProposalSimulateRequest = Field(
+        description=(
+            "Full advisory simulation payload supplied directly by the caller for deterministic "
+            "proposal create and replay-safe lifecycle workflows."
+        ),
+        examples=[
+            {
+                "portfolio_snapshot": {
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                    "base_currency": "USD",
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        ],
+    )
+
+
+class ProposalStatefulInput(BaseModel):
+    portfolio_id: str = Field(
+        description="Canonical Lotus portfolio identifier resolved through upstream services.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    )
+    as_of: str = Field(
+        description="Business date or timestamp used to resolve the authoritative source context.",
+        examples=["2026-03-25"],
+    )
+    household_id: Optional[str] = Field(
+        default=None,
+        description="Optional household identifier when the advisory workflow is household-scoped.",
+        examples=["hh_001"],
+    )
+    mandate_id: Optional[str] = Field(
+        default=None,
+        description="Optional mandate identifier used to enrich the advisory context.",
+        examples=["mandate_growth_01"],
+    )
+    benchmark_id: Optional[str] = Field(
+        default=None,
+        description="Optional benchmark identifier for context-aware evaluation and comparison.",
+        examples=["benchmark_balanced_usd"],
+    )
+    narrative_request: Optional[ProposalNarrativeRequest] = Field(
+        default=None,
+        description=(
+            "Optional advisor-review narrative request applied after authoritative portfolio "
+            "context is resolved from Lotus Core. Client-ready publication remains gated."
+        ),
+    )
+
+
+class ProposalResolvedContext(BaseModel):
+    portfolio_id: str = Field(
+        description="Resolved portfolio identifier used by proposal evaluation.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    )
+    as_of: str = Field(
+        description="Resolved business date or timestamp used during evaluation.",
+        examples=["2026-03-25"],
+    )
+    portfolio_snapshot_id: Optional[str] = Field(
+        default=None,
+        description="Upstream portfolio snapshot identifier captured for replay and audit.",
+        examples=["ps_20260325_001"],
+    )
+    market_data_snapshot_id: Optional[str] = Field(
+        default=None,
+        description="Upstream market-data snapshot identifier captured for replay and audit.",
+        examples=["md_20260325_001"],
+    )
+    risk_context_id: Optional[str] = Field(
+        default=None,
+        description="Optional upstream risk-context identifier used for advisory enrichment.",
+        examples=["risk_ctx_001"],
+    )
+    reporting_context_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional reporting-context identifier used to correlate downstream report generation."
+        ),
+        examples=["report_ctx_001"],
+    )

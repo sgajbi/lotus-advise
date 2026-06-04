@@ -11,13 +11,15 @@ from src.core.proposals.contract_types import (
     ProposalWorkflowEventType,
     ProposalWorkflowState,
 )
-from src.core.proposals.input_models import (
+from src.core.proposals.input_context_models import (
     ProposalCreateMetadata,
-    ProposalCreateRequest,
     ProposalResolvedContext,
-    ProposalSimulationRequest,
     ProposalStatefulInput,
     ProposalStatelessInput,
+)
+from src.core.proposals.input_request_models import (
+    ProposalCreateRequest,
+    ProposalSimulationRequest,
     ProposalVersionRequest,
 )
 from src.core.proposals.persistence_models import (

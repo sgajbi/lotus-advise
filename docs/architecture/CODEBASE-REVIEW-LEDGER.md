@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-652
+
+- Scope: Proposal input request and context DTO ownership
+- Pattern: Proposal input compatibility facades should not own both shared context DTOs and
+  request-envelope validation logic.
+- Status: Hardened
+- Finding Class: Proposal lifecycle input modularity and contract maintainability
+- Summary: `src/core/proposals/input_models.py` mixed proposal metadata, stateless/stateful
+  context DTOs, resolved context evidence, simulation request-envelope validation, create request
+  validation, and version request validation. That made request-mode validation harder to review
+  separately from source-context evidence contracts and kept the public model facade coupled to the
+  broad compatibility module.
+- Evidence:
+  - Added `src/core/proposals/input_context_models.py` for proposal metadata, stateless/stateful
+    input context, and resolved upstream context DTOs.
+  - Added `src/core/proposals/input_request_models.py` for simulation, create, and version request
+    envelopes and their legacy/stateless/stateful validation rules.
+  - Reduced `src/core/proposals/input_models.py` to a 20-line compatibility facade preserving
+    existing public imports.
+  - Updated `src/core/proposals/models.py` to import focused owner modules directly.
+  - Added contract coverage proving context DTOs and request-envelope DTOs remain split while
+    public facade imports and schema titles stay stable.
+  - Focused ruff, format, OpenAPI lifecycle/simulation contract tests, proposal model boundary
+    tests, proposal input-validation tests, and async payload tests passed with 48 tests.
+- Consequence:
+  - Proposal input behavior and OpenAPI contract names remain compatible while future advisory
+    request-mode changes can be reviewed independently from source-context evidence DTOs.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing proposal lifecycle behavior.
+- Follow-Up:
+  - Keep new proposal request-envelope logic in `input_request_models.py` and source-context DTOs
+    in `input_context_models.py`; use `input_models.py` only as the stable compatibility facade.
+
 ## LA-REV-651
 
 - Scope: Proposal narrative runtime DTO dependency flow
