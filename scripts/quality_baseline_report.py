@@ -267,6 +267,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  response/evidence, and compatibility facade modules.",
         "- Proposal alternatives projection delegates request-to-strategy input mapping",
         "  to a focused projection module.",
+        "- Proposal alternatives comparison evidence delegates approval, risk, cash,",
+        "  currency, and tradeoff deltas to a focused projection module.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",

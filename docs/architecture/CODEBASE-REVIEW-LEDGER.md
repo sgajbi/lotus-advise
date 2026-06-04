@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-626
+
+- Scope: Proposal alternatives comparison projection
+- Pattern: Alternatives ranking orchestration should not own comparison-summary delta assembly.
+- Status: Hardened
+- Finding Class: Projection modularity and alternatives evidence maintainability
+- Summary: `src/core/advisory/alternatives_projection.py` still owned approval deltas,
+  missing-evidence deltas, risk deltas, cash deltas, currency deltas, unchanged-factor detection,
+  and advisor-facing tradeoff text while also orchestrating alternatives generation and ranking.
+  That made comparison evidence harder to test and evolve independently from lifecycle ranking.
+- Evidence:
+  - Extracted comparison summary and delta helpers to
+    `src/core/advisory/alternatives_comparison_projection.py`.
+  - Preserved existing private helper imports from `alternatives_projection.py` as explicit
+    compatibility aliases for current projection tests and callers.
+  - Extended projection tests to prove comparison, allocation, and risk helper ownership moved to
+    the focused comparison projection module while behavior remains unchanged.
+  - Focused `ruff`, `mypy`, and alternatives projection tests passed with 8 tests.
+- Consequence:
+  - Alternatives projection has a clearer boundary between lifecycle ranking and advisor-facing
+    comparison evidence assembly, lowering review risk for future ranking or narrative changes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented alternatives behavior.
+- Follow-Up:
+  - Extract the remaining ranking comparator and rank-assignment helpers from
+    `alternatives_projection.py` into a focused ranking projection module.
+
 ## LA-REV-625
 
 - Scope: Proposal alternatives strategy input projection
