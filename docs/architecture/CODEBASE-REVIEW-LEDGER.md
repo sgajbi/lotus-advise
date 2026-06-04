@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-676
+
+- Scope: Proposal workflow read facade ownership
+- Pattern: The public proposal workflow service should remain a compatibility facade while proposal
+  detail, list, timeline, approval, lineage, version, replay, and idempotency lookup methods live in
+  a focused read facade module.
+- Status: Hardened
+- Finding Class: Proposal workflow service modularity and read-boundary reviewability
+- Summary: `src/core/proposals/service.py` still owned public read facade methods even after read
+  behavior had moved into `ProposalWorkflowReadOperations`. That kept read method surface mixed with
+  command, delivery, narrative, and async method groups in the aggregate service hotspot.
+- Evidence:
+  - Added `src/core/proposals/service_read_facade.py` for public proposal read, timeline, approval,
+    lineage, version, replay, and idempotency lookup facade methods.
+  - Made `ProposalWorkflowService` inherit `ProposalWorkflowReadFacadeMixin` while preserving the
+    existing public `src.core.proposals.service.ProposalWorkflowService` import path.
+  - Reduced `src/core/proposals/service.py` from 315 lines to 243 lines while preserving existing
+    read, replay, and idempotency lookup behavior.
+  - Updated workflow service boundary coverage proving read facade methods live outside the
+    aggregate service while read implementation remains in the focused operation module.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; proposal workflow
+    service tests passed with 78 tests; repo-native `make lint` passed.
+- Consequence:
+  - Proposal read method-surface changes can be reviewed independently from the aggregate workflow
+    service facade and independently from read view implementation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal workflow service modularity for existing behavior.
+- Follow-Up:
+  - Evaluate whether command, delivery, and narrative facade groups should move behind similar
+    focused mixins after final branch validation, without changing the public service contract.
+
 ## LA-REV-675
 
 - Scope: Proposal workflow async facade ownership
