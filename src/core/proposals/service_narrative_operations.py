@@ -2,7 +2,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Optional
 
-from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
+from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
 from src.core.proposals.identifiers import new_workflow_event_id
 from src.core.proposals.models import (
     ProposalNarrativeReadResponse,

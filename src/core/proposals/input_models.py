@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, model_validator
 
 from src.core.advisory.alternatives_models import ProposalAlternativesRequest
-from src.core.advisory.narrative_models import ProposalNarrativeRequest
+from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposals.contract_types import ProposalInputMode
 

@@ -3,11 +3,13 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from src.core.advisory.narrative_models import (
+from src.core.advisory.narrative_grounding_models import (
     ProposalNarrativeGroundingPacket,
+    ProposalNarrativeSourceRef,
+)
+from src.core.advisory.narrative_policy_models import (
     ProposalNarrativePolicy,
     ProposalNarrativePolicyContext,
-    ProposalNarrativeSourceRef,
 )
 from src.integrations.lotus_ai.proposal_narrative import (
     MAX_NARRATIVE_AI_OUTPUT_SECTIONS,

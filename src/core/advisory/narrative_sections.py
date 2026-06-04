@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.advisory.narrative_models import (
+from src.core.advisory.narrative_grounding_models import (
     ProposalNarrativeGroundingPacket,
-    ProposalNarrativeSection,
-    ProposalNarrativeSectionKey,
     ProposalNarrativeSourceRef,
+)
+from src.core.advisory.narrative_section_models import (
+    ProposalNarrativeSection,
+)
+from src.core.advisory.narrative_types import (
+    ProposalNarrativeSectionKey,
 )
 
 

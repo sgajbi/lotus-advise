@@ -4,15 +4,17 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from src.core.advisory.artifact_models import ProposalArtifact
-from src.core.advisory.narrative_models import (
-    ProposalNarrativeClientAudience,
+from src.core.advisory.narrative_policy_models import (
     ProposalNarrativeDisclosure,
     ProposalNarrativeGuardrailResult,
     ProposalNarrativePolicy,
     ProposalNarrativePolicyContext,
-    ProposalNarrativeRequest,
+)
+from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
+from src.core.advisory.narrative_section_models import ProposalNarrativeSection
+from src.core.advisory.narrative_types import (
+    ProposalNarrativeClientAudience,
     ProposalNarrativeRiskPosture,
-    ProposalNarrativeSection,
 )
 
 NARRATIVE_POLICY_VERSION = "advisory-narrative-policy.2026-05"

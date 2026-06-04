@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-651
+
+- Scope: Proposal narrative runtime DTO dependency flow
+- Pattern: Narrative runtime, API, workflow, and lotus-ai integration modules should import
+  focused DTO owner modules directly instead of routing through the compatibility facade.
+- Status: Hardened
+- Finding Class: Advisory narrative dependency flow and facade-coupling reduction
+- Summary: After splitting narrative DTOs into focused owner modules,
+  `src/core/advisory/narrative_models.py` remained available as a compatibility facade, but runtime
+  modules still imported request, grounding, policy, section, AI-lineage, envelope, and review DTOs
+  through that broad facade. This made dependency ownership less clear and could encourage new code
+  to couple to the facade rather than the focused model boundaries.
+- Evidence:
+  - Updated narrative rendering, AI draft handling, section rendering, grounding, policy, artifact,
+    proposal request/input, proposal workflow, lifecycle route, narrative read/review, narrative
+    response, and lotus-ai integration modules to import focused narrative DTO owner modules.
+  - Added contract coverage preventing non-facade source modules from importing DTOs through
+    `src.core.advisory.narrative_models`.
+  - Tightened the lotus-ai workflow request builder return boundary with an explicit typed cast.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, proposal workflow service, lotus-ai narrative,
+    advisory proposal simulate, narrative policy, and narrative model contract tests passed with
+    154 tests.
+- Consequence:
+  - Narrative DTO dependency flow now follows owner modules, while `narrative_models.py` remains a
+    stable compatibility and OpenAPI facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal dependency-flow hardening for existing implemented narrative behavior.
+- Follow-Up:
+  - Keep new narrative runtime code importing focused DTO owner modules directly.
+
 ## LA-REV-650
 
 - Scope: Proposal narrative review DTO ownership

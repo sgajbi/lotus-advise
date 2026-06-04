@@ -4,12 +4,14 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, cast
 
-from src.core.advisory.narrative_models import (
+from src.core.advisory.narrative_review_models import (
+    ProposalNarrativeReviewRecord,
+    ProposalNarrativeReviewRequest,
+)
+from src.core.advisory.narrative_types import (
     ProposalNarrativeClientReadyStatus,
     ProposalNarrativeReviewAction,
     ProposalNarrativeReviewedState,
-    ProposalNarrativeReviewRecord,
-    ProposalNarrativeReviewRequest,
 )
 from src.core.common.canonical import hash_canonical_payload
 from src.core.common.idempotency import normalize_optional_idempotency_key

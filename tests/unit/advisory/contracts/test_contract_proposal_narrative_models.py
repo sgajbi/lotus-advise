@@ -136,3 +136,11 @@ def test_proposal_narrative_review_models_keep_stable_facade_imports() -> None:
         narrative_models.ProposalNarrativeReviewRecord.__module__
         == "src.core.advisory.narrative_review_models"
     )
+
+
+def test_proposal_narrative_runtime_uses_focused_model_imports() -> None:
+    for path in (REPO_ROOT / "src").rglob("*.py"):
+        if path.name == "narrative_models.py":
+            continue
+        source = path.read_text(encoding="utf-8")
+        assert "from src.core.advisory.narrative_models import" not in source, path

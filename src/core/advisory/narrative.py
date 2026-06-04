@@ -2,22 +2,22 @@ from __future__ import annotations
 
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory.narrative_ai import apply_ai_draft_sections
+from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
+from src.core.advisory.narrative_envelope_models import ProposalNarrative
 from src.core.advisory.narrative_grounding import (
     TEMPLATE_POLICY_VERSION,
     build_proposal_narrative_grounding_packet,
-)
-from src.core.advisory.narrative_models import (
-    ProposalNarrative,
-    ProposalNarrativeAiLineage,
-    ProposalNarrativeGenerationMode,
-    ProposalNarrativeRequest,
-    ProposalNarrativeSectionKey,
 )
 from src.core.advisory.narrative_policy import (
     evaluate_proposal_narrative_guardrails,
     resolve_proposal_narrative_policy,
 )
+from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
 from src.core.advisory.narrative_sections import render_sections
+from src.core.advisory.narrative_types import (
+    ProposalNarrativeGenerationMode,
+    ProposalNarrativeSectionKey,
+)
 from src.core.common.canonical import hash_canonical_payload
 from src.integrations.lotus_ai.proposal_narrative import (
     generate_proposal_narrative_draft_with_lotus_ai,

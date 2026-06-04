@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from src.core.advisory.narrative_models import (
-    ProposalNarrativeAiLineage,
+from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
+from src.core.advisory.narrative_grounding_models import ProposalNarrativeGroundingPacket
+from src.core.advisory.narrative_policy_models import ProposalNarrativePolicy
+from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
+from src.core.advisory.narrative_section_models import ProposalNarrativeSection
+from src.core.advisory.narrative_types import (
     ProposalNarrativeGenerationMode,
-    ProposalNarrativeGroundingPacket,
-    ProposalNarrativePolicy,
-    ProposalNarrativeRequest,
-    ProposalNarrativeSection,
     ProposalNarrativeSectionKey,
 )
 from src.integrations.lotus_ai.proposal_narrative import (

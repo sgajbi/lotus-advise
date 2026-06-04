@@ -4,7 +4,8 @@ from typing import Any
 
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory.narrative import build_deterministic_proposal_narrative
-from src.core.advisory.narrative_models import ProposalNarrative, ProposalNarrativeRequest
+from src.core.advisory.narrative_envelope_models import ProposalNarrative
+from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
 from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.narrative_review import (
     ProposalNarrativeReviewError,

@@ -40,7 +40,7 @@ from src.core.advisory.artifact_trade_models import (
     ProposalArtifactTradesAndFunding,
 )
 from src.core.advisory.decision_summary_models import ProposalDecisionSummary
-from src.core.advisory.narrative_models import ProposalNarrative
+from src.core.advisory.narrative_envelope_models import ProposalNarrative
 from src.core.gate_models import GateDecision
 
 

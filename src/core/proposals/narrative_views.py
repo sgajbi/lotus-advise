@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 
-from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
+from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
