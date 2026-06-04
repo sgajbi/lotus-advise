@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import cast
+from typing import Any, cast
 
+from src.core.advisor_cockpit import service_source_loader as cockpit_source_loader
 from src.core.advisor_cockpit.action_models import (
     AdvisoryActionItem,
     AdvisoryActionItemPage,
@@ -50,7 +51,6 @@ from src.core.advisor_cockpit.source_read_model import (
     AdvisorCockpitSourceReadModel,
 )
 from src.core.common.canonical import hash_canonical_payload
-from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
@@ -60,6 +60,10 @@ from src.core.proposals.idempotency_validation import require_proposal_idempoten
 
 COCKPIT_SOURCE_LIMIT = COCKPIT_SOURCE_BATCH_MAX_ITEMS
 COCKPIT_CONTRACT_VERSION = "rfc0026.advisor-cockpit-api.v1"
+
+
+def list_policy_evaluation_records(**kwargs: Any) -> Any:
+    return cockpit_source_loader.list_policy_evaluation_records(**kwargs)
 
 
 class AdvisorCockpitService:
