@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, cast
 
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.proposals.exceptions import (
@@ -22,6 +21,12 @@ from src.core.proposals.memo_external_packages import (
 from src.core.proposals.memo_persistence import (
     ProposalMemoPersistenceError,
     create_or_replay_proposal_memo,
+)
+from src.core.proposals.memo_request_context import (
+    load_memo_for_proposal_version,
+    load_proposal_version_for_memo,
+    require_advisor_use_review,
+    validate_source_memo_hash,
 )
 from src.core.proposals.memo_response_projection import (
     archive_refs_from_report_posture as _archive_refs_from_report_posture,
@@ -65,15 +70,8 @@ from src.core.proposals.models import (
     ProposalMemoResponse,
     ProposalMemoReviewRequest,
     ProposalMemoReviewResponse,
-    ProposalRecord,
-    ProposalVersionRecord,
-)
-from src.core.proposals.persistence_models import (
-    ProposalMemoEventRecord,
-    ProposalMemoRecord,
 )
 from src.core.proposals.projections import to_proposal_summary
-from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
 from src.core.proposals.repository import ProposalRepository
 from src.integrations.lotus_ai import (
     LotusAIProposalMemoUnavailableError,
@@ -94,7 +92,7 @@ def create_or_replay_memo_response(
     occurred_at: datetime,
 ) -> ProposalMemoResponse:
     idempotency_key = require_proposal_idempotency_key(idempotency_key)
-    proposal, version = _load_proposal_version(
+    proposal, version = load_proposal_version_for_memo(
         repository=repository,
         proposal_id=proposal_id,
         version_no=version_no,
@@ -125,12 +123,14 @@ def get_memo_response(
     proposal_id: str,
     version_no: int,
 ) -> ProposalMemoResponse:
-    proposal, _version = _load_proposal_version(
+    proposal, _version = load_proposal_version_for_memo(
         repository=repository,
         proposal_id=proposal_id,
         version_no=version_no,
     )
-    memo = _load_memo(repository=repository, proposal_id=proposal_id, version_no=version_no)
+    memo = load_memo_for_proposal_version(
+        repository=repository, proposal_id=proposal_id, version_no=version_no
+    )
     return build_memo_response(repository=repository, proposal=proposal, memo=memo)
 
 
@@ -179,13 +179,15 @@ def record_memo_review_response(
     occurred_at: datetime,
 ) -> ProposalMemoReviewResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    proposal, _version = _load_proposal_version(
+    proposal, _version = load_proposal_version_for_memo(
         repository=repository,
         proposal_id=proposal_id,
         version_no=version_no,
     )
-    memo = _load_memo(repository=repository, proposal_id=proposal_id, version_no=version_no)
-    _validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
+    memo = load_memo_for_proposal_version(
+        repository=repository, proposal_id=proposal_id, version_no=version_no
+    )
+    validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
     if payload.client_ready_release_requested:
         raise ProposalValidationError("MEMO_CLIENT_READY_RELEASE_NOT_SUPPORTED")
     request_hash = memo_event_request_hash(
@@ -234,13 +236,15 @@ def record_memo_report_package_event_response(
     occurred_at: datetime,
 ) -> ProposalMemoReportPackageEventResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    proposal, _version = _load_proposal_version(
+    proposal, _version = load_proposal_version_for_memo(
         repository=repository,
         proposal_id=proposal_id,
         version_no=version_no,
     )
-    memo = _load_memo(repository=repository, proposal_id=proposal_id, version_no=version_no)
-    _validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
+    memo = load_memo_for_proposal_version(
+        repository=repository, proposal_id=proposal_id, version_no=version_no
+    )
+    validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
     request_hash = memo_event_request_hash(
         {
             "operation": "MEMO_REPORT_PACKAGE_RECORDED",
@@ -288,17 +292,19 @@ def request_memo_report_package_response(
     occurred_at: datetime,
 ) -> ProposalMemoReportPackageResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    proposal, version = _load_proposal_version(
+    proposal, version = load_proposal_version_for_memo(
         repository=repository,
         proposal_id=proposal_id,
         version_no=version_no,
     )
-    memo = _load_memo(repository=repository, proposal_id=proposal_id, version_no=version_no)
-    _validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
+    memo = load_memo_for_proposal_version(
+        repository=repository, proposal_id=proposal_id, version_no=version_no
+    )
+    validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
     if payload.client_ready_document_requested:
         raise ProposalValidationError("MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED")
     memo_events = repository.list_memo_events(memo_id=memo.memo_id)
-    review_posture = _require_advisor_use_review(memo=memo, events=memo_events)
+    review_posture = require_advisor_use_review(memo=memo, events=memo_events)
 
     request_hash = memo_event_request_hash(
         {
@@ -386,15 +392,17 @@ def request_memo_ai_commentary_response(
     occurred_at: datetime,
 ) -> ProposalMemoAiCommentaryResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    proposal, _version = _load_proposal_version(
+    proposal, _version = load_proposal_version_for_memo(
         repository=repository,
         proposal_id=proposal_id,
         version_no=version_no,
     )
-    memo = _load_memo(repository=repository, proposal_id=proposal_id, version_no=version_no)
-    _validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
+    memo = load_memo_for_proposal_version(
+        repository=repository, proposal_id=proposal_id, version_no=version_no
+    )
+    validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
     memo_events = repository.list_memo_events(memo_id=memo.memo_id)
-    review_posture = _require_advisor_use_review(memo=memo, events=memo_events)
+    review_posture = require_advisor_use_review(memo=memo, events=memo_events)
     requested_sections = [str(section) for section in payload.requested_sections]
     request_hash = memo_event_request_hash(
         {
@@ -556,57 +564,6 @@ def get_memo_replay_evidence_response(
             "workbench_supported": False,
         },
     )
-
-
-def _load_proposal_version(
-    *,
-    repository: ProposalRepository,
-    proposal_id: str,
-    version_no: int,
-) -> tuple[ProposalRecord, ProposalVersionRecord]:
-    referents = load_proposal_version_replay_referents(
-        repository=repository,
-        proposal_id=proposal_id,
-        version_no=version_no,
-    )
-    if referents.proposal is None:
-        raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-    if referents.version is None:
-        raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-    return referents.proposal, referents.version
-
-
-def _load_memo(
-    *,
-    repository: ProposalRepository,
-    proposal_id: str,
-    version_no: int,
-) -> ProposalMemoRecord:
-    memo = repository.get_memo_by_proposal_version(
-        proposal_id=proposal_id,
-        proposal_version_no=version_no,
-    )
-    if memo is None:
-        raise ProposalNotFoundError("PROPOSAL_MEMO_NOT_FOUND")
-    return memo
-
-
-def _require_advisor_use_review(
-    *,
-    memo: ProposalMemoRecord,
-    events: list[ProposalMemoEventRecord],
-) -> dict[str, Any]:
-    posture = _latest_event_posture(events, event_type="MEMO_REVIEW_RECORDED")
-    if posture.get("review_action") != "APPROVE_FOR_ADVISOR_USE":
-        raise ProposalValidationError("MEMO_REPORT_PACKAGE_REQUIRES_ADVISOR_USE_REVIEW")
-    if posture.get("memo_hash") != memo.memo_hash:
-        raise ProposalValidationError("MEMO_REVIEW_SOURCE_HASH_MISMATCH")
-    return cast("dict[str, Any]", posture)
-
-
-def _validate_source_memo_hash(*, memo: ProposalMemoRecord, source_memo_hash: str) -> None:
-    if source_memo_hash != memo.memo_hash:
-        raise ProposalValidationError("MEMO_SOURCE_HASH_MISMATCH")
 
 
 def _raise_api_error(exc: ProposalMemoPersistenceError) -> None:

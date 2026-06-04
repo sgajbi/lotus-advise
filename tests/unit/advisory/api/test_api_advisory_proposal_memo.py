@@ -69,6 +69,25 @@ def test_memo_api_delegates_event_recording_helpers() -> None:
     assert "ProposalMemoEventRecord(" in event_source
 
 
+def test_memo_api_delegates_request_context_helpers() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    context_source = (REPO_ROOT / "src/core/proposals/memo_request_context.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.proposals.memo_request_context import" in source
+    for helper_name in (
+        "load_proposal_version_for_memo",
+        "load_memo_for_proposal_version",
+        "require_advisor_use_review",
+        "validate_source_memo_hash",
+    ):
+        assert f"def {helper_name}(" not in source
+        assert f"def {helper_name}(" in context_source
+    assert "load_proposal_version_replay_referents(" not in source
+    assert "load_proposal_version_replay_referents(" in context_source
+
+
 def _base_create_payload(portfolio_id: str = "pf_memo_api_1") -> dict:
     return {
         "created_by": "advisor_1",
