@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-615
+
+- Scope: Alternatives objective strategy modules
+- Pattern: Alternative construction objectives should be owned by focused domain modules rather
+  than one broad objective implementation hotspot.
+- Status: Hardened
+- Finding Class: Domain strategy modularity and private-banking construction maintainability
+- Summary: `src/core/advisory/alternatives_strategy_objectives.py` concentrated concentration
+  reduction, cash raising, turnover reduction, currency alignment, and restricted-product
+  deferral strategies in one large module. That made portfolio/cash mechanics, trade-turnover
+  logic, FX-alignment evidence, and deferred restricted-product posture change together even
+  though they are separate advisory construction concerns.
+- Evidence:
+  - Added `alternatives_strategy_portfolio_objectives.py` for concentration reduction and
+    cash-raising strategies.
+  - Added `alternatives_strategy_trade_objectives.py` for baseline-trade turnover reduction.
+  - Added `alternatives_strategy_currency_objectives.py` for currency-alignment strategy logic.
+  - Added `alternatives_strategy_deferred_objectives.py` for deferred restricted-product posture.
+  - Kept `alternatives_strategy_objectives.py` as a compatibility export facade for existing
+    registry imports.
+  - Tightened the candidate-seed helper return boundary so mypy proves the public helper contract.
+  - Focused alternatives lint, mypy, and behavior tests passed with 28 tests.
+- Consequence:
+  - Alternative construction behavior remains compatible while each private-banking objective can
+    now evolve with localized tests, review ownership, and evidence vocabulary.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue splitting alternatives projection/model hotspots where ranking, enrichment, and DTO
+    responsibilities can be separated without changing generated advisory alternatives.
+
 ## LA-REV-614
 
 - Scope: Proposal workflow delivery operations
