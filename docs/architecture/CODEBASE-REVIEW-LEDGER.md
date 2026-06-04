@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-600
+
+- Scope: Core suitability scanner modularity
+- Pattern: Suitability scanning should not mix policy-pack wiring, state evaluators, trade/context
+  enrichment, issue projection, and gate recommendation in one monolithic module.
+- Status: Hardened
+- Finding Class: Advisory suitability modularity and private-banking policy maintainability
+- Summary: `src/core/common/suitability.py` was the largest production-code hotspot and mixed
+  target-state concentration, issuer, liquidity, governance, cash-band, post-trade, product
+  complexity, mandate-context, issue-classification, and result-summary behavior. That made
+  suitability rules harder to review and increased the chance that future policy-pack changes would
+  alter orchestration, evidence projection, or context-readiness semantics together.
+- Evidence:
+  - Added `src/core/common/suitability_policy.py` for suitability policy primitives, severity
+    vocabulary, issue candidates, policy-pack structure, and shared weight helpers.
+  - Added `src/core/common/suitability_state_issues.py` for state-based concentration, issuer,
+    liquidity, governance, cash-band, and source-enrichment data-quality evaluators.
+  - Added `src/core/common/suitability_post_trade_issues.py` for proposed-trade governance,
+    complex-product client-context, and restricted-product mandate-context issue enrichment.
+  - Added `src/core/common/suitability_projection.py` for issue classification ordering, issue DTO
+    projection, highest-severity summary selection, and recommended gate calculation.
+  - Kept `src/core/common/suitability.py` as the stable public orchestration entrypoint for
+    `compute_suitability_result` and policy-pack wiring.
+  - Reduced `src/core/common/suitability.py` from a 672-line hotspot to focused orchestration.
+  - Focused `ruff` passed for the suitability module family and related contract tests; focused
+    suitability scanner/API tests passed with 14 tests.
+- Consequence:
+  - Suitability behavior remains compatible while private-banking policy rules, post-trade
+    evidence requirements, and result projection can now be reviewed independently.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, published product truth, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue splitting remaining production-code hotspots in narrative, policy-pack persistence,
+    policy-pack evaluation/catalog, proposal service, and memo API orchestration.
+
 ## LA-REV-599
 
 - Scope: Proposal memo API response projection
