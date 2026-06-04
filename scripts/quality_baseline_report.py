@@ -269,6 +269,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  to a focused projection module.",
         "- Proposal alternatives comparison evidence delegates approval, risk, cash,",
         "  currency, and tradeoff deltas to a focused projection module.",
+        "- Proposal alternatives ranking delegates comparator, reason-code, rank,",
+        "  and selected-alternative projection to a focused ranking module.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",

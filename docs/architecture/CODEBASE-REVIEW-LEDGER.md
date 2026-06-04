@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-627
+
+- Scope: Proposal alternatives ranking projection
+- Pattern: Alternatives lifecycle orchestration should not own rank comparator and selection
+  projection rules directly.
+- Status: Hardened
+- Finding Class: Projection modularity and ranking maintainability
+- Summary: `src/core/advisory/alternatives_projection.py` still owned ranking policy version,
+  ready-status ordering, comparator inputs, ranking reason codes, rank assignment, comparison
+  summary attachment, and selected-alternative marking. That made the top-level proposal
+  alternatives assembly harder to review separately from deterministic ranking policy behavior.
+- Evidence:
+  - Extracted ranking comparator, reason-code, rank-assignment, and selection marking helpers to
+    `src/core/advisory/alternatives_ranking_projection.py`.
+  - Preserved existing private helper imports from `alternatives_projection.py` as compatibility
+    aliases for current projection tests and callers.
+  - Extended projection tests to prove rank, comparator, and ranking-reason helper ownership moved
+    to the focused ranking projection module while behavior remains unchanged.
+  - Focused `ruff`, `mypy`, and alternatives projection tests passed with 8 tests.
+- Consequence:
+  - Alternatives projection now separates generation orchestration, strategy input mapping,
+    comparison evidence assembly, and deterministic ranking policy behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented alternatives behavior.
+- Follow-Up:
+  - Continue reducing oversized advisory model/projection modules and add compatibility-boundary
+    tests when public import paths are intentionally retained.
+
 ## LA-REV-626
 
 - Scope: Proposal alternatives comparison projection

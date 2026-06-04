@@ -262,8 +262,10 @@ def test_projection_helpers_cover_rejected_status_and_comparison_fallbacks() -> 
     )
 
     blocked_inputs = _comparator_inputs(alternative=alternative, objective_rank=9)
+    assert _comparator_inputs.__module__ == "src.core.advisory.alternatives_ranking_projection"
     assert blocked_inputs["status_priority"] == 2
     assert "APPROVALS_INCREASE_REVIEW_POSTURE" in _ranking_reason_codes(alternative=alternative)
+    assert _ranking_reason_codes.__module__ == "src.core.advisory.alternatives_ranking_projection"
     assert "MISSING_EVIDENCE_LOWERS_RANK" in _ranking_reason_codes(alternative=alternative)
     assert "LOWER_TURNOVER_TIEBREAKER" not in _ranking_reason_codes(alternative=alternative)
     assert alternative.rank is None
@@ -358,6 +360,7 @@ def test_rank_alternatives_leaves_rejected_selection_unranked() -> None:
     assert ranked[0].rank is None
     assert ranked[0].selected is False
     assert ranked[0].ranking_projection is not None
+    assert _rank_alternatives.__module__ == "src.core.advisory.alternatives_ranking_projection"
 
 
 def test_build_comparison_summary_records_improvements_and_deteriorations() -> None:
