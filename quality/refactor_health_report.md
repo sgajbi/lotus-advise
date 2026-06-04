@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-17`
-- Head: `5b570558948d8e1274b63eca5675c93735b996cf`
-- Branch Commits Over Main: `24`
+- Head: `5161b27e1111b944821c35bfd8a3e5727ebf1134`
+- Branch Commits Over Main: `25`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -97,6 +97,8 @@
 - Proposal narrative policy and guardrail DTOs are split into a focused policy
   model module while preserving the existing narrative model facade.
 - Proposal narrative AI-lineage DTOs are split into a focused AI model module
+  while preserving the existing narrative model facade.
+- Proposal narrative envelope DTOs are split into a focused envelope model module
   while preserving the existing narrative model facade.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
