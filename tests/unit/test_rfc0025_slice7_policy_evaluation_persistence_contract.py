@@ -40,6 +40,9 @@ def test_rfc0025_slice7_keeps_api_product_surface_and_client_ready_gated() -> No
     slice7_text = SLICE7_PATH.read_text(encoding="utf-8")
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
     persistence_source = PERSISTENCE_SOURCE_PATH.read_text(encoding="utf-8")
+    persistence_store_source = Path("src/core/policy_packs/persistence_store.py").read_text(
+        encoding="utf-8"
+    )
     persistence_record_builder_source = Path(
         "src/core/policy_packs/persistence_record_builder.py"
     ).read_text(encoding="utf-8")
@@ -49,7 +52,8 @@ def test_rfc0025_slice7_keeps_api_product_surface_and_client_ready_gated() -> No
     assert "POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION" in persistence_source
     assert "rfc0025.policy-evaluation-persistence.v1" in supportability_source
     assert "PolicyEvaluationRecordStore" in persistence_source
-    assert "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT" in persistence_source
+    assert "PolicyEvaluationRecordStore" in persistence_store_source
+    assert "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT" in persistence_store_source
     assert "PIN_POLICY_VERSION_AND_COMPARE_SOURCE_HASHES" in persistence_record_builder_source
     assert "PolicyEvaluationRecord" in models_source
     assert "PolicyEvaluationReplayResponse" in models_source

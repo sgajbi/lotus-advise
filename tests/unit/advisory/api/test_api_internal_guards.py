@@ -460,18 +460,18 @@ def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
 
 
 def test_policy_evaluation_routes_use_shared_parameter_contracts():
-    command_source = Path(
-        "src/api/proposals/routes_policy_evaluation_commands.py"
-    ).read_text(encoding="utf-8")
-    package_source = Path(
-        "src/api/proposals/routes_policy_evaluation_packages.py"
-    ).read_text(encoding="utf-8")
+    command_source = Path("src/api/proposals/routes_policy_evaluation_commands.py").read_text(
+        encoding="utf-8"
+    )
+    package_source = Path("src/api/proposals/routes_policy_evaluation_packages.py").read_text(
+        encoding="utf-8"
+    )
     read_source = Path("src/api/proposals/routes_policy_evaluation_reads.py").read_text(
         encoding="utf-8"
     )
-    workflow_source = Path(
-        "src/api/proposals/routes_policy_evaluation_workflow.py"
-    ).read_text(encoding="utf-8")
+    workflow_source = Path("src/api/proposals/routes_policy_evaluation_workflow.py").read_text(
+        encoding="utf-8"
+    )
     combined_source = "\n".join([command_source, package_source, read_source, workflow_source])
 
     assert "from fastapi import status" in command_source
