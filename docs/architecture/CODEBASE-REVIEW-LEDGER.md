@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-621
+
+- Scope: Policy evaluation persistence projections
+- Pattern: The policy evaluation persistence store should not own lineage response projection,
+  supportability posture projection, and audit-event attachment mapping directly.
+- Status: Hardened
+- Finding Class: Persistence boundary modularity and lineage projection maintainability
+- Summary: `src/core/policy_packs/persistence.py` still mixed record finalization, idempotency,
+  replay, and in-memory store responsibilities with API lineage response assembly, runtime posture
+  projection, and appended review/sign-off/archive event mapping. That made projection behavior
+  change in the same module as persistence, hash replay, and idempotency behavior.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_projection.py` for policy evaluation lineage
+    response assembly, runtime API posture projection, and append-only event attachment mapping.
+  - Kept `PolicyEvaluationRecordStore` as the stable persistence boundary, delegating projection
+    and event attachment helpers to the focused projection module.
+  - Added a source-boundary test proving lineage response construction and runtime supportability
+    projection stay outside the persistence store module.
+  - Focused policy evaluation persistence lint, mypy, and behavior tests passed with 7 tests.
+- Consequence:
+  - Policy evaluation persistence behavior remains compatible while lineage/posture projection and
+    appended audit-event mapping are easier to review separately from idempotent persistence and
+    replay logic.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `src/core/policy_packs/persistence.py` by extracting request-hash/idempotency
+    command handling or replay comparison logic once the corresponding behavior seams are covered.
+
 ## LA-REV-620
 
 - Scope: Proposal workflow read operations

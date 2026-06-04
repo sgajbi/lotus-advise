@@ -85,6 +85,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal workflow delivery operations delegate execution handoff" in refactor_health
     assert "Proposal workflow narrative operations delegate narrative read" in refactor_health
     assert "Proposal workflow read operations delegate proposal" in refactor_health
+    assert "Policy evaluation persistence delegates lineage/posture projection" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
 
 
