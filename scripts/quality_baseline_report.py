@@ -279,6 +279,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and selected-alternative projection to a focused ranking module.",
         "- Proposal memo request DTOs and memo vocabulary literals are split from",
         "  response, lineage, and replay evidence models.",
+        "- Proposal memo persistence records are split into a focused owner module",
+        "  while preserving the existing persistence model facade.",
         "- Proposal memo audit event DTOs are split into a focused append-only",
         "  event model module.",
         "- Proposal memo lineage and replay evidence DTOs are split into a",

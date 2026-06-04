@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-655
+
+- Scope: Proposal memo persistence DTO ownership
+- Pattern: Durable memo persistence records should live in a focused owner module instead of the
+  broad proposal persistence facade.
+- Status: Hardened
+- Finding Class: Memo persistence contract modularity and type-boundary maintainability
+- Summary: `src/core/proposals/persistence_models.py` mixed proposal aggregate/version/workflow
+  records, idempotency records, async operation records, transition result DTOs, and memo
+  persistence records. Memo lifecycle, memo idempotency, and memo event records are specific to the
+  memo persistence workflow and were consumed by memo event recording, memo request context,
+  response projection, external package assembly, and repository protocols.
+- Evidence:
+  - Added `src/core/proposals/memo_persistence_models.py` for `ProposalMemoRecord`,
+    `ProposalMemoIdempotencyRecord`, `ProposalMemoEventRecord`, `ProposalMemoLifecycleStatus`, and
+    `ProposalMemoEventType`.
+  - Reduced `src/core/proposals/persistence_models.py` toward a compatibility facade for memo
+    persistence DTO imports while leaving non-memo persistence records in place for later slices.
+  - Updated memo event recording, memo request context, memo response projection, memo external
+    packages, repository protocol typing, and public proposal model aggregation to import memo
+    persistence DTOs from the focused owner module.
+  - Added contract coverage proving public `models.py`, `persistence_models.py`, and
+    `memo_persistence_models.py` resolve to the same memo persistence classes while the broad
+    persistence facade no longer defines memo record classes directly.
+  - Focused ruff and mypy passed for touched files; proposal model boundary, memo persistence, and
+    memo response projection tests passed with 13 tests.
+- Consequence:
+  - Memo persistence behavior and schema titles remain stable while memo lifecycle/event/idempotency
+    DTO changes can be reviewed separately from proposal aggregate and workflow persistence records.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal memo persistence modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting non-memo persistence DTO families only when a concrete runtime or repository
+    boundary slice needs it.
+
 ## LA-REV-654
 
 - Scope: Proposal memo source-readiness owner modules

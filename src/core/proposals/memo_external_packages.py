@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core.proposals.memo_persistence_models import ProposalMemoRecord
 from src.core.proposals.models import ProposalMemoReportPackageRequest
-from src.core.proposals.persistence_models import ProposalMemoRecord
 
 
 def build_report_memo_package(

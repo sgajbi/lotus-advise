@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Any, cast
 
 from src.core.proposals.exceptions import ProposalNotFoundError, ProposalValidationError
-from src.core.proposals.memo_response_projection import latest_event_posture
-from src.core.proposals.models import ProposalRecord, ProposalVersionRecord
-from src.core.proposals.persistence_models import (
+from src.core.proposals.memo_persistence_models import (
     ProposalMemoEventRecord,
     ProposalMemoRecord,
 )
+from src.core.proposals.memo_response_projection import latest_event_posture
+from src.core.proposals.models import ProposalRecord, ProposalVersionRecord
 from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
 from src.core.proposals.repository import ProposalRepository
 

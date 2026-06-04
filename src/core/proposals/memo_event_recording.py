@@ -5,7 +5,7 @@ from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError
-from src.core.proposals.persistence_models import (
+from src.core.proposals.memo_persistence_models import (
     ProposalMemoEventRecord,
     ProposalMemoEventType,
     ProposalMemoRecord,
