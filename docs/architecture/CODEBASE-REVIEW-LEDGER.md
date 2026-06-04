@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-696
+
+- Scope: Policy-pack source-readiness rule handling
+- Pattern: Policy source-evidence classification should delegate policy-posture and section-level
+  evidence collection to focused helpers before stricter complexity thresholds are considered
+- Status: Improved
+- Finding Class: Complexity reduction and policy evaluation maintainability
+- Summary: `required_source_result` mixed field normalization, policy-source posture aggregation,
+  section lookup, missing-evidence collection, pending/blocking classification, and result building
+  in one D-ranked function.
+- Evidence:
+  - Added a focused source-evidence collection helper for missing evidence, reason codes, and
+    pending status.
+  - Extracted policy-source-readiness posture handling and section-source handling into focused
+    helpers.
+  - Added tests for blocked policy-source readiness and ready source-section pass-through.
+  - Radon now reports `required_source_result` as B-ranked complexity instead of D-ranked
+    complexity.
+- Consequence:
+  - Policy-pack source evidence handling is easier to audit and extend, and the repo D-ranked
+    complexity inventory drops from 6 to 5.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal policy evaluation modularity hardening.
+- Follow-Up:
+  - Continue classifying remaining D-ranked helpers before considering a fail-on-new-D gate.
+
 ## LA-REV-695
 
 - Scope: Radon no-E/no-F complexity regression gate

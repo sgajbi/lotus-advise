@@ -46,6 +46,47 @@ def test_policy_evaluation_source_rules_collect_pending_policy_source_readiness(
     assert result.reason_codes == ["RISK_LENS_PENDING"]
 
 
+def test_policy_evaluation_source_rules_block_blocked_policy_source_readiness() -> None:
+    result = required_source_result(
+        rule=_rule(["policy_source_readiness.source_authority"]),
+        source_posture={
+            "overall_posture": "BLOCKED",
+            "sections": [
+                {
+                    "key": "core_product_eligibility_target_market_complexity",
+                    "status": "BLOCKED",
+                    "missing_evidence": ["target_market"],
+                    "reason_codes": ["TARGET_MARKET_MISSING"],
+                }
+            ],
+        },
+    )
+
+    assert result is not None
+    assert result.status == "BLOCKED"
+    assert result.outcome == "SOURCE_EVIDENCE_BLOCKED"
+    assert result.missing_evidence == ["target_market"]
+    assert result.reason_codes == ["TARGET_MARKET_MISSING"]
+
+
+def test_policy_evaluation_source_rules_return_none_for_ready_source_sections() -> None:
+    result = required_source_result(
+        rule=_rule(["core_product_eligibility_target_market_complexity"]),
+        source_posture={
+            "sections": [
+                {
+                    "key": "core_product_eligibility_target_market_complexity",
+                    "status": "READY",
+                    "missing_evidence": [],
+                    "reason_codes": [],
+                }
+            ],
+        },
+    )
+
+    assert result is None
+
+
 def test_policy_evaluation_source_rules_project_mandate_readiness_refs() -> None:
     result = evaluate_mandate_rule(
         rule={

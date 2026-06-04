@@ -806,6 +806,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused review-rule module.",
         "- Policy evaluation source-readiness and mandate rules are split into",
         "  a focused source-rule module.",
+        "- Policy evaluation source-readiness rule handling delegates policy-posture",
+        "  aggregation and section evidence collection to focused helpers.",
         "- Proposal artifact summary DTOs are split into a focused summary model module",
         "  while preserving the existing artifact model facade.",
         "- Proposal artifact portfolio-impact DTOs are split into a focused portfolio model",

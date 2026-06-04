@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `877ca5d2ddc56fce40016fb912c87fb534f4dcc8`
-- Branch Commits Over Main: `20`
+- Head: `ccb9cf0600e848dbb9e99244b269880a1eb04796`
+- Branch Commits Over Main: `21`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -93,6 +93,8 @@
   focused review-rule module.
 - Policy evaluation source-readiness and mandate rules are split into
   a focused source-rule module.
+- Policy evaluation source-readiness rule handling delegates policy-posture
+  aggregation and section evidence collection to focused helpers.
 - Proposal artifact summary DTOs are split into a focused summary model module
   while preserving the existing artifact model facade.
 - Proposal artifact portfolio-impact DTOs are split into a focused portfolio model

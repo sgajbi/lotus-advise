@@ -118,6 +118,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Policy evaluation Singapore product rule implementations are split" in refactor_health
     assert "Policy evaluation cost and conflict review rules are split" in refactor_health
     assert "Policy evaluation source-readiness and mandate rules are split" in refactor_health
+    assert "Policy evaluation source-readiness rule handling delegates" in refactor_health
     assert "Proposal artifact summary DTOs are split" in refactor_health
     assert "Proposal artifact portfolio-impact DTOs are split" in refactor_health
     assert "Proposal artifact trade/funding DTOs are split" in refactor_health
