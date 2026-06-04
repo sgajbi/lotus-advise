@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-672
+
+- Scope: Policy-pack catalog command, event, and projection ownership
+- Pattern: The policy-pack catalog store should own in-memory state while validation/activation
+  commands, idempotent audit events, and detail projection live in focused helper modules.
+- Status: Hardened
+- Finding Class: Policy catalog modularity and state-boundary reviewability
+- Summary: `src/core/policy_packs/catalog.py` combined public catalog functions, in-memory store
+  state, validation command behavior, activation command behavior, request hashing, idempotent
+  replay detection, audit-event construction, latest-validation lookup, and detail response
+  projection in one 342-line module. That made catalog lifecycle changes harder to review without
+  also touching state storage and public facade behavior.
+- Evidence:
+  - Added `src/core/policy_packs/catalog_commands.py` for validation and activation command
+    behavior, request hashing, diagnostics, maker-checker enforcement, and immutable activation
+    checks.
+  - Added `src/core/policy_packs/catalog_events.py` for audit-event construction, idempotency replay
+    detection, and latest-validation lookup.
+  - Added `src/core/policy_packs/catalog_projection.py` for policy-pack detail response projection.
+  - Kept `src/core/policy_packs/catalog.py` as the public catalog facade and in-memory store owner.
+  - Reduced `src/core/policy_packs/catalog.py` from 342 lines to 180 lines while preserving public
+    functions, `PolicyPackCatalogStore`, and RFC-0025 catalog behavior.
+  - Updated boundary tests to prove command, event, and detail projection logic live in focused
+    modules instead of the catalog store facade.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; policy-pack catalog,
+    policy-pack API, and policy-pack model contract tests passed with 18 tests; repo-native
+    `make lint` passed.
+- Consequence:
+  - Policy-pack catalog validation and activation behavior can be reviewed independently from
+    in-memory state ownership and public catalog facade functions.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy-pack catalog modularity for existing behavior.
+- Follow-Up:
+  - Continue reducing stateful store and persistence hotspots where command helpers can preserve
+    idempotency, replay, and OpenAPI behavior.
+
 ## LA-REV-671
 
 - Scope: Advisory workspace API route ownership
