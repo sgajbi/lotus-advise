@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `e4f68e5bad11fd6b1b17984376d4b165eb81ea31`
-- Branch Commits Over Main: `43`
+- Head: `ead10a94eb4ade49785a726779371a0d6a047f80`
+- Branch Commits Over Main: `45`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -44,6 +44,8 @@
   and Lotus Risk source-owner section modules.
 - Proposal memo foundational sections are split into focused per-section builders
   outside the shared memo section group coordinator.
+- Proposal memo foundational sections delegate summary extraction and value
+  normalization to a focused helper module while preserving section construction.
 - Proposal memo evidence-pack assembly delegates deterministic section, appendix,
   and material-claim construction to a focused section factory.
 - Proposal memo API orchestration delegates report-package and AI-evidence payloads

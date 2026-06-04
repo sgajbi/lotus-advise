@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `e4f68e5bad11fd6b1b17984376d4b165eb81ea31`
+- Head: `ead10a94eb4ade49785a726779371a0d6a047f80`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |

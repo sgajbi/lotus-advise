@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-674
+
+- Scope: Proposal memo foundational summary helper ownership
+- Pattern: Foundational memo section construction should own section assembly while pure summary
+  extraction and value normalization live in focused helper modules.
+- Status: Hardened
+- Finding Class: Proposal memo modularity and summary-rule reviewability
+- Summary: `src/core/proposals/memo_foundational_sections.py` combined foundational section
+  builders with decision, objective, recommendation, alternatives, risk, dictionary, list, and
+  string summary helpers. That made memo output review harder by mixing section construction with
+  summary/value derivation rules.
+- Evidence:
+  - Added `src/core/proposals/memo_foundational_summaries.py` for decision, objective,
+    recommendation, alternatives, risk, dictionary, list, and string summary helpers.
+  - Kept `src/core/proposals/memo_foundational_sections.py` as the foundational section
+    construction owner.
+  - Reduced `src/core/proposals/memo_foundational_sections.py` from 349 lines to 299 lines while
+    preserving existing memo section behavior.
+  - Updated boundary coverage proving foundational sections import summary helpers from the focused
+    owner module.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; proposal memo builder
+    tests passed with 7 tests; repo-native `make lint` passed.
+- Consequence:
+  - Foundational memo section rendering can be reviewed independently from summary extraction and
+    value-normalization rules.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal memo modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting remaining memo and proposal service hotspots where focused helper ownership
+    can preserve memo, artifact, and OpenAPI behavior.
+
 ## LA-REV-673
 
 - Scope: Proposal decision-summary status-rule ownership

@@ -259,6 +259,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and Lotus Risk source-owner section modules.",
         "- Proposal memo foundational sections are split into focused per-section builders",
         "  outside the shared memo section group coordinator.",
+        "- Proposal memo foundational sections delegate summary extraction and value",
+        "  normalization to a focused helper module while preserving section construction.",
         "- Proposal memo evidence-pack assembly delegates deterministic section, appendix,",
         "  and material-claim construction to a focused section factory.",
         "- Proposal memo API orchestration delegates report-package and AI-evidence payloads",
