@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-644
+
+- Scope: Proposal narrative request DTO ownership
+- Pattern: Narrative request DTOs should live in a focused request model module rather than the
+  large narrative DTO contract facade.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and request contract maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrativeRequest`
+  directly after narrative vocabulary aliases were split. The request contract is used by proposal
+  simulation and regeneration entry points and is distinct from grounding, policy, AI-lineage,
+  narrative envelope, and review DTOs.
+- Evidence:
+  - Extracted `ProposalNarrativeRequest` to
+    `src/core/advisory/narrative_request_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving the facade request DTO resolves to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 29 tests.
+- Consequence:
+  - Narrative request contracts now have a narrow owner module, reducing churn in the broader
+    narrative DTO facade and clarifying request ownership for simulation/regeneration flows.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting grounding/evidence, policy/guardrail, AI-lineage, and review DTO groups out
+    of the narrative model facade.
+
 ## LA-REV-643
 
 - Scope: Proposal narrative vocabulary type ownership

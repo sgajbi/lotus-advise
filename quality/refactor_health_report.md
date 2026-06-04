@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-17`
-- Head: `4f96f90fd9edd2736c0d5552bc9367f858c2819c`
-- Branch Commits Over Main: `19`
+- Head: `3dbe2bf46a924a15d4d5a60072987648618d9bee`
+- Branch Commits Over Main: `20`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -88,6 +88,8 @@
   routing section DTOs through the artifact model facade.
 - Proposal narrative vocabulary Literal aliases are split into a focused type
   module while preserving the existing narrative model facade.
+- Proposal narrative request DTOs are split into a focused request model module
+  while preserving the existing narrative model facade.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
 - Advisor cockpit service delegates repository-backed source loading and tactical

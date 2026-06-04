@@ -303,6 +303,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  routing section DTOs through the artifact model facade.",
         "- Proposal narrative vocabulary Literal aliases are split into a focused type",
         "  module while preserving the existing narrative model facade.",
+        "- Proposal narrative request DTOs are split into a focused request model module",
+        "  while preserving the existing narrative model facade.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",

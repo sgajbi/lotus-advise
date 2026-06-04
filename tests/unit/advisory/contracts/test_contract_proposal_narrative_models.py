@@ -1,6 +1,9 @@
 from pathlib import Path
 
 from src.core.advisory import narrative_models, narrative_types
+from src.core.advisory.narrative_request_models import (
+    ProposalNarrativeRequest as OwnedProposalNarrativeRequest,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
@@ -29,3 +32,11 @@ def test_proposal_narrative_vocabulary_types_are_split_from_model_facade() -> No
     assert "ProposalNarrativeReviewAction = Literal" not in facade
     assert "ProposalNarrativeAudience = Literal" in types
     assert "ProposalNarrativeReviewAction = Literal" in types
+
+
+def test_proposal_narrative_request_model_keeps_stable_facade_import() -> None:
+    assert narrative_models.ProposalNarrativeRequest is OwnedProposalNarrativeRequest
+    assert (
+        narrative_models.ProposalNarrativeRequest.__module__
+        == "src.core.advisory.narrative_request_models"
+    )
