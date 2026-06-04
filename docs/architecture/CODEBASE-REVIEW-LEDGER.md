@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-643
+
+- Scope: Proposal narrative vocabulary type ownership
+- Pattern: Narrative Literal vocabulary aliases should live in a focused type module instead of the
+  large narrative DTO contract module.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and vocabulary maintainability
+- Summary: `src/core/advisory/narrative_models.py` owned narrative audience, section, status,
+  policy, guardrail, review, and client-ready posture Literal aliases directly. Those aliases form
+  the shared narrative vocabulary used by rendering, policy, AI integration, proposal workflow, and
+  OpenAPI contracts, and are distinct from the DTO classes themselves.
+- Evidence:
+  - Extracted narrative Literal aliases to `src/core/advisory/narrative_types.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving facade vocabulary aliases resolve to the focused owner module
+    and that the aliases are no longer declared in the DTO facade.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and new
+    narrative model contract tests passed with 28 tests.
+- Consequence:
+  - Narrative vocabulary now has a narrow owner module, making future request, grounding, policy,
+    AI-lineage, and review DTO splits safer and easier to review.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO vocabulary modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting narrative request, grounding/evidence, policy/guardrail, AI-lineage, and
+    review DTO groups out of the narrative model facade.
+
 ## LA-REV-642
 
 - Scope: Proposal artifact builder DTO dependency flow
