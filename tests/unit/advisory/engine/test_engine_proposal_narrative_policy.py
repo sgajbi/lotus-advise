@@ -1,5 +1,6 @@
-from src.core.advisory.narrative_models import ProposalNarrativeSection, ProposalNarrativeSourceRef
+from src.core.advisory.narrative_grounding_models import ProposalNarrativeSourceRef
 from src.core.advisory.narrative_policy import evaluate_proposal_narrative_guardrails
+from src.core.advisory.narrative_section_models import ProposalNarrativeSection
 
 
 def _source_ref() -> ProposalNarrativeSourceRef:

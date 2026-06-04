@@ -1,4 +1,4 @@
-from src.core.advisory.artifact_models import (
+from src.core.advisory.artifact_review_models import (
     ProposalArtifactRiskLens,
     ProposalArtifactSuitabilityHighlight,
     ProposalArtifactSuitabilitySummary,

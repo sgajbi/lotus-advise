@@ -4,11 +4,11 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from src.core.advisory.narrative_models import (
-    ProposalNarrative,
+from src.core.advisory.narrative_envelope_models import ProposalNarrative
+from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRecord
+from src.core.advisory.narrative_types import (
     ProposalNarrativeClientAudience,
     ProposalNarrativeGenerationMode,
-    ProposalNarrativeReviewRecord,
     ProposalNarrativeSectionKey,
 )
 from src.core.proposals.lifecycle_response_models import (

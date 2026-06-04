@@ -12,7 +12,7 @@ import src.core.proposals.service_command_operations as proposal_service_command
 import src.core.proposals.service_delivery_operations as proposal_service_delivery_module
 import src.core.proposals.service_narrative_operations as proposal_service_narrative_module
 import src.core.proposals.service_read_operations as proposal_service_read_module
-from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
+from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest

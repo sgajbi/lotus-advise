@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Any, cast
 
 from src.core.advisory.artifact_formatting import quantized_weight_str
-from src.core.advisory.artifact_models import (
+from src.core.advisory.artifact_portfolio_models import (
     ProposalArtifactPortfolioState,
     ProposalArtifactWeightChange,
 )

@@ -1,23 +1,24 @@
 from datetime import datetime, timezone
 
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactAssumptionsAndLimits,
+    ProposalArtifactDisclosures,
+    ProposalArtifactInclusionFlag,
+    ProposalArtifactPricingAssumptions,
+    ProposalArtifactProductDoc,
+)
 from src.core.advisory.artifact_evidence import (
     build_artifact_evidence_bundle,
     finalize_artifact_evidence_hashes,
 )
-from src.core.advisory.artifact_models import (
-    ProposalArtifact,
-    ProposalArtifactAssumptionsAndLimits,
-    ProposalArtifactDisclosures,
-    ProposalArtifactInclusionFlag,
-    ProposalArtifactPortfolioDelta,
-    ProposalArtifactPortfolioImpact,
-    ProposalArtifactPricingAssumptions,
-    ProposalArtifactProductDoc,
-    ProposalArtifactSummary,
-)
+from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory.artifact_portfolio import (
     build_portfolio_state_payload,
     largest_weight_changes,
+)
+from src.core.advisory.artifact_portfolio_models import (
+    ProposalArtifactPortfolioDelta,
+    ProposalArtifactPortfolioImpact,
 )
 from src.core.advisory.artifact_review import (
     build_risk_lens_summary,
@@ -27,6 +28,9 @@ from src.core.advisory.artifact_summary import (
     build_takeaways,
     resolve_next_step,
     resolve_objective_tags,
+)
+from src.core.advisory.artifact_summary_models import (
+    ProposalArtifactSummary,
 )
 from src.core.advisory.artifact_trades import build_trades_and_funding
 from src.core.advisory.decision_summary import build_proposal_decision_summary

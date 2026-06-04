@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
-from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
+from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,

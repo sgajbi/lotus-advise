@@ -3,13 +3,15 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from src.core.advisory.artifact_models import ProposalArtifact
-from src.core.advisory.narrative_models import (
+from src.core.advisory.narrative_grounding_models import (
     ProposalNarrativeGroundingPacket,
     ProposalNarrativeMissingEvidence,
-    ProposalNarrativeRequest,
     ProposalNarrativeSourceRef,
 )
 from src.core.advisory.narrative_policy import is_disclosure_policy_available
+from src.core.advisory.narrative_request_models import (
+    ProposalNarrativeRequest,
+)
 from src.core.common.canonical import hash_canonical_payload
 
 TEMPLATE_POLICY_VERSION = "proposal-narrative-deterministic.v1"

@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T06:17:41.985803+00:00`
-- Branch: `advise-enterprise-hardening-slice-16`
-- Head: `250dab9b60db8728ecf4652788e7f44238b93d6c`
-- Branch Commits Over Main: `47`
+- Generated At: `2026-06-04T09:58:08.188021+00:00`
+- Branch: `advise-enterprise-hardening-slice-17`
+- Head: `2372d44cfba8031d1b899ca3a80878742fbbb0c6`
+- Branch Commits Over Main: `27`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `827`
+- Python files: `862`
 - Packages: `37`
-- Modules: `790`
-- Total Python lines: `133256`
+- Modules: `825`
+- Total Python lines: `134698`
 
 ## Largest Files
 

@@ -218,6 +218,7 @@ def test_build_strategy_inputs_preserves_missing_prices_and_notional_trades() ->
     assert strategy_inputs.positions[1].currency is None
     assert strategy_inputs.current_proposed_trades[0].notional_amount == Decimal("2500")
     assert strategy_inputs.current_proposed_trades[0].notional_currency == "USD"
+    assert _build_strategy_inputs.__module__ == "src.core.advisory.alternatives_projection_inputs"
 
 
 def test_projection_helpers_cover_rejected_status_and_comparison_fallbacks() -> None:
@@ -261,8 +262,10 @@ def test_projection_helpers_cover_rejected_status_and_comparison_fallbacks() -> 
     )
 
     blocked_inputs = _comparator_inputs(alternative=alternative, objective_rank=9)
+    assert _comparator_inputs.__module__ == "src.core.advisory.alternatives_ranking_projection"
     assert blocked_inputs["status_priority"] == 2
     assert "APPROVALS_INCREASE_REVIEW_POSTURE" in _ranking_reason_codes(alternative=alternative)
+    assert _ranking_reason_codes.__module__ == "src.core.advisory.alternatives_ranking_projection"
     assert "MISSING_EVIDENCE_LOWERS_RANK" in _ranking_reason_codes(alternative=alternative)
     assert "LOWER_TURNOVER_TIEBREAKER" not in _ranking_reason_codes(alternative=alternative)
     assert alternative.rank is None
@@ -281,6 +284,10 @@ def test_projection_helpers_cover_rejected_status_and_comparison_fallbacks() -> 
         "currency",
         "USD",
     ) == Decimal("0.65")
+    assert (
+        _allocation_bucket_weight.__module__
+        == "src.core.advisory.alternatives_comparison_projection"
+    )
 
 
 def test_projection_helper_functions_build_refs_and_risk_values() -> None:
@@ -314,6 +321,9 @@ def test_projection_helper_functions_build_refs_and_risk_values() -> None:
         {"single_position_concentration": {"top_position_weight_proposed": "0.12"}},
         "top_position_weight_proposed",
     ) == Decimal("0.12")
+    assert _top_position_weight.__module__ == (
+        "src.core.advisory.alternatives_comparison_projection"
+    )
 
 
 def test_rank_alternatives_leaves_rejected_selection_unranked() -> None:
@@ -350,6 +360,7 @@ def test_rank_alternatives_leaves_rejected_selection_unranked() -> None:
     assert ranked[0].rank is None
     assert ranked[0].selected is False
     assert ranked[0].ranking_projection is not None
+    assert _rank_alternatives.__module__ == "src.core.advisory.alternatives_ranking_projection"
 
 
 def test_build_comparison_summary_records_improvements_and_deteriorations() -> None:
@@ -385,6 +396,9 @@ def test_build_comparison_summary_records_improvements_and_deteriorations() -> N
     improved_summary = _build_comparison_summary(
         baseline_result=baseline_result,
         alternative=improved,
+    )
+    assert _build_comparison_summary.__module__ == (
+        "src.core.advisory.alternatives_comparison_projection"
     )
     assert "Approval burden is lower than the baseline proposal." in improved_summary.improvements
     assert (

@@ -77,6 +77,34 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal memo API external request orchestration delegates" in refactor_health
     assert "Alternative strategy construction delegates input DTOs" in refactor_health
     assert "Alternatives objective strategies are split" in refactor_health
+    assert "Proposal alternatives models are split" in refactor_health
+    assert "Proposal alternatives projection delegates request-to-strategy" in refactor_health
+    assert "Proposal alternatives comparison evidence delegates approval" in refactor_health
+    assert "Proposal alternatives ranking delegates comparator" in refactor_health
+    assert "Proposal memo request DTOs and memo vocabulary literals are split" in refactor_health
+    assert "Proposal memo audit event DTOs are split" in refactor_health
+    assert "Proposal memo lineage and replay evidence DTOs are split" in refactor_health
+    assert "Policy evaluation result builders are split" in refactor_health
+    assert "Policy evaluation product evidence helpers are split" in refactor_health
+    assert "Policy evaluation Singapore product rule implementations are split" in refactor_health
+    assert "Policy evaluation cost and conflict review rules are split" in refactor_health
+    assert "Policy evaluation source-readiness and mandate rules are split" in refactor_health
+    assert "Proposal artifact summary DTOs are split" in refactor_health
+    assert "Proposal artifact portfolio-impact DTOs are split" in refactor_health
+    assert "Proposal artifact trade/funding DTOs are split" in refactor_health
+    assert "Proposal artifact review DTOs are split" in refactor_health
+    assert "Proposal artifact assumptions and disclosure DTOs are split" in refactor_health
+    assert "Proposal artifact evidence DTOs are split" in refactor_health
+    assert "Proposal artifact builders import focused DTO owner modules directly" in refactor_health
+    assert "Proposal narrative vocabulary Literal aliases are split" in refactor_health
+    assert "Proposal narrative request DTOs are split" in refactor_health
+    assert "Proposal narrative grounding DTOs are split" in refactor_health
+    assert "Proposal narrative section DTOs are split" in refactor_health
+    assert "Proposal narrative policy and guardrail DTOs are split" in refactor_health
+    assert "Proposal narrative AI-lineage DTOs are split" in refactor_health
+    assert "Proposal narrative envelope DTOs are split" in refactor_health
+    assert "Proposal narrative review DTOs are split" in refactor_health
+    assert "Proposal narrative runtime modules import focused DTO owner modules" in refactor_health
     assert (
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )

@@ -5,10 +5,10 @@ from typing import Any, cast
 
 import httpx
 
-from src.core.advisory.narrative_models import (
-    ProposalNarrativeAiLineage,
-    ProposalNarrativeGroundingPacket,
-    ProposalNarrativePolicy,
+from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
+from src.core.advisory.narrative_grounding_models import ProposalNarrativeGroundingPacket
+from src.core.advisory.narrative_policy_models import ProposalNarrativePolicy
+from src.core.advisory.narrative_types import (
     ProposalNarrativeSectionKey,
 )
 from src.integrations.lotus_ai.output_safety import (
@@ -123,25 +123,28 @@ def _build_workflow_pack_request(
     requested_sections: list[ProposalNarrativeSectionKey],
     requested_by: str | None,
 ) -> dict[str, object]:
-    return build_workflow_pack_execute_request(
-        pack_id=WORKFLOW_PACK_ID,
-        version=WORKFLOW_PACK_VERSION,
-        workflow_surface=WORKFLOW_SURFACE,
-        task_id="proposal_narrative_draft.v1",
-        correlation_id=f"proposal-narrative-{grounding_packet.packet_id}",
-        requested_by=requested_by,
-        context_summary="Draft advisor-review proposal narrative from governed evidence.",
-        context_payload={
-            "grounding_packet": grounding_packet.model_dump(mode="json"),
-            "narrative_policy": narrative_policy.model_dump(mode="json"),
-            "requested_sections": requested_sections,
-            "approved_instructions": _approved_instructions(),
-        },
-        source_refs=[
-            f"{item.ref_type}:{item.ref_id}:{item.field_path}"
-            for item in grounding_packet.source_refs
-        ],
-        expected_output_label="ADVISOR_REVIEW_DRAFT_SECTIONS",
+    return cast(
+        dict[str, object],
+        build_workflow_pack_execute_request(
+            pack_id=WORKFLOW_PACK_ID,
+            version=WORKFLOW_PACK_VERSION,
+            workflow_surface=WORKFLOW_SURFACE,
+            task_id="proposal_narrative_draft.v1",
+            correlation_id=f"proposal-narrative-{grounding_packet.packet_id}",
+            requested_by=requested_by,
+            context_summary="Draft advisor-review proposal narrative from governed evidence.",
+            context_payload={
+                "grounding_packet": grounding_packet.model_dump(mode="json"),
+                "narrative_policy": narrative_policy.model_dump(mode="json"),
+                "requested_sections": requested_sections,
+                "approved_instructions": _approved_instructions(),
+            },
+            source_refs=[
+                f"{item.ref_type}:{item.ref_id}:{item.field_path}"
+                for item in grounding_packet.source_refs
+            ],
+            expected_output_label="ADVISOR_REVIEW_DRAFT_SECTIONS",
+        ),
     )
 
 

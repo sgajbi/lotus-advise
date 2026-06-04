@@ -6,7 +6,7 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.advisory.alternatives_models import ProposalAlternativesRequest
-from src.core.advisory.narrative_models import ProposalNarrativeRequest
+from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
 from src.core.engine_options_models import EngineOptions
 from src.core.portfolio_models import (
     MarketDataSnapshot,

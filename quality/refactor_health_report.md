@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `advise-enterprise-hardening-slice-16`
-- Head: `250dab9b60db8728ecf4652788e7f44238b93d6c`
-- Branch Commits Over Main: `47`
+- Branch: `advise-enterprise-hardening-slice-17`
+- Head: `2372d44cfba8031d1b899ca3a80878742fbbb0c6`
+- Branch Commits Over Main: `27`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -48,6 +48,62 @@
   to focused strategy modules.
 - Alternatives objective strategies are split into portfolio/cash, baseline-trade,
   currency-alignment, and deferred restricted-product modules.
+- Proposal alternatives models are split into vocabulary, request-validation,
+  response/evidence, and compatibility facade modules.
+- Proposal alternatives projection delegates request-to-strategy input mapping
+  to a focused projection module.
+- Proposal alternatives comparison evidence delegates approval, risk, cash,
+  currency, and tradeoff deltas to a focused projection module.
+- Proposal alternatives ranking delegates comparator, reason-code, rank,
+  and selected-alternative projection to a focused ranking module.
+- Proposal memo request DTOs and memo vocabulary literals are split from
+  response, lineage, and replay evidence models.
+- Proposal memo audit event DTOs are split into a focused append-only
+  event model module.
+- Proposal memo lineage and replay evidence DTOs are split into a
+  focused lineage response module.
+- Policy evaluation result builders are split from specialized rule
+  evaluation logic.
+- Policy evaluation product evidence helpers are split from specialized
+  rule evaluation logic.
+- Policy evaluation Singapore product rule implementations are split
+  into a focused rule-family module.
+- Policy evaluation cost and conflict review rules are split into a
+  focused review-rule module.
+- Policy evaluation source-readiness and mandate rules are split into
+  a focused source-rule module.
+- Proposal artifact summary DTOs are split into a focused summary model module
+  while preserving the existing artifact model facade.
+- Proposal artifact portfolio-impact DTOs are split into a focused portfolio model
+  module while preserving the existing artifact model facade.
+- Proposal artifact trade/funding DTOs are split into a focused execution-evidence
+  model module while preserving the existing artifact model facade.
+- Proposal artifact review DTOs are split into a focused suitability/risk-lens
+  model module while preserving the existing artifact model facade.
+- Proposal artifact assumptions and disclosure DTOs are split into a focused
+  model module while preserving the existing artifact model facade.
+- Proposal artifact evidence DTOs are split into a focused lineage/evidence
+  model module while preserving the existing artifact model facade.
+- Proposal artifact builders import focused DTO owner modules directly instead of
+  routing section DTOs through the artifact model facade.
+- Proposal narrative vocabulary Literal aliases are split into a focused type
+  module while preserving the existing narrative model facade.
+- Proposal narrative request DTOs are split into a focused request model module
+  while preserving the existing narrative model facade.
+- Proposal narrative grounding DTOs are split into a focused evidence model module
+  while preserving the existing narrative model facade.
+- Proposal narrative section DTOs are split into a focused section model module
+  while preserving the existing narrative model facade.
+- Proposal narrative policy and guardrail DTOs are split into a focused policy
+  model module while preserving the existing narrative model facade.
+- Proposal narrative AI-lineage DTOs are split into a focused AI model module
+  while preserving the existing narrative model facade.
+- Proposal narrative envelope DTOs are split into a focused envelope model module
+  while preserving the existing narrative model facade.
+- Proposal narrative review DTOs are split into a focused review model module
+  while preserving the existing narrative model facade.
+- Proposal narrative runtime modules import focused DTO owner modules directly
+  instead of routing DTOs through the narrative model facade.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
 - Advisor cockpit service delegates repository-backed source loading and tactical

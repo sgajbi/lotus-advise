@@ -1,5 +1,846 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-651
+
+- Scope: Proposal narrative runtime DTO dependency flow
+- Pattern: Narrative runtime, API, workflow, and lotus-ai integration modules should import
+  focused DTO owner modules directly instead of routing through the compatibility facade.
+- Status: Hardened
+- Finding Class: Advisory narrative dependency flow and facade-coupling reduction
+- Summary: After splitting narrative DTOs into focused owner modules,
+  `src/core/advisory/narrative_models.py` remained available as a compatibility facade, but runtime
+  modules still imported request, grounding, policy, section, AI-lineage, envelope, and review DTOs
+  through that broad facade. This made dependency ownership less clear and could encourage new code
+  to couple to the facade rather than the focused model boundaries.
+- Evidence:
+  - Updated narrative rendering, AI draft handling, section rendering, grounding, policy, artifact,
+    proposal request/input, proposal workflow, lifecycle route, narrative read/review, narrative
+    response, and lotus-ai integration modules to import focused narrative DTO owner modules.
+  - Added contract coverage preventing non-facade source modules from importing DTOs through
+    `src.core.advisory.narrative_models`.
+  - Tightened the lotus-ai workflow request builder return boundary with an explicit typed cast.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, proposal workflow service, lotus-ai narrative,
+    advisory proposal simulate, narrative policy, and narrative model contract tests passed with
+    154 tests.
+- Consequence:
+  - Narrative DTO dependency flow now follows owner modules, while `narrative_models.py` remains a
+    stable compatibility and OpenAPI facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal dependency-flow hardening for existing implemented narrative behavior.
+- Follow-Up:
+  - Keep new narrative runtime code importing focused DTO owner modules directly.
+
+## LA-REV-650
+
+- Scope: Proposal narrative review DTO ownership
+- Pattern: Persisted narrative review request and review record DTOs should live in a focused
+  model module instead of the broad narrative compatibility facade.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and review workflow maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrativeReviewRequest`
+  and `ProposalNarrativeReviewRecord` directly after the narrative envelope was split. Those DTOs
+  are consumed by proposal workflow review APIs and persistence/replay logic, distinct from
+  transient narrative generation and AI integration contracts.
+- Evidence:
+  - Extracted `ProposalNarrativeReviewRequest` and `ProposalNarrativeReviewRecord` to
+    `src/core/advisory/narrative_review_models.py`.
+  - Reduced `src/core/advisory/narrative_models.py` to a compatibility facade for existing imports
+    and OpenAPI schema generation.
+  - Added contract coverage proving the review DTO facade imports resolve to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, proposal workflow service, and narrative model
+    contract tests passed with 99 tests.
+- Consequence:
+  - Narrative review workflow contracts now have a narrow owner module, and the legacy narrative
+    model file is a compatibility facade rather than a DTO monolith.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Redirect workflow/API modules to focused narrative review owner imports where compatibility
+    facade usage is no longer needed.
+
+## LA-REV-649
+
+- Scope: Proposal narrative envelope DTO ownership
+- Pattern: The top-level narrative envelope DTO should live in a focused model module instead of
+  the compatibility facade that also carries review DTOs.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and envelope contract maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrative` directly after
+  request, grounding, section, policy, and AI-lineage DTOs were split. The envelope composes those
+  focused DTO contracts and is distinct from persisted review request/record DTOs.
+- Evidence:
+  - Extracted `ProposalNarrative` to `src/core/advisory/narrative_envelope_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving the narrative envelope facade import resolves to the focused
+    owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 34 tests.
+- Consequence:
+  - The proposal narrative envelope now has a narrow owner module and the legacy facade is reduced
+    toward review DTOs plus compatibility re-exports.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Split narrative review request/record DTOs, then redirect narrative builders and workflow
+    handlers to focused owner imports where compatibility-facade usage is no longer needed.
+
+## LA-REV-648
+
+- Scope: Proposal narrative AI-lineage DTO ownership
+- Pattern: AI adapter lineage DTOs should live in a focused model module aligned with the lotus-ai
+  proposal narrative integration.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and AI lineage maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrativeAiLineage`
+  directly. That DTO is built by the lotus-ai proposal narrative adapter and captures adapter,
+  workflow-pack, prompt-template, model, workflow-run, and fallback evidence rather than core
+  narrative envelope semantics.
+- Evidence:
+  - Extracted `ProposalNarrativeAiLineage` to
+    `src/core/advisory/narrative_ai_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving the AI-lineage facade import resolves to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, lotus-ai narrative, advisory proposal simulate,
+    and narrative model contract tests passed with 72 tests.
+- Consequence:
+  - Narrative AI integration evidence now has a narrow owner module aligned with the lotus-ai
+    adapter, reducing DTO churn in the narrative model facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting the narrative envelope and review DTO groups, then redirect narrative
+    builders and adapters to focused owner imports.
+
+## LA-REV-647
+
+- Scope: Proposal narrative policy and guardrail DTO ownership
+- Pattern: Disclosure policy, policy context, narrative policy, and guardrail result DTOs should
+  live in a focused model module aligned with narrative policy evaluation.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and policy contract maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned narrative policy context,
+  disclosure, guardrail result, and policy DTOs directly. These DTOs are produced and interpreted by
+  `src/core/advisory/narrative_policy.py` and are distinct from request, grounding, section,
+  AI-lineage, envelope, and review DTOs.
+- Evidence:
+  - Extracted `ProposalNarrativePolicyContext`, `ProposalNarrativeDisclosure`,
+    `ProposalNarrativeGuardrailResult`, and `ProposalNarrativePolicy` to
+    `src/core/advisory/narrative_policy_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving policy DTO facade imports resolve to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 32 tests.
+- Consequence:
+  - Narrative disclosure and guardrail contracts now have a narrow owner module aligned with policy
+    evaluation, reducing DTO churn in the narrative model facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting AI-lineage, envelope, and review DTO groups out of the narrative model
+    facade, then redirect narrative builders to focused owner imports.
+
+## LA-REV-646
+
+- Scope: Proposal narrative section DTO ownership
+- Pattern: Rendered narrative section DTOs should live in a focused model module aligned with
+  narrative section rendering.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and section rendering maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrativeSection`
+  directly after grounding DTOs were split. The section DTO is produced by
+  `src/core/advisory/narrative_sections.py` and is distinct from request, grounding, policy,
+  AI-lineage, envelope, and review DTOs.
+- Evidence:
+  - Extracted `ProposalNarrativeSection` to
+    `src/core/advisory/narrative_section_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving the section DTO facade import resolves to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 31 tests.
+- Consequence:
+  - Narrative section rendering contracts now have a narrow owner module aligned with section
+    rendering, reducing DTO churn in the narrative model facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting policy/guardrail, AI-lineage, envelope, and review DTO groups out of the
+    narrative model facade.
+
+## LA-REV-645
+
+- Scope: Proposal narrative grounding DTO ownership
+- Pattern: Narrative source references, missing evidence, and grounding packets should live in a
+  focused model module aligned with narrative grounding assembly.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and grounding evidence maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned grounding source references,
+  missing-evidence records, and grounding packet DTOs directly. These DTOs are built by
+  `src/core/advisory/narrative_grounding.py` and carry source/evidence lineage rather than
+  narrative envelope or policy semantics.
+- Evidence:
+  - Extracted `ProposalNarrativeSourceRef`, `ProposalNarrativeMissingEvidence`, and
+    `ProposalNarrativeGroundingPacket` to
+    `src/core/advisory/narrative_grounding_models.py`.
+  - Removed generic grounding payload typing from the narrative model facade.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving grounding DTO facade imports resolve to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 30 tests.
+- Consequence:
+  - Narrative grounding evidence contracts now have a narrow owner module aligned with the
+    grounding builder, reducing coupling in the narrative DTO facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting policy/guardrail, AI-lineage, envelope, and review DTO groups out of the
+    narrative model facade.
+
+## LA-REV-644
+
+- Scope: Proposal narrative request DTO ownership
+- Pattern: Narrative request DTOs should live in a focused request model module rather than the
+  large narrative DTO contract facade.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and request contract maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrativeRequest`
+  directly after narrative vocabulary aliases were split. The request contract is used by proposal
+  simulation and regeneration entry points and is distinct from grounding, policy, AI-lineage,
+  narrative envelope, and review DTOs.
+- Evidence:
+  - Extracted `ProposalNarrativeRequest` to
+    `src/core/advisory/narrative_request_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving the facade request DTO resolves to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and
+    narrative model contract tests passed with 29 tests.
+- Consequence:
+  - Narrative request contracts now have a narrow owner module, reducing churn in the broader
+    narrative DTO facade and clarifying request ownership for simulation/regeneration flows.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting grounding/evidence, policy/guardrail, AI-lineage, and review DTO groups out
+    of the narrative model facade.
+
+## LA-REV-643
+
+- Scope: Proposal narrative vocabulary type ownership
+- Pattern: Narrative Literal vocabulary aliases should live in a focused type module instead of the
+  large narrative DTO contract module.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and vocabulary maintainability
+- Summary: `src/core/advisory/narrative_models.py` owned narrative audience, section, status,
+  policy, guardrail, review, and client-ready posture Literal aliases directly. Those aliases form
+  the shared narrative vocabulary used by rendering, policy, AI integration, proposal workflow, and
+  OpenAPI contracts, and are distinct from the DTO classes themselves.
+- Evidence:
+  - Extracted narrative Literal aliases to `src/core/advisory/narrative_types.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving facade vocabulary aliases resolve to the focused owner module
+    and that the aliases are no longer declared in the DTO facade.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, narrative policy, lotus-ai narrative, and new
+    narrative model contract tests passed with 28 tests.
+- Consequence:
+  - Narrative vocabulary now has a narrow owner module, making future request, grounding, policy,
+    AI-lineage, and review DTO splits safer and easier to review.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO vocabulary modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting narrative request, grounding/evidence, policy/guardrail, AI-lineage, and
+    review DTO groups out of the narrative model facade.
+
+## LA-REV-642
+
+- Scope: Proposal artifact builder DTO dependency flow
+- Pattern: Artifact builders should import focused DTO owner modules directly instead of relying on
+  the top-level artifact compatibility facade.
+- Status: Hardened
+- Finding Class: Advisory artifact dependency flow and facade-coupling reduction
+- Summary: After splitting artifact DTOs into focused owner modules, artifact builder modules still
+  imported section DTOs from `src/core/advisory/artifact_models.py`. That preserved behavior but
+  kept builder dependencies routed through the compatibility facade instead of the modules that own
+  the DTO contracts.
+- Evidence:
+  - Updated the artifact assembler to import assumptions, portfolio-impact, and summary DTOs from
+    their focused owner modules while keeping only the top-level `ProposalArtifact` envelope from
+    `artifact_models.py`.
+  - Updated portfolio, summary, trade/funding, review, and evidence builders to import their DTOs
+    from focused owner modules.
+  - Added artifact engine contract coverage preventing helper builders from regressing to
+    `artifact_models.py` facade imports for section DTOs.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 29 tests.
+- Consequence:
+  - Artifact builder dependency flow now follows section ownership, while `artifact_models.py`
+    remains available as a stable compatibility and OpenAPI envelope facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal dependency-flow hardening for existing implemented artifact behavior.
+- Follow-Up:
+  - Keep new artifact section builders importing focused DTO owner modules directly.
+
+## LA-REV-641
+
+- Scope: Proposal artifact evidence DTO ownership
+- Pattern: Evidence inputs, engine outputs, request/artifact hashes, and evidence-bundle DTOs
+  should live in a focused model module aligned with artifact evidence assembly.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and lineage evidence maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned the replay/evidence DTO family
+  directly. Those DTOs are built by `src/core/advisory/artifact_evidence.py` and carry lineage,
+  replay, and hash evidence rather than top-level artifact envelope semantics.
+- Evidence:
+  - Extracted evidence inputs, engine outputs, hashes, and evidence-bundle DTOs to
+    `src/core/advisory/artifact_evidence_models.py`.
+  - Removed generic evidence payload typing from the top-level artifact envelope module.
+  - Kept existing `src/core/advisory/artifact_models.py` facade imports stable for artifact
+    evidence assembly, route response schemas, and OpenAPI generation.
+  - Added contract coverage proving evidence DTO facade imports resolve to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 29 tests.
+- Consequence:
+  - Proposal artifact replay and lineage evidence contracts now have a narrow owner module aligned
+    with the artifact evidence builder, leaving the artifact envelope module focused on composition.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Consider updating builder modules to import focused artifact DTO owner modules directly once
+    compatibility-facade usage is no longer needed for migration safety.
+
+## LA-REV-640
+
+- Scope: Proposal artifact assumptions and disclosure DTO ownership
+- Pattern: Pricing assumptions, inclusion flags, product-document references, and disclosure DTOs
+  should live in a focused model module instead of the top-level artifact envelope contract.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and disclosure contract maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned assumptions, model-limit,
+  product-document, and disclosure DTOs directly. These contracts form a coherent assumptions and
+  disclosure section used by artifact assembly and OpenAPI output, distinct from summary,
+  portfolio impact, execution evidence, review evidence, and replay evidence.
+- Evidence:
+  - Extracted pricing assumptions, inclusion flags, assumptions/limits, product-document, and
+    disclosure DTOs to `src/core/advisory/artifact_assumption_models.py`.
+  - Kept existing `src/core/advisory/artifact_models.py` facade imports stable for artifact
+    assembly, route response schemas, and OpenAPI generation.
+  - Added contract coverage proving assumptions/disclosures facade imports resolve to the focused
+    owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 28 tests.
+- Consequence:
+  - Proposal artifact assumptions and disclosure contracts now have a narrow owner module, reducing
+    envelope DTO churn and making product-document/disclaimer contract changes easier to review.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting evidence DTO groups out of the artifact envelope.
+
+## LA-REV-639
+
+- Scope: Proposal artifact review DTO ownership
+- Pattern: Suitability-review and risk-lens DTOs should live in a focused model module aligned
+  with the artifact review builder.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and review-evidence maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned suitability highlights,
+  suitability summary, and risk-lens DTOs even though `src/core/advisory/artifact_review.py`
+  already owns the corresponding builder logic. This kept review-evidence contracts coupled to the
+  top-level artifact envelope and required the envelope module to import suitability domain models.
+- Evidence:
+  - Extracted suitability highlight, suitability summary, and risk-lens DTOs to
+    `src/core/advisory/artifact_review_models.py`.
+  - Removed the suitability-model dependency from the top-level artifact envelope module.
+  - Kept existing `src/core/advisory/artifact_models.py` facade imports stable for artifact
+    assembly, route response schemas, and OpenAPI generation.
+  - Added contract coverage proving review DTO facade imports resolve to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 27 tests.
+- Consequence:
+  - Proposal artifact review contracts now have a narrow owner module aligned with suitability and
+    risk-lens artifact assembly, reducing dependency breadth in the envelope DTO module.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting assumptions/disclosures and evidence DTO groups out of the artifact
+    envelope.
+
+## LA-REV-638
+
+- Scope: Proposal artifact trade/funding DTO ownership
+- Pattern: Trade list, FX funding, execution-note, and trade-rationale DTOs should live in a
+  focused model module aligned with the artifact trade builder.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and execution-evidence maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned the trade/funding DTO family even
+  though `src/core/advisory/artifact_trades.py` already owns the corresponding builder logic. This
+  kept execution-evidence contracts coupled to the top-level artifact envelope and made the DTO file
+  harder to review.
+- Evidence:
+  - Extracted trade rationale, security trade, FX funding, execution-note, and trades/funding DTOs
+    to `src/core/advisory/artifact_trade_models.py`.
+  - Removed the now-unneeded `Money` dependency from the top-level artifact envelope module.
+  - Kept existing `src/core/advisory/artifact_models.py` facade imports stable for artifact
+    assembly, route response schemas, and OpenAPI generation.
+  - Added contract coverage proving trade/funding facade imports resolve to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 26 tests.
+- Consequence:
+  - Proposal artifact execution-evidence contracts now have a narrow owner module aligned with the
+    existing trade/funding builder, reducing DTO coupling in the artifact envelope.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting review, assumptions/disclosures, and evidence DTO groups out of the artifact
+    envelope.
+
+## LA-REV-637
+
+- Scope: Proposal artifact portfolio-impact DTO ownership
+- Pattern: Before/after portfolio-state and weight-change DTOs should live in a focused model
+  module instead of the top-level artifact envelope contract.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and portfolio impact maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned the portfolio snapshot, weight
+  change, portfolio delta, and portfolio impact DTOs directly. Those classes are a coherent
+  portfolio-impact contract already produced by focused artifact portfolio builders and should be
+  maintained independently from summary, trade/funding, review, assumptions, evidence, and the
+  envelope model.
+- Evidence:
+  - Extracted portfolio state, weight-change, portfolio delta, and portfolio-impact DTOs to
+    `src/core/advisory/artifact_portfolio_models.py`.
+  - Kept existing `src/core/advisory/artifact_models.py` imports stable for route schemas,
+    artifact assembly, OpenAPI generation, and tests.
+  - Added contract coverage proving facade imports resolve to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 25 tests.
+- Consequence:
+  - Proposal artifact portfolio-impact contracts now have a narrow owner module aligned with the
+    existing artifact portfolio builder, reducing DTO churn in the envelope module.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting trade/funding, review, assumptions/disclosures, and evidence DTO groups out
+    of the artifact envelope.
+
+## LA-REV-636
+
+- Scope: Proposal artifact summary DTO ownership
+- Pattern: Artifact presentation summary DTOs should live in a focused model module instead of the
+  top-level artifact envelope contract.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and OpenAPI contract maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned summary notes, summary takeaways,
+  and the summary section model directly. Those classes are a coherent presentation-summary
+  contract and can be evolved independently from portfolio impact, trades/funding, review,
+  assumptions, evidence, and the top-level artifact envelope.
+- Evidence:
+  - Extracted summary notes, takeaways, and summary section DTOs to
+    `src/core/advisory/artifact_summary_models.py`.
+  - Kept `src/core/advisory/artifact_models.py` as the stable compatibility facade used by routes,
+    artifact assembly, and OpenAPI schema generation.
+  - Added contract coverage proving facade imports still resolve to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 24 tests.
+- Consequence:
+  - Proposal artifact summary contracts now have a narrow owner module, reducing churn in the
+    top-level artifact envelope while preserving existing API schema names and imports.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting portfolio impact, trade/funding, review, assumptions/disclosures, and
+    evidence DTO groups out of the artifact envelope.
+
+## LA-REV-635
+
+- Scope: Policy evaluation source-readiness and mandate rule family
+- Pattern: Source-readiness required-evidence checks and mandate readiness projection should be
+  implemented outside the shared policy rule dispatcher.
+- Status: Hardened
+- Finding Class: Policy rule-family modularity and source lineage maintainability
+- Summary: `src/core/policy_packs/evaluation_rules.py` still implemented required source-posture
+  evaluation, source section lookup/status filtering, and mandate readiness projection directly.
+  Those checks are a coherent source-lineage rule family and were keeping the dispatcher coupled to
+  source-posture traversal details.
+- Evidence:
+  - Extracted `required_source_result`, `evaluate_mandate_rule`, source section lookup, and
+    status filtering to `src/core/policy_packs/evaluation_source_rules.py`.
+  - Kept `evaluate_policy_rule` dispatcher behavior unchanged by importing focused source rule
+    functions through private aliases.
+  - Added focused tests for missing required source sections, pending policy source readiness, and
+    mandate evidence reference projection.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new source
+    rule tests passed with 17 tests.
+- Consequence:
+  - `evaluation_rules.py` is now a compact dispatcher while source-lineage, product, and
+    review-rule behavior each have focused owner modules.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Consider adding a dispatcher registration map once policy rule families grow beyond the current
+    small fixed set.
+
+## LA-REV-634
+
+- Scope: Policy evaluation cost and conflict review rule family
+- Pattern: Best-interest cost and conflict/product-document review rules should be implemented in a
+  focused review-rule module instead of the shared dispatcher module.
+- Status: Hardened
+- Finding Class: Policy rule-family modularity and advisor review evidence maintainability
+- Summary: `src/core/policy_packs/evaluation_rules.py` still implemented best-interest
+  cost/tax/execution-friction review and conflict/product-document review directly. These rules
+  share proposal-artifact evidence interpretation and advisor/compliance review posture, and are
+  distinct from product eligibility and source-readiness dispatch.
+- Evidence:
+  - Extracted `evaluate_best_interest_cost`, `evaluate_conflict_disclosure`, and shared
+    artifact-section lookup to `src/core/policy_packs/evaluation_review_rules.py`.
+  - Kept `evaluate_policy_rule` dispatcher behavior unchanged by importing the focused review rule
+    functions through private aliases.
+  - Added focused tests for cost evidence ready/pending posture and conflict/documentation
+    ready/blocked posture.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new review
+    rule tests passed with 16 tests.
+- Consequence:
+  - Advisor/compliance review policy behavior is easier to evolve independently from product
+    eligibility and source-readiness rule handling.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Continue reducing the shared policy evaluation dispatcher by extracting source-readiness and
+    mandate rule handling where appropriate.
+
+## LA-REV-633
+
+- Scope: Policy evaluation Singapore product rule family
+- Pattern: Product eligibility and complex-product disclosure policy rules should be implemented in
+  a focused rule-family module instead of the shared dispatcher module.
+- Status: Hardened
+- Finding Class: Policy rule-family modularity and product governance maintainability
+- Summary: `src/core/policy_packs/evaluation_rules.py` still implemented Singapore product
+  eligibility and complex/private product disclosure rules directly, even after shared product
+  evidence helpers were split out. Those rules own a coherent product governance family and can be
+  reviewed independently from mandate, cost, conflict, and source-readiness rules.
+- Evidence:
+  - Extracted `evaluate_sg_product_eligibility` and
+    `evaluate_sg_complex_product_disclosure` to
+    `src/core/policy_packs/evaluation_product_rules.py`.
+  - Kept the public `evaluate_policy_rule` dispatcher behavior unchanged by importing the focused
+    product rule functions through private aliases.
+  - Added focused tests for ineligible/missing product blocking and complex-product disclosure
+    ready/pending outcomes.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new product
+    rule tests passed with 16 tests.
+- Consequence:
+  - Product-governance policy behavior is now easier to review and extend without touching the
+    shared policy rule dispatcher.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Continue moving cost and conflict policy rule families out of `evaluation_rules.py`.
+
+## LA-REV-632
+
+- Scope: Policy evaluation product evidence helpers
+- Pattern: Policy rule evaluators should not own product shelf row projection and product policy
+  interpretation helpers directly.
+- Status: Hardened
+- Finding Class: Policy evaluation modularity and product evidence maintainability
+- Summary: `src/core/policy_packs/evaluation_rules.py` mixed specialized policy rule evaluation
+  with helper logic for proposed-trade shelf-row matching, jurisdiction eligibility,
+  client-segment target-market checks, nested product-policy fallback, and complex/private product
+  detection. These helpers are shared product evidence interpretation concerns used by
+  eligibility, disclosure, and conflict rules.
+- Evidence:
+  - Extracted product evidence helpers to
+    `src/core/policy_packs/evaluation_product_helpers.py`.
+  - Kept `evaluation_rules.py` behavior unchanged by importing helper functions through private
+    compatibility aliases used by the existing rules.
+  - Added focused tests for proposed shelf row projection, direct/nested product-policy fallback,
+    jurisdiction/segment checks, and complex/private product detection.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new product
+    helper tests passed with 17 tests.
+- Consequence:
+  - Specialized policy rules can now reuse product evidence interpretation without carrying local
+    helper logic, reducing coupling before rule-family extraction.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Continue moving Singapore product eligibility and disclosure rule implementations into focused
+    rule-family modules.
+
+## LA-REV-631
+
+- Scope: Policy evaluation result construction
+- Pattern: Specialized policy rule evaluators should not duplicate or own shared
+  ready/pending/blocked result construction.
+- Status: Hardened
+- Finding Class: Policy evaluation modularity and audit-evidence consistency
+- Summary: `src/core/policy_packs/evaluation_rules.py` mixed specialized rule evaluation with
+  shared `PolicyRuleEvaluationResult` builders, source-authority reference mapping, and
+  de-duplication. That made it harder to add or review policy rule families without risking
+  inconsistent severity, source refs, missing evidence, reason codes, or required action ordering.
+- Evidence:
+  - Extracted shared result builders to
+    `src/core/policy_packs/evaluation_result_builders.py`.
+  - Kept `evaluation_rules.py` behavior unchanged by importing the builders through compatibility
+    aliases used by existing rule evaluators.
+  - Added focused unit coverage for ready, pending, blocked, source-ref, and de-duplication
+    behavior.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new builder
+    tests passed with 15 tests.
+- Consequence:
+  - Policy rule-family implementations can now focus on business evidence interpretation while
+    result construction remains consistent and reusable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Continue extracting specialized policy rule families from `evaluation_rules.py` where product
+    eligibility, disclosure, cost, and conflict logic can move behind focused modules.
+
+## LA-REV-630
+
+- Scope: Proposal memo lineage and replay response DTO boundaries
+- Pattern: Memo lineage and replay-evidence response envelopes should have a focused owner instead
+  of living inside the core memo response module.
+- Status: Hardened
+- Finding Class: DTO modularity and lineage maintainability
+- Summary: `src/core/proposals/memo_response_models.py` still implemented memo lineage item,
+  memo lineage response, and replay-evidence response DTOs alongside core memo responses and
+  operation responses. These DTOs are supportability and replay-proof contracts that depend on memo
+  audit events but do not need to be implemented inside the broader memo response module.
+- Evidence:
+  - Extracted `ProposalMemoLineageItem`, `ProposalMemoLineageResponse`, and
+    `ProposalMemoReplayEvidenceResponse` to
+    `src/core/proposals/memo_lineage_response_models.py`.
+  - Reused the focused `ProposalMemoAuditEvent` model from `memo_event_models.py`.
+  - Kept memo response and public proposal response facade imports stable for routers, OpenAPI,
+    and existing public model imports.
+  - Extended proposal model boundary tests to prove lineage/replay DTOs are implemented in the
+    focused lineage response module and still flow through public facades.
+  - Focused `ruff`, `mypy`, proposal model boundary tests, and OpenAPI lifecycle documentation
+    tests passed with 19 tests.
+- Consequence:
+  - Memo replay proof and lineage response contracts now have a clearer ownership boundary,
+    reducing coupling with core memo response DTO changes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented memo behavior.
+- Follow-Up:
+  - Continue reducing remaining memo response operation-envelope DTOs where request, event, and
+    core response dependencies can be composed through focused modules.
+
+## LA-REV-629
+
+- Scope: Proposal memo audit event DTO boundary
+- Pattern: Shared memo audit event envelopes should not be implemented inside the memo response
+  module that consumes them.
+- Status: Hardened
+- Finding Class: DTO modularity and auditability maintainability
+- Summary: `src/core/proposals/memo_response_models.py` still implemented
+  `ProposalMemoAuditEvent` alongside core memo responses, operation responses, lineage, and replay
+  evidence models. The audit event DTO is a shared append-only lineage primitive used across
+  review, report-package, AI-commentary, and replay evidence responses, so keeping it embedded in
+  the response module made later lineage/replay splits harder.
+- Evidence:
+  - Extracted `ProposalMemoAuditEvent` to `src/core/proposals/memo_event_models.py`.
+  - Kept memo response and public proposal response facade imports stable.
+  - Extended proposal model boundary tests to prove the audit event DTO is implemented in the
+    focused event module and still flows through public facades.
+  - Focused `ruff`, `mypy`, proposal model boundary tests, and OpenAPI lifecycle documentation
+    tests passed with 18 tests.
+- Consequence:
+  - Memo auditability has a clearer DTO owner, and lineage/replay evidence response models can now
+    depend on a focused event contract instead of the broader response module.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented memo behavior.
+- Follow-Up:
+  - Split memo lineage and replay evidence response DTOs onto the focused audit event contract.
+
+## LA-REV-628
+
+- Scope: Proposal memo request DTO boundaries
+- Pattern: Memo mutation request DTOs and memo vocabulary literals should not be implemented in
+  the same oversized module as memo response, lineage, and replay evidence envelopes.
+- Status: Hardened
+- Finding Class: DTO modularity and OpenAPI maintainability
+- Summary: `src/core/proposals/memo_response_models.py` mixed memo lifecycle/review/report/AI
+  vocabulary literals, create/review/report-package/AI request DTOs, core memo responses, lineage
+  responses, and replay-evidence responses in one 450-line module. That increased review risk for
+  OpenAPI request-schema changes because request validation edits sat beside response and replay
+  evidence contracts.
+- Evidence:
+  - Extracted memo vocabulary literals to `src/core/proposals/memo_types.py`.
+  - Extracted memo create, review, report-package event, report-package request, and AI commentary
+    request DTOs to `src/core/proposals/memo_request_models.py`.
+  - Kept `src/core/proposals/memo_response_models.py` and
+    `src/core/proposals/response_models.py` compatibility imports stable for existing routers,
+    OpenAPI schemas, and public proposal model facades.
+  - Extended proposal model boundary tests to prove memo request DTOs are no longer implemented in
+    the response module and still flow through the public facades.
+  - Focused `ruff`, `mypy`, proposal model boundary tests, and OpenAPI lifecycle documentation
+    tests passed with 17 tests.
+- Consequence:
+  - Proposal memo request-schema evolution is now separated from response, lineage, and replay
+    evidence DTOs while preserving public API model names.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented memo behavior.
+- Follow-Up:
+  - Continue splitting memo response lineage/replay DTOs into focused modules while preserving
+    schema-title and facade compatibility.
+
+## LA-REV-627
+
+- Scope: Proposal alternatives ranking projection
+- Pattern: Alternatives lifecycle orchestration should not own rank comparator and selection
+  projection rules directly.
+- Status: Hardened
+- Finding Class: Projection modularity and ranking maintainability
+- Summary: `src/core/advisory/alternatives_projection.py` still owned ranking policy version,
+  ready-status ordering, comparator inputs, ranking reason codes, rank assignment, comparison
+  summary attachment, and selected-alternative marking. That made the top-level proposal
+  alternatives assembly harder to review separately from deterministic ranking policy behavior.
+- Evidence:
+  - Extracted ranking comparator, reason-code, rank-assignment, and selection marking helpers to
+    `src/core/advisory/alternatives_ranking_projection.py`.
+  - Preserved existing private helper imports from `alternatives_projection.py` as compatibility
+    aliases for current projection tests and callers.
+  - Extended projection tests to prove rank, comparator, and ranking-reason helper ownership moved
+    to the focused ranking projection module while behavior remains unchanged.
+  - Focused `ruff`, `mypy`, and alternatives projection tests passed with 8 tests.
+- Consequence:
+  - Alternatives projection now separates generation orchestration, strategy input mapping,
+    comparison evidence assembly, and deterministic ranking policy behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented alternatives behavior.
+- Follow-Up:
+  - Continue reducing oversized advisory model/projection modules and add compatibility-boundary
+    tests when public import paths are intentionally retained.
+
+## LA-REV-626
+
+- Scope: Proposal alternatives comparison projection
+- Pattern: Alternatives ranking orchestration should not own comparison-summary delta assembly.
+- Status: Hardened
+- Finding Class: Projection modularity and alternatives evidence maintainability
+- Summary: `src/core/advisory/alternatives_projection.py` still owned approval deltas,
+  missing-evidence deltas, risk deltas, cash deltas, currency deltas, unchanged-factor detection,
+  and advisor-facing tradeoff text while also orchestrating alternatives generation and ranking.
+  That made comparison evidence harder to test and evolve independently from lifecycle ranking.
+- Evidence:
+  - Extracted comparison summary and delta helpers to
+    `src/core/advisory/alternatives_comparison_projection.py`.
+  - Preserved existing private helper imports from `alternatives_projection.py` as explicit
+    compatibility aliases for current projection tests and callers.
+  - Extended projection tests to prove comparison, allocation, and risk helper ownership moved to
+    the focused comparison projection module while behavior remains unchanged.
+  - Focused `ruff`, `mypy`, and alternatives projection tests passed with 8 tests.
+- Consequence:
+  - Alternatives projection has a clearer boundary between lifecycle ranking and advisor-facing
+    comparison evidence assembly, lowering review risk for future ranking or narrative changes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented alternatives behavior.
+- Follow-Up:
+  - Extract the remaining ranking comparator and rank-assignment helpers from
+    `alternatives_projection.py` into a focused ranking projection module.
+
+## LA-REV-625
+
+- Scope: Proposal alternatives strategy input projection
+- Pattern: Alternatives ranking/comparison orchestration should not own request-to-strategy DTO
+  projection directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and projection maintainability
+- Summary: `src/core/advisory/alternatives_projection.py` still mixed top-level proposal
+  alternatives orchestration with request-to-strategy input mapping for positions, prices, cash
+  balances, shelf entries, and proposed trades. That coupling made ranking/comparison changes
+  harder to review independently from strategy input DTO compatibility.
+- Evidence:
+  - Extracted strategy input projection to
+    `src/core/advisory/alternatives_projection_inputs.py`.
+  - Kept the existing `_build_strategy_inputs` compatibility import available from
+    `alternatives_projection.py` for current tests and callers.
+  - Extended the projection contract test to prove the helper is owned by the focused input
+    projection module while preserving behavior for missing prices and notional trades.
+  - Focused `ruff`, `mypy`, and alternatives projection tests passed with 8 tests.
+- Consequence:
+  - Alternatives projection now has a clearer boundary between proposal request mapping and
+    lifecycle ranking/comparison assembly, reducing risk when strategy input DTOs evolve.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented alternatives behavior.
+- Follow-Up:
+  - Continue extracting ranking and comparison projection helpers from
+    `alternatives_projection.py` into focused modules with compatibility imports.
+
+## LA-REV-624
+
+- Scope: Proposal alternatives model boundaries
+- Pattern: Alternatives request validation contracts and response/evidence envelopes should not
+  live in one oversized model module.
+- Status: Hardened
+- Finding Class: DTO modularity and advisory alternatives maintainability
+- Summary: `src/core/advisory/alternatives_models.py` mixed alternatives vocabulary literals,
+  request constraint validation, candidate seed DTOs, ranking projections, rejected-candidate
+  envelopes, and proposal-alternatives response models in one 458-line module. That made the
+  alternatives contract harder to review and increased the risk that request validation changes
+  would accidentally disturb response evidence contracts.
+- Evidence:
+  - Split alternatives vocabulary literals into `src/core/advisory/alternatives_types.py`.
+  - Split alternatives request constraint and request validation DTOs into
+    `src/core/advisory/alternatives_request_models.py`.
+  - Split alternatives candidate, ranking, rejected-candidate, and response envelope DTOs into
+    `src/core/advisory/alternatives_response_models.py`.
+  - Kept `src/core/advisory/alternatives_models.py` as a compatibility facade for existing API,
+    strategy, projection, and artifact imports.
+  - Added a contract test proving request and response model implementations remain separated
+    while the facade continues to export the public alternatives contracts.
+  - Focused `ruff`, `mypy`, and proposal-alternatives contract tests passed with 10 tests.
+- Consequence:
+  - Advisory alternatives contracts now have clearer ownership between input validation and
+    lifecycle/evidence projection without changing public model names or API behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented alternatives behavior.
+- Follow-Up:
+  - Continue splitting the remaining alternatives projection and advisory model hotspots where
+    ranking, comparison, artifact, or narrative concerns are still co-located.
+
 ## LA-REV-623
 
 - Scope: Proposal workflow command and lifecycle operations

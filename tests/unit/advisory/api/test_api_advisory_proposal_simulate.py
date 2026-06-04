@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 import src.api.services.advisory_simulation_validation as advisory_simulation_validation
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
-from src.core.advisory.narrative_models import ProposalNarrativeAiLineage
+from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.proposals.context import ProposalContextResolutionError
 from src.integrations.lotus_ai.proposal_narrative import (

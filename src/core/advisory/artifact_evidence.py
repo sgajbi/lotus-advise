@@ -1,12 +1,12 @@
 from typing import cast
 
-from src.core.advisory.artifact_models import (
-    ProposalArtifact,
+from src.core.advisory.artifact_evidence_models import (
     ProposalArtifactEngineOutputs,
     ProposalArtifactEvidenceBundle,
     ProposalArtifactEvidenceInputs,
     ProposalArtifactHashes,
 )
+from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory.narrative import build_deterministic_proposal_narrative
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.proposal_request_models import ProposalSimulateRequest

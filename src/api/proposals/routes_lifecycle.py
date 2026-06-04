@@ -29,7 +29,7 @@ from src.api.proposals.lifecycle_responses import (
     PROPOSAL_NARRATIVE_REVIEW_RESPONSES,
     PROPOSAL_VERSION_CREATE_RESPONSES,
 )
-from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
+from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
 from src.core.proposals import (
     ProposalCreateRequest,
     ProposalCreateResponse,

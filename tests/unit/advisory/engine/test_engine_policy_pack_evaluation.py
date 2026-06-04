@@ -10,7 +10,9 @@ from src.core.policy_packs import (
     reset_policy_pack_catalog_for_tests,
     validate_policy_pack_version,
 )
-from src.core.policy_packs.evaluation_rules import _artifact_section, _section, _source_refs
+from src.core.policy_packs.evaluation_result_builders import source_refs_for_rule
+from src.core.policy_packs.evaluation_review_rules import artifact_section
+from src.core.policy_packs.evaluation_source_rules import section
 from src.core.proposals.exceptions import ProposalValidationError
 
 SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
@@ -135,18 +137,29 @@ def test_policy_pack_applicability_selection_stays_in_focused_module() -> None:
 def test_policy_pack_material_rule_evaluators_stay_in_focused_module() -> None:
     evaluation = (SOURCE_ROOT / "evaluation.py").read_text(encoding="utf-8")
     rules = (SOURCE_ROOT / "evaluation_rules.py").read_text(encoding="utf-8")
+    product_rules = (SOURCE_ROOT / "evaluation_product_rules.py").read_text(encoding="utf-8")
+    review_rules = (SOURCE_ROOT / "evaluation_review_rules.py").read_text(encoding="utf-8")
+    source_rules = (SOURCE_ROOT / "evaluation_source_rules.py").read_text(encoding="utf-8")
 
     assert "evaluate_policy_rule" in evaluation
-    assert "def _evaluate_sg_product_eligibility" not in evaluation
-    assert "def _evaluate_sg_complex_product_disclosure" not in evaluation
-    assert "def _evaluate_best_interest_cost" not in evaluation
-    assert "def _evaluate_conflict_disclosure" not in evaluation
+    assert "def evaluate_sg_product_eligibility" not in evaluation
+    assert "def evaluate_sg_complex_product_disclosure" not in evaluation
+    assert "def evaluate_best_interest_cost" not in evaluation
+    assert "def evaluate_conflict_disclosure" not in evaluation
+    assert "def evaluate_mandate_rule" not in evaluation
 
     assert "def evaluate_policy_rule" in rules
-    assert "def _evaluate_sg_product_eligibility" in rules
-    assert "def _evaluate_sg_complex_product_disclosure" in rules
-    assert "def _evaluate_best_interest_cost" in rules
-    assert "def _evaluate_conflict_disclosure" in rules
+    assert "def evaluate_sg_product_eligibility" not in rules
+    assert "def evaluate_sg_complex_product_disclosure" not in rules
+    assert "def evaluate_best_interest_cost" not in rules
+    assert "def evaluate_conflict_disclosure" not in rules
+    assert "def evaluate_mandate_rule" not in rules
+
+    assert "def evaluate_sg_product_eligibility" in product_rules
+    assert "def evaluate_sg_complex_product_disclosure" in product_rules
+    assert "def evaluate_best_interest_cost" in review_rules
+    assert "def evaluate_conflict_disclosure" in review_rules
+    assert "def evaluate_mandate_rule" in source_rules
 
 
 def test_policy_evaluation_ready_path_uses_active_pack_and_source_refs() -> None:
@@ -442,11 +455,11 @@ def test_policy_evaluation_records_all_best_interest_missing_evidence() -> None:
 
 
 def test_policy_evaluation_internal_helpers_keep_source_refs_and_fallback_sections() -> None:
-    assert _artifact_section({"disclosures": {"risk": "captured"}}, "disclosures") == {
+    assert artifact_section({"disclosures": {"risk": "captured"}}, "disclosures") == {
         "risk": "captured"
     }
-    assert _section({"sections": []}, "missing") == {}
-    assert _source_refs(
+    assert section({"sections": []}, "missing") == {}
+    assert source_refs_for_rule(
         {
             "rule_id": "RISK_READY",
             "required_evidence_fields": [

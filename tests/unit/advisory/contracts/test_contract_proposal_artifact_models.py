@@ -1,5 +1,32 @@
 from decimal import Decimal
 
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactAssumptionsAndLimits as OwnedProposalArtifactAssumptionsAndLimits,
+)
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactDisclosures as OwnedProposalArtifactDisclosures,
+)
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactInclusionFlag as OwnedProposalArtifactInclusionFlag,
+)
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactPricingAssumptions as OwnedProposalArtifactPricingAssumptions,
+)
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactProductDoc as OwnedProposalArtifactProductDoc,
+)
+from src.core.advisory.artifact_evidence_models import (
+    ProposalArtifactEngineOutputs as OwnedProposalArtifactEngineOutputs,
+)
+from src.core.advisory.artifact_evidence_models import (
+    ProposalArtifactEvidenceBundle as OwnedProposalArtifactEvidenceBundle,
+)
+from src.core.advisory.artifact_evidence_models import (
+    ProposalArtifactEvidenceInputs as OwnedProposalArtifactEvidenceInputs,
+)
+from src.core.advisory.artifact_evidence_models import (
+    ProposalArtifactHashes as OwnedProposalArtifactHashes,
+)
 from src.core.advisory.artifact_models import (
     ProposalArtifact,
     ProposalArtifactAssumptionsAndLimits,
@@ -17,14 +44,115 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactPricingAssumptions,
     ProposalArtifactProductDoc,
     ProposalArtifactRiskLens,
+    ProposalArtifactSuitabilityHighlight,
     ProposalArtifactSuitabilitySummary,
     ProposalArtifactSummary,
+    ProposalArtifactSummaryNote,
     ProposalArtifactTakeaway,
     ProposalArtifactTrade,
     ProposalArtifactTradeRationale,
     ProposalArtifactTradesAndFunding,
 )
+from src.core.advisory.artifact_portfolio_models import (
+    ProposalArtifactPortfolioDelta as OwnedProposalArtifactPortfolioDelta,
+)
+from src.core.advisory.artifact_portfolio_models import (
+    ProposalArtifactPortfolioImpact as OwnedProposalArtifactPortfolioImpact,
+)
+from src.core.advisory.artifact_portfolio_models import (
+    ProposalArtifactPortfolioState as OwnedProposalArtifactPortfolioState,
+)
+from src.core.advisory.artifact_review_models import (
+    ProposalArtifactRiskLens as OwnedProposalArtifactRiskLens,
+)
+from src.core.advisory.artifact_review_models import (
+    ProposalArtifactSuitabilityHighlight as OwnedProposalArtifactSuitabilityHighlight,
+)
+from src.core.advisory.artifact_review_models import (
+    ProposalArtifactSuitabilitySummary as OwnedProposalArtifactSuitabilitySummary,
+)
+from src.core.advisory.artifact_summary_models import (
+    ProposalArtifactSummary as OwnedProposalArtifactSummary,
+)
+from src.core.advisory.artifact_summary_models import (
+    ProposalArtifactSummaryNote as OwnedProposalArtifactSummaryNote,
+)
+from src.core.advisory.artifact_summary_models import (
+    ProposalArtifactTakeaway as OwnedProposalArtifactTakeaway,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactExecutionNote as OwnedProposalArtifactExecutionNote,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactFx as OwnedProposalArtifactFx,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactTrade as OwnedProposalArtifactTrade,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactTradeRationale as OwnedProposalArtifactTradeRationale,
+)
+from src.core.advisory.artifact_trade_models import (
+    ProposalArtifactTradesAndFunding as OwnedProposalArtifactTradesAndFunding,
+)
 from src.core.models import GateDecision, GateDecisionSummary, Money
+
+
+def test_proposal_artifact_summary_models_keep_stable_facade_imports():
+    assert ProposalArtifactSummary is OwnedProposalArtifactSummary
+    assert ProposalArtifactSummaryNote is OwnedProposalArtifactSummaryNote
+    assert ProposalArtifactTakeaway is OwnedProposalArtifactTakeaway
+    assert ProposalArtifactSummary.__module__ == "src.core.advisory.artifact_summary_models"
+
+
+def test_proposal_artifact_portfolio_models_keep_stable_facade_imports():
+    assert ProposalArtifactPortfolioState is OwnedProposalArtifactPortfolioState
+    assert ProposalArtifactPortfolioDelta is OwnedProposalArtifactPortfolioDelta
+    assert ProposalArtifactPortfolioImpact is OwnedProposalArtifactPortfolioImpact
+    assert ProposalArtifactPortfolioImpact.__module__ == (
+        "src.core.advisory.artifact_portfolio_models"
+    )
+
+
+def test_proposal_artifact_trade_models_keep_stable_facade_imports():
+    assert ProposalArtifactExecutionNote is OwnedProposalArtifactExecutionNote
+    assert ProposalArtifactFx is OwnedProposalArtifactFx
+    assert ProposalArtifactTrade is OwnedProposalArtifactTrade
+    assert ProposalArtifactTradeRationale is OwnedProposalArtifactTradeRationale
+    assert ProposalArtifactTradesAndFunding is OwnedProposalArtifactTradesAndFunding
+    assert ProposalArtifactTradesAndFunding.__module__ == (
+        "src.core.advisory.artifact_trade_models"
+    )
+
+
+def test_proposal_artifact_review_models_keep_stable_facade_imports():
+    assert ProposalArtifactRiskLens is OwnedProposalArtifactRiskLens
+    assert ProposalArtifactSuitabilityHighlight is OwnedProposalArtifactSuitabilityHighlight
+    assert ProposalArtifactSuitabilitySummary is OwnedProposalArtifactSuitabilitySummary
+    assert ProposalArtifactSuitabilitySummary.__module__ == (
+        "src.core.advisory.artifact_review_models"
+    )
+
+
+def test_proposal_artifact_assumption_models_keep_stable_facade_imports():
+    assert ProposalArtifactAssumptionsAndLimits is OwnedProposalArtifactAssumptionsAndLimits
+    assert ProposalArtifactDisclosures is OwnedProposalArtifactDisclosures
+    assert ProposalArtifactInclusionFlag is OwnedProposalArtifactInclusionFlag
+    assert ProposalArtifactPricingAssumptions is OwnedProposalArtifactPricingAssumptions
+    assert ProposalArtifactProductDoc is OwnedProposalArtifactProductDoc
+    assert ProposalArtifactAssumptionsAndLimits.__module__ == (
+        "src.core.advisory.artifact_assumption_models"
+    )
+
+
+def test_proposal_artifact_evidence_models_keep_stable_facade_imports():
+    assert ProposalArtifactEngineOutputs is OwnedProposalArtifactEngineOutputs
+    assert ProposalArtifactEvidenceBundle is OwnedProposalArtifactEvidenceBundle
+    assert ProposalArtifactEvidenceInputs is OwnedProposalArtifactEvidenceInputs
+    assert ProposalArtifactHashes is OwnedProposalArtifactHashes
+    assert ProposalArtifactEvidenceBundle.__module__ == (
+        "src.core.advisory.artifact_evidence_models"
+    )
 
 
 def test_proposal_artifact_contract_shape():

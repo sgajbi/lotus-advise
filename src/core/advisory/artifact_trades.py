@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from src.core.advisory.artifact_formatting import decimal_to_str, quantized_weight_str
-from src.core.advisory.artifact_models import (
+from src.core.advisory.artifact_trade_models import (
     ProposalArtifactExecutionNote,
     ProposalArtifactFx,
     ProposalArtifactTrade,
