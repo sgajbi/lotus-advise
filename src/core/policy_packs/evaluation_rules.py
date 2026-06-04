@@ -10,16 +10,10 @@ from src.core.policy_packs.evaluation_product_rules import (
     evaluate_sg_product_eligibility as _evaluate_sg_product_eligibility,
 )
 from src.core.policy_packs.evaluation_result_builders import (
-    rule_blocked as _rule_blocked,
-)
-from src.core.policy_packs.evaluation_result_builders import (
     rule_pending as _rule_pending,
 )
 from src.core.policy_packs.evaluation_result_builders import (
     rule_ready as _rule_ready,
-)
-from src.core.policy_packs.evaluation_result_builders import (
-    unique_strings as _unique,
 )
 from src.core.policy_packs.evaluation_review_rules import (
     evaluate_best_interest_cost as _evaluate_best_interest_cost,
@@ -27,11 +21,12 @@ from src.core.policy_packs.evaluation_review_rules import (
 from src.core.policy_packs.evaluation_review_rules import (
     evaluate_conflict_disclosure as _evaluate_conflict_disclosure,
 )
-from src.core.proposals.source_readiness_common import list_at
-
-FIELD_TO_SOURCE_SECTION = {
-    "private_asset_or_structured_product_flag": "core_product_eligibility_target_market_complexity",
-}
+from src.core.policy_packs.evaluation_source_rules import (
+    evaluate_mandate_rule as _evaluate_mandate_rule,
+)
+from src.core.policy_packs.evaluation_source_rules import (
+    required_source_result as _required_source_result,
+)
 
 
 def evaluate_policy_rule(
@@ -70,93 +65,3 @@ def evaluate_policy_rule(
         reason_codes=["POLICY_RULE_EVALUATOR_NOT_SPECIALIZED"],
         required_actions=["POLICY_STEWARD_REVIEW"],
     )
-
-
-def _required_source_result(
-    *, rule: dict[str, Any], source_posture: dict[str, Any]
-) -> PolicyRuleEvaluationResult | None:
-    sections: dict[str, dict[str, Any]] = {
-        str(section.get("key")): section
-        for section in list_at(source_posture, "sections")
-        if isinstance(section, dict)
-    }
-    missing: list[str] = []
-    reasons: list[str] = []
-    pending = False
-    for field in list_at(rule, "required_evidence_fields"):
-        field_key = str(field)
-        if field_key.startswith(("fee_", "conflict_", "product_document_")):
-            continue
-        field_key = FIELD_TO_SOURCE_SECTION.get(field_key, field_key)
-        if field_key.startswith("policy_source_readiness."):
-            if source_posture.get("overall_posture") == "BLOCKED":
-                for source_section in _sections_with_status(source_posture, "BLOCKED"):
-                    missing.extend(
-                        str(item) for item in list_at(source_section, "missing_evidence")
-                    )
-                    reasons.extend(str(item) for item in list_at(source_section, "reason_codes"))
-            elif source_posture.get("overall_posture") == "PENDING_REVIEW":
-                pending = True
-                for source_section in _sections_with_status(source_posture, "PENDING_REVIEW"):
-                    missing.extend(
-                        str(item) for item in list_at(source_section, "missing_evidence")
-                    )
-                    reasons.extend(str(item) for item in list_at(source_section, "reason_codes"))
-            continue
-        section: dict[str, Any] | None = sections.get(field_key)
-        if section is None:
-            missing.append(field_key)
-            reasons.append("POLICY_SOURCE_SECTION_MISSING")
-            continue
-        if section.get("status") == "BLOCKED":
-            missing.extend(str(item) for item in list_at(section, "missing_evidence"))
-            reasons.extend(str(item) for item in list_at(section, "reason_codes"))
-        elif section.get("status") in {"PENDING_REVIEW", "NOT_AVAILABLE"}:
-            pending = True
-            missing.extend(str(item) for item in list_at(section, "missing_evidence"))
-            reasons.extend(str(item) for item in list_at(section, "reason_codes"))
-    if missing and not pending:
-        return _rule_blocked(
-            rule,
-            outcome="SOURCE_EVIDENCE_BLOCKED",
-            missing_evidence=_unique(missing),
-            reason_codes=_unique(reasons),
-            required_actions=["RESTORE_SOURCE_OWNER_EVIDENCE"],
-        )
-    if missing or pending:
-        return _rule_pending(
-            rule,
-            outcome="SOURCE_EVIDENCE_REVIEW_REQUIRED",
-            missing_evidence=_unique(missing),
-            reason_codes=_unique(reasons),
-            required_actions=["REVIEW_SOURCE_OWNER_EVIDENCE"],
-        )
-    return None
-
-
-def _evaluate_mandate_rule(
-    *, rule: dict[str, Any], source_posture: dict[str, Any]
-) -> PolicyRuleEvaluationResult:
-    section = _section(source_posture, "core_mandate_objectives_restrictions")
-    restrictions = list_at(section, "evidence_refs")
-    return _rule_ready(
-        rule,
-        "MANDATE_OBJECTIVES_AND_RESTRICTIONS_READY_FOR_ADVISOR_REVIEW",
-        evidence_refs=restrictions,
-        source_authority_refs=["lotus-core:core_mandate_objectives_restrictions"],
-    )
-
-
-def _section(source_posture: dict[str, Any], key: str) -> dict[str, Any]:
-    for section in list_at(source_posture, "sections"):
-        if isinstance(section, dict) and section.get("key") == key:
-            return section
-    return {}
-
-
-def _sections_with_status(source_posture: dict[str, Any], status: str) -> list[dict[str, Any]]:
-    return [
-        section
-        for section in list_at(source_posture, "sections")
-        if isinstance(section, dict) and section.get("status") == status
-    ]

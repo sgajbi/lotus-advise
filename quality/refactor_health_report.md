@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-17`
-- Head: `09549942c551485b61343420165d56e90dbce65d`
-- Branch Commits Over Main: `10`
+- Head: `26c459c7c01830e1ea2eaad510b66285a27e16e7`
+- Branch Commits Over Main: `11`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -70,6 +70,8 @@
   into a focused rule-family module.
 - Policy evaluation cost and conflict review rules are split into a
   focused review-rule module.
+- Policy evaluation source-readiness and mandate rules are split into
+  a focused source-rule module.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
 - Advisor cockpit service delegates repository-backed source loading and tactical

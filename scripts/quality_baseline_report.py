@@ -285,6 +285,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  into a focused rule-family module.",
         "- Policy evaluation cost and conflict review rules are split into a",
         "  focused review-rule module.",
+        "- Policy evaluation source-readiness and mandate rules are split into",
+        "  a focused source-rule module.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",

@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-635
+
+- Scope: Policy evaluation source-readiness and mandate rule family
+- Pattern: Source-readiness required-evidence checks and mandate readiness projection should be
+  implemented outside the shared policy rule dispatcher.
+- Status: Hardened
+- Finding Class: Policy rule-family modularity and source lineage maintainability
+- Summary: `src/core/policy_packs/evaluation_rules.py` still implemented required source-posture
+  evaluation, source section lookup/status filtering, and mandate readiness projection directly.
+  Those checks are a coherent source-lineage rule family and were keeping the dispatcher coupled to
+  source-posture traversal details.
+- Evidence:
+  - Extracted `required_source_result`, `evaluate_mandate_rule`, source section lookup, and
+    status filtering to `src/core/policy_packs/evaluation_source_rules.py`.
+  - Kept `evaluate_policy_rule` dispatcher behavior unchanged by importing focused source rule
+    functions through private aliases.
+  - Added focused tests for missing required source sections, pending policy source readiness, and
+    mandate evidence reference projection.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new source
+    rule tests passed with 17 tests.
+- Consequence:
+  - `evaluation_rules.py` is now a compact dispatcher while source-lineage, product, and
+    review-rule behavior each have focused owner modules.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Consider adding a dispatcher registration map once policy rule families grow beyond the current
+    small fixed set.
+
 ## LA-REV-634
 
 - Scope: Policy evaluation cost and conflict review rule family
