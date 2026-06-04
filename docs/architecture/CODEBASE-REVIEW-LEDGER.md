@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-648
+
+- Scope: Proposal narrative AI-lineage DTO ownership
+- Pattern: AI adapter lineage DTOs should live in a focused model module aligned with the lotus-ai
+  proposal narrative integration.
+- Status: Hardened
+- Finding Class: Advisory narrative DTO modularity and AI lineage maintainability
+- Summary: `src/core/advisory/narrative_models.py` still owned `ProposalNarrativeAiLineage`
+  directly. That DTO is built by the lotus-ai proposal narrative adapter and captures adapter,
+  workflow-pack, prompt-template, model, workflow-run, and fallback evidence rather than core
+  narrative envelope semantics.
+- Evidence:
+  - Extracted `ProposalNarrativeAiLineage` to
+    `src/core/advisory/narrative_ai_models.py`.
+  - Kept `src/core/advisory/narrative_models.py` as the stable compatibility facade for existing
+    imports and OpenAPI schema generation.
+  - Added contract coverage proving the AI-lineage facade import resolves to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, lotus-ai narrative, advisory proposal simulate,
+    and narrative model contract tests passed with 72 tests.
+- Consequence:
+  - Narrative AI integration evidence now has a narrow owner module aligned with the lotus-ai
+    adapter, reducing DTO churn in the narrative model facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented narrative behavior.
+- Follow-Up:
+  - Continue splitting the narrative envelope and review DTO groups, then redirect narrative
+    builders and adapters to focused owner imports.
+
 ## LA-REV-647
 
 - Scope: Proposal narrative policy and guardrail DTO ownership

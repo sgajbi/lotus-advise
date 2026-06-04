@@ -1,6 +1,9 @@
 from pathlib import Path
 
 from src.core.advisory import narrative_models, narrative_types
+from src.core.advisory.narrative_ai_models import (
+    ProposalNarrativeAiLineage as OwnedProposalNarrativeAiLineage,
+)
 from src.core.advisory.narrative_grounding_models import (
     ProposalNarrativeGroundingPacket as OwnedProposalNarrativeGroundingPacket,
 )
@@ -98,4 +101,12 @@ def test_proposal_narrative_policy_models_keep_stable_facade_imports() -> None:
     assert (
         narrative_models.ProposalNarrativePolicy.__module__
         == "src.core.advisory.narrative_policy_models"
+    )
+
+
+def test_proposal_narrative_ai_lineage_model_keeps_stable_facade_import() -> None:
+    assert narrative_models.ProposalNarrativeAiLineage is OwnedProposalNarrativeAiLineage
+    assert (
+        narrative_models.ProposalNarrativeAiLineage.__module__
+        == "src.core.advisory.narrative_ai_models"
     )
