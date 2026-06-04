@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-641
+
+- Scope: Proposal artifact evidence DTO ownership
+- Pattern: Evidence inputs, engine outputs, request/artifact hashes, and evidence-bundle DTOs
+  should live in a focused model module aligned with artifact evidence assembly.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and lineage evidence maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned the replay/evidence DTO family
+  directly. Those DTOs are built by `src/core/advisory/artifact_evidence.py` and carry lineage,
+  replay, and hash evidence rather than top-level artifact envelope semantics.
+- Evidence:
+  - Extracted evidence inputs, engine outputs, hashes, and evidence-bundle DTOs to
+    `src/core/advisory/artifact_evidence_models.py`.
+  - Removed generic evidence payload typing from the top-level artifact envelope module.
+  - Kept existing `src/core/advisory/artifact_models.py` facade imports stable for artifact
+    evidence assembly, route response schemas, and OpenAPI generation.
+  - Added contract coverage proving evidence DTO facade imports resolve to the focused owner
+    module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 29 tests.
+- Consequence:
+  - Proposal artifact replay and lineage evidence contracts now have a narrow owner module aligned
+    with the artifact evidence builder, leaving the artifact envelope module focused on composition.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Consider updating builder modules to import focused artifact DTO owner modules directly once
+    compatibility-facade usage is no longer needed for migration safety.
+
 ## LA-REV-640
 
 - Scope: Proposal artifact assumptions and disclosure DTO ownership

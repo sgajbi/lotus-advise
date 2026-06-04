@@ -297,6 +297,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  model module while preserving the existing artifact model facade.",
         "- Proposal artifact assumptions and disclosure DTOs are split into a focused",
         "  model module while preserving the existing artifact model facade.",
+        "- Proposal artifact evidence DTOs are split into a focused lineage/evidence",
+        "  model module while preserving the existing artifact model facade.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",

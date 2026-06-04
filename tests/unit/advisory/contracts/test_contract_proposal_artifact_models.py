@@ -15,6 +15,18 @@ from src.core.advisory.artifact_assumption_models import (
 from src.core.advisory.artifact_assumption_models import (
     ProposalArtifactProductDoc as OwnedProposalArtifactProductDoc,
 )
+from src.core.advisory.artifact_evidence_models import (
+    ProposalArtifactEngineOutputs as OwnedProposalArtifactEngineOutputs,
+)
+from src.core.advisory.artifact_evidence_models import (
+    ProposalArtifactEvidenceBundle as OwnedProposalArtifactEvidenceBundle,
+)
+from src.core.advisory.artifact_evidence_models import (
+    ProposalArtifactEvidenceInputs as OwnedProposalArtifactEvidenceInputs,
+)
+from src.core.advisory.artifact_evidence_models import (
+    ProposalArtifactHashes as OwnedProposalArtifactHashes,
+)
 from src.core.advisory.artifact_models import (
     ProposalArtifact,
     ProposalArtifactAssumptionsAndLimits,
@@ -130,6 +142,16 @@ def test_proposal_artifact_assumption_models_keep_stable_facade_imports():
     assert ProposalArtifactProductDoc is OwnedProposalArtifactProductDoc
     assert ProposalArtifactAssumptionsAndLimits.__module__ == (
         "src.core.advisory.artifact_assumption_models"
+    )
+
+
+def test_proposal_artifact_evidence_models_keep_stable_facade_imports():
+    assert ProposalArtifactEngineOutputs is OwnedProposalArtifactEngineOutputs
+    assert ProposalArtifactEvidenceBundle is OwnedProposalArtifactEvidenceBundle
+    assert ProposalArtifactEvidenceInputs is OwnedProposalArtifactEvidenceInputs
+    assert ProposalArtifactHashes is OwnedProposalArtifactHashes
+    assert ProposalArtifactEvidenceBundle.__module__ == (
+        "src.core.advisory.artifact_evidence_models"
     )
 
 
