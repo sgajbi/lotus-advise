@@ -3,6 +3,18 @@ from __future__ import annotations
 from typing import Any, cast
 
 from src.core.policy_packs.evaluation_models import PolicyRuleEvaluationResult
+from src.core.policy_packs.evaluation_result_builders import (
+    rule_blocked as _rule_blocked,
+)
+from src.core.policy_packs.evaluation_result_builders import (
+    rule_pending as _rule_pending,
+)
+from src.core.policy_packs.evaluation_result_builders import (
+    rule_ready as _rule_ready,
+)
+from src.core.policy_packs.evaluation_result_builders import (
+    unique_strings as _unique,
+)
 from src.core.proposals.source_readiness_common import dict_at, list_at
 
 FIELD_TO_SOURCE_SECTION = {
@@ -352,84 +364,3 @@ def _sections_with_status(source_posture: dict[str, Any], status: str) -> list[d
         for section in list_at(source_posture, "sections")
         if isinstance(section, dict) and section.get("status") == status
     ]
-
-
-def _rule_ready(
-    rule: dict[str, Any],
-    outcome: str,
-    *,
-    evidence_refs: list[str] | None = None,
-    source_authority_refs: list[str] | None = None,
-) -> PolicyRuleEvaluationResult:
-    return PolicyRuleEvaluationResult(
-        rule_id=str(rule["rule_id"]),
-        status="READY",
-        severity=str(rule.get("severity") or "REVIEW_REQUIRED"),
-        outcome=outcome,
-        evidence_refs=evidence_refs or list(list_at(rule, "required_evidence_fields")),
-        source_authority_refs=source_authority_refs or _source_refs(rule),
-        reason_codes=[f"{rule['rule_id']}_READY"],
-    )
-
-
-def _rule_pending(
-    rule: dict[str, Any],
-    *,
-    outcome: str,
-    missing_evidence: list[str],
-    reason_codes: list[str],
-    required_actions: list[str],
-    evidence_refs: list[str] | None = None,
-    source_authority_refs: list[str] | None = None,
-) -> PolicyRuleEvaluationResult:
-    return PolicyRuleEvaluationResult(
-        rule_id=str(rule["rule_id"]),
-        status="PENDING_REVIEW",
-        severity=str(rule.get("severity") or "REVIEW_REQUIRED"),
-        outcome=outcome,
-        evidence_refs=evidence_refs or list(list_at(rule, "required_evidence_fields")),
-        source_authority_refs=source_authority_refs or _source_refs(rule),
-        missing_evidence=_unique(missing_evidence),
-        reason_codes=_unique(reason_codes),
-        required_actions=_unique(required_actions),
-    )
-
-
-def _rule_blocked(
-    rule: dict[str, Any],
-    *,
-    outcome: str,
-    missing_evidence: list[str],
-    reason_codes: list[str],
-    required_actions: list[str],
-) -> PolicyRuleEvaluationResult:
-    return PolicyRuleEvaluationResult(
-        rule_id=str(rule["rule_id"]),
-        status="BLOCKED",
-        severity=str(rule.get("severity") or "BLOCKING"),
-        outcome=outcome,
-        evidence_refs=list(list_at(rule, "required_evidence_fields")),
-        source_authority_refs=_source_refs(rule),
-        missing_evidence=_unique(missing_evidence),
-        reason_codes=_unique(reason_codes),
-        required_actions=_unique(required_actions),
-    )
-
-
-def _source_refs(rule: dict[str, Any]) -> list[str]:
-    refs = []
-    for field in list_at(rule, "required_evidence_fields"):
-        field_key = str(field)
-        if field_key.startswith("policy_source_readiness."):
-            refs.append("lotus-advise:policy_source_readiness")
-        elif field_key.startswith(("fee_", "conflict_", "product_document_")):
-            refs.append("lotus-advise:proposal_artifact_policy_evidence")
-        elif field_key.startswith("risk_"):
-            refs.append(f"lotus-risk:{field_key}")
-        else:
-            refs.append(f"lotus-core:{field_key}")
-    return _unique(refs)
-
-
-def _unique(values: list[str]) -> list[str]:
-    return list(dict.fromkeys(value for value in values if value))

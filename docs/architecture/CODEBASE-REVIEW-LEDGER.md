@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-631
+
+- Scope: Policy evaluation result construction
+- Pattern: Specialized policy rule evaluators should not duplicate or own shared
+  ready/pending/blocked result construction.
+- Status: Hardened
+- Finding Class: Policy evaluation modularity and audit-evidence consistency
+- Summary: `src/core/policy_packs/evaluation_rules.py` mixed specialized rule evaluation with
+  shared `PolicyRuleEvaluationResult` builders, source-authority reference mapping, and
+  de-duplication. That made it harder to add or review policy rule families without risking
+  inconsistent severity, source refs, missing evidence, reason codes, or required action ordering.
+- Evidence:
+  - Extracted shared result builders to
+    `src/core/policy_packs/evaluation_result_builders.py`.
+  - Kept `evaluation_rules.py` behavior unchanged by importing the builders through compatibility
+    aliases used by existing rule evaluators.
+  - Added focused unit coverage for ready, pending, blocked, source-ref, and de-duplication
+    behavior.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new builder
+    tests passed with 15 tests.
+- Consequence:
+  - Policy rule-family implementations can now focus on business evidence interpretation while
+    result construction remains consistent and reusable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Continue extracting specialized policy rule families from `evaluation_rules.py` where product
+    eligibility, disclosure, cost, and conflict logic can move behind focused modules.
+
 ## LA-REV-630
 
 - Scope: Proposal memo lineage and replay response DTO boundaries
