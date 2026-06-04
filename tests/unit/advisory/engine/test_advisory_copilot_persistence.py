@@ -425,6 +425,27 @@ def test_advisory_copilot_run_persistence_has_focused_owner() -> None:
     assert service_persist_advisory_copilot_run is focused_persist_advisory_copilot_run
 
 
+def test_postgres_repository_record_mapping_stays_in_focused_module() -> None:
+    import src.infrastructure.advisory_copilot.postgres as postgres_module
+    import src.infrastructure.advisory_copilot.postgres_records as postgres_records_module
+
+    postgres_source = Path(postgres_module.__file__).read_text(encoding="utf-8")
+    records_source = Path(postgres_records_module.__file__).read_text(encoding="utf-8")
+
+    for helper_name in (
+        "run_values",
+        "run_from_row",
+        "evidence_packet_from_row",
+        "review_from_row",
+        "json_dump",
+        "json_load",
+        "can_refresh_source_projection_packet",
+    ):
+        assert f"def {helper_name}" not in postgres_source
+        assert f"def {helper_name}" in records_source
+    assert "from src.infrastructure.advisory_copilot.postgres_records import" in postgres_source
+
+
 def test_advisory_copilot_service_is_pure_compatibility_facade() -> None:
     tree = ast.parse(ADVISORY_COPILOT_SERVICE_PATH.read_text(encoding="utf-8"))
     production_importers = sorted(
