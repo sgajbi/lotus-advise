@@ -124,9 +124,7 @@ def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert models.ProposalMemoLineageResponse is ResponseProposalMemoLineageResponse
     assert ResponseProposalMemoLineageResponse is LineageProposalMemoLineageResponse
     assert models.ProposalMemoReplayEvidenceResponse is ResponseProposalMemoReplayEvidenceResponse
-    assert (
-        ResponseProposalMemoReplayEvidenceResponse is LineageProposalMemoReplayEvidenceResponse
-    )
+    assert ResponseProposalMemoReplayEvidenceResponse is LineageProposalMemoReplayEvidenceResponse
     assert models.ProposalMemoCreateRequest is ResponseProposalMemoCreateRequest
     assert ResponseProposalMemoCreateRequest is RequestProposalMemoCreateRequest
     assert models.ProposalMemoReviewRequest is ResponseProposalMemoReviewRequest
@@ -225,9 +223,7 @@ def test_memo_lineage_models_are_split_from_memo_response_boundary() -> None:
 
     source_root = Path(__file__).resolve().parents[4] / "src" / "core" / "proposals"
     facade = (source_root / "memo_response_models.py").read_text(encoding="utf-8")
-    lineage_models = (source_root / "memo_lineage_response_models.py").read_text(
-        encoding="utf-8"
-    )
+    lineage_models = (source_root / "memo_lineage_response_models.py").read_text(encoding="utf-8")
 
     for class_name in (
         "ProposalMemoLineageItem",
