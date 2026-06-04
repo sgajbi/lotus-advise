@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-602
+
+- Scope: Policy evaluation persistence record construction
+- Pattern: Policy evaluation persistence should not mix in-memory store orchestration, idempotency
+  replay, append-only event handling, finalized-record identity construction, source-gap derivation,
+  approval/disclosure/consent derivation, and replay hash derivation in the same module.
+- Status: Hardened
+- Finding Class: Policy-pack persistence modularity and replay-evidence maintainability
+- Summary: `src/core/policy_packs/persistence.py` combined the policy evaluation record store with
+  finalized-record construction and replay hash derivation. That made idempotency/event behavior
+  harder to review separately from deterministic record identity, source lineage, and requirement
+  derivation.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_record_builder.py` for finalized evaluation record
+    construction, policy evaluation hash derivation, portfolio-id extraction, source refs/gaps, and
+    approval/disclosure/consent requirement derivation.
+  - Kept `src/core/policy_packs/persistence.py` focused on public persistence facade functions,
+    in-memory store state, idempotency replay, append-only event mutation, lineage projection, and
+    replay response orchestration.
+  - Added a source-boundary guard proving record-builder helpers stay outside the persistence store
+    module.
+  - Focused policy-pack persistence lint, format, mypy, and unit tests passed with 6 tests.
+- Consequence:
+  - Policy evaluation persistence behavior remains compatible while deterministic record identity
+    and replay-hash construction can be reviewed independently from store mutation semantics.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing policy-pack evaluation/catalog and proposal service hotspots where the next
+    cohesive boundary is clear.
+
 ## LA-REV-601
 
 - Scope: Advisor-review proposal narrative construction
