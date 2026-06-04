@@ -743,6 +743,18 @@ def test_alternative_strategies_delegate_selection_and_money_helpers() -> None:
     objective_source = (
         REPO_ROOT / "src/core/advisory/alternatives_strategy_objectives.py"
     ).read_text(encoding="utf-8")
+    portfolio_objective_source = (
+        REPO_ROOT / "src/core/advisory/alternatives_strategy_portfolio_objectives.py"
+    ).read_text(encoding="utf-8")
+    trade_objective_source = (
+        REPO_ROOT / "src/core/advisory/alternatives_strategy_trade_objectives.py"
+    ).read_text(encoding="utf-8")
+    currency_objective_source = (
+        REPO_ROOT / "src/core/advisory/alternatives_strategy_currency_objectives.py"
+    ).read_text(encoding="utf-8")
+    deferred_objective_source = (
+        REPO_ROOT / "src/core/advisory/alternatives_strategy_deferred_objectives.py"
+    ).read_text(encoding="utf-8")
     support_source = (REPO_ROOT / "src/core/advisory/alternatives_strategy_support.py").read_text(
         encoding="utf-8"
     )
@@ -756,7 +768,12 @@ def test_alternative_strategies_delegate_selection_and_money_helpers() -> None:
         "AvoidRestrictedProductsStrategy",
     ):
         assert f"class {objective_class}(" not in strategy_source
-        assert f"class {objective_class}(" in objective_source
+        assert f"class {objective_class}(" not in objective_source
+    assert "class ReduceConcentrationStrategy(" in portfolio_objective_source
+    assert "class RaiseCashStrategy(" in portfolio_objective_source
+    assert "class LowerTurnoverStrategy(" in trade_objective_source
+    assert "class ImproveCurrencyAlignmentStrategy(" in currency_objective_source
+    assert "class AvoidRestrictedProductsStrategy(" in deferred_objective_source
 
     assert "from src.core.advisory.alternatives_strategy_support import" in strategy_source
     for helper_name in (
