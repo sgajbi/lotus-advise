@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `bb66cd173f787df44b543a2c279c298af38f4702`
-- Branch Commits Over Main: `1`
+- Head: `e6c8f8c275255b237fe459ba675b0853304fbf47`
+- Branch Commits Over Main: `3`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -28,6 +28,8 @@
   data-quality, trade-size, shorting, and cash-sufficiency evaluators.
 - Proposal memo source-readiness assembly is split into core, risk, and Advise
   source-owner section groups.
+- Proposal memo source-readiness owner groups are split into focused Lotus Core,
+  Lotus Risk, and Lotus Advise modules with a compatibility facade.
 - Bank-demo runtime summary sanitization is split into access helpers and
   focused projection builders.
 - Bank-demo commercial material pack assembly delegates governed material rows to
