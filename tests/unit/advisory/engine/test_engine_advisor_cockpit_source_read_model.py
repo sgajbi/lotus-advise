@@ -45,12 +45,12 @@ def test_source_read_model_exports_cockpit_source_filters() -> None:
 
 
 def test_source_read_model_delegates_source_projection_helpers() -> None:
-    read_model_source = (
-        REPO_ROOT / "src/core/advisor_cockpit/source_read_model.py"
-    ).read_text(encoding="utf-8")
-    projection_source = (
-        REPO_ROOT / "src/core/advisor_cockpit/source_projection.py"
-    ).read_text(encoding="utf-8")
+    read_model_source = (REPO_ROOT / "src/core/advisor_cockpit/source_read_model.py").read_text(
+        encoding="utf-8"
+    )
+    projection_source = (REPO_ROOT / "src/core/advisor_cockpit/source_projection.py").read_text(
+        encoding="utf-8"
+    )
 
     for helper_name in (
         "_policy_review_source",

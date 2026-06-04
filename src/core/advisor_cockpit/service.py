@@ -364,6 +364,8 @@ class AdvisorCockpitService:
         if correlation_id and action.correlation_id is None:
             action = action.model_copy(update={"correlation_id": correlation_id})
         return action
+
+
 def _acknowledgement_response(
     *,
     action: AdvisoryActionItem,

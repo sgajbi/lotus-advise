@@ -53,8 +53,7 @@ def build_policy_evaluation_replay_response(
         comparison.update(
             {
                 "replayed_source_evidence_hash": replayed_source_hash,
-                "source_evidence_hash_matches": replayed_source_hash
-                == record.source_evidence_hash,
+                "source_evidence_hash_matches": replayed_source_hash == record.source_evidence_hash,
                 "replayed_evaluation_hash": replayed_hash,
                 "evaluation_hash_matches": replayed_hash == record.evaluation_hash,
             }

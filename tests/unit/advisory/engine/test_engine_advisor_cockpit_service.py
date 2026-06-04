@@ -30,12 +30,10 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def test_cockpit_service_delegates_source_loading_to_focused_module() -> None:
-    service_source = (REPO_ROOT / "src/core/advisor_cockpit/service.py").read_text(
+    service_source = (REPO_ROOT / "src/core/advisor_cockpit/service.py").read_text(encoding="utf-8")
+    loader_source = (REPO_ROOT / "src/core/advisor_cockpit/service_source_loader.py").read_text(
         encoding="utf-8"
     )
-    loader_source = (
-        REPO_ROOT / "src/core/advisor_cockpit/service_source_loader.py"
-    ).read_text(encoding="utf-8")
 
     assert "from src.core.advisor_cockpit.service_source_loader import" in service_source
     for helper_name in (

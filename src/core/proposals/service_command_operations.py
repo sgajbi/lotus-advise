@@ -36,9 +36,7 @@ class ProposalWorkflowCommandOperations:
         self._repository = repository
         self._store_evidence_bundle = store_evidence_bundle
         self._require_expected_state = require_expected_state
-        self._allow_portfolio_id_change_on_new_version = (
-            allow_portfolio_id_change_on_new_version
-        )
+        self._allow_portfolio_id_change_on_new_version = allow_portfolio_id_change_on_new_version
         self._require_proposal_simulation_flag = require_proposal_simulation_flag
         self._utc_now = utc_now
 
