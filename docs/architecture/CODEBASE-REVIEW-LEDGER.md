@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-603
+
+- Scope: Policy-pack applicability evaluation
+- Pattern: Policy-pack evaluation should not mix source-backed applicability selector matching with
+  material rule execution in the same module.
+- Status: Hardened
+- Finding Class: Policy-pack evaluation modularity and selector-audit maintainability
+- Summary: `src/core/policy_packs/evaluation.py` owned both policy-pack applicability selection
+  and material rule evaluation. Jurisdiction, booking-location, and client-segment selector logic
+  is a separate source-backed decision boundary from rule execution and should be easier to review
+  without scanning the full evaluation engine.
+- Evidence:
+  - Added `src/core/policy_packs/evaluation_applicability.py` for jurisdiction, booking-location,
+    client-segment, and private-banking classification selector matching.
+  - Kept `src/core/policy_packs/evaluation.py` responsible for active-pack loading, source posture,
+    applicability orchestration, rule execution, aggregate status, and response assembly.
+  - Added a source-boundary guard proving selector matching helpers stay outside the rule-evaluation
+    module.
+  - Focused policy-pack evaluation lint, format, mypy, and unit/RFC contract tests passed with 18
+    tests.
+- Consequence:
+  - Policy-pack evaluation behavior remains compatible while source-backed applicability selection
+    can be reviewed and extended independently from material rule evaluation.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue splitting material rule evaluators and policy-pack catalog responsibilities where
+    cohesive boundaries are clear.
+
 ## LA-REV-602
 
 - Scope: Policy evaluation persistence record construction
