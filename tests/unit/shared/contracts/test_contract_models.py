@@ -63,6 +63,12 @@ from src.core.drift_models import (
 from src.core.drift_models import (
     DriftUnmodeledExposure as DriftDriftUnmodeledExposure,
 )
+from src.core.engine_option_suitability_models import (
+    GroupConstraint as SuitabilityGroupConstraint,
+)
+from src.core.engine_option_suitability_models import (
+    SuitabilityThresholds as SuitabilitySuitabilityThresholds,
+)
 from src.core.engine_options_models import (
     EngineOptions as OptionsEngineOptions,
 )
@@ -359,6 +365,21 @@ def test_core_models_preserves_engine_options_model_import_contract():
     assert SuitabilityThresholds is OptionsSuitabilityThresholds
     assert TargetMethod is OptionsTargetMethod
     assert ValuationMode is OptionsValuationMode
+
+
+def test_engine_options_model_facade_delegates_suitability_models() -> None:
+    engine_options_source = Path("src/core/engine_options_models.py").read_text(encoding="utf-8")
+    suitability_source = Path("src/core/engine_option_suitability_models.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert OptionsGroupConstraint is SuitabilityGroupConstraint
+    assert OptionsSuitabilityThresholds is SuitabilitySuitabilityThresholds
+    assert "from src.core.engine_option_suitability_models import" in engine_options_source
+    assert "class GroupConstraint(" not in engine_options_source
+    assert "class SuitabilityThresholds(" not in engine_options_source
+    assert "class GroupConstraint(" in suitability_source
+    assert "class SuitabilityThresholds(" in suitability_source
 
 
 def test_core_models_preserves_simulation_state_model_import_contract():

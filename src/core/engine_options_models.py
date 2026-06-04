@@ -4,8 +4,23 @@ from decimal import Decimal
 from enum import Enum
 from typing import Dict, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
+from src.core.engine_option_suitability_models import (
+    GroupConstraint as GroupConstraint,
+)
+from src.core.engine_option_suitability_models import (
+    SuitabilityThresholds as SuitabilityThresholds,
+)
+from src.core.engine_option_validation import (
+    validate_group_constraint_keys as validate_group_constraint_keys,
+)
+from src.core.engine_option_validation import (
+    validate_non_negative_amounts_by_currency as validate_non_negative_amounts_by_currency,
+)
+from src.core.engine_option_validation import (
+    validate_optional_ratio_between_zero_and_one as validate_optional_ratio_between_zero_and_one,
+)
 from src.core.portfolio_models import Money
 
 
@@ -17,119 +32,6 @@ class ValuationMode(str, Enum):
 class TargetMethod(str, Enum):
     HEURISTIC = "HEURISTIC"
     SOLVER = "SOLVER"
-
-
-_GROUP_CONSTRAINT_KEY_FORMAT = "<attribute_key>:<attribute_value>"
-
-
-def _validate_group_constraint_keys(
-    group_constraints: Dict[str, "GroupConstraint"],
-) -> Dict[str, "GroupConstraint"]:
-    for key in group_constraints:
-        if key.count(":") != 1:
-            raise ValueError(
-                f"group_constraints keys must use format '{_GROUP_CONSTRAINT_KEY_FORMAT}'"
-            )
-        attribute_key, attribute_value = key.split(":", 1)
-        if not attribute_key or not attribute_value:
-            raise ValueError(
-                f"group_constraints keys must use format '{_GROUP_CONSTRAINT_KEY_FORMAT}'"
-            )
-    return group_constraints
-
-
-def _validate_optional_ratio_between_zero_and_one(
-    value: Optional[Decimal], *, field_name: str
-) -> Optional[Decimal]:
-    if value is None:
-        return value
-    if value < Decimal("0") or value > Decimal("1"):
-        raise ValueError(f"{field_name} must be between 0 and 1 inclusive")
-    return value
-
-
-def _validate_non_negative_amounts_by_currency(
-    amounts_by_currency: Dict[str, Decimal], *, field_name: str
-) -> Dict[str, Decimal]:
-    for currency, amount in amounts_by_currency.items():
-        if not currency:
-            raise ValueError(f"{field_name} keys must be non-empty currency codes")
-        if amount < Decimal("0"):
-            raise ValueError(f"{field_name} values must be non-negative")
-    return amounts_by_currency
-
-
-class GroupConstraint(BaseModel):
-    max_weight: Decimal = Field(
-        description="Maximum allowed aggregate weight for the tagged group."
-    )
-
-    @field_validator("max_weight")
-    @classmethod
-    def validate_max_weight(cls, v: Decimal) -> Decimal:
-        if v < Decimal("0") or v > Decimal("1"):
-            raise ValueError("max_weight must be between 0 and 1 inclusive")
-        return v
-
-
-class SuitabilityThresholds(BaseModel):
-    single_position_max_weight: Decimal = Field(
-        default=Decimal("0.10"),
-        ge=0,
-        le=1,
-        description="Maximum advisory suitability weight per single instrument.",
-        examples=["0.10"],
-    )
-    issuer_max_weight: Decimal = Field(
-        default=Decimal("0.20"),
-        ge=0,
-        le=1,
-        description="Maximum advisory suitability aggregate weight per issuer.",
-        examples=["0.20"],
-    )
-    max_weight_by_liquidity_tier: Dict[str, Decimal] = Field(
-        default_factory=lambda: {"L4": Decimal("0.10"), "L5": Decimal("0.05")},
-        description=(
-            "Maximum advisory suitability aggregate weight by liquidity tier, "
-            "for example {'L4': '0.10', 'L5': '0.05'}."
-        ),
-        examples=[{"L4": "0.10", "L5": "0.05"}],
-    )
-    cash_band_min_weight: Decimal = Field(
-        default=Decimal("0.01"),
-        ge=0,
-        le=1,
-        description="Minimum advisory suitability cash weight.",
-        examples=["0.01"],
-    )
-    cash_band_max_weight: Decimal = Field(
-        default=Decimal("0.05"),
-        ge=0,
-        le=1,
-        description="Maximum advisory suitability cash weight.",
-        examples=["0.05"],
-    )
-    data_quality_issue_severity: Literal["LOW", "MEDIUM", "HIGH"] = Field(
-        default="MEDIUM",
-        description="Severity used for suitability data-quality issues.",
-        examples=["MEDIUM"],
-    )
-
-    @field_validator("max_weight_by_liquidity_tier")
-    @classmethod
-    def validate_max_weight_by_liquidity_tier(cls, v: Dict[str, Decimal]) -> Dict[str, Decimal]:
-        for tier, value in v.items():
-            if tier not in {"L1", "L2", "L3", "L4", "L5"}:
-                raise ValueError("liquidity tier keys must be one of L1, L2, L3, L4, L5")
-            if value < Decimal("0") or value > Decimal("1"):
-                raise ValueError("liquidity-tier max weights must be between 0 and 1 inclusive")
-        return v
-
-    @model_validator(mode="after")
-    def validate_cash_band(self) -> "SuitabilityThresholds":
-        if self.cash_band_min_weight > self.cash_band_max_weight:
-            raise ValueError("suitability cash band min cannot exceed max")
-        return self
 
 
 class EngineOptions(BaseModel):
@@ -371,17 +273,17 @@ class EngineOptions(BaseModel):
     def validate_group_constraint_keys(
         cls, v: Dict[str, GroupConstraint]
     ) -> Dict[str, GroupConstraint]:
-        return _validate_group_constraint_keys(v)
+        return validate_group_constraint_keys(v)
 
     @field_validator("max_turnover_pct")
     @classmethod
     def validate_max_turnover_pct(cls, v: Optional[Decimal]) -> Optional[Decimal]:
-        return _validate_optional_ratio_between_zero_and_one(v, field_name="max_turnover_pct")
+        return validate_optional_ratio_between_zero_and_one(v, field_name="max_turnover_pct")
 
     @field_validator("max_overdraft_by_ccy")
     @classmethod
     def validate_max_overdraft_by_ccy(cls, v: Dict[str, Decimal]) -> Dict[str, Decimal]:
-        return _validate_non_negative_amounts_by_currency(v, field_name="max_overdraft_by_ccy")
+        return validate_non_negative_amounts_by_currency(v, field_name="max_overdraft_by_ccy")
 
 
 __all__ = [
