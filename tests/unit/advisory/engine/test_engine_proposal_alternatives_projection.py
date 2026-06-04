@@ -218,6 +218,7 @@ def test_build_strategy_inputs_preserves_missing_prices_and_notional_trades() ->
     assert strategy_inputs.positions[1].currency is None
     assert strategy_inputs.current_proposed_trades[0].notional_amount == Decimal("2500")
     assert strategy_inputs.current_proposed_trades[0].notional_currency == "USD"
+    assert _build_strategy_inputs.__module__ == "src.core.advisory.alternatives_projection_inputs"
 
 
 def test_projection_helpers_cover_rejected_status_and_comparison_fallbacks() -> None:

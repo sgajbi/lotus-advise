@@ -78,6 +78,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Alternative strategy construction delegates input DTOs" in refactor_health
     assert "Alternatives objective strategies are split" in refactor_health
     assert "Proposal alternatives models are split" in refactor_health
+    assert "Proposal alternatives projection delegates request-to-strategy" in refactor_health
     assert (
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )

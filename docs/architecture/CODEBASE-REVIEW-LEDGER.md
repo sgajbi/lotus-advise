@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-625
+
+- Scope: Proposal alternatives strategy input projection
+- Pattern: Alternatives ranking/comparison orchestration should not own request-to-strategy DTO
+  projection directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and projection maintainability
+- Summary: `src/core/advisory/alternatives_projection.py` still mixed top-level proposal
+  alternatives orchestration with request-to-strategy input mapping for positions, prices, cash
+  balances, shelf entries, and proposed trades. That coupling made ranking/comparison changes
+  harder to review independently from strategy input DTO compatibility.
+- Evidence:
+  - Extracted strategy input projection to
+    `src/core/advisory/alternatives_projection_inputs.py`.
+  - Kept the existing `_build_strategy_inputs` compatibility import available from
+    `alternatives_projection.py` for current tests and callers.
+  - Extended the projection contract test to prove the helper is owned by the focused input
+    projection module while preserving behavior for missing prices and notional trades.
+  - Focused `ruff`, `mypy`, and alternatives projection tests passed with 8 tests.
+- Consequence:
+  - Alternatives projection now has a clearer boundary between proposal request mapping and
+    lifecycle ranking/comparison assembly, reducing risk when strategy input DTOs evolve.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented alternatives behavior.
+- Follow-Up:
+  - Continue extracting ranking and comparison projection helpers from
+    `alternatives_projection.py` into focused modules with compatibility imports.
+
 ## LA-REV-624
 
 - Scope: Proposal alternatives model boundaries
