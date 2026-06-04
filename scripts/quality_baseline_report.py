@@ -354,6 +354,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and reusable validators to focused owner modules while preserving public imports.",
         "- Tactical house-view source products delegate DTOs and eligibility/supportability",
         "  rules to focused owner modules while preserving the public cohort facade.",
+        "- Policy evaluation workflow commands delegate projection and sign-off decision",
+        "  validation to focused workflow owner modules.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
         "  history, and execution-update replay behavior to a focused service boundary.",
         "- Proposal workflow narrative operations delegate narrative read/regeneration/review",

@@ -1,5 +1,43 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-668
+
+- Scope: Policy evaluation workflow projection and decision ownership
+- Pattern: Policy workflow command functions should delegate workflow projection and sign-off
+  decision validation to focused owner modules instead of owning every helper in one workflow file.
+- Status: Hardened
+- Finding Class: Policy workflow modularity and reviewability
+- Summary: `src/core/policy_packs/workflow.py` combined public workflow retrieval and sign-off
+  decision recording with requirement projection, conflict posture projection, SLA projection,
+  sign-off status selection, maker-checker validation, approval/disclosure/consent blocker
+  derivation, and date parsing in one 379-line module. That made RFC-0025 workflow behavior harder
+  to review by responsibility and increased the chance of changing projection behavior while
+  editing decision validation.
+- Evidence:
+  - Added `src/core/policy_packs/workflow_projection.py` for policy workflow response projection,
+    requirement/SLA/conflict posture derivation, sign-off status selection, and shared projection
+    helpers.
+  - Added `src/core/policy_packs/workflow_decision.py` for sign-off decision validation,
+    maker-checker enforcement, conflict review outcome requirements, and approval/disclosure/consent
+    blocker derivation.
+  - Kept `src/core/policy_packs/workflow.py` as the public workflow command facade for retrieving
+    workflow state and recording sign-off decisions.
+  - Reduced `src/core/policy_packs/workflow.py` from 379 lines to 109 lines while preserving the
+    public API and RFC-0025 workflow behavior.
+  - Added boundary coverage proving workflow projection and decision helpers live in focused modules
+    and updated RFC-0025 slice 9 contract coverage to include the focused owner modules.
+  - Focused ruff, ruff format check, and mypy passed for touched files; policy workflow and RFC-0025
+    workflow/hardening contract tests passed with 9 tests; repo-native `make lint` passed.
+- Consequence:
+  - Policy evaluation workflow behavior remains stable while projection and decision validation can
+    be reviewed independently from persistence orchestration and public workflow commands.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy workflow modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting remaining policy-pack catalog and API-model hotspots by owner boundary when
+    contract tests can preserve existing RFC evidence.
+
 ## LA-REV-667
 
 - Scope: Tactical house-view model and rule ownership
