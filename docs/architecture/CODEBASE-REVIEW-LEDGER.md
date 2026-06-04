@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-640
+
+- Scope: Proposal artifact assumptions and disclosure DTO ownership
+- Pattern: Pricing assumptions, inclusion flags, product-document references, and disclosure DTOs
+  should live in a focused model module instead of the top-level artifact envelope contract.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and disclosure contract maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned assumptions, model-limit,
+  product-document, and disclosure DTOs directly. These contracts form a coherent assumptions and
+  disclosure section used by artifact assembly and OpenAPI output, distinct from summary,
+  portfolio impact, execution evidence, review evidence, and replay evidence.
+- Evidence:
+  - Extracted pricing assumptions, inclusion flags, assumptions/limits, product-document, and
+    disclosure DTOs to `src/core/advisory/artifact_assumption_models.py`.
+  - Kept existing `src/core/advisory/artifact_models.py` facade imports stable for artifact
+    assembly, route response schemas, and OpenAPI generation.
+  - Added contract coverage proving assumptions/disclosures facade imports resolve to the focused
+    owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 28 tests.
+- Consequence:
+  - Proposal artifact assumptions and disclosure contracts now have a narrow owner module, reducing
+    envelope DTO churn and making product-document/disclaimer contract changes easier to review.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting evidence DTO groups out of the artifact envelope.
+
 ## LA-REV-639
 
 - Scope: Proposal artifact review DTO ownership

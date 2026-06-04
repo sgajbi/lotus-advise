@@ -1,5 +1,20 @@
 from decimal import Decimal
 
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactAssumptionsAndLimits as OwnedProposalArtifactAssumptionsAndLimits,
+)
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactDisclosures as OwnedProposalArtifactDisclosures,
+)
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactInclusionFlag as OwnedProposalArtifactInclusionFlag,
+)
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactPricingAssumptions as OwnedProposalArtifactPricingAssumptions,
+)
+from src.core.advisory.artifact_assumption_models import (
+    ProposalArtifactProductDoc as OwnedProposalArtifactProductDoc,
+)
 from src.core.advisory.artifact_models import (
     ProposalArtifact,
     ProposalArtifactAssumptionsAndLimits,
@@ -104,6 +119,17 @@ def test_proposal_artifact_review_models_keep_stable_facade_imports():
     assert ProposalArtifactSuitabilitySummary is OwnedProposalArtifactSuitabilitySummary
     assert ProposalArtifactSuitabilitySummary.__module__ == (
         "src.core.advisory.artifact_review_models"
+    )
+
+
+def test_proposal_artifact_assumption_models_keep_stable_facade_imports():
+    assert ProposalArtifactAssumptionsAndLimits is OwnedProposalArtifactAssumptionsAndLimits
+    assert ProposalArtifactDisclosures is OwnedProposalArtifactDisclosures
+    assert ProposalArtifactInclusionFlag is OwnedProposalArtifactInclusionFlag
+    assert ProposalArtifactPricingAssumptions is OwnedProposalArtifactPricingAssumptions
+    assert ProposalArtifactProductDoc is OwnedProposalArtifactProductDoc
+    assert ProposalArtifactAssumptionsAndLimits.__module__ == (
+        "src.core.advisory.artifact_assumption_models"
     )
 
 

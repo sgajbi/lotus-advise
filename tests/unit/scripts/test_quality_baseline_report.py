@@ -93,6 +93,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal artifact portfolio-impact DTOs are split" in refactor_health
     assert "Proposal artifact trade/funding DTOs are split" in refactor_health
     assert "Proposal artifact review DTOs are split" in refactor_health
+    assert "Proposal artifact assumptions and disclosure DTOs are split" in refactor_health
     assert (
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )
