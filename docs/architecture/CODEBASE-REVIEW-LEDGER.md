@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-637
+
+- Scope: Proposal artifact portfolio-impact DTO ownership
+- Pattern: Before/after portfolio-state and weight-change DTOs should live in a focused model
+  module instead of the top-level artifact envelope contract.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and portfolio impact maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned the portfolio snapshot, weight
+  change, portfolio delta, and portfolio impact DTOs directly. Those classes are a coherent
+  portfolio-impact contract already produced by focused artifact portfolio builders and should be
+  maintained independently from summary, trade/funding, review, assumptions, evidence, and the
+  envelope model.
+- Evidence:
+  - Extracted portfolio state, weight-change, portfolio delta, and portfolio-impact DTOs to
+    `src/core/advisory/artifact_portfolio_models.py`.
+  - Kept existing `src/core/advisory/artifact_models.py` imports stable for route schemas,
+    artifact assembly, OpenAPI generation, and tests.
+  - Added contract coverage proving facade imports resolve to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 25 tests.
+- Consequence:
+  - Proposal artifact portfolio-impact contracts now have a narrow owner module aligned with the
+    existing artifact portfolio builder, reducing DTO churn in the envelope module.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting trade/funding, review, assumptions/disclosures, and evidence DTO groups out
+    of the artifact envelope.
+
 ## LA-REV-636
 
 - Scope: Proposal artifact summary DTO ownership

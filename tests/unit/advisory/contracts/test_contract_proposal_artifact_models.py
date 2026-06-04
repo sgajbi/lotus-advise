@@ -25,6 +25,15 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactTradeRationale,
     ProposalArtifactTradesAndFunding,
 )
+from src.core.advisory.artifact_portfolio_models import (
+    ProposalArtifactPortfolioDelta as OwnedProposalArtifactPortfolioDelta,
+)
+from src.core.advisory.artifact_portfolio_models import (
+    ProposalArtifactPortfolioImpact as OwnedProposalArtifactPortfolioImpact,
+)
+from src.core.advisory.artifact_portfolio_models import (
+    ProposalArtifactPortfolioState as OwnedProposalArtifactPortfolioState,
+)
 from src.core.advisory.artifact_summary_models import (
     ProposalArtifactSummary as OwnedProposalArtifactSummary,
 )
@@ -42,6 +51,15 @@ def test_proposal_artifact_summary_models_keep_stable_facade_imports():
     assert ProposalArtifactSummaryNote is OwnedProposalArtifactSummaryNote
     assert ProposalArtifactTakeaway is OwnedProposalArtifactTakeaway
     assert ProposalArtifactSummary.__module__ == "src.core.advisory.artifact_summary_models"
+
+
+def test_proposal_artifact_portfolio_models_keep_stable_facade_imports():
+    assert ProposalArtifactPortfolioState is OwnedProposalArtifactPortfolioState
+    assert ProposalArtifactPortfolioDelta is OwnedProposalArtifactPortfolioDelta
+    assert ProposalArtifactPortfolioImpact is OwnedProposalArtifactPortfolioImpact
+    assert ProposalArtifactPortfolioImpact.__module__ == (
+        "src.core.advisory.artifact_portfolio_models"
+    )
 
 
 def test_proposal_artifact_contract_shape():
