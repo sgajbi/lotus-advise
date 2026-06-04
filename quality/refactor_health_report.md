@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `6bf44233c90fc4fb937af47474aa23a985803a6a`
-- Branch Commits Over Main: `16`
+- Head: `8cec8d325b6d4d89310e7760fafc30fcb8312eba`
+- Branch Commits Over Main: `17`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -123,6 +123,8 @@
   while preserving the existing narrative model facade.
 - Proposal narrative runtime modules import focused DTO owner modules directly
   instead of routing DTOs through the narrative model facade.
+- Proposal narrative grounding fact projection delegates decision-summary and
+  alternatives fact assembly to focused helpers.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
 - Advisor cockpit source projection delegates policy-review and memo package blockage

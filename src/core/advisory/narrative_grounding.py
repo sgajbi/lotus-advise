@@ -67,35 +67,71 @@ def _suitability_available(artifact: ProposalArtifact) -> bool:
     return str(artifact.suitability_summary.status) == "AVAILABLE"
 
 
-def _facts_from_artifact(artifact: ProposalArtifact) -> dict[str, Any]:
-    decision_summary = artifact.proposal_decision_summary
-    alternatives = artifact.proposal_alternatives
+def _selected_alternative(alternatives: Any) -> Any | None:
+    return next(
+        (
+            alternative
+            for alternative in alternatives.alternatives
+            if alternative.alternative_id == alternatives.selected_alternative_id
+            or alternative.selected
+        ),
+        alternatives.alternatives[0] if alternatives.alternatives else None,
+    )
+
+
+def _alternative_comparison_facts(
+    selected_alternative: Any | None,
+) -> tuple[list[str], list[str], list[str]]:
+    if selected_alternative is None:
+        return [], [], []
+
+    tradeoffs = [tradeoff.summary for tradeoff in selected_alternative.advisor_tradeoffs[:3]]
+    improvements: list[str] = []
+    deteriorations: list[str] = []
+    if selected_alternative.comparison_summary is not None:
+        tradeoffs.insert(0, selected_alternative.comparison_summary.primary_tradeoff)
+        improvements = selected_alternative.comparison_summary.improvements[:3]
+        deteriorations = selected_alternative.comparison_summary.deteriorations[:3]
+    return tradeoffs[:3], improvements, deteriorations
+
+
+def _alternative_facts(alternatives: Any | None) -> dict[str, Any]:
     selected_alternative = None
-    alternative_tradeoffs: list[str] = []
-    alternative_improvements: list[str] = []
-    alternative_deteriorations: list[str] = []
     if alternatives is not None:
-        selected_alternative = next(
-            (
-                alternative
-                for alternative in alternatives.alternatives
-                if alternative.alternative_id == alternatives.selected_alternative_id
-                or alternative.selected
-            ),
-            alternatives.alternatives[0] if alternatives.alternatives else None,
-        )
-        if selected_alternative is not None:
-            alternative_tradeoffs = [
-                tradeoff.summary for tradeoff in selected_alternative.advisor_tradeoffs[:3]
-            ]
-            if selected_alternative.comparison_summary is not None:
-                alternative_tradeoffs.insert(
-                    0, selected_alternative.comparison_summary.primary_tradeoff
-                )
-                alternative_improvements = selected_alternative.comparison_summary.improvements[:3]
-                alternative_deteriorations = selected_alternative.comparison_summary.deteriorations[
-                    :3
-                ]
+        selected_alternative = _selected_alternative(alternatives)
+    alternative_tradeoffs, alternative_improvements, alternative_deteriorations = (
+        _alternative_comparison_facts(selected_alternative)
+    )
+    return {
+        "alternatives_status": "AVAILABLE" if alternatives is not None else "NOT_AVAILABLE",
+        "selected_alternative_id": (
+            alternatives.selected_alternative_id if alternatives is not None else None
+        ),
+        "selected_alternative_label": (
+            selected_alternative.label if selected_alternative is not None else None
+        ),
+        "selected_alternative_objective": (
+            selected_alternative.objective if selected_alternative is not None else None
+        ),
+        "selected_alternative_status": (
+            selected_alternative.status if selected_alternative is not None else None
+        ),
+        "alternative_tradeoff_summaries": alternative_tradeoffs,
+        "alternative_improvement_summaries": alternative_improvements,
+        "alternative_deterioration_summaries": alternative_deteriorations,
+        "alternative_count": len(alternatives.alternatives) if alternatives is not None else 0,
+        "rejected_alternative_count": (
+            len(alternatives.rejected_candidates) if alternatives is not None else 0
+        ),
+        "rejected_alternative_summaries": (
+            [item.summary for item in alternatives.rejected_candidates[:3]]
+            if alternatives is not None
+            else []
+        ),
+    }
+
+
+def _decision_summary_facts(decision_summary: Any | None) -> dict[str, Any]:
     approval_requirements = (
         decision_summary.approval_requirements if decision_summary is not None else []
     )
@@ -104,11 +140,6 @@ def _facts_from_artifact(artifact: ProposalArtifact) -> dict[str, Any]:
         decision_summary.missing_evidence if decision_summary is not None else []
     )
     return {
-        "proposal_status": artifact.status,
-        "recommended_next_step": artifact.summary.recommended_next_step,
-        "objective_tags": artifact.summary.objective_tags,
-        "gate": artifact.gate_decision.gate,
-        "gate_recommended_next_step": artifact.gate_decision.recommended_next_step,
         "decision_status": (
             decision_summary.decision_status if decision_summary is not None else None
         ),
@@ -139,6 +170,17 @@ def _facts_from_artifact(artifact: ProposalArtifact) -> dict[str, Any]:
         "missing_decision_evidence_summaries": [
             item.summary for item in missing_decision_evidence[:3]
         ],
+    }
+
+
+def _facts_from_artifact(artifact: ProposalArtifact) -> dict[str, Any]:
+    return {
+        "proposal_status": artifact.status,
+        "recommended_next_step": artifact.summary.recommended_next_step,
+        "objective_tags": artifact.summary.objective_tags,
+        "gate": artifact.gate_decision.gate,
+        "gate_recommended_next_step": artifact.gate_decision.recommended_next_step,
+        **_decision_summary_facts(artifact.proposal_decision_summary),
         "risk_status": artifact.risk_lens.status,
         "risk_summary": artifact.risk_lens.summary,
         "risk_highlights": artifact.risk_lens.highlights,
@@ -147,31 +189,7 @@ def _facts_from_artifact(artifact: ProposalArtifact) -> dict[str, Any]:
         "suitability_resolved_issues": artifact.suitability_summary.resolved_issues,
         "suitability_persistent_issues": artifact.suitability_summary.persistent_issues,
         "highest_severity_new": artifact.suitability_summary.highest_severity_new,
-        "alternatives_status": "AVAILABLE" if alternatives is not None else "NOT_AVAILABLE",
-        "selected_alternative_id": (
-            alternatives.selected_alternative_id if alternatives is not None else None
-        ),
-        "selected_alternative_label": (
-            selected_alternative.label if selected_alternative is not None else None
-        ),
-        "selected_alternative_objective": (
-            selected_alternative.objective if selected_alternative is not None else None
-        ),
-        "selected_alternative_status": (
-            selected_alternative.status if selected_alternative is not None else None
-        ),
-        "alternative_tradeoff_summaries": alternative_tradeoffs[:3],
-        "alternative_improvement_summaries": alternative_improvements,
-        "alternative_deterioration_summaries": alternative_deteriorations,
-        "alternative_count": len(alternatives.alternatives) if alternatives is not None else 0,
-        "rejected_alternative_count": (
-            len(alternatives.rejected_candidates) if alternatives is not None else 0
-        ),
-        "rejected_alternative_summaries": (
-            [item.summary for item in alternatives.rejected_candidates[:3]]
-            if alternatives is not None
-            else []
-        ),
+        **_alternative_facts(artifact.proposal_alternatives),
         "trade_count": len(artifact.trades_and_funding.trade_list),
         "fx_count": len(artifact.trades_and_funding.fx_list),
         "cash_takeaway": _top_takeaway(artifact, "CASH"),

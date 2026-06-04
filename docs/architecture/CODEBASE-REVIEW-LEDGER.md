@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-693
+
+- Scope: Proposal narrative grounding fact projection
+- Pattern: High-complexity narrative projection functions should delegate independent fact families
+  to focused helpers without changing the grounding packet contract
+- Status: Improved
+- Finding Class: Complexity reduction and narrative boundary hardening
+- Summary: `_facts_from_artifact` mixed decision-summary, alternatives, risk, suitability, trade,
+  and disclosure projection in one E-ranked function. That made narrative grounding harder to
+  review and riskier to extend as proposal artifact fields evolve.
+- Evidence:
+  - Extracted selected-alternative resolution, alternative comparison projection, alternatives fact
+    assembly, and decision-summary fact assembly into focused helpers.
+  - Preserved the public `build_proposal_narrative_grounding_packet` flow and narrative facade
+    boundaries.
+  - Focused narrative module and AI adapter tests pass.
+  - Radon now reports `_facts_from_artifact` as A-ranked complexity instead of E-ranked complexity.
+- Consequence:
+  - Proposal narrative grounding is easier to review and extend, and one of the two current
+    E-ranked Radon hotspots has been removed without changing endpoint behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal modularity hardening for an existing narrative projection contract.
+- Follow-Up:
+  - Continue reducing the remaining E-ranked target-generation solver hotspot with solver-specific
+    helpers and golden/diagnostic tests.
+
 ## LA-REV-692
 
 - Scope: Radon no-F complexity regression gate
