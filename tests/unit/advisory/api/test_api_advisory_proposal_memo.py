@@ -19,15 +19,35 @@ def setup_function() -> None:
 
 def test_memo_api_delegates_external_package_payloads() -> None:
     source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    operation_source = (
+        REPO_ROOT / "src/core/proposals/memo_external_request_operations.py"
+    ).read_text(encoding="utf-8")
     package_source = (REPO_ROOT / "src/core/proposals/memo_external_packages.py").read_text(
         encoding="utf-8"
     )
 
-    assert "from src.core.proposals.memo_external_packages import" in source
+    assert "from src.core.proposals.memo_external_request_operations import" in source
+    assert "from src.core.proposals.memo_external_packages import" in operation_source
     assert "def _build_report_memo_package(" not in source
     assert "def _build_memo_ai_evidence(" not in source
+    assert "def _build_report_memo_package(" not in operation_source
+    assert "def _build_memo_ai_evidence(" not in operation_source
     assert "def build_report_memo_package(" in package_source
     assert "def build_memo_ai_evidence(" in package_source
+
+
+def test_memo_api_delegates_external_request_operations() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    operation_source = (
+        REPO_ROOT / "src/core/proposals/memo_external_request_operations.py"
+    ).read_text(encoding="utf-8")
+
+    for helper_name in (
+        "request_memo_report_package_operation",
+        "request_memo_ai_commentary_operation",
+    ):
+        assert f"def {helper_name}(" not in source
+        assert f"def {helper_name}(" in operation_source
 
 
 def test_memo_api_delegates_response_projection_helpers() -> None:
@@ -46,9 +66,55 @@ def test_memo_api_delegates_response_projection_helpers() -> None:
         "archive_refs_from_report_posture",
         "project_sections",
         "memo_has_replay_metadata",
+        "build_memo_projection_response",
+        "build_memo_lineage_response",
+        "build_memo_replay_evidence_response",
     ):
         assert f"def {helper_name}(" not in source
         assert f"def {helper_name}(" in projection_source
+    assert "ProposalMemoProjectionResponse(" not in source
+    assert "ProposalMemoLineageItem(" not in source
+    assert "ProposalMemoReplayEvidenceResponse(" not in source
+    assert "ProposalMemoProjectionResponse(" in projection_source
+    assert "ProposalMemoLineageItem(" in projection_source
+    assert "ProposalMemoReplayEvidenceResponse(" in projection_source
+
+
+def test_memo_api_delegates_event_recording_helpers() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    event_source = (REPO_ROOT / "src/core/proposals/memo_event_recording.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.proposals.memo_event_recording import" in source
+    for helper_name in (
+        "append_or_replay_memo_event",
+        "find_replayed_memo_event",
+        "memo_event_request_hash",
+    ):
+        assert f"def {helper_name}(" not in source
+        assert f"def {helper_name}(" in event_source
+    assert "ProposalMemoEventRecord(" not in source
+    assert "ProposalMemoEventRecord(" in event_source
+
+
+def test_memo_api_delegates_request_context_helpers() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    context_source = (REPO_ROOT / "src/core/proposals/memo_request_context.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.proposals.memo_request_context import" in source
+    for helper_name in (
+        "load_proposal_version_for_memo",
+        "load_memo_for_proposal_version",
+        "require_advisor_use_review",
+        "validate_source_memo_hash",
+    ):
+        assert f"def {helper_name}(" not in source
+        assert f"def {helper_name}(" in context_source
+    assert "load_proposal_version_replay_referents(" not in source
+    assert "load_proposal_version_replay_referents(" in context_source
 
 
 def _base_create_payload(portfolio_id: str = "pf_memo_api_1") -> dict:

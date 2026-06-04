@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 
-import src.core.advisor_cockpit.service as cockpit_service
+import src.core.advisor_cockpit.service_source_loader as cockpit_source_loader
 from src.core.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitService,
@@ -25,6 +26,29 @@ from src.core.tactical_house_view import (
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 NOW = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
+REPO_ROOT = Path(__file__).resolve().parents[4]
+
+
+def test_cockpit_service_delegates_source_loading_to_focused_module() -> None:
+    service_source = (REPO_ROOT / "src/core/advisor_cockpit/service.py").read_text(encoding="utf-8")
+    loader_source = (REPO_ROOT / "src/core/advisor_cockpit/service_source_loader.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "from src.core.advisor_cockpit.service_source_loader import" in service_source
+    for helper_name in (
+        "load_advisor_cockpit_source_read_model",
+        "_house_view_impacts",
+    ):
+        assert f"def {helper_name}(" not in service_source
+        assert f"def {helper_name}(" in loader_source
+    for repository_call in (
+        "list_memos_for_proposals",
+        "list_approvals_for_proposals",
+        "list_events_for_proposals",
+    ):
+        assert repository_call not in service_source
+        assert repository_call in loader_source
 
 
 class CountingCockpitRepository(InMemoryProposalRepository):
@@ -120,12 +144,12 @@ def _service(monkeypatch: pytest.MonkeyPatch) -> AdvisorCockpitService:
     repository.create_proposal(_proposal())
     repository.create_memo(_memo())
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_policy_evaluation_records",
         lambda **_: [_policy()],
     )
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_tactical_house_view_affected_cohorts",
         lambda **_: [],
     )
@@ -167,7 +191,7 @@ def test_cockpit_service_batches_memo_source_reads(monkeypatch: pytest.MonkeyPat
     repository.create_proposal(_proposal())
     repository.create_memo(_memo())
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_policy_evaluation_records",
         lambda **_: [_policy()],
     )
@@ -269,7 +293,7 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
         generated_at=NOW,
     )
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_tactical_house_view_affected_cohorts",
         lambda **_: [cohort],
     )
@@ -349,9 +373,9 @@ def test_cockpit_service_bounds_snapshot_identity_from_scope(
 ) -> None:
     repository = InMemoryProposalRepository()
     oversized_portfolio_id = f"PB_SG_GLOBAL_BAL_{'001_' * 80}"
-    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(cockpit_source_loader, "list_policy_evaluation_records", lambda **_: [])
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_tactical_house_view_affected_cohorts",
         lambda **_: [],
     )
@@ -374,7 +398,7 @@ def test_cockpit_service_lists_preparation_packets_with_cursor_and_supportabilit
     repository = InMemoryProposalRepository()
     repository.create_proposal(_proposal())
     repository.create_proposal(_proposal(proposal_id="proposal_sg_002", current_version_no=2))
-    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(cockpit_source_loader, "list_policy_evaluation_records", lambda **_: [])
     service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
 
     first_page = service.list_preparation_packets(
@@ -430,9 +454,9 @@ def test_cockpit_service_bounds_preparation_packets_from_oversized_source_refs(
             current_state="EXECUTION_READY",
         )
     )
-    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(cockpit_source_loader, "list_policy_evaluation_records", lambda **_: [])
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_tactical_house_view_affected_cohorts",
         lambda **_: [],
     )
@@ -461,9 +485,9 @@ def test_portfolio_scoped_cockpit_includes_preparation_created_by_automation_act
 ) -> None:
     repository = InMemoryProposalRepository()
     repository.create_proposal(_proposal(created_by="workbench-canonical-validator"))
-    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(cockpit_source_loader, "list_policy_evaluation_records", lambda **_: [])
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_tactical_house_view_affected_cohorts",
         lambda **_: [],
     )
@@ -572,12 +596,12 @@ def test_cockpit_acknowledgement_bounds_ack_id_for_boundary_length_action(
     repository.create_proposal(_proposal())
     oversized_policy_id = f"policy_eval_{'sg_' * 90}"
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_policy_evaluation_records",
         lambda **_: [_policy(oversized_policy_id)],
     )
     monkeypatch.setattr(
-        cockpit_service,
+        cockpit_source_loader,
         "list_tactical_house_view_affected_cohorts",
         lambda **_: [],
     )

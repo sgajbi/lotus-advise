@@ -1,35 +1,11 @@
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
-from src.core.proposals.activity_views import (
-    build_delivery_history_view,
-    build_delivery_summary_view,
-    build_execution_status_view,
-    build_workflow_timeline_view,
-)
-from src.core.proposals.async_operation_execution import (
-    execute_create_proposal_async_operation,
-    execute_create_version_async_operation,
-)
-from src.core.proposals.async_operation_recovery import (
-    ASYNC_RECOVERY_BATCH_SIZE,
-    recover_async_operation_batch,
-)
-from src.core.proposals.async_operation_views import (
-    build_async_operation_correlation_view,
-    build_async_operation_replay_view,
-    build_async_operation_status_view,
-)
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
 )
-from src.core.proposals.async_submission_commands import (
-    accept_create_proposal_async_submission_command,
-    accept_create_version_async_submission_command,
-)
-from src.core.proposals.create_command import create_proposal_command
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalLifecycleError,
@@ -37,13 +13,6 @@ from src.core.proposals.exceptions import (
     ProposalStateConflictError,
     ProposalTransitionError,
     ProposalValidationError,
-)
-from src.core.proposals.execution_handoff_command import request_proposal_execution_handoff
-from src.core.proposals.execution_update_command import record_proposal_execution_update
-from src.core.proposals.identifiers import new_workflow_event_id
-from src.core.proposals.lifecycle_command import (
-    record_proposal_approval,
-    transition_proposal_state,
 )
 from src.core.proposals.models import (
     ProposalApprovalRequest,
@@ -75,29 +44,18 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
     ProposalWorkflowTimelineResponse,
 )
-from src.core.proposals.narrative_views import (
-    build_narrative_view,
-    record_narrative_review,
-    regenerate_narrative_view,
-)
-from src.core.proposals.read_views import (
-    build_idempotency_lookup_view,
-    build_proposal_approvals_view,
-    build_proposal_detail_view,
-    build_proposal_lineage_view,
-    build_proposal_list_view,
-    build_proposal_version_view,
-)
-from src.core.proposals.replay_views import (
-    build_proposal_version_replay_view,
-)
-from src.core.proposals.report_request_command import record_proposal_report_request
 from src.core.proposals.repository import ProposalRepository
-from src.core.proposals.version_command import create_proposal_version
-from src.core.proposals.workflow_rules import TERMINAL_STATES
+from src.core.proposals.service_async_operations import (
+    ASYNC_RECOVERY_BATCH_SIZE,
+    ProposalWorkflowAsyncOperations,
+)
+from src.core.proposals.service_command_operations import ProposalWorkflowCommandOperations
+from src.core.proposals.service_delivery_operations import ProposalWorkflowDeliveryOperations
+from src.core.proposals.service_narrative_operations import (
+    ProposalWorkflowNarrativeOperations,
+)
+from src.core.proposals.service_read_operations import ProposalWorkflowReadOperations
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
-
-ASYNC_DEFAULT_MAX_ATTEMPTS = 3
 
 __all__ = [
     "ProposalIdempotencyConflictError",
@@ -126,6 +84,33 @@ class ProposalWorkflowService:
         self._allow_portfolio_id_change_on_new_version = allow_portfolio_id_change_on_new_version
         self._require_proposal_simulation_flag = require_proposal_simulation_flag
         self._async_create_submission_stats = AsyncCreateSubmissionStatsTracker()
+        self._command_operations = ProposalWorkflowCommandOperations(
+            repository=self._repository,
+            store_evidence_bundle=self._store_evidence_bundle,
+            require_expected_state=self._require_expected_state,
+            allow_portfolio_id_change_on_new_version=(
+                self._allow_portfolio_id_change_on_new_version
+            ),
+            require_proposal_simulation_flag=self._require_proposal_simulation_flag,
+            utc_now=_utc_now,
+        )
+        self._async_operations = ProposalWorkflowAsyncOperations(
+            repository=self._repository,
+            create_submission_stats=self._async_create_submission_stats,
+            utc_now=_utc_now,
+            create_proposal=lambda **kwargs: self.create_proposal(**kwargs),
+            create_version=lambda **kwargs: self.create_version(**kwargs),
+        )
+        self._delivery_operations = ProposalWorkflowDeliveryOperations(
+            repository=self._repository,
+            require_expected_state=self._require_expected_state,
+            utc_now=_utc_now,
+        )
+        self._narrative_operations = ProposalWorkflowNarrativeOperations(
+            repository=self._repository,
+            utc_now=_utc_now,
+        )
+        self._read_operations = ProposalWorkflowReadOperations(repository=self._repository)
 
     def create_proposal(
         self,
@@ -138,8 +123,7 @@ class ProposalWorkflowService:
         replay_lineage: Optional[dict[str, Any]] = None,
         context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
-        return create_proposal_command(
-            repository=self._repository,
+        return self._command_operations.create_proposal(
             payload=payload,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
@@ -147,9 +131,6 @@ class ProposalWorkflowService:
             source_workspace_id=source_workspace_id,
             replay_lineage=replay_lineage,
             context_resolution_override=context_resolution_override,
-            store_evidence_bundle=self._store_evidence_bundle,
-            require_proposal_simulation_flag=self._require_proposal_simulation_flag,
-            utc_now=_utc_now,
         )
 
     def accept_create_proposal_async_submission(
@@ -159,14 +140,13 @@ class ProposalWorkflowService:
         idempotency_key: str,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        return accept_create_proposal_async_submission_command(
-            repository=self._repository,
-            payload=payload,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
-            utc_now=_utc_now,
-            submission_stats=self._async_create_submission_stats,
+        return cast(
+            "tuple[ProposalAsyncAcceptedResponse, bool]",
+            self._async_operations.accept_create_proposal_submission(
+                payload=payload,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            ),
         )
 
     def submit_create_proposal_async(
@@ -191,21 +171,17 @@ class ProposalWorkflowService:
         idempotency_key: Optional[str] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
-        execute_create_proposal_async_operation(
-            repository=self._repository,
+        self._async_operations.execute_create_proposal(
             operation_id=operation_id,
-            fallback_payload=payload,
-            fallback_idempotency_key=idempotency_key,
-            fallback_correlation_id=correlation_id,
-            utc_now=_utc_now,
-            create_proposal=self.create_proposal,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
         )
 
     def get_proposal(
         self, *, proposal_id: str, include_evidence: bool = True
     ) -> ProposalDetailResponse:
-        return build_proposal_detail_view(
-            repository=self._repository,
+        return self._read_operations.get_proposal(
             proposal_id=proposal_id,
             include_evidence=include_evidence,
         )
@@ -221,8 +197,7 @@ class ProposalWorkflowService:
         limit: int,
         cursor: Optional[str],
     ) -> ProposalListResponse:
-        return build_proposal_list_view(
-            repository=self._repository,
+        return self._read_operations.list_proposals(
             portfolio_id=portfolio_id,
             state=state,
             created_by=created_by,
@@ -233,13 +208,13 @@ class ProposalWorkflowService:
         )
 
     def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:
-        return build_workflow_timeline_view(repository=self._repository, proposal_id=proposal_id)
+        return self._read_operations.get_workflow_timeline(proposal_id=proposal_id)
 
     def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
-        return build_proposal_approvals_view(repository=self._repository, proposal_id=proposal_id)
+        return self._read_operations.get_approvals(proposal_id=proposal_id)
 
     def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:
-        return build_proposal_lineage_view(repository=self._repository, proposal_id=proposal_id)
+        return self._read_operations.get_lineage(proposal_id=proposal_id)
 
     def request_execution_handoff(
         self,
@@ -248,23 +223,20 @@ class ProposalWorkflowService:
         payload: ProposalExecutionHandoffRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalExecutionHandoffResponse:
-        return request_proposal_execution_handoff(
-            repository=self._repository,
+        return self._delivery_operations.request_execution_handoff(
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
-            require_expected_state=self._require_expected_state,
-            occurred_at=_utc_now(),
         )
 
     def get_execution_status(self, *, proposal_id: str) -> ProposalExecutionStatusResponse:
-        return build_execution_status_view(repository=self._repository, proposal_id=proposal_id)
+        return self._delivery_operations.get_execution_status(proposal_id=proposal_id)
 
     def get_delivery_summary(self, *, proposal_id: str) -> ProposalDeliverySummaryResponse:
-        return build_delivery_summary_view(repository=self._repository, proposal_id=proposal_id)
+        return self._delivery_operations.get_delivery_summary(proposal_id=proposal_id)
 
     def get_delivery_history(self, *, proposal_id: str) -> ProposalDeliveryHistoryResponse:
-        return build_delivery_history_view(repository=self._repository, proposal_id=proposal_id)
+        return self._delivery_operations.get_delivery_history(proposal_id=proposal_id)
 
     def record_execution_update(
         self,
@@ -272,42 +244,24 @@ class ProposalWorkflowService:
         proposal_id: str,
         payload: ProposalExecutionUpdateRequest,
     ) -> ProposalExecutionStatusResponse:
-        replay_response = record_proposal_execution_update(
-            repository=self._repository,
+        return self._delivery_operations.record_execution_update(
             proposal_id=proposal_id,
             payload=payload,
-            terminal_states=TERMINAL_STATES,
-            default_occurred_at=_utc_now(),
         )
-        if replay_response is not None:
-            return replay_response
-        return self.get_execution_status(proposal_id=proposal_id)
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
-        return build_idempotency_lookup_view(
-            repository=self._repository,
-            idempotency_key=idempotency_key,
-        )
+        return self._read_operations.get_idempotency_lookup(idempotency_key=idempotency_key)
 
     def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
-        return build_async_operation_status_view(
-            repository=self._repository,
-            operation_id=operation_id,
-        )
+        return self._async_operations.get_status(operation_id=operation_id)
 
     def get_async_operation_replay(self, *, operation_id: str) -> AdvisoryReplayEvidenceResponse:
-        return build_async_operation_replay_view(
-            repository=self._repository,
-            operation_id=operation_id,
-        )
+        return self._async_operations.get_replay(operation_id=operation_id)
 
     def get_async_operation_by_correlation(
         self, *, correlation_id: str
     ) -> ProposalAsyncOperationStatusResponse:
-        return build_async_operation_correlation_view(
-            repository=self._repository,
-            correlation_id=correlation_id,
-        )
+        return self._async_operations.get_by_correlation(correlation_id=correlation_id)
 
     def get_version(
         self,
@@ -316,8 +270,7 @@ class ProposalWorkflowService:
         version_no: int,
         include_evidence: bool = True,
     ) -> ProposalVersionDetail:
-        return build_proposal_version_view(
-            repository=self._repository,
+        return self._read_operations.get_version(
             proposal_id=proposal_id,
             version_no=version_no,
             include_evidence=include_evidence,
@@ -332,19 +285,12 @@ class ProposalWorkflowService:
         replay_lineage: Optional[dict[str, Any]] = None,
         context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
-        return create_proposal_version(
-            repository=self._repository,
+        return self._command_operations.create_version(
             proposal_id=proposal_id,
             payload=payload,
             correlation_id=correlation_id,
             replay_lineage=replay_lineage,
             context_resolution_override=context_resolution_override,
-            store_evidence_bundle=self._store_evidence_bundle,
-            require_proposal_simulation_flag=self._require_proposal_simulation_flag,
-            allow_portfolio_id_change_on_new_version=(
-                self._allow_portfolio_id_change_on_new_version
-            ),
-            utc_now=_utc_now,
         )
 
     def submit_create_version_async(
@@ -368,13 +314,13 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        return accept_create_version_async_submission_command(
-            repository=self._repository,
-            proposal_id=proposal_id,
-            payload=payload,
-            correlation_id=correlation_id,
-            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
-            utc_now=_utc_now,
+        return cast(
+            "tuple[ProposalAsyncAcceptedResponse, bool]",
+            self._async_operations.accept_create_version_submission(
+                proposal_id=proposal_id,
+                payload=payload,
+                correlation_id=correlation_id,
+            ),
         )
 
     def execute_create_version_async(
@@ -385,24 +331,15 @@ class ProposalWorkflowService:
         payload: Optional[ProposalVersionRequest] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
-        execute_create_version_async_operation(
-            repository=self._repository,
+        self._async_operations.execute_create_version(
             operation_id=operation_id,
-            fallback_proposal_id=proposal_id,
-            fallback_payload=payload,
-            fallback_correlation_id=correlation_id,
-            utc_now=_utc_now,
-            create_version=self.create_version,
+            proposal_id=proposal_id,
+            payload=payload,
+            correlation_id=correlation_id,
         )
 
     def recover_async_operations(self, *, max_operations: int = ASYNC_RECOVERY_BATCH_SIZE) -> int:
-        return recover_async_operation_batch(
-            repository=self._repository,
-            max_operations=max_operations,
-            utc_now=_utc_now,
-            execute_create_proposal_async=self.execute_create_proposal_async,
-            execute_create_version_async=self.execute_create_version_async,
-        )
+        return cast(int, self._async_operations.recover_pending(max_operations=max_operations))
 
     def transition_state(
         self,
@@ -411,13 +348,10 @@ class ProposalWorkflowService:
         payload: ProposalStateTransitionRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
-        return transition_proposal_state(
-            repository=self._repository,
+        return self._command_operations.transition_state(
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
-            require_expected_state=self._require_expected_state,
-            occurred_at=_utc_now(),
         )
 
     def record_approval(
@@ -427,13 +361,10 @@ class ProposalWorkflowService:
         payload: ProposalApprovalRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
-        return record_proposal_approval(
-            repository=self._repository,
+        return self._command_operations.record_approval(
             proposal_id=proposal_id,
             payload=payload,
             idempotency_key=idempotency_key,
-            require_expected_state=self._require_expected_state,
-            occurred_at=_utc_now(),
         )
 
     def get_version_replay(
@@ -442,8 +373,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         version_no: int,
     ) -> AdvisoryReplayEvidenceResponse:
-        return build_proposal_version_replay_view(
-            repository=self._repository,
+        return self._read_operations.get_version_replay(
             proposal_id=proposal_id,
             version_no=version_no,
         )
@@ -454,8 +384,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         version_no: int,
     ) -> ProposalNarrativeReadResponse:
-        return build_narrative_view(
-            repository=self._repository,
+        return self._narrative_operations.get_narrative(
             proposal_id=proposal_id,
             version_no=version_no,
         )
@@ -467,8 +396,7 @@ class ProposalWorkflowService:
         version_no: int,
         payload: ProposalNarrativeRegenerationRequest,
     ) -> ProposalNarrativeRegenerationResponse:
-        return regenerate_narrative_view(
-            repository=self._repository,
+        return self._narrative_operations.regenerate_narrative(
             proposal_id=proposal_id,
             version_no=version_no,
             payload=payload,
@@ -482,14 +410,11 @@ class ProposalWorkflowService:
         payload: ProposalNarrativeReviewRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalNarrativeReviewResponse:
-        return record_narrative_review(
-            repository=self._repository,
+        return self._narrative_operations.record_narrative_review(
             proposal_id=proposal_id,
             version_no=version_no,
             payload=payload,
             idempotency_key=idempotency_key,
-            event_id=new_workflow_event_id(),
-            occurred_at=_utc_now,
         )
 
     def record_report_request(
@@ -503,10 +428,8 @@ class ProposalWorkflowService:
         include_reviewed_narrative: bool = False,
         proposal_narrative_package: dict[str, Any] | None = None,
     ) -> ProposalWorkflowEventRecord:
-        return record_proposal_report_request(
-            repository=self._repository,
+        return self._narrative_operations.record_report_request(
             proposal_id=proposal_id,
-            event_id=new_workflow_event_id(),
             report_response=report_response,
             requested_by=requested_by,
             related_version_no=related_version_no,

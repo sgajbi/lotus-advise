@@ -8,6 +8,7 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 SUITABILITY_PATH = Path("src/core/common/suitability.py")
+SUITABILITY_POST_TRADE_PATH = Path("src/core/common/suitability_post_trade_issues.py")
 DECISION_SUMMARY_PATH = Path("src/core/advisory/decision_summary.py")
 
 
@@ -49,12 +50,15 @@ def test_rfc0025_slice2_pins_policy_context_boundary_cleanup() -> None:
 
 def test_current_policy_context_is_not_reinterpreted_in_scanner_or_decision_summary() -> None:
     suitability = _read(SUITABILITY_PATH)
+    suitability_post_trade = _read(SUITABILITY_POST_TRADE_PATH)
     decision_summary = _read(DECISION_SUMMARY_PATH)
 
     assert suitability.count("_GLOBAL_PRIVATE_BANKING_BASELINE_PACK = _SuitabilityPolicyPack") == 1
     assert 'client_context_status") == "AVAILABLE"' not in suitability
     assert 'mandate_context_status") == "AVAILABLE"' not in suitability
-    assert "client_context_available(policy_context)" in suitability
-    assert "mandate_context_available(policy_context)" in suitability
+    assert 'client_context_status") == "AVAILABLE"' not in suitability_post_trade
+    assert 'mandate_context_status") == "AVAILABLE"' not in suitability_post_trade
+    assert "client_context_available(policy_context)" in suitability_post_trade
+    assert "mandate_context_available(policy_context)" in suitability_post_trade
     assert 'client_context_status") == "AVAILABLE"' not in decision_summary
     assert 'mandate_context_status") == "AVAILABLE"' not in decision_summary

@@ -1,3 +1,5 @@
+from typing import cast
+
 from src.core.advisory.alternatives_models import (
     AlternativeCandidateSeed,
     AlternativeConstructionObjective,
@@ -96,4 +98,7 @@ def build_candidate_seeds(
     inputs: AlternativeStrategyInputs,
     registry: dict[AlternativeConstructionObjective, AlternativeConstructionStrategy] | None = None,
 ) -> tuple[AlternativeCandidateSeed, ...]:
-    return build_candidate_plan(request=request, inputs=inputs, registry=registry).seeds
+    return cast(
+        tuple[AlternativeCandidateSeed, ...],
+        build_candidate_plan(request=request, inputs=inputs, registry=registry).seeds,
+    )

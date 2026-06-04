@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import cast
+from typing import Any, cast
 
+from src.core.advisor_cockpit import service_source_loader as cockpit_source_loader
 from src.core.advisor_cockpit.action_models import (
     AdvisoryActionItem,
     AdvisoryActionItemPage,
 )
-from src.core.advisor_cockpit.action_sources import HouseViewImpactActionSource
 from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
@@ -42,28 +42,28 @@ from src.core.advisor_cockpit.service_projection import (
     project_actions_for_caller,
     supportability,
 )
+from src.core.advisor_cockpit.service_source_loader import (
+    load_advisor_cockpit_source_read_model,
+)
 from src.core.advisor_cockpit.snapshot_models import AdvisorCockpitOperatingSnapshot
 from src.core.advisor_cockpit.source_read_model import (
     COCKPIT_SOURCE_BATCH_MAX_ITEMS,
-    AdvisorCockpitSourceBatch,
     AdvisorCockpitSourceReadModel,
-    build_advisor_cockpit_source_read_model,
 )
 from src.core.common.canonical import hash_canonical_payload
-from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalValidationError,
 )
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
-from src.core.tactical_house_view import (
-    TacticalHouseViewAffectedCohort,
-    list_tactical_house_view_affected_cohorts,
-)
 
 COCKPIT_SOURCE_LIMIT = COCKPIT_SOURCE_BATCH_MAX_ITEMS
 COCKPIT_CONTRACT_VERSION = "rfc0026.advisor-cockpit-api.v1"
+
+
+def list_policy_evaluation_records(**kwargs: Any) -> Any:
+    return cockpit_source_loader.list_policy_evaluation_records(**kwargs)
 
 
 class AdvisorCockpitService:
@@ -335,43 +335,13 @@ class AdvisorCockpitService:
         portfolio_id: str | None,
         correlation_id: str | None,
     ) -> AdvisorCockpitSourceReadModel:
-        proposals, _next_cursor = self._repository.list_proposals(
+        read_model = load_advisor_cockpit_source_read_model(
+            repository=self._repository,
+            caller_context=caller_context,
             portfolio_id=portfolio_id,
-            state=None,
-            created_by=None if portfolio_id is not None else caller_context.advisor_id,
-            created_from=None,
-            created_to=None,
-            limit=COCKPIT_SOURCE_LIMIT,
-            cursor=None,
-        )
-        memos = self._repository.list_memos_for_proposals(
-            proposal_ids=[proposal.proposal_id for proposal in proposals]
-        )
-        approvals = self._repository.list_approvals_for_proposals(
-            proposal_ids=[proposal.proposal_id for proposal in proposals]
-        )
-        workflow_events = self._repository.list_events_for_proposals(
-            proposal_ids=[proposal.proposal_id for proposal in proposals]
-        )
-        read_model = build_advisor_cockpit_source_read_model(
-            AdvisorCockpitSourceBatch(
-                proposals=proposals,
-                policy_evaluations=list_policy_evaluation_records(
-                    evaluation_status=None,
-                    portfolio_id=portfolio_id,
-                )[:COCKPIT_SOURCE_LIMIT],
-                memos=memos[:COCKPIT_SOURCE_LIMIT],
-                approvals=approvals[:COCKPIT_SOURCE_LIMIT],
-                workflow_events=workflow_events[:COCKPIT_SOURCE_LIMIT],
-                house_view_impacts=_house_view_impacts(
-                    list_tactical_house_view_affected_cohorts(
-                        portfolio_id=portfolio_id,
-                        limit=COCKPIT_SOURCE_LIMIT,
-                    ),
-                    portfolio_id=portfolio_id,
-                    correlation_id=correlation_id,
-                ),
-            )
+            correlation_id=correlation_id,
+            source_limit=COCKPIT_SOURCE_LIMIT,
+            list_policy_evaluations=list_policy_evaluation_records,
         )
         action_items = [
             self._attach_runtime_state(action=action, correlation_id=correlation_id)
@@ -400,46 +370,6 @@ class AdvisorCockpitService:
         if correlation_id and action.correlation_id is None:
             action = action.model_copy(update={"correlation_id": correlation_id})
         return action
-
-
-def _house_view_impacts(
-    cohorts: list[TacticalHouseViewAffectedCohort],
-    *,
-    portfolio_id: str | None,
-    correlation_id: str | None,
-) -> list[HouseViewImpactActionSource]:
-    impacts: list[HouseViewImpactActionSource] = []
-    for cohort in cohorts:
-        for affected in cohort.affected_portfolios:
-            if portfolio_id is not None and affected.portfolio_id != portfolio_id:
-                continue
-            inclusion_reason_codes = affected.inclusion_reason_codes or [
-                "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"
-            ]
-            impact_code = (
-                "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"
-                if "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED" in inclusion_reason_codes
-                else inclusion_reason_codes[0]
-            )
-            impacts.append(
-                HouseViewImpactActionSource(
-                    cohort_id=cohort.cohort_id,
-                    tactical_view_id=cohort.tactical_view_id,
-                    tactical_view_version=cohort.tactical_view_version,
-                    portfolio_id=affected.portfolio_id,
-                    impact_code=impact_code,
-                    summary=(
-                        "Portfolio is included in a source-backed tactical house-view affected "
-                        "cohort for discretionary portfolio-management review."
-                    ),
-                    lineage_id=f"tactical_house_view_cohort:{cohort.cohort_id}",
-                    content_hash=cohort.content_hash,
-                    source_timestamp=cohort.generated_at,
-                    materiality_rank=52,
-                    correlation_id=correlation_id or cohort.correlation_id,
-                )
-            )
-    return impacts
 
 
 def _acknowledgement_response(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -27,6 +28,7 @@ from src.core.proposals.models import (
 )
 
 AS_OF = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def test_source_read_model_exports_cockpit_source_filters() -> None:
@@ -40,6 +42,25 @@ def test_source_read_model_exports_cockpit_source_filters() -> None:
     }
     assert COCKPIT_POLICY_REVIEW_STATUSES == frozenset({"PENDING_REVIEW", "BLOCKED"})
     assert COCKPIT_SOURCE_BATCH_MAX_ITEMS == 100
+
+
+def test_source_read_model_delegates_source_projection_helpers() -> None:
+    read_model_source = (REPO_ROOT / "src/core/advisor_cockpit/source_read_model.py").read_text(
+        encoding="utf-8"
+    )
+    projection_source = (REPO_ROOT / "src/core/advisor_cockpit/source_projection.py").read_text(
+        encoding="utf-8"
+    )
+
+    for helper_name in (
+        "_policy_review_source",
+        "_memo_block_source",
+        "_approval_dependency_source",
+        "_report_readiness_source",
+        "_execution_status_source",
+    ):
+        assert f"def {helper_name}(" not in read_model_source
+        assert f"def {helper_name}(" in projection_source
 
 
 def test_source_read_model_rejects_unbounded_source_batches() -> None:

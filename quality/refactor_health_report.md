@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `advise-enterprise-hardening-slice-15`
-- Head: `48be546f1cfce95bce183add1da8c28e01b3a7a8`
-- Branch Commits Over Main: `48`
+- Branch: `advise-enterprise-hardening-slice-16`
+- Head: `250dab9b60db8728ecf4652788e7f44238b93d6c`
+- Branch Commits Over Main: `47`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -41,9 +41,29 @@
 - Proposal memo API response assembly delegates memo, audit-event, report replay,
   AI commentary, archive-ref, section, and replay-metadata projection to a
   focused response projection module.
+- Proposal memo API external request orchestration delegates report-package and
+  AI-commentary integration flows to a focused operations module.
 - Alternative strategy construction delegates input DTOs, base mechanics,
   objective classes, selection helpers, trade-payload formatting, and notional math
   to focused strategy modules.
+- Alternatives objective strategies are split into portfolio/cash, baseline-trade,
+  currency-alignment, and deferred restricted-product modules.
+- Advisor cockpit source read models delegate source projection helpers to a focused
+  source-projection module while preserving the existing read-model facade.
+- Advisor cockpit service delegates repository-backed source loading and tactical
+  house-view source mapping to a focused source-loader module.
+- Proposal workflow delivery operations delegate execution handoff, status, summary,
+  history, and execution-update replay behavior to a focused service boundary.
+- Proposal workflow narrative operations delegate narrative read/regeneration/review
+  and report-request event recording to a focused service boundary.
+- Proposal workflow read operations delegate proposal, timeline, approval, lineage,
+  idempotency, version, and replay views to a focused service boundary.
+- Proposal workflow command operations delegate create, version, transition, and
+  approval commands to a focused service boundary.
+- Policy evaluation persistence delegates lineage/posture projection and audit-event
+  attachment mapping to a focused projection module.
+- Policy evaluation persistence delegates replay hash comparison and replay response
+  assembly to a focused replay module.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

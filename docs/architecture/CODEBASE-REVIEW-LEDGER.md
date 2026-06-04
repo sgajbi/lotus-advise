@@ -1,5 +1,775 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-623
+
+- Scope: Proposal workflow command and lifecycle operations
+- Pattern: The API-facing proposal workflow service should not own create, version, transition,
+  and approval command invocation directly while other operation families are delegated.
+- Status: Hardened
+- Finding Class: Service boundary modularity and command workflow maintainability
+- Summary: `src/core/proposals/service.py` still mixed the route-facing facade with proposal
+  create command invocation, version command invocation, lifecycle transition command invocation,
+  and approval command invocation. That left command behavior in the same facade that already
+  delegates async, delivery, narrative, and read operations.
+- Evidence:
+  - Added `src/core/proposals/service_command_operations.py` for create proposal, create version,
+    state transition, and approval command delegation.
+  - Kept `ProposalWorkflowService` as the stable public facade, delegating command/lifecycle
+    methods to `ProposalWorkflowCommandOperations`.
+  - Added a source-boundary test proving create/lifecycle/version command imports and helper calls
+    stay outside the route-facing workflow service facade.
+  - Focused proposal workflow service lint, mypy, and behavior tests passed with 77 tests.
+- Consequence:
+  - Proposal command behavior remains compatible while the public workflow service has a clearer
+    separation between command orchestration and async/read/delivery/narrative facade methods.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `ProposalWorkflowService` only where a stable operation-family seam exists;
+    avoid splitting thin facade delegates without behavior or boundary evidence.
+
+## LA-REV-622
+
+- Scope: Policy evaluation replay assembly
+- Pattern: The policy evaluation persistence store should not own replay hash comparison and
+  replay response assembly directly.
+- Status: Hardened
+- Finding Class: Persistence boundary modularity and replay evidence maintainability
+- Summary: `src/core/policy_packs/persistence.py` still mixed in-memory record loading and
+  idempotent persistence behavior with replay source-hash calculation, policy content comparison,
+  replayed evaluation hashing, and `PolicyEvaluationReplayResponse` construction. That made replay
+  evidence behavior change in the same module as finalization, audit-event creation, and store
+  lookup behavior.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_replay.py` for replay hash comparison and replay
+    response assembly.
+  - Kept `PolicyEvaluationRecordStore.replay_policy_evaluation_record` as the stable public store
+    boundary, delegating replay evidence reconstruction after loading the persisted record.
+  - Added a source-boundary test proving replay response construction and policy evaluation hash
+    comparison stay outside the persistence store module.
+  - Focused policy evaluation persistence lint, mypy, and behavior tests passed with 8 tests.
+- Consequence:
+  - Replay behavior remains compatible while replay evidence reconstruction is easier to test and
+    review separately from persistence, idempotency, and audit-event storage.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing policy persistence by extracting request hash/idempotency command handling
+    once a focused seam can preserve conflict behavior and duplicate-identity replay semantics.
+
+## LA-REV-621
+
+- Scope: Policy evaluation persistence projections
+- Pattern: The policy evaluation persistence store should not own lineage response projection,
+  supportability posture projection, and audit-event attachment mapping directly.
+- Status: Hardened
+- Finding Class: Persistence boundary modularity and lineage projection maintainability
+- Summary: `src/core/policy_packs/persistence.py` still mixed record finalization, idempotency,
+  replay, and in-memory store responsibilities with API lineage response assembly, runtime posture
+  projection, and appended review/sign-off/archive event mapping. That made projection behavior
+  change in the same module as persistence, hash replay, and idempotency behavior.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_projection.py` for policy evaluation lineage
+    response assembly, runtime API posture projection, and append-only event attachment mapping.
+  - Kept `PolicyEvaluationRecordStore` as the stable persistence boundary, delegating projection
+    and event attachment helpers to the focused projection module.
+  - Added a source-boundary test proving lineage response construction and runtime supportability
+    projection stay outside the persistence store module.
+  - Focused policy evaluation persistence lint, mypy, and behavior tests passed with 7 tests.
+- Consequence:
+  - Policy evaluation persistence behavior remains compatible while lineage/posture projection and
+    appended audit-event mapping are easier to review separately from idempotent persistence and
+    replay logic.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `src/core/policy_packs/persistence.py` by extracting request-hash/idempotency
+    command handling or replay comparison logic once the corresponding behavior seams are covered.
+
+## LA-REV-620
+
+- Scope: Proposal workflow read operations
+- Pattern: The API-facing proposal workflow service should not own proposal detail/list,
+  timeline, approval, lineage, idempotency, version, and replay read-view builders directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and read-model maintainability
+- Summary: `src/core/proposals/service.py` still mixed public proposal workflow facade methods
+  with read-view builder imports for proposal detail, lists, workflow timeline, approvals,
+  lineage, idempotency lookup, version detail, and version replay evidence. That made read-model
+  behavior change in the same module as create/version/lifecycle/async/delivery/narrative facade
+  behavior.
+- Evidence:
+  - Added `src/core/proposals/service_read_operations.py` for proposal, timeline, approval,
+    lineage, idempotency, version, and replay read operations.
+  - Kept `ProposalWorkflowService` as the stable public facade, delegating read methods to
+    `ProposalWorkflowReadOperations`.
+  - Added a source-boundary test proving direct read/activity/replay helper imports stay outside
+    the workflow service facade.
+  - Focused proposal workflow service lint, mypy, and behavior tests passed with 76 tests.
+- Consequence:
+  - Read-view behavior remains compatible while the route-facing service has clearer separation
+    between read models and write/lifecycle orchestration.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `ProposalWorkflowService` by extracting lifecycle transition/approval or
+    create/version command groups where the public facade seam remains stable.
+
+## LA-REV-619
+
+- Scope: Proposal workflow narrative and report operations
+- Pattern: The API-facing proposal workflow service should not own narrative read/regeneration/
+  review helpers and report-request event recording directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and narrative/report workflow maintainability
+- Summary: `src/core/proposals/service.py` still mixed the public proposal workflow facade with
+  narrative read projection, narrative regeneration, narrative review event recording, workflow
+  event id creation, and proposal report-request event recording. That made narrative/report
+  workflow behavior change in the same module as create/version/read/lifecycle facade behavior.
+- Evidence:
+  - Added `src/core/proposals/service_narrative_operations.py` for narrative read, regeneration,
+    review, and report-request recording operations.
+  - Kept `ProposalWorkflowService` as the stable public facade, delegating narrative and
+    report-request methods to `ProposalWorkflowNarrativeOperations`.
+  - Added a source-boundary test proving narrative view helpers and report-request command imports
+    stay outside the workflow service facade.
+  - Focused proposal workflow service lint, mypy, and behavior tests passed with 75 tests.
+- Consequence:
+  - Narrative and report-request workflow behavior remains compatible while the public service
+    facade is clearer and safer to evolve separately from narrative/report event recording.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `ProposalWorkflowService` by extracting read-view and lifecycle operation
+    groups where existing delegation tests can preserve route-facing behavior.
+
+## LA-REV-618
+
+- Scope: Advisor cockpit service source loading
+- Pattern: The route-facing advisor cockpit service should not own repository-backed source loading
+  and tactical house-view source mapping directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and source-loading maintainability
+- Summary: `src/core/advisor_cockpit/service.py` mixed public action/snapshot/preparation/
+  supportability/acknowledgement methods with proposal, memo, approval, workflow-event, policy,
+  and tactical-house-view source loading. That made pagination, caller projection, snapshot
+  assembly, acknowledgement idempotency, and source retrieval change in the same module.
+- Evidence:
+  - Added `src/core/advisor_cockpit/service_source_loader.py` for bounded proposal source loading,
+    policy evaluation lookup, batched memo/approval/workflow-event reads, tactical house-view
+    source mapping, and source-read-model construction.
+  - Kept `AdvisorCockpitService` as the stable facade for listing actions, snapshots, preparation
+    packets, supportability, and acknowledgements.
+  - Updated cockpit service tests to patch source dependencies at the new source-loader boundary
+    and added a source-boundary guard proving bulk source read helpers stay outside the service.
+  - Focused cockpit service lint, mypy, and behavior tests passed with 14 tests.
+- Consequence:
+  - Advisor cockpit behavior remains compatible while repository access and source mapping are now
+    isolated from caller projection, pagination, snapshot supportability, and acknowledgement
+    idempotency logic.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `AdvisorCockpitService` by extracting acknowledgement idempotency or snapshot
+    assembly once the corresponding behavior seams are covered by focused tests.
+
+## LA-REV-617
+
+- Scope: Proposal memo external request orchestration
+- Pattern: The proposal memo API facade should not own lotus-report materialization and Lotus AI
+  commentary request orchestration directly.
+- Status: Hardened
+- Finding Class: Integration boundary modularity and memo workflow maintainability
+- Summary: `src/core/proposals/memo_api.py` still mixed memo create/read/review/lineage facade
+  methods with downstream lotus-report package materialization, Lotus AI commentary request
+  handling, advisor-use review gating, idempotent replay checks, and append-only memo event
+  recording. That made route-facing memo behavior harder to review separately from external
+  integration orchestration.
+- Evidence:
+  - Added `src/core/proposals/memo_external_request_operations.py` for report-package and
+    AI-commentary request flows, including review gating, idempotent replay, downstream request
+    payload assembly, fallback AI posture, and append-only event recording.
+  - Kept `request_memo_report_package_response` and `request_memo_ai_commentary_response` in
+    `memo_api.py` as stable facade functions that pass explicit downstream callables.
+  - Updated memo API boundary tests to prove external request operations and package payload
+    builders remain in focused modules outside the facade.
+  - Focused memo API lint, mypy, and behavior tests passed with 14 tests.
+- Consequence:
+  - Memo API behavior remains compatible while external integration orchestration is easier to test,
+    review, and evolve without touching unrelated memo create/read/review/lineage behavior.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `memo_api.py` by separating remaining create/read/review/lineage facade
+    responsibilities where existing boundary tests already preserve behavior.
+
+## LA-REV-616
+
+- Scope: Advisor cockpit source read-model projection helpers
+- Pattern: Cockpit source batch DTOs and read-model orchestration should not own every individual
+  source-to-action projection helper.
+- Status: Hardened
+- Finding Class: Advisor cockpit read-model modularity and supportability maintainability
+- Summary: `src/core/advisor_cockpit/source_read_model.py` mixed Pydantic source batch/read-model
+  DTOs, source count orchestration, source grouping helpers, policy/memo/approval/report/execution
+  source projection functions, and compatibility constants. That made source projection behavior
+  harder to review separately from the public read-model contract used by the cockpit service.
+- Evidence:
+  - Added `src/core/advisor_cockpit/source_projection.py` for source filter constants, grouping
+    helpers, and policy, memo, meeting, follow-up, approval, report/archive, execution handoff, and
+    execution status projection helpers.
+  - Kept `AdvisorCockpitSourceBatch`, `AdvisorCockpitSourceReadModel`, and
+    `build_advisor_cockpit_source_read_model` in the original module as the stable facade.
+  - Added a source-boundary test proving individual projection helper implementations stay outside
+    the read-model DTO/orchestration module.
+  - Focused cockpit source-read-model lint, mypy, and behavior tests passed with 8 tests.
+- Consequence:
+  - Cockpit behavior remains compatible while advisor action source projection logic now has a
+    focused owner module for future observability, supportability, and private-banking workflow
+    additions.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing the adjacent advisor cockpit service hotspot by separating repository/source
+    loading from snapshot assembly where tests already protect action ordering.
+
+## LA-REV-615
+
+- Scope: Alternatives objective strategy modules
+- Pattern: Alternative construction objectives should be owned by focused domain modules rather
+  than one broad objective implementation hotspot.
+- Status: Hardened
+- Finding Class: Domain strategy modularity and private-banking construction maintainability
+- Summary: `src/core/advisory/alternatives_strategy_objectives.py` concentrated concentration
+  reduction, cash raising, turnover reduction, currency alignment, and restricted-product
+  deferral strategies in one large module. That made portfolio/cash mechanics, trade-turnover
+  logic, FX-alignment evidence, and deferred restricted-product posture change together even
+  though they are separate advisory construction concerns.
+- Evidence:
+  - Added `alternatives_strategy_portfolio_objectives.py` for concentration reduction and
+    cash-raising strategies.
+  - Added `alternatives_strategy_trade_objectives.py` for baseline-trade turnover reduction.
+  - Added `alternatives_strategy_currency_objectives.py` for currency-alignment strategy logic.
+  - Added `alternatives_strategy_deferred_objectives.py` for deferred restricted-product posture.
+  - Kept `alternatives_strategy_objectives.py` as a compatibility export facade for existing
+    registry imports.
+  - Tightened the candidate-seed helper return boundary so mypy proves the public helper contract.
+  - Focused alternatives lint, mypy, and behavior tests passed with 28 tests.
+- Consequence:
+  - Alternative construction behavior remains compatible while each private-banking objective can
+    now evolve with localized tests, review ownership, and evidence vocabulary.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue splitting alternatives projection/model hotspots where ranking, enrichment, and DTO
+    responsibilities can be separated without changing generated advisory alternatives.
+
+## LA-REV-614
+
+- Scope: Proposal workflow delivery operations
+- Pattern: The API-facing proposal workflow service should delegate execution handoff, execution
+  status, delivery summary/history, and execution-update replay behavior to a focused service
+  boundary instead of owning delivery orchestration directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and delivery workflow maintainability
+- Summary: `src/core/proposals/service.py` still mixed public proposal workflow facade methods with
+  execution handoff command invocation, execution-update replay handling, terminal-state policy,
+  and delivery activity read-model projection. That made the route-facing service harder to review
+  because create/version/async/read/narrative behavior and execution-delivery behavior changed in
+  the same module.
+- Evidence:
+  - Added `src/core/proposals/service_delivery_operations.py` to own execution handoff requests,
+    execution status, delivery summary/history, and execution-update replay projection.
+  - Kept `ProposalWorkflowService` as the stable public facade, delegating execution/delivery
+    calls to `ProposalWorkflowDeliveryOperations` without changing API models or behavior.
+  - Added a source-boundary test proving delivery command/view helpers and terminal-state policy
+    stay outside the API-facing workflow service module.
+  - Focused proposal workflow service lint, mypy, and behavior tests passed with 74 tests.
+- Consequence:
+  - Execution and delivery workflow behavior remains compatible while the facade has a clearer
+    private-banking delivery boundary for future auditability, idempotency, and downstream
+    integration hardening.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `ProposalWorkflowService` by extracting remaining read, lifecycle, and
+    narrative/report responsibilities where stable facade seams are already covered by tests.
+
+## LA-REV-613
+
+- Scope: Advisory copilot Postgres record mapping
+- Pattern: Infrastructure repository SQL orchestration should not own row-to-record mapping,
+  JSON serialization, run-value projection, and source-projection refresh policy helpers.
+- Status: Hardened
+- Finding Class: Infrastructure adapter modularity and persistence mapping maintainability
+- Summary: `src/infrastructure/advisory_copilot/postgres.py` was the largest production hotspot
+  and mixed Postgres connection/migration setup, SQL command/query orchestration, idempotency
+  conflict handling, keyset pagination, row mapping, JSON serialization, run insert/update value
+  projection, and source-projection packet refresh policy. That made SQL behavior harder to review
+  separately from deterministic record mapping.
+- Evidence:
+  - Added `src/infrastructure/advisory_copilot/postgres_records.py` for run value projection,
+    run/evidence-packet/review row mapping, JSON serialization/deserialization, optional datetime
+    parsing, and source-projection refresh eligibility.
+  - Kept `src/infrastructure/advisory_copilot/postgres.py` focused on connection setup,
+    migrations, SQL statements, transactions, idempotency conflict checks, and pagination.
+  - Added a source-boundary guard proving Postgres row mapping and serialization helpers stay
+    outside the repository SQL orchestration module.
+  - Focused advisory copilot Postgres lint, format, mypy, and persistence tests passed with 39
+    tests.
+- Consequence:
+  - Persistence behavior remains compatible while record mapping can be reviewed independently from
+    SQL transaction and pagination behavior.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because persistence behavior, supported feature posture, and operator workflow truth
+    did not change.
+- Follow-Up:
+  - Continue reducing remaining Postgres SQL orchestration, advisor cockpit read-model/service, and
+    proposal memo/model hotspots where cohesive boundaries remain clear.
+
+## LA-REV-612
+
+- Scope: Proposal workflow service typed facade returns
+- Pattern: The API-facing workflow service should expose explicit typed return boundaries when
+  delegating through compatibility facades and extracted orchestration helpers.
+- Status: Hardened
+- Finding Class: Service facade type-safety and contract maintainability
+- Summary: After splitting delivery response DTOs and async workflow operations, broader mypy
+  coverage identified `Any` return leakage through `ProposalWorkflowService` methods for async
+  submission/recovery and execution/delivery responses. Runtime behavior was correct, but the
+  service facade no longer made its API contract explicit to static analysis.
+- Evidence:
+  - Added explicit typed casts at `ProposalWorkflowService` return boundaries for async submission,
+    async recovery, execution handoff/status, delivery summary/history, and execution-update replay
+    paths.
+  - Focused lint, format, mypy, and behavior tests passed with 101 service/execution tests.
+- Consequence:
+  - Public service behavior remains compatible while type-checking now proves the router-facing
+    service facade returns the documented response contracts.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, schema names, supported feature posture, and operator workflow
+    truth did not change.
+- Follow-Up:
+  - Continue broadening typed facade checks as additional compatibility DTO and service boundaries
+    are split.
+
+## LA-REV-611
+
+- Scope: Proposal delivery response models
+- Pattern: Delivery response DTOs should not mix reporting, execution, and delivery-summary
+  schemas in one hotspot module.
+- Status: Hardened
+- Finding Class: API DTO modularity and delivery-boundary maintainability
+- Summary: `src/core/proposals/delivery_response_models.py` had become the largest production
+  hotspot and mixed lotus-report request/response contracts, execution handoff/update contracts,
+  execution status responses, and delivery summary/history read models. This made OpenAPI DTO
+  review harder because unrelated reporting and execution vocabulary changed in the same module.
+- Evidence:
+  - Added `src/core/proposals/delivery_report_models.py` for report request/response DTOs.
+  - Added `src/core/proposals/delivery_execution_models.py` for execution handoff/update/status
+    DTOs and execution ownership boundary fields.
+  - Added `src/core/proposals/delivery_summary_models.py` for delivery execution/reporting summary
+    and delivery history DTOs.
+  - Kept `src/core/proposals/delivery_response_models.py` as a stable compatibility facade so
+    existing public imports and OpenAPI schema names remain unchanged.
+  - Extended proposal model-boundary tests proving public imports are stable and definitions live
+    in focused delivery modules.
+  - Focused delivery model lint, format, mypy, OpenAPI contract, and execution command tests passed
+    with 44 tests.
+- Consequence:
+  - API behavior and schema titles remain compatible while reporting, execution, and delivery
+    summary DTOs can be reviewed independently.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, schema names, supported feature posture, and operator workflow
+    truth did not change.
+- Follow-Up:
+  - Continue reducing remaining infrastructure, advisor cockpit, proposal memo, and policy-pack
+    hotspots where cohesive data/model or adapter boundaries are clear.
+
+## LA-REV-610
+
+- Scope: Proposal workflow async operations
+- Pattern: Proposal workflow service should not own async submission, async execution, recovery,
+  and async operation read-view wiring directly.
+- Status: Hardened
+- Finding Class: Proposal workflow service modularity and async-orchestration maintainability
+- Summary: `src/core/proposals/service.py` had become the largest hotspot and mixed the
+  router-facing workflow service facade with async create submission, async version submission,
+  restart-safe execution, recovery batch orchestration, and async operation status/replay/correlation
+  read views. That made synchronous proposal commands harder to review separately from operational
+  async mechanics.
+- Evidence:
+  - Added `src/core/proposals/service_async_operations.py` for async submission delegation,
+    async operation execution, restart recovery, and async operation status/replay/correlation
+    views.
+  - Kept `ProposalWorkflowService` as the stable API-facing facade while delegating async behavior
+    through `ProposalWorkflowAsyncOperations`.
+  - Preserved test access to create-submission statistics and callback behavior for retry/failure
+    execution paths.
+  - Added a source-boundary guard proving async command, recovery, and async view helpers stay
+    outside `src/core/proposals/service.py`.
+  - Focused workflow service lint, format, mypy, and unit tests passed with 73 tests.
+- Consequence:
+  - Proposal workflow behavior remains compatible while async operational mechanics can be reviewed
+    independently from direct create/version, lifecycle, execution, narrative, and report workflows.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal service and remaining read-model/model hotspots where cohesive
+    command/read boundaries remain clear.
+
+## LA-REV-609
+
+- Scope: Proposal memo read response builders
+- Pattern: Memo API orchestration should not own projection, lineage, and replay-evidence response
+  construction.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and read-model maintainability
+- Summary: After extracting request-context helpers, `src/core/proposals/memo_api.py` still owned
+  projection response construction, memo lineage item assembly, archive-ref projection, replay
+  metadata proof assembly, and read posture dictionaries. These are read-model projection concerns
+  that should be reviewed separately from API use-case orchestration and downstream command flows.
+- Evidence:
+  - Added `build_memo_projection_response`, `build_memo_lineage_response`, and
+    `build_memo_replay_evidence_response` to `src/core/proposals/memo_response_projection.py`.
+  - Kept `src/core/proposals/memo_api.py` focused on loading, idempotency normalization, command
+    delegation, downstream Lotus Report and Lotus AI orchestration, and response-builder calls.
+  - Extended memo API source-boundary guards so projection, lineage, and replay-evidence response
+    model construction remains outside the API orchestration module.
+  - Focused memo API/projection lint, format, mypy, and unit tests passed with 15 tests.
+- Consequence:
+  - Memo read behavior remains compatible while replay evidence, lineage, and projection response
+    shape can be reviewed and extended independently from command orchestration.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal service, memo API command-flow, and remaining advisory read-model
+    hotspots where cohesive boundaries are clear.
+
+## LA-REV-608
+
+- Scope: Proposal memo request context
+- Pattern: Memo API command orchestration should not own proposal-version lookup, memo lookup,
+  source-hash validation, and advisor-use review posture validation.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and validation-boundary maintainability
+- Summary: After extracting event recording, `src/core/proposals/memo_api.py` still mixed
+  use-case orchestration with proposal-version replay referent loading, memo lookup diagnostics,
+  source memo hash validation, and advisor-use review posture validation. These are reusable
+  request-context checks that should be reviewed separately from report/AI command flow.
+- Evidence:
+  - Added `src/core/proposals/memo_request_context.py` for proposal-version loading, memo loading,
+    source memo hash validation, and advisor-use review posture enforcement.
+  - Kept `src/core/proposals/memo_api.py` focused on memo use-case orchestration, idempotency key
+    normalization, event recording delegation, downstream Lotus Report and Lotus AI calls, and
+    response assembly.
+  - Added a source-boundary guard proving replay referent loading and request-context helper
+    definitions stay outside the memo API orchestration module.
+  - Focused memo API lint, format, mypy, and unit tests passed with 13 tests.
+- Consequence:
+  - Memo API behavior remains compatible while missing-proposal, missing-memo, source-hash, and
+    advisor-use review validation can be reviewed independently from downstream command workflows.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal service and remaining memo API orchestration hotspots where
+    cohesive workflow boundaries remain clear.
+
+## LA-REV-607
+
+- Scope: Proposal memo event recording
+- Pattern: Memo API use-case orchestration should not own idempotent event append/replay plumbing
+  and canonical event request-hash construction.
+- Status: Hardened
+- Finding Class: Proposal memo API modularity and idempotency maintainability
+- Summary: `src/core/proposals/memo_api.py` still mixed advisor-review, report-package, and
+  AI-commentary use-case orchestration with memo event request-hash construction,
+  idempotency-conflict detection, replay lookup, and append-only event record construction. That
+  made command intent harder to review separately from audit/idempotency mechanics.
+- Evidence:
+  - Added `src/core/proposals/memo_event_recording.py` for canonical memo event request hashes,
+    append-or-replay event recording, and idempotency replay conflict detection.
+  - Kept `src/core/proposals/memo_api.py` focused on proposal/memo loading, source-hash checks,
+    advisor-use review gating, downstream Lotus Report and Lotus AI request orchestration, and
+    response assembly.
+  - Added a memo API source-boundary guard proving event-record construction stays outside the API
+    orchestration module.
+  - Focused memo API lint, format, mypy, and unit tests passed with 12 tests.
+- Consequence:
+  - Memo event replay behavior remains compatible while audit/idempotency mechanics can be reviewed
+    and reused independently from advisor-review, report-package, and AI-commentary workflows.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal memo API orchestration and proposal service hotspots around
+    load/validation workflow boundaries where behavior remains cohesive.
+
+## LA-REV-606
+
+- Scope: Policy-pack reference catalog data
+- Pattern: Policy-pack catalog store behavior should not own static reference-pack source data.
+- Status: Hardened
+- Finding Class: Policy-pack catalog modularity and reference-data maintainability
+- Summary: After extracting catalog definition helpers, `src/core/policy_packs/catalog.py` still
+  mixed public catalog facade functions, in-memory store mutation, idempotent validation and
+  activation workflows, audit-event handling, and large static reference-pack literals. That kept
+  reference data review coupled to maker-checker store behavior.
+- Evidence:
+  - Added `src/core/policy_packs/catalog_reference_packs.py` for the global private-banking and
+    Singapore private-banking reference pack definitions.
+  - Exposed `reference_policy_packs()` as a defensive-copy accessor so catalog store reset behavior
+    cannot mutate the authored reference definitions.
+  - Kept `src/core/policy_packs/catalog.py` focused on public catalog facade functions, store
+    state, validation/activation workflows, idempotency replay, and audit-event projection.
+  - Added a source-boundary guard proving reference-pack literals stay outside the catalog store
+    module.
+  - Focused policy-pack catalog lint, format, mypy, and unit tests passed with 6 tests.
+- Consequence:
+  - Policy-pack catalog behavior remains compatible while static policy source data can be reviewed
+    separately from command semantics, idempotency replay, and maker-checker activation behavior.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing proposal memo/service, persistence, and advisory read-model hotspots where
+    cohesive behavior/data boundaries remain clear.
+
+## LA-REV-605
+
+- Scope: Policy-pack catalog definition helpers
+- Pattern: Policy-pack catalog store mutation should not also own definition preparation, summary
+  projection, supportability posture assembly, and schema/content diagnostics.
+- Status: Hardened
+- Finding Class: Policy-pack catalog modularity and validation maintainability
+- Summary: `src/core/policy_packs/catalog.py` mixed catalog store state, validation/activation
+  command handling, idempotency replay, audit-event mutation, reference-pack data, and reusable
+  definition helpers. This made catalog command behavior harder to review separately from
+  definition hashing and diagnostics.
+- Evidence:
+  - Added `src/core/policy_packs/catalog_definitions.py` for definition keys, prepared content
+    hashes, summary projection, catalog posture, reference posture constants, and definition
+    diagnostics.
+  - Kept `src/core/policy_packs/catalog.py` focused on public catalog facade functions,
+    in-memory store state, validation/activation workflows, idempotency replay, audit events, and
+    reference-pack source data.
+  - Added a source-boundary guard proving definition validation and summary projection stay outside
+    the catalog store module.
+  - Focused policy-pack catalog lint, format, mypy, and unit tests passed with 5 tests.
+- Consequence:
+  - Catalog behavior remains compatible while reusable definition validation and projection can be
+    reviewed independently from store mutation and maker-checker activation semantics.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue splitting reference-pack source data and remaining proposal/memo/service hotspots where
+    cohesive boundaries are clear.
+
+## LA-REV-604
+
+- Scope: Policy-pack material rule evaluators
+- Pattern: Policy-pack response orchestration should not own every material rule evaluator,
+  product-shelf helper, source-readiness rule result mapper, and rule-result DTO builder.
+- Status: Hardened
+- Finding Class: Policy-pack evaluation modularity and rule-boundary maintainability
+- Summary: After extracting applicability, `src/core/policy_packs/evaluation.py` still mixed
+  active-pack/source-posture orchestration with material rule evaluators for source readiness,
+  mandate restrictions, SG product eligibility, complex-product disclosure/consent, best-interest
+  cost evidence, and conflict/product-document review.
+- Evidence:
+  - Added `src/core/policy_packs/evaluation_rules.py` for material rule dispatch, source-readiness
+    prerequisite checks, product eligibility helpers, complex/private product detection,
+    best-interest cost evidence checks, conflict/product-document checks, and rule result builders.
+  - Kept `src/core/policy_packs/evaluation.py` responsible for active policy-pack loading,
+    source-posture resolution, applicability orchestration, aggregate status, supportability, and
+    `PolicyPackEvaluationResponse` assembly.
+  - Updated source-boundary tests so private helper checks for artifact sections, source sections,
+    and source refs target the rule-evaluator module.
+  - Focused policy-pack evaluation lint, format, mypy, and unit/RFC contract tests passed with 19
+    tests.
+- Consequence:
+  - Policy evaluation behavior remains compatible while material rule logic can be reviewed and
+    extended independently from top-level evaluation response assembly.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing policy-pack catalog, proposal service, memo API orchestration, and remaining
+    model/projection hotspots.
+
+## LA-REV-603
+
+- Scope: Policy-pack applicability evaluation
+- Pattern: Policy-pack evaluation should not mix source-backed applicability selector matching with
+  material rule execution in the same module.
+- Status: Hardened
+- Finding Class: Policy-pack evaluation modularity and selector-audit maintainability
+- Summary: `src/core/policy_packs/evaluation.py` owned both policy-pack applicability selection
+  and material rule evaluation. Jurisdiction, booking-location, and client-segment selector logic
+  is a separate source-backed decision boundary from rule execution and should be easier to review
+  without scanning the full evaluation engine.
+- Evidence:
+  - Added `src/core/policy_packs/evaluation_applicability.py` for jurisdiction, booking-location,
+    client-segment, and private-banking classification selector matching.
+  - Kept `src/core/policy_packs/evaluation.py` responsible for active-pack loading, source posture,
+    applicability orchestration, rule execution, aggregate status, and response assembly.
+  - Added a source-boundary guard proving selector matching helpers stay outside the rule-evaluation
+    module.
+  - Focused policy-pack evaluation lint, format, mypy, and unit/RFC contract tests passed with 18
+    tests.
+- Consequence:
+  - Policy-pack evaluation behavior remains compatible while source-backed applicability selection
+    can be reviewed and extended independently from material rule evaluation.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue splitting material rule evaluators and policy-pack catalog responsibilities where
+    cohesive boundaries are clear.
+
+## LA-REV-602
+
+- Scope: Policy evaluation persistence record construction
+- Pattern: Policy evaluation persistence should not mix in-memory store orchestration, idempotency
+  replay, append-only event handling, finalized-record identity construction, source-gap derivation,
+  approval/disclosure/consent derivation, and replay hash derivation in the same module.
+- Status: Hardened
+- Finding Class: Policy-pack persistence modularity and replay-evidence maintainability
+- Summary: `src/core/policy_packs/persistence.py` combined the policy evaluation record store with
+  finalized-record construction and replay hash derivation. That made idempotency/event behavior
+  harder to review separately from deterministic record identity, source lineage, and requirement
+  derivation.
+- Evidence:
+  - Added `src/core/policy_packs/persistence_record_builder.py` for finalized evaluation record
+    construction, policy evaluation hash derivation, portfolio-id extraction, source refs/gaps, and
+    approval/disclosure/consent requirement derivation.
+  - Kept `src/core/policy_packs/persistence.py` focused on public persistence facade functions,
+    in-memory store state, idempotency replay, append-only event mutation, lineage projection, and
+    replay response orchestration.
+  - Added a source-boundary guard proving record-builder helpers stay outside the persistence store
+    module.
+  - Focused policy-pack persistence lint, format, mypy, and unit tests passed with 6 tests.
+- Consequence:
+  - Policy evaluation persistence behavior remains compatible while deterministic record identity
+    and replay-hash construction can be reviewed independently from store mutation semantics.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing policy-pack evaluation/catalog and proposal service hotspots where the next
+    cohesive boundary is clear.
+
+## LA-REV-601
+
+- Scope: Advisor-review proposal narrative construction
+- Pattern: Narrative construction should not mix grounding-packet extraction, deterministic section
+  copy, AI-assisted section replacement, guardrail evaluation, and narrative identity assembly in a
+  single module.
+- Status: Hardened
+- Finding Class: Proposal narrative modularity and advisor-review evidence maintainability
+- Summary: `src/core/advisory/narrative.py` mixed artifact fact extraction, source-reference
+  construction, missing-evidence policy, deterministic advisor-facing section rendering, Lotus AI
+  draft replacement, guardrail evaluation, payload hashing, and status selection. This made
+  evidence grounding and narrative copy harder to review independently and increased coupling
+  between AI integration posture and deterministic narrative generation.
+- Evidence:
+  - Added `src/core/advisory/narrative_grounding.py` for artifact fact extraction, source refs,
+    missing-evidence records, grounding-packet identity, and deterministic narrative policy version.
+  - Added `src/core/advisory/narrative_sections.py` for deterministic advisor-review section copy,
+    source-ref selection, limitation refs, executive-summary text, and alternatives text.
+  - Added `src/core/advisory/narrative_ai.py` for Lotus AI draft-section replacement and fallback
+    lineage handling.
+  - Kept `src/core/advisory/narrative.py` as the public orchestration module for
+    `build_deterministic_proposal_narrative` and the stable
+    `build_proposal_narrative_grounding_packet` re-export.
+  - Added a source-boundary guard proving grounding, section-rendering, and AI helper logic stays
+    outside the public narrative orchestration module.
+  - Focused narrative lint, format, mypy, adapter/policy, and artifact golden tests passed with 17
+    focused tests.
+- Consequence:
+  - Advisor-review narrative behavior remains compatible while evidence grounding, deterministic
+    business copy, and AI-assisted drafting posture can now be reviewed and changed independently.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing policy-pack persistence/evaluation/catalog and proposal service hotspots
+    where cohesive domain boundaries exist.
+
+## LA-REV-600
+
+- Scope: Core suitability scanner modularity
+- Pattern: Suitability scanning should not mix policy-pack wiring, state evaluators, trade/context
+  enrichment, issue projection, and gate recommendation in one monolithic module.
+- Status: Hardened
+- Finding Class: Advisory suitability modularity and private-banking policy maintainability
+- Summary: `src/core/common/suitability.py` was the largest production-code hotspot and mixed
+  target-state concentration, issuer, liquidity, governance, cash-band, post-trade, product
+  complexity, mandate-context, issue-classification, and result-summary behavior. That made
+  suitability rules harder to review and increased the chance that future policy-pack changes would
+  alter orchestration, evidence projection, or context-readiness semantics together.
+- Evidence:
+  - Added `src/core/common/suitability_policy.py` for suitability policy primitives, severity
+    vocabulary, issue candidates, policy-pack structure, and shared weight helpers.
+  - Added `src/core/common/suitability_state_issues.py` for state-based concentration, issuer,
+    liquidity, governance, cash-band, and source-enrichment data-quality evaluators.
+  - Added `src/core/common/suitability_post_trade_issues.py` for proposed-trade governance,
+    complex-product client-context, and restricted-product mandate-context issue enrichment.
+  - Added `src/core/common/suitability_projection.py` for issue classification ordering, issue DTO
+    projection, highest-severity summary selection, and recommended gate calculation.
+  - Kept `src/core/common/suitability.py` as the stable public orchestration entrypoint for
+    `compute_suitability_result` and policy-pack wiring.
+  - Reduced `src/core/common/suitability.py` from a 672-line hotspot to focused orchestration.
+  - Focused `ruff` passed for the suitability module family and related contract tests; focused
+    suitability scanner/API tests passed with 14 tests.
+- Consequence:
+  - Suitability behavior remains compatible while private-banking policy rules, post-trade
+    evidence requirements, and result projection can now be reviewed independently.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, published product truth, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue splitting remaining production-code hotspots in narrative, policy-pack persistence,
+    policy-pack evaluation/catalog, proposal service, and memo API orchestration.
+
 ## LA-REV-599
 
 - Scope: Proposal memo API response projection

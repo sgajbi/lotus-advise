@@ -34,8 +34,10 @@ def test_rfc0025_slice15_hardening_is_indexed() -> None:
 def test_rfc0025_slice15_supportability_truth_is_centralized_and_current() -> None:
     supportability = _read(SUPPORTABILITY_PATH)
     catalog = _read("src/core/policy_packs/catalog.py")
+    catalog_definitions = _read("src/core/policy_packs/catalog_definitions.py")
     evaluation = _read("src/core/policy_packs/evaluation.py")
     persistence = _read("src/core/policy_packs/persistence.py")
+    persistence_projection = _read("src/core/policy_packs/persistence_projection.py")
     workflow = _read("src/core/policy_packs/workflow.py")
     policy_api_routes = _read("src/api/proposals/routes_policy_evaluations.py")
 
@@ -55,9 +57,11 @@ def test_rfc0025_slice15_supportability_truth_is_centralized_and_current() -> No
     assert '"mesh_certification": "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE"' in supportability
     assert '"client_ready_publication": CLIENT_READY_PUBLICATION_POSTURE' in supportability
 
-    assert "policy_runtime_supportability()" in catalog
+    assert "catalog_posture()" in catalog
+    assert "policy_runtime_supportability()" in catalog_definitions
     assert "policy_runtime_supportability()" in evaluation
-    assert "policy_runtime_supportability()" in persistence
+    assert "policy_evaluation_api_posture()" in persistence
+    assert "policy_runtime_supportability()" in persistence_projection
     assert "policy_sign_off_package_posture()" in workflow
 
     combined = "\n".join([catalog, evaluation, persistence, workflow, policy_api_routes])

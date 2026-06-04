@@ -5,19 +5,23 @@ from datetime import UTC, datetime
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.policy_packs.catalog_definitions import (
+    CATALOG_CONTRACT_VERSION,
+    REFERENCE_POSTURE,
+    catalog_posture,
+    definition_key,
+    prepare_definition,
+    summary_from_definition,
+    validate_definition,
+)
 from src.core.policy_packs.catalog_models import (
     PolicyPackActivationResponse,
     PolicyPackAuditEvent,
     PolicyPackDetailResponse,
     PolicyPackListResponse,
-    PolicyPackSummary,
     PolicyPackValidationResponse,
 )
-from src.core.policy_packs.supportability import (
-    POLICY_CATALOG_CONTRACT_VERSION,
-    REFERENCE_POLICY_PACK_POSTURE,
-    policy_runtime_supportability,
-)
+from src.core.policy_packs.catalog_reference_packs import reference_policy_packs
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
@@ -25,8 +29,8 @@ from src.core.proposals.exceptions import (
 )
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 
-_CATALOG_CONTRACT_VERSION = POLICY_CATALOG_CONTRACT_VERSION
-_REFERENCE_POSTURE = REFERENCE_POLICY_PACK_POSTURE
+_CATALOG_CONTRACT_VERSION = CATALOG_CONTRACT_VERSION
+_REFERENCE_POSTURE = REFERENCE_POSTURE
 
 
 def list_policy_pack_versions() -> PolicyPackListResponse:
@@ -91,7 +95,7 @@ class PolicyPackCatalogStore:
 
     def reset(self) -> None:
         self._definitions = {
-            _definition_key(definition): _prepare_definition(definition)
+            definition_key(definition): prepare_definition(definition)
             for definition in deepcopy(self._source_definitions)
         }
         self._events: dict[tuple[str, str], list[PolicyPackAuditEvent]] = {
@@ -102,13 +106,13 @@ class PolicyPackCatalogStore:
     def list_policy_pack_versions(self) -> PolicyPackListResponse:
         return PolicyPackListResponse(
             items=[
-                _summary_from_definition(definition)
+                summary_from_definition(definition)
                 for definition in sorted(
                     self._definitions.values(),
                     key=lambda item: (item["policy_pack_id"], item["policy_version"]),
                 )
             ],
-            catalog_posture=_catalog_posture(),
+            catalog_posture=catalog_posture(),
         )
 
     def get_policy_pack_version(
@@ -149,14 +153,14 @@ class PolicyPackCatalogStore:
         )
         if replayed is not None:
             return PolicyPackValidationResponse(
-                policy_pack=_summary_from_definition(definition),
+                policy_pack=summary_from_definition(definition),
                 validation_status="READY",
                 diagnostics=list(replayed.reason.get("diagnostics", [])),
                 validation_event=replayed,
                 replayed=True,
             )
 
-        diagnostics = _validate_definition(definition)
+        diagnostics = validate_definition(definition)
         if diagnostics:
             raise ProposalValidationError(";".join(diagnostics))
         event = self._append_event(
@@ -177,7 +181,7 @@ class PolicyPackCatalogStore:
             },
         )
         return PolicyPackValidationResponse(
-            policy_pack=_summary_from_definition(definition),
+            policy_pack=summary_from_definition(definition),
             validation_status="READY",
             diagnostics=[],
             validation_event=event,
@@ -214,7 +218,7 @@ class PolicyPackCatalogStore:
         )
         if replayed is not None:
             return PolicyPackActivationResponse(
-                policy_pack=_summary_from_definition(definition),
+                policy_pack=summary_from_definition(definition),
                 activation_event=replayed,
                 replayed=True,
             )
@@ -223,7 +227,7 @@ class PolicyPackCatalogStore:
             raise ProposalValidationError("POLICY_PACK_CONTENT_HASH_MISMATCH")
         if definition["activation_state"] == "ACTIVE":
             raise ProposalValidationError("POLICY_PACK_VERSION_ALREADY_ACTIVE_IMMUTABLE")
-        diagnostics = _validate_definition(definition)
+        diagnostics = validate_definition(definition)
         if diagnostics:
             raise ProposalValidationError(";".join(diagnostics))
         validation_event = self._latest_validation_event(
@@ -254,7 +258,7 @@ class PolicyPackCatalogStore:
             },
         )
         return PolicyPackActivationResponse(
-            policy_pack=_summary_from_definition(definition),
+            policy_pack=summary_from_definition(definition),
             activation_event=event,
             replayed=False,
         )
@@ -266,9 +270,9 @@ class PolicyPackCatalogStore:
         return definition
 
     def _detail_from_definition(self, definition: dict[str, Any]) -> PolicyPackDetailResponse:
-        key = _definition_key(definition)
+        key = definition_key(definition)
         return PolicyPackDetailResponse(
-            policy_pack=_summary_from_definition(definition),
+            policy_pack=summary_from_definition(definition),
             applicability=deepcopy(definition["applicability"]),
             source_requirements=list(definition["source_requirements"]),
             rules=deepcopy(definition["rules"]),
@@ -277,7 +281,7 @@ class PolicyPackCatalogStore:
             approval_routes=deepcopy(definition["approval_routes"]),
             sample_fixture_refs=list(definition["sample_fixture_refs"]),
             supportability={
-                **_catalog_posture(),
+                **catalog_posture(),
                 "activation_lifecycle": "SUPPORTED_BY_RFC0025_SLICE5",
             },
             audit_events=list(self._events[key]),
@@ -335,245 +339,4 @@ class PolicyPackCatalogStore:
         return None
 
 
-def _definition_key(definition: dict[str, Any]) -> tuple[str, str]:
-    return (str(definition["policy_pack_id"]), str(definition["policy_version"]))
-
-
-def _prepare_definition(definition: dict[str, Any]) -> dict[str, Any]:
-    prepared = deepcopy(definition)
-    prepared["reference_posture"] = _REFERENCE_POSTURE
-    prepared["content_hash"] = hash_canonical_payload(
-        {
-            key: value
-            for key, value in prepared.items()
-            if key not in {"activation_state", "content_hash"}
-        }
-    )
-    return prepared
-
-
-def _summary_from_definition(definition: dict[str, Any]) -> PolicyPackSummary:
-    return PolicyPackSummary(
-        policy_pack_id=str(definition["policy_pack_id"]),
-        policy_version=str(definition["policy_version"]),
-        policy_family=str(definition["policy_family"]),
-        display_name=str(definition["display_name"]),
-        activation_state=definition["activation_state"],
-        reference_posture=str(definition["reference_posture"]),
-        maker_checker_required=bool(definition["maker_checker_required"]),
-        content_hash=str(definition["content_hash"]),
-    )
-
-
-def _catalog_posture() -> dict[str, Any]:
-    return policy_runtime_supportability()
-
-
-def _validate_definition(definition: dict[str, Any]) -> list[str]:
-    diagnostics = []
-    for key in (
-        "policy_pack_id",
-        "policy_version",
-        "policy_family",
-        "applicability",
-        "source_requirements",
-        "rules",
-        "sample_fixture_refs",
-        "schema_version",
-    ):
-        if not definition.get(key):
-            diagnostics.append(f"{key.upper()}_REQUIRED")
-    if definition.get("reference_posture") != _REFERENCE_POSTURE:
-        diagnostics.append("REFERENCE_POSTURE_NOT_DECLARED")
-    if not isinstance(definition.get("rules"), list):
-        diagnostics.append("RULES_MUST_BE_LIST")
-        return diagnostics
-    for rule in definition["rules"]:
-        if not isinstance(rule, dict):
-            diagnostics.append("RULE_MUST_BE_OBJECT")
-            continue
-        rule_id = str(rule.get("rule_id") or "")
-        if not rule_id or rule_id.upper() != rule_id or "-" in rule_id:
-            diagnostics.append("RULE_ID_NOT_UPPER_SNAKE_CASE")
-        if not rule.get("required_evidence_fields"):
-            diagnostics.append(f"{rule_id or 'RULE'}_REQUIRED_EVIDENCE_FIELDS_REQUIRED")
-        if "positive_wording_when_missing_evidence" in rule:
-            diagnostics.append(f"{rule_id or 'RULE'}_FORBIDDEN_POSITIVE_MISSING_EVIDENCE_WORDING")
-    return diagnostics
-
-
-_REFERENCE_PACKS: list[dict[str, Any]] = [
-    {
-        "policy_pack_id": "GLOBAL_PRIVATE_BANKING_BASELINE",
-        "policy_version": "2026.05",
-        "policy_family": "GLOBAL_PRIVATE_BANKING",
-        "display_name": "Global Private Banking Baseline",
-        "jurisdiction_scope": ["GLOBAL"],
-        "booking_center_code_scope": ["GLOBAL"],
-        "legal_entity_scope": ["REFERENCE"],
-        "client_segment_scope": ["PRIVATE_BANKING"],
-        "product_scope": ["MULTI_ASSET"],
-        "effective_from": "2026-05-01",
-        "effective_to": "3999-12-31",
-        "activation_state": "ACTIVE",
-        "owner_role": "ADVISORY_POLICY_STEWARD",
-        "maker_checker_required": False,
-        "schema_version": _CATALOG_CONTRACT_VERSION,
-        "applicability": {
-            "jurisdiction_scope": ["GLOBAL"],
-            "booking_center_code_scope": ["GLOBAL"],
-            "legal_entity_scope": ["REFERENCE"],
-            "client_segment_scope": ["PRIVATE_BANKING"],
-            "product_scope": ["MULTI_ASSET"],
-        },
-        "source_requirements": [
-            "client_classification",
-            "mandate_objectives",
-            "mandate_restrictions",
-            "holdings_cash_market_data",
-            "product_eligibility",
-            "risk_policy_metrics",
-        ],
-        "rules": [
-            {
-                "rule_id": "GLOBAL_SOURCE_READINESS_REQUIRED",
-                "severity": "BLOCKING",
-                "required_evidence_fields": [
-                    "policy_source_readiness.overall_posture",
-                    "policy_source_readiness.source_authority",
-                ],
-                "source_gap_handling": "PENDING_REVIEW_OR_BLOCKED",
-                "outcome_mapping": "NO_POSITIVE_POLICY_OUTCOME_WITH_MISSING_SOURCE_EVIDENCE",
-            },
-            {
-                "rule_id": "GLOBAL_MANDATE_RESTRICTIONS_REVIEW",
-                "severity": "REVIEW_REQUIRED",
-                "required_evidence_fields": [
-                    "core_mandate_objectives_restrictions",
-                ],
-                "source_gap_handling": "PENDING_REVIEW_OR_BLOCKED",
-                "outcome_mapping": "MANDATE_RESTRICTIONS_REQUIRE_ADVISOR_REVIEW",
-            },
-        ],
-        "disclosure_templates": [],
-        "consent_templates": [],
-        "approval_routes": [
-            {
-                "route_id": "ADVISOR_REVIEW",
-                "owner_role": "ADVISOR",
-                "review_sla": "P2D",
-            }
-        ],
-        "sample_fixture_refs": [
-            "PB_SG_GLOBAL_BAL_001",
-            "fixtures/policy-packs/global-private-banking-baseline.json",
-        ],
-    },
-    {
-        "policy_pack_id": "SG_PRIVATE_BANKING_REFERENCE",
-        "policy_version": "2026.05",
-        "policy_family": "SG_PRIVATE_BANKING",
-        "display_name": "Singapore Private Banking Reference",
-        "jurisdiction_scope": ["SG"],
-        "booking_center_code_scope": ["SG"],
-        "legal_entity_scope": ["REFERENCE"],
-        "client_segment_scope": ["ACCREDITED_INVESTOR", "PRIVATE_BANKING"],
-        "product_scope": ["MULTI_ASSET", "STRUCTURED_PRODUCT", "PRIVATE_ASSET"],
-        "effective_from": "2026-05-01",
-        "effective_to": "3999-12-31",
-        "activation_state": "DRAFT",
-        "owner_role": "ADVISORY_POLICY_STEWARD",
-        "maker_checker_required": True,
-        "schema_version": _CATALOG_CONTRACT_VERSION,
-        "applicability": {
-            "jurisdiction_scope": ["SG"],
-            "booking_center_code_scope": ["SG"],
-            "legal_entity_scope": ["REFERENCE"],
-            "client_segment_scope": ["ACCREDITED_INVESTOR", "PRIVATE_BANKING"],
-            "product_scope": ["MULTI_ASSET", "STRUCTURED_PRODUCT", "PRIVATE_ASSET"],
-        },
-        "source_requirements": [
-            "household_id",
-            "account_id",
-            "mandate_id",
-            "client_classification",
-            "product_eligibility",
-            "target_market",
-            "product_complexity",
-            "risk_policy_metrics",
-        ],
-        "rules": [
-            {
-                "rule_id": "SG_AI_PRODUCT_ELIGIBILITY_REVIEW",
-                "severity": "BLOCKING",
-                "required_evidence_fields": [
-                    "core_product_eligibility_target_market_complexity",
-                    "core_client_profile_classification",
-                ],
-                "source_gap_handling": "BLOCKED",
-                "outcome_mapping": "ELIGIBILITY_REVIEW_REQUIRED",
-            },
-            {
-                "rule_id": "SG_COMPLEX_PRODUCT_DISCLOSURE_REVIEW",
-                "severity": "REVIEW_REQUIRED",
-                "required_evidence_fields": [
-                    "private_asset_or_structured_product_flag",
-                    "risk_policy_metrics",
-                ],
-                "source_gap_handling": "PENDING_REVIEW",
-                "outcome_mapping": "DISCLOSURE_AND_CONSENT_REVIEW_REQUIRED",
-            },
-            {
-                "rule_id": "SG_BEST_INTEREST_COST_REVIEW",
-                "severity": "REVIEW_REQUIRED",
-                "required_evidence_fields": [
-                    "fee_cost_tax_friction_evidence",
-                ],
-                "source_gap_handling": "PENDING_REVIEW",
-                "outcome_mapping": "BEST_INTEREST_COST_REASONABLENESS_REVIEW_REQUIRED",
-            },
-            {
-                "rule_id": "SG_CONFLICT_REVIEW",
-                "severity": "REVIEW_REQUIRED",
-                "required_evidence_fields": [
-                    "conflict_evidence",
-                    "product_document_evidence",
-                ],
-                "source_gap_handling": "PENDING_REVIEW",
-                "outcome_mapping": "CONFLICT_AND_DISCLOSURE_REVIEW_REQUIRED",
-            },
-        ],
-        "disclosure_templates": [
-            {
-                "template_id": "SG_COMPLEX_PRODUCT_DISCLOSURE",
-                "template_version": "2026.05",
-                "audience": "INTERNAL_REVIEW",
-            }
-        ],
-        "consent_templates": [
-            {
-                "template_id": "SG_COMPLEX_PRODUCT_CONSENT",
-                "template_version": "2026.05",
-                "audience": "INTERNAL_REVIEW",
-            }
-        ],
-        "approval_routes": [
-            {
-                "route_id": "INVESTMENT_COUNSELLOR_REVIEW",
-                "owner_role": "INVESTMENT_COUNSELLOR",
-                "review_sla": "P1D",
-            },
-            {
-                "route_id": "SUPERVISORY_REVIEW",
-                "owner_role": "SUPERVISOR",
-                "review_sla": "P2D",
-            },
-        ],
-        "sample_fixture_refs": [
-            "PB_SG_GLOBAL_BAL_001",
-            "fixtures/policy-packs/sg-private-banking-reference.json",
-        ],
-    },
-]
-
-_STORE = PolicyPackCatalogStore(_REFERENCE_PACKS)
+_STORE = PolicyPackCatalogStore(reference_policy_packs())
