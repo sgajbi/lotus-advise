@@ -17,6 +17,7 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactPricingAssumptions,
     ProposalArtifactProductDoc,
     ProposalArtifactRiskLens,
+    ProposalArtifactSuitabilityHighlight,
     ProposalArtifactSuitabilitySummary,
     ProposalArtifactSummary,
     ProposalArtifactSummaryNote,
@@ -33,6 +34,15 @@ from src.core.advisory.artifact_portfolio_models import (
 )
 from src.core.advisory.artifact_portfolio_models import (
     ProposalArtifactPortfolioState as OwnedProposalArtifactPortfolioState,
+)
+from src.core.advisory.artifact_review_models import (
+    ProposalArtifactRiskLens as OwnedProposalArtifactRiskLens,
+)
+from src.core.advisory.artifact_review_models import (
+    ProposalArtifactSuitabilityHighlight as OwnedProposalArtifactSuitabilityHighlight,
+)
+from src.core.advisory.artifact_review_models import (
+    ProposalArtifactSuitabilitySummary as OwnedProposalArtifactSuitabilitySummary,
 )
 from src.core.advisory.artifact_summary_models import (
     ProposalArtifactSummary as OwnedProposalArtifactSummary,
@@ -85,6 +95,15 @@ def test_proposal_artifact_trade_models_keep_stable_facade_imports():
     assert ProposalArtifactTradesAndFunding is OwnedProposalArtifactTradesAndFunding
     assert ProposalArtifactTradesAndFunding.__module__ == (
         "src.core.advisory.artifact_trade_models"
+    )
+
+
+def test_proposal_artifact_review_models_keep_stable_facade_imports():
+    assert ProposalArtifactRiskLens is OwnedProposalArtifactRiskLens
+    assert ProposalArtifactSuitabilityHighlight is OwnedProposalArtifactSuitabilityHighlight
+    assert ProposalArtifactSuitabilitySummary is OwnedProposalArtifactSuitabilitySummary
+    assert ProposalArtifactSuitabilitySummary.__module__ == (
+        "src.core.advisory.artifact_review_models"
     )
 
 

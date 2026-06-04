@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-639
+
+- Scope: Proposal artifact review DTO ownership
+- Pattern: Suitability-review and risk-lens DTOs should live in a focused model module aligned
+  with the artifact review builder.
+- Status: Hardened
+- Finding Class: Advisory artifact DTO modularity and review-evidence maintainability
+- Summary: `src/core/advisory/artifact_models.py` still owned suitability highlights,
+  suitability summary, and risk-lens DTOs even though `src/core/advisory/artifact_review.py`
+  already owns the corresponding builder logic. This kept review-evidence contracts coupled to the
+  top-level artifact envelope and required the envelope module to import suitability domain models.
+- Evidence:
+  - Extracted suitability highlight, suitability summary, and risk-lens DTOs to
+    `src/core/advisory/artifact_review_models.py`.
+  - Removed the suitability-model dependency from the top-level artifact envelope module.
+  - Kept existing `src/core/advisory/artifact_models.py` facade imports stable for artifact
+    assembly, route response schemas, and OpenAPI generation.
+  - Added contract coverage proving review DTO facade imports resolve to the focused owner module.
+  - Focused `ruff`, `mypy`, OpenAPI lifecycle docs, artifact engine, and artifact contract tests
+    passed with 27 tests.
+- Consequence:
+  - Proposal artifact review contracts now have a narrow owner module aligned with suitability and
+    risk-lens artifact assembly, reducing dependency breadth in the envelope DTO module.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal DTO modularity for existing implemented artifact behavior.
+- Follow-Up:
+  - Continue splitting assumptions/disclosures and evidence DTO groups out of the artifact
+    envelope.
+
 ## LA-REV-638
 
 - Scope: Proposal artifact trade/funding DTO ownership

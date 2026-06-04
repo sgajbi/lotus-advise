@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `advise-enterprise-hardening-slice-17`
-- Head: `45e11781f0b7c90d7df39e0f676b45807ee651a5`
-- Branch Commits Over Main: `14`
+- Head: `6095106557c60ba6c757d4a92910971d0a3017ba`
+- Branch Commits Over Main: `15`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -77,6 +77,8 @@
 - Proposal artifact portfolio-impact DTOs are split into a focused portfolio model
   module while preserving the existing artifact model facade.
 - Proposal artifact trade/funding DTOs are split into a focused execution-evidence
+  model module while preserving the existing artifact model facade.
+- Proposal artifact review DTOs are split into a focused suitability/risk-lens
   model module while preserving the existing artifact model facade.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
