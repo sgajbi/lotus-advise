@@ -19,15 +19,35 @@ def setup_function() -> None:
 
 def test_memo_api_delegates_external_package_payloads() -> None:
     source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    operation_source = (
+        REPO_ROOT / "src/core/proposals/memo_external_request_operations.py"
+    ).read_text(encoding="utf-8")
     package_source = (REPO_ROOT / "src/core/proposals/memo_external_packages.py").read_text(
         encoding="utf-8"
     )
 
-    assert "from src.core.proposals.memo_external_packages import" in source
+    assert "from src.core.proposals.memo_external_request_operations import" in source
+    assert "from src.core.proposals.memo_external_packages import" in operation_source
     assert "def _build_report_memo_package(" not in source
     assert "def _build_memo_ai_evidence(" not in source
+    assert "def _build_report_memo_package(" not in operation_source
+    assert "def _build_memo_ai_evidence(" not in operation_source
     assert "def build_report_memo_package(" in package_source
     assert "def build_memo_ai_evidence(" in package_source
+
+
+def test_memo_api_delegates_external_request_operations() -> None:
+    source = (REPO_ROOT / "src/core/proposals/memo_api.py").read_text(encoding="utf-8")
+    operation_source = (
+        REPO_ROOT / "src/core/proposals/memo_external_request_operations.py"
+    ).read_text(encoding="utf-8")
+
+    for helper_name in (
+        "request_memo_report_package_operation",
+        "request_memo_ai_commentary_operation",
+    ):
+        assert f"def {helper_name}(" not in source
+        assert f"def {helper_name}(" in operation_source
 
 
 def test_memo_api_delegates_response_projection_helpers() -> None:
