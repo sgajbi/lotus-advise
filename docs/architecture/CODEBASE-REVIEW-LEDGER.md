@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-614
+
+- Scope: Proposal workflow delivery operations
+- Pattern: The API-facing proposal workflow service should delegate execution handoff, execution
+  status, delivery summary/history, and execution-update replay behavior to a focused service
+  boundary instead of owning delivery orchestration directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and delivery workflow maintainability
+- Summary: `src/core/proposals/service.py` still mixed public proposal workflow facade methods with
+  execution handoff command invocation, execution-update replay handling, terminal-state policy,
+  and delivery activity read-model projection. That made the route-facing service harder to review
+  because create/version/async/read/narrative behavior and execution-delivery behavior changed in
+  the same module.
+- Evidence:
+  - Added `src/core/proposals/service_delivery_operations.py` to own execution handoff requests,
+    execution status, delivery summary/history, and execution-update replay projection.
+  - Kept `ProposalWorkflowService` as the stable public facade, delegating execution/delivery
+    calls to `ProposalWorkflowDeliveryOperations` without changing API models or behavior.
+  - Added a source-boundary test proving delivery command/view helpers and terminal-state policy
+    stay outside the API-facing workflow service module.
+  - Focused proposal workflow service lint, mypy, and behavior tests passed with 74 tests.
+- Consequence:
+  - Execution and delivery workflow behavior remains compatible while the facade has a clearer
+    private-banking delivery boundary for future auditability, idempotency, and downstream
+    integration hardening.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `ProposalWorkflowService` by extracting remaining read, lifecycle, and
+    narrative/report responsibilities where stable facade seams are already covered by tests.
+
 ## LA-REV-613
 
 - Scope: Advisory copilot Postgres record mapping

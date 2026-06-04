@@ -259,6 +259,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Alternative strategy construction delegates input DTOs, base mechanics,",
         "  objective classes, selection helpers, trade-payload formatting, and notional math",
         "  to focused strategy modules.",
+        "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
+        "  history, and execution-update replay behavior to a focused service boundary.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
