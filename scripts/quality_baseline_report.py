@@ -359,6 +359,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Integration capability response models delegate feature/workflow, readiness,",
         "  and supportability DTO families to focused owner modules while preserving",
         "  the public response facade.",
+        "- Proposal workflow service construction delegates operation-owner wiring to",
+        "  a focused registry while preserving the public service facade.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
         "  history, and execution-update replay behavior to a focused service boundary.",
         "- Proposal workflow narrative operations delegate narrative read/regeneration/review",

@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T14:05:02.739624+00:00`
+- Generated At: `2026-06-04T14:10:34.350095+00:00`
 - Branch: `harden/proposal-context-boundaries`
-- Head: `3b737b7b1b3de32932bd33248d716346aa0489fe`
-- Branch Commits Over Main: `35`
+- Head: `ef3e823d0980223550bb451b035fba5c47e29519`
+- Branch Commits Over Main: `37`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `897`
+- Python files: `898`
 - Packages: `37`
-- Modules: `860`
-- Total Python lines: `136202`
+- Modules: `861`
+- Total Python lines: `136297`
 
 ## Largest Files
 
@@ -19,8 +19,8 @@
 | ---: | --- | ---: |
 | 1 | `scripts/validate_cross_service_parity_live.py` | 4010 |
 | 2 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 3859 |
-| 3 | `tests/unit/advisory/api/test_api_workspace.py` | 2536 |
-| 4 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2500 |
+| 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2544 |
+| 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2536 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |

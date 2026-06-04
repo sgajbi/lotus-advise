@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-670
+
+- Scope: Proposal workflow service operation wiring
+- Pattern: The public proposal workflow service facade should preserve the API method surface while
+  delegating construction of command, async, delivery, narrative, and read operation owners to a
+  focused registry module.
+- Status: Hardened
+- Finding Class: Service-facade modularity and dependency ownership
+- Summary: `src/core/proposals/service.py` already delegated behavior to focused operation owners,
+  but it still constructed every operation owner directly in the public service initializer. That
+  kept command, async, delivery, narrative, and read wiring knowledge inside the public service
+  facade and made future dependency changes harder to review independently from API method
+  delegation.
+- Evidence:
+  - Added `src/core/proposals/service_operation_registry.py` with
+    `ProposalWorkflowOperationRegistry` and `build_proposal_workflow_operation_registry`.
+  - Moved construction of command, async, delivery, narrative, and read operation owners into the
+    focused registry module.
+  - Kept `src/core/proposals/service.py` as the public proposal workflow service facade and method
+    delegation surface.
+  - Reduced `src/core/proposals/service.py` from 446 lines to 427 lines while preserving the public
+    service API.
+  - Updated boundary tests to prove the service delegates operation wiring to the registry and the
+    registry owns operation-class construction.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; proposal workflow
+    service behavior and boundary tests passed with 78 tests; repo-native `make lint` passed.
+- Consequence:
+  - Proposal workflow service construction can evolve independently from public API delegation,
+    reducing facade coupling while keeping behavior-compatible service methods.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal workflow service wiring for existing behavior.
+- Follow-Up:
+  - Continue reducing proposal service facade size when method families can be delegated without
+    weakening the public service contract or route compatibility.
+
 ## LA-REV-669
 
 - Scope: Integration capability response model ownership
