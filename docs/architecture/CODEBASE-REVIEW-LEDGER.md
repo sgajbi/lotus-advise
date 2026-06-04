@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-605
+
+- Scope: Policy-pack catalog definition helpers
+- Pattern: Policy-pack catalog store mutation should not also own definition preparation, summary
+  projection, supportability posture assembly, and schema/content diagnostics.
+- Status: Hardened
+- Finding Class: Policy-pack catalog modularity and validation maintainability
+- Summary: `src/core/policy_packs/catalog.py` mixed catalog store state, validation/activation
+  command handling, idempotency replay, audit-event mutation, reference-pack data, and reusable
+  definition helpers. This made catalog command behavior harder to review separately from
+  definition hashing and diagnostics.
+- Evidence:
+  - Added `src/core/policy_packs/catalog_definitions.py` for definition keys, prepared content
+    hashes, summary projection, catalog posture, reference posture constants, and definition
+    diagnostics.
+  - Kept `src/core/policy_packs/catalog.py` focused on public catalog facade functions,
+    in-memory store state, validation/activation workflows, idempotency replay, audit events, and
+    reference-pack source data.
+  - Added a source-boundary guard proving definition validation and summary projection stay outside
+    the catalog store module.
+  - Focused policy-pack catalog lint, format, mypy, and unit tests passed with 5 tests.
+- Consequence:
+  - Catalog behavior remains compatible while reusable definition validation and projection can be
+    reviewed independently from store mutation and maker-checker activation semantics.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue splitting reference-pack source data and remaining proposal/memo/service hotspots where
+    cohesive boundaries are clear.
+
 ## LA-REV-604
 
 - Scope: Policy-pack material rule evaluators
