@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-620
+
+- Scope: Proposal workflow read operations
+- Pattern: The API-facing proposal workflow service should not own proposal detail/list,
+  timeline, approval, lineage, idempotency, version, and replay read-view builders directly.
+- Status: Hardened
+- Finding Class: Service boundary modularity and read-model maintainability
+- Summary: `src/core/proposals/service.py` still mixed public proposal workflow facade methods
+  with read-view builder imports for proposal detail, lists, workflow timeline, approvals,
+  lineage, idempotency lookup, version detail, and version replay evidence. That made read-model
+  behavior change in the same module as create/version/lifecycle/async/delivery/narrative facade
+  behavior.
+- Evidence:
+  - Added `src/core/proposals/service_read_operations.py` for proposal, timeline, approval,
+    lineage, idempotency, version, and replay read operations.
+  - Kept `ProposalWorkflowService` as the stable public facade, delegating read methods to
+    `ProposalWorkflowReadOperations`.
+  - Added a source-boundary test proving direct read/activity/replay helper imports stay outside
+    the workflow service facade.
+  - Focused proposal workflow service lint, mypy, and behavior tests passed with 76 tests.
+- Consequence:
+  - Read-view behavior remains compatible while the route-facing service has clearer separation
+    between read models and write/lifecycle orchestration.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing `ProposalWorkflowService` by extracting lifecycle transition/approval or
+    create/version command groups where the public facade seam remains stable.
+
 ## LA-REV-619
 
 - Scope: Proposal workflow narrative and report operations

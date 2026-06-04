@@ -84,6 +84,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Advisor cockpit service delegates repository-backed source loading" in refactor_health
     assert "Proposal workflow delivery operations delegate execution handoff" in refactor_health
     assert "Proposal workflow narrative operations delegate narrative read" in refactor_health
+    assert "Proposal workflow read operations delegate proposal" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
 
 

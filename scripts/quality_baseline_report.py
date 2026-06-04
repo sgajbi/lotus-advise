@@ -271,6 +271,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  history, and execution-update replay behavior to a focused service boundary.",
         "- Proposal workflow narrative operations delegate narrative read/regeneration/review",
         "  and report-request event recording to a focused service boundary.",
+        "- Proposal workflow read operations delegate proposal, timeline, approval, lineage,",
+        "  idempotency, version, and replay views to a focused service boundary.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
