@@ -2,10 +2,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
 from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
-from src.core.proposals.async_operations import (
-    AsyncCreateSubmissionStats,
-    AsyncCreateSubmissionStatsTracker,
-)
+from src.core.proposals.async_operations import AsyncCreateSubmissionStats
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalLifecycleError,
@@ -47,14 +44,10 @@ from src.core.proposals.models import (
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.service_async_operations import (
     ASYNC_RECOVERY_BATCH_SIZE,
-    ProposalWorkflowAsyncOperations,
 )
-from src.core.proposals.service_command_operations import ProposalWorkflowCommandOperations
-from src.core.proposals.service_delivery_operations import ProposalWorkflowDeliveryOperations
-from src.core.proposals.service_narrative_operations import (
-    ProposalWorkflowNarrativeOperations,
+from src.core.proposals.service_operation_registry import (
+    build_proposal_workflow_operation_registry,
 )
-from src.core.proposals.service_read_operations import ProposalWorkflowReadOperations
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 
 __all__ = [
@@ -83,34 +76,22 @@ class ProposalWorkflowService:
         self._require_expected_state = require_expected_state
         self._allow_portfolio_id_change_on_new_version = allow_portfolio_id_change_on_new_version
         self._require_proposal_simulation_flag = require_proposal_simulation_flag
-        self._async_create_submission_stats = AsyncCreateSubmissionStatsTracker()
-        self._command_operations = ProposalWorkflowCommandOperations(
+        operation_registry = build_proposal_workflow_operation_registry(
             repository=self._repository,
-            store_evidence_bundle=self._store_evidence_bundle,
-            require_expected_state=self._require_expected_state,
-            allow_portfolio_id_change_on_new_version=(
-                self._allow_portfolio_id_change_on_new_version
-            ),
-            require_proposal_simulation_flag=self._require_proposal_simulation_flag,
-            utc_now=_utc_now,
-        )
-        self._async_operations = ProposalWorkflowAsyncOperations(
-            repository=self._repository,
-            create_submission_stats=self._async_create_submission_stats,
+            store_evidence_bundle=store_evidence_bundle,
+            require_expected_state=require_expected_state,
+            allow_portfolio_id_change_on_new_version=allow_portfolio_id_change_on_new_version,
+            require_proposal_simulation_flag=require_proposal_simulation_flag,
             utc_now=_utc_now,
             create_proposal=lambda **kwargs: self.create_proposal(**kwargs),
             create_version=lambda **kwargs: self.create_version(**kwargs),
         )
-        self._delivery_operations = ProposalWorkflowDeliveryOperations(
-            repository=self._repository,
-            require_expected_state=self._require_expected_state,
-            utc_now=_utc_now,
-        )
-        self._narrative_operations = ProposalWorkflowNarrativeOperations(
-            repository=self._repository,
-            utc_now=_utc_now,
-        )
-        self._read_operations = ProposalWorkflowReadOperations(repository=self._repository)
+        self._async_create_submission_stats = operation_registry.create_submission_stats
+        self._command_operations = operation_registry.command_operations
+        self._async_operations = operation_registry.async_operations
+        self._delivery_operations = operation_registry.delivery_operations
+        self._narrative_operations = operation_registry.narrative_operations
+        self._read_operations = operation_registry.read_operations
 
     def create_proposal(
         self,
