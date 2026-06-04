@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-679
+
+- Scope: API-to-infrastructure boundary enforcement calibration
+- Pattern: API modules should depend on repository protocols and runtime provider seams, not import
+  infrastructure adapters directly.
+- Status: Hardened
+- Finding Class: Architecture boundary and CI measurement readiness
+- Summary: `.importlinter` was present but not executable because the configuration did not enable
+  external package analysis while forbidding FastAPI/Starlette dependencies from core modules. Once
+  corrected, import-linter found direct API-to-infrastructure adapter imports in proposal and
+  advisory-copilot runtime dependency wiring.
+- Evidence:
+  - Added `include_external_packages = True` to `.importlinter`.
+  - Moved Postgres proposal repository construction behind `src.runtime.proposal_repositories`
+    while preserving the `src.api.proposals.runtime` compatibility facade.
+  - Moved advisory-copilot Postgres repository construction behind
+    `src.runtime.advisory_copilot_repositories`.
+  - Updated API tests to patch runtime provider seams instead of API-level infrastructure symbols.
+  - Import-linter now reports three kept contracts and zero broken contracts.
+  - Quality baseline reporting now records import-linter executable status and kept/broken contract
+    counts.
+- Consequence:
+  - Architecture-boundary governance moved from configured-but-broken report-only posture to an
+    executable, passing contract inventory that can be promoted to a CI gate.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local architecture measurement posture, not new operator-facing wiki
+    truth.
+- Follow-Up:
+  - Add import-linter to a repo-native quality target and CI fail-on-regression gate once the
+    broader branch validation remains stable.
+
 ## LA-REV-678
 
 - Scope: Security scanner inventory and runtime assertion hardening

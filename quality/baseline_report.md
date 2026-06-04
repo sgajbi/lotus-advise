@@ -1,24 +1,24 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T15:41:45.755444+00:00`
+- Generated At: `2026-06-04T15:49:17.319658+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `4b24a14b2d2b22c311bd2b02671f2ed5a50bc636`
-- Branch Commits Over Main: `1`
+- Head: `29134a22b0da7f05dea71848b29a95b1df298c5c`
+- Branch Commits Over Main: `2`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `908`
-- Packages: `37`
-- Modules: `871`
-- Total Python lines: `136779`
+- Python files: `911`
+- Packages: `38`
+- Modules: `873`
+- Total Python lines: `136906`
 
 ## Largest Files
 
 | Rank | File | Lines |
 | ---: | --- | ---: |
 | 1 | `scripts/validate_cross_service_parity_live.py` | 4010 |
-| 2 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 3859 |
+| 2 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 3861 |
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2566 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2538 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
@@ -94,8 +94,9 @@
 ## Architecture Violations
 
 - Import-linter contracts present: `True`
-- Contracts are report-only until import-linter is installed and current violations
-  are baselined.
+- Import-linter config executable: `True`
+- Import-linter contract inventory: `total=3, kept=3, broken=0`
+- Contracts remain report-only until the kept inventory is wired into a CI gate.
 
 ## Documentation Gaps
 

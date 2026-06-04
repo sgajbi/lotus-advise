@@ -3,6 +3,7 @@ import builtins
 import pytest
 
 from src.api.proposals import runtime as proposals_config
+from src.runtime import proposal_repositories
 
 
 def test_proposal_backend_alias_and_default(monkeypatch):
@@ -54,7 +55,7 @@ def test_build_repository_postgres_not_implemented(monkeypatch):
         raise RuntimeError("PROPOSAL_POSTGRES_NOT_IMPLEMENTED")
 
     monkeypatch.setattr(
-        proposals_config,
+        proposal_repositories,
         "PostgresProposalRepository",
         _raise_not_implemented,
     )
@@ -77,7 +78,7 @@ def test_build_repository_postgres_driver_error_passthrough(monkeypatch):
         raise RuntimeError("PROPOSAL_POSTGRES_DRIVER_MISSING")
 
     monkeypatch.setattr(
-        proposals_config,
+        proposal_repositories,
         "PostgresProposalRepository",
         _raise_driver_error,
     )
@@ -100,7 +101,7 @@ def test_build_repository_postgres_connection_failure_mapped(monkeypatch):
         raise ValueError("connection failure")
 
     monkeypatch.setattr(
-        proposals_config,
+        proposal_repositories,
         "PostgresProposalRepository",
         _raise_connection_error,
     )

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -58,6 +59,10 @@ class QualityContext:
     bandit_high_count: int | None
     bandit_medium_count: int | None
     bandit_low_count: int | None
+    importlinter_config_valid: bool
+    importlinter_contract_count: int | None
+    importlinter_kept_count: int | None
+    importlinter_broken_count: int | None
 
 
 def _run_git(repo_root: Path, args: list[str]) -> str:
@@ -165,6 +170,36 @@ def _bandit_issue_counts(
     )
 
 
+def _importlinter_contract_counts(
+    repo_root: Path,
+) -> tuple[bool, int | None, int | None, int | None]:
+    if not _tool_available("importlinter") or not (repo_root / ".importlinter").exists():
+        return False, None, None, None
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from importlinter.cli import lint_imports_command; "
+                "lint_imports_command(args=['--config','.importlinter'], standalone_mode=True)"
+            ),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    contract_match = re.search(
+        r"Contracts:\s+(?P<kept>\d+)\s+kept,\s+(?P<broken>\d+)\s+broken",
+        completed.stdout,
+    )
+    if contract_match is None:
+        return False, None, None, None
+    kept = int(contract_match.group("kept"))
+    broken = int(contract_match.group("broken"))
+    return completed.returncode in {0, 1}, kept + broken, kept, broken
+
+
 def build_quality_context(repo_root: Path) -> QualityContext:
     available_tools = tuple(name for name, module in QUALITY_TOOLS if _tool_available(module))
     unavailable_tools = tuple(name for name, module in QUALITY_TOOLS if not _tool_available(module))
@@ -180,6 +215,12 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         bandit_medium_count,
         bandit_low_count,
     ) = _bandit_issue_counts(repo_root)
+    (
+        importlinter_config_valid,
+        importlinter_contract_count,
+        importlinter_kept_count,
+        importlinter_broken_count,
+    ) = _importlinter_contract_counts(repo_root)
     return QualityContext(
         report=build_report(repo_root),
         branch_commit_count=_branch_commit_count(repo_root),
@@ -200,6 +241,10 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         bandit_high_count=bandit_high_count,
         bandit_medium_count=bandit_medium_count,
         bandit_low_count=bandit_low_count,
+        importlinter_config_valid=importlinter_config_valid,
+        importlinter_contract_count=importlinter_contract_count,
+        importlinter_kept_count=importlinter_kept_count,
+        importlinter_broken_count=importlinter_broken_count,
     )
 
 
@@ -227,6 +272,21 @@ def render_baseline_report(context: QualityContext) -> str:
     )
     bandit_low_count = (
         str(context.bandit_low_count) if context.bandit_low_count is not None else "not run"
+    )
+    importlinter_contract_count = (
+        str(context.importlinter_contract_count)
+        if context.importlinter_contract_count is not None
+        else "not run"
+    )
+    importlinter_kept_count = (
+        str(context.importlinter_kept_count)
+        if context.importlinter_kept_count is not None
+        else "not run"
+    )
+    importlinter_broken_count = (
+        str(context.importlinter_broken_count)
+        if context.importlinter_broken_count is not None
+        else "not run"
     )
     lines = [
         "# Lotus Advise Quality Baseline Report",
@@ -320,8 +380,10 @@ def render_baseline_report(context: QualityContext) -> str:
             "## Architecture Violations",
             "",
             f"- Import-linter contracts present: `{context.importlinter_present}`",
-            "- Contracts are report-only until import-linter is installed and current violations",
-            "  are baselined.",
+            f"- Import-linter config executable: `{context.importlinter_config_valid}`",
+            f"- Import-linter contract inventory: `total={importlinter_contract_count}, "
+            f"kept={importlinter_kept_count}, broken={importlinter_broken_count}`",
+            "- Contracts remain report-only until the kept inventory is wired into a CI gate.",
             "",
             "## Documentation Gaps",
             "",
@@ -519,8 +581,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
-        "- Calibrate report-only tools: radon/xenon, vulture, import-linter,",
+        "- Calibrate report-only tools: radon/xenon, vulture,",
         "  Spectral, interrogate, and optional schemathesis/load testing.",
+        "- Convert the kept import-linter architecture contracts into a blocking CI gate.",
         "- Convert the Bandit security inventory into a fail-on-new-regression gate after",
         "  classifying current SQL-construction findings and resolving true positives.",
         "- Convert the deptry dependency inventory into a fail-on-new-regression gate after",
@@ -555,7 +618,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "security-audit + Bandit severity counts",
         ),
         ("OpenAPI", "Enforced plus report-only", "openapi-gate + Spectral config"),
-        ("Architecture boundaries", "Report-only gap", "import-linter config added"),
+        (
+            "Architecture boundaries",
+            "Executable report-only contracts",
+            "import-linter kept/broken contract inventory",
+        ),
         ("Docs", "Gap tracked", "requested docs tracked in baseline report"),
         ("Observability", "Gap tracked", "observability doc and diagnostics gates pending"),
     ]

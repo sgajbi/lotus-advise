@@ -1,46 +1,18 @@
-import os
-from typing import cast
-
 from src.core.proposals.repository import ProposalRepository
-from src.infrastructure.proposals import PostgresProposalRepository
+from src.runtime import proposal_repositories
 
 
 def proposal_store_backend_name() -> str:
-    backend = os.getenv("PROPOSAL_STORE_BACKEND", "POSTGRES").strip().upper()
-    if backend != "POSTGRES":
-        raise RuntimeError("PROPOSAL_STORE_BACKEND_UNSUPPORTED")
-    return backend
+    return proposal_repositories.proposal_store_backend_name()
 
 
 def proposal_postgres_dsn() -> str:
-    return os.getenv("PROPOSAL_POSTGRES_DSN", "").strip()
+    return proposal_repositories.proposal_postgres_dsn()
 
 
 def _postgres_connection_exception_types() -> tuple[type[BaseException], ...]:
-    types: list[type[BaseException]] = [
-        ConnectionError,
-        OSError,
-        TimeoutError,
-        TypeError,
-        ValueError,
-    ]
-    try:
-        import psycopg
-    except ImportError:
-        pass
-    else:
-        types.append(psycopg.Error)
-    return tuple(types)
+    return proposal_repositories._postgres_connection_exception_types()
 
 
 def build_repository() -> ProposalRepository:
-    _ = proposal_store_backend_name()
-    dsn = proposal_postgres_dsn()
-    if not dsn:
-        raise RuntimeError("PROPOSAL_POSTGRES_DSN_REQUIRED")
-    try:
-        return cast(ProposalRepository, PostgresProposalRepository(dsn=dsn))
-    except RuntimeError:
-        raise
-    except _postgres_connection_exception_types() as exc:
-        raise RuntimeError("PROPOSAL_POSTGRES_CONNECTION_FAILED") from exc
+    return proposal_repositories.build_repository()

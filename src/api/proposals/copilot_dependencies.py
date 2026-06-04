@@ -14,8 +14,8 @@ from src.core.advisory_copilot.application import (
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.repository import ProposalRepository
-from src.infrastructure.advisory_copilot import PostgresAdvisoryCopilotRepository
 from src.integrations.lotus_ai import generate_advisory_copilot_draft_with_lotus_ai
+from src.runtime.advisory_copilot_repositories import build_advisory_copilot_repository
 
 _COPILOT_REPOSITORY: AdvisoryCopilotRepository | None = None
 
@@ -25,7 +25,7 @@ def get_advisory_copilot_repository() -> AdvisoryCopilotRepository:
     if _COPILOT_REPOSITORY is None:
         dsn = _advisory_copilot_postgres_dsn()
         try:
-            _COPILOT_REPOSITORY = PostgresAdvisoryCopilotRepository(dsn=dsn)
+            _COPILOT_REPOSITORY = build_advisory_copilot_repository(dsn=dsn)
         except RuntimeError as exc:
             raise copilot_repository_unavailable_exception(str(exc)) from exc
     return _COPILOT_REPOSITORY
