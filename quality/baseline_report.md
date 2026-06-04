@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T12:23:02.727414+00:00`
+- Generated At: `2026-06-04T12:28:41.209871+00:00`
 - Branch: `harden/proposal-context-boundaries`
-- Head: `e6c8f8c275255b237fe459ba675b0853304fbf47`
-- Branch Commits Over Main: `3`
+- Head: `d18dc19f047e137cd63cf3a3179918d188cea5c9`
+- Branch Commits Over Main: `5`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `870`
+- Python files: `871`
 - Packages: `37`
-- Modules: `833`
-- Total Python lines: `134976`
+- Modules: `834`
+- Total Python lines: `135050`
 
 ## Largest Files
 

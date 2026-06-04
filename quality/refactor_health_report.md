@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `e6c8f8c275255b237fe459ba675b0853304fbf47`
-- Branch Commits Over Main: `3`
+- Head: `d18dc19f047e137cd63cf3a3179918d188cea5c9`
+- Branch Commits Over Main: `5`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -64,6 +64,8 @@
   and selected-alternative projection to a focused ranking module.
 - Proposal memo request DTOs and memo vocabulary literals are split from
   response, lineage, and replay evidence models.
+- Proposal memo persistence records are split into a focused owner module
+  while preserving the existing persistence model facade.
 - Proposal memo audit event DTOs are split into a focused append-only
   event model module.
 - Proposal memo lineage and replay evidence DTOs are split into a
