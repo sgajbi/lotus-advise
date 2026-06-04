@@ -1,7 +1,7 @@
 # Lotus Advise API Governance
 
 Lotus Advise API governance is enforced progressively through repo-native OpenAPI gates,
-vocabulary checks, no-alias checks, and current report-only Spectral rules.
+vocabulary checks, no-alias checks, and enforced Spectral OpenAPI rules.
 
 ## Current Standards
 
@@ -20,11 +20,11 @@ vocabulary checks, no-alias checks, and current report-only Spectral rules.
 - `make openapi-spectral-report`
 - `make no-alias-gate`
 - `make api-vocabulary-gate`
-- `.spectral.yaml` for report-only API documentation rules and warning inventory
+- `.spectral.yaml` for enforced API documentation rules and warning inventory
 - `quality/api_governance_rules.md`
 
 ## Current Gaps
 
-- Spectral execution is report-only and not yet promoted to fail-on-new-regression enforcement.
+- Spectral is enforced through `make openapi-gate`; current inventory is zero findings.
 - RFC 7807/problem-details is a future migration unless a route family already implements it.
 - Filtering, sorting, pagination, and deprecation rules still need full cross-endpoint inventory.

@@ -63,6 +63,7 @@ typecheck:
 openapi-gate:
 	python scripts/openapi_quality_gate.py
 	python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py -q
+	$(MAKE) openapi-spectral-report
 
 openapi-spectral-report:
 	python scripts/openapi_spectral_report.py --output output/openapi-spectral-report.json

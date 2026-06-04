@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T17:14:44.927783+00:00`
+- Generated At: `2026-06-04T23:01:18.350834+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `b699ef0fa833947e30a5ccc1033810f9b0f8cc4a`
-- Branch Commits Over Main: `12`
+- Head: `798357925d2178f857d75e4332c06926f0a7f20c`
+- Branch Commits Over Main: `13`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `914`
 - Packages: `38`
 - Modules: `876`
-- Total Python lines: `138024`
+- Total Python lines: `138021`
 
 ## Largest Files
 
@@ -41,7 +41,7 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 218 |
+| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 216 |
 
 ## Complexity
 
@@ -100,8 +100,8 @@
 - Spectral OpenAPI path inventory: `84`
 - Spectral current issue inventory: `0`
 - Spectral severity inventory: `none`
-- Spectral remains report-only until warning inventory is stable enough for
-  fail-on-new-regression enforcement.
+- Spectral is enforced through `make openapi-gate`; the inventory remains recorded
+  for before/after scorecard evidence.
 
 ## Architecture Violations
 

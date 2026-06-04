@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-690
+
+- Scope: Spectral OpenAPI enforcement
+- Pattern: A zero-finding OpenAPI lint inventory should be promoted into the repo-native gate before
+  later API contract work can regress generated-client quality
+- Status: Enforced
+- Finding Class: OpenAPI governance and CI quality gate hardening
+- Summary: Spectral OpenAPI linting was clean after generated example repair, but it was still only
+  recorded as quality inventory. That meant future route/schema changes could reintroduce Spectral
+  findings while `make openapi-gate` stayed green.
+- Evidence:
+  - Wired `make openapi-gate` to run `make openapi-spectral-report` after the Python OpenAPI quality
+    gate and focused OpenAPI lifecycle contract tests.
+  - Added Node setup and `npm ci` to Feature Lane, PR Merge Gate, and Main Releasability jobs before
+    OpenAPI gate execution.
+  - Updated API governance docs and generated quality reports to describe Spectral as enforced while
+    retaining the zero-finding inventory for scorecard evidence.
+- Consequence:
+  - OpenAPI route and schema changes now fail the repo-native gate if they reintroduce Spectral
+    findings under the pinned `.spectral.yaml` ruleset.
+- Documentation:
+  - Review ledger, API governance docs, and generated quality reports updated. No wiki source change
+    is required because this is CI/API governance for existing contracts.
+- Follow-Up:
+  - Continue hardening pagination/filter/deprecation consistency and consider schemathesis once the
+    route contract surface is stable enough for broader runtime contract fuzzing.
+
 ## LA-REV-689
 
 - Scope: OpenAPI object and media example completeness
