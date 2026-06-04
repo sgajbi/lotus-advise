@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `bf255fa63b6072a2a9f3e7635897210a3231cc4e`
-- Branch Commits Over Main: `33`
+- Head: `3b737b7b1b3de32932bd33248d716346aa0489fe`
+- Branch Commits Over Main: `35`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -141,6 +141,9 @@
   rules to focused owner modules while preserving the public cohort facade.
 - Policy evaluation workflow commands delegate projection and sign-off decision
   validation to focused workflow owner modules.
+- Integration capability response models delegate feature/workflow, readiness,
+  and supportability DTO families to focused owner modules while preserving
+  the public response facade.
 - Proposal workflow delivery operations delegate execution handoff, status, summary,
   history, and execution-update replay behavior to a focused service boundary.
 - Proposal workflow narrative operations delegate narrative read/regeneration/review

@@ -1,5 +1,43 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-669
+
+- Scope: Integration capability response model ownership
+- Pattern: Capability response models should preserve the public response facade while delegating
+  feature/workflow, readiness, and supportability DTO families to focused owner modules.
+- Status: Hardened
+- Finding Class: API model modularity and OpenAPI reviewability
+- Summary: `src/api/capabilities/models.py` combined integration capability response ownership with
+  feature/workflow capability DTOs, dependency readiness DTOs, operational readiness DTOs, advisory
+  supportability literals, metric-label documentation, and bounded supportability DTOs in one
+  402-line model module. That made API schema review harder by forcing unrelated capability,
+  readiness, and supportability changes through one file.
+- Evidence:
+  - Added `src/api/capabilities/feature_models.py` for consumer-system vocabulary plus feature and
+    workflow capability DTOs.
+  - Added `src/api/capabilities/readiness_models.py` for readiness-basis vocabulary plus dependency
+    and operational readiness DTOs.
+  - Added `src/api/capabilities/supportability_models.py` for advisory supportability state, reason,
+    freshness, metric-label, and supportability DTO ownership.
+  - Kept `src/api/capabilities/models.py` as the public integration capability response facade and
+    compatibility export surface.
+  - Reduced `src/api/capabilities/models.py` from 402 lines to 133 lines while preserving public
+    imports and the existing OpenAPI response model.
+  - Added boundary coverage proving capability model families live in focused owner modules instead
+    of the response facade.
+  - Focused ruff, ruff format check, and mypy passed for touched files; capabilities/internal API
+    guard, RFC-0026 data-product capability, RFC-0028 data-product posture, and OpenAPI lifecycle
+    contract tests passed with 75 tests.
+- Consequence:
+  - Integration capability schemas remain behavior-compatible while feature/workflow, readiness, and
+    supportability model families can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API model modularity for an existing compatible contract surface.
+- Follow-Up:
+  - Continue splitting remaining API model and route hotspots when compatibility facades and
+    OpenAPI/contract tests can preserve the public surface.
+
 ## LA-REV-668
 
 - Scope: Policy evaluation workflow projection and decision ownership
