@@ -16,7 +16,10 @@ from src.api.proposals import (
     routes_memo_commands,
     routes_memo_packages,
     routes_memo_reads,
-    routes_policy_evaluations,
+    routes_policy_evaluation_commands,
+    routes_policy_evaluation_packages,
+    routes_policy_evaluation_reads,
+    routes_policy_evaluation_workflow,
     routes_policy_packs,
     routes_support,
 )
@@ -443,27 +446,58 @@ def test_delivery_routes_use_shared_parameter_contracts():
 
 
 def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
-    source = inspect.getsource(routes_policy_evaluations)
+    command_source = inspect.getsource(routes_policy_evaluation_commands)
+    package_source = inspect.getsource(routes_policy_evaluation_packages)
+    read_source = inspect.getsource(routes_policy_evaluation_reads)
+    workflow_source = inspect.getsource(routes_policy_evaluation_workflow)
+    combined_source = "\n".join([command_source, package_source, read_source, workflow_source])
 
-    assert "raise_proposal_http_exception" not in source
-    assert "ProposalNotFoundError" not in source
-    assert "LotusReportUnavailableError" not in source
-    assert "run_lotus_report_operation" in source
-    assert source.count("run_proposal_operation(") == 10
+    assert "raise_proposal_http_exception" not in combined_source
+    assert "ProposalNotFoundError" not in combined_source
+    assert "LotusReportUnavailableError" not in combined_source
+    assert "run_lotus_report_operation" in package_source
+    assert combined_source.count("run_proposal_operation(") == 10
 
 
 def test_policy_evaluation_routes_use_shared_parameter_contracts():
+    command_source = Path(
+        "src/api/proposals/routes_policy_evaluation_commands.py"
+    ).read_text(encoding="utf-8")
+    package_source = Path(
+        "src/api/proposals/routes_policy_evaluation_packages.py"
+    ).read_text(encoding="utf-8")
+    read_source = Path("src/api/proposals/routes_policy_evaluation_reads.py").read_text(
+        encoding="utf-8"
+    )
+    workflow_source = Path(
+        "src/api/proposals/routes_policy_evaluation_workflow.py"
+    ).read_text(encoding="utf-8")
+    combined_source = "\n".join([command_source, package_source, read_source, workflow_source])
+
+    assert "from fastapi import status" in command_source
+    assert "from fastapi import status" in package_source
+    assert "from fastapi import status" in read_source
+    assert "from fastapi import status" in workflow_source
+    assert "Header(" not in combined_source
+    assert "Path(" not in combined_source
+    assert "Query(" not in combined_source
+    assert "PolicyEvaluationProposalIdPath" in command_source
+    assert "PolicyEvaluationProposalVersionIdPath" in command_source
+    assert "PolicyEvaluationFinalizeIdempotencyKeyHeader" in command_source
+    assert "PolicyEvaluationIdPath" in combined_source
+    assert "PolicyEvaluationStatusQuery" in read_source
+
+
+def test_policy_evaluation_route_loader_delegates_to_focused_route_modules():
     source = Path("src/api/proposals/routes_policy_evaluations.py").read_text(encoding="utf-8")
 
-    assert "from fastapi import status" in source
-    assert "Header(" not in source
-    assert "Path(" not in source
-    assert "Query(" not in source
-    assert "PolicyEvaluationProposalIdPath" in source
-    assert "PolicyEvaluationProposalVersionIdPath" in source
-    assert "PolicyEvaluationFinalizeIdempotencyKeyHeader" in source
-    assert "PolicyEvaluationIdPath" in source
-    assert "PolicyEvaluationStatusQuery" in source
+    assert "routes_policy_evaluation_commands" in source
+    assert "routes_policy_evaluation_packages" in source
+    assert "routes_policy_evaluation_reads" in source
+    assert "routes_policy_evaluation_workflow" in source
+    assert "@shared.router." not in source
+    assert "def create_or_replay_policy_evaluation(" not in source
+    assert "def request_policy_report_package(" not in source
 
 
 def test_async_routes_use_shared_proposal_error_boundary():
