@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-661
+
+- Scope: Bank-demo journey integration proof model ownership
+- Pattern: Integration proof payload assembly should not own Pydantic DTO definitions, validators,
+  and bounded business-text rules in the same module.
+- Status: Hardened
+- Finding Class: Bank-demo proof model modularity and claim-boundary maintainability
+- Summary: `src/core/bank_demo_proof/integration_proof.py` built the RFC-0028 journey integration
+  proof summary and also defined the AI/model-risk, policy evidence, cockpit evidence, and summary
+  DTOs with their validation rules. That coupled source payload assembly to proof contract
+  validation and made client-ready, AI-authority, and sensitive-text guardrails harder to review as
+  a reusable contract boundary.
+- Evidence:
+  - Added `src/core/bank_demo_proof/integration_proof_models.py` for `IntegrationProofPosture`,
+    `AiEvidenceFamily`, `AiModelRiskControlProof`, `PolicyEvidenceProof`,
+    `CockpitEvidenceProof`, and `AdvisoryJourneyIntegrationProofSummary`.
+  - Kept `src/core/bank_demo_proof/integration_proof.py` as the proof summary assembly owner and
+    compatibility reexport path for existing imports.
+  - Added boundary coverage proving the builder module imports the focused model owner and no
+    longer defines Pydantic models or validators directly.
+  - Focused ruff, ruff format check, and mypy passed for touched files; bank-demo integration
+    proof, proof capture, and RFC-0028 backend-proof capture tests passed with 26 tests.
+- Consequence:
+  - RFC-0028 journey integration proof behavior and public imports remain stable while proof DTO
+    validation and proof payload assembly can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proof-contract model modularity for existing behavior.
+- Follow-Up:
+  - Keep proof DTOs and claim-boundary validators in `integration_proof_models.py`; keep
+    source-payload extraction and summary assembly in `integration_proof.py`.
+
 ## LA-REV-660
 
 - Scope: Advisor cockpit policy and memo source projection ownership

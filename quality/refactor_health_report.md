@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `9f2fa58012043437bd5cd77cbc6e7b7e384a1abf`
-- Branch Commits Over Main: `16`
+- Head: `6f79550e52690c6c6a50c24b9a1ab2920212cc18`
+- Branch Commits Over Main: `18`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -34,6 +34,8 @@
   focused projection builders.
 - Bank-demo commercial material pack assembly delegates governed material rows to
   a focused catalog module.
+- Bank-demo journey integration proof DTOs and validators are split into a focused
+  model owner while preserving the proof summary builder and public import path.
 - Proposal artifact assembly delegates portfolio, summary, trade/funding, review,
   evidence-bundle, and hash finalization to focused artifact modules.
 - Advisory auto-funding planning delegates FX source selection and missing-rate

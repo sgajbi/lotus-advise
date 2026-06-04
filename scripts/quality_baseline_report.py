@@ -249,6 +249,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused projection builders.",
         "- Bank-demo commercial material pack assembly delegates governed material rows to",
         "  a focused catalog module.",
+        "- Bank-demo journey integration proof DTOs and validators are split into a focused",
+        "  model owner while preserving the proof summary builder and public import path.",
         "- Proposal artifact assembly delegates portfolio, summary, trade/funding, review,",
         "  evidence-bundle, and hash finalization to focused artifact modules.",
         "- Advisory auto-funding planning delegates FX source selection and missing-rate",
