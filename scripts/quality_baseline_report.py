@@ -279,6 +279,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused lineage response module.",
         "- Policy evaluation result builders are split from specialized rule",
         "  evaluation logic.",
+        "- Policy evaluation product evidence helpers are split from specialized",
+        "  rule evaluation logic.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",

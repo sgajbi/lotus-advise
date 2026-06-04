@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-632
+
+- Scope: Policy evaluation product evidence helpers
+- Pattern: Policy rule evaluators should not own product shelf row projection and product policy
+  interpretation helpers directly.
+- Status: Hardened
+- Finding Class: Policy evaluation modularity and product evidence maintainability
+- Summary: `src/core/policy_packs/evaluation_rules.py` mixed specialized policy rule evaluation
+  with helper logic for proposed-trade shelf-row matching, jurisdiction eligibility,
+  client-segment target-market checks, nested product-policy fallback, and complex/private product
+  detection. These helpers are shared product evidence interpretation concerns used by
+  eligibility, disclosure, and conflict rules.
+- Evidence:
+  - Extracted product evidence helpers to
+    `src/core/policy_packs/evaluation_product_helpers.py`.
+  - Kept `evaluation_rules.py` behavior unchanged by importing helper functions through private
+    compatibility aliases used by the existing rules.
+  - Added focused tests for proposed shelf row projection, direct/nested product-policy fallback,
+    jurisdiction/segment checks, and complex/private product detection.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new product
+    helper tests passed with 17 tests.
+- Consequence:
+  - Specialized policy rules can now reuse product evidence interpretation without carrying local
+    helper logic, reducing coupling before rule-family extraction.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Continue moving Singapore product eligibility and disclosure rule implementations into focused
+    rule-family modules.
+
 ## LA-REV-631
 
 - Scope: Policy evaluation result construction
