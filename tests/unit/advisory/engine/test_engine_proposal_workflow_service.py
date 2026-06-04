@@ -8,6 +8,7 @@ import pytest
 import src.core.proposals.create_command as proposal_create_command_module
 import src.core.proposals.service as proposal_service_module
 import src.core.proposals.service_async_operations as proposal_service_async_module
+import src.core.proposals.service_delivery_operations as proposal_service_delivery_module
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
@@ -85,6 +86,23 @@ def test_service_delegates_async_operations_to_focused_module() -> None:
     ):
         assert helper_name not in service_text
         assert helper_name in async_text
+
+
+def test_service_delegates_delivery_operations_to_focused_module() -> None:
+    service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    delivery_text = Path(proposal_service_delivery_module.__file__).read_text(encoding="utf-8")
+
+    assert "ProposalWorkflowDeliveryOperations" in service_text
+    for helper_name in (
+        "request_proposal_execution_handoff",
+        "record_proposal_execution_update",
+        "build_execution_status_view",
+        "build_delivery_summary_view",
+        "build_delivery_history_view",
+        "TERMINAL_STATES",
+    ):
+        assert helper_name not in service_text
+        assert helper_name in delivery_text
 
 
 def _risk_enriched_result(result):  # noqa: ANN001
@@ -746,9 +764,6 @@ def test_service_get_proposal_and_version_raise_not_found_paths():
     ("service_method_name", "view_function_name"),
     [
         ("get_workflow_timeline", "build_workflow_timeline_view"),
-        ("get_execution_status", "build_execution_status_view"),
-        ("get_delivery_summary", "build_delivery_summary_view"),
-        ("get_delivery_history", "build_delivery_history_view"),
     ],
 )
 def test_service_delegates_activity_views(
@@ -773,6 +788,39 @@ def test_service_delegates_activity_views(
     assert captured == {
         "repository": repo,
         "proposal_id": "pp_activity_view",
+    }
+
+
+@pytest.mark.parametrize(
+    ("service_method_name", "view_function_name"),
+    [
+        ("get_execution_status", "build_execution_status_view"),
+        ("get_delivery_summary", "build_delivery_summary_view"),
+        ("get_delivery_history", "build_delivery_history_view"),
+    ],
+)
+def test_service_delegates_delivery_activity_views(
+    monkeypatch,
+    service_method_name: str,
+    view_function_name: str,
+):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    sentinel = object()
+    captured: dict[str, object] = {}
+
+    def fake_view(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(proposal_service_delivery_module, view_function_name, fake_view)
+
+    response = getattr(service, service_method_name)(proposal_id="pp_delivery_activity_view")
+
+    assert response is sentinel
+    assert captured == {
+        "repository": repo,
+        "proposal_id": "pp_delivery_activity_view",
     }
 
 
