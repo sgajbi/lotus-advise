@@ -365,6 +365,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and lifecycle-handoff route modules behind the public aggregate router.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
         "  mechanics, and detail projection to focused owner modules.",
+        "- Proposal decision-summary assembly delegates status, reason, next-action,",
+        "  and confidence rules to a focused decision-status module.",
         "- Proposal workflow delivery operations delegate execution handoff, status, summary,",
         "  history, and execution-update replay behavior to a focused service boundary.",
         "- Proposal workflow narrative operations delegate narrative read/regeneration/review",

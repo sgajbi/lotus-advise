@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-673
+
+- Scope: Proposal decision-summary status-rule ownership
+- Pattern: Proposal decision-summary assembly should delegate deterministic status, reason, summary,
+  next-action, and confidence rules to a focused rule module while retaining evidence and posture
+  projection in the summary assembler.
+- Status: Hardened
+- Finding Class: Decision-support modularity and rule reviewability
+- Summary: `src/core/advisory/decision_summary.py` combined summary assembly with decision-status
+  derivation, primary reason selection, primary summary text, recommended next-action routing,
+  confidence calculation, suitability posture, risk posture, client/mandate posture, missing
+  evidence, action-item, and evidence-ref projection in one 348-line module. That made deterministic
+  rule changes harder to review independently from evidence projection.
+- Evidence:
+  - Added `src/core/advisory/decision_summary_status_rules.py` for decision status, primary reason,
+    primary summary, next action, and confidence rules.
+  - Kept `src/core/advisory/decision_summary.py` as the public decision-summary assembler and
+    evidence/posture projection owner.
+  - Reduced `src/core/advisory/decision_summary.py` from 348 lines to 240 lines while preserving the
+    public `build_proposal_decision_summary` entry point.
+  - Added boundary coverage proving status-rule functions live in the focused owner module.
+  - Updated the RFC-0025 slice 5 catalog contract to include the focused catalog command owner after
+    the prior catalog split moved maker-checker evidence out of the catalog facade.
+  - Focused ruff, ruff format check, and mypy passed for touched source files; decision-summary,
+    RFC-0025 slice 2 cleanup, and RFC-0025 slice 5 catalog contract tests passed with 17 tests;
+    repo-native `make lint` passed.
+- Consequence:
+  - Proposal decision status and next-action rules can be reviewed independently from evidence,
+    risk, suitability, and client/mandate posture projection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal decision-summary modularity for existing behavior.
+- Follow-Up:
+  - Continue splitting remaining decision-support projection modules where focused rule families can
+    preserve proposal simulation and artifact behavior.
+
 ## LA-REV-672
 
 - Scope: Policy-pack catalog command, event, and projection ownership

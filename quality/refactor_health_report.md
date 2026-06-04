@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/proposal-context-boundaries`
-- Head: `360ad1cb36584ec29b91d3d99a040a47a9fb0b76`
-- Branch Commits Over Main: `41`
+- Head: `e4f68e5bad11fd6b1b17984376d4b165eb81ea31`
+- Branch Commits Over Main: `43`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -150,6 +150,8 @@
   and lifecycle-handoff route modules behind the public aggregate router.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
   mechanics, and detail projection to focused owner modules.
+- Proposal decision-summary assembly delegates status, reason, next-action,
+  and confidence rules to a focused decision-status module.
 - Proposal workflow delivery operations delegate execution handoff, status, summary,
   history, and execution-update replay behavior to a focused service boundary.
 - Proposal workflow narrative operations delegate narrative read/regeneration/review
