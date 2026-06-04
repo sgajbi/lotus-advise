@@ -43,6 +43,10 @@ _EXAMPLE_BY_KEY = {
     "correlation_id": "corr_proposal_001",
 }
 
+_STRING_EXAMPLE_BY_KEY = {
+    key: value for key, value in _EXAMPLE_BY_KEY.items() if isinstance(value, str)
+}
+
 
 def _to_snake_case(value: str) -> str:
     transformed = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value)
@@ -141,8 +145,10 @@ def _infer_integer_example(prop_name: str, prop_schema: dict[str, Any]) -> int:
     key = _to_snake_case(prop_name)
     maximum = prop_schema.get("maximum")
     minimum = prop_schema.get("minimum")
-    if isinstance(maximum, int) and maximum <= 10:
-        return max(minimum if isinstance(minimum, int) else 1, min(maximum, 5))
+    if isinstance(maximum, (int, float)) and maximum <= 10:
+        lower_bound = int(minimum) if isinstance(minimum, (int, float)) else 1
+        upper_bound = int(maximum)
+        return max(lower_bound, min(upper_bound, 5))
     if "ttl" in key or "hours" in key:
         return 24
     if "version" in key:
@@ -167,10 +173,15 @@ def _infer_string_example(prop_name: str, prop_schema: dict[str, Any]) -> str:
     key = _to_snake_case(prop_name)
     pattern = prop_schema.get("pattern")
     schema_format = prop_schema.get("format")
+    if isinstance(pattern, str) and _NUMERIC_STRING_PATTERN_FRAGMENT in pattern:
+        return "0.125"
     if schema_format == "date":
         return "2026-03-02"
     if schema_format == "date-time":
         return "2026-03-02T10:30:00Z"
+    keyed_example = _STRING_EXAMPLE_BY_KEY.get(key)
+    if isinstance(keyed_example, str):
+        return keyed_example
     if key.endswith("_id"):
         entity = key[: -len("_id")]
         return f"{entity.upper()}_001"
@@ -180,8 +191,6 @@ def _infer_string_example(prop_name: str, prop_schema: dict[str, Any]) -> str:
         return "2026-03-02T10:30:00Z"
     if "status" in key:
         return "ACTIVE"
-    if isinstance(pattern, str) and _NUMERIC_STRING_PATTERN_FRAGMENT in pattern:
-        return "0.125"
     if "currency" in key:
         return "USD"
     return f"example_{key}"
@@ -196,10 +205,6 @@ def _infer_untyped_example(prop_name: str) -> str:
 
 
 def _infer_example(prop_name: str, prop_schema: dict[str, Any], components: dict[str, Any]) -> Any:
-    key = _to_snake_case(prop_name)
-    if key in _EXAMPLE_BY_KEY:
-        return _EXAMPLE_BY_KEY[key]
-
     const_value = prop_schema.get("const")
     if const_value is not None:
         return const_value
@@ -229,6 +234,9 @@ def _infer_example(prop_name: str, prop_schema: dict[str, Any], components: dict
         return _infer_number_example(prop_name)
     if schema_type == "string":
         return _infer_string_example(prop_name, prop_schema)
+    key = _to_snake_case(prop_name)
+    if key in _EXAMPLE_BY_KEY:
+        return _EXAMPLE_BY_KEY[key]
     return _infer_untyped_example(prop_name)
 
 

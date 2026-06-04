@@ -39,6 +39,7 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
                         "ttlHours": {"type": "integer"},
                         "version": {"type": "integer"},
                         "settlementDays": {"type": "integer", "maximum": 10},
+                        "floatBoundedDays": {"type": "integer", "minimum": 0.0, "maximum": 10.0},
                         "weight": {"type": "number"},
                         "numericText": {"type": "string", "pattern": r"\d*\.?\d*"},
                         "constantText": {"type": "string", "const": "AUTO_FX"},
@@ -101,6 +102,7 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
     assert properties["ttlHours"]["example"] == 24
     assert properties["version"]["example"] == 1
     assert properties["settlementDays"]["example"] == 5
+    assert properties["floatBoundedDays"]["example"] == 5
     assert properties["weight"]["example"] == 0.125
     assert properties["numericText"]["example"] == "0.125"
     assert properties["constantText"]["example"] == "AUTO_FX"

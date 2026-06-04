@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T16:45:50.453567+00:00`
+- Generated At: `2026-06-04T16:54:07.054886+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `0bbce365e9fce6770aaf0369e4c3496742a0097c`
-- Branch Commits Over Main: `10`
+- Head: `e43dedecfa89613fc55c14c036f4034e97acdb41`
+- Branch Commits Over Main: `11`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `914`
 - Packages: `38`
 - Modules: `876`
-- Total Python lines: `137753`
+- Total Python lines: `137763`
 
 ## Largest Files
 
@@ -98,8 +98,8 @@
 - Spectral rules present: `True`
 - Spectral config executable: `True`
 - Spectral OpenAPI path inventory: `84`
-- Spectral current issue inventory: `117`
-- Spectral severity inventory: `error=117`
+- Spectral current issue inventory: `54`
+- Spectral severity inventory: `error=54`
 - Spectral remains report-only until warning inventory is stable enough for
   fail-on-new-regression enforcement.
 

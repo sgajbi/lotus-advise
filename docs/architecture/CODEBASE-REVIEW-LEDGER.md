@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-688
+
+- Scope: OpenAPI constrained scalar examples
+- Pattern: Generated OpenAPI examples should honor scalar schema constraints before generic
+  name-based fallbacks
+- Status: Improved
+- Finding Class: OpenAPI contract quality and generated-client supportability
+- Summary: After reusable reference/object example inference, the remaining Spectral backlog still
+  contained invalid scalar examples where generic `status`, `amount`, `quantity`, and day-count
+  examples contradicted enum, decimal-string, and maximum constraints.
+- Evidence:
+  - Changed OpenAPI example inference so constants, enums, schema types, numeric-string patterns,
+    and bounded integer constraints take precedence over generic key-based examples.
+  - Added coverage for float-valued integer bounds emitted by generated Pydantic schemas.
+  - `make openapi-spectral-report` now reports `54` findings, down from `117`; remaining findings
+    are required-field completeness issues in object and media examples.
+- Consequence:
+  - Generated scalar examples are materially closer to client-generator-valid API contracts while
+    preserving runtime behavior and public endpoint shapes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is generated API documentation hardening for existing behavior.
+- Follow-Up:
+  - Reduce remaining required-field object/media example findings with targeted DTO example fixes
+    and response example corrections.
+
 ## LA-REV-687
 
 - Scope: OpenAPI reusable example inference
