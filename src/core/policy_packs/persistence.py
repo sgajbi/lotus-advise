@@ -15,6 +15,11 @@ from src.core.policy_packs.persistence_models import (
     PolicyEvaluationRecord,
     PolicyEvaluationReplayResponse,
 )
+from src.core.policy_packs.persistence_projection import (
+    attach_policy_evaluation_event,
+    build_policy_evaluation_lineage_response,
+    policy_evaluation_api_posture,
+)
 from src.core.policy_packs.persistence_record_builder import (
     build_policy_evaluation_record,
     policy_evaluation_hash,
@@ -26,7 +31,6 @@ from src.core.policy_packs.projection_models import (
 )
 from src.core.policy_packs.supportability import (
     POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION,
-    policy_runtime_supportability,
     policy_sign_off_package_posture,
 )
 from src.core.proposals.exceptions import (
@@ -269,7 +273,7 @@ class PolicyEvaluationRecordStore:
         self, *, evaluation_id: str
     ) -> PolicyEvaluationLineageResponse:
         record = self._load_record(evaluation_id)
-        return _lineage_response(
+        return build_policy_evaluation_lineage_response(
             record=record,
             audit_events=self._events[evaluation_id],
         )
@@ -282,14 +286,14 @@ class PolicyEvaluationRecordStore:
                 evaluation_status=evaluation_status,
                 portfolio_id=portfolio_id,
             ),
-            queue_posture=_policy_api_posture(),
+            queue_posture=policy_evaluation_api_posture(),
         )
 
     def get_policy_evaluation_sign_off_package(
         self, *, evaluation_id: str
     ) -> PolicyEvaluationSignOffPackageResponse:
         record = self._load_record(evaluation_id)
-        lineage = _lineage_response(
+        lineage = build_policy_evaluation_lineage_response(
             record=record,
             audit_events=self._events[evaluation_id],
         )
@@ -334,7 +338,7 @@ class PolicyEvaluationRecordStore:
             reason=deepcopy(reason),
         )
         self._events[evaluation_id].append(event)
-        _attach_event(record=record, event=event)
+        attach_policy_evaluation_event(record=record, event=event)
         if idempotency_key:
             self._idempotency[idempotency_key] = (request_hash, evaluation_id, event.event_id)
         return deepcopy(event)
@@ -443,42 +447,6 @@ class PolicyEvaluationRecordStore:
         record = self._load_record(evaluation_id)
         event = next(event for event in self._events[evaluation_id] if event.event_id == event_id)
         return event, record
-
-
-def _attach_event(*, record: PolicyEvaluationRecord, event: PolicyEvaluationAuditEvent) -> None:
-    payload = event.model_dump(mode="json")
-    if event.event_type == "POLICY_EVALUATION_REVIEW_RECORDED":
-        record.review_events_json.append(payload)
-    elif event.event_type == "POLICY_EVALUATION_SIGN_OFF_RECORDED":
-        record.sign_off_events_json.append(payload)
-    elif event.event_type == "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED":
-        record.report_archive_refs_json.append(payload)
-
-
-def _lineage_response(
-    *,
-    record: PolicyEvaluationRecord,
-    audit_events: list[PolicyEvaluationAuditEvent],
-) -> PolicyEvaluationLineageResponse:
-    return PolicyEvaluationLineageResponse(
-        evaluation_id=record.evaluation_id,
-        proposal_id=record.proposal_id,
-        proposal_version_id=record.proposal_version_id,
-        policy_pack_id=record.policy_pack_id,
-        policy_version=record.policy_version,
-        policy_content_hash=record.policy_content_hash,
-        source_evidence_hash=record.source_evidence_hash,
-        evaluation_hash=record.evaluation_hash,
-        rule_result_hashes=dict(record.rule_result_hashes),
-        source_refs=list(record.source_refs),
-        source_gaps=list(record.source_gaps),
-        audit_events=[deepcopy(event) for event in audit_events],
-        lineage_posture=_policy_api_posture(),
-    )
-
-
-def _policy_api_posture() -> dict[str, Any]:
-    return dict(policy_runtime_supportability())
 
 
 _STORE = PolicyEvaluationRecordStore()

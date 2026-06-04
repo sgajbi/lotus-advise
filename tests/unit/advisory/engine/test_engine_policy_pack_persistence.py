@@ -43,6 +43,25 @@ def test_policy_evaluation_persistence_record_builder_stays_focused() -> None:
     assert "def _approval_dependencies" in record_builder
 
 
+def test_policy_evaluation_persistence_projection_stays_focused() -> None:
+    persistence = (SOURCE_ROOT / "persistence.py").read_text(encoding="utf-8")
+    projection = (SOURCE_ROOT / "persistence_projection.py").read_text(encoding="utf-8")
+
+    assert "from src.core.policy_packs.persistence_projection import" in persistence
+    for helper_name in (
+        "attach_policy_evaluation_event",
+        "build_policy_evaluation_lineage_response",
+        "policy_evaluation_api_posture",
+    ):
+        assert f"def {helper_name}(" not in persistence
+        assert f"def {helper_name}(" in projection
+
+    assert "PolicyEvaluationLineageResponse(" not in persistence
+    assert "PolicyEvaluationLineageResponse(" in projection
+    assert "policy_runtime_supportability" not in persistence
+    assert "policy_runtime_supportability" in projection
+
+
 def _base_evidence_bundle() -> dict:
     return {
         "context_resolution": {
