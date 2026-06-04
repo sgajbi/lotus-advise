@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-612
+
+- Scope: Proposal workflow service typed facade returns
+- Pattern: The API-facing workflow service should expose explicit typed return boundaries when
+  delegating through compatibility facades and extracted orchestration helpers.
+- Status: Hardened
+- Finding Class: Service facade type-safety and contract maintainability
+- Summary: After splitting delivery response DTOs and async workflow operations, broader mypy
+  coverage identified `Any` return leakage through `ProposalWorkflowService` methods for async
+  submission/recovery and execution/delivery responses. Runtime behavior was correct, but the
+  service facade no longer made its API contract explicit to static analysis.
+- Evidence:
+  - Added explicit typed casts at `ProposalWorkflowService` return boundaries for async submission,
+    async recovery, execution handoff/status, delivery summary/history, and execution-update replay
+    paths.
+  - Focused lint, format, mypy, and behavior tests passed with 101 service/execution tests.
+- Consequence:
+  - Public service behavior remains compatible while type-checking now proves the router-facing
+    service facade returns the documented response contracts.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, schema names, supported feature posture, and operator workflow
+    truth did not change.
+- Follow-Up:
+  - Continue broadening typed facade checks as additional compatibility DTO and service boundaries
+    are split.
+
 ## LA-REV-611
 
 - Scope: Proposal delivery response models
