@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T23:01:18.350834+00:00`
+- Generated At: `2026-06-04T23:12:00.664137+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `798357925d2178f857d75e4332c06926f0a7f20c`
-- Branch Commits Over Main: `13`
+- Head: `fc7bf038aa6b81da1ef6b686255b037502bf393c`
+- Branch Commits Over Main: `14`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `914`
+- Python files: `916`
 - Packages: `38`
-- Modules: `876`
-- Total Python lines: `138021`
+- Modules: `878`
+- Total Python lines: `138225`
 
 ## Largest Files
 
@@ -41,7 +41,7 @@
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 216 |
+| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 218 |
 
 ## Complexity
 
@@ -88,7 +88,9 @@
 ## Security
 
 - `pip-audit` is present in development requirements.
-- `bandit` config is present in `pyproject.toml` for report-only rollout.
+- `bandit` high-severity enforcement is repo-native through
+  `make bandit-high-severity-gate` and the `security-audit` lane.
+- Medium and low Bandit findings remain an inventoried classification backlog.
 - Sensitive-data handling remains governed by API error redaction and structured
   payload tests until the security report gate is calibrated.
 
@@ -115,7 +117,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3391, missing=3356, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3396, missing=3361, covered=35, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `798357925d2178f857d75e4332c06926f0a7f20c`
-- Branch Commits Over Main: `13`
+- Head: `fc7bf038aa6b81da1ef6b686255b037502bf393c`
+- Branch Commits Over Main: `14`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -184,8 +184,8 @@
   classifying validator and compatibility-facade findings.
 - Convert the Radon complexity inventory into a fail-on-new-regression gate after
   classifying current high-complexity blocks.
-- Convert the Bandit security inventory into a fail-on-new-regression gate after
-  classifying current SQL-construction findings and resolving true positives.
+- Expand Bandit security enforcement beyond high severity after classifying current
+  SQL-construction findings and resolving true positives.
 - Convert the deptry dependency inventory into a fail-on-new-regression gate after
   classifying current dependency findings.
 - Convert baseline reports into fail-on-new-regression gates before enforcing absolute

@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-691
+
+- Scope: Bandit high-severity security gate
+- Pattern: A zero-count high-severity security inventory should be promoted into the repo-native
+  security lane before broader Bandit finding classification continues
+- Status: Enforced
+- Finding Class: Security quality gate hardening
+- Summary: Bandit was executable and reported no high-severity findings, but `security-audit` still
+  only ran dependency health checks. Future high-severity source findings could therefore be added
+  without failing the PR/Main security lane.
+- Evidence:
+  - Added `scripts/bandit_high_severity_gate.py` to run Bandit against `src` and fail only when
+    high-severity findings are present.
+  - Wired `make security-audit` to run `make bandit-high-severity-gate` after dependency health.
+  - Added focused unit coverage for passing, failing, and invalid Bandit JSON output.
+  - Updated security docs and generated quality-report wording to distinguish high-severity
+    enforcement from the remaining medium/low classification backlog.
+- Consequence:
+  - PR Merge Gate and Main Releasability security lanes now fail if a high-severity Bandit finding
+    is introduced, while current medium/low findings remain measured rather than overclaimed as
+    remediated.
+- Documentation:
+  - Review ledger, security docs, and generated quality reports updated. No wiki source change is
+    required because this is repo-local security gate calibration for existing source analysis.
+- Follow-Up:
+  - Classify the current medium and low Bandit findings, resolve true positives, and promote
+    appropriate classes to fail-on-new-regression gates.
+
 ## LA-REV-690
 
 - Scope: Spectral OpenAPI enforcement
