@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-604
+
+- Scope: Policy-pack material rule evaluators
+- Pattern: Policy-pack response orchestration should not own every material rule evaluator,
+  product-shelf helper, source-readiness rule result mapper, and rule-result DTO builder.
+- Status: Hardened
+- Finding Class: Policy-pack evaluation modularity and rule-boundary maintainability
+- Summary: After extracting applicability, `src/core/policy_packs/evaluation.py` still mixed
+  active-pack/source-posture orchestration with material rule evaluators for source readiness,
+  mandate restrictions, SG product eligibility, complex-product disclosure/consent, best-interest
+  cost evidence, and conflict/product-document review.
+- Evidence:
+  - Added `src/core/policy_packs/evaluation_rules.py` for material rule dispatch, source-readiness
+    prerequisite checks, product eligibility helpers, complex/private product detection,
+    best-interest cost evidence checks, conflict/product-document checks, and rule result builders.
+  - Kept `src/core/policy_packs/evaluation.py` responsible for active policy-pack loading,
+    source-posture resolution, applicability orchestration, aggregate status, supportability, and
+    `PolicyPackEvaluationResponse` assembly.
+  - Updated source-boundary tests so private helper checks for artifact sections, source sections,
+    and source refs target the rule-evaluator module.
+  - Focused policy-pack evaluation lint, format, mypy, and unit/RFC contract tests passed with 19
+    tests.
+- Consequence:
+  - Policy evaluation behavior remains compatible while material rule logic can be reviewed and
+    extended independently from top-level evaluation response assembly.
+- Documentation:
+  - Review ledger and quality/refactor-health reports updated. No README/wiki source change is
+    required because API behavior, supported feature posture, and operator workflow truth did not
+    change.
+- Follow-Up:
+  - Continue reducing policy-pack catalog, proposal service, memo API orchestration, and remaining
+    model/projection hotspots.
+
 ## LA-REV-603
 
 - Scope: Policy-pack applicability evaluation
