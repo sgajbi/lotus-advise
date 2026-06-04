@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T16:30:44.719934+00:00`
+- Generated At: `2026-06-04T16:45:50.453567+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `71d3c201ef071a27092f28621fd5d859ec09c823`
-- Branch Commits Over Main: `9`
+- Head: `0bbce365e9fce6770aaf0369e4c3496742a0097c`
+- Branch Commits Over Main: `10`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `914`
 - Packages: `38`
 - Modules: `876`
-- Total Python lines: `137599`
+- Total Python lines: `137753`
 
 ## Largest Files
 
@@ -48,8 +48,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3009`
-- Radon complexity rank inventory: `A=2715, B=225, C=60, D=7, E=2`
+- Radon analyzed block inventory: `3019`
+- Radon complexity rank inventory: `A=2721, B=228, C=62, D=6, E=2`
 - Radon worst complexity: `rank=E, complexity=32`
 - Xenon remains report-only until current Radon thresholds are classified.
 
@@ -98,8 +98,8 @@
 - Spectral rules present: `True`
 - Spectral config executable: `True`
 - Spectral OpenAPI path inventory: `84`
-- Spectral current issue inventory: `277`
-- Spectral severity inventory: `error=277`
+- Spectral current issue inventory: `117`
+- Spectral severity inventory: `error=117`
 - Spectral remains report-only until warning inventory is stable enough for
   fail-on-new-regression enforcement.
 
@@ -115,7 +115,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3375, missing=3340, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3385, missing=3350, covered=35, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

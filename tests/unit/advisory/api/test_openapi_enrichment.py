@@ -22,11 +22,26 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
                         "portfolioId": {"type": "string"},
                         "status": {"enum": ["READY", "PENDING"]},
                         "items": {"type": "array", "items": {"type": "integer"}},
+                        "refItems": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/ReferencedModel"},
+                        },
+                        "composedItems": {
+                            "type": "array",
+                            "items": {"allOf": [{"$ref": "#/components/schemas/ReferencedModel"}]},
+                        },
+                        "currencyMap": {
+                            "type": "object",
+                            "additionalProperties": {"type": "string", "pattern": r"\d*\.?\d*"},
+                        },
                         "metadata": {"type": "object"},
                         "enabled": {"type": "boolean"},
                         "ttlHours": {"type": "integer"},
                         "version": {"type": "integer"},
+                        "settlementDays": {"type": "integer", "maximum": 10},
                         "weight": {"type": "number"},
+                        "numericText": {"type": "string", "pattern": r"\d*\.?\d*"},
+                        "constantText": {"type": "string", "const": "AUTO_FX"},
                         "marketPrice": {"type": "number"},
                         "orderQuantity": {"type": "number"},
                         "marketValue": {"type": "number"},
@@ -42,6 +57,13 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
                         "fallback": {},
                         "ignored": ["not", "a", "property"],
                     }
+                },
+                "ReferencedModel": {
+                    "properties": {
+                        "sourceId": {"type": "string"},
+                        "weight": {"type": "string", "pattern": r"\d*\.?\d*"},
+                    },
+                    "required": ["sourceId", "weight"],
                 },
                 "ModelWithoutProperties": {"properties": []},
                 "IgnoredModel": ["not", "a", "schema"],
@@ -71,11 +93,17 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
     assert properties["portfolioId"]["example"] == "PB_SG_GLOBAL_BAL_001"
     assert properties["status"]["example"] == "READY"
     assert properties["items"]["example"] == [10]
+    assert properties["refItems"]["example"] == [{"sourceId": "SOURCE_001", "weight": "0.125"}]
+    assert properties["composedItems"]["example"] == [{"sourceId": "SOURCE_001", "weight": "0.125"}]
+    assert properties["currencyMap"]["example"] == {"USD": "0.125"}
     assert properties["metadata"]["example"] == {"key": "sample_text"}
     assert properties["enabled"]["example"] is True
     assert properties["ttlHours"]["example"] == 24
     assert properties["version"]["example"] == 1
+    assert properties["settlementDays"]["example"] == 5
     assert properties["weight"]["example"] == 0.125
+    assert properties["numericText"]["example"] == "0.125"
+    assert properties["constantText"]["example"] == "AUTO_FX"
     assert properties["marketPrice"]["example"] == 1.2345
     assert properties["orderQuantity"]["example"] == 100.0
     assert properties["marketValue"]["example"] == 125000.5

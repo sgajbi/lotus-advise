@@ -13,6 +13,8 @@ _IDEMPOTENCY_HEADER_DESCRIPTION = (
     "characters."
 )
 
+_NUMERIC_STRING_PATTERN_FRAGMENT = r"\d*\.?\d*"
+
 _EXAMPLE_BY_KEY = {
     "portfolio_id": "PB_SG_GLOBAL_BAL_001",
     "proposal_id": "pp_001",
@@ -52,60 +54,182 @@ def _humanize(key: str) -> str:
     return _to_snake_case(key).replace("_", " ").strip()
 
 
-def _infer_example(prop_name: str, prop_schema: dict[str, Any]) -> Any:
-    key = _to_snake_case(prop_name)
-    if key in _EXAMPLE_BY_KEY:
-        return _EXAMPLE_BY_KEY[key]
+def _ref_name(ref: str) -> str | None:
+    prefix = "#/components/schemas/"
+    if not ref.startswith(prefix):
+        return None
+    return ref.removeprefix(prefix)
 
-    enum_values = prop_schema.get("enum")
-    if isinstance(enum_values, list) and enum_values:
-        return enum_values[0]
 
-    schema_type = prop_schema.get("type")
-    schema_format = prop_schema.get("format")
-    if schema_type == "array":
-        item_schema = prop_schema.get("items", {})
-        return [_infer_example(f"{prop_name}_item", item_schema)]
-    if schema_type == "object":
+def _example_for_object_schema(
+    model_name: str,
+    model_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any]:
+    properties = model_schema.get("properties")
+    if not isinstance(properties, dict):
         return {"key": "sample_text"}
-    if schema_type == "boolean":
-        return True
-    if schema_type == "integer":
-        if "ttl" in key or "hours" in key:
-            return 24
-        if "version" in key:
-            return 1
-        return 10
-    if schema_type == "number":
-        if "weight" in key:
-            return 0.125
-        if "price" in key or "rate" in key:
-            return 1.2345
-        if "quantity" in key:
-            return 100.0
-        if "pnl" in key or "amount" in key or "value" in key:
-            return 125000.5
-        return 10.5
+    required = model_schema.get("required")
+    if not isinstance(required, list) or not required:
+        selected_names = list(properties.keys())[:3]
+    else:
+        selected_names = [str(name) for name in required[:4]]
+    example: dict[str, Any] = {}
+    for prop_name in selected_names:
+        prop_schema = properties.get(prop_name)
+        if isinstance(prop_schema, dict):
+            example[prop_name] = _infer_example(prop_name, prop_schema, components)
+    return example or {"key": _to_snake_case(model_name)}
 
+
+def _infer_ref_example(prop_schema: dict[str, Any], components: dict[str, Any]) -> Any | None:
+    ref = prop_schema.get("$ref")
+    if not isinstance(ref, str):
+        return None
+    model_name = _ref_name(ref)
+    model_schema = components.get(model_name or "")
+    if isinstance(model_name, str) and isinstance(model_schema, dict):
+        return _example_for_object_schema(model_name, model_schema, components)
+    return None
+
+
+def _infer_composite_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> Any | None:
+    for composite_key in ("allOf", "anyOf", "oneOf"):
+        composite_schemas = prop_schema.get(composite_key)
+        if isinstance(composite_schemas, list) and composite_schemas:
+            first_schema = composite_schemas[0]
+            if isinstance(first_schema, dict):
+                return _infer_example(prop_name, first_schema, components)
+    return None
+
+
+def _infer_array_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> list[Any]:
+    item_schema = prop_schema.get("items", {})
+    if isinstance(item_schema, dict):
+        return [_infer_example(f"{prop_name}_item", item_schema, components)]
+    return [f"example_{_to_snake_case(prop_name)}_item"]
+
+
+def _infer_object_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any]:
+    key = _to_snake_case(prop_name)
+    additional_schema = prop_schema.get("additionalProperties")
+    if isinstance(additional_schema, dict):
+        example_key = "USD" if "ccy" in key or "currency" in key else "sample_key"
+        return {
+            example_key: _infer_example(
+                f"{prop_name}_value",
+                additional_schema,
+                components,
+            )
+        }
+    return {"key": "sample_text"}
+
+
+def _infer_integer_example(prop_name: str, prop_schema: dict[str, Any]) -> int:
+    key = _to_snake_case(prop_name)
+    maximum = prop_schema.get("maximum")
+    minimum = prop_schema.get("minimum")
+    if isinstance(maximum, int) and maximum <= 10:
+        return max(minimum if isinstance(minimum, int) else 1, min(maximum, 5))
+    if "ttl" in key or "hours" in key:
+        return 24
+    if "version" in key:
+        return 1
+    return 10
+
+
+def _infer_number_example(prop_name: str) -> float:
+    key = _to_snake_case(prop_name)
+    if "weight" in key:
+        return 0.125
+    if "price" in key or "rate" in key:
+        return 1.2345
+    if "quantity" in key:
+        return 100.0
+    if "pnl" in key or "amount" in key or "value" in key:
+        return 125000.5
+    return 10.5
+
+
+def _infer_string_example(prop_name: str, prop_schema: dict[str, Any]) -> str:
+    key = _to_snake_case(prop_name)
+    pattern = prop_schema.get("pattern")
+    schema_format = prop_schema.get("format")
     if schema_format == "date":
         return "2026-03-02"
     if schema_format == "date-time":
         return "2026-03-02T10:30:00Z"
-
     if key.endswith("_id"):
         entity = key[: -len("_id")]
         return f"{entity.upper()}_001"
-    if "currency" in key:
-        return "USD"
     if "date" in key:
         return "2026-03-02"
     if "time" in key or "timestamp" in key:
         return "2026-03-02T10:30:00Z"
     if "status" in key:
         return "ACTIVE"
-    if schema_type == "string":
-        return f"example_{key}"
+    if isinstance(pattern, str) and _NUMERIC_STRING_PATTERN_FRAGMENT in pattern:
+        return "0.125"
+    if "currency" in key:
+        return "USD"
+    return f"example_{key}"
+
+
+def _infer_untyped_example(prop_name: str) -> str:
+    key = _to_snake_case(prop_name)
+    if key.endswith("_id"):
+        entity = key[: -len("_id")]
+        return f"{entity.upper()}_001"
     return f"{key}_example"
+
+
+def _infer_example(prop_name: str, prop_schema: dict[str, Any], components: dict[str, Any]) -> Any:
+    key = _to_snake_case(prop_name)
+    if key in _EXAMPLE_BY_KEY:
+        return _EXAMPLE_BY_KEY[key]
+
+    const_value = prop_schema.get("const")
+    if const_value is not None:
+        return const_value
+
+    enum_values = prop_schema.get("enum")
+    if isinstance(enum_values, list) and enum_values:
+        return enum_values[0]
+
+    referenced_example = _infer_ref_example(prop_schema, components)
+    if referenced_example is not None:
+        return referenced_example
+
+    composite_example = _infer_composite_example(prop_name, prop_schema, components)
+    if composite_example is not None:
+        return composite_example
+
+    schema_type = prop_schema.get("type")
+    if schema_type == "array":
+        return _infer_array_example(prop_name, prop_schema, components)
+    if schema_type == "object":
+        return _infer_object_example(prop_name, prop_schema, components)
+    if schema_type == "boolean":
+        return True
+    if schema_type == "integer":
+        return _infer_integer_example(prop_name, prop_schema)
+    if schema_type == "number":
+        return _infer_number_example(prop_name)
+    if schema_type == "string":
+        return _infer_string_example(prop_name, prop_schema)
+    return _infer_untyped_example(prop_name)
 
 
 def _infer_description(model_name: str, prop_name: str, prop_schema: dict[str, Any]) -> str:
@@ -186,6 +310,8 @@ def _ensure_operation_parameter_documentation(operation: dict[str, Any]) -> None
 def _ensure_schema_documentation(schema: dict[str, Any]) -> None:
     components = schema.get("components", {})
     schemas = components.get("schemas", {})
+    if not isinstance(schemas, dict):
+        schemas = {}
     for model_name, model_schema in schemas.items():
         if not isinstance(model_schema, dict):
             continue
@@ -198,7 +324,7 @@ def _ensure_schema_documentation(schema: dict[str, Any]) -> None:
             if not prop_schema.get("description"):
                 prop_schema["description"] = _infer_description(model_name, prop_name, prop_schema)
             if "example" not in prop_schema:
-                prop_schema["example"] = _infer_example(prop_name, prop_schema)
+                prop_schema["example"] = _infer_example(prop_name, prop_schema, schemas)
 
 
 def enrich_openapi_schema(schema: dict[str, Any], service_name: str) -> dict[str, Any]:

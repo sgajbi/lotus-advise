@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-687
+
+- Scope: OpenAPI reusable example inference
+- Pattern: Generated OpenAPI examples should infer valid examples from reusable schema structure
+  instead of emitting fallback strings for referenced arrays, composed schemas, numeric strings,
+  bounded integers, constants, and typed maps
+- Status: Improved
+- Finding Class: OpenAPI contract quality and generated-client supportability
+- Summary: The executable Spectral inventory showed that many generated examples were invalid
+  because the enrichment helper did not understand `$ref`, `allOf`/`anyOf`/`oneOf`,
+  `additionalProperties`, numeric-string patterns, constants, or bounded integer constraints.
+- Evidence:
+  - Extended `src/api/openapi_enrichment.py` to infer examples through referenced object schemas,
+    composed schemas, typed map values, numeric-string patterns, constants, and small bounded
+    integer fields.
+  - Added enrichment contract coverage for referenced arrays, composed arrays, currency-keyed maps,
+    numeric-string examples, constants, and bounded integer examples.
+  - `make openapi-spectral-report` now reports `117` findings, down from `277`; remaining findings
+    are source DTO examples and media examples that need targeted remediation.
+- Consequence:
+  - Generated OpenAPI examples are materially closer to client-generator-valid contracts without
+    changing runtime behavior or public endpoint shapes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is generated API documentation hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing source DTO and media-example findings, then promote Spectral to
+    fail-on-new-regression enforcement.
+
 ## LA-REV-686
 
 - Scope: OpenAPI metadata and tag governance
