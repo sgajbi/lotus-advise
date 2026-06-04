@@ -17,7 +17,31 @@ from src.core.proposals.delivery_response_models import (
 from src.core.proposals.delivery_summary_models import (
     ProposalDeliverySummaryResponse as SummaryProposalDeliverySummaryResponse,
 )
+from src.core.proposals.input_context_models import (
+    ProposalCreateMetadata as ContextProposalCreateMetadata,
+)
+from src.core.proposals.input_context_models import (
+    ProposalResolvedContext as ContextProposalResolvedContext,
+)
+from src.core.proposals.input_context_models import (
+    ProposalStatefulInput as ContextProposalStatefulInput,
+)
+from src.core.proposals.input_context_models import (
+    ProposalStatelessInput as ContextProposalStatelessInput,
+)
 from src.core.proposals.input_models import ProposalCreateRequest as InputProposalCreateRequest
+from src.core.proposals.input_models import (
+    ProposalResolvedContext as InputProposalResolvedContext,
+)
+from src.core.proposals.input_request_models import (
+    ProposalCreateRequest as RequestProposalCreateRequest,
+)
+from src.core.proposals.input_request_models import (
+    ProposalSimulationRequest as RequestProposalSimulationRequest,
+)
+from src.core.proposals.input_request_models import (
+    ProposalVersionRequest as RequestProposalVersionRequest,
+)
 from src.core.proposals.memo_event_models import (
     ProposalMemoAuditEvent as EventProposalMemoAuditEvent,
 )
@@ -107,6 +131,14 @@ from src.core.proposals.workflow_response_models import (
 
 def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert models.ProposalCreateRequest is InputProposalCreateRequest
+    assert InputProposalCreateRequest is RequestProposalCreateRequest
+    assert models.ProposalSimulationRequest is RequestProposalSimulationRequest
+    assert models.ProposalVersionRequest is RequestProposalVersionRequest
+    assert models.ProposalCreateMetadata is ContextProposalCreateMetadata
+    assert models.ProposalStatelessInput is ContextProposalStatelessInput
+    assert models.ProposalStatefulInput is ContextProposalStatefulInput
+    assert models.ProposalResolvedContext is InputProposalResolvedContext
+    assert InputProposalResolvedContext is ContextProposalResolvedContext
     assert models.ProposalCreateResponse is ResponseProposalCreateResponse
     assert models.ProposalReportResponse is ResponseProposalReportResponse
     assert ResponseProposalReportResponse is DeliveryProposalReportResponse
@@ -159,6 +191,41 @@ def test_proposal_model_schema_titles_remain_contract_stable() -> None:
     assert models.ProposalCreateRequest.model_json_schema()["title"] == "ProposalCreateRequest"
     assert models.ProposalCreateResponse.model_json_schema()["title"] == "ProposalCreateResponse"
     assert models.ProposalRecord.model_json_schema()["title"] == "ProposalRecord"
+
+
+def test_proposal_input_models_are_split_by_context_and_request_boundary() -> None:
+    from pathlib import Path
+
+    source_root = Path(__file__).resolve().parents[4] / "src" / "core" / "proposals"
+    facade = (source_root / "input_models.py").read_text(encoding="utf-8")
+    contexts = (source_root / "input_context_models.py").read_text(encoding="utf-8")
+    requests = (source_root / "input_request_models.py").read_text(encoding="utf-8")
+
+    for class_name in (
+        "ProposalCreateMetadata",
+        "ProposalStatelessInput",
+        "ProposalStatefulInput",
+        "ProposalResolvedContext",
+        "ProposalSimulationRequest",
+        "ProposalCreateRequest",
+        "ProposalVersionRequest",
+    ):
+        assert f"class {class_name}" not in facade
+
+    for class_name in (
+        "ProposalCreateMetadata",
+        "ProposalStatelessInput",
+        "ProposalStatefulInput",
+        "ProposalResolvedContext",
+    ):
+        assert f"class {class_name}" in contexts
+
+    for class_name in (
+        "ProposalSimulationRequest",
+        "ProposalCreateRequest",
+        "ProposalVersionRequest",
+    ):
+        assert f"class {class_name}" in requests
 
 
 def test_delivery_response_models_are_split_by_delivery_boundary() -> None:

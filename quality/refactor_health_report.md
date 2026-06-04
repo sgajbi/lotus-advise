@@ -1,12 +1,14 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `advise-enterprise-hardening-slice-17`
-- Head: `2372d44cfba8031d1b899ca3a80878742fbbb0c6`
-- Branch Commits Over Main: `27`
+- Branch: `advise-proposal-input-boundary-hardening`
+- Head: `5b144e30fe1b264b05884a4fa452c446be4cadd7`
+- Branch Commits Over Main: `0`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
 
+- Proposal input models are split into focused context DTOs, request-envelope DTOs,
+  and a compatibility facade.
 - Advisory-copilot API DTOs are split into request, response, limits, and compatibility
   modules.
 - Advisory-copilot source projections and run-record limits have focused owner modules.
