@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
-from src.core.proposals.async_operations import AsyncCreateSubmissionStats
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalLifecycleError,
@@ -14,8 +13,6 @@ from src.core.proposals.exceptions import (
 from src.core.proposals.models import (
     ProposalApprovalRequest,
     ProposalApprovalsResponse,
-    ProposalAsyncAcceptedResponse,
-    ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDeliveryHistoryResponse,
@@ -42,9 +39,7 @@ from src.core.proposals.models import (
     ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.repository import ProposalRepository
-from src.core.proposals.service_async_operations import (
-    ASYNC_RECOVERY_BATCH_SIZE,
-)
+from src.core.proposals.service_async_facade import ProposalWorkflowAsyncFacadeMixin
 from src.core.proposals.service_operation_registry import (
     build_proposal_workflow_operation_registry,
 )
@@ -61,7 +56,7 @@ __all__ = [
 ]
 
 
-class ProposalWorkflowService:
+class ProposalWorkflowService(ProposalWorkflowAsyncFacadeMixin):
     def __init__(
         self,
         *,
@@ -112,51 +107,6 @@ class ProposalWorkflowService:
             source_workspace_id=source_workspace_id,
             replay_lineage=replay_lineage,
             context_resolution_override=context_resolution_override,
-        )
-
-    def accept_create_proposal_async_submission(
-        self,
-        *,
-        payload: ProposalCreateRequest,
-        idempotency_key: str,
-        correlation_id: Optional[str],
-    ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        return cast(
-            "tuple[ProposalAsyncAcceptedResponse, bool]",
-            self._async_operations.accept_create_proposal_submission(
-                payload=payload,
-                idempotency_key=idempotency_key,
-                correlation_id=correlation_id,
-            ),
-        )
-
-    def submit_create_proposal_async(
-        self,
-        *,
-        payload: ProposalCreateRequest,
-        idempotency_key: str,
-        correlation_id: Optional[str],
-    ) -> ProposalAsyncAcceptedResponse:
-        accepted, _ = self.accept_create_proposal_async_submission(
-            payload=payload,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-        )
-        return accepted
-
-    def execute_create_proposal_async(
-        self,
-        *,
-        operation_id: str,
-        payload: Optional[ProposalCreateRequest] = None,
-        idempotency_key: Optional[str] = None,
-        correlation_id: Optional[str] = None,
-    ) -> None:
-        self._async_operations.execute_create_proposal(
-            operation_id=operation_id,
-            payload=payload,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
         )
 
     def get_proposal(
@@ -233,17 +183,6 @@ class ProposalWorkflowService:
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
         return self._read_operations.get_idempotency_lookup(idempotency_key=idempotency_key)
 
-    def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
-        return self._async_operations.get_status(operation_id=operation_id)
-
-    def get_async_operation_replay(self, *, operation_id: str) -> AdvisoryReplayEvidenceResponse:
-        return self._async_operations.get_replay(operation_id=operation_id)
-
-    def get_async_operation_by_correlation(
-        self, *, correlation_id: str
-    ) -> ProposalAsyncOperationStatusResponse:
-        return self._async_operations.get_by_correlation(correlation_id=correlation_id)
-
     def get_version(
         self,
         *,
@@ -273,54 +212,6 @@ class ProposalWorkflowService:
             replay_lineage=replay_lineage,
             context_resolution_override=context_resolution_override,
         )
-
-    def submit_create_version_async(
-        self,
-        *,
-        proposal_id: str,
-        payload: ProposalVersionRequest,
-        correlation_id: Optional[str],
-    ) -> ProposalAsyncAcceptedResponse:
-        accepted, _ = self.accept_create_version_async_submission(
-            proposal_id=proposal_id,
-            payload=payload,
-            correlation_id=correlation_id,
-        )
-        return accepted
-
-    def accept_create_version_async_submission(
-        self,
-        *,
-        proposal_id: str,
-        payload: ProposalVersionRequest,
-        correlation_id: Optional[str],
-    ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        return cast(
-            "tuple[ProposalAsyncAcceptedResponse, bool]",
-            self._async_operations.accept_create_version_submission(
-                proposal_id=proposal_id,
-                payload=payload,
-                correlation_id=correlation_id,
-            ),
-        )
-
-    def execute_create_version_async(
-        self,
-        *,
-        operation_id: str,
-        proposal_id: Optional[str] = None,
-        payload: Optional[ProposalVersionRequest] = None,
-        correlation_id: Optional[str] = None,
-    ) -> None:
-        self._async_operations.execute_create_version(
-            operation_id=operation_id,
-            proposal_id=proposal_id,
-            payload=payload,
-            correlation_id=correlation_id,
-        )
-
-    def recover_async_operations(self, *, max_operations: int = ASYNC_RECOVERY_BATCH_SIZE) -> int:
-        return cast(int, self._async_operations.recover_pending(max_operations=max_operations))
 
     def transition_state(
         self,
@@ -418,9 +309,6 @@ class ProposalWorkflowService:
             include_reviewed_narrative=include_reviewed_narrative,
             proposal_narrative_package=proposal_narrative_package,
         )
-
-    def get_async_create_submission_stats_for_tests(self) -> AsyncCreateSubmissionStats:
-        return self._async_create_submission_stats.snapshot()
 
 
 def _utc_now() -> datetime:

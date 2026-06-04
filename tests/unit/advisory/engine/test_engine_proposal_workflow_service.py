@@ -7,6 +7,7 @@ import pytest
 
 import src.core.proposals.create_command as proposal_create_command_module
 import src.core.proposals.service as proposal_service_module
+import src.core.proposals.service_async_facade as proposal_service_async_facade_module
 import src.core.proposals.service_async_operations as proposal_service_async_module
 import src.core.proposals.service_command_operations as proposal_service_command_module
 import src.core.proposals.service_delivery_operations as proposal_service_delivery_module
@@ -75,13 +76,23 @@ class CountingLineageRepository(InMemoryProposalRepository):
 
 def test_service_delegates_async_operations_to_focused_module() -> None:
     service_text = Path(proposal_service_module.__file__).read_text(encoding="utf-8")
+    async_facade_text = Path(proposal_service_async_facade_module.__file__).read_text(
+        encoding="utf-8"
+    )
     registry_text = Path(proposal_service_operation_registry_module.__file__).read_text(
         encoding="utf-8"
     )
     async_text = Path(proposal_service_async_module.__file__).read_text(encoding="utf-8")
 
     assert "build_proposal_workflow_operation_registry" in service_text
+    assert "ProposalWorkflowAsyncFacadeMixin" in service_text
     assert "ProposalWorkflowAsyncOperations" in registry_text
+    assert "def accept_create_proposal_async_submission(" not in service_text
+    assert "def execute_create_version_async(" not in service_text
+    assert "def recover_async_operations(" not in service_text
+    assert "def accept_create_proposal_async_submission(" in async_facade_text
+    assert "def execute_create_version_async(" in async_facade_text
+    assert "def recover_async_operations(" in async_facade_text
     for helper_name in (
         "accept_create_proposal_async_submission_command",
         "accept_create_version_async_submission_command",
