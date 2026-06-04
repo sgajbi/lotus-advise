@@ -287,8 +287,19 @@ def test_lifecycle_routes_use_shared_parameter_contracts():
 
 
 def test_workspace_routes_use_shared_response_metadata():
-    source = inspect.getsource(workspace_router)
+    facade_source = inspect.getsource(workspace_router)
+    source = "\n".join(
+        Path(path).read_text(encoding="utf-8")
+        for path in (
+            "src/api/workspaces/routes_session.py",
+            "src/api/workspaces/routes_assistant.py",
+            "src/api/workspaces/routes_handoff.py",
+        )
+    )
 
+    assert "include_router(session_router)" in facade_source
+    assert "include_router(assistant_router)" in facade_source
+    assert "include_router(handoff_router)" in facade_source
     assert "responses={" not in source
     assert "responses=WORKSPACE_CREATE_RESPONSES" in source
     assert "responses=WORKSPACE_DRAFT_ACTION_RESPONSES" in source
@@ -305,9 +316,15 @@ def test_workspace_routes_use_shared_response_metadata():
 
 
 def test_workspace_routes_use_shared_parameter_contracts():
-    source = Path("src/api/workspaces/router.py").read_text(encoding="utf-8")
+    source = "\n".join(
+        Path(path).read_text(encoding="utf-8")
+        for path in (
+            "src/api/workspaces/routes_session.py",
+            "src/api/workspaces/routes_assistant.py",
+            "src/api/workspaces/routes_handoff.py",
+        )
+    )
 
-    assert "from fastapi import APIRouter, Depends, status" in source
     assert "Header(" not in source
     assert "Path(" not in source
     assert "WorkspaceIdPath" in source
@@ -695,6 +712,25 @@ def test_capabilities_models_delegate_model_families():
     assert "class DependencyReadiness(" in readiness_source
     assert "class OperationalReadiness(" in readiness_source
     assert "class AdvisorySupportability(" in supportability_source
+
+
+def test_workspace_router_delegates_route_families():
+    facade_source = Path("src/api/workspaces/router.py").read_text(encoding="utf-8")
+    session_source = Path("src/api/workspaces/routes_session.py").read_text(encoding="utf-8")
+    assistant_source = Path("src/api/workspaces/routes_assistant.py").read_text(encoding="utf-8")
+    handoff_source = Path("src/api/workspaces/routes_handoff.py").read_text(encoding="utf-8")
+
+    assert "from src.api.workspaces.routes_session import router as session_router" in facade_source
+    assert (
+        "from src.api.workspaces.routes_assistant import router as assistant_router"
+        in facade_source
+    )
+    assert "from src.api.workspaces.routes_handoff import router as handoff_router" in facade_source
+    assert facade_source.count("include_router") == 3
+    assert "@router." not in facade_source
+    assert "def create_workspace(" in session_source
+    assert "def generate_workspace_rationale_endpoint(" in assistant_source
+    assert "def handoff_workspace(" in handoff_source
 
 
 def test_bank_demo_proof_routes_use_shared_response_metadata():

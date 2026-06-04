@@ -29,6 +29,8 @@ from tests.shared.stateful_context_builders import (
 )
 
 workspace_router = importlib.import_module("src.api.workspaces.router")
+workspace_routes_assistant = importlib.import_module("src.api.workspaces.routes_assistant")
+workspace_routes_session = importlib.import_module("src.api.workspaces.routes_session")
 workspace_service_module = importlib.import_module("src.api.services.workspace_service")
 workspace_reevaluations_module = importlib.import_module("src.api.services.workspace_reevaluations")
 
@@ -845,7 +847,7 @@ def test_workspace_not_found_route_errors_redact_sensitive_detail(
         raise WorkspaceNotFoundError("Authorization Bearer token leaked from upstream")
 
     monkeypatch.setattr(
-        workspace_router,
+        workspace_routes_session,
         "get_workspace_session",
         _raise_sensitive_not_found,
     )
@@ -864,7 +866,7 @@ def test_workspace_conflict_route_errors_redact_sensitive_detail(
         raise WorkspaceEvaluationUnavailableError("raw payload includes secret advisor context")
 
     monkeypatch.setattr(
-        workspace_router,
+        workspace_routes_session,
         "reevaluate_workspace_session",
         _raise_sensitive_conflict,
     )
@@ -883,7 +885,7 @@ def test_workspace_assistant_route_errors_redact_sensitive_detail(
         raise WorkspaceAssistantUnavailableError("provider response included api_key material")
 
     monkeypatch.setattr(
-        workspace_router,
+        workspace_routes_assistant,
         "generate_workspace_rationale",
         _raise_sensitive_assistant_error,
     )
