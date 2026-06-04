@@ -86,6 +86,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal memo lineage and replay evidence DTOs are split" in refactor_health
     assert "Policy evaluation result builders are split" in refactor_health
     assert "Policy evaluation product evidence helpers are split" in refactor_health
+    assert "Policy evaluation Singapore product rule implementations are split" in refactor_health
     assert (
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )

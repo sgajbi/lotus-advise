@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-633
+
+- Scope: Policy evaluation Singapore product rule family
+- Pattern: Product eligibility and complex-product disclosure policy rules should be implemented in
+  a focused rule-family module instead of the shared dispatcher module.
+- Status: Hardened
+- Finding Class: Policy rule-family modularity and product governance maintainability
+- Summary: `src/core/policy_packs/evaluation_rules.py` still implemented Singapore product
+  eligibility and complex/private product disclosure rules directly, even after shared product
+  evidence helpers were split out. Those rules own a coherent product governance family and can be
+  reviewed independently from mandate, cost, conflict, and source-readiness rules.
+- Evidence:
+  - Extracted `evaluate_sg_product_eligibility` and
+    `evaluate_sg_complex_product_disclosure` to
+    `src/core/policy_packs/evaluation_product_rules.py`.
+  - Kept the public `evaluate_policy_rule` dispatcher behavior unchanged by importing the focused
+    product rule functions through private aliases.
+  - Added focused tests for ineligible/missing product blocking and complex-product disclosure
+    ready/pending outcomes.
+  - Focused `ruff`, `mypy`, policy evaluation API tests, policy workflow tests, and new product
+    rule tests passed with 16 tests.
+- Consequence:
+  - Product-governance policy behavior is now easier to review and extend without touching the
+    shared policy rule dispatcher.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal backend modularity for existing implemented policy behavior.
+- Follow-Up:
+  - Continue moving cost and conflict policy rule families out of `evaluation_rules.py`.
+
 ## LA-REV-632
 
 - Scope: Policy evaluation product evidence helpers

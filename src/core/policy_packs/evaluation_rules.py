@@ -4,16 +4,13 @@ from typing import Any, cast
 
 from src.core.policy_packs.evaluation_models import PolicyRuleEvaluationResult
 from src.core.policy_packs.evaluation_product_helpers import (
-    client_segment_allowed as _client_segment_allowed,
-)
-from src.core.policy_packs.evaluation_product_helpers import (
-    is_complex_or_private_product as _is_complex_or_private,
-)
-from src.core.policy_packs.evaluation_product_helpers import (
-    jurisdiction_allowed as _jurisdiction_allowed,
-)
-from src.core.policy_packs.evaluation_product_helpers import (
     proposed_shelf_rows as _proposed_shelf_rows,
+)
+from src.core.policy_packs.evaluation_product_rules import (
+    evaluate_sg_complex_product_disclosure as _evaluate_sg_complex_product_disclosure,
+)
+from src.core.policy_packs.evaluation_product_rules import (
+    evaluate_sg_product_eligibility as _evaluate_sg_product_eligibility,
 )
 from src.core.policy_packs.evaluation_result_builders import (
     rule_blocked as _rule_blocked,
@@ -144,78 +141,6 @@ def _evaluate_mandate_rule(
         "MANDATE_OBJECTIVES_AND_RESTRICTIONS_READY_FOR_ADVISOR_REVIEW",
         evidence_refs=restrictions,
         source_authority_refs=["lotus-core:core_mandate_objectives_restrictions"],
-    )
-
-
-def _evaluate_sg_product_eligibility(
-    *, rule: dict[str, Any], evidence_bundle: dict[str, Any], jurisdiction: str, client_segment: str
-) -> PolicyRuleEvaluationResult:
-    missing: list[str] = []
-    reasons: list[str] = []
-    blocked_instruments: list[str] = []
-    for instrument_id, shelf in _proposed_shelf_rows(evidence_bundle).items():
-        if shelf is None:
-            missing.append(f"shelf_entry:{instrument_id}")
-            reasons.append("PRODUCT_SHELF_ENTRY_MISSING_FOR_PROPOSED_TRADE")
-            blocked_instruments.append(instrument_id)
-            continue
-        if not _jurisdiction_allowed(shelf, jurisdiction):
-            reasons.append("PRODUCT_NOT_ELIGIBLE_FOR_JURISDICTION")
-            blocked_instruments.append(instrument_id)
-        if not _client_segment_allowed(shelf, client_segment):
-            reasons.append("PRODUCT_NOT_IN_TARGET_MARKET_FOR_CLIENT_SEGMENT")
-            blocked_instruments.append(instrument_id)
-    if blocked_instruments:
-        return _rule_blocked(
-            rule,
-            outcome="ELIGIBILITY_REVIEW_REQUIRED",
-            missing_evidence=_unique(missing),
-            reason_codes=_unique(reasons),
-            required_actions=[
-                f"REVIEW_PRODUCT_ELIGIBILITY:{instrument_id}"
-                for instrument_id in _unique(blocked_instruments)
-            ],
-        )
-    return _rule_ready(
-        rule,
-        "PRODUCT_ELIGIBILITY_AND_TARGET_MARKET_EVIDENCE_READY",
-        evidence_refs=[
-            "evidence_bundle.inputs.shelf_entries",
-            "evidence_bundle.inputs.proposed_trades",
-        ],
-        source_authority_refs=["lotus-core:core_product_eligibility_target_market_complexity"],
-    )
-
-
-def _evaluate_sg_complex_product_disclosure(
-    *, rule: dict[str, Any], evidence_bundle: dict[str, Any]
-) -> PolicyRuleEvaluationResult:
-    complex_instruments = [
-        instrument_id
-        for instrument_id, shelf in _proposed_shelf_rows(evidence_bundle).items()
-        if shelf is not None and _is_complex_or_private(shelf)
-    ]
-    if not complex_instruments:
-        return _rule_ready(
-            rule,
-            "NO_COMPLEX_PRODUCT_DISCLOSURE_TRIGGER",
-            evidence_refs=["evidence_bundle.inputs.shelf_entries"],
-            source_authority_refs=["lotus-core:core_product_eligibility_target_market_complexity"],
-        )
-    return _rule_pending(
-        rule,
-        outcome="DISCLOSURE_AND_CONSENT_REVIEW_REQUIRED",
-        missing_evidence=[
-            f"advisor_reviewed_disclosure:{instrument_id}" for instrument_id in complex_instruments
-        ]
-        + [f"client_consent:{instrument_id}" for instrument_id in complex_instruments],
-        reason_codes=["COMPLEX_PRODUCT_DISCLOSURE_AND_CONSENT_REQUIRED"],
-        required_actions=[
-            f"REVIEW_DISCLOSURE:{instrument_id}" for instrument_id in complex_instruments
-        ]
-        + [f"CAPTURE_CLIENT_CONSENT:{instrument_id}" for instrument_id in complex_instruments],
-        evidence_refs=["evidence_bundle.inputs.shelf_entries"],
-        source_authority_refs=["lotus-core:core_product_eligibility_target_market_complexity"],
     )
 
 

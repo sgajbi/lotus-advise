@@ -281,6 +281,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  evaluation logic.",
         "- Policy evaluation product evidence helpers are split from specialized",
         "  rule evaluation logic.",
+        "- Policy evaluation Singapore product rule implementations are split",
+        "  into a focused rule-family module.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit service delegates repository-backed source loading and tactical",
