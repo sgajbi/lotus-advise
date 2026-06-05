@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-716
+
+- Scope: Product policy source-readiness evidence checks
+- Pattern: Product policy evidence checks should separate row validation, nested attribute
+  extraction, required-value checks, and evidence-key checks.
+- Status: Improved
+- Finding Class: Source-readiness maintainability and evidence validation
+- Summary: `_all_products_have_policy_evidence` mixed row shape validation, nested attribute
+  extraction, eligibility/target-market/complexity checks, and private-asset/structured-product
+  flag checks in one C-ranked predicate.
+- Evidence:
+  - Extracted per-product evidence, attribute extraction, required-value, multi-value, and
+    evidence-key helpers.
+  - Preserved direct and nested `attributes` product policy evidence behavior.
+  - Added regression coverage for nested product policy attributes.
+  - Radon now reports `_all_products_have_policy_evidence` as A-ranked complexity instead of
+    C-ranked complexity.
+  - Focused policy source-readiness and memo-builder product-policy tests passed.
+- Consequence:
+  - Product policy source-readiness remains source-backed and easier to audit when product policy
+    evidence evolves.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-readiness maintainability hardening.
+- Follow-Up:
+  - Continue reducing the remaining C-ranked memo-section evidence helper.
+
 ## LA-REV-715
 
 - Scope: Proposal reviewed narrative report package builder

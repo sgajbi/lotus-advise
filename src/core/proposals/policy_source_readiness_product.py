@@ -70,27 +70,52 @@ def _product_policy_reasons(*, proposed_trades: list[Any], shelf_entries: list[A
 
 def _all_products_have_policy_evidence(rows: list[Any]) -> bool:
     for row in rows:
-        if not isinstance(row, dict):
+        if not _product_has_policy_evidence(row):
             return False
-        raw_attributes = row.get("attributes")
-        attributes: dict[str, Any] = raw_attributes if isinstance(raw_attributes, dict) else {}
-        has_eligibility = bool(row.get("eligibility") or attributes.get("eligibility"))
-        has_target_market = bool(row.get("target_market") or attributes.get("target_market"))
-        has_complexity = bool(
-            row.get("complexity")
-            or row.get("product_complexity")
-            or attributes.get("complexity")
-            or attributes.get("product_complexity")
-        )
-        has_product_flags = any(
-            key in row or key in attributes
-            for key in (
+    return True
+
+
+def _product_has_policy_evidence(row: Any) -> bool:
+    if not isinstance(row, dict):
+        return False
+    attributes = _attributes(row)
+    return (
+        _has_policy_value(row, attributes, "eligibility")
+        and _has_policy_value(row, attributes, "target_market")
+        and _has_any_policy_value(row, attributes, ("complexity", "product_complexity"))
+        and _has_any_policy_key(
+            row,
+            attributes,
+            (
                 "private_asset",
                 "private_asset_flag",
                 "structured_product",
                 "structured_product_flag",
-            )
+            ),
         )
-        if not (has_eligibility and has_target_market and has_complexity and has_product_flags):
-            return False
-    return True
+    )
+
+
+def _attributes(row: dict[str, Any]) -> dict[str, Any]:
+    raw_attributes = row.get("attributes")
+    return raw_attributes if isinstance(raw_attributes, dict) else {}
+
+
+def _has_policy_value(row: dict[str, Any], attributes: dict[str, Any], key: str) -> bool:
+    return bool(row.get(key) or attributes.get(key))
+
+
+def _has_any_policy_value(
+    row: dict[str, Any],
+    attributes: dict[str, Any],
+    keys: tuple[str, ...],
+) -> bool:
+    return any(_has_policy_value(row, attributes, key) for key in keys)
+
+
+def _has_any_policy_key(
+    row: dict[str, Any],
+    attributes: dict[str, Any],
+    keys: tuple[str, ...],
+) -> bool:
+    return any(key in row or key in attributes for key in keys)
