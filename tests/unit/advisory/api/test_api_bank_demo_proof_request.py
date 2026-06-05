@@ -18,6 +18,16 @@ from tests.unit.advisory.engine.test_engine_bank_demo_proof_capture import (
 
 
 def test_bank_demo_proof_request_rejects_sensitive_local_artifact_refs() -> None:
+    normalized = BankDemoProofCaptureRequest(
+        live_runtime_payload=_live_runtime_payload(),
+        runtime_posture=_runtime_posture(),
+        live_suite_result_ref=" output\\live-runtime-suite\\result.json ",
+        output_ref_prefix=" output\\rfc0028\\backend-proof\\ ",
+    )
+
+    assert normalized.live_suite_result_ref == "output/live-runtime-suite/result.json"
+    assert normalized.output_ref_prefix == "output/rfc0028/backend-proof"
+
     with pytest.raises(ValidationError, match="live_suite_result_ref must not include URL"):
         BankDemoProofCaptureRequest(
             live_runtime_payload=_live_runtime_payload(),

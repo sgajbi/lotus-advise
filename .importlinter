@@ -1,5 +1,6 @@
 [importlinter]
 root_package = src
+include_external_packages = True
 
 [importlinter:contract:api_routers_do_not_import_infrastructure]
 name = API routers do not import infrastructure adapters directly

@@ -17,6 +17,7 @@ from src.integrations.lotus_core.stateful_context import (
 )
 from src.integrations.lotus_report import LotusReportUnavailableError
 from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
+from src.runtime import proposal_repositories
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,
@@ -455,7 +456,8 @@ def test_proposal_repository_backend_init_errors_return_503(monkeypatch):
             "postgresql://user:pass@localhost:5432/proposals",
         )
         monkeypatch.setattr(
-            "src.api.proposals.runtime.PostgresProposalRepository",
+            proposal_repositories,
+            "PostgresProposalRepository",
             lambda *args, **kwargs: (_ for _ in ()).throw(ConnectionError("boom")),
         )
         reset_proposal_workflow_service_for_tests()

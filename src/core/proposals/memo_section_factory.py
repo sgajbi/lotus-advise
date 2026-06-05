@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
@@ -12,6 +13,16 @@ from src.core.proposals.memo_models import (
     ProposalMemoSectionStatus,
     ProposalMemoSourceAuthorityManifest,
 )
+
+
+@dataclass(frozen=True)
+class _MemoSectionEvidence:
+    source_sections: list[dict[str, Any]]
+    missing: list[str]
+    reasons: list[str]
+    evidence_refs: list[str]
+    source_refs: list[str]
+    statuses: list[str]
 
 
 def build_appendix_section(
@@ -66,50 +77,39 @@ def build_memo_section(
     forced_reasons: list[str] | None = None,
 ) -> ProposalMemoSection:
     source_sections = _source_sections(evidence_bundle=evidence_bundle, source_keys=source_keys)
-    missing = _unique(
-        [item for section in source_sections for item in _strings(section.get("missing_evidence"))]
-        + (forced_missing or [])
+    section_evidence = _memo_section_evidence(
+        source_sections=source_sections,
+        claims=claims,
+        forced_missing=forced_missing,
+        forced_reasons=forced_reasons,
     )
-    reasons = _unique(
-        [item for section in source_sections for item in _strings(section.get("reason_codes"))]
-        + (forced_reasons or [])
+    status = forced_status or _section_status(
+        statuses=section_evidence.statuses,
+        missing=section_evidence.missing,
+        claims=claims,
     )
-    evidence_refs = _unique(
-        [item for section in source_sections for item in _strings(section.get("evidence_refs"))]
-        + [item for claim in claims for item in claim.evidence_refs]
-    )
-    source_refs = _unique(
-        [
-            str(section.get("owner_service"))
-            for section in source_sections
-            if section.get("owner_service")
-        ]
-        + [item for claim in claims for item in claim.source_authority_refs]
-    )
-    statuses = [str(section.get("status")) for section in source_sections]
-    status = forced_status or _section_status(statuses=statuses, missing=missing, claims=claims)
-    if forced_status == "PENDING_REVIEW" and "BLOCKED" in statuses:
+    if forced_status == "PENDING_REVIEW" and "BLOCKED" in section_evidence.statuses:
         status = "BLOCKED"
-    input_payload = {
-        "section_id": section_id,
-        "artifact_refs": _section_artifact_refs(section_id, artifact),
-        "source_sections": source_sections,
-        "claims": [claim.model_dump(mode="json") for claim in claims],
-        "forced_missing": forced_missing or [],
-        "forced_reasons": forced_reasons or [],
-    }
+    input_payload = _section_input_payload(
+        section_id=section_id,
+        artifact=artifact,
+        section_evidence=section_evidence,
+        claims=claims,
+        forced_missing=forced_missing,
+        forced_reasons=forced_reasons,
+    )
     input_hash = hash_canonical_payload(input_payload)
-    section_payload = {
-        "section_id": section_id,
-        "title": title,
-        "status": status,
-        "audience_visibility": audience_visibility,
-        "summary": summary,
-        "claims": [claim.model_dump(mode="json") for claim in claims],
-        "missing_evidence": missing,
-        "reason_codes": reasons,
-        "input_hash": input_hash,
-    }
+    section_payload = _section_hash_payload(
+        section_id=section_id,
+        title=title,
+        status=status,
+        audience_visibility=audience_visibility,
+        summary=summary,
+        claims=claims,
+        missing=section_evidence.missing,
+        reasons=section_evidence.reasons,
+        input_hash=input_hash,
+    )
     return ProposalMemoSection(
         section_id=section_id,
         title=title,
@@ -118,11 +118,11 @@ def build_memo_section(
         summary=summary,
         material_claims=claims,
         claim_refs=[claim.claim_id for claim in claims],
-        evidence_refs=evidence_refs,
-        source_authority_refs=source_refs,
-        missing_evidence=missing,
-        degraded_evidence=_degraded_evidence(source_sections),
-        reason_codes=reasons,
+        evidence_refs=section_evidence.evidence_refs,
+        source_authority_refs=section_evidence.source_refs,
+        missing_evidence=section_evidence.missing,
+        degraded_evidence=_degraded_evidence(section_evidence.source_sections),
+        reason_codes=section_evidence.reasons,
         review_required=status != "READY",
         owner_role=owner_role,
         last_material_input_hash=input_hash,
@@ -152,6 +152,87 @@ def build_memo_claims(
             )
         )
     return claims
+
+
+def _memo_section_evidence(
+    *,
+    source_sections: list[dict[str, Any]],
+    claims: list[ProposalMemoMaterialClaim],
+    forced_missing: list[str] | None,
+    forced_reasons: list[str] | None,
+) -> _MemoSectionEvidence:
+    missing = _unique(
+        [item for section in source_sections for item in _strings(section.get("missing_evidence"))]
+        + (forced_missing or [])
+    )
+    reasons = _unique(
+        [item for section in source_sections for item in _strings(section.get("reason_codes"))]
+        + (forced_reasons or [])
+    )
+    evidence_refs = _unique(
+        [item for section in source_sections for item in _strings(section.get("evidence_refs"))]
+        + [item for claim in claims for item in claim.evidence_refs]
+    )
+    source_refs = _unique(
+        [
+            str(section.get("owner_service"))
+            for section in source_sections
+            if section.get("owner_service")
+        ]
+        + [item for claim in claims for item in claim.source_authority_refs]
+    )
+    return _MemoSectionEvidence(
+        source_sections=source_sections,
+        missing=missing,
+        reasons=reasons,
+        evidence_refs=evidence_refs,
+        source_refs=source_refs,
+        statuses=[str(section.get("status")) for section in source_sections],
+    )
+
+
+def _section_input_payload(
+    *,
+    section_id: ProposalMemoSectionKey,
+    artifact: dict[str, Any],
+    section_evidence: _MemoSectionEvidence,
+    claims: list[ProposalMemoMaterialClaim],
+    forced_missing: list[str] | None,
+    forced_reasons: list[str] | None,
+) -> dict[str, Any]:
+    return {
+        "section_id": section_id,
+        "artifact_refs": _section_artifact_refs(section_id, artifact),
+        "source_sections": section_evidence.source_sections,
+        "claims": [claim.model_dump(mode="json") for claim in claims],
+        "forced_missing": forced_missing or [],
+        "forced_reasons": forced_reasons or [],
+    }
+
+
+def _section_hash_payload(
+    *,
+    section_id: ProposalMemoSectionKey,
+    title: str,
+    status: ProposalMemoSectionStatus,
+    audience_visibility: list[ProposalMemoAudience],
+    summary: str,
+    claims: list[ProposalMemoMaterialClaim],
+    missing: list[str],
+    reasons: list[str],
+    input_hash: str,
+) -> dict[str, Any]:
+    return {
+        "section_id": section_id,
+        "title": title,
+        "status": status,
+        "audience_visibility": audience_visibility,
+        "summary": summary,
+        "claims": [claim.model_dump(mode="json") for claim in claims],
+        "missing_evidence": missing,
+        "reason_codes": reasons,
+        "input_hash": input_hash,
+    }
 
 
 def _source_sections(

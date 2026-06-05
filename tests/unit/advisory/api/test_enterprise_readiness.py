@@ -70,6 +70,19 @@ def test_authorize_write_request_rejects_blank_enterprise_headers(
     assert service_reason == "missing_service_identity"
 
 
+def test_authorize_write_request_skips_authz_for_read_methods(monkeypatch) -> None:
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+
+    authorized, reason = authorize_write_request(
+        "GET",
+        "/advisory/proposals",
+        {},
+    )
+
+    assert authorized is True
+    assert reason is None
+
+
 def test_authorize_write_request_trims_headers_and_capabilities(monkeypatch) -> None:
     monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
     monkeypatch.setenv(

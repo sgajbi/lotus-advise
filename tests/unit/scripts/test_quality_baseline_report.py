@@ -53,12 +53,41 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
 
     assert "Code Size" in baseline
     assert "Complexity" in baseline
+    assert "Radon config executable" in baseline
+    assert "Radon complexity rank inventory" in baseline
+    assert "Radon worst complexity" in baseline
     assert "Dead Code" in baseline
+    assert "Vulture config executable" in baseline
+    assert "Vulture current issue inventory" in baseline
+    assert "Vulture confidence inventory" in baseline
+    assert "Deptry config executable" in baseline
+    assert "Deptry current issue inventory" in baseline
+    assert "Bandit config executable" in baseline
+    assert "Bandit current issue inventory" in baseline
+    assert "Bandit severity inventory" in baseline
     assert "OpenAPI Gaps" in baseline
+    assert "Spectral config executable" in baseline
+    assert "Spectral current issue inventory" in baseline
+    assert "Spectral severity inventory" in baseline
     assert "Architecture Violations" in baseline
+    assert "Import-linter config executable" in baseline
+    assert "Import-linter contract inventory" in baseline
     assert "Documentation Gaps" in baseline
+    assert "Interrogate config executable" in baseline
+    assert "Interrogate docstring inventory" in baseline
     assert "Observability Gaps" in baseline
+    assert "make observability-diagnostics" in baseline
     assert "Progressive Gate Phase" in scorecard
+    assert "No-E/F gate plus Radon inventory" in scorecard
+    assert "Executable Vulture inventory" in scorecard
+    assert "Enforced plus deptry inventory" in scorecard
+    assert "High-severity enforced plus Bandit inventory" in scorecard
+    assert "Enforced with Spectral" in scorecard
+    assert "make lint runs import-linter architecture contracts" in scorecard
+    assert "Gap tracked plus Interrogate inventory" in scorecard
+    assert "Diagnostics target added" in scorecard
+    assert "Before/After Evidence" in scorecard
+    assert "does not claim bank" in scorecard
     assert "Proposal input models are split" in refactor_health
     assert "Advisory simulation orchestration is split" in refactor_health
     assert "Feature capability catalog assembly is split" in refactor_health
@@ -66,6 +95,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal memo section assembly is split" in refactor_health
     assert "Bank-demo supported-claim register assembly is split" in refactor_health
     assert "Compliance rule evaluation is split" in refactor_health
+    assert "Target-generation solver orchestration delegates" in refactor_health
     assert "Proposal memo source-readiness assembly is split" in refactor_health
     assert "Bank-demo runtime summary sanitization is split" in refactor_health
     assert "Bank-demo commercial material pack assembly delegates" in refactor_health
@@ -83,6 +113,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal alternatives comparison evidence delegates approval" in refactor_health
     assert "Proposal alternatives ranking delegates comparator" in refactor_health
     assert "Proposal memo request DTOs and memo vocabulary literals are split" in refactor_health
+    assert "Proposal memo section assembly delegates source evidence" in refactor_health
     assert "Proposal memo audit event DTOs are split" in refactor_health
     assert "Proposal memo lineage and replay evidence DTOs are split" in refactor_health
     assert "Policy evaluation result builders are split" in refactor_health
@@ -90,6 +121,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Policy evaluation Singapore product rule implementations are split" in refactor_health
     assert "Policy evaluation cost and conflict review rules are split" in refactor_health
     assert "Policy evaluation source-readiness and mandate rules are split" in refactor_health
+    assert "Policy evaluation source-readiness rule handling delegates" in refactor_health
     assert "Proposal artifact summary DTOs are split" in refactor_health
     assert "Proposal artifact portfolio-impact DTOs are split" in refactor_health
     assert "Proposal artifact trade/funding DTOs are split" in refactor_health
@@ -106,10 +138,25 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Proposal narrative envelope DTOs are split" in refactor_health
     assert "Proposal narrative review DTOs are split" in refactor_health
     assert "Proposal narrative runtime modules import focused DTO owner modules" in refactor_health
+    assert "Proposal narrative grounding fact projection delegates" in refactor_health
     assert (
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )
     assert "Advisor cockpit service delegates repository-backed source loading" in refactor_health
+    assert "Workspace draft action request validation delegates" in refactor_health
+    assert "Local valuation state assembly delegates" in refactor_health
+    assert "Local position valuation delegates" in refactor_health
+    assert "Enterprise write authorization delegates" in refactor_health
+    assert "In-memory proposal listing delegates" in refactor_health
+    assert "OpenAPI operation enrichment delegates" in refactor_health
+    assert "OpenAPI example repair delegates" in refactor_health
+    assert "OpenAPI field-description inference delegates" in refactor_health
+    assert "OpenAPI example inference delegates" in refactor_health
+    assert "OpenAPI string example inference delegates" in refactor_health
+    assert "Commercial material source-reference normalization delegates" in refactor_health
+    assert "Bank-demo proof artifact-reference normalization delegates" in refactor_health
+    assert "Shared proposal intent dependency linking delegates" in refactor_health
+    assert "API structured logging formatter delegates" in refactor_health
     assert "Proposal workflow delivery operations delegate execution handoff" in refactor_health
     assert "Proposal workflow narrative operations delegate narrative read" in refactor_health
     assert "Proposal workflow read operations delegate proposal" in refactor_health
@@ -117,6 +164,12 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Policy evaluation persistence delegates lineage/posture projection" in refactor_health
     assert "Policy evaluation persistence delegates replay hash comparison" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
+    assert "Expand Radon complexity enforcement beyond E/F-ranked blocks" in refactor_health
+    assert "Vulture dead-code inventory" in refactor_health
+    assert "Interrogate docstring inventory" in refactor_health
+    assert "Expand Bandit security enforcement beyond high severity" in refactor_health
+    assert "Spectral OpenAPI enforcement" in refactor_health
+    assert "deptry dependency inventory" in refactor_health
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

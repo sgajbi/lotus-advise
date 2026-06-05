@@ -204,6 +204,18 @@ def test_commercial_material_pack_alignment_rejects_unknown_or_unpromoted_claims
 
 
 def test_commercial_material_rejects_unsafe_source_refs_and_technical_copy() -> None:
+    normalized = CommercialMaterial(
+        material_id="normalized_source",
+        title="Normalized source",
+        material_type="DEMO_SCRIPT",
+        source_ref=" docs\\commercial\\material.md# demo-script ",
+        mapped_claim_ids=["commercial_rfp_security_material_available"],
+        allowed_audiences=["SALES"],
+        excluded_claims=["client_ready_publication"],
+    )
+
+    assert normalized.source_ref == "docs/commercial/material.md#demo-script"
+
     with pytest.raises(ValidationError, match="repository-local reference"):
         CommercialMaterial(
             material_id="unsafe_source",

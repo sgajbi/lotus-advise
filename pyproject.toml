@@ -39,7 +39,8 @@ fail-under = 0
 verbose = 1
 
 [tool.deptry]
-ignore_obsolete = [
+known_first_party = ["engineering_health_report"]
+per_rule_ignores = { DEP002 = [
   "coverage",
   "iniconfig",
   "pip-audit",
@@ -48,7 +49,4 @@ ignore_obsolete = [
   "pytest-cov",
   "ruff",
   "mypy",
-]
-
-[tool.deptry.per_rule_ignores]
-DEP002 = ["coverage", "pytest-cov"]
+] }

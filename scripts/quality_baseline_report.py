@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
+import re
 import subprocess
+import sys
+import tempfile
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -48,6 +53,34 @@ class QualityContext:
     requested_docs_missing: tuple[str, ...]
     available_tools: tuple[str, ...]
     unavailable_tools: tuple[str, ...]
+    deptry_config_valid: bool
+    deptry_issue_count: int | None
+    bandit_config_valid: bool
+    bandit_issue_count: int | None
+    bandit_high_count: int | None
+    bandit_medium_count: int | None
+    bandit_low_count: int | None
+    importlinter_config_valid: bool
+    importlinter_contract_count: int | None
+    importlinter_kept_count: int | None
+    importlinter_broken_count: int | None
+    radon_config_valid: bool
+    radon_analyzed_block_count: int | None
+    radon_rank_counts: dict[str, int]
+    radon_worst_rank: str | None
+    radon_worst_complexity: int | None
+    vulture_config_valid: bool
+    vulture_issue_count: int | None
+    vulture_confidence_counts: dict[str, int]
+    spectral_config_valid: bool
+    spectral_issue_count: int | None
+    spectral_severity_counts: dict[str, int]
+    spectral_openapi_path_count: int | None
+    interrogate_config_valid: bool
+    interrogate_total_count: int | None
+    interrogate_missing_count: int | None
+    interrogate_covered_count: int | None
+    interrogate_coverage_percent: str | None
 
 
 def _run_git(repo_root: Path, args: list[str]) -> str:
@@ -73,6 +106,290 @@ def _tool_available(module_name: str) -> bool:
     return importlib.util.find_spec(module_name) is not None
 
 
+def _deptry_issue_count(repo_root: Path) -> tuple[bool, int | None]:
+    if not _tool_available("deptry") or not (repo_root / "pyproject.toml").exists():
+        return False, None
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
+        output_path = Path(handle.name)
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "deptry",
+                ".",
+                "--config",
+                "pyproject.toml",
+                "--json-output",
+                str(output_path),
+            ],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if not output_path.exists() or completed.returncode not in {0, 1}:
+            return False, None
+        try:
+            findings = json.loads(output_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return False, None
+        if not isinstance(findings, list):
+            return False, None
+        return True, len(findings)
+    finally:
+        output_path.unlink(missing_ok=True)
+
+
+def _bandit_issue_counts(
+    repo_root: Path,
+) -> tuple[bool, int | None, int | None, int | None, int | None]:
+    if not _tool_available("bandit") or not (repo_root / "pyproject.toml").exists():
+        return False, None, None, None, None
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "bandit",
+            "-q",
+            "-r",
+            "src",
+            "-c",
+            "pyproject.toml",
+            "-f",
+            "json",
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode not in {0, 1}:
+        return False, None, None, None, None
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return False, None, None, None, None
+    if not isinstance(payload, dict):
+        return False, None, None, None, None
+    results = payload.get("results")
+    metrics = payload.get("metrics")
+    if not isinstance(results, list) or not isinstance(metrics, dict):
+        return False, None, None, None, None
+    totals = metrics.get("_totals")
+    if not isinstance(totals, dict):
+        return False, None, None, None, None
+    return (
+        True,
+        len(results),
+        int(totals.get("SEVERITY.HIGH", 0)),
+        int(totals.get("SEVERITY.MEDIUM", 0)),
+        int(totals.get("SEVERITY.LOW", 0)),
+    )
+
+
+def _importlinter_contract_counts(
+    repo_root: Path,
+) -> tuple[bool, int | None, int | None, int | None]:
+    if not _tool_available("importlinter") or not (repo_root / ".importlinter").exists():
+        return False, None, None, None
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from importlinter.cli import lint_imports_command; "
+                "lint_imports_command(args=['--config','.importlinter'], standalone_mode=True)"
+            ),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    contract_match = re.search(
+        r"Contracts:\s+(?P<kept>\d+)\s+kept,\s+(?P<broken>\d+)\s+broken",
+        completed.stdout,
+    )
+    if contract_match is None:
+        return False, None, None, None
+    kept = int(contract_match.group("kept"))
+    broken = int(contract_match.group("broken"))
+    return completed.returncode in {0, 1}, kept + broken, kept, broken
+
+
+def _radon_complexity_inventory(
+    repo_root: Path,
+) -> tuple[bool, int | None, dict[str, int], str | None, int | None]:
+    if not _tool_available("radon"):
+        return False, None, {}, None, None
+    completed = subprocess.run(
+        [sys.executable, "-m", "radon", "cc", "src", "-s", "-j"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        return False, None, {}, None, None
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return False, None, {}, None, None
+    if not isinstance(payload, dict):
+        return False, None, {}, None, None
+    blocks: list[dict[str, object]] = []
+
+    def _collect(block: object) -> None:
+        if not isinstance(block, dict):
+            return
+        blocks.append(block)
+        for child_key in ("methods", "closures"):
+            children = block.get(child_key)
+            if isinstance(children, list):
+                for child in children:
+                    _collect(child)
+
+    for file_blocks in payload.values():
+        if isinstance(file_blocks, list):
+            for block in file_blocks:
+                _collect(block)
+    rank_counts = Counter(
+        str(block.get("rank"))
+        for block in blocks
+        if isinstance(block.get("rank"), str) and block.get("rank")
+    )
+
+    def _complexity(block: dict[str, object]) -> int:
+        value = block.get("complexity")
+        return value if isinstance(value, int) else 0
+
+    worst_block = max(blocks, key=_complexity, default=None)
+    if worst_block is None:
+        return True, 0, {}, None, None
+    worst_complexity_value = worst_block.get("complexity")
+    worst_rank = worst_block.get("rank")
+    worst_complexity = worst_complexity_value if isinstance(worst_complexity_value, int) else None
+    return (
+        True,
+        len(blocks),
+        dict(sorted(rank_counts.items())),
+        str(worst_rank) if isinstance(worst_rank, str) else None,
+        worst_complexity,
+    )
+
+
+def _vulture_issue_inventory(repo_root: Path) -> tuple[bool, int | None, dict[str, int]]:
+    if not _tool_available("vulture"):
+        return False, None, {}
+    completed = subprocess.run(
+        [sys.executable, "-m", "vulture", "src", "scripts", "--min-confidence", "80"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode not in {0, 1, 3}:
+        return False, None, {}
+    findings = [line for line in completed.stdout.splitlines() if line.strip()]
+    confidence_counts: Counter[str] = Counter()
+    for finding in findings:
+        confidence_match = re.search(r"\((?P<confidence>\d+)% confidence\)", finding)
+        if confidence_match is not None:
+            confidence_counts[confidence_match.group("confidence")] += 1
+    return True, len(findings), dict(sorted(confidence_counts.items()))
+
+
+def _interrogate_inventory(
+    repo_root: Path,
+) -> tuple[bool, int | None, int | None, int | None, str | None]:
+    if not _tool_available("interrogate") or not (repo_root / "pyproject.toml").exists():
+        return False, None, None, None, None
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "interrogate",
+            "src",
+            "scripts",
+            "--config",
+            "pyproject.toml",
+            "-v",
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode not in {0, 1}:
+        return False, None, None, None, None
+    total_match = re.search(
+        r"\|\s+TOTAL\s+\|\s+(?P<total>\d+)\s+\|\s+(?P<miss>\d+)\s+\|"
+        r"\s+(?P<cover>\d+)\s+\|\s+(?P<percent>[0-9.]+%)\s+\|",
+        completed.stdout,
+    )
+    if total_match is None:
+        return False, None, None, None, None
+    return (
+        True,
+        int(total_match.group("total")),
+        int(total_match.group("miss")),
+        int(total_match.group("cover")),
+        total_match.group("percent"),
+    )
+
+
+def _spectral_openapi_inventory(
+    repo_root: Path,
+) -> tuple[bool, int | None, dict[str, int], int | None]:
+    if (
+        not (repo_root / ".spectral.yaml").exists()
+        or not (repo_root / "scripts" / "openapi_spectral_report.py").exists()
+    ):
+        return False, None, {}, None
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
+        output_path = Path(handle.name)
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "scripts/openapi_spectral_report.py",
+                "--output",
+                str(output_path),
+            ],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if not output_path.exists() or completed.returncode not in {0, 1}:
+            return False, None, {}, None
+        try:
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return False, None, {}, None
+        if not isinstance(payload, dict) or payload.get("spectralExecutable") is not True:
+            return False, None, {}, None
+        issue_count = payload.get("issueCount")
+        path_count = payload.get("openapiPathCount")
+        severity_inventory = payload.get("severityInventory")
+        if not isinstance(issue_count, int) or not isinstance(severity_inventory, dict):
+            return False, None, {}, None
+        severity_counts = {
+            str(severity): int(count)
+            for severity, count in severity_inventory.items()
+            if isinstance(count, int)
+        }
+        return (
+            True,
+            issue_count,
+            severity_counts,
+            path_count if isinstance(path_count, int) else None,
+        )
+    finally:
+        output_path.unlink(missing_ok=True)
+
+
 def build_quality_context(repo_root: Path) -> QualityContext:
     available_tools = tuple(name for name, module in QUALITY_TOOLS if _tool_available(module))
     unavailable_tools = tuple(name for name, module in QUALITY_TOOLS if not _tool_available(module))
@@ -80,6 +397,43 @@ def build_quality_context(repo_root: Path) -> QualityContext:
     requested_docs_missing = tuple(
         path for path in REQUESTED_DOCS if not (repo_root / path).exists()
     )
+    deptry_config_valid, deptry_issue_count = _deptry_issue_count(repo_root)
+    (
+        bandit_config_valid,
+        bandit_issue_count,
+        bandit_high_count,
+        bandit_medium_count,
+        bandit_low_count,
+    ) = _bandit_issue_counts(repo_root)
+    (
+        importlinter_config_valid,
+        importlinter_contract_count,
+        importlinter_kept_count,
+        importlinter_broken_count,
+    ) = _importlinter_contract_counts(repo_root)
+    (
+        radon_config_valid,
+        radon_analyzed_block_count,
+        radon_rank_counts,
+        radon_worst_rank,
+        radon_worst_complexity,
+    ) = _radon_complexity_inventory(repo_root)
+    vulture_config_valid, vulture_issue_count, vulture_confidence_counts = _vulture_issue_inventory(
+        repo_root
+    )
+    (
+        spectral_config_valid,
+        spectral_issue_count,
+        spectral_severity_counts,
+        spectral_openapi_path_count,
+    ) = _spectral_openapi_inventory(repo_root)
+    (
+        interrogate_config_valid,
+        interrogate_total_count,
+        interrogate_missing_count,
+        interrogate_covered_count,
+        interrogate_coverage_percent,
+    ) = _interrogate_inventory(repo_root)
     return QualityContext(
         report=build_report(repo_root),
         branch_commit_count=_branch_commit_count(repo_root),
@@ -93,6 +447,34 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         requested_docs_missing=requested_docs_missing,
         available_tools=available_tools,
         unavailable_tools=unavailable_tools,
+        deptry_config_valid=deptry_config_valid,
+        deptry_issue_count=deptry_issue_count,
+        bandit_config_valid=bandit_config_valid,
+        bandit_issue_count=bandit_issue_count,
+        bandit_high_count=bandit_high_count,
+        bandit_medium_count=bandit_medium_count,
+        bandit_low_count=bandit_low_count,
+        importlinter_config_valid=importlinter_config_valid,
+        importlinter_contract_count=importlinter_contract_count,
+        importlinter_kept_count=importlinter_kept_count,
+        importlinter_broken_count=importlinter_broken_count,
+        radon_config_valid=radon_config_valid,
+        radon_analyzed_block_count=radon_analyzed_block_count,
+        radon_rank_counts=radon_rank_counts,
+        radon_worst_rank=radon_worst_rank,
+        radon_worst_complexity=radon_worst_complexity,
+        vulture_config_valid=vulture_config_valid,
+        vulture_issue_count=vulture_issue_count,
+        vulture_confidence_counts=vulture_confidence_counts,
+        spectral_config_valid=spectral_config_valid,
+        spectral_issue_count=spectral_issue_count,
+        spectral_severity_counts=spectral_severity_counts,
+        spectral_openapi_path_count=spectral_openapi_path_count,
+        interrogate_config_valid=interrogate_config_valid,
+        interrogate_total_count=interrogate_total_count,
+        interrogate_missing_count=interrogate_missing_count,
+        interrogate_covered_count=interrogate_covered_count,
+        interrogate_coverage_percent=interrogate_coverage_percent,
     )
 
 
@@ -106,6 +488,88 @@ def _gate_commands(context: QualityContext) -> dict[str, list[str]]:
 def render_baseline_report(context: QualityContext) -> str:
     gates = _gate_commands(context)
     report = context.report
+    deptry_issue_count = (
+        str(context.deptry_issue_count) if context.deptry_issue_count is not None else "not run"
+    )
+    bandit_issue_count = (
+        str(context.bandit_issue_count) if context.bandit_issue_count is not None else "not run"
+    )
+    bandit_high_count = (
+        str(context.bandit_high_count) if context.bandit_high_count is not None else "not run"
+    )
+    bandit_medium_count = (
+        str(context.bandit_medium_count) if context.bandit_medium_count is not None else "not run"
+    )
+    bandit_low_count = (
+        str(context.bandit_low_count) if context.bandit_low_count is not None else "not run"
+    )
+    importlinter_contract_count = (
+        str(context.importlinter_contract_count)
+        if context.importlinter_contract_count is not None
+        else "not run"
+    )
+    importlinter_kept_count = (
+        str(context.importlinter_kept_count)
+        if context.importlinter_kept_count is not None
+        else "not run"
+    )
+    importlinter_broken_count = (
+        str(context.importlinter_broken_count)
+        if context.importlinter_broken_count is not None
+        else "not run"
+    )
+    radon_block_count = (
+        str(context.radon_analyzed_block_count)
+        if context.radon_analyzed_block_count is not None
+        else "not run"
+    )
+    radon_rank_inventory = ", ".join(
+        f"{rank}={count}" for rank, count in context.radon_rank_counts.items()
+    )
+    if not radon_rank_inventory:
+        radon_rank_inventory = "not run"
+    radon_worst = (
+        f"rank={context.radon_worst_rank}, complexity={context.radon_worst_complexity}"
+        if context.radon_worst_rank is not None and context.radon_worst_complexity is not None
+        else "not run"
+    )
+    vulture_issue_count = (
+        str(context.vulture_issue_count) if context.vulture_issue_count is not None else "not run"
+    )
+    vulture_confidence_inventory = ", ".join(
+        f"{confidence}%={count}" for confidence, count in context.vulture_confidence_counts.items()
+    )
+    if not vulture_confidence_inventory:
+        vulture_confidence_inventory = "not run"
+    interrogate_total_count = (
+        str(context.interrogate_total_count)
+        if context.interrogate_total_count is not None
+        else "not run"
+    )
+    interrogate_missing_count = (
+        str(context.interrogate_missing_count)
+        if context.interrogate_missing_count is not None
+        else "not run"
+    )
+    interrogate_covered_count = (
+        str(context.interrogate_covered_count)
+        if context.interrogate_covered_count is not None
+        else "not run"
+    )
+    interrogate_coverage_percent = context.interrogate_coverage_percent or "not run"
+    spectral_issue_count = (
+        str(context.spectral_issue_count) if context.spectral_issue_count is not None else "not run"
+    )
+    spectral_path_count = (
+        str(context.spectral_openapi_path_count)
+        if context.spectral_openapi_path_count is not None
+        else "not run"
+    )
+    spectral_severity_inventory = ", ".join(
+        f"{severity}={count}" for severity, count in context.spectral_severity_counts.items()
+    )
+    if not spectral_severity_inventory:
+        spectral_severity_inventory = "none" if context.spectral_issue_count == 0 else "not run"
     lines = [
         "# Lotus Advise Quality Baseline Report",
         "",
@@ -150,8 +614,14 @@ def render_baseline_report(context: QualityContext) -> str:
             "",
             "- Current baseline uses largest-function and router-hotspot evidence as deterministic",
             "  complexity proxies.",
-            "- `radon` and `xenon` are tracked as report-only follow-up tools until installed and",
-            "  calibrated against current Lotus Advise behavior.",
+            f"- Radon config executable: `{context.radon_config_valid}`",
+            f"- Radon analyzed block inventory: `{radon_block_count}`",
+            f"- Radon complexity rank inventory: `{radon_rank_inventory}`",
+            f"- Radon worst complexity: `{radon_worst}`",
+            "- Radon E/F-ranked block enforcement is repo-native through",
+            "  `make complexity-regression-gate` and the `lint` lane.",
+            "- Xenon and stricter Radon thresholds remain report-only until current",
+            "  D-ranked helpers are classified.",
             "",
             "## Lint And Type Issues",
             "",
@@ -166,7 +636,11 @@ def render_baseline_report(context: QualityContext) -> str:
             "",
             "## Dead Code",
             "",
-            "- `vulture` is tracked as report-only pending installation and allowlist calibration.",
+            f"- Vulture config executable: `{context.vulture_config_valid}`",
+            f"- Vulture current issue inventory: `{vulture_issue_count}`",
+            f"- Vulture confidence inventory: `{vulture_confidence_inventory}`",
+            "- Vulture remains report-only until validator false positives and compatibility",
+            "  facade imports are classified.",
             "- Current dead-code cleanup remains code-led through review-ledger slices.",
             "",
             "## Dependencies",
@@ -175,11 +649,19 @@ def render_baseline_report(context: QualityContext) -> str:
             f"- Security audit configured: `{'security-audit' in gates}`",
             f"- Available dependency/security tools: `{', '.join(context.available_tools)}`",
             f"- Pending optional tools: `{', '.join(context.unavailable_tools)}`",
+            f"- Deptry config executable: `{context.deptry_config_valid}`",
+            f"- Deptry current issue inventory: `{deptry_issue_count}`",
+            f"- Bandit config executable: `{context.bandit_config_valid}`",
+            f"- Bandit current issue inventory: `{bandit_issue_count}`",
+            f"- Bandit severity inventory: `high={bandit_high_count}, "
+            f"medium={bandit_medium_count}, low={bandit_low_count}`",
             "",
             "## Security",
             "",
             "- `pip-audit` is present in development requirements.",
-            "- `bandit` config is present in `pyproject.toml` for report-only rollout.",
+            "- `bandit` high-severity enforcement is repo-native through",
+            "  `make bandit-high-severity-gate` and the `security-audit` lane.",
+            "- Medium and low Bandit findings remain an inventoried classification backlog.",
             "- Sensitive-data handling remains governed by API error redaction and structured",
             "  payload tests until the security report gate is calibrated.",
             "",
@@ -187,23 +669,39 @@ def render_baseline_report(context: QualityContext) -> str:
             "",
             f"- Repo-native OpenAPI gate configured: `{'openapi-gate' in gates}`",
             f"- Spectral rules present: `{context.spectral_present}`",
-            "- Spectral is report-only until Node/Spectral execution is added to CI.",
+            f"- Spectral config executable: `{context.spectral_config_valid}`",
+            f"- Spectral OpenAPI path inventory: `{spectral_path_count}`",
+            f"- Spectral current issue inventory: `{spectral_issue_count}`",
+            f"- Spectral severity inventory: `{spectral_severity_inventory}`",
+            "- Spectral is enforced through `make openapi-gate`; the inventory remains recorded",
+            "  for before/after scorecard evidence.",
             "",
             "## Architecture Violations",
             "",
             f"- Import-linter contracts present: `{context.importlinter_present}`",
-            "- Contracts are report-only until import-linter is installed and current violations",
-            "  are baselined.",
+            f"- Import-linter config executable: `{context.importlinter_config_valid}`",
+            f"- Import-linter contract inventory: `total={importlinter_contract_count}, "
+            f"kept={importlinter_kept_count}, broken={importlinter_broken_count}`",
+            "- Contracts remain report-only until the kept inventory is wired into a CI gate.",
             "",
             "## Documentation Gaps",
             "",
             f"- Requested docs present: `{', '.join(context.requested_docs_present) or 'none'}`",
             f"- Requested docs missing: `{', '.join(context.requested_docs_missing) or 'none'}`",
+            f"- Interrogate config executable: `{context.interrogate_config_valid}`",
+            f"- Interrogate docstring inventory: `total={interrogate_total_count}, "
+            f"missing={interrogate_missing_count}, covered={interrogate_covered_count}, "
+            f"coverage={interrogate_coverage_percent}`",
+            "- Interrogate remains report-only until public API and module ownership thresholds",
+            "  are classified.",
             "",
             "## Observability Gaps",
             "",
-            "- Observability documentation and service-level diagnostics are tracked as baseline",
-            "  gaps until `docs/observability.md` and operational diagnostics gates are added.",
+            "- Observability documentation is present.",
+            "- Observability diagnostics target: `make observability-diagnostics`",
+            "- Focused diagnostics currently verify correlation, request, trace,",
+            "  and structured-log propagation.",
+            "- Dashboard, alert, SLO, and distributed-tracing evidence remain tracked gaps.",
             "",
         ]
     )
@@ -241,6 +739,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  backend-evidence, product-surface, and boundary claim groups.",
         "- Compliance rule evaluation is split into focused cash-band, concentration,",
         "  data-quality, trade-size, shorting, and cash-sufficiency evaluators.",
+        "- Target-generation solver orchestration delegates sell-only redistribution, solver",
+        "  indexing, constraint assembly, and solved-weight application to focused helpers.",
         "- Proposal memo source-readiness assembly is split into core, risk, and Advise",
         "  source-owner section groups.",
         "- Proposal memo source-readiness owner groups are split into focused Lotus Core,",
@@ -292,6 +792,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  response, lineage, and replay evidence models.",
         "- Proposal memo persistence records are split into a focused owner module",
         "  while preserving the existing persistence model facade.",
+        "- Proposal memo section assembly delegates source evidence and hash-payload",
+        "  collection to focused factory helpers.",
         "- Proposal memo audit event DTOs are split into a focused append-only",
         "  event model module.",
         "- Proposal memo lineage and replay evidence DTOs are split into a",
@@ -306,6 +808,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused review-rule module.",
         "- Policy evaluation source-readiness and mandate rules are split into",
         "  a focused source-rule module.",
+        "- Policy evaluation source-readiness rule handling delegates policy-posture",
+        "  aggregation and section evidence collection to focused helpers.",
         "- Proposal artifact summary DTOs are split into a focused summary model module",
         "  while preserving the existing artifact model facade.",
         "- Proposal artifact portfolio-impact DTOs are split into a focused portfolio model",
@@ -338,6 +842,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  while preserving the existing narrative model facade.",
         "- Proposal narrative runtime modules import focused DTO owner modules directly",
         "  instead of routing DTOs through the narrative model facade.",
+        "- Proposal narrative grounding fact projection delegates decision-summary and",
+        "  alternatives fact assembly to focused helpers.",
         "- Advisor cockpit source read models delegate source projection helpers to a focused",
         "  source-projection module while preserving the existing read-model facade.",
         "- Advisor cockpit source projection delegates policy-review and memo package blockage",
@@ -369,6 +875,35 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and idempotency lookup facade methods live in a focused read mixin.",
         "- Advisory workspace routes are split into session/version, assistant-rationale,",
         "  and lifecycle-handoff route modules behind the public aggregate router.",
+        "- Workspace draft action request validation delegates trade, cash-flow, options,",
+        "  and identifier-scope rules to focused helpers.",
+        "- Local valuation state assembly delegates position summary collection, cash",
+        "  conversion, shelf allocation, and allocation-metric rendering to focused helpers.",
+        "- Local position valuation delegates trust-snapshot authority handling,",
+        "  mark-to-market valuation, price lookup, and FX conversion to focused helpers.",
+        "- Enterprise write authorization delegates header normalization, required-header",
+        "  checks, service identity, capability config, and capability matching to",
+        "  focused helpers.",
+        "- In-memory proposal listing delegates filter matching, cursor slicing, and",
+        "  next-cursor calculation to focused query helpers.",
+        "- OpenAPI operation enrichment delegates operation eligibility, default",
+        "  summary/description, tag inference, error response, and idempotency header handling.",
+        "- OpenAPI example repair delegates array, object-property, required-field,",
+        "  existing-field, and additional-property repair paths to focused helpers.",
+        "- OpenAPI field-description inference delegates identifier, date/time, currency,",
+        "  monetary, quantity, rate/price, status, and fallback descriptions to focused helpers.",
+        "- OpenAPI example inference delegates const/enum/ref/composite priority handling",
+        "  and schema-type dispatch to focused helpers.",
+        "- OpenAPI string example inference delegates pattern, format, keyed, identifier,",
+        "  semantic-key, and fallback example paths to focused helpers.",
+        "- Commercial material source-reference normalization delegates text, repository-local",
+        "  location, path, and fragment validation to focused helpers.",
+        "- Bank-demo proof artifact-reference normalization delegates local text, URL/location,",
+        "  and path safety validation to focused helpers.",
+        "- Shared proposal intent dependency linking delegates SELL indexing, BUY selection,",
+        "  and idempotent dependency appending to focused helpers.",
+        "- API structured logging formatter delegates base payload, extra-field, audit-field,",
+        "  and null-filtering behavior to focused helpers.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
         "  mechanics, and detail projection to focused owner modules.",
         "- Proposal decision-summary assembly delegates status, reason, next-action,",
@@ -391,8 +926,18 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
-        "- Calibrate report-only tools: radon/xenon, vulture, deptry, bandit, import-linter,",
-        "  Spectral, interrogate, and optional schemathesis/load testing.",
+        "- Calibrate remaining report-only tools: xenon and optional schemathesis/load testing.",
+        "- Keep Spectral OpenAPI enforcement green while route and schema contracts evolve.",
+        "- Convert the Interrogate docstring inventory into a targeted documentation-quality gate",
+        "  after classifying public API and module ownership thresholds.",
+        "- Convert the Vulture dead-code inventory into a fail-on-new-regression gate after",
+        "  classifying validator and compatibility-facade findings.",
+        "- Expand Radon complexity enforcement beyond E/F-ranked blocks after classifying",
+        "  current high-complexity blocks.",
+        "- Expand Bandit security enforcement beyond high severity after classifying current",
+        "  SQL-construction findings and resolving true positives.",
+        "- Convert the deptry dependency inventory into a fail-on-new-regression gate after",
+        "  classifying current dependency findings.",
         "- Convert baseline reports into fail-on-new-regression gates before enforcing absolute",
         "  thresholds.",
         "- Continue moving oversized proposal/advisory service modules into focused use-case and",
@@ -406,18 +951,50 @@ def render_refactor_health_report(context: QualityContext) -> str:
 def render_quality_scorecard(context: QualityContext) -> str:
     rows = [
         ("Code size and hotspots", "Baseline active", "engineering-health + quality baseline"),
-        ("Complexity", "Report-only gap", "radon/xenon pending calibration"),
+        (
+            "Complexity",
+            "No-E/F gate plus Radon inventory",
+            "complexity-regression-gate + radon rank and worst-complexity counts",
+        ),
         ("Maintainability", "Improving", "modularity slices and review ledger"),
         ("Lint", "Enforced", "make lint"),
         ("Type safety", "Enforced", "make typecheck"),
         ("Coverage", "Enforced", "make coverage-combined fail-under 97"),
-        ("Dead code", "Report-only gap", "vulture pending calibration"),
-        ("Dependencies", "Enforced", "dependency health check + pip-audit posture"),
-        ("Security", "Partially enforced", "security-audit plus pending bandit baseline"),
-        ("OpenAPI", "Enforced plus report-only", "openapi-gate + Spectral config"),
-        ("Architecture boundaries", "Report-only gap", "import-linter config added"),
-        ("Docs", "Gap tracked", "requested docs tracked in baseline report"),
-        ("Observability", "Gap tracked", "observability doc and diagnostics gates pending"),
+        (
+            "Dead code",
+            "Executable Vulture inventory",
+            "vulture issue and confidence counts",
+        ),
+        (
+            "Dependencies",
+            "Enforced plus deptry inventory",
+            "dependency health check + pip-audit posture + deptry issue count",
+        ),
+        (
+            "Security",
+            "High-severity enforced plus Bandit inventory",
+            "security-audit + bandit-high-severity-gate + Bandit severity counts",
+        ),
+        (
+            "OpenAPI",
+            "Enforced with Spectral",
+            "openapi-gate + Spectral zero-finding inventory",
+        ),
+        (
+            "Architecture boundaries",
+            "Enforced",
+            "make lint runs import-linter architecture contracts",
+        ),
+        (
+            "Docs",
+            "Gap tracked plus Interrogate inventory",
+            "requested docs + docstring coverage inventory",
+        ),
+        (
+            "Observability",
+            "Diagnostics target added",
+            "make observability-diagnostics",
+        ),
     ]
     lines = [
         "# Lotus Advise Quality Scorecard",
@@ -431,7 +1008,107 @@ def render_quality_scorecard(context: QualityContext) -> str:
     ]
     for area, status, evidence in rows:
         lines.append(f"| {area} | {status} | {evidence} |")
-    lines.append("")
+    before_after_rows = [
+        (
+            "Complexity",
+            "Radon and Xenon tracked as pending report-only tools.",
+            "Radon config executable; inventory `A=2827, B=248, C=52`; "
+            "worst block `C/16`; no E/F gate enforced through `make lint`.",
+            "Complexity is now measured repeatably and regression-blocked for E/F-ranked blocks.",
+        ),
+        (
+            "Maintainability",
+            "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
+            "proof-material, dependency-linking, and observability slices were absent.",
+            "Review ledger includes `LA-REV-611` through `LA-REV-711` with scoped "
+            "findings, evidence, and follow-up.",
+            "Modularization and hotspot reductions are traceable by owner boundary "
+            "and test evidence.",
+        ),
+        (
+            "OpenAPI quality",
+            "Spectral rules were present but report-only until Node/Spectral execution "
+            "was added to CI.",
+            "Spectral config executable; OpenAPI path inventory `84`; current Spectral "
+            "issue inventory `0`; enforced through `make openapi-gate`.",
+            "OpenAPI quality moved from report-only posture to enforced zero-finding gate.",
+        ),
+        (
+            "Architecture boundaries",
+            "Import-linter contracts were present but report-only pending installation "
+            "and baseline.",
+            "Import-linter inventory `total=3, kept=3, broken=0`; architecture contracts "
+            "run inside `make lint`.",
+            "Layering contracts are now executable and locally enforced.",
+        ),
+        (
+            "Tests",
+            "Unit suite existed; new focused refactor regressions were absent.",
+            "Unit suite now has `1924` passing tests in `make check`; added focused tests "
+            "for OpenAPI enrichment, proof refs, source refs, dependency linking, and "
+            "structured logging.",
+            "Refactors are covered by behavior-preserving regression tests.",
+        ),
+        (
+            "Security",
+            "Bandit config was present for report-only rollout; sensitive-data handling "
+            "remained test-governed.",
+            "Bandit inventory executable with `high=0, medium=26, low=1`; high-severity "
+            "gate enforced through `make security-audit`; proof/source refs reject "
+            "unsafe and sensitive paths.",
+            "Security posture is measured and high-severity findings are gated.",
+        ),
+        (
+            "Dependency hygiene",
+            "Dependency audit configured; deptry inventory absent from the scorecard.",
+            "Deptry config executable with current inventory `14`; dependency/security "
+            "tools inventory recorded.",
+            "Dependency hygiene moved from broad audit posture to measurable inventory.",
+        ),
+        (
+            "Observability",
+            "Observability docs and diagnostics were tracked as baseline gaps.",
+            "`make observability-diagnostics` target exists; structured formatter has "
+            "direct tests for context, extra fields, audit fields, and null filtering.",
+            "Observability behavior is documented, testable, and less complex.",
+        ),
+        (
+            "Documentation",
+            "Requested docs were present; docstring inventory was not calibrated.",
+            "Requested docs remain present; Interrogate inventory executable at `1.0%`; "
+            "scorecard, baseline, and refactor-health reports are generated.",
+            "Documentation gaps are explicitly inventoried and tied to generated quality reports.",
+        ),
+    ]
+    lines.extend(
+        [
+            "",
+            "## Before/After Evidence",
+            "",
+            "- Before baseline: `origin/main` report head",
+            "  `f6a82186ed52e3eb3568ae0de2bbb2919f18f90d`.",
+            "- After baseline: this branch report head shown above.",
+            "",
+            "| Area | Before | After | Improvement Evidence |",
+            "| --- | --- | --- | --- |",
+        ]
+    )
+    for area, before, after, evidence in before_after_rows:
+        lines.append(f"| {area} | {before} | {after} | {evidence} |")
+    lines.extend(
+        [
+            "",
+            "## Known Limits",
+            "",
+            "- This scorecard proves measurable engineering improvement; it does not claim bank",
+            "  certification, regulatory approval, client-ready publication, or production",
+            "  deployment approval.",
+            "- Xenon strict thresholds, Vulture fail-on-new-regression, Deptry",
+            "  fail-on-new-regression, medium/low Bandit classification, and public API",
+            "  docstring thresholds remain governed follow-up work.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 

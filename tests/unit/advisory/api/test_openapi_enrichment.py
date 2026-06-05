@@ -10,7 +10,26 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
             "/health": {"get": {"responses": {"200": {"description": "ok"}}}},
             "/metrics": {"get": {"responses": {"200": {"description": "ok"}}}},
             "/advisory/proposals": {
-                "post": {"responses": {"201": {"description": "created"}}},
+                "post": {
+                    "responses": {
+                        "201": {
+                            "description": "created",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/ReferencedModel"},
+                                    "examples": {
+                                        "created": {
+                                            "value": {
+                                                "sourceId": "SOURCE_003",
+                                                "priority": "NOT_VALID",
+                                            }
+                                        }
+                                    },
+                                }
+                            },
+                        }
+                    }
+                },
                 "parameters": [],
             },
             "/ignored": ["not", "a", "method-map"],
@@ -21,12 +40,38 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
                     "properties": {
                         "portfolioId": {"type": "string"},
                         "status": {"enum": ["READY", "PENDING"]},
+                        "referencedEnum": {"$ref": "#/components/schemas/ReferencedEnum"},
                         "items": {"type": "array", "items": {"type": "integer"}},
+                        "refItems": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/ReferencedModel"},
+                        },
+                        "composedItems": {
+                            "type": "array",
+                            "items": {"allOf": [{"$ref": "#/components/schemas/ReferencedModel"}]},
+                        },
+                        "incompleteExistingItems": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/ReferencedModel"},
+                            "example": [{"sourceId": "SOURCE_002"}],
+                        },
+                        "invalidEnum": {
+                            "enum": ["PASSED", "FAILED"],
+                            "example": "READY",
+                        },
+                        "currencyMap": {
+                            "type": "object",
+                            "additionalProperties": {"type": "string", "pattern": r"\d*\.?\d*"},
+                        },
                         "metadata": {"type": "object"},
                         "enabled": {"type": "boolean"},
                         "ttlHours": {"type": "integer"},
                         "version": {"type": "integer"},
+                        "settlementDays": {"type": "integer", "maximum": 10},
+                        "floatBoundedDays": {"type": "integer", "minimum": 0.0, "maximum": 10.0},
                         "weight": {"type": "number"},
+                        "numericText": {"type": "string", "pattern": r"\d*\.?\d*"},
+                        "constantText": {"type": "string", "const": "AUTO_FX"},
                         "marketPrice": {"type": "number"},
                         "orderQuantity": {"type": "number"},
                         "marketValue": {"type": "number"},
@@ -43,6 +88,20 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
                         "ignored": ["not", "a", "property"],
                     }
                 },
+                "ReferencedModel": {
+                    "properties": {
+                        "sourceId": {"type": "string"},
+                        "weight": {"type": "string", "pattern": r"\d*\.?\d*"},
+                        "summary": {"type": "string"},
+                        "priority": {"enum": ["HIGH", "LOW"]},
+                        "actorId": {"type": "string"},
+                    },
+                    "required": ["sourceId", "weight", "summary", "priority", "actorId"],
+                },
+                "ReferencedEnum": {
+                    "type": "string",
+                    "enum": ["HEURISTIC", "SOLVER"],
+                },
                 "ModelWithoutProperties": {"properties": []},
                 "IgnoredModel": ["not", "a", "schema"],
             }
@@ -52,7 +111,11 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
     enriched = enrich_openapi_schema(schema, service_name="lotus-advise")
 
     assert enriched["info"]["title"] == "Lotus Advise API"
+    assert enriched["info"]["contact"] == {"name": "Lotus Platform Engineering"}
     assert enriched["info"]["description"].startswith("Lotus platform API contract.")
+    assert enriched["servers"] == [
+        {"url": "/", "description": "Relative Lotus Advise service root."}
+    ]
     health = enriched["paths"]["/health"]["get"]
     metrics = enriched["paths"]["/metrics"]["get"]
     proposal = enriched["paths"]["/advisory/proposals"]["post"]
@@ -63,15 +126,49 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
     assert metrics["tags"] == ["Monitoring"]
     assert proposal["tags"] == ["Advisory"]
     assert proposal["responses"]["default"] == {"description": "Unexpected error response."}
+    assert proposal["responses"]["201"]["content"]["application/json"]["examples"]["created"][
+        "value"
+    ] == {
+        "sourceId": "SOURCE_003",
+        "weight": "0.125",
+        "summary": "example_summary",
+        "priority": "HIGH",
+        "actorId": "ACTOR_001",
+    }
     assert properties["portfolioId"]["description"] == "Unique portfolio identifier."
     assert properties["portfolioId"]["example"] == "PB_SG_GLOBAL_BAL_001"
     assert properties["status"]["example"] == "READY"
+    assert properties["referencedEnum"]["example"] == "HEURISTIC"
     assert properties["items"]["example"] == [10]
+    expected_referenced_example = {
+        "sourceId": "SOURCE_001",
+        "weight": "0.125",
+        "summary": "example_summary",
+        "priority": "HIGH",
+        "actorId": "ACTOR_001",
+    }
+    assert properties["refItems"]["example"] == [expected_referenced_example]
+    assert properties["composedItems"]["example"] == [expected_referenced_example]
+    assert properties["incompleteExistingItems"]["example"] == [
+        {
+            "sourceId": "SOURCE_002",
+            "weight": "0.125",
+            "summary": "example_summary",
+            "priority": "HIGH",
+            "actorId": "ACTOR_001",
+        }
+    ]
+    assert properties["invalidEnum"]["example"] == "PASSED"
+    assert properties["currencyMap"]["example"] == {"USD": "0.125"}
     assert properties["metadata"]["example"] == {"key": "sample_text"}
     assert properties["enabled"]["example"] is True
     assert properties["ttlHours"]["example"] == 24
     assert properties["version"]["example"] == 1
+    assert properties["settlementDays"]["example"] == 5
+    assert properties["floatBoundedDays"]["example"] == 5
     assert properties["weight"]["example"] == 0.125
+    assert properties["numericText"]["example"] == "0.125"
+    assert properties["constantText"]["example"] == "AUTO_FX"
     assert properties["marketPrice"]["example"] == 1.2345
     assert properties["orderQuantity"]["example"] == 100.0
     assert properties["marketValue"]["example"] == 125000.5
@@ -109,6 +206,7 @@ def test_openapi_enrichment_preserves_existing_lotus_description_and_error_respo
 
     operation = enriched["paths"]["/custom"]["get"]
     assert enriched["info"]["title"] == "Custom API"
+    assert enriched["info"]["contact"] == {"name": "Lotus Platform Engineering"}
     assert enriched["info"]["description"] == "Lotus custom contract."
     assert operation["summary"] == "Existing summary"
     assert operation["description"] == "Existing description"

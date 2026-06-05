@@ -2,8 +2,9 @@
 
 ## Enforcement Phase
 
-- Current phase: baseline/report-only plus existing repo-native OpenAPI gates.
-- Existing enforcement: `make openapi-gate`, API vocabulary inventory, and no-alias guard.
+- Current phase: enforced repo-native OpenAPI gates plus continuing quality inventory.
+- Existing enforcement: `make openapi-gate`, Spectral OpenAPI lint, API vocabulary inventory, and
+  no-alias guard.
 
 ## Endpoint Rules
 
@@ -19,14 +20,14 @@
 
 ## Current Evidence
 
-- `.spectral.yaml` defines report-only OpenAPI rules for operation IDs, descriptions, tags, and
+- `.spectral.yaml` defines enforced OpenAPI rules for operation IDs, descriptions, tags, and
   response documentation.
+- `make openapi-spectral-report` exports the generated OpenAPI document and records the pinned
+  Spectral inventory in `output/openapi-spectral-report.json`.
 - `scripts/openapi_quality_gate.py` remains the repo-native OpenAPI gate.
-- `quality/baseline_report.md` records Spectral execution as report-only pending Node/Spectral CI
-  installation.
+- `quality/baseline_report.md` records Spectral executability, OpenAPI path count, issue count, and
+  severity inventory.
 
 ## Next Gate
 
-- Add Spectral execution as report-only CI.
-- Capture OpenAPI warning inventory.
-- Move to fail-on-new-regression after the warning inventory is stable.
+- Keep Spectral at zero findings and fail new OpenAPI lint regressions through `make openapi-gate`.

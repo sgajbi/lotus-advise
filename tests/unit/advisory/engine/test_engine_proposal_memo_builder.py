@@ -2,7 +2,8 @@ from copy import deepcopy
 from pathlib import Path
 
 from src.core.proposals.memo_builder import build_advisory_proposal_memo_evidence_pack
-from src.core.proposals.memo_models import ProposalMemoSectionKey
+from src.core.proposals.memo_models import ProposalMemoMaterialClaim, ProposalMemoSectionKey
+from src.core.proposals.memo_section_factory import build_memo_section
 from src.core.proposals.memo_source_readiness import build_memo_source_readiness
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -330,3 +331,50 @@ def test_memo_builder_delegates_section_factory_helpers() -> None:
     assert "def build_memo_section(" in factory_source
     assert "def build_memo_claims(" in factory_source
     assert "def build_appendix_section(" in factory_source
+
+
+def test_memo_section_factory_preserves_blocking_source_evidence_and_hashes() -> None:
+    evidence_bundle = {
+        "memo_source_readiness": {
+            "sections": [
+                {
+                    "key": "core_product_eligibility_target_market_complexity",
+                    "status": "BLOCKED",
+                    "missing_evidence": ["target_market"],
+                    "reason_codes": ["TARGET_MARKET_MISSING"],
+                    "evidence_refs": ["core://target-market"],
+                    "owner_service": "lotus-core",
+                }
+            ]
+        }
+    }
+    claim = ProposalMemoMaterialClaim(
+        claim_id="recommendation.claim.1",
+        text="Recommendation is source backed.",
+        evidence_refs=["proposal://recommendation"],
+        source_authority_refs=["lotus-advise:proposal"],
+        reason_codes=["RECOMMENDATION_SOURCE_BACKED"],
+    )
+
+    section = build_memo_section(
+        section_id="RECOMMENDATION",
+        title="Recommendation",
+        owner_role="ADVISOR",
+        audience_visibility=["ADVISOR"],
+        source_keys=["core_product_eligibility_target_market_complexity"],
+        artifact=_artifact(),
+        evidence_bundle=evidence_bundle,
+        source_manifest=build_memo_source_readiness(_evidence_bundle()),
+        summary="Recommendation summary.",
+        claims=[claim],
+        forced_status="PENDING_REVIEW",
+    )
+
+    assert section.status == "BLOCKED"
+    assert section.missing_evidence == ["target_market"]
+    assert section.reason_codes == ["TARGET_MARKET_MISSING"]
+    assert section.evidence_refs == ["core://target-market", "proposal://recommendation"]
+    assert section.source_authority_refs == ["lotus-core", "lotus-advise:proposal"]
+    assert section.degraded_evidence == []
+    assert section.last_material_input_hash.startswith("sha256:")
+    assert section.section_hash.startswith("sha256:")

@@ -39,26 +39,71 @@ def filtered_proposal_page(
     cursor: Optional[str],
 ) -> tuple[list[ProposalRecord], Optional[str]]:
     filtered = sorted(rows, key=lambda row: (row.created_at, row.proposal_id), reverse=True)
-
-    if portfolio_id is not None:
-        filtered = [row for row in filtered if row.portfolio_id == portfolio_id]
-    if state is not None:
-        filtered = [row for row in filtered if row.current_state == state]
-    if created_by is not None:
-        filtered = [row for row in filtered if row.created_by == created_by]
-    if created_from is not None:
-        filtered = [row for row in filtered if row.created_at >= created_from]
-    if created_to is not None:
-        filtered = [row for row in filtered if row.created_at <= created_to]
-
-    if cursor:
-        row_ids = [row.proposal_id for row in filtered]
-        if cursor in row_ids:
-            filtered = filtered[row_ids.index(cursor) + 1 :]
-
+    filtered = [
+        row
+        for row in filtered
+        if _proposal_matches_filters(
+            row,
+            portfolio_id=portfolio_id,
+            state=state,
+            created_by=created_by,
+            created_from=created_from,
+            created_to=created_to,
+        )
+    ]
+    filtered = _apply_proposal_cursor(filtered, cursor)
     page = filtered[:limit]
-    next_cursor = page[-1].proposal_id if len(filtered) > limit else None
-    return copy_records(page), next_cursor
+    return copy_records(page), _next_page_cursor(filtered, page, limit)
+
+
+def _proposal_matches_filters(
+    row: ProposalRecord,
+    *,
+    portfolio_id: Optional[str],
+    state: Optional[str],
+    created_by: Optional[str],
+    created_from: Optional[datetime],
+    created_to: Optional[datetime],
+) -> bool:
+    return all(
+        (
+            portfolio_id is None or row.portfolio_id == portfolio_id,
+            state is None or row.current_state == state,
+            created_by is None or row.created_by == created_by,
+            created_from is None or row.created_at >= created_from,
+            created_to is None or row.created_at <= created_to,
+        )
+    )
+
+
+def _apply_proposal_cursor(
+    rows: list[ProposalRecord],
+    cursor: Optional[str],
+) -> list[ProposalRecord]:
+    if not cursor:
+        return rows
+
+    cursor_index = _proposal_cursor_index(rows, cursor)
+    if cursor_index is None:
+        return rows
+    return rows[cursor_index + 1 :]
+
+
+def _proposal_cursor_index(rows: list[ProposalRecord], cursor: str) -> int | None:
+    for index, row in enumerate(rows):
+        if row.proposal_id == cursor:
+            return index
+    return None
+
+
+def _next_page_cursor(
+    filtered: list[ProposalRecord],
+    page: list[ProposalRecord],
+    limit: int,
+) -> Optional[str]:
+    if len(filtered) <= limit or not page:
+        return None
+    return page[-1].proposal_id
 
 
 def ordered_memos_for_proposal(

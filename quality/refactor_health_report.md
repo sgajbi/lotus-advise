@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/proposal-context-boundaries`
-- Head: `f6a82186ed52e3eb3568ae0de2bbb2919f18f90d`
-- Branch Commits Over Main: `49`
+- Branch: `harden/quality-gate-calibration`
+- Head: `b245f733f1d49dc4e47b6702253fac4e598d6b5f`
+- Branch Commits Over Main: `55`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -26,6 +26,8 @@
   backend-evidence, product-surface, and boundary claim groups.
 - Compliance rule evaluation is split into focused cash-band, concentration,
   data-quality, trade-size, shorting, and cash-sufficiency evaluators.
+- Target-generation solver orchestration delegates sell-only redistribution, solver
+  indexing, constraint assembly, and solved-weight application to focused helpers.
 - Proposal memo source-readiness assembly is split into core, risk, and Advise
   source-owner section groups.
 - Proposal memo source-readiness owner groups are split into focused Lotus Core,
@@ -77,6 +79,8 @@
   response, lineage, and replay evidence models.
 - Proposal memo persistence records are split into a focused owner module
   while preserving the existing persistence model facade.
+- Proposal memo section assembly delegates source evidence and hash-payload
+  collection to focused factory helpers.
 - Proposal memo audit event DTOs are split into a focused append-only
   event model module.
 - Proposal memo lineage and replay evidence DTOs are split into a
@@ -91,6 +95,8 @@
   focused review-rule module.
 - Policy evaluation source-readiness and mandate rules are split into
   a focused source-rule module.
+- Policy evaluation source-readiness rule handling delegates policy-posture
+  aggregation and section evidence collection to focused helpers.
 - Proposal artifact summary DTOs are split into a focused summary model module
   while preserving the existing artifact model facade.
 - Proposal artifact portfolio-impact DTOs are split into a focused portfolio model
@@ -123,6 +129,8 @@
   while preserving the existing narrative model facade.
 - Proposal narrative runtime modules import focused DTO owner modules directly
   instead of routing DTOs through the narrative model facade.
+- Proposal narrative grounding fact projection delegates decision-summary and
+  alternatives fact assembly to focused helpers.
 - Advisor cockpit source read models delegate source projection helpers to a focused
   source-projection module while preserving the existing read-model facade.
 - Advisor cockpit source projection delegates policy-review and memo package blockage
@@ -154,6 +162,35 @@
   and idempotency lookup facade methods live in a focused read mixin.
 - Advisory workspace routes are split into session/version, assistant-rationale,
   and lifecycle-handoff route modules behind the public aggregate router.
+- Workspace draft action request validation delegates trade, cash-flow, options,
+  and identifier-scope rules to focused helpers.
+- Local valuation state assembly delegates position summary collection, cash
+  conversion, shelf allocation, and allocation-metric rendering to focused helpers.
+- Local position valuation delegates trust-snapshot authority handling,
+  mark-to-market valuation, price lookup, and FX conversion to focused helpers.
+- Enterprise write authorization delegates header normalization, required-header
+  checks, service identity, capability config, and capability matching to
+  focused helpers.
+- In-memory proposal listing delegates filter matching, cursor slicing, and
+  next-cursor calculation to focused query helpers.
+- OpenAPI operation enrichment delegates operation eligibility, default
+  summary/description, tag inference, error response, and idempotency header handling.
+- OpenAPI example repair delegates array, object-property, required-field,
+  existing-field, and additional-property repair paths to focused helpers.
+- OpenAPI field-description inference delegates identifier, date/time, currency,
+  monetary, quantity, rate/price, status, and fallback descriptions to focused helpers.
+- OpenAPI example inference delegates const/enum/ref/composite priority handling
+  and schema-type dispatch to focused helpers.
+- OpenAPI string example inference delegates pattern, format, keyed, identifier,
+  semantic-key, and fallback example paths to focused helpers.
+- Commercial material source-reference normalization delegates text, repository-local
+  location, path, and fragment validation to focused helpers.
+- Bank-demo proof artifact-reference normalization delegates local text, URL/location,
+  and path safety validation to focused helpers.
+- Shared proposal intent dependency linking delegates SELL indexing, BUY selection,
+  and idempotent dependency appending to focused helpers.
+- API structured logging formatter delegates base payload, extra-field, audit-field,
+  and null-filtering behavior to focused helpers.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
   mechanics, and detail projection to focused owner modules.
 - Proposal decision-summary assembly delegates status, reason, next-action,
@@ -176,8 +213,18 @@
 
 ## Remaining Enterprise-Readiness Work
 
-- Calibrate report-only tools: radon/xenon, vulture, deptry, bandit, import-linter,
-  Spectral, interrogate, and optional schemathesis/load testing.
+- Calibrate remaining report-only tools: xenon and optional schemathesis/load testing.
+- Keep Spectral OpenAPI enforcement green while route and schema contracts evolve.
+- Convert the Interrogate docstring inventory into a targeted documentation-quality gate
+  after classifying public API and module ownership thresholds.
+- Convert the Vulture dead-code inventory into a fail-on-new-regression gate after
+  classifying validator and compatibility-facade findings.
+- Expand Radon complexity enforcement beyond E/F-ranked blocks after classifying
+  current high-complexity blocks.
+- Expand Bandit security enforcement beyond high severity after classifying current
+  SQL-construction findings and resolving true positives.
+- Convert the deptry dependency inventory into a fail-on-new-regression gate after
+  classifying current dependency findings.
 - Convert baseline reports into fail-on-new-regression gates before enforcing absolute
   thresholds.
 - Continue moving oversized proposal/advisory service modules into focused use-case and

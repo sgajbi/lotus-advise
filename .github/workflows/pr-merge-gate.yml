@@ -34,8 +34,14 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
       - name: Install
         run: make install-ci
+      - name: Install OpenAPI governance tooling
+        run: npm ci
       - name: Verify Dependencies
         run: make verify-dependencies
       - name: Dependency Freshness

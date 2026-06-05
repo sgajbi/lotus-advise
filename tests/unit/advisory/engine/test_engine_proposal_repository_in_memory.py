@@ -356,3 +356,24 @@ def test_repository_created_from_to_filters_and_empty_current_version():
     assert rows == []
 
     assert repo.get_current_version(proposal_id="pp_repo_date") is None
+
+
+def test_repository_list_proposals_ignores_unknown_cursor() -> None:
+    repo = InMemoryProposalRepository()
+    first = _proposal("pp_repo_cursor_a", "advisor_cursor")
+    second = _proposal("pp_repo_cursor_b", "advisor_cursor")
+    repo.create_proposal(first)
+    repo.create_proposal(second)
+
+    rows, next_cursor = repo.list_proposals(
+        portfolio_id=None,
+        state=None,
+        created_by="advisor_cursor",
+        created_from=None,
+        created_to=None,
+        limit=1,
+        cursor="pp_repo_missing_cursor",
+    )
+
+    assert [row.proposal_id for row in rows] == ["pp_repo_cursor_b"]
+    assert next_cursor == "pp_repo_cursor_b"

@@ -1,24 +1,24 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-04T15:12:09.526365+00:00`
-- Branch: `harden/proposal-context-boundaries`
-- Head: `f6a82186ed52e3eb3568ae0de2bbb2919f18f90d`
-- Branch Commits Over Main: `49`
+- Generated At: `2026-06-05T04:17:40.181715+00:00`
+- Branch: `harden/quality-gate-calibration`
+- Head: `b245f733f1d49dc4e47b6702253fac4e598d6b5f`
+- Branch Commits Over Main: `55`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `908`
-- Packages: `37`
-- Modules: `871`
-- Total Python lines: `136626`
+- Python files: `921`
+- Packages: `38`
+- Modules: `883`
+- Total Python lines: `139947`
 
 ## Largest Files
 
 | Rank | File | Lines |
 | ---: | --- | ---: |
 | 1 | `scripts/validate_cross_service_parity_live.py` | 4010 |
-| 2 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 3859 |
+| 2 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 3861 |
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2566 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2538 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
@@ -38,17 +38,23 @@
 | 4 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 5 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 6 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
-| 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
-| 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 370 | 200 |
+| 7 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 238 |
+| 8 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
+| 9 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
+| 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
 
 ## Complexity
 
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
-- `radon` and `xenon` are tracked as report-only follow-up tools until installed and
-  calibrated against current Lotus Advise behavior.
+- Radon config executable: `True`
+- Radon analyzed block inventory: `3127`
+- Radon complexity rank inventory: `A=2827, B=248, C=52`
+- Radon worst complexity: `rank=C, complexity=16`
+- Radon E/F-ranked block enforcement is repo-native through
+  `make complexity-regression-gate` and the `lint` lane.
+- Xenon and stricter Radon thresholds remain report-only until current
+  D-ranked helpers are classified.
 
 ## Lint And Type Issues
 
@@ -63,7 +69,11 @@
 
 ## Dead Code
 
-- `vulture` is tracked as report-only pending installation and allowlist calibration.
+- Vulture config executable: `True`
+- Vulture current issue inventory: `142`
+- Vulture confidence inventory: `100%=135, 90%=7`
+- Vulture remains report-only until validator false positives and compatibility
+  facade imports are classified.
 - Current dead-code cleanup remains code-led through review-ledger slices.
 
 ## Dependencies
@@ -72,11 +82,18 @@
 - Security audit configured: `True`
 - Available dependency/security tools: `ruff, mypy, pytest, coverage.py, pip-audit, radon, xenon, vulture, deptry, bandit, interrogate`
 - Pending optional tools: ``
+- Deptry config executable: `True`
+- Deptry current issue inventory: `14`
+- Bandit config executable: `True`
+- Bandit current issue inventory: `27`
+- Bandit severity inventory: `high=0, medium=26, low=1`
 
 ## Security
 
 - `pip-audit` is present in development requirements.
-- `bandit` config is present in `pyproject.toml` for report-only rollout.
+- `bandit` high-severity enforcement is repo-native through
+  `make bandit-high-severity-gate` and the `security-audit` lane.
+- Medium and low Bandit findings remain an inventoried classification backlog.
 - Sensitive-data handling remains governed by API error redaction and structured
   payload tests until the security report gate is calibrated.
 
@@ -84,20 +101,33 @@
 
 - Repo-native OpenAPI gate configured: `True`
 - Spectral rules present: `True`
-- Spectral is report-only until Node/Spectral execution is added to CI.
+- Spectral config executable: `True`
+- Spectral OpenAPI path inventory: `84`
+- Spectral current issue inventory: `0`
+- Spectral severity inventory: `none`
+- Spectral is enforced through `make openapi-gate`; the inventory remains recorded
+  for before/after scorecard evidence.
 
 ## Architecture Violations
 
 - Import-linter contracts present: `True`
-- Contracts are report-only until import-linter is installed and current violations
-  are baselined.
+- Import-linter config executable: `True`
+- Import-linter contract inventory: `total=3, kept=3, broken=0`
+- Contracts remain report-only until the kept inventory is wired into a CI gate.
 
 ## Documentation Gaps
 
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
+- Interrogate config executable: `True`
+- Interrogate docstring inventory: `total=3504, missing=3469, covered=35, coverage=1.0%`
+- Interrogate remains report-only until public API and module ownership thresholds
+  are classified.
 
 ## Observability Gaps
 
-- Observability documentation and service-level diagnostics are tracked as baseline
-  gaps until `docs/observability.md` and operational diagnostics gates are added.
+- Observability documentation is present.
+- Observability diagnostics target: `make observability-diagnostics`
+- Focused diagnostics currently verify correlation, request, trace,
+  and structured-log propagation.
+- Dashboard, alert, SLO, and distributed-tracing evidence remain tracked gaps.

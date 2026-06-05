@@ -1,5 +1,994 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-711
+
+- Scope: API structured logging formatter
+- Pattern: Structured log formatting should separate base payload construction, contextual
+  enrichment, audit enrichment, and null filtering so observability output remains predictable and
+  easy to test.
+- Status: Improved
+- Finding Class: Observability maintainability and complexity reduction
+- Summary: `JsonFormatter.format` built the base JSON payload, read service/environment context,
+  merged optional extra fields, attached audit fields, and removed null values in one C-ranked
+  formatter method. That made structured logging behavior harder to test directly.
+- Evidence:
+  - Extracted base payload, extra-field extraction, audit-field extraction, and null-filtering
+    helpers.
+  - Added direct formatter tests proving service/environment context, request correlation context,
+    extra fields, audit fields, and absent context filtering.
+  - Radon now reports `JsonFormatter` as A-ranked complexity instead of C-ranked complexity.
+- Consequence:
+  - Structured API logs preserve output shape while becoming easier to audit and extend for
+    operational diagnostics.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal observability implementation hardening.
+- Follow-Up:
+  - Continue strengthening observability diagnostics around request middleware and supportability
+    metric evidence.
+
+## LA-REV-710
+
+- Scope: Shared proposal intent dependency linking
+- Pattern: BUY intent dependency linking should separate sell-intent indexing, eligible BUY intent
+  selection, and idempotent dependency appending so execution-order dependencies remain reusable
+  and easy to review.
+- Status: Improved
+- Finding Class: Shared-domain maintainability and complexity reduction
+- Summary: `link_buy_intent_dependencies` mixed FX dependency lookup, same-currency SELL indexing,
+  BUY intent filtering, missing-notional skipping, optional sell-dependency behavior, and duplicate
+  prevention in one C-ranked helper. That made shared order-intent dependency behavior harder to
+  reuse and reason about.
+- Evidence:
+  - Extracted same-currency SELL dependency indexing, BUY security-intent selection, and idempotent
+    dependency appending helpers.
+  - Added a shared dependency regression proving disabled same-currency SELL dependency linking
+    still preserves FX dependencies without adding SELL dependencies.
+  - Existing shared dependency tests continue to prove FX+SELL dependency order, duplicate
+    prevention, and missing-notional skipping.
+  - Radon now reports `link_buy_intent_dependencies` as A-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - Proposal simulation intent dependency behavior remains behavior-preserving while becoming
+    easier to audit and reuse across advisory execution-plan builders.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal shared-domain dependency-linking hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked advisory funding, proposal workflow, and integration
+    translation helpers.
+
+## LA-REV-709
+
+- Scope: Bank-demo proof artifact references
+- Pattern: Local artifact-reference normalization should keep raw text validation,
+  repository-local location checks, path normalization, and sensitive-material rejection separate
+  so proof-pack artifact pointers remain safe and easy to audit.
+- Status: Improved
+- Finding Class: Security maintainability and complexity reduction
+- Summary: `normalize_local_artifact_ref` mixed whitespace/backslash normalization, required and
+  control-character validation, URL/query/fragment rejection, absolute-path rejection, traversal
+  rejection, sensitive path rejection, and canonical rendering in one C-ranked helper. That made
+  proof artifact path safety harder to review and reuse.
+- Evidence:
+  - Extracted local artifact text validation, URL/location validation, and path-part validation
+    helpers.
+  - Added an API request regression proving backslash normalization for live-suite source refs and
+    output proof prefixes.
+  - Existing proof request and capture tests continue to prove URL/query rejection, traversal
+    rejection, and sensitive artifact-ref rejection.
+  - Radon now reports `normalize_local_artifact_ref` as A-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - Bank-demo proof artifact references preserve behavior while making local-only and
+    sensitive-material safeguards easier to review.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal proof-artifact validation hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked bank-demo proof and proposal workflow validation helpers.
+
+## LA-REV-708
+
+- Scope: Commercial material repository source references
+- Pattern: Commercial proof source-reference normalization should separate raw text validation,
+  repository-local location checks, path validation, and fragment validation so client-facing proof
+  material references remain auditable and safe
+- Status: Improved
+- Finding Class: Security maintainability and complexity reduction
+- Summary: `_normalize_repository_source_ref` mixed whitespace/backslash normalization, required
+  checks, control-character rejection, URL/query rejection, absolute path rejection, traversal
+  rejection, sensitive path rejection, fragment bounds, sensitive fragment rejection, and final
+  reconstruction in one C-ranked function. That made commercial material source-reference safety
+  harder to review.
+- Evidence:
+  - Extracted source-ref text validation, repository-local location validation, path normalization,
+    and fragment normalization helpers.
+  - Added a commercial-material regression test proving backslash and fragment normalization.
+  - Existing commercial-material tests continue to prove URL/query rejection, sensitive copy
+    rejection, sensitive source path rejection, invalid audience rejection, duplicate claim/audience
+    rejection, blocked claim coverage, required claim mapping, and supported-claim register checks.
+  - Radon now reports `_normalize_repository_source_ref` as A-ranked complexity instead of
+    C-ranked complexity.
+- Consequence:
+  - Commercial proof material source references remain behavior-preserving while becoming easier to
+    audit for repository-local and sensitive-material safety.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal proof-material validation hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked commercial material register validation and proof-pack
+    helpers.
+
+## LA-REV-707
+
+- Scope: OpenAPI string example inference
+- Pattern: API-governance string example inference should separate pattern, format, keyed,
+  identifier, semantic-key, and fallback example paths so generated schema examples stay
+  predictable and easy to extend
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_infer_string_example` mixed numeric string pattern handling, date/date-time formats,
+  curated key examples, identifier examples, semantic date/time/status/currency examples, and
+  fallback text in one C-ranked function. That made string example behavior harder to review as the
+  API vocabulary grows.
+- Evidence:
+  - Extracted focused helpers for pattern examples, format examples, curated key examples,
+    identifier examples, semantic key examples, and fallback examples.
+  - Existing OpenAPI enrichment tests continue to prove numeric strings, dates, timestamps, curated
+    keys, ids, lifecycle statuses, currencies, and fallback strings.
+  - Radon now reports `_infer_string_example` as A-ranked complexity instead of C-ranked complexity.
+- Consequence:
+  - OpenAPI string example inference remains behavior-preserving while becoming easier to maintain.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI scalar repair and number inference helpers.
+
+## LA-REV-706
+
+- Scope: OpenAPI example inference
+- Pattern: API-governance example inference should separate priority examples
+  (const/enum/ref/composite), type-specific inference, key-based examples, and fallback text so
+  generated examples remain predictable and easy to extend
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_infer_example` mixed const handling, enum handling, referenced schema examples,
+  composite schema examples, schema-type dispatch, curated key examples, and fallback example
+  generation in one C-ranked function. That made OpenAPI example inference behavior harder to
+  inspect as contract coverage expands.
+- Evidence:
+  - Extracted prioritized example inference, enum example inference, and schema-type dispatch
+    helpers while preserving curated key and fallback behavior.
+  - Existing OpenAPI enrichment tests continue to cover const, enums, refs, composed refs, arrays,
+    objects, booleans, integers, numbers, strings, curated keys, and fallback examples.
+  - Radon now reports `_infer_example` as A-ranked complexity instead of C-ranked complexity.
+- Consequence:
+  - OpenAPI example inference remains behavior-preserving while becoming easier to maintain and
+    govern.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI string-example inference or scalar repair helpers.
+
+## LA-REV-705
+
+- Scope: OpenAPI field-description inference
+- Pattern: API-governance description inference should separate identifier, date/time, currency,
+  monetary, quantity, rate/price, status, and fallback description paths so generated contract text
+  remains predictable and reviewable
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_infer_description` encoded all domain field-description heuristics in one C-ranked
+  function. That made generated OpenAPI description behavior harder to inspect and extend as API
+  vocabulary expands.
+- Evidence:
+  - Extracted specialized field-description dispatch plus focused helpers for identifiers, business
+    dates, timestamps, currencies, monetary values, quantities, rate/price fields, statuses, and
+    fallback model-field text.
+  - Added a direct OpenAPI enrichment contract test covering each description category.
+  - Existing OpenAPI enrichment tests continue to prove broad schema description and example
+    behavior.
+  - Radon now reports `_infer_description` as A-ranked complexity instead of C-ranked complexity.
+- Consequence:
+  - OpenAPI field-description inference remains behavior-preserving while becoming easier to govern
+    against Lotus API vocabulary expectations.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI example inference helpers and then consider
+    stricter API-governance complexity thresholds.
+
+## LA-REV-704
+
+- Scope: OpenAPI schema example repair
+- Pattern: API-governance example repair should separate array, object-property, required-field,
+  existing-field, and additional-property repair paths so generated OpenAPI examples remain
+  predictable and auditable
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_repair_example_against_schema` mixed resolved-schema handling, array item repair,
+  required property backfill, existing property repair, additional-property map repair, and scalar
+  repair fallback in one C-ranked function. That made schema-example quality behavior harder to
+  review as OpenAPI coverage expands.
+- Evidence:
+  - Extracted array example repair, object-property repair, required-field backfill, existing-field
+    repair, and additional-property repair helpers.
+  - Added a direct OpenAPI enrichment contract test covering nested referenced array examples,
+    required-field backfill, enum repair, and additional-property numeric string repair.
+  - Existing OpenAPI enrichment tests continue to prove broader schema examples, media examples,
+    refs, composed refs, enums, constants, and numeric/string inference.
+  - Radon now reports `_repair_example_against_schema` as B-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - OpenAPI example repair remains behavior-preserving while becoming easier to extend and govern.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI inference helpers before considering stricter
+    API-governance complexity thresholds.
+
+## LA-REV-703
+
+- Scope: OpenAPI operation enrichment
+- Pattern: API-governance enrichment should separate documentable-operation detection, summary and
+  description defaults, tag inference, default error response insertion, and idempotency-header
+  enrichment so contract behavior remains reviewable
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_ensure_operation_documentation` mixed path/method iteration, HTTP-method filtering,
+  operation type checks, summary/description defaults, health/metrics/default tag inference, error
+  response detection, default error response insertion, and parameter enrichment in one C-ranked
+  function. That made OpenAPI quality behavior harder to audit even though the repo already enforces
+  Spectral zero findings.
+- Evidence:
+  - Extracted operation eligibility, summary defaulting, description defaulting, tag inference,
+    default error response detection/insertion, and error response classification helpers.
+  - Added a direct OpenAPI enrichment contract test covering proposal operation defaults,
+    health/metrics tag inference, default error response insertion, and idempotency-header
+    max-length documentation.
+  - Existing OpenAPI/Spectral report tests continue to cover the broader API governance lane.
+  - Radon now reports `_ensure_operation_documentation` as A-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - OpenAPI enrichment remains behavior-preserving while becoming easier to extend and govern.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI example repair/inference helpers before raising
+    stricter API-governance complexity thresholds.
+
+## LA-REV-702
+
+- Scope: In-memory proposal listing query helper
+- Pattern: Repository query adapters should separate filtering, cursor slicing, next-cursor
+  calculation, and copy-boundary handling so in-memory behavior remains aligned with persistent
+  repository semantics
+- Status: Improved
+- Finding Class: Repository maintainability and complexity reduction
+- Summary: `filtered_proposal_page` mixed ordering, portfolio/state/actor/date filtering, cursor
+  lookup, cursor slicing, page extraction, next-cursor calculation, and defensive copying in one
+  C-ranked function. That made in-memory repository pagination behavior harder to audit against the
+  Postgres implementation and API pagination expectations.
+- Evidence:
+  - Extracted proposal filter matching, cursor slicing, cursor index lookup, and next-cursor
+    calculation helpers.
+  - Added an in-memory repository regression test proving unknown cursors preserve first-page
+    behavior and return the expected next cursor.
+  - Existing in-memory repository tests continue to prove filtered listing, cursor paging,
+    proposal events, approvals, memos, versions, and transition behavior.
+  - Radon now reports `filtered_proposal_page` as A-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - In-memory proposal listing remains behavior-preserving while becoming easier to compare with
+    persistent repository pagination behavior.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal repository query modularity hardening.
+- Follow-Up:
+  - Continue reducing C-ranked persistent repository/API query helpers and keep parity tests aligned.
+
+## LA-REV-701
+
+- Scope: Enterprise write authorization policy
+- Pattern: Security-sensitive write authorization should separate enforcement gating, header
+  normalization, required-header checks, service identity checks, capability-rule config validation,
+  and capability matching so denial behavior remains easy to audit
+- Status: Improved
+- Finding Class: Security maintainability and complexity reduction
+- Summary: `authorize_write_request` mixed write-method gating, authz feature-flag handling,
+  header normalization, required-header denial, service identity denial, capability-rule config
+  validation, capability parsing, and capability matching in one C-ranked function. That made
+  fail-closed enterprise authorization behavior harder to review and extend.
+- Evidence:
+  - Extracted focused helpers for write-authorization gating, normalized headers, missing required
+    headers, service identity, capability config validation, required capability matching, and
+    request capability parsing.
+  - Added a read-method regression test proving enforced authz still bypasses non-write requests.
+  - Existing enterprise-readiness tests continue to prove blank header rejection, missing service
+    identity rejection, invalid capability-rule fail-closed behavior, capability trimming, and
+    sibling-path non-matching.
+  - Radon now reports `authorize_write_request` as B-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - Enterprise write authorization remains behavior-preserving while becoming easier to audit for
+    fail-closed policy handling.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal authorization maintainability hardening.
+- Follow-Up:
+  - Continue reducing C-ranked API/security helpers and classify remaining Bandit medium findings
+    before raising stricter security gates.
+
+## LA-REV-700
+
+- Scope: Local position valuation mode handling
+- Pattern: Position valuation should separate trust-snapshot authority handling,
+  mark-to-market valuation, price lookup, and FX conversion so valuation-mode behavior remains
+  deterministic and reviewable
+- Status: Improved
+- Finding Class: Complexity reduction and valuation maintainability
+- Summary: `ValuationService.value_position` mixed price lookup, trust-snapshot branching,
+  base-currency authority handling, mark-to-market valuation, FX conversion, and response model
+  construction in one C-ranked method. That made a sensitive local fallback calculation harder to
+  audit as valuation modes evolve.
+- Evidence:
+  - Extracted position valuation result data, price lookup, trust-snapshot valuation,
+    mark-to-market valuation, base-authority classification, and FX conversion helpers.
+  - Added direct unit tests for mark-to-market FX conversion and trusted base-currency authority
+    over a foreign-currency price.
+  - Preserved existing simulated-state trust-snapshot regression coverage.
+  - Radon now reports `ValuationService.value_position` as A-ranked complexity instead of
+    C-ranked complexity.
+- Consequence:
+  - Local position valuation mode behavior is easier to audit and less likely to regress when
+    upstream valuation authority or local fallback semantics are extended.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal valuation modularity hardening.
+- Follow-Up:
+  - Continue reducing C-ranked API governance and route/service hotspots before raising stricter
+    complexity thresholds.
+
+## LA-REV-699
+
+- Scope: Local valuation simulated-state assembly
+- Pattern: Portfolio valuation orchestration should delegate position summary collection, cash
+  conversion, shelf enrichment, and allocation metric rendering to focused helpers so local
+  fallback valuation remains reviewable
+- Status: Improved
+- Finding Class: Complexity reduction and valuation maintainability
+- Summary: `build_simulated_state` mixed position valuation, data-quality logging, cash conversion,
+  total-value denominator handling, shelf enrichment, attribute aggregation, and response model
+  rendering in one D-ranked function. That made local fallback valuation behavior harder to audit
+  when proposal simulation depends on deterministic before/after state construction.
+- Evidence:
+  - Extracted position-summary collection, missing price/FX logging, cash valuation, shelf lookup,
+    position allocation aggregation, and allocation metric rendering helpers.
+  - Added direct valuation unit tests covering position/cash valuation, FX conversion, shelf
+    attribute allocations, and missing price/FX data-quality logging.
+  - Preserved the trust-snapshot regression that uses upstream market value over local FX
+    revaluation when configured.
+  - Radon now reports `build_simulated_state` as A-ranked complexity instead of D-ranked
+    complexity, and the repo Radon inventory has no D-ranked blocks.
+- Consequence:
+  - Local fallback valuation is easier to review and extend, and the repo worst Radon complexity
+    improves from `D/24` to `C/20`.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal valuation modularity hardening.
+- Follow-Up:
+  - Classify the remaining C-ranked valuation and route/service hotspots before considering a
+    stricter fail-on-C gate.
+
+## LA-REV-698
+
+- Scope: Workspace draft action request validation
+- Pattern: Draft action payload validation should delegate action-family requirements and
+  identifier-scope checks to focused helpers so workspace action contracts remain easy to audit
+- Status: Improved
+- Finding Class: Complexity reduction and workspace contract maintainability
+- Summary: `WorkspaceDraftActionRequest.validate_action_payload` encoded trade, cash-flow, options,
+  and cross-family identifier validation in one D-ranked validator method. That made the workspace
+  action contract harder to review and extend as new draft actions are added.
+- Evidence:
+  - Extracted trade payload, cash-flow payload, options payload, and identifier-scope validation
+    helpers.
+  - Added contract tests for invalid trade identifiers on non-trade actions and invalid cash-flow
+    identifiers on non-cash-flow actions.
+  - Focused workspace contract, draft-action, and workspace-service tests pass.
+  - Radon now reports `WorkspaceDraftActionRequest` and `validate_action_payload` as A-ranked
+    complexity instead of D-ranked complexity.
+- Consequence:
+  - Workspace draft action contracts are easier to audit and the repo D-ranked complexity inventory
+    drops from 4 to 1.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal workspace contract modularity hardening.
+- Follow-Up:
+  - Continue classifying the remaining D-ranked valuation helper before considering a stricter
+    fail-on-new-D gate.
+
+## LA-REV-697
+
+- Scope: Proposal memo section factory
+- Pattern: Memo section assembly should delegate source-evidence aggregation and hash-payload
+  construction to focused helpers so section readiness behavior remains auditable
+- Status: Improved
+- Finding Class: Complexity reduction and memo evidence maintainability
+- Summary: `build_memo_section` mixed source section selection, missing/reason/evidence/source
+  aggregation, status resolution, forced-status override, input-hash payload construction,
+  section-hash payload construction, and final DTO assembly in one D-ranked function.
+- Evidence:
+  - Extracted memo section evidence aggregation into a focused helper and data container.
+  - Extracted input-hash and section-hash payload construction helpers.
+  - Added a direct memo-section factory test covering blocked source evidence, forced pending
+    override, evidence/source refs, degraded evidence, and hash generation.
+  - Radon now reports `build_memo_section` as A-ranked complexity instead of D-ranked complexity.
+- Consequence:
+  - Memo section assembly is easier to review and extend, and the repo D-ranked complexity inventory
+    drops from 5 to 4.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal memo factory modularity hardening.
+- Follow-Up:
+  - Continue classifying remaining D-ranked helpers before considering a fail-on-new-D gate.
+
+## LA-REV-696
+
+- Scope: Policy-pack source-readiness rule handling
+- Pattern: Policy source-evidence classification should delegate policy-posture and section-level
+  evidence collection to focused helpers before stricter complexity thresholds are considered
+- Status: Improved
+- Finding Class: Complexity reduction and policy evaluation maintainability
+- Summary: `required_source_result` mixed field normalization, policy-source posture aggregation,
+  section lookup, missing-evidence collection, pending/blocking classification, and result building
+  in one D-ranked function.
+- Evidence:
+  - Added a focused source-evidence collection helper for missing evidence, reason codes, and
+    pending status.
+  - Extracted policy-source-readiness posture handling and section-source handling into focused
+    helpers.
+  - Added tests for blocked policy-source readiness and ready source-section pass-through.
+  - Radon now reports `required_source_result` as B-ranked complexity instead of D-ranked
+    complexity.
+- Consequence:
+  - Policy-pack source evidence handling is easier to audit and extend, and the repo D-ranked
+    complexity inventory drops from 6 to 5.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal policy evaluation modularity hardening.
+- Follow-Up:
+  - Continue classifying remaining D-ranked helpers before considering a fail-on-new-D gate.
+
+## LA-REV-695
+
+- Scope: Radon no-E/no-F complexity regression gate
+- Pattern: Once E-ranked complexity is eliminated, the repo-native lint lane should prevent
+  regression back to E or F while D-ranked helpers remain classified backlog
+- Status: Enforced
+- Finding Class: Complexity quality gate hardening
+- Summary: After target-generation and narrative-grounding refactors, Radon reported no E-ranked or
+  F-ranked blocks. The complexity gate still only failed on F-ranked blocks, so future changes could
+  reintroduce E-ranked hotspots without failing `make lint`.
+- Evidence:
+  - Promoted `make complexity-regression-gate` to run `scripts/radon_complexity_gate.py --fail-rank
+    E`.
+  - Updated generated quality-report wording and scorecard evidence from no-F enforcement to
+    no-E/no-F enforcement.
+- Consequence:
+  - Feature Lane and repo-native lint now fail if a change introduces E-ranked or F-ranked
+    complexity, while D-ranked helpers remain measured backlog for focused refactoring.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is repo-local quality-gate calibration for existing source analysis.
+- Follow-Up:
+  - Classify current D-ranked helpers and consider a stricter fail-on-new-D gate only after direct
+    helper coverage is sufficient.
+
+## LA-REV-694
+
+- Scope: Target-generation solver orchestration
+- Pattern: Solver orchestration should delegate indexing, constraint assembly, and solved-weight
+  application to focused helpers so optimization behavior is easier to review
+- Status: Improved
+- Finding Class: Complexity reduction and target-generation maintainability
+- Summary: `generate_targets_solver` combined sell-only redistribution, tradeable/locked indexing,
+  cash-band constraints, single-position constraints, group constraints, solver execution, failure
+  handling, and solved-weight mutation in one E-ranked function.
+- Evidence:
+  - Extracted sell-only redistribution, solver index construction, cash-band constraints, group
+    constraints, target solver problem construction, and solved-weight application helpers.
+  - Preserved existing solver dependency loading, solver fallback behavior, infeasibility warning
+    behavior, target trace construction, and mutation semantics for `eligible_targets`.
+  - Focused target-generation dependency, suitability scanner, and advisory proposal simulation
+    tests pass.
+  - Radon now reports `generate_targets_solver` as A-ranked complexity; repo worst complexity drops
+    from E/32 to D/25.
+- Consequence:
+  - The remaining E-ranked Radon hotspot is removed, making the target-generation optimization path
+    easier to audit before any future solver or constraint behavior changes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal modularity hardening for existing target-generation behavior.
+- Follow-Up:
+  - Continue classifying D-ranked helper complexity and add direct solver constraint tests before
+    changing optimization behavior or thresholds.
+
+## LA-REV-693
+
+- Scope: Proposal narrative grounding fact projection
+- Pattern: High-complexity narrative projection functions should delegate independent fact families
+  to focused helpers without changing the grounding packet contract
+- Status: Improved
+- Finding Class: Complexity reduction and narrative boundary hardening
+- Summary: `_facts_from_artifact` mixed decision-summary, alternatives, risk, suitability, trade,
+  and disclosure projection in one E-ranked function. That made narrative grounding harder to
+  review and riskier to extend as proposal artifact fields evolve.
+- Evidence:
+  - Extracted selected-alternative resolution, alternative comparison projection, alternatives fact
+    assembly, and decision-summary fact assembly into focused helpers.
+  - Preserved the public `build_proposal_narrative_grounding_packet` flow and narrative facade
+    boundaries.
+  - Focused narrative module and AI adapter tests pass.
+  - Radon now reports `_facts_from_artifact` as A-ranked complexity instead of E-ranked complexity.
+- Consequence:
+  - Proposal narrative grounding is easier to review and extend, and one of the two current
+    E-ranked Radon hotspots has been removed without changing endpoint behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal modularity hardening for an existing narrative projection contract.
+- Follow-Up:
+  - Continue reducing the remaining E-ranked target-generation solver hotspot with solver-specific
+    helpers and golden/diagnostic tests.
+
+## LA-REV-692
+
+- Scope: Radon no-F complexity regression gate
+- Pattern: A zero-count F-ranked complexity inventory should be promoted into the repo-native lint
+  lane before broader service decomposition continues
+- Status: Enforced
+- Finding Class: Complexity and maintainability quality gate hardening
+- Summary: Radon reported no F-ranked blocks, but complexity was still only recorded as inventory.
+  Future oversized functions or methods could therefore regress into F-ranked complexity while
+  `make lint` stayed green.
+- Evidence:
+  - Added `scripts/radon_complexity_gate.py` to run Radon against `src` and fail on F-ranked blocks.
+  - Wired `make lint` to run `make complexity-regression-gate` after monetary and architecture
+    boundary checks.
+  - Added focused unit coverage for nested Radon block parsing, passing no-F output, failing F-rank
+    output, and invalid Radon JSON output.
+  - Updated generated quality-report wording to distinguish no-F enforcement from remaining
+    E-ranked hotspot classification.
+- Consequence:
+  - Feature Lane and repo-native lint now fail if a refactor introduces F-ranked complexity while
+    current E-ranked hotspots remain measured backlog for targeted decomposition.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is repo-local quality-gate calibration for existing source analysis.
+- Follow-Up:
+  - Classify current E-ranked hotspots, extract focused use-case helpers where behavior is stable,
+    and consider stricter fail-on-new complexity thresholds after classification.
+
+## LA-REV-691
+
+- Scope: Bandit high-severity security gate
+- Pattern: A zero-count high-severity security inventory should be promoted into the repo-native
+  security lane before broader Bandit finding classification continues
+- Status: Enforced
+- Finding Class: Security quality gate hardening
+- Summary: Bandit was executable and reported no high-severity findings, but `security-audit` still
+  only ran dependency health checks. Future high-severity source findings could therefore be added
+  without failing the PR/Main security lane.
+- Evidence:
+  - Added `scripts/bandit_high_severity_gate.py` to run Bandit against `src` and fail only when
+    high-severity findings are present.
+  - Wired `make security-audit` to run `make bandit-high-severity-gate` after dependency health.
+  - Added focused unit coverage for passing, failing, and invalid Bandit JSON output.
+  - Updated security docs and generated quality-report wording to distinguish high-severity
+    enforcement from the remaining medium/low classification backlog.
+- Consequence:
+  - PR Merge Gate and Main Releasability security lanes now fail if a high-severity Bandit finding
+    is introduced, while current medium/low findings remain measured rather than overclaimed as
+    remediated.
+- Documentation:
+  - Review ledger, security docs, and generated quality reports updated. No wiki source change is
+    required because this is repo-local security gate calibration for existing source analysis.
+- Follow-Up:
+  - Classify the current medium and low Bandit findings, resolve true positives, and promote
+    appropriate classes to fail-on-new-regression gates.
+
+## LA-REV-690
+
+- Scope: Spectral OpenAPI enforcement
+- Pattern: A zero-finding OpenAPI lint inventory should be promoted into the repo-native gate before
+  later API contract work can regress generated-client quality
+- Status: Enforced
+- Finding Class: OpenAPI governance and CI quality gate hardening
+- Summary: Spectral OpenAPI linting was clean after generated example repair, but it was still only
+  recorded as quality inventory. That meant future route/schema changes could reintroduce Spectral
+  findings while `make openapi-gate` stayed green.
+- Evidence:
+  - Wired `make openapi-gate` to run `make openapi-spectral-report` after the Python OpenAPI quality
+    gate and focused OpenAPI lifecycle contract tests.
+  - Added Node setup and `npm ci` to Feature Lane, PR Merge Gate, and Main Releasability jobs before
+    OpenAPI gate execution.
+  - Updated API governance docs and generated quality reports to describe Spectral as enforced while
+    retaining the zero-finding inventory for scorecard evidence.
+- Consequence:
+  - OpenAPI route and schema changes now fail the repo-native gate if they reintroduce Spectral
+    findings under the pinned `.spectral.yaml` ruleset.
+- Documentation:
+  - Review ledger, API governance docs, and generated quality reports updated. No wiki source change
+    is required because this is CI/API governance for existing contracts.
+- Follow-Up:
+  - Continue hardening pagination/filter/deprecation consistency and consider schemathesis once the
+    route contract surface is stable enough for broader runtime contract fuzzing.
+
+## LA-REV-689
+
+- Scope: OpenAPI object and media example completeness
+- Pattern: Generated OpenAPI examples should be repaired against declared response and component
+  schemas before Spectral is promoted from report-only inventory to enforcement
+- Status: Improved
+- Finding Class: OpenAPI contract quality and generated-client supportability
+- Summary: After scalar example cleanup, the Spectral backlog consisted only of required-field
+  completeness issues in component examples and documented response media examples.
+- Evidence:
+  - Expanded referenced-object example inference to include all required fields.
+  - Added schema-example repair for existing examples that omit required fields or contradict
+    referenced scalar components.
+  - Added response media-example repair against each declared response schema.
+  - Updated the Spectral report parser to accept Stoplight Spectral's zero-finding CLI output.
+  - `make openapi-spectral-report` now reports `0` findings, down from `54`.
+- Consequence:
+  - The generated OpenAPI contract is now Spectral-clean under the current `.spectral.yaml`
+    baseline, creating a credible path to fail-on-new-regression enforcement.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is generated API documentation and reporting hardening for existing behavior.
+- Follow-Up:
+  - Promote Spectral from report-only inventory to an enforced regression gate once CI behavior is
+    stable on the branch.
+
+## LA-REV-688
+
+- Scope: OpenAPI constrained scalar examples
+- Pattern: Generated OpenAPI examples should honor scalar schema constraints before generic
+  name-based fallbacks
+- Status: Improved
+- Finding Class: OpenAPI contract quality and generated-client supportability
+- Summary: After reusable reference/object example inference, the remaining Spectral backlog still
+  contained invalid scalar examples where generic `status`, `amount`, `quantity`, and day-count
+  examples contradicted enum, decimal-string, and maximum constraints.
+- Evidence:
+  - Changed OpenAPI example inference so constants, enums, schema types, numeric-string patterns,
+    and bounded integer constraints take precedence over generic key-based examples.
+  - Added coverage for float-valued integer bounds emitted by generated Pydantic schemas.
+  - `make openapi-spectral-report` now reports `54` findings, down from `117`; remaining findings
+    are required-field completeness issues in object and media examples.
+- Consequence:
+  - Generated scalar examples are materially closer to client-generator-valid API contracts while
+    preserving runtime behavior and public endpoint shapes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is generated API documentation hardening for existing behavior.
+- Follow-Up:
+  - Reduce remaining required-field object/media example findings with targeted DTO example fixes
+    and response example corrections.
+
+## LA-REV-687
+
+- Scope: OpenAPI reusable example inference
+- Pattern: Generated OpenAPI examples should infer valid examples from reusable schema structure
+  instead of emitting fallback strings for referenced arrays, composed schemas, numeric strings,
+  bounded integers, constants, and typed maps
+- Status: Improved
+- Finding Class: OpenAPI contract quality and generated-client supportability
+- Summary: The executable Spectral inventory showed that many generated examples were invalid
+  because the enrichment helper did not understand `$ref`, `allOf`/`anyOf`/`oneOf`,
+  `additionalProperties`, numeric-string patterns, constants, or bounded integer constraints.
+- Evidence:
+  - Extended `src/api/openapi_enrichment.py` to infer examples through referenced object schemas,
+    composed schemas, typed map values, numeric-string patterns, constants, and small bounded
+    integer fields.
+  - Added enrichment contract coverage for referenced arrays, composed arrays, currency-keyed maps,
+    numeric-string examples, constants, and bounded integer examples.
+  - `make openapi-spectral-report` now reports `117` findings, down from `277`; remaining findings
+    are source DTO examples and media examples that need targeted remediation.
+- Consequence:
+  - Generated OpenAPI examples are materially closer to client-generator-valid contracts without
+    changing runtime behavior or public endpoint shapes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is generated API documentation hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing source DTO and media-example findings, then promote Spectral to
+    fail-on-new-regression enforcement.
+
+## LA-REV-686
+
+- Scope: OpenAPI metadata and tag governance
+- Pattern: Generated OpenAPI contracts should define global metadata and every route tag before
+  deeper schema-example remediation begins
+- Status: Hardened
+- Finding Class: API governance and generated-contract quality
+- Summary: The first executable Spectral inventory found six metadata/tag findings: missing
+  `servers`, missing `info.contact`, and four `Advisory Policy Packs` operations using a tag that
+  was not declared in the global OpenAPI tag catalog.
+- Evidence:
+  - Added generated OpenAPI contact metadata for Lotus Platform Engineering.
+  - Added a relative service-root OpenAPI `servers` entry.
+  - Added the `Advisory Policy Packs` global tag with governed policy-pack catalog language.
+  - Extended OpenAPI enrichment and lifecycle contract tests.
+  - `make openapi-spectral-report` now reports `277` findings, down from `283`; remaining findings
+    are schema/media example validation issues.
+- Consequence:
+  - The generated Advise API contract has a cleaner self-service discovery surface and the Spectral
+    backlog is narrowed to example-validity remediation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is generated API metadata hardening for existing endpoints.
+- Follow-Up:
+  - Reduce the remaining Spectral example-validation findings by fixing reusable OpenAPI example
+    inference and source DTO examples.
+
+## LA-REV-685
+
+- Scope: OpenAPI Spectral warning inventory
+- Pattern: Report-only API governance tools should be pinned, executable, and counted before they
+  are promoted to fail-on-new-regression gates
+- Status: Improved
+- Finding Class: API governance and CI measurement
+- Summary: `.spectral.yaml` existed as a report-only ruleset, but the quality baseline could only
+  record that the rules file was present. That left OpenAPI documentation linting unmeasured and
+  made it impossible to prove whether warning counts improved before enforcing Spectral in CI.
+- Evidence:
+  - Added a pinned `@stoplight/spectral-cli` dev dependency and lockfile.
+  - Added `scripts/openapi_spectral_report.py` to export the generated FastAPI OpenAPI document and
+    record Spectral issue/severity inventory as JSON.
+  - Added `make openapi-spectral-report` and installed Node dependencies in the
+    Quality Baseline Report workflow before generating reports.
+  - Extended generated quality reports with Spectral executability, OpenAPI path count, issue
+    count, and severity inventory.
+  - Updated API governance docs and quality-report tests.
+- Consequence:
+  - OpenAPI governance now has a reproducible Spectral baseline that can be compared across commits
+    before becoming an enforced regression gate.
+- Documentation:
+  - Review ledger and API governance docs updated. No wiki source change is required because this is
+    CI/reporting governance for existing API contracts.
+- Follow-Up:
+  - Classify current Spectral findings, fix true API-documentation gaps, then promote the inventory
+    to fail-on-new-regression enforcement.
+
+## LA-REV-684
+
+- Scope: Observability diagnostics contract
+- Pattern: Observability posture should be backed by executable diagnostics for request identity,
+  trace propagation, and structured logging before broader SLO/dashboard claims are made.
+- Status: Hardened
+- Finding Class: Observability diagnostics and quality-gate readiness
+- Summary: Observability was documented as a gap even though middleware already propagated
+  correlation, request, and trace identifiers and emitted structured logs. The repository lacked a
+  focused diagnostics test target proving that contract.
+- Evidence:
+  - Added focused observability API tests for correlation ID, request ID, traceparent/trace ID, and
+    structured JSON log context.
+  - Added `make observability-diagnostics` as the repo-native diagnostics target.
+  - Updated quality reports to record the diagnostics target while preserving remaining
+    SLO/dashboard/distributed-tracing gaps.
+  - Updated `docs/observability.md` to reflect implemented middleware, Prometheus instrumentation,
+    and current diagnostics coverage.
+- Consequence:
+  - Observability posture now has executable request/trace/log propagation evidence instead of only
+    gap text.
+- Documentation:
+  - Review ledger, observability doc, and generated quality reports updated. No wiki source change
+    is required because this is repo-local quality and operations posture evidence.
+- Follow-Up:
+  - Extend diagnostics into background workflows, downstream integration calls, dashboard evidence,
+    alert evidence, and SLO threshold definitions before claiming production observability
+    completeness.
+
+## LA-REV-683
+
+- Scope: Documentation-quality inventory calibration
+- Pattern: Documentation quality gates should start with a measured current baseline before setting
+  thresholds, especially in a large backend with many generated DTOs, validators, and scripts.
+- Status: Hardened
+- Finding Class: Documentation measurement and CI readiness
+- Summary: Interrogate was configured and installed, but the scorecard only tracked requested docs
+  presence. The repository did not yet record current docstring inventory, so documentation quality
+  could not be improved or enforced from measurable evidence.
+- Evidence:
+  - Updated `scripts/quality_baseline_report.py` to execute Interrogate in report-only mode and
+    record total, missing, covered, and coverage percent.
+  - Updated report tests to pin Interrogate inventory fields and scorecard wording.
+  - Regenerated quality reports so documentation posture now records docstring coverage inventory.
+- Consequence:
+  - Documentation posture now has measurable current-state evidence while preserving report-only
+    behavior until public API and module ownership thresholds are classified.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local documentation measurement posture, not operator-facing runtime
+    truth.
+- Follow-Up:
+  - Classify docstring expectations for public API modules, runtime providers, scripts, DTOs, and
+    compatibility facades before adding a fail-on-regression or threshold gate.
+
+## LA-REV-682
+
+- Scope: Architecture-boundary gate enforcement
+- Pattern: Passing architecture contracts should graduate from report-only inventory to a
+  repo-native gate once the dependency is pinned and the contract output is clean.
+- Status: Hardened
+- Finding Class: Architecture governance enforcement
+- Summary: Import-linter contracts were executable and passing, but still only represented as a
+  report-only inventory. This left API-to-infrastructure boundary protection dependent on manual
+  inspection instead of the Feature Lane lint path.
+- Evidence:
+  - Added `import-linter==2.11` to development requirements so clean CI installs can run the gate.
+  - Added the `architecture-boundaries` Makefile target using the Python import-linter entry point.
+  - Wired `make lint` to run architecture-boundary contracts after Ruff and monetary-float checks.
+  - Updated quality scorecard generation so architecture boundaries are reported as enforced by
+    `make lint`.
+- Consequence:
+  - API-to-infrastructure, core-to-FastAPI, and infrastructure-to-API contracts are now enforced by
+    the same repo-native lint command used by Feature Lane, PR Merge Gate, and Main Releasability.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this changes repo-local quality gate posture, not operator-facing runtime truth.
+- Follow-Up:
+  - Expand import-linter contracts only after additional boundaries are proven clean locally and in
+    GitHub CI.
+
+## LA-REV-681
+
+- Scope: Dead-code inventory calibration
+- Pattern: Dead-code scanners need an explicit current inventory and false-positive classification
+  before becoming blocking gates in Pydantic-heavy compatibility-facade codebases.
+- Status: Hardened
+- Finding Class: Dead-code measurement and CI readiness
+- Summary: Vulture was available but the quality scorecard still described dead-code posture as a
+  pending calibration gap. Current Vulture output includes many Pydantic validator `cls` false
+  positives and compatibility-facade imports, so immediate enforcement would be noisy without a
+  classified baseline.
+- Evidence:
+  - Updated `scripts/quality_baseline_report.py` to execute Vulture in report-only mode and record
+    total issue count plus confidence distribution.
+  - Updated report tests to pin Vulture inventory fields and scorecard wording.
+  - Regenerated quality reports so dead-code posture now records executable Vulture evidence.
+- Consequence:
+  - Dead-code posture moved from generic pending-tool text to measurable Vulture inventory evidence
+    while preserving report-only behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local quality measurement posture, not new operator-facing wiki truth.
+- Follow-Up:
+  - Classify validator false positives, compatibility-facade imports, and true unused code before
+    adding fail-on-regression enforcement.
+
+## LA-REV-680
+
+- Scope: Complexity inventory calibration
+- Pattern: Complexity controls should start with compact, repeatable current-state inventory before
+  enforcing absolute thresholds.
+- Status: Hardened
+- Finding Class: Complexity measurement and CI readiness
+- Summary: The quality scorecard listed Radon/Xenon as pending complexity tooling even though Radon
+  is installed and can produce deterministic JSON output for current code complexity. The branch
+  lacked a compact baseline count that could support fail-on-new-regression threshold design.
+- Evidence:
+  - Updated `scripts/quality_baseline_report.py` to execute Radon in report-only mode and record
+    analyzed block count, rank inventory, and worst complexity.
+  - Updated report tests to pin Radon inventory fields and scorecard wording.
+  - Regenerated quality reports so complexity now records executable Radon evidence.
+- Consequence:
+  - Complexity posture moved from proxy-only report text to measurable Radon inventory evidence
+    while preserving report-only behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local quality measurement posture, not new operator-facing wiki truth.
+- Follow-Up:
+  - Classify current high-complexity blocks, set an agreed threshold, and add fail-on-regression
+    enforcement before introducing a blocking Xenon gate.
+
+## LA-REV-679
+
+- Scope: API-to-infrastructure boundary enforcement calibration
+- Pattern: API modules should depend on repository protocols and runtime provider seams, not import
+  infrastructure adapters directly.
+- Status: Hardened
+- Finding Class: Architecture boundary and CI measurement readiness
+- Summary: `.importlinter` was present but not executable because the configuration did not enable
+  external package analysis while forbidding FastAPI/Starlette dependencies from core modules. Once
+  corrected, import-linter found direct API-to-infrastructure adapter imports in proposal and
+  advisory-copilot runtime dependency wiring.
+- Evidence:
+  - Added `include_external_packages = True` to `.importlinter`.
+  - Moved Postgres proposal repository construction behind `src.runtime.proposal_repositories`
+    while preserving the `src.api.proposals.runtime` compatibility facade.
+  - Moved advisory-copilot Postgres repository construction behind
+    `src.runtime.advisory_copilot_repositories`.
+  - Updated API tests to patch runtime provider seams instead of API-level infrastructure symbols.
+  - Import-linter now reports three kept contracts and zero broken contracts.
+  - Quality baseline reporting now records import-linter executable status and kept/broken contract
+    counts.
+- Consequence:
+  - Architecture-boundary governance moved from configured-but-broken report-only posture to an
+    executable, passing contract inventory that can be promoted to a CI gate.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local architecture measurement posture, not new operator-facing wiki
+    truth.
+- Follow-Up:
+  - Add import-linter to a repo-native quality target and CI fail-on-regression gate once the
+    broader branch validation remains stable.
+
+## LA-REV-678
+
+- Scope: Security scanner inventory and runtime assertion hardening
+- Pattern: Runtime readiness code should not depend on `assert`, and report-only security scanners
+  must emit measurable severity counts before they become fail-on-new-regression gates.
+- Status: Hardened
+- Finding Class: Security hardening and CI measurement readiness
+- Summary: Bandit was configured but the quality baseline only recorded that configuration existed.
+  The repository could not yet show current Bandit issue count or severity distribution in the
+  before/after scorecard, and runtime dependency probing contained an `assert` that optimized
+  Python execution can remove.
+- Evidence:
+  - Replaced the runtime dependency probing `assert` with explicit guarded readiness logic in
+    `src/integrations/base.py`.
+  - Updated `scripts/quality_baseline_report.py` to execute Bandit in report-only mode and record
+    whether the config is executable plus current total, high, medium, and low severity counts.
+  - Updated quality report tests to pin the Bandit inventory signal and scorecard wording.
+- Consequence:
+  - Security posture now has measurable Bandit inventory evidence while preserving report-only
+    behavior until current SQL-construction findings are classified.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this records repo-local security measurement posture, not new operator-facing wiki
+    truth.
+- Follow-Up:
+  - Classify Bandit SQL-construction findings as true positives or parameterized-query false
+    positives, then convert Bandit into a fail-on-new-regression gate.
+
+## LA-REV-677
+
+- Scope: Dependency hygiene report-only deptry calibration
+- Pattern: Report-only dependency hygiene tools must be executable and produce measurable current
+  inventory before they can become fail-on-new-regression gates.
+- Status: Hardened
+- Finding Class: Dependency governance and CI measurement readiness
+- Summary: `pyproject.toml` contained an outdated deptry option (`ignore_obsolete`) that prevented
+  the installed deptry 0.25.1 scanner from running. The quality scorecard therefore listed deptry
+  as a report-only follow-up, but the repository could not yet produce a real deptry issue
+  inventory.
+- Evidence:
+  - Updated `[tool.deptry]` to use the supported `per_rule_ignores` mapping while preserving the
+    existing intent to suppress known development-tooling obsolete-dependency noise.
+  - Updated `scripts/quality_baseline_report.py` to execute deptry in report-only mode and record
+    whether the config is executable plus the current issue count.
+  - Regenerated quality reports; `quality/baseline_report.md` now records deptry config executable
+    as `True` and the current dependency issue inventory as `14`.
+  - Updated dependency hygiene documentation and report tests to pin the deptry inventory signal.
+- Consequence:
+  - Dependency hygiene now has an executable deptry baseline that can be classified and converted
+    into a fail-on-new-regression gate in a later slice.
+- Documentation:
+  - Review ledger, dependency hygiene standard alignment, and generated quality reports updated. No
+    README/wiki source change is required because this records repo-local CI measurement posture,
+    not new operator-facing wiki truth.
+- Follow-Up:
+  - Classify the 14 deptry findings into required runtime dependency, transitive dependency,
+    dev-only dependency, or removable dependency before enforcing deptry in CI.
+
 ## LA-REV-676
 
 - Scope: Proposal workflow read facade ownership

@@ -326,9 +326,10 @@ def render_markdown(
             "- This baseline captures deterministic structural metrics from the current branch.",
             "- Use `--format json` to save a phase snapshot and `--compare-to <snapshot.json>`",
             "  to render structural metric deltas in later refactoring phases.",
-            "- External scanners such as coverage, radon, vulture, deptry, bandit, pip-audit,",
-            "  Spectral, import-linter, and interrogate should be added as follow-up CI phases",
-            "  when their repo-native configuration is introduced.",
+            "- External scanner inventories should move from measurement to repo-native gates in",
+            "  calibrated slices; coverage, import-linter, Spectral, Bandit high severity,",
+            "  and Radon E/F-ranked complexity now have enforced paths while vulture, deptry,",
+            "  interrogate, and stricter complexity thresholds remain measured backlog.",
         ]
     )
     return "\n".join(lines) + "\n"

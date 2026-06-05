@@ -467,6 +467,29 @@ def test_workspace_draft_action_supports_update_trade_payload():
     assert action.trade is not None
 
 
+def test_workspace_draft_action_rejects_trade_identifier_for_non_trade_action():
+    with pytest.raises(ValidationError, match="workspace_trade_id is only valid for trade actions"):
+        WorkspaceDraftActionRequest(
+            actor_id="advisor_123",
+            action_type="ADD_CASH_FLOW",
+            workspace_trade_id="wtd_001",
+            cash_flow={"currency": "USD", "amount": "250"},
+        )
+
+
+def test_workspace_draft_action_rejects_cash_flow_identifier_for_non_cash_flow_action():
+    with pytest.raises(
+        ValidationError,
+        match="workspace_cash_flow_id is only valid for cash-flow actions",
+    ):
+        WorkspaceDraftActionRequest(
+            actor_id="advisor_123",
+            action_type="ADD_TRADE",
+            workspace_cash_flow_id="wcf_001",
+            trade={"side": "BUY", "instrument_id": "EQ_1", "quantity": "2"},
+        )
+
+
 def test_workspace_create_request_rejects_missing_stateful_input():
     with pytest.raises(ValidationError):
         WorkspaceSessionCreateRequest(

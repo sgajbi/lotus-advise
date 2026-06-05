@@ -29,6 +29,7 @@ from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, Propos
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 from src.integrations.lotus_ai import AdvisoryCopilotAiDraft
+from src.runtime import advisory_copilot_repositories
 
 NOW = datetime(2026, 5, 28, 9, 0, tzinfo=UTC)
 
@@ -687,7 +688,7 @@ def test_advisory_copilot_repository_dependency_maps_startup_failure(
             raise RuntimeError("ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE")
 
     monkeypatch.setattr(
-        copilot_dependencies,
+        advisory_copilot_repositories,
         "PostgresAdvisoryCopilotRepository",
         _UnavailableRepository,
     )
@@ -712,7 +713,7 @@ def test_advisory_copilot_repository_dependency_redacts_sensitive_startup_failur
             raise RuntimeError("postgres password secret leaked from driver")
 
     monkeypatch.setattr(
-        copilot_dependencies,
+        advisory_copilot_repositories,
         "PostgresAdvisoryCopilotRepository",
         _SensitiveUnavailableRepository,
     )
