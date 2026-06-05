@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-713
+
+- Scope: Proposal delivery summary projection
+- Pattern: Delivery summary projection should separate latest workflow-event selection, execution
+  payload assembly, reporting payload assembly, and primitive field normalization.
+- Status: Improved
+- Finding Class: Projection maintainability and complexity reduction
+- Summary: `build_delivery_summary_from_events` selected latest execution/report events and built
+  both execution and reporting payloads in one C-ranked helper. That made delivery projection
+  behavior harder to review as execution and reporting posture fields grow.
+- Evidence:
+  - Added a focused latest-delivery-events value object and extracted latest-event selection.
+  - Split execution and reporting payload assembly into separate helpers.
+  - Preserved public delivery summary return shape and compatibility with response projection.
+  - Radon now reports `build_delivery_summary_from_events` as A-ranked complexity instead of
+    C-ranked complexity.
+  - Focused delivery summary tests passed.
+- Consequence:
+  - Delivery projection behavior remains stable while execution and reporting posture enrichment
+    can evolve independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    projection maintainability hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked memo section, policy source readiness, report narrative,
+    and workflow rule helpers.
+
 ## LA-REV-712
 
 - Scope: Proposal input request DTO boundaries

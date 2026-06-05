@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from src.core.proposals.execution_boundary import execution_ownership_boundary
@@ -20,95 +21,84 @@ from src.core.proposals.workflow_rules import (
 _DELIVERY_EVENT_TYPES = EXECUTION_STATUS_EVENT_TYPES | {"REPORT_REQUESTED"}
 
 
+@dataclass(frozen=True)
+class _LatestDeliveryEvents:
+    execution_requested: ProposalWorkflowEventRecord | None = None
+    execution_status: ProposalWorkflowEventRecord | None = None
+    report_request: ProposalWorkflowEventRecord | None = None
+
+
 def build_delivery_summary_from_events(
     events: list[ProposalWorkflowEventRecord],
 ) -> dict[str, Any]:
-    latest_execution_requested: ProposalWorkflowEventRecord | None = None
-    latest_execution_event: ProposalWorkflowEventRecord | None = None
-    latest_report_request: ProposalWorkflowEventRecord | None = None
+    latest = _latest_delivery_events(events)
+    return {
+        "execution": _build_execution_summary(latest),
+        "reporting": _build_reporting_summary(latest.report_request),
+    }
 
+
+def _latest_delivery_events(events: list[ProposalWorkflowEventRecord]) -> _LatestDeliveryEvents:
+    execution_requested: ProposalWorkflowEventRecord | None = None
+    execution_status: ProposalWorkflowEventRecord | None = None
+    report_request: ProposalWorkflowEventRecord | None = None
     for event in events:
         if event.event_type == "EXECUTION_REQUESTED":
-            latest_execution_requested = event
+            execution_requested = event
         if event.event_type in EXECUTION_STATUS_EVENT_TYPES:
-            latest_execution_event = event
+            execution_status = event
         if event.event_type == "REPORT_REQUESTED":
-            latest_report_request = event
+            report_request = event
+    return _LatestDeliveryEvents(
+        execution_requested=execution_requested,
+        execution_status=execution_status,
+        report_request=report_request,
+    )
 
-    execution: dict[str, Any] | None = None
-    if latest_execution_requested is not None or latest_execution_event is not None:
-        target_event = latest_execution_event or latest_execution_requested
-        if target_event is not None:
-            execution = {
-                "handoff_status": execution_status_for_event(target_event.event_type),
-                "execution_request_id": _optional_str(
-                    target_event.reason_json.get("execution_request_id")
-                    if target_event.reason_json.get("execution_request_id") is not None
-                    else (
-                        latest_execution_requested.reason_json.get("execution_request_id")
-                        if latest_execution_requested is not None
-                        else None
-                    )
-                ),
-                "execution_provider": _optional_str(
-                    target_event.reason_json.get("execution_provider")
-                    if target_event.reason_json.get("execution_provider") is not None
-                    else (
-                        latest_execution_requested.reason_json.get("execution_provider")
-                        if latest_execution_requested is not None
-                        else None
-                    )
-                ),
-                "related_version_no": target_event.related_version_no,
-                "handoff_requested_at": (
-                    latest_execution_requested.occurred_at.isoformat()
-                    if latest_execution_requested is not None
-                    else None
-                ),
-                "executed_at": (
-                    target_event.occurred_at.isoformat()
-                    if target_event.event_type == "EXECUTED"
-                    else None
-                ),
-                "latest_event_type": target_event.event_type,
-                "external_execution_id": _optional_str(
-                    target_event.reason_json.get("external_execution_id")
-                ),
-                "execution_ownership": execution_ownership_boundary(),
-            }
 
-    reporting: dict[str, Any] | None = None
-    if latest_report_request is not None:
-        reporting = {
-            "report_request_id": _optional_str(
-                latest_report_request.reason_json.get("report_request_id")
-            ),
-            "report_type": _optional_str(latest_report_request.reason_json.get("report_type")),
-            "report_service": _optional_str(
-                latest_report_request.reason_json.get("report_service")
-            ),
-            "status": _optional_str(latest_report_request.reason_json.get("status")),
-            "report_reference_id": _optional_str(
-                latest_report_request.reason_json.get("report_reference_id")
-            ),
-            "artifact_url": _optional_str(latest_report_request.reason_json.get("artifact_url")),
-            "requested_by": latest_report_request.actor_id,
-            "related_version_no": latest_report_request.related_version_no,
-            "include_execution_summary": latest_report_request.reason_json.get(
-                "include_execution_summary"
-            ),
-            "include_reviewed_narrative": latest_report_request.reason_json.get(
-                "include_reviewed_narrative", False
-            ),
-            "proposal_narrative_package": latest_report_request.reason_json.get(
-                "proposal_narrative_package"
-            ),
-            "generated_at": latest_report_request.occurred_at.isoformat(),
-        }
-
+def _build_execution_summary(latest: _LatestDeliveryEvents) -> dict[str, Any] | None:
+    target_event = latest.execution_status or latest.execution_requested
+    if target_event is None:
+        return None
     return {
-        "execution": execution,
-        "reporting": reporting,
+        "handoff_status": execution_status_for_event(target_event.event_type),
+        "execution_request_id": _event_reason_str(
+            target_event, "execution_request_id", fallback=latest.execution_requested
+        ),
+        "execution_provider": _event_reason_str(
+            target_event, "execution_provider", fallback=latest.execution_requested
+        ),
+        "related_version_no": target_event.related_version_no,
+        "handoff_requested_at": _event_occurred_at(latest.execution_requested),
+        "executed_at": (
+            target_event.occurred_at.isoformat() if target_event.event_type == "EXECUTED" else None
+        ),
+        "latest_event_type": target_event.event_type,
+        "external_execution_id": _event_reason_str(target_event, "external_execution_id"),
+        "execution_ownership": execution_ownership_boundary(),
+    }
+
+
+def _build_reporting_summary(
+    report_request: ProposalWorkflowEventRecord | None,
+) -> dict[str, Any] | None:
+    if report_request is None:
+        return None
+    return {
+        "report_request_id": _event_reason_str(report_request, "report_request_id"),
+        "report_type": _event_reason_str(report_request, "report_type"),
+        "report_service": _event_reason_str(report_request, "report_service"),
+        "status": _event_reason_str(report_request, "status"),
+        "report_reference_id": _event_reason_str(report_request, "report_reference_id"),
+        "artifact_url": _event_reason_str(report_request, "artifact_url"),
+        "requested_by": report_request.actor_id,
+        "related_version_no": report_request.related_version_no,
+        "include_execution_summary": report_request.reason_json.get("include_execution_summary"),
+        "include_reviewed_narrative": report_request.reason_json.get(
+            "include_reviewed_narrative", False
+        ),
+        "proposal_narrative_package": report_request.reason_json.get("proposal_narrative_package"),
+        "generated_at": report_request.occurred_at.isoformat(),
     }
 
 
@@ -163,6 +153,22 @@ def build_delivery_history_response(
             "execution_ownership": execution_ownership_boundary(),
         },
     )
+
+
+def _event_reason_str(
+    event: ProposalWorkflowEventRecord,
+    key: str,
+    *,
+    fallback: ProposalWorkflowEventRecord | None = None,
+) -> str | None:
+    value = event.reason_json.get(key)
+    if value is None and fallback is not None:
+        value = fallback.reason_json.get(key)
+    return _optional_str(value)
+
+
+def _event_occurred_at(event: ProposalWorkflowEventRecord | None) -> str | None:
+    return event.occurred_at.isoformat() if event is not None else None
 
 
 def _optional_str(value: Any) -> str | None:
