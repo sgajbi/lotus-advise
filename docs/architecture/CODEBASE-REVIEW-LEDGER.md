@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-709
+
+- Scope: Bank-demo proof artifact references
+- Pattern: Local artifact-reference normalization should keep raw text validation,
+  repository-local location checks, path normalization, and sensitive-material rejection separate
+  so proof-pack artifact pointers remain safe and easy to audit.
+- Status: Improved
+- Finding Class: Security maintainability and complexity reduction
+- Summary: `normalize_local_artifact_ref` mixed whitespace/backslash normalization, required and
+  control-character validation, URL/query/fragment rejection, absolute-path rejection, traversal
+  rejection, sensitive path rejection, and canonical rendering in one C-ranked helper. That made
+  proof artifact path safety harder to review and reuse.
+- Evidence:
+  - Extracted local artifact text validation, URL/location validation, and path-part validation
+    helpers.
+  - Added an API request regression proving backslash normalization for live-suite source refs and
+    output proof prefixes.
+  - Existing proof request and capture tests continue to prove URL/query rejection, traversal
+    rejection, and sensitive artifact-ref rejection.
+  - Radon now reports `normalize_local_artifact_ref` as A-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - Bank-demo proof artifact references preserve behavior while making local-only and
+    sensitive-material safeguards easier to review.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal proof-artifact validation hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked bank-demo proof and proposal workflow validation helpers.
+
 ## LA-REV-708
 
 - Scope: Commercial material repository source references
