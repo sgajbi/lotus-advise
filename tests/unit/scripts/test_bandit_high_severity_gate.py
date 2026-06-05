@@ -89,3 +89,25 @@ def test_main_fails_when_bandit_output_is_not_valid_json(
     captured = capsys.readouterr()
     assert exit_code == 1
     assert "Bandit did not return valid JSON." in captured.err
+
+
+def test_main_reports_bandit_stderr_when_report_is_empty(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    monkeypatch.setattr(
+        bandit_high_severity_gate,
+        "run_bandit",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout="",
+            stderr="No module named bandit",
+        ),
+    )
+
+    exit_code = bandit_high_severity_gate.main(["--repo-root", str(tmp_path)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "No module named bandit" in captured.err

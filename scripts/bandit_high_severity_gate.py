@@ -90,6 +90,9 @@ def main(argv: list[str] | None = None) -> int:
     if completed.returncode not in {0, 1}:
         print(completed.stderr.strip() or "Bandit execution failed.", file=sys.stderr)
         return 1
+    if not completed.stdout.strip():
+        print(completed.stderr.strip() or "Bandit did not return a report.", file=sys.stderr)
+        return 1
 
     try:
         summary = parse_bandit_report(completed.stdout)
