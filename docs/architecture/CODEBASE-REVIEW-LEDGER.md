@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-703
+
+- Scope: OpenAPI operation enrichment
+- Pattern: API-governance enrichment should separate documentable-operation detection, summary and
+  description defaults, tag inference, default error response insertion, and idempotency-header
+  enrichment so contract behavior remains reviewable
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_ensure_operation_documentation` mixed path/method iteration, HTTP-method filtering,
+  operation type checks, summary/description defaults, health/metrics/default tag inference, error
+  response detection, default error response insertion, and parameter enrichment in one C-ranked
+  function. That made OpenAPI quality behavior harder to audit even though the repo already enforces
+  Spectral zero findings.
+- Evidence:
+  - Extracted operation eligibility, summary defaulting, description defaulting, tag inference,
+    default error response detection/insertion, and error response classification helpers.
+  - Added a direct OpenAPI enrichment contract test covering proposal operation defaults,
+    health/metrics tag inference, default error response insertion, and idempotency-header
+    max-length documentation.
+  - Existing OpenAPI/Spectral report tests continue to cover the broader API governance lane.
+  - Radon now reports `_ensure_operation_documentation` as A-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - OpenAPI enrichment remains behavior-preserving while becoming easier to extend and govern.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI example repair/inference helpers before raising
+    stricter API-governance complexity thresholds.
+
 ## LA-REV-702
 
 - Scope: In-memory proposal listing query helper

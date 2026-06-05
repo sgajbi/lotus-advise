@@ -14,6 +14,7 @@ _IDEMPOTENCY_HEADER_DESCRIPTION = (
 )
 
 _NUMERIC_STRING_PATTERN_FRAGMENT = r"\d*\.?\d*"
+_HTTP_OPERATION_METHODS = {"get", "post", "put", "patch", "delete"}
 
 _EXAMPLE_BY_KEY = {
     "portfolio_id": "PB_SG_GLOBAL_BAL_001",
@@ -366,33 +367,61 @@ def _ensure_operation_documentation(schema: dict[str, Any], service_name: str) -
         if not isinstance(methods, dict):
             continue
         for method, operation in methods.items():
-            if method.lower() not in {"get", "post", "put", "patch", "delete"}:
+            if not _is_documentable_operation(method, operation):
                 continue
-            if not isinstance(operation, dict):
-                continue
-            if not operation.get("summary"):
-                operation["summary"] = f"{method.upper()} {path}"
-            if not operation.get("description"):
-                operation["description"] = (
-                    f"{method.upper()} operation for {path} in {service_name}."
-                )
-            if not operation.get("tags"):
-                if path.startswith("/health/") or path == "/health":
-                    operation["tags"] = ["Health"]
-                elif path == "/metrics":
-                    operation["tags"] = ["Monitoring"]
-                else:
-                    segment = path.strip("/").split("/", 1)[0] or "default"
-                    operation["tags"] = [segment.replace("-", " ").title()]
-            responses = operation.get("responses")
-            if isinstance(responses, dict):
-                has_error = any(
-                    code.startswith("4") or code.startswith("5") or code == "default"
-                    for code in responses
-                )
-                if not has_error:
-                    responses["default"] = {"description": "Unexpected error response."}
+            _ensure_operation_summary(operation, method, path)
+            _ensure_operation_description(operation, method, path, service_name)
+            _ensure_operation_tags(operation, path)
+            _ensure_default_error_response(operation)
             _ensure_operation_parameter_documentation(operation)
+
+
+def _is_documentable_operation(method: str, operation: Any) -> bool:
+    return method.lower() in _HTTP_OPERATION_METHODS and isinstance(operation, dict)
+
+
+def _ensure_operation_summary(operation: dict[str, Any], method: str, path: str) -> None:
+    if not operation.get("summary"):
+        operation["summary"] = f"{method.upper()} {path}"
+
+
+def _ensure_operation_description(
+    operation: dict[str, Any],
+    method: str,
+    path: str,
+    service_name: str,
+) -> None:
+    if not operation.get("description"):
+        operation["description"] = f"{method.upper()} operation for {path} in {service_name}."
+
+
+def _ensure_operation_tags(operation: dict[str, Any], path: str) -> None:
+    if operation.get("tags"):
+        return
+    operation["tags"] = [_inferred_operation_tag(path)]
+
+
+def _inferred_operation_tag(path: str) -> str:
+    if path.startswith("/health/") or path == "/health":
+        return "Health"
+    if path == "/metrics":
+        return "Monitoring"
+    segment = path.strip("/").split("/", 1)[0] or "default"
+    return segment.replace("-", " ").title()
+
+
+def _ensure_default_error_response(operation: dict[str, Any]) -> None:
+    responses = operation.get("responses")
+    if not isinstance(responses, dict) or _has_error_response(responses):
+        return
+    responses["default"] = {"description": "Unexpected error response."}
+
+
+def _has_error_response(responses: dict[str, Any]) -> bool:
+    return any(
+        str(code).startswith("4") or str(code).startswith("5") or code == "default"
+        for code in responses
+    )
 
 
 def _ensure_operation_parameter_documentation(operation: dict[str, Any]) -> None:

@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `fcdc89a233510eef87161702e7d539ba7617c60d`
-- Branch Commits Over Main: `31`
+- Head: `7519ab50bbe2e26649dfa523a4b85dde20529972`
+- Branch Commits Over Main: `32`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -173,6 +173,8 @@
   focused helpers.
 - In-memory proposal listing delegates filter matching, cursor slicing, and
   next-cursor calculation to focused query helpers.
+- OpenAPI operation enrichment delegates operation eligibility, default
+  summary/description, tag inference, error response, and idempotency header handling.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
   mechanics, and detail projection to focused owner modules.
 - Proposal decision-summary assembly delegates status, reason, next-action,
