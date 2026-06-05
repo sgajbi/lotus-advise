@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/proposal-input-model-boundaries`
-- Head: `676251f0193f08147c22bb5e14d9e7459909af7d`
-- Branch Commits Over Main: `11`
+- Branch: `harden/remaining-complexity-boundaries`
+- Head: `9735315156f1064b0d7e46dad65229a2ff885db5`
+- Branch Commits Over Main: `6`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -209,6 +209,15 @@
   assembly to a focused replay module.
 - Policy evaluation persistence delegates mutable record storage, idempotency replay,
   event construction, and store-backed projections to a focused record-store module.
+- Lotus Core stateful-context translation delegates payload normalization, market-data
+  projection, and shelf-entry projection to focused owner modules.
+- Lotus Core stateful-context source reads delegate enrichment cache partitioning,
+  missing-id batching, source fetch, and cache writeback to focused helpers.
+- Lotus Core stateful-context resolver and trade-draft hydration paths now read as
+  orchestration over source fetch, validation, DTO assembly, and per-instrument
+  hydration.
+- Lotus Core liquidity-tier and simulation adapter logic delegates ordered policy
+  rule evaluation, HTTP posting, problem-detail mapping, and contract validation.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

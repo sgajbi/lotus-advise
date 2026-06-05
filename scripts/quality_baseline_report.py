@@ -922,6 +922,15 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  assembly to a focused replay module.",
         "- Policy evaluation persistence delegates mutable record storage, idempotency replay,",
         "  event construction, and store-backed projections to a focused record-store module.",
+        "- Lotus Core stateful-context translation delegates payload normalization, market-data",
+        "  projection, and shelf-entry projection to focused owner modules.",
+        "- Lotus Core stateful-context source reads delegate enrichment cache partitioning,",
+        "  missing-id batching, source fetch, and cache writeback to focused helpers.",
+        "- Lotus Core stateful-context resolver and trade-draft hydration paths now read as",
+        "  orchestration over source fetch, validation, DTO assembly, and per-instrument",
+        "  hydration.",
+        "- Lotus Core liquidity-tier and simulation adapter logic delegates ordered policy",
+        "  rule evaluation, HTTP posting, problem-detail mapping, and contract validation.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
@@ -949,6 +958,16 @@ def render_refactor_health_report(context: QualityContext) -> str:
 
 
 def render_quality_scorecard(context: QualityContext) -> str:
+    radon_rank_inventory = ", ".join(
+        f"{rank}={count}" for rank, count in context.radon_rank_counts.items()
+    )
+    if not radon_rank_inventory:
+        radon_rank_inventory = "not run"
+    radon_worst = (
+        f"{context.radon_worst_rank}/{context.radon_worst_complexity}"
+        if context.radon_worst_rank is not None and context.radon_worst_complexity is not None
+        else "not run"
+    )
     rows = [
         ("Code size and hotspots", "Baseline active", "engineering-health + quality baseline"),
         (
@@ -1012,15 +1031,15 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Complexity",
             "Radon and Xenon tracked as pending report-only tools.",
-            "Radon config executable; inventory `A=2827, B=248, C=52`; "
-            "worst block `C/16`; no E/F gate enforced through `make lint`.",
+            f"Radon config executable; inventory `{radon_rank_inventory}`; "
+            f"worst block `{radon_worst}`; no E/F gate enforced through `make lint`.",
             "Complexity is now measured repeatably and regression-blocked for E/F-ranked blocks.",
         ),
         (
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-711` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-718` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

@@ -1,5 +1,43 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-718
+
+- Scope: Lotus Core integration stateful-context and simulation boundaries
+- Pattern: Source-backed Lotus Core integration paths should separate source reads, cache
+  partitioning, market-data projection, shelf-entry projection, resolver orchestration, trade-draft
+  hydration, liquidity policy rules, and HTTP contract validation.
+- Status: Improved
+- Finding Class: Integration-boundary maintainability and source-backed proposal reliability
+- Summary: Several Lotus Core integration helpers still carried C-ranked complexity across
+  `stateful_context_translation`, `stateful_context_source_reads`, `stateful_context`,
+  `stateful_context_hydration`, `classification`, and `simulation`. These paths are critical to
+  source-backed advisory proposal hydration and simulation, so mixed responsibilities increased
+  review cost and regression risk.
+- Evidence:
+  - Split stateful-context payload normalization, market-data projection, and shelf-entry
+    projection into focused owner modules while preserving the compatibility facade.
+  - Extracted source-read enrichment cache partitioning, missing-id batching, fetch, and cache
+    writeback helpers.
+  - Reduced the stateful-context resolver to orchestration over source fetch, identity/as-of
+    validation, DTO assembly, and cache storage.
+  - Reduced trade-draft hydration to orchestration over missing-instrument selection, hydration
+    context setup, per-instrument lookup, and market-data/shelf/FX append helpers.
+  - Split liquidity-tier rule families and Lotus Core simulation adapter header, HTTP post,
+    problem-detail, payload, and contract-validation responsibilities.
+  - Radon no longer reports any C-ranked blocks under `src/integrations/lotus_core`.
+  - Focused Lotus Core stateful-context, contract-boundary, and simulation adapter tests passed.
+  - Regenerated quality reports show Radon C-ranked blocks reduced from `39` to `32`.
+- Consequence:
+  - Lotus Core proposal hydration and simulation remain behavior-preserving while the integration
+    boundary is easier to audit, test, and extend without mixing source access, DTO projection, and
+    contract validation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal integration-boundary hardening for existing supported behavior.
+- Follow-Up:
+  - Continue reducing remaining C-ranked advisory, policy-pack, cockpit, copilot, and persistence
+    helpers in focused owner-boundary slices.
+
 ## LA-REV-717
 
 - Scope: Proposal memo section evidence aggregation
