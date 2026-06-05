@@ -154,6 +154,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Commercial material source-reference normalization delegates" in refactor_health
     assert "Bank-demo proof artifact-reference normalization delegates" in refactor_health
     assert "Shared proposal intent dependency linking delegates" in refactor_health
+    assert "API structured logging formatter delegates" in refactor_health
     assert "Proposal workflow delivery operations delegate execution handoff" in refactor_health
     assert "Proposal workflow narrative operations delegate narrative read" in refactor_health
     assert "Proposal workflow read operations delegate proposal" in refactor_health

@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-711
+
+- Scope: API structured logging formatter
+- Pattern: Structured log formatting should separate base payload construction, contextual
+  enrichment, audit enrichment, and null filtering so observability output remains predictable and
+  easy to test.
+- Status: Improved
+- Finding Class: Observability maintainability and complexity reduction
+- Summary: `JsonFormatter.format` built the base JSON payload, read service/environment context,
+  merged optional extra fields, attached audit fields, and removed null values in one C-ranked
+  formatter method. That made structured logging behavior harder to test directly.
+- Evidence:
+  - Extracted base payload, extra-field extraction, audit-field extraction, and null-filtering
+    helpers.
+  - Added direct formatter tests proving service/environment context, request correlation context,
+    extra fields, audit fields, and absent context filtering.
+  - Radon now reports `JsonFormatter` as A-ranked complexity instead of C-ranked complexity.
+- Consequence:
+  - Structured API logs preserve output shape while becoming easier to audit and extend for
+    operational diagnostics.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal observability implementation hardening.
+- Follow-Up:
+  - Continue strengthening observability diagnostics around request middleware and supportability
+    metric evidence.
+
 ## LA-REV-710
 
 - Scope: Shared proposal intent dependency linking

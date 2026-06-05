@@ -902,6 +902,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and path safety validation to focused helpers.",
         "- Shared proposal intent dependency linking delegates SELL indexing, BUY selection,",
         "  and idempotent dependency appending to focused helpers.",
+        "- API structured logging formatter delegates base payload, extra-field, audit-field,",
+        "  and null-filtering behavior to focused helpers.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
         "  mechanics, and detail projection to focused owner modules.",
         "- Proposal decision-summary assembly delegates status, reason, next-action,",

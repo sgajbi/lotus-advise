@@ -54,22 +54,49 @@ def _resolve_request_id(request_id: str | None) -> str:
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        payload: dict[str, object] = {
-            "timestamp": datetime.now(UTC).isoformat(),
-            "level": record.levelname,
-            "service": os.getenv("SERVICE_NAME", "lotus-advise"),
-            "environment": os.getenv("ENVIRONMENT", "local"),
-            "logger": record.name,
-            "message": record.getMessage(),
-            "correlation_id": correlation_id_var.get() or None,
-            "request_id": request_id_var.get() or None,
-            "trace_id": trace_id_var.get() or None,
-        }
-        if hasattr(record, "extra_fields") and isinstance(record.extra_fields, dict):
-            payload.update(record.extra_fields)
-        if hasattr(record, "audit") and isinstance(record.audit, dict):
-            payload["audit"] = record.audit
-        return json.dumps({k: v for k, v in payload.items() if v is not None})
+        payload = _log_payload(record)
+        return json.dumps(_without_none_values(payload))
+
+
+def _log_payload(record: logging.LogRecord) -> dict[str, object]:
+    payload = _base_log_payload(record)
+    payload.update(_extra_log_fields(record))
+    audit = _audit_log_fields(record)
+    if audit is not None:
+        payload["audit"] = audit
+    return payload
+
+
+def _base_log_payload(record: logging.LogRecord) -> dict[str, object]:
+    return {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "level": record.levelname,
+        "service": os.getenv("SERVICE_NAME", "lotus-advise"),
+        "environment": os.getenv("ENVIRONMENT", "local"),
+        "logger": record.name,
+        "message": record.getMessage(),
+        "correlation_id": correlation_id_var.get() or None,
+        "request_id": request_id_var.get() or None,
+        "trace_id": trace_id_var.get() or None,
+    }
+
+
+def _extra_log_fields(record: logging.LogRecord) -> dict[str, object]:
+    extra_fields = getattr(record, "extra_fields", None)
+    if isinstance(extra_fields, dict):
+        return extra_fields
+    return {}
+
+
+def _audit_log_fields(record: logging.LogRecord) -> dict[str, object] | None:
+    audit = getattr(record, "audit", None)
+    if isinstance(audit, dict):
+        return audit
+    return None
+
+
+def _without_none_values(payload: dict[str, object]) -> dict[str, object]:
+    return {key: value for key, value in payload.items() if value is not None}
 
 
 def setup_observability(app: FastAPI) -> None:

@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `edb5336c2d355d5bf9dae205bcf5b7bb72205493`
-- Branch Commits Over Main: `47`
+- Head: `da1f51e03a3c70795fabdb2a32be673e0715e128`
+- Branch Commits Over Main: `48`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -189,6 +189,8 @@
   and path safety validation to focused helpers.
 - Shared proposal intent dependency linking delegates SELL indexing, BUY selection,
   and idempotent dependency appending to focused helpers.
+- API structured logging formatter delegates base payload, extra-field, audit-field,
+  and null-filtering behavior to focused helpers.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
   mechanics, and detail projection to focused owner modules.
 - Proposal decision-summary assembly delegates status, reason, next-action,
