@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-726
+
+- Scope: Advisory copilot bounded tuple API validation
+- Pattern: Copilot API tuple normalization should separate source shape validation, per-item
+  normalization, duplicate handling, max-count enforcement, and empty-result enforcement so
+  bounded-input controls remain easy to audit.
+- Status: Hardened
+- Finding Class: Copilot API validation complexity and input-boundary maintainability
+- Summary: `normalize_bounded_copilot_string_tuple` mixed `None` handling, sequence-type checks,
+  max item count, string type checks, trimming, empty item rejection, max item length, duplicate
+  suppression, and non-empty enforcement in one C-ranked helper. The function is reused by copilot
+  request and response models, so the validation rules should be explicit and reusable.
+- Evidence:
+  - Extracted bounded sequence validation, unique item append, bounded string item normalization,
+    and non-empty tuple enforcement helpers.
+  - Preserved existing error-code behavior and duplicate suppression semantics.
+  - Radon no longer reports `normalize_bounded_copilot_string_tuple` as C-ranked complexity; the
+    source-only C-ranked inventory is now 18 blocks.
+  - Focused copilot API validation `ruff`, format, `mypy`, Radon, application, and route tests
+    passed.
+- Consequence:
+  - Copilot input boundaries retain behavior while validation constraints are easier to inspect,
+    test, and extend without weakening bounded evidence-packet controls.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal copilot validation hardening for existing API behavior.
+- Follow-Up:
+  - Continue with copilot structured payload validation, copilot persistence, policy-pack, common
+    suitability, and proof-validation C-ranked hotspots.
+
 ## LA-REV-725
 
 - Scope: Proposal simulation security-trade intent planning

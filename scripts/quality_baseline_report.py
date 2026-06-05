@@ -949,6 +949,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Proposal simulation security-trade intent planning delegates shelf presence,",
         "  shelf eligibility, unsupported-trade diagnostics, and intent construction to",
         "  focused helpers.",
+        "- Advisory copilot bounded tuple validation delegates sequence validation,",
+        "  bounded item normalization, duplicate handling, and non-empty enforcement to",
+        "  focused helpers.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
@@ -1057,7 +1060,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-725` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-726` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
