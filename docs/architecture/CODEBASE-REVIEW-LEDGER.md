@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-738
+
+- Scope: Target-generation infeasibility diagnostics
+- Pattern: Target solver infeasibility hints should separate invested-weight bounds, cash-band
+  contradiction checks, single-position capacity checks, group exposure scans, and locked-group
+  hint projection so diagnostics remain auditable.
+- Status: Hardened
+- Finding Class: Target-generation complexity and solver diagnostics maintainability
+- Summary: `_collect_infeasibility_hints` mixed shelf attribute indexing, invested min/max
+  calculation, cash-band contradiction detection, single-position capacity diagnostics, group
+  constraint scanning, locked/tradeable group exposure accounting, and hint projection in one
+  C-ranked helper. These hints explain why deterministic target generation cannot produce a ready
+  target, so they need small rule boundaries and direct tests.
+- Evidence:
+  - Extracted invested-weight bounds, cash-band hint, single-position capacity hint, locked group
+    hint projection, and group exposure scan helpers.
+  - Preserved existing hint ordering and hint code vocabulary.
+  - Added focused tests for cash-band contradiction, single-position capacity, and locked group
+    weight diagnostics.
+  - Radon no longer reports `_collect_infeasibility_hints` as C-ranked complexity; the current
+    source-only C-ranked inventory is now 7 blocks.
+  - Focused target-generation `ruff`, format, `mypy`, Radon, and dependency/diagnostic tests
+    passed with 5 tests.
+- Consequence:
+  - Solver diagnostics remain behavior-compatible while each infeasibility hint rule can be
+    inspected and extended without growing the target-generation orchestration path.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal target-generation diagnostics hardening for existing behavior.
+- Follow-Up:
+  - Continue with advisor cockpit, proof-validation, suitability state issue, infrastructure
+    proposal listing, and Lotus AI integration hotspots.
+
 ## LA-REV-737
 
 - Scope: Advisory alternatives raise-cash strategy
