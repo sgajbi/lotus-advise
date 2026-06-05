@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-725
+
+- Scope: Proposal simulation security-trade intent planning
+- Pattern: Security-trade intent planning should separate shelf presence, shelf eligibility,
+  unsupported-trade diagnostics, and intent construction so proposal execution failures remain
+  deterministic and auditable.
+- Status: Hardened
+- Finding Class: Advisory simulation intent complexity and execution diagnostics maintainability
+- Summary: `_build_security_trade_intents` mixed shelf lookup, missing-shelf diagnostics, restricted
+  and unsupported shelf status checks, proposal intent construction, data-quality logging, warning
+  recording, and hard-failure recording. The C-ranked helper sits on the core proposal simulation
+  path and needed clearer internal boundaries without changing generated intents or failure codes.
+- Evidence:
+  - Extracted shelf-entry presence checks, shelf eligibility checks, unsupported-trade failure
+    recording, and supported security-trade intent construction into focused helpers.
+  - Preserved existing warning and hard-failure codes for missing shelf, restricted buys, unsupported
+    shelf statuses, and intent-build errors.
+  - Radon no longer reports `simulation_intent_plan.py` C-ranked blocks; the source-only C-ranked
+    inventory is now 19 blocks.
+  - Focused simulation-intent `ruff`, format, `mypy`, Radon, and proposal simulation tests passed.
+- Consequence:
+  - Security-trade planning remains behavior-compatible while execution diagnostics and shelf
+    eligibility handling are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal simulation planning hardening for existing behavior.
+- Follow-Up:
+  - Continue with advisory copilot safety/persistence, policy-pack, common suitability, and
+    proof-validation C-ranked hotspots.
+
 ## LA-REV-724
 
 - Scope: Proposal narrative grounding fact projection
