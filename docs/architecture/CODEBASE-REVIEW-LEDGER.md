@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-705
+
+- Scope: OpenAPI field-description inference
+- Pattern: API-governance description inference should separate identifier, date/time, currency,
+  monetary, quantity, rate/price, status, and fallback description paths so generated contract text
+  remains predictable and reviewable
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_infer_description` encoded all domain field-description heuristics in one C-ranked
+  function. That made generated OpenAPI description behavior harder to inspect and extend as API
+  vocabulary expands.
+- Evidence:
+  - Extracted specialized field-description dispatch plus focused helpers for identifiers, business
+    dates, timestamps, currencies, monetary values, quantities, rate/price fields, statuses, and
+    fallback model-field text.
+  - Added a direct OpenAPI enrichment contract test covering each description category.
+  - Existing OpenAPI enrichment tests continue to prove broad schema description and example
+    behavior.
+  - Radon now reports `_infer_description` as A-ranked complexity instead of C-ranked complexity.
+- Consequence:
+  - OpenAPI field-description inference remains behavior-preserving while becoming easier to govern
+    against Lotus API vocabulary expectations.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI example inference helpers and then consider
+    stricter API-governance complexity thresholds.
+
 ## LA-REV-704
 
 - Scope: OpenAPI schema example repair

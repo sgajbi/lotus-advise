@@ -85,3 +85,41 @@ def test_openapi_enrichment_repairs_nested_schema_examples() -> None:
         {"sourceId": "SOURCE_009", "priority": "HIGH", "summary": "example_summary"}
     ]
     assert properties["weights"]["example"] == {"USD": "0.125"}
+
+
+def test_openapi_enrichment_infers_domain_field_descriptions() -> None:
+    schema = {
+        "paths": {},
+        "components": {
+            "schemas": {
+                "DescriptionModel": {
+                    "properties": {
+                        "portfolioId": {"type": "string"},
+                        "businessDate": {"type": "string", "format": "date"},
+                        "generatedAt": {"type": "string", "format": "date-time"},
+                        "settlementCurrency": {"type": "string"},
+                        "marketValue": {"type": "number"},
+                        "orderQuantity": {"type": "number"},
+                        "marketPrice": {"type": "number"},
+                        "lifecycleStatus": {"type": "string"},
+                        "customField": {"type": "string"},
+                    }
+                }
+            }
+        },
+    }
+
+    enriched = enrich_openapi_schema(schema, service_name="lotus-advise")
+    properties = enriched["components"]["schemas"]["DescriptionModel"]["properties"]
+
+    assert properties["portfolioId"]["description"] == "Unique portfolio identifier."
+    assert properties["businessDate"]["description"] == "Business date for business date."
+    assert properties["generatedAt"]["description"] == "Timestamp for generated at."
+    assert properties["settlementCurrency"]["description"] == (
+        "ISO currency code for settlement currency."
+    )
+    assert properties["marketValue"]["description"] == "Monetary value for market value."
+    assert properties["orderQuantity"]["description"] == "Quantity value for order quantity."
+    assert properties["marketPrice"]["description"] == "Rate/price value for market price."
+    assert properties["lifecycleStatus"]["description"] == ("Current status for lifecycle status.")
+    assert properties["customField"]["description"] == "description model field: custom field."

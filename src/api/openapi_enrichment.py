@@ -397,23 +397,83 @@ def _infer_example(prop_name: str, prop_schema: dict[str, Any], components: dict
 def _infer_description(model_name: str, prop_name: str, prop_schema: dict[str, Any]) -> str:
     key = _to_snake_case(prop_name)
     text = _humanize(prop_name)
-    if key.endswith("_id"):
-        entity = key[: -len("_id")].replace("_", " ")
-        return f"Unique {entity} identifier."
+    description = _specialized_field_description(key, text, prop_schema)
+    if description is not None:
+        return description
+    return _default_field_description(model_name, text)
+
+
+def _specialized_field_description(
+    key: str,
+    text: str,
+    prop_schema: dict[str, Any],
+) -> str | None:
+    for describer in (
+        _identifier_description,
+        _date_description,
+        _timestamp_description,
+        _currency_description,
+        _monetary_description,
+        _quantity_description,
+        _rate_price_description,
+        _status_description,
+    ):
+        description = describer(key, text, prop_schema)
+        if description is not None:
+            return description
+    return None
+
+
+def _identifier_description(key: str, _: str, __: dict[str, Any]) -> str | None:
+    if not key.endswith("_id"):
+        return None
+    entity = key[: -len("_id")].replace("_", " ")
+    return f"Unique {entity} identifier."
+
+
+def _date_description(key: str, text: str, prop_schema: dict[str, Any]) -> str | None:
     if "date" in key and prop_schema.get("format") == "date":
         return f"Business date for {text}."
+    return None
+
+
+def _timestamp_description(key: str, text: str, prop_schema: dict[str, Any]) -> str | None:
     if "time" in key or prop_schema.get("format") == "date-time":
         return f"Timestamp for {text}."
+    return None
+
+
+def _currency_description(key: str, text: str, _: dict[str, Any]) -> str | None:
     if "currency" in key:
         return f"ISO currency code for {text}."
-    if "amount" in key or "value" in key or "pnl" in key:
+    return None
+
+
+def _monetary_description(key: str, text: str, _: dict[str, Any]) -> str | None:
+    if any(marker in key for marker in ("amount", "value", "pnl")):
         return f"Monetary value for {text}."
+    return None
+
+
+def _quantity_description(key: str, text: str, _: dict[str, Any]) -> str | None:
     if "quantity" in key:
         return f"Quantity value for {text}."
+    return None
+
+
+def _rate_price_description(key: str, text: str, _: dict[str, Any]) -> str | None:
     if "rate" in key or "price" in key:
         return f"Rate/price value for {text}."
+    return None
+
+
+def _status_description(key: str, text: str, _: dict[str, Any]) -> str | None:
     if "status" in key:
         return f"Current status for {text}."
+    return None
+
+
+def _default_field_description(model_name: str, text: str) -> str:
     return f"{_humanize(model_name)} field: {text}."
 
 
