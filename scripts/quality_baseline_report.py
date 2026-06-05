@@ -1093,7 +1093,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Tests",
             "Unit suite existed; new focused refactor regressions were absent.",
-            "Unit suite now has `1938` passing tests in `make check`; added focused tests "
+            "Unit suite now has `1940` passing tests in `make check`; added focused tests "
             "for OpenAPI enrichment, proof refs, source refs, dependency linking, and "
             "structured logging.",
             "Refactors are covered by behavior-preserving regression tests.",
