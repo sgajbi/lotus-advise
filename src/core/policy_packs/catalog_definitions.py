@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.policy_packs.catalog_definition_validation import validate_catalog_definition
 from src.core.policy_packs.catalog_models import PolicyPackSummary
 from src.core.policy_packs.supportability import (
     POLICY_CATALOG_CONTRACT_VERSION,
@@ -50,33 +51,4 @@ def catalog_posture() -> dict[str, Any]:
 
 
 def validate_definition(definition: dict[str, Any]) -> list[str]:
-    diagnostics = []
-    for key in (
-        "policy_pack_id",
-        "policy_version",
-        "policy_family",
-        "applicability",
-        "source_requirements",
-        "rules",
-        "sample_fixture_refs",
-        "schema_version",
-    ):
-        if not definition.get(key):
-            diagnostics.append(f"{key.upper()}_REQUIRED")
-    if definition.get("reference_posture") != REFERENCE_POSTURE:
-        diagnostics.append("REFERENCE_POSTURE_NOT_DECLARED")
-    if not isinstance(definition.get("rules"), list):
-        diagnostics.append("RULES_MUST_BE_LIST")
-        return diagnostics
-    for rule in definition["rules"]:
-        if not isinstance(rule, dict):
-            diagnostics.append("RULE_MUST_BE_OBJECT")
-            continue
-        rule_id = str(rule.get("rule_id") or "")
-        if not rule_id or rule_id.upper() != rule_id or "-" in rule_id:
-            diagnostics.append("RULE_ID_NOT_UPPER_SNAKE_CASE")
-        if not rule.get("required_evidence_fields"):
-            diagnostics.append(f"{rule_id or 'RULE'}_REQUIRED_EVIDENCE_FIELDS_REQUIRED")
-        if "positive_wording_when_missing_evidence" in rule:
-            diagnostics.append(f"{rule_id or 'RULE'}_FORBIDDEN_POSITIVE_MISSING_EVIDENCE_WORDING")
-    return diagnostics
+    return validate_catalog_definition(definition)
