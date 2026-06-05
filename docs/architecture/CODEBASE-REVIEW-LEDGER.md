@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-731
+
+- Scope: Policy-pack conflict disclosure evaluation
+- Pattern: Conflict disclosure evaluation should separate product-document coverage, conflict
+  evidence findings, material-conflict review actions, and result construction from the shared
+  policy review rule facade.
+- Status: Hardened
+- Finding Class: Policy review-rule complexity and evidence maintainability
+- Summary: `evaluate_conflict_disclosure` mixed proposed-product document coverage, missing
+  conflict-evidence handling, material-conflict escalation, product-document review action
+  construction, and blocked/pending/ready result construction in one C-ranked review-rule helper.
+  This rule contributes policy approval dependencies and sign-off blockers, so source-evidence and
+  supervisory-review posture should be independently auditable.
+- Evidence:
+  - Extracted conflict disclosure review evaluation into
+    `src/core/policy_packs/evaluation_conflict_disclosure.py`.
+  - Preserved the existing `evaluation_review_rules.evaluate_conflict_disclosure` public import path
+    as a compatibility facade.
+  - Added focused coverage for missing conflict evidence producing pending review posture while
+    retaining existing material-conflict and ready-path behavior.
+  - Radon no longer reports `evaluate_conflict_disclosure` as C-ranked complexity; the current
+    source-only C-ranked inventory is now 14 blocks.
+  - Focused policy review `ruff`, format, `mypy`, Radon, and policy-pack evaluation tests passed.
+- Consequence:
+  - Conflict disclosure behavior remains compatible while product-document coverage and
+    material-conflict escalation are easier to inspect, test, and extend without growing the shared
+    review-rule facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy-pack review-rule hardening for existing behavior.
+- Follow-Up:
+  - Continue with policy-pack catalog definition validation, common suitability, advisor cockpit,
+    proof-validation, infrastructure listing, and integration C-ranked hotspots.
+
 ## LA-REV-730
 
 - Scope: Policy evaluation workflow conflict projection
