@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/remaining-complexity-boundaries`
-- Head: `9735315156f1064b0d7e46dad65229a2ff885db5`
-- Branch Commits Over Main: `6`
+- Head: `5a7c2e52110cfdc74efb93d33b129e453b505519`
+- Branch Commits Over Main: `9`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -218,6 +218,8 @@
   hydration.
 - Lotus Core liquidity-tier and simulation adapter logic delegates ordered policy
   rule evaluation, HTTP posting, problem-detail mapping, and contract validation.
+- Proposal alternatives comparison summaries delegate approval/evidence count deltas
+  and decimal risk/cash delta message projection to focused helpers.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

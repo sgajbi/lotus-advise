@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-719
+
+- Scope: Proposal alternatives comparison summary projection
+- Pattern: Alternatives comparison summaries should separate approval/evidence count deltas,
+  decimal risk/cash deltas, and message projection from the response-envelope assembly.
+- Status: Improved
+- Finding Class: Advisory alternatives maintainability and projection clarity
+- Summary: `build_comparison_summary` mixed approval counts, missing-evidence counts, risk delta
+  interpretation, cash delta interpretation, message selection, and response construction in one
+  C-ranked projection helper.
+- Evidence:
+  - Extracted approval requirement counts, missing-evidence counts, count-delta message projection,
+    and decimal-delta message projection helpers.
+  - Preserved comparison headline, primary tradeoff, approval/risk/allocation/cash/currency deltas,
+    unchanged-factor projection, and evidence refs.
+  - Radon now reports `build_comparison_summary` as A-ranked complexity instead of C-ranked
+    complexity.
+  - Focused proposal alternatives projection tests passed.
+- Consequence:
+  - Alternatives comparison summaries remain deterministic while improvement/deterioration message
+    rules are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory projection hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining alternatives strategy, artifact, funding, narrative, and
+    decision-requirement C-ranked helpers in scoped slices.
+
 ## LA-REV-718
 
 - Scope: Lotus Core integration stateful-context and simulation boundaries

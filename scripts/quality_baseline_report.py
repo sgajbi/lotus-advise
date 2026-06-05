@@ -931,6 +931,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  hydration.",
         "- Lotus Core liquidity-tier and simulation adapter logic delegates ordered policy",
         "  rule evaluation, HTTP posting, problem-detail mapping, and contract validation.",
+        "- Proposal alternatives comparison summaries delegate approval/evidence count deltas",
+        "  and decimal risk/cash delta message projection to focused helpers.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
@@ -1039,7 +1041,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-718` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-719` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
