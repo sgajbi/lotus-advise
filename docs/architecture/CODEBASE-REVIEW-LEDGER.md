@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-732
+
+- Scope: Policy-pack catalog definition validation
+- Pattern: Catalog definition validation should separate required-field diagnostics, reference
+  posture checks, rule-list validation, rule identifier validation, required-evidence checks, and
+  forbidden positive-missing-evidence wording checks from the catalog definition facade.
+- Status: Hardened
+- Finding Class: Policy catalog complexity and governance diagnostics maintainability
+- Summary: `validate_definition` mixed top-level policy-pack field validation,
+  `REFERENCE_EXAMPLE_NOT_LEGAL_ADVICE` posture enforcement, rule-list type checks, per-rule object
+  checks, rule-id naming checks, required-evidence checks, and forbidden positive wording checks in
+  one C-ranked function. These diagnostics are governance controls for reference policy packs, so
+  the checks need explicit ownership and direct tests.
+- Evidence:
+  - Extracted catalog definition diagnostics into
+    `src/core/policy_packs/catalog_definition_validation.py`.
+  - Preserved the existing `catalog_definitions.validate_definition` facade used by catalog store
+    validation.
+  - Added focused tests for top-level missing-field diagnostics, non-list rules, forbidden
+    positive missing-evidence wording, and non-object rule diagnostics.
+  - Radon no longer reports `validate_definition` as C-ranked complexity; the current source-only
+    C-ranked inventory is now 13 blocks.
+  - Focused catalog `ruff`, format, `mypy`, Radon, and catalog unit tests passed.
+- Consequence:
+  - Policy-pack catalog validation remains behavior-compatible while governance diagnostics are
+    easier to inspect, extend, and pin against unsafe reference-pack wording.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy-pack catalog validation hardening for existing behavior.
+- Follow-Up:
+  - Continue with common suitability, advisor cockpit, proof-validation, target-generation,
+    infrastructure listing, and integration C-ranked hotspots.
+
 ## LA-REV-731
 
 - Scope: Policy-pack conflict disclosure evaluation
