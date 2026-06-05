@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-710
+
+- Scope: Shared proposal intent dependency linking
+- Pattern: BUY intent dependency linking should separate sell-intent indexing, eligible BUY intent
+  selection, and idempotent dependency appending so execution-order dependencies remain reusable
+  and easy to review.
+- Status: Improved
+- Finding Class: Shared-domain maintainability and complexity reduction
+- Summary: `link_buy_intent_dependencies` mixed FX dependency lookup, same-currency SELL indexing,
+  BUY intent filtering, missing-notional skipping, optional sell-dependency behavior, and duplicate
+  prevention in one C-ranked helper. That made shared order-intent dependency behavior harder to
+  reuse and reason about.
+- Evidence:
+  - Extracted same-currency SELL dependency indexing, BUY security-intent selection, and idempotent
+    dependency appending helpers.
+  - Added a shared dependency regression proving disabled same-currency SELL dependency linking
+    still preserves FX dependencies without adding SELL dependencies.
+  - Existing shared dependency tests continue to prove FX+SELL dependency order, duplicate
+    prevention, and missing-notional skipping.
+  - Radon now reports `link_buy_intent_dependencies` as A-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - Proposal simulation intent dependency behavior remains behavior-preserving while becoming
+    easier to audit and reuse across advisory execution-plan builders.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal shared-domain dependency-linking hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked advisory funding, proposal workflow, and integration
+    translation helpers.
+
 ## LA-REV-709
 
 - Scope: Bank-demo proof artifact references
