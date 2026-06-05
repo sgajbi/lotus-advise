@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/remaining-complexity-boundaries`
-- Head: `5a7c2e52110cfdc74efb93d33b129e453b505519`
-- Branch Commits Over Main: `9`
+- Head: `c91e75e7581e1b14a1e809722f4862ada86c5d00`
+- Branch Commits Over Main: `14`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -220,6 +220,8 @@
   rule evaluation, HTTP posting, problem-detail mapping, and contract validation.
 - Proposal alternatives comparison summaries delegate approval/evidence count deltas
   and decimal risk/cash delta message projection to focused helpers.
+- Proposal artifact and decision-summary rule helpers delegate next-step gate mapping,
+  reason-code fallback, and approval-requirement collection to focused helpers.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

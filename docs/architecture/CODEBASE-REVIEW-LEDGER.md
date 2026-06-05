@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-720
+
+- Scope: Proposal artifact and decision-summary rule helpers
+- Pattern: Artifact next-step, decision reason-code, and approval-requirement helpers should
+  separate gate mapping, suitability fallback, missing-evidence requirements, and status-to-reason
+  projection from response assembly.
+- Status: Improved
+- Finding Class: Advisory decision maintainability and rule clarity
+- Summary: `resolve_next_step`, `primary_decision_reason_code`, and
+  `build_approval_requirements` each carried C-ranked branching across gate, suitability,
+  evidence, and status fallback behavior.
+- Evidence:
+  - Extracted artifact next-step gate mapping, blocked-gate suitability checks, suitability
+    fallback mapping, and status fallback helpers.
+  - Replaced decision reason-code fallback branching with ordered gate/missing-evidence lookup and
+    a status-to-reason map.
+  - Split approval requirements into gate, missing-evidence, and suitability requirement
+    collectors while preserving merge/sort behavior.
+  - Radon now reports all three helpers as A-ranked complexity instead of C-ranked complexity.
+  - Focused proposal artifact and decision-summary tests passed.
+- Consequence:
+  - Advisory artifact and decision-summary progression rules are easier to audit while preserving
+    supported gate, consent, remediation, review, and suitability behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory rule hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining advisory funding, artifact trade/funding, narrative, and
+    alternatives strategy C-ranked helpers in focused slices.
+
 ## LA-REV-719
 
 - Scope: Proposal alternatives comparison summary projection
