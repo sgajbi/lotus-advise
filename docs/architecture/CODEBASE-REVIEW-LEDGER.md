@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-700
+
+- Scope: Local position valuation mode handling
+- Pattern: Position valuation should separate trust-snapshot authority handling,
+  mark-to-market valuation, price lookup, and FX conversion so valuation-mode behavior remains
+  deterministic and reviewable
+- Status: Improved
+- Finding Class: Complexity reduction and valuation maintainability
+- Summary: `ValuationService.value_position` mixed price lookup, trust-snapshot branching,
+  base-currency authority handling, mark-to-market valuation, FX conversion, and response model
+  construction in one C-ranked method. That made a sensitive local fallback calculation harder to
+  audit as valuation modes evolve.
+- Evidence:
+  - Extracted position valuation result data, price lookup, trust-snapshot valuation,
+    mark-to-market valuation, base-authority classification, and FX conversion helpers.
+  - Added direct unit tests for mark-to-market FX conversion and trusted base-currency authority
+    over a foreign-currency price.
+  - Preserved existing simulated-state trust-snapshot regression coverage.
+  - Radon now reports `ValuationService.value_position` as A-ranked complexity instead of
+    C-ranked complexity.
+- Consequence:
+  - Local position valuation mode behavior is easier to audit and less likely to regress when
+    upstream valuation authority or local fallback semantics are extended.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal valuation modularity hardening.
+- Follow-Up:
+  - Continue reducing C-ranked API governance and route/service hotspots before raising stricter
+    complexity thresholds.
+
 ## LA-REV-699
 
 - Scope: Local valuation simulated-state assembly

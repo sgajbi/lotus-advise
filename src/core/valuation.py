@@ -2,6 +2,7 @@
 FILE: src/core/valuation.py
 """
 
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -12,6 +13,7 @@ from src.core.portfolio_models import (
     Money,
     PortfolioSnapshot,
     Position,
+    Price,
     ShelfEntry,
 )
 from src.core.simulation_state_models import AllocationMetric, PositionSummary, SimulatedState
@@ -39,6 +41,15 @@ def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> 
     return None
 
 
+@dataclass(frozen=True)
+class _PositionValuation:
+    price_entry: Optional[Price]
+    price_value: Decimal
+    currency: str
+    instrument_value: Decimal
+    base_value: Decimal
+
+
 class ValuationService:
     """
     Central authority for valuing positions and cash based on the configured mode.
@@ -55,57 +66,145 @@ class ValuationService:
         """
         Calculates position value based on options.valuation_mode.
         """
-        price_ent = next(
-            (p for p in market_data.prices if p.instrument_id == position.instrument_id), None
+        valuation = _value_position_amounts(
+            position,
+            market_data,
+            base_ccy,
+            options,
         )
-
-        price_val = Decimal("0")
-        currency = base_ccy
-
-        if price_ent:
-            price_val = price_ent.price
-            currency = price_ent.currency
-
-        mv_instr_ccy = Decimal("0")
-
-        is_trust = options.valuation_mode == ValuationMode.TRUST_SNAPSHOT
-        if is_trust and position.market_value:
-            trusted_value = position.market_value
-            price_currency = price_ent.currency if price_ent is not None else trusted_value.currency
-            trust_is_base_authority = (
-                trusted_value.currency == base_ccy and price_currency != base_ccy
-            )
-            if trust_is_base_authority:
-                currency = price_currency
-                mv_instr_ccy = (
-                    position.quantity * price_val if price_ent is not None else Decimal("0")
-                )
-                mv_base = trusted_value.amount
-            else:
-                mv_instr_ccy = trusted_value.amount
-                currency = trusted_value.currency
-                rate = get_fx_rate(market_data, currency, base_ccy)
-                if rate is None:
-                    mv_base = Decimal("0")
-                else:
-                    mv_base = mv_instr_ccy * rate
-        else:
-            mv_instr_ccy = position.quantity * price_val
-            rate = get_fx_rate(market_data, currency, base_ccy)
-            if rate is None:
-                mv_base = Decimal("0")
-            else:
-                mv_base = mv_instr_ccy * rate
 
         return PositionSummary(
             instrument_id=position.instrument_id,
             quantity=position.quantity,
-            instrument_currency=currency,
-            price=Money(amount=price_val, currency=currency) if price_ent else None,
-            value_in_instrument_ccy=Money(amount=mv_instr_ccy, currency=currency),
-            value_in_base_ccy=Money(amount=mv_base, currency=base_ccy),
+            instrument_currency=valuation.currency,
+            price=(
+                Money(amount=valuation.price_value, currency=valuation.currency)
+                if valuation.price_entry
+                else None
+            ),
+            value_in_instrument_ccy=Money(
+                amount=valuation.instrument_value,
+                currency=valuation.currency,
+            ),
+            value_in_base_ccy=Money(amount=valuation.base_value, currency=base_ccy),
             weight=Decimal("0"),
         )
+
+
+def _value_position_amounts(
+    position: Position,
+    market_data: MarketDataSnapshot,
+    base_ccy: str,
+    options: EngineOptions,
+) -> _PositionValuation:
+    price_entry = _price_for_position(position, market_data)
+    price_value = price_entry.price if price_entry else Decimal("0")
+
+    if options.valuation_mode == ValuationMode.TRUST_SNAPSHOT and position.market_value:
+        return _trust_snapshot_position_value(
+            position,
+            market_data,
+            base_ccy,
+            price_entry,
+            price_value,
+        )
+
+    return _mark_to_market_position_value(
+        position,
+        market_data,
+        base_ccy,
+        price_entry,
+        price_value,
+    )
+
+
+def _price_for_position(
+    position: Position,
+    market_data: MarketDataSnapshot,
+) -> Optional[Price]:
+    return next(
+        (price for price in market_data.prices if price.instrument_id == position.instrument_id),
+        None,
+    )
+
+
+def _trust_snapshot_position_value(
+    position: Position,
+    market_data: MarketDataSnapshot,
+    base_ccy: str,
+    price_entry: Optional[Price],
+    price_value: Decimal,
+) -> _PositionValuation:
+    trusted_value = position.market_value
+    if trusted_value is None:
+        return _mark_to_market_position_value(
+            position,
+            market_data,
+            base_ccy,
+            price_entry,
+            price_value,
+        )
+
+    price_currency = price_entry.currency if price_entry is not None else trusted_value.currency
+    if _trust_snapshot_uses_base_authority(trusted_value, price_currency, base_ccy):
+        return _PositionValuation(
+            price_entry=price_entry,
+            price_value=price_value,
+            currency=price_currency,
+            instrument_value=position.quantity * price_value if price_entry else Decimal("0"),
+            base_value=trusted_value.amount,
+        )
+
+    return _PositionValuation(
+        price_entry=price_entry,
+        price_value=price_value,
+        currency=trusted_value.currency,
+        instrument_value=trusted_value.amount,
+        base_value=_converted_base_value(
+            trusted_value.amount,
+            trusted_value.currency,
+            base_ccy,
+            market_data,
+        ),
+    )
+
+
+def _trust_snapshot_uses_base_authority(
+    trusted_value: Money,
+    price_currency: str,
+    base_ccy: str,
+) -> bool:
+    return trusted_value.currency == base_ccy and price_currency != base_ccy
+
+
+def _mark_to_market_position_value(
+    position: Position,
+    market_data: MarketDataSnapshot,
+    base_ccy: str,
+    price_entry: Optional[Price],
+    price_value: Decimal,
+) -> _PositionValuation:
+    currency = price_entry.currency if price_entry is not None else base_ccy
+    instrument_value = position.quantity * price_value
+    return _PositionValuation(
+        price_entry=price_entry,
+        price_value=price_value,
+        currency=currency,
+        instrument_value=instrument_value,
+        base_value=_converted_base_value(instrument_value, currency, base_ccy, market_data),
+    )
+
+
+def _converted_base_value(
+    amount: Decimal,
+    currency: str,
+    base_ccy: str,
+    market_data: MarketDataSnapshot,
+) -> Decimal:
+    rate = get_fx_rate(market_data, currency, base_ccy)
+    if rate is None:
+        return Decimal("0")
+    return amount * rate
 
 
 def build_simulated_state(

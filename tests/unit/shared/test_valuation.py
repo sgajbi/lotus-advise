@@ -2,16 +2,56 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from src.core.engine_options_models import EngineOptions, ValuationMode
 from src.core.portfolio_models import (
     CashBalance,
     FxRate,
     MarketDataSnapshot,
+    Money,
     PortfolioSnapshot,
     Position,
     Price,
     ShelfEntry,
 )
-from src.core.valuation import build_simulated_state
+from src.core.valuation import ValuationService, build_simulated_state
+
+
+def test_value_position_uses_mark_to_market_fx_conversion() -> None:
+    summary = ValuationService.value_position(
+        Position(instrument_id="EQ_EU", quantity="3"),
+        MarketDataSnapshot(
+            prices=[Price(instrument_id="EQ_EU", price="20", currency="EUR")],
+            fx_rates=[FxRate(pair="EUR/USD", rate="1.5")],
+        ),
+        "USD",
+        EngineOptions(),
+        dq_log={},
+    )
+
+    assert summary.price == Money(amount=Decimal("20"), currency="EUR")
+    assert summary.value_in_instrument_ccy == Money(amount=Decimal("60"), currency="EUR")
+    assert summary.value_in_base_ccy == Money(amount=Decimal("90.0"), currency="USD")
+
+
+def test_value_position_preserves_trusted_base_authority_for_foreign_price() -> None:
+    summary = ValuationService.value_position(
+        Position(
+            instrument_id="EQ_EU",
+            quantity="3",
+            market_value=Money(amount="95", currency="USD"),
+        ),
+        MarketDataSnapshot(
+            prices=[Price(instrument_id="EQ_EU", price="20", currency="EUR")],
+            fx_rates=[FxRate(pair="EUR/USD", rate="1.5")],
+        ),
+        "USD",
+        EngineOptions(valuation_mode=ValuationMode.TRUST_SNAPSHOT),
+        dq_log={},
+    )
+
+    assert summary.price == Money(amount=Decimal("20"), currency="EUR")
+    assert summary.value_in_instrument_ccy == Money(amount=Decimal("60"), currency="EUR")
+    assert summary.value_in_base_ccy == Money(amount=Decimal("95"), currency="USD")
 
 
 def test_build_simulated_state_values_positions_cash_and_allocations() -> None:
