@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T00:32:46.162982+00:00`
+- Generated At: `2026-06-05T00:34:44.210039+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `74a8e89161fb34d394a0b736ed611899bd9b3004`
-- Branch Commits Over Main: `28`
+- Head: `88f9467287c38a8c7d160b01707722ad6355705e`
+- Branch Commits Over Main: `29`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `919`
 - Packages: `38`
 - Modules: `881`
-- Total Python lines: `139217`
+- Total Python lines: `139213`
 
 ## Largest Files
 
