@@ -96,9 +96,7 @@ def approval_requirement_counts(
     baseline_count = (
         len(baseline_summary.approval_requirements) if baseline_summary is not None else 0
     )
-    alternative_count = len(
-        alternative.proposal_decision_summary.get("approval_requirements", [])
-    )
+    alternative_count = len(alternative.proposal_decision_summary.get("approval_requirements", []))
     return baseline_count, alternative_count
 
 
