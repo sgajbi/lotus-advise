@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T00:49:43.697627+00:00`
+- Generated At: `2026-06-05T00:51:13.213173+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `07a36fe31f398686bfbdf68b8eefea847c7786fb`
-- Branch Commits Over Main: `34`
+- Head: `f5a85e371e4c69f2505a7740ed6bf12905b0f40a`
+- Branch Commits Over Main: `35`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
