@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-730
+
+- Scope: Policy evaluation workflow conflict projection
+- Pattern: Workflow projection should delegate material-conflict posture scanning, review-outcome
+  extraction, blocker detection, and duplicate normalization to a focused owner module so sign-off
+  readiness stays auditable.
+- Status: Hardened
+- Finding Class: Policy workflow complexity and sign-off maintainability
+- Summary: `conflict_posture_for_workflow` mixed conflict rule-result filtering, reason/blocker
+  collection, conflict review event extraction, material-conflict resolution, blocker detection,
+  and response projection in the shared workflow projection module. This posture controls whether
+  a policy evaluation can proceed toward sign-off, so the material-conflict rules need a clear
+  local boundary and direct tests.
+- Evidence:
+  - Extracted conflict posture projection into
+    `src/core/policy_packs/workflow_conflict_projection.py`.
+  - Preserved the existing public workflow projection behavior while keeping
+    `build_policy_evaluation_workflow_projection` as the workflow response orchestrator.
+  - Added focused tests for unresolved material-conflict blocking, duplicate reason-code
+    normalization, and resolution through `NO_MATERIAL_CONFLICT_REMAINING` review events.
+  - Radon no longer reports `conflict_posture_for_workflow` as C-ranked complexity; the generated
+    scorecard now reports `A=2999, B=254, C=16`, and the current source-only C-ranked inventory is
+    15 blocks.
+  - Focused policy workflow `ruff`, format, `mypy`, Radon, and workflow contract tests passed.
+- Consequence:
+  - Policy workflow sign-off posture remains behavior-compatible while conflict review logic is
+    easier to audit, test, and extend without growing the workflow response assembler.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy workflow projection hardening for existing behavior.
+- Follow-Up:
+  - Continue with policy-pack catalog definition validation, conflict disclosure, common
+    suitability, advisor cockpit, proof-validation, and integration C-ranked hotspots.
+
 ## LA-REV-729
 
 - Scope: Policy-pack applicability evaluation
