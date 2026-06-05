@@ -16,6 +16,9 @@ WorkspaceDraftActionType = Literal[
     "REPLACE_OPTIONS",
 ]
 
+TRADE_DRAFT_ACTIONS = {"ADD_TRADE", "UPDATE_TRADE", "REMOVE_TRADE"}
+CASH_FLOW_DRAFT_ACTIONS = {"ADD_CASH_FLOW", "UPDATE_CASH_FLOW", "REMOVE_CASH_FLOW"}
+
 
 class WorkspaceDraftActionRequest(BaseModel):
     actor_id: str = Field(
@@ -51,29 +54,46 @@ class WorkspaceDraftActionRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_action_payload(self) -> "WorkspaceDraftActionRequest":
-        trade_actions = {"ADD_TRADE", "UPDATE_TRADE", "REMOVE_TRADE"}
-        cash_flow_actions = {"ADD_CASH_FLOW", "UPDATE_CASH_FLOW", "REMOVE_CASH_FLOW"}
-        if self.action_type == "ADD_TRADE" and self.trade is None:
-            raise ValueError("ADD_TRADE requires trade")
-        if self.action_type == "UPDATE_TRADE":
-            if self.trade is None or self.workspace_trade_id is None:
-                raise ValueError("UPDATE_TRADE requires workspace_trade_id and trade")
-        if self.action_type == "REMOVE_TRADE" and self.workspace_trade_id is None:
-            raise ValueError("REMOVE_TRADE requires workspace_trade_id")
-        if self.action_type == "ADD_CASH_FLOW" and self.cash_flow is None:
-            raise ValueError("ADD_CASH_FLOW requires cash_flow")
-        if self.action_type == "UPDATE_CASH_FLOW":
-            if self.cash_flow is None or self.workspace_cash_flow_id is None:
-                raise ValueError("UPDATE_CASH_FLOW requires workspace_cash_flow_id and cash_flow")
-        if self.action_type == "REMOVE_CASH_FLOW" and self.workspace_cash_flow_id is None:
-            raise ValueError("REMOVE_CASH_FLOW requires workspace_cash_flow_id")
-        if self.action_type == "REPLACE_OPTIONS" and self.options is None:
-            raise ValueError("REPLACE_OPTIONS requires options")
-        if self.action_type not in trade_actions and self.workspace_trade_id is not None:
-            raise ValueError("workspace_trade_id is only valid for trade actions")
-        if self.action_type not in cash_flow_actions and self.workspace_cash_flow_id is not None:
-            raise ValueError("workspace_cash_flow_id is only valid for cash-flow actions")
+        _validate_required_trade_payload(self)
+        _validate_required_cash_flow_payload(self)
+        _validate_required_options_payload(self)
+        _validate_action_identifier_scope(self)
         return self
+
+
+def _validate_required_trade_payload(request: WorkspaceDraftActionRequest) -> None:
+    if request.action_type == "ADD_TRADE" and request.trade is None:
+        raise ValueError("ADD_TRADE requires trade")
+    if request.action_type == "UPDATE_TRADE":
+        if request.trade is None or request.workspace_trade_id is None:
+            raise ValueError("UPDATE_TRADE requires workspace_trade_id and trade")
+    if request.action_type == "REMOVE_TRADE" and request.workspace_trade_id is None:
+        raise ValueError("REMOVE_TRADE requires workspace_trade_id")
+
+
+def _validate_required_cash_flow_payload(request: WorkspaceDraftActionRequest) -> None:
+    if request.action_type == "ADD_CASH_FLOW" and request.cash_flow is None:
+        raise ValueError("ADD_CASH_FLOW requires cash_flow")
+    if request.action_type == "UPDATE_CASH_FLOW":
+        if request.cash_flow is None or request.workspace_cash_flow_id is None:
+            raise ValueError("UPDATE_CASH_FLOW requires workspace_cash_flow_id and cash_flow")
+    if request.action_type == "REMOVE_CASH_FLOW" and request.workspace_cash_flow_id is None:
+        raise ValueError("REMOVE_CASH_FLOW requires workspace_cash_flow_id")
+
+
+def _validate_required_options_payload(request: WorkspaceDraftActionRequest) -> None:
+    if request.action_type == "REPLACE_OPTIONS" and request.options is None:
+        raise ValueError("REPLACE_OPTIONS requires options")
+
+
+def _validate_action_identifier_scope(request: WorkspaceDraftActionRequest) -> None:
+    if request.action_type not in TRADE_DRAFT_ACTIONS and request.workspace_trade_id is not None:
+        raise ValueError("workspace_trade_id is only valid for trade actions")
+    if (
+        request.action_type not in CASH_FLOW_DRAFT_ACTIONS
+        and request.workspace_cash_flow_id is not None
+    ):
+        raise ValueError("workspace_cash_flow_id is only valid for cash-flow actions")
 
 
 class WorkspaceDraftActionResponse(BaseModel):

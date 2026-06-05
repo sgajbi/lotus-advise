@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `f1077260281518ecdf42f7e21fd17c94942842b5`
-- Branch Commits Over Main: `22`
+- Head: `110cc35dc02ca5a527c3166b4169bcc0a66fc0c2`
+- Branch Commits Over Main: `23`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -162,6 +162,8 @@
   and idempotency lookup facade methods live in a focused read mixin.
 - Advisory workspace routes are split into session/version, assistant-rationale,
   and lifecycle-handoff route modules behind the public aggregate router.
+- Workspace draft action request validation delegates trade, cash-flow, options,
+  and identifier-scope rules to focused helpers.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
   mechanics, and detail projection to focused owner modules.
 - Proposal decision-summary assembly delegates status, reason, next-action,

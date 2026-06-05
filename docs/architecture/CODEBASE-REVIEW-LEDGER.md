@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-698
+
+- Scope: Workspace draft action request validation
+- Pattern: Draft action payload validation should delegate action-family requirements and
+  identifier-scope checks to focused helpers so workspace action contracts remain easy to audit
+- Status: Improved
+- Finding Class: Complexity reduction and workspace contract maintainability
+- Summary: `WorkspaceDraftActionRequest.validate_action_payload` encoded trade, cash-flow, options,
+  and cross-family identifier validation in one D-ranked validator method. That made the workspace
+  action contract harder to review and extend as new draft actions are added.
+- Evidence:
+  - Extracted trade payload, cash-flow payload, options payload, and identifier-scope validation
+    helpers.
+  - Added contract tests for invalid trade identifiers on non-trade actions and invalid cash-flow
+    identifiers on non-cash-flow actions.
+  - Focused workspace contract, draft-action, and workspace-service tests pass.
+  - Radon now reports `WorkspaceDraftActionRequest` and `validate_action_payload` as A-ranked
+    complexity instead of D-ranked complexity.
+- Consequence:
+  - Workspace draft action contracts are easier to audit and the repo D-ranked complexity inventory
+    drops from 4 to 1.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal workspace contract modularity hardening.
+- Follow-Up:
+  - Continue classifying the remaining D-ranked valuation helper before considering a stricter
+    fail-on-new-D gate.
+
 ## LA-REV-697
 
 - Scope: Proposal memo section factory

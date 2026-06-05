@@ -875,6 +875,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and idempotency lookup facade methods live in a focused read mixin.",
         "- Advisory workspace routes are split into session/version, assistant-rationale,",
         "  and lifecycle-handoff route modules behind the public aggregate router.",
+        "- Workspace draft action request validation delegates trade, cash-flow, options,",
+        "  and identifier-scope rules to focused helpers.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
         "  mechanics, and detail projection to focused owner modules.",
         "- Proposal decision-summary assembly delegates status, reason, next-action,",
