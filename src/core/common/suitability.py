@@ -11,7 +11,7 @@ from src.core.suitability_models import (
     SuitabilitySummary,
 )
 
-from .suitability_policy import _SuitabilityPolicyPack
+from .suitability_policy import IssueCandidate, _SuitabilityPolicyPack
 from .suitability_post_trade_issues import (
     append_governance_trade_attempt_issues,
     append_product_complexity_issues,
@@ -93,7 +93,7 @@ def scan_before_after_issues(
     shelf_by_instrument: dict[str, ShelfEntry],
     options: EngineOptions,
     policy_pack: _SuitabilityPolicyPack,
-) -> tuple[list[SuitabilityIssue], list[SuitabilityIssue]]:
+) -> tuple[dict[str, IssueCandidate], dict[str, IssueCandidate]]:
     before_issues = scan_state_issues(
         target_state=before,
         before_state=before,
@@ -115,7 +115,7 @@ def append_post_trade_issues(
     *,
     before: SimulatedState,
     after: SimulatedState,
-    after_issues: list[SuitabilityIssue],
+    after_issues: dict[str, IssueCandidate],
     shelf_by_instrument: dict[str, ShelfEntry],
     proposed_trades: list[Any],
     options: EngineOptions,
