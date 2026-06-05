@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Literal, cast
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import SplitResult, urlsplit, urlunsplit
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -204,29 +204,46 @@ def _normalize_ref_list(value: list[str], *, field_name: str) -> list[str]:
 
 def _normalize_repository_source_ref(value: str) -> str:
     normalized = value.strip().replace("\\", "/")
+    _validate_source_ref_text(normalized)
+    parsed = urlsplit(normalized)
+    _validate_source_ref_location(normalized, parsed)
+    path = _normalized_source_ref_path(parsed.path)
+    fragment = _normalized_source_ref_fragment(parsed.fragment)
+    return urlunsplit(("", "", path, "", fragment))
+
+
+def _validate_source_ref_text(normalized: str) -> None:
     if not normalized:
         raise ValueError("commercial material source_ref is required")
     if any(char in normalized for char in ("\r", "\n", "\t", "\x00")):
         raise ValueError("commercial material source_ref cannot contain control characters")
-    parsed = urlsplit(normalized)
+
+
+def _validate_source_ref_location(normalized: str, parsed: SplitResult) -> None:
     if parsed.scheme or parsed.netloc or parsed.query:
         raise ValueError("commercial material source_ref must be a repository-local reference")
     if normalized.startswith("/") or _RFC28_WINDOWS_DRIVE_REF.match(normalized):
         raise ValueError("commercial material source_ref must be relative, not absolute")
-    path_parts = [part for part in parsed.path.split("/") if part]
+
+
+def _normalized_source_ref_path(path: str) -> str:
+    path_parts = [part for part in path.split("/") if part]
     if any(part == ".." for part in path_parts):
         raise ValueError("commercial material source_ref cannot contain parent-directory traversal")
     if any(contains_sensitive_rfc28_term(part) for part in path_parts):
         raise ValueError("commercial material source_ref cannot contain sensitive material")
-    fragment = parsed.fragment.strip()
-    if len(fragment) > _RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH:
+    return "/".join(path_parts)
+
+
+def _normalized_source_ref_fragment(fragment: str) -> str:
+    normalized_fragment = fragment.strip()
+    if len(normalized_fragment) > _RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH:
         raise ValueError("commercial material source_ref fragment is too long")
-    if fragment and contains_sensitive_rfc28_term(fragment):
+    if normalized_fragment and contains_sensitive_rfc28_term(normalized_fragment):
         raise ValueError(
             "commercial material source_ref fragment cannot contain sensitive material"
         )
-    path = "/".join(path_parts)
-    return urlunsplit(("", "", path, "", fragment))
+    return normalized_fragment
 
 
 def validate_commercial_material_pack_against_register(

@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-708
+
+- Scope: Commercial material repository source references
+- Pattern: Commercial proof source-reference normalization should separate raw text validation,
+  repository-local location checks, path validation, and fragment validation so client-facing proof
+  material references remain auditable and safe
+- Status: Improved
+- Finding Class: Security maintainability and complexity reduction
+- Summary: `_normalize_repository_source_ref` mixed whitespace/backslash normalization, required
+  checks, control-character rejection, URL/query rejection, absolute path rejection, traversal
+  rejection, sensitive path rejection, fragment bounds, sensitive fragment rejection, and final
+  reconstruction in one C-ranked function. That made commercial material source-reference safety
+  harder to review.
+- Evidence:
+  - Extracted source-ref text validation, repository-local location validation, path normalization,
+    and fragment normalization helpers.
+  - Added a commercial-material regression test proving backslash and fragment normalization.
+  - Existing commercial-material tests continue to prove URL/query rejection, sensitive copy
+    rejection, sensitive source path rejection, invalid audience rejection, duplicate claim/audience
+    rejection, blocked claim coverage, required claim mapping, and supported-claim register checks.
+  - Radon now reports `_normalize_repository_source_ref` as A-ranked complexity instead of
+    C-ranked complexity.
+- Consequence:
+  - Commercial proof material source references remain behavior-preserving while becoming easier to
+    audit for repository-local and sensitive-material safety.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal proof-material validation hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked commercial material register validation and proof-pack
+    helpers.
+
 ## LA-REV-707
 
 - Scope: OpenAPI string example inference

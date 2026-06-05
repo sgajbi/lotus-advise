@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T01:03:45.657976+00:00`
+- Generated At: `2026-06-05T01:09:39.572464+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `9a1f31a867937dbabe914ba2f4ee81f46de2f167`
-- Branch Commits Over Main: `41`
+- Head: `e02852831f8d653f360f06fc8279402291283da8`
+- Branch Commits Over Main: `42`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `920`
 - Packages: `38`
 - Modules: `882`
-- Total Python lines: `139627`
+- Total Python lines: `139659`
 
 ## Largest Files
 
@@ -38,7 +38,7 @@
 | 4 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 5 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 6 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 7 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 230 |
+| 7 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 232 |
 | 8 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 9 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
@@ -48,9 +48,9 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3112`
-- Radon complexity rank inventory: `A=2811, B=245, C=56`
-- Radon worst complexity: `rank=C, complexity=18`
+- Radon analyzed block inventory: `3116`
+- Radon complexity rank inventory: `A=2814, B=247, C=55`
+- Radon worst complexity: `rank=C, complexity=16`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
 - Xenon and stricter Radon thresholds remain report-only until current
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3489, missing=3454, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3493, missing=3458, covered=35, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

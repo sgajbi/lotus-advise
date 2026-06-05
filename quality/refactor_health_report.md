@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `9a1f31a867937dbabe914ba2f4ee81f46de2f167`
-- Branch Commits Over Main: `41`
+- Head: `e02852831f8d653f360f06fc8279402291283da8`
+- Branch Commits Over Main: `42`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -183,6 +183,8 @@
   and schema-type dispatch to focused helpers.
 - OpenAPI string example inference delegates pattern, format, keyed, identifier,
   semantic-key, and fallback example paths to focused helpers.
+- Commercial material source-reference normalization delegates text, repository-local
+  location, path, and fragment validation to focused helpers.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
   mechanics, and detail projection to focused owner modules.
 - Proposal decision-summary assembly delegates status, reason, next-action,

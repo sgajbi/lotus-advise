@@ -896,6 +896,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and schema-type dispatch to focused helpers.",
         "- OpenAPI string example inference delegates pattern, format, keyed, identifier,",
         "  semantic-key, and fallback example paths to focused helpers.",
+        "- Commercial material source-reference normalization delegates text, repository-local",
+        "  location, path, and fragment validation to focused helpers.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
         "  mechanics, and detail projection to focused owner modules.",
         "- Proposal decision-summary assembly delegates status, reason, next-action,",
