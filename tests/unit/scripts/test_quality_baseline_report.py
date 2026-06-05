@@ -86,6 +86,8 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "make lint runs import-linter architecture contracts" in scorecard
     assert "Gap tracked plus Interrogate inventory" in scorecard
     assert "Diagnostics target added" in scorecard
+    assert "Before/After Evidence" in scorecard
+    assert "does not claim bank" in scorecard
     assert "Proposal input models are split" in refactor_health
     assert "Advisory simulation orchestration is split" in refactor_health
     assert "Feature capability catalog assembly is split" in refactor_health
