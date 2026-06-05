@@ -55,6 +55,19 @@ EXECUTION_STATE_CORRELATION_BY_STATUS = {
     "EXPIRED": "EXECUTION_REQUESTED_AND_EXPIRED_EVENTS",
 }
 
+APPROVAL_TRANSITION_RULES: dict[
+    str,
+    tuple[ProposalWorkflowState, str, ProposalWorkflowState],
+] = {
+    "RISK": ("RISK_REVIEW", "RISK_APPROVED", "AWAITING_CLIENT_CONSENT"),
+    "COMPLIANCE": ("COMPLIANCE_REVIEW", "COMPLIANCE_APPROVED", "AWAITING_CLIENT_CONSENT"),
+    "CLIENT_CONSENT": (
+        "AWAITING_CLIENT_CONSENT",
+        "CLIENT_CONSENT_RECORDED",
+        "EXECUTION_READY",
+    ),
+}
+
 
 class ProposalWorkflowRuleError(ValueError):
     pass
@@ -79,31 +92,16 @@ def resolve_approval_transition(
     approval_type: str,
     approved: bool,
 ) -> tuple[str, ProposalWorkflowState]:
-    if approval_type == "RISK":
-        if current_state != "RISK_REVIEW":
-            raise ProposalWorkflowRuleError("INVALID_APPROVAL_STATE")
-        return (
-            "RISK_APPROVED" if approved else "REJECTED",
-            "AWAITING_CLIENT_CONSENT" if approved else "REJECTED",
-        )
+    rule = APPROVAL_TRANSITION_RULES.get(approval_type)
+    if rule is None:
+        raise ProposalWorkflowRuleError("INVALID_APPROVAL_TYPE")
 
-    if approval_type == "COMPLIANCE":
-        if current_state != "COMPLIANCE_REVIEW":
-            raise ProposalWorkflowRuleError("INVALID_APPROVAL_STATE")
-        return (
-            "COMPLIANCE_APPROVED" if approved else "REJECTED",
-            "AWAITING_CLIENT_CONSENT" if approved else "REJECTED",
-        )
-
-    if approval_type == "CLIENT_CONSENT":
-        if current_state != "AWAITING_CLIENT_CONSENT":
-            raise ProposalWorkflowRuleError("INVALID_APPROVAL_STATE")
-        return (
-            "CLIENT_CONSENT_RECORDED" if approved else "REJECTED",
-            "EXECUTION_READY" if approved else "REJECTED",
-        )
-
-    raise ProposalWorkflowRuleError("INVALID_APPROVAL_TYPE")
+    required_state, approved_event_type, approved_next_state = rule
+    if current_state != required_state:
+        raise ProposalWorkflowRuleError("INVALID_APPROVAL_STATE")
+    if not approved:
+        return "REJECTED", "REJECTED"
+    return approved_event_type, approved_next_state
 
 
 def resolve_execution_update_event(update_status: str) -> tuple[str, ProposalWorkflowState]:

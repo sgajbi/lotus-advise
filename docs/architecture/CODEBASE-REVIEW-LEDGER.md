@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-714
+
+- Scope: Proposal workflow approval transition rules
+- Pattern: Approval transition rules should be table-driven so risk, compliance, and client-consent
+  transitions share one validation path and remain easy to audit.
+- Status: Improved
+- Finding Class: Workflow rule maintainability and complexity reduction
+- Summary: `resolve_approval_transition` encoded risk, compliance, and client-consent approvals as
+  nested branch blocks with duplicated invalid-state and rejected-path handling.
+- Evidence:
+  - Added a bounded approval transition rule map for supported approval types.
+  - Preserved `INVALID_APPROVAL_TYPE` and `INVALID_APPROVAL_STATE` failure semantics.
+  - Added parametrized coverage for approved and rejected paths across all approval types.
+  - Radon now reports `resolve_approval_transition` as A-ranked complexity instead of C-ranked
+    complexity.
+  - Focused workflow rule and command validation tests passed.
+- Consequence:
+  - Workflow approval behavior remains stable while future approval types can be reviewed as data
+    additions rather than duplicated control flow.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    workflow-rule maintainability hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked memo section, policy source readiness, and report
+    narrative helpers.
+
 ## LA-REV-713
 
 - Scope: Proposal delivery summary projection

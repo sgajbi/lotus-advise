@@ -10,6 +10,37 @@ from src.core.proposals.workflow_rules import (
 )
 
 
+@pytest.mark.parametrize(
+    ("current_state", "approval_type", "approved_event_type", "approved_next_state"),
+    [
+        ("RISK_REVIEW", "RISK", "RISK_APPROVED", "AWAITING_CLIENT_CONSENT"),
+        ("COMPLIANCE_REVIEW", "COMPLIANCE", "COMPLIANCE_APPROVED", "AWAITING_CLIENT_CONSENT"),
+        (
+            "AWAITING_CLIENT_CONSENT",
+            "CLIENT_CONSENT",
+            "CLIENT_CONSENT_RECORDED",
+            "EXECUTION_READY",
+        ),
+    ],
+)
+def test_resolve_approval_transition_maps_all_approval_types(
+    current_state,
+    approval_type,
+    approved_event_type,
+    approved_next_state,
+):
+    assert resolve_approval_transition(
+        current_state=current_state,
+        approval_type=approval_type,
+        approved=True,
+    ) == (approved_event_type, approved_next_state)
+    assert resolve_approval_transition(
+        current_state=current_state,
+        approval_type=approval_type,
+        approved=False,
+    ) == ("REJECTED", "REJECTED")
+
+
 def test_resolve_transition_state_allows_cancel_from_active_states():
     assert resolve_transition_state(current_state="DRAFT", event_type="CANCELLED") == "CANCELLED"
 
