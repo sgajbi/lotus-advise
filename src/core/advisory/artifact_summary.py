@@ -28,31 +28,51 @@ def resolve_objective_tags(
 
 def resolve_next_step(result: ProposalResult) -> str:
     if result.gate_decision is not None:
-        if result.gate_decision.gate == "BLOCKED":
-            has_high_suitability = any(
-                reason.source == "SUITABILITY" and reason.severity == "HIGH"
-                for reason in result.gate_decision.reasons
-            )
-            return "COMPLIANCE_REVIEW" if has_high_suitability else "RISK_REVIEW"
-        if result.gate_decision.gate == "COMPLIANCE_REVIEW_REQUIRED":
-            return "COMPLIANCE_REVIEW"
-        if result.gate_decision.gate == "RISK_REVIEW_REQUIRED":
-            return "RISK_REVIEW"
-        if result.gate_decision.gate == "CLIENT_CONSENT_REQUIRED":
-            return "CLIENT_CONSENT"
-        if result.gate_decision.gate == "EXECUTION_READY":
-            return "EXECUTION_READY"
-        return "RISK_REVIEW"
-    if result.suitability is not None:
-        if result.suitability.recommended_gate == "COMPLIANCE_REVIEW":
-            return "COMPLIANCE_REVIEW"
-        if result.suitability.recommended_gate == "RISK_REVIEW":
-            return "RISK_REVIEW"
+        return _next_step_from_gate_decision(result.gate_decision)
+    return _next_step_without_gate_decision(result)
+
+
+def _next_step_from_gate_decision(gate_decision: object) -> str:
+    gate = getattr(gate_decision, "gate", None)
+    if gate == "BLOCKED":
+        return _blocked_gate_next_step(gate_decision)
+    return {
+        "COMPLIANCE_REVIEW_REQUIRED": "COMPLIANCE_REVIEW",
+        "RISK_REVIEW_REQUIRED": "RISK_REVIEW",
+        "CLIENT_CONSENT_REQUIRED": "CLIENT_CONSENT",
+        "EXECUTION_READY": "EXECUTION_READY",
+    }.get(str(gate), "RISK_REVIEW")
+
+
+def _blocked_gate_next_step(gate_decision: object) -> str:
+    if _has_high_suitability_gate_reason(gate_decision):
+        return "COMPLIANCE_REVIEW"
+    return "RISK_REVIEW"
+
+
+def _has_high_suitability_gate_reason(gate_decision: object) -> bool:
+    return any(
+        reason.source == "SUITABILITY" and reason.severity == "HIGH"
+        for reason in getattr(gate_decision, "reasons", [])
+    )
+
+
+def _next_step_without_gate_decision(result: ProposalResult) -> str:
+    suitability_next_step = _next_step_from_suitability(result)
+    if suitability_next_step is not None:
+        return suitability_next_step
     if result.status == "READY":
         return "CLIENT_CONSENT"
-    if result.status == "PENDING_REVIEW":
-        return "RISK_REVIEW"
     return "RISK_REVIEW"
+
+
+def _next_step_from_suitability(result: ProposalResult) -> str | None:
+    if result.suitability is None:
+        return None
+    return {
+        "COMPLIANCE_REVIEW": "COMPLIANCE_REVIEW",
+        "RISK_REVIEW": "RISK_REVIEW",
+    }.get(result.suitability.recommended_gate)
 
 
 def build_takeaways(
