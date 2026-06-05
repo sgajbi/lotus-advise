@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-724
+
+- Scope: Proposal narrative grounding fact projection
+- Pattern: Narrative grounding should build alternatives and decision-summary facts through
+  focused fact groups so downstream section rendering remains stable and auditable.
+- Status: Hardened
+- Finding Class: Advisory narrative grounding complexity and evidence maintainability
+- Summary: `_alternative_facts` and `_decision_summary_facts` mixed availability, selected
+  alternative, counts, rejected-candidate summaries, scalar decision fields, approval requirements,
+  material changes, and missing-evidence summaries in two C-ranked helpers. Those facts feed
+  narrative sections and canonical packet hashing, so the projection needed clearer internal
+  ownership without changing output keys.
+- Evidence:
+  - Split alternative facts into availability, selected-alternative, count, rejected-summary, and
+    comparison-summary helpers.
+  - Split decision-summary facts into scalar, approval-requirement, material-change, and
+    missing-decision-evidence helpers.
+  - Radon no longer reports `narrative_grounding.py` C-ranked blocks; the source-only C-ranked
+    inventory is now 20 blocks.
+  - Focused narrative grounding `ruff`, format, `mypy`, module-boundary, policy, and contract tests
+    passed.
+- Consequence:
+  - Narrative grounding packet facts keep the same shape while alternatives and decision-summary
+    evidence are easier to inspect, extend, and regression-test.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal narrative grounding hardening for existing behavior.
+- Follow-Up:
+  - Continue with simulation-intent planning, advisory copilot safety/persistence, policy-pack, and
+    proof-validation C-ranked hotspots.
+
 ## LA-REV-723
 
 - Scope: Proposal narrative executive-summary section text
