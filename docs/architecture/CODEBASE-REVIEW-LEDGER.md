@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-702
+
+- Scope: In-memory proposal listing query helper
+- Pattern: Repository query adapters should separate filtering, cursor slicing, next-cursor
+  calculation, and copy-boundary handling so in-memory behavior remains aligned with persistent
+  repository semantics
+- Status: Improved
+- Finding Class: Repository maintainability and complexity reduction
+- Summary: `filtered_proposal_page` mixed ordering, portfolio/state/actor/date filtering, cursor
+  lookup, cursor slicing, page extraction, next-cursor calculation, and defensive copying in one
+  C-ranked function. That made in-memory repository pagination behavior harder to audit against the
+  Postgres implementation and API pagination expectations.
+- Evidence:
+  - Extracted proposal filter matching, cursor slicing, cursor index lookup, and next-cursor
+    calculation helpers.
+  - Added an in-memory repository regression test proving unknown cursors preserve first-page
+    behavior and return the expected next cursor.
+  - Existing in-memory repository tests continue to prove filtered listing, cursor paging,
+    proposal events, approvals, memos, versions, and transition behavior.
+  - Radon now reports `filtered_proposal_page` as A-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - In-memory proposal listing remains behavior-preserving while becoming easier to compare with
+    persistent repository pagination behavior.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal repository query modularity hardening.
+- Follow-Up:
+  - Continue reducing C-ranked persistent repository/API query helpers and keep parity tests aligned.
+
 ## LA-REV-701
 
 - Scope: Enterprise write authorization policy

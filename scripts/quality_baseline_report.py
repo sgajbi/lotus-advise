@@ -884,6 +884,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Enterprise write authorization delegates header normalization, required-header",
         "  checks, service identity, capability config, and capability matching to",
         "  focused helpers.",
+        "- In-memory proposal listing delegates filter matching, cursor slicing, and",
+        "  next-cursor calculation to focused query helpers.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
         "  mechanics, and detail projection to focused owner modules.",
         "- Proposal decision-summary assembly delegates status, reason, next-action,",
