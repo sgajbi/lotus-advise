@@ -997,6 +997,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
         if context.radon_worst_rank is not None and context.radon_worst_complexity is not None
         else "not run"
     )
+    interrogate_coverage_percent = context.interrogate_coverage_percent or "not run"
     rows = [
         ("Code size and hotspots", "Baseline active", "engineering-health + quality baseline"),
         (
@@ -1068,7 +1069,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-735` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-736` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1092,7 +1093,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Tests",
             "Unit suite existed; new focused refactor regressions were absent.",
-            "Unit suite now has `1924` passing tests in `make check`; added focused tests "
+            "Unit suite now has `1938` passing tests in `make check`; added focused tests "
             "for OpenAPI enrichment, proof refs, source refs, dependency linking, and "
             "structured logging.",
             "Refactors are covered by behavior-preserving regression tests.",
@@ -1123,7 +1124,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Documentation",
             "Requested docs were present; docstring inventory was not calibrated.",
-            "Requested docs remain present; Interrogate inventory executable at `1.0%`; "
+            "Requested docs remain present; Interrogate inventory executable at "
+            f"`{interrogate_coverage_percent}`; "
             "scorecard, baseline, and refactor-health reports are generated.",
             "Documentation gaps are explicitly inventoried and tied to generated quality reports.",
         ),

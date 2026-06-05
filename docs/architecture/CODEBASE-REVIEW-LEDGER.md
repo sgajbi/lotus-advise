@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-736
+
+- Scope: Advisory alternatives buy-instrument selection
+- Pattern: Buy-instrument selection should separate approved shelf indexing, blocked instrument
+  calculation, existing-position eligibility, and synthetic fallback candidate projection so
+  advisory strategy rules remain auditable.
+- Status: Hardened
+- Finding Class: Advisory strategy complexity and candidate-selection maintainability
+- Summary: `preferred_buy_instrument` mixed shelf lookup construction, restriction and exclusion
+  handling, existing holding eligibility, value ordering, synthetic shelf fallback construction,
+  and fallback ordering in one C-ranked helper. This helper feeds concentration reduction and
+  currency-alignment alternatives, so candidate selection needs small, directly tested rule
+  boundaries.
+- Evidence:
+  - Extracted approved shelf lookup, blocked candidate set construction, existing-position
+    eligibility, and synthetic fallback candidate projection helpers.
+  - Preserved the public `preferred_buy_instrument` entry point and existing deterministic ordering
+    semantics.
+  - Added focused tests for lowest-ranked approved-position selection and blocked candidate sets.
+  - Radon no longer reports `preferred_buy_instrument` as C-ranked complexity; the current
+    source-only C-ranked inventory is now 9 blocks.
+  - Focused alternatives strategy `ruff`, format, `mypy`, Radon, and alternatives unit tests passed
+    with 30 tests.
+- Consequence:
+  - Advisory alternative generation remains behavior-compatible while buy-candidate selection is
+    easier to inspect, test, and extend without growing the shared strategy support module.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory strategy hardening for existing behavior.
+- Follow-Up:
+  - Continue with target generation, raise-cash strategy, advisor cockpit, proof-validation,
+    suitability state issue, infrastructure proposal listing, and Lotus AI integration hotspots.
+
 ## LA-REV-735
 
 - Scope: Lotus AI advisory copilot request reason sanitization
