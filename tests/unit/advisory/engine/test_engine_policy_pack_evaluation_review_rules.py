@@ -79,3 +79,22 @@ def test_policy_evaluation_review_rules_project_conflict_and_documents_posture()
     )
     assert ready.status == "READY"
     assert ready.outcome == "CONFLICT_AND_PRODUCT_DOCUMENT_EVIDENCE_READY_FOR_REVIEW"
+
+
+def test_policy_evaluation_review_rules_project_missing_conflict_evidence_posture() -> None:
+    pending = evaluate_conflict_disclosure(
+        rule=_rule("SG_CONFLICT_REVIEW"),
+        evidence_bundle={
+            "inputs": {
+                "shelf_entries": [{"instrument_id": "ETF_A"}],
+                "proposed_trades": [{"instrument_id": "ETF_A"}],
+            },
+            "artifact": {"disclosures": {"product_docs": [{"instrument_id": "ETF_A"}]}},
+        },
+    )
+
+    assert pending.status == "PENDING_REVIEW"
+    assert pending.outcome == "CONFLICT_AND_DISCLOSURE_REVIEW_REQUIRED"
+    assert pending.missing_evidence == ["conflict_evidence"]
+    assert pending.reason_codes == ["CONFLICT_EVIDENCE_NOT_PROVIDED"]
+    assert pending.required_actions == ["REVIEW_CONFLICT_OF_INTEREST"]
