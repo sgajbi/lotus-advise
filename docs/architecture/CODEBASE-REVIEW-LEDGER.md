@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-728
+
+- Scope: Advisory copilot run persistence orchestration
+- Pattern: Copilot run persistence should separate structured payload validation, idempotency
+  replay lookup, run-record construction, retryable refresh handling, and idempotency-record
+  construction so persistence behavior remains auditable.
+- Status: Hardened
+- Finding Class: Copilot persistence complexity and replay-safety maintainability
+- Summary: `persist_advisory_copilot_run` mixed payload safety validation, request summary hashing,
+  idempotency conflict/orphan handling, run-record construction, lineage default resolution,
+  retryable-run refresh, replay return, idempotency-record construction, and repository persistence
+  in one C-ranked function. This path owns replay-safe copilot audit evidence and needed clearer
+  internal boundaries.
+- Evidence:
+  - Extracted safe payload validation, existing-run idempotency lookup, run-record construction,
+    workflow-pack default resolution, existing-run refresh/replay handling, and idempotency-record
+    construction into focused helpers.
+  - Preserved idempotency conflict, orphaned-record, retryable refresh, replay, lineage default, and
+    retention behavior.
+  - Radon no longer reports `run_persistence.py` C-ranked blocks; no `advisory_copilot` module
+    remains in the source-only C-ranked inventory, now 16 blocks.
+  - Focused copilot persistence/application `ruff`, format, `mypy`, Radon, and tests passed.
+- Consequence:
+  - Copilot run persistence keeps the same replay-safe audit behavior while persistence, refresh,
+    and lineage defaults are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal copilot persistence hardening for existing behavior.
+- Follow-Up:
+  - Continue with policy-pack, common suitability, advisor cockpit, proof-validation, infrastructure
+    projection, and Lotus AI integration C-ranked hotspots.
+
 ## LA-REV-727
 
 - Scope: Advisory copilot structured payload safety validation

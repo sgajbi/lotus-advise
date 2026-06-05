@@ -954,6 +954,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused helpers.",
         "- Advisory copilot structured payload validation delegates mapping, sequence,",
         "  item-count, raw-AI key, and text safety checks to focused helpers.",
+        "- Advisory copilot run persistence delegates payload safety validation,",
+        "  idempotency replay lookup, run-record construction, retryable refresh, and",
+        "  idempotency-record construction to focused helpers.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
@@ -1062,7 +1065,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-727` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-728` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

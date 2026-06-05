@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/remaining-complexity-boundaries`
-- Head: `f6e2a345006a25f3a1ff7232f1655a67057988f4`
-- Branch Commits Over Main: `31`
+- Head: `1e16408aa695072f3c4caf4cc2bbcba3a8bab16c`
+- Branch Commits Over Main: `33`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -241,6 +241,9 @@
   focused helpers.
 - Advisory copilot structured payload validation delegates mapping, sequence,
   item-count, raw-AI key, and text safety checks to focused helpers.
+- Advisory copilot run persistence delegates payload safety validation,
+  idempotency replay lookup, run-record construction, retryable refresh, and
+  idempotency-record construction to focused helpers.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work
