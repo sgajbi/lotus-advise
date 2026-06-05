@@ -159,35 +159,67 @@ def _path_matches_capability_rule(*, request_path: str, rule_path: str) -> bool:
 def authorize_write_request(
     method: str, path: str, headers: dict[str, str]
 ) -> tuple[bool, str | None]:
-    if method.upper() not in _WRITE_METHODS or not _env_enabled(
-        "ENTERPRISE_ENFORCE_AUTHZ", "false"
-    ):
+    if not _should_enforce_write_authorization(method):
         return True, None
 
-    normalized = {str(k).strip().lower(): str(v).strip() for k, v in headers.items()}
-    missing = sorted(header for header in _REQUIRED_HEADERS if not normalized.get(header))
+    normalized = _normalize_headers(headers)
+    missing = _missing_required_enterprise_headers(normalized)
     if missing:
         return False, f"missing_headers:{','.join(missing)}"
 
-    if not (normalized.get("x-service-identity") or normalized.get("authorization")):
+    if not _has_service_identity(normalized):
         return False, "missing_service_identity"
 
-    capability_rule_issue = _json_map_config_issue(
-        "ENTERPRISE_CAPABILITY_RULES_JSON",
-        "invalid_capability_rules_json",
-    )
+    capability_rule_issue = _capability_rule_config_issue()
     if capability_rule_issue is not None:
         return False, capability_rule_issue
 
-    required_capability = _required_capability(method, path)
-    if required_capability:
-        capabilities = {
-            part.strip() for part in normalized.get("x-capabilities", "").split(",") if part.strip()
-        }
-        if required_capability not in capabilities:
-            return False, f"missing_capability:{required_capability}"
+    missing_capability = _missing_required_capability(method, path, normalized)
+    if missing_capability is not None:
+        return False, f"missing_capability:{missing_capability}"
 
     return True, None
+
+
+def _should_enforce_write_authorization(method: str) -> bool:
+    return method.upper() in _WRITE_METHODS and _env_enabled("ENTERPRISE_ENFORCE_AUTHZ", "false")
+
+
+def _normalize_headers(headers: dict[str, str]) -> dict[str, str]:
+    return {str(key).strip().lower(): str(value).strip() for key, value in headers.items()}
+
+
+def _missing_required_enterprise_headers(headers: dict[str, str]) -> list[str]:
+    return sorted(header for header in _REQUIRED_HEADERS if not headers.get(header))
+
+
+def _has_service_identity(headers: dict[str, str]) -> bool:
+    return bool(headers.get("x-service-identity") or headers.get("authorization"))
+
+
+def _capability_rule_config_issue() -> str | None:
+    return _json_map_config_issue(
+        "ENTERPRISE_CAPABILITY_RULES_JSON",
+        "invalid_capability_rules_json",
+    )
+
+
+def _missing_required_capability(
+    method: str,
+    path: str,
+    headers: dict[str, str],
+) -> str | None:
+    required_capability = _required_capability(method, path)
+    if required_capability is None:
+        return None
+
+    if required_capability in _request_capabilities(headers):
+        return None
+    return required_capability
+
+
+def _request_capabilities(headers: dict[str, str]) -> set[str]:
+    return {part.strip() for part in headers.get("x-capabilities", "").split(",") if part.strip()}
 
 
 def redact_sensitive(value: Any) -> Any:

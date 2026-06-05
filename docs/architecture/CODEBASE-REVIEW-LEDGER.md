@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-701
+
+- Scope: Enterprise write authorization policy
+- Pattern: Security-sensitive write authorization should separate enforcement gating, header
+  normalization, required-header checks, service identity checks, capability-rule config validation,
+  and capability matching so denial behavior remains easy to audit
+- Status: Improved
+- Finding Class: Security maintainability and complexity reduction
+- Summary: `authorize_write_request` mixed write-method gating, authz feature-flag handling,
+  header normalization, required-header denial, service identity denial, capability-rule config
+  validation, capability parsing, and capability matching in one C-ranked function. That made
+  fail-closed enterprise authorization behavior harder to review and extend.
+- Evidence:
+  - Extracted focused helpers for write-authorization gating, normalized headers, missing required
+    headers, service identity, capability config validation, required capability matching, and
+    request capability parsing.
+  - Added a read-method regression test proving enforced authz still bypasses non-write requests.
+  - Existing enterprise-readiness tests continue to prove blank header rejection, missing service
+    identity rejection, invalid capability-rule fail-closed behavior, capability trimming, and
+    sibling-path non-matching.
+  - Radon now reports `authorize_write_request` as B-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - Enterprise write authorization remains behavior-preserving while becoming easier to audit for
+    fail-closed policy handling.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal authorization maintainability hardening.
+- Follow-Up:
+  - Continue reducing C-ranked API/security helpers and classify remaining Bandit medium findings
+    before raising stricter security gates.
+
 ## LA-REV-700
 
 - Scope: Local position valuation mode handling
