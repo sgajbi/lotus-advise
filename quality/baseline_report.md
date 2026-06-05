@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T05:05:33.608054+00:00`
+- Generated At: `2026-06-05T05:06:47.941066+00:00`
 - Branch: `harden/proposal-input-model-boundaries`
-- Head: `0dbbba122d1d7ad8fa4986f436617a32c3febb52`
-- Branch Commits Over Main: `10`
+- Head: `676251f0193f08147c22bb5e14d9e7459909af7d`
+- Branch Commits Over Main: `11`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
