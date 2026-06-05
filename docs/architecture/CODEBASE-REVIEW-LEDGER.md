@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-723
+
+- Scope: Proposal narrative executive-summary section text
+- Pattern: Executive-summary narrative text should keep blocker, insufficient-evidence, and
+  ready-for-review branches explicit so advisor-facing status wording remains auditable.
+- Status: Hardened
+- Finding Class: Advisory narrative section complexity and status wording maintainability
+- Summary: `_executive_summary_text` mixed blocked proposal wording, insufficient-evidence wording,
+  and ready/default decision-summary wording in one C-ranked helper. That made the most prominent
+  narrative section harder to review when changing evidence, policy, or recommended-action
+  behavior.
+- Evidence:
+  - Extracted blocked, insufficient-evidence, and ready executive-summary renderers while preserving
+    the existing text templates and fallback actions.
+  - Radon no longer reports `_executive_summary_text` as C-ranked complexity; the source-only
+    C-ranked inventory is now 22 blocks.
+  - Focused narrative section `ruff`, format, `mypy`, module-boundary, policy, and contract tests
+    passed.
+- Consequence:
+  - Executive-summary wording remains deterministic and evidence-grounded while branch-specific
+    status text is easier to inspect and modify without affecting unrelated narrative sections.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal narrative section hardening for existing behavior.
+- Follow-Up:
+  - Continue with narrative grounding facts, simulation-intent planning, copilot validation, and
+    policy-pack C-ranked hotspots.
+
 ## LA-REV-722
 
 - Scope: Deterministic proposal narrative orchestration

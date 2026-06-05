@@ -941,6 +941,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Deterministic proposal narrative orchestration delegates section filtering,",
         "  generation-mode handling, canonical narrative id construction, and status",
         "  resolution to focused helpers.",
+        "- Proposal narrative executive-summary text delegates blocked, insufficient-evidence,",
+        "  and ready-for-review branches to focused renderers.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
@@ -1049,7 +1051,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-722` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-723` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
