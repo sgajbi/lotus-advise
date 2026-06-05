@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Callable, cast
 
 import httpx
@@ -34,6 +35,15 @@ from src.integrations.lotus_core.stateful_context_translation import (
 )
 
 HttpClientFactory = Callable[[httpx.Timeout], httpx.Client]
+
+
+@dataclass(frozen=True)
+class _TradeDraftHydrationContext:
+    client: httpx.Client
+    as_of: str
+    base_url: str
+    enrichment_by_instrument_id: dict[str, dict[str, Any]]
+    classification_taxonomy: ClassificationTaxonomy
 
 
 def select_latest_dated_row(
@@ -232,84 +242,141 @@ def enrich_stateful_simulate_request_for_trade_drafts(
     timeout: httpx.Timeout,
     client_factory: HttpClientFactory,
 ) -> ProposalSimulateRequest:
-    existing_priced_instruments = {
-        price.instrument_id for price in simulate_request.market_data_snapshot.prices
-    }
-    existing_shelf_instruments = {entry.instrument_id for entry in simulate_request.shelf_entries}
-    missing_instrument_ids = {
-        trade.instrument_id
-        for trade in simulate_request.proposed_trades
-        if trade.instrument_id not in existing_priced_instruments
-        or trade.instrument_id not in existing_shelf_instruments
-    }
+    missing_instrument_ids = _missing_trade_instrument_ids(simulate_request)
     if not missing_instrument_ids:
         return simulate_request
 
     enriched_request = cast(ProposalSimulateRequest, simulate_request.model_copy(deep=True))
     with client_factory(timeout) as client:
-        enrichment_by_instrument_id = fetch_instrument_enrichment_bulk(
-            client,
-            base_url=control_plane_base_url,
-            security_ids=sorted(missing_instrument_ids),
-        )
-        classification_taxonomy = fetch_classification_taxonomy(
-            client,
-            base_url=control_plane_base_url,
+        hydration_context = _build_trade_draft_hydration_context(
+            client=client,
             as_of=as_of,
+            base_url=base_url,
+            control_plane_base_url=control_plane_base_url,
+            missing_instrument_ids=missing_instrument_ids,
         )
         for instrument_id in sorted(missing_instrument_ids):
-            instrument_payload = fetch_json_with_cache(
-                client,
-                cache=INSTRUMENT_LOOKUP_CACHE,
-                cache_key=f"instrument:{instrument_id}",
-                method="GET",
-                base_url=base_url,
-                path=INSTRUMENTS_PATH.format(instrument_id=instrument_id),
-                error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
-            )
-            instrument_row = select_instrument_row(instrument_payload)
-            if instrument_row is None:
-                continue
-
-            price_payload = fetch_json_with_cache(
-                client,
-                cache=PRICE_LOOKUP_CACHE,
-                cache_key=f"price:{instrument_id}",
-                method="GET",
-                base_url=base_url,
-                path=PRICES_PATH.format(instrument_id=instrument_id),
-                error_code="LOTUS_CORE_STATEFUL_PRICE_LOOKUP_UNAVAILABLE",
-            )
-            latest_price_row = select_latest_price_row(price_payload=price_payload, as_of=as_of)
-            if latest_price_row is None:
-                continue
-
-            instrument_currency = str(
-                instrument_row.get("currency") or latest_price_row.get("currency") or ""
-            ).strip()
-            if not instrument_currency:
-                continue
-
-            append_price_if_missing(
+            _enrich_missing_trade_instrument(
+                hydration_context,
                 simulate_request=enriched_request,
                 instrument_id=instrument_id,
-                instrument_currency=instrument_currency,
-                latest_price_row=latest_price_row,
-            )
-            append_shelf_entry_if_missing(
-                simulate_request=enriched_request,
-                instrument_id=instrument_id,
-                instrument_row=instrument_row,
-                enrichment_row=enrichment_by_instrument_id.get(instrument_id),
-                classification_taxonomy=classification_taxonomy,
-            )
-            append_fx_rate_if_missing(
-                client=client,
-                simulate_request=enriched_request,
-                instrument_currency=instrument_currency,
-                portfolio_base_currency=enriched_request.portfolio_snapshot.base_currency,
-                base_url=base_url,
-                as_of=as_of,
             )
 
     return enriched_request
+
+
+def _missing_trade_instrument_ids(
+    simulate_request: ProposalSimulateRequest,
+) -> set[str]:
+    existing_priced_instruments = {
+        price.instrument_id for price in simulate_request.market_data_snapshot.prices
+    }
+    existing_shelf_instruments = {entry.instrument_id for entry in simulate_request.shelf_entries}
+    return {
+        trade.instrument_id
+        for trade in simulate_request.proposed_trades
+        if trade.instrument_id not in existing_priced_instruments
+        or trade.instrument_id not in existing_shelf_instruments
+    }
+
+
+def _build_trade_draft_hydration_context(
+    *,
+    client: httpx.Client,
+    as_of: str,
+    base_url: str,
+    control_plane_base_url: str,
+    missing_instrument_ids: set[str],
+) -> _TradeDraftHydrationContext:
+    return _TradeDraftHydrationContext(
+        client=client,
+        as_of=as_of,
+        base_url=base_url,
+        enrichment_by_instrument_id=fetch_instrument_enrichment_bulk(
+            client,
+            base_url=control_plane_base_url,
+            security_ids=sorted(missing_instrument_ids),
+        ),
+        classification_taxonomy=fetch_classification_taxonomy(
+            client,
+            base_url=control_plane_base_url,
+            as_of=as_of,
+        ),
+    )
+
+
+def _enrich_missing_trade_instrument(
+    hydration_context: _TradeDraftHydrationContext,
+    *,
+    simulate_request: ProposalSimulateRequest,
+    instrument_id: str,
+) -> None:
+    instrument_row = _fetch_trade_instrument_row(hydration_context, instrument_id)
+    if instrument_row is None:
+        return
+    latest_price_row = _fetch_trade_price_row(hydration_context, instrument_id)
+    if latest_price_row is None:
+        return
+    instrument_currency = _trade_instrument_currency(instrument_row, latest_price_row)
+    if not instrument_currency:
+        return
+    append_price_if_missing(
+        simulate_request=simulate_request,
+        instrument_id=instrument_id,
+        instrument_currency=instrument_currency,
+        latest_price_row=latest_price_row,
+    )
+    append_shelf_entry_if_missing(
+        simulate_request=simulate_request,
+        instrument_id=instrument_id,
+        instrument_row=instrument_row,
+        enrichment_row=hydration_context.enrichment_by_instrument_id.get(instrument_id),
+        classification_taxonomy=hydration_context.classification_taxonomy,
+    )
+    append_fx_rate_if_missing(
+        client=hydration_context.client,
+        simulate_request=simulate_request,
+        instrument_currency=instrument_currency,
+        portfolio_base_currency=simulate_request.portfolio_snapshot.base_currency,
+        base_url=hydration_context.base_url,
+        as_of=hydration_context.as_of,
+    )
+
+
+def _fetch_trade_instrument_row(
+    hydration_context: _TradeDraftHydrationContext,
+    instrument_id: str,
+) -> dict[str, Any] | None:
+    instrument_payload = fetch_json_with_cache(
+        hydration_context.client,
+        cache=INSTRUMENT_LOOKUP_CACHE,
+        cache_key=f"instrument:{instrument_id}",
+        method="GET",
+        base_url=hydration_context.base_url,
+        path=INSTRUMENTS_PATH.format(instrument_id=instrument_id),
+        error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
+    )
+    return select_instrument_row(instrument_payload)
+
+
+def _fetch_trade_price_row(
+    hydration_context: _TradeDraftHydrationContext,
+    instrument_id: str,
+) -> dict[str, Any] | None:
+    price_payload = fetch_json_with_cache(
+        hydration_context.client,
+        cache=PRICE_LOOKUP_CACHE,
+        cache_key=f"price:{instrument_id}",
+        method="GET",
+        base_url=hydration_context.base_url,
+        path=PRICES_PATH.format(instrument_id=instrument_id),
+        error_code="LOTUS_CORE_STATEFUL_PRICE_LOOKUP_UNAVAILABLE",
+    )
+    return select_latest_price_row(price_payload=price_payload, as_of=hydration_context.as_of)
+
+
+def _trade_instrument_currency(
+    instrument_row: dict[str, Any],
+    latest_price_row: dict[str, Any],
+) -> str:
+    return str(instrument_row.get("currency") or latest_price_row.get("currency") or "").strip()
