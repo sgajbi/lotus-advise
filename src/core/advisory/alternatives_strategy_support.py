@@ -1,9 +1,11 @@
 from decimal import ROUND_DOWN, ROUND_HALF_UP, ROUND_UP, Decimal
+from typing import cast
 
 from src.core.advisory.alternatives_models import ProposalAlternativesConstraints
 from src.core.advisory.alternatives_strategy_models import (
     AlternativeStrategyInputs,
     StrategyPosition,
+    StrategyShelfInstrument,
     StrategyTradeIntent,
 )
 
@@ -46,41 +48,86 @@ def preferred_buy_instrument(
     excluded_ids: set[str],
     preferred_currency: str | None = None,
 ) -> StrategyPosition | None:
-    shelf_lookup = {instrument.instrument_id: instrument for instrument in inputs.shelf_instruments}
-    blocked_ids = (
-        set(constraints.restricted_instruments) | set(constraints.do_not_buy) | excluded_ids
+    shelf_lookup = approved_shelf_lookup(inputs)
+    blocked_ids = buy_blocked_instrument_ids(
+        constraints=constraints,
+        excluded_ids=excluded_ids,
     )
-    approved_positions = [
-        position
-        for position in inputs.positions
-        if position.instrument_id in shelf_lookup
-        and shelf_lookup[position.instrument_id].status == "APPROVED"
+    approved_positions = sorted(
+        (
+            position
+            for position in inputs.positions
+            if existing_position_is_preferred_buy_candidate(
+                position=position,
+                shelf_lookup=shelf_lookup,
+                blocked_ids=blocked_ids,
+                preferred_currency=preferred_currency,
+            )
+        ),
+        key=lambda position: (position_rank_value(position), position.instrument_id),
+    )
+    if approved_positions:
+        return approved_positions[0]
+
+    return first_synthetic_buy_candidate(
+        shelf_lookup=shelf_lookup,
+        blocked_ids=blocked_ids,
+        preferred_currency=preferred_currency,
+    )
+
+
+def approved_shelf_lookup(
+    inputs: AlternativeStrategyInputs,
+) -> dict[str, StrategyShelfInstrument]:
+    return {
+        instrument.instrument_id: instrument
+        for instrument in inputs.shelf_instruments
+        if instrument.status == "APPROVED"
+    }
+
+
+def buy_blocked_instrument_ids(
+    *,
+    constraints: ProposalAlternativesConstraints,
+    excluded_ids: set[str],
+) -> set[str]:
+    return set(constraints.restricted_instruments) | set(constraints.do_not_buy) | excluded_ids
+
+
+def existing_position_is_preferred_buy_candidate(
+    *,
+    position: StrategyPosition,
+    shelf_lookup: dict[str, StrategyShelfInstrument],
+    blocked_ids: set[str],
+    preferred_currency: str | None,
+) -> bool:
+    return (
+        position.instrument_id in shelf_lookup
         and position.instrument_id not in blocked_ids
         and (preferred_currency is None or position.currency == preferred_currency)
-    ]
-    if approved_positions:
-        return sorted(
-            approved_positions,
-            key=lambda position: (position_rank_value(position), position.instrument_id),
-        )[0]
+    )
 
-    synthetic_positions = [
-        StrategyPosition(
-            instrument_id=instrument.instrument_id,
-            quantity=Decimal("0"),
-            price=None,
-            currency=preferred_currency,
-        )
-        for instrument in inputs.shelf_instruments
-        if instrument.status == "APPROVED" and instrument.instrument_id not in blocked_ids
-    ]
-    if preferred_currency is not None:
-        synthetic_positions = [
-            position for position in synthetic_positions if position.currency == preferred_currency
-        ]
-    if not synthetic_positions:
-        return None
-    return sorted(synthetic_positions, key=lambda position: position.instrument_id)[0]
+
+def first_synthetic_buy_candidate(
+    *,
+    shelf_lookup: dict[str, StrategyShelfInstrument],
+    blocked_ids: set[str],
+    preferred_currency: str | None,
+) -> StrategyPosition | None:
+    synthetic_positions = sorted(
+        (
+            StrategyPosition(
+                instrument_id=instrument_id,
+                quantity=Decimal("0"),
+                price=None,
+                currency=preferred_currency,
+            )
+            for instrument_id in shelf_lookup
+            if instrument_id not in blocked_ids
+        ),
+        key=lambda position: position.instrument_id,
+    )
+    return synthetic_positions[0] if synthetic_positions else None
 
 
 def first_adjustable_trade(
@@ -123,8 +170,8 @@ def reduced_trade_payload(trade: StrategyTradeIntent) -> dict[str, object] | Non
 
 def position_rank_value(position: StrategyPosition) -> Decimal:
     if position.price is None:
-        return position.quantity
-    return position.quantity * position.price
+        return cast(Decimal, position.quantity)
+    return cast(Decimal, position.quantity * position.price)
 
 
 def half_quantity(quantity: Decimal) -> Decimal | None:

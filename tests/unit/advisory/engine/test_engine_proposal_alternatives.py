@@ -736,6 +736,32 @@ def test_alternatives_helper_functions_cover_money_and_trade_edge_cases():
     assert synthetic_buy.quantity == Decimal("0")
 
 
+def test_preferred_buy_instrument_selects_lowest_ranked_approved_position() -> None:
+    selected = preferred_buy_instrument(
+        inputs=_inputs(),
+        constraints=ProposalAlternativesConstraints(),
+        excluded_ids=set(),
+        preferred_currency="USD",
+    )
+
+    assert selected is not None
+    assert selected.instrument_id == "MSFT"
+
+
+def test_preferred_buy_instrument_honors_blocked_candidate_sets() -> None:
+    selected = preferred_buy_instrument(
+        inputs=_inputs(),
+        constraints=ProposalAlternativesConstraints(
+            restricted_instruments=["MSFT", "SAP"],
+            do_not_buy=["NVDA"],
+        ),
+        excluded_ids={"AAPL"},
+        preferred_currency="USD",
+    )
+
+    assert selected is None
+
+
 def test_alternative_strategies_delegate_selection_and_money_helpers() -> None:
     strategy_source = (REPO_ROOT / "src/core/advisory/alternatives_strategies.py").read_text(
         encoding="utf-8"
