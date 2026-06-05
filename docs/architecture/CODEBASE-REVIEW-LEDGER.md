@@ -1,5 +1,30 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-697
+
+- Scope: Proposal memo section factory
+- Pattern: Memo section assembly should delegate source-evidence aggregation and hash-payload
+  construction to focused helpers so section readiness behavior remains auditable
+- Status: Improved
+- Finding Class: Complexity reduction and memo evidence maintainability
+- Summary: `build_memo_section` mixed source section selection, missing/reason/evidence/source
+  aggregation, status resolution, forced-status override, input-hash payload construction,
+  section-hash payload construction, and final DTO assembly in one D-ranked function.
+- Evidence:
+  - Extracted memo section evidence aggregation into a focused helper and data container.
+  - Extracted input-hash and section-hash payload construction helpers.
+  - Added a direct memo-section factory test covering blocked source evidence, forced pending
+    override, evidence/source refs, degraded evidence, and hash generation.
+  - Radon now reports `build_memo_section` as A-ranked complexity instead of D-ranked complexity.
+- Consequence:
+  - Memo section assembly is easier to review and extend, and the repo D-ranked complexity inventory
+    drops from 5 to 4.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal memo factory modularity hardening.
+- Follow-Up:
+  - Continue classifying remaining D-ranked helpers before considering a fail-on-new-D gate.
+
 ## LA-REV-696
 
 - Scope: Policy-pack source-readiness rule handling

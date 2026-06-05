@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `ccb9cf0600e848dbb9e99244b269880a1eb04796`
+- Head: `f1077260281518ecdf42f7e21fd17c94942842b5`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |

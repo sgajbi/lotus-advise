@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `ccb9cf0600e848dbb9e99244b269880a1eb04796`
-- Branch Commits Over Main: `21`
+- Head: `f1077260281518ecdf42f7e21fd17c94942842b5`
+- Branch Commits Over Main: `22`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -79,6 +79,8 @@
   response, lineage, and replay evidence models.
 - Proposal memo persistence records are split into a focused owner module
   while preserving the existing persistence model facade.
+- Proposal memo section assembly delegates source evidence and hash-payload
+  collection to focused factory helpers.
 - Proposal memo audit event DTOs are split into a focused append-only
   event model module.
 - Proposal memo lineage and replay evidence DTOs are split into a
