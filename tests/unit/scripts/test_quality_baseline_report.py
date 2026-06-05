@@ -149,6 +149,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "OpenAPI operation enrichment delegates" in refactor_health
     assert "OpenAPI example repair delegates" in refactor_health
     assert "OpenAPI field-description inference delegates" in refactor_health
+    assert "OpenAPI example inference delegates" in refactor_health
     assert "Proposal workflow delivery operations delegate execution handoff" in refactor_health
     assert "Proposal workflow narrative operations delegate narrative read" in refactor_health
     assert "Proposal workflow read operations delegate proposal" in refactor_health

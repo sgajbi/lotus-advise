@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T00:55:46.480217+00:00`
+- Generated At: `2026-06-05T00:58:13.556088+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `384ed15c848e0b287a95d78c75df644df884067e`
-- Branch Commits Over Main: `37`
+- Head: `cf08bd80a7435154d8788ed2c1f2d4c88bd229c2`
+- Branch Commits Over Main: `38`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `920`
 - Packages: `38`
 - Modules: `882`
-- Total Python lines: `139561`
+- Total Python lines: `139592`
 
 ## Largest Files
 
@@ -39,8 +39,8 @@
 | 5 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 6 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
 | 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
-| 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
-| 9 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 226 |
+| 8 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 228 |
+| 9 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
 
 ## Complexity
@@ -48,8 +48,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3103`
-- Radon complexity rank inventory: `A=2802, B=243, C=58`
+- Radon analyzed block inventory: `3106`
+- Radon complexity rank inventory: `A=2805, B=244, C=57`
 - Radon worst complexity: `rank=C, complexity=18`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3480, missing=3445, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3483, missing=3448, covered=35, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

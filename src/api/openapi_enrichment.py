@@ -359,23 +359,54 @@ def _repair_additional_property_examples(
 
 
 def _infer_example(prop_name: str, prop_schema: dict[str, Any], components: dict[str, Any]) -> Any:
+    prioritized_example = _infer_prioritized_example(prop_name, prop_schema, components)
+    if prioritized_example is not None:
+        return prioritized_example
+
+    schema_type = prop_schema.get("type")
+    typed_example = _infer_typed_example(prop_name, prop_schema, components, schema_type)
+    if typed_example is not None:
+        return typed_example
+
+    key = _to_snake_case(prop_name)
+    if key in _EXAMPLE_BY_KEY:
+        return _EXAMPLE_BY_KEY[key]
+    return _infer_untyped_example(prop_name)
+
+
+def _infer_prioritized_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> Any | None:
     const_value = prop_schema.get("const")
     if const_value is not None:
         return const_value
 
-    enum_values = prop_schema.get("enum")
-    if isinstance(enum_values, list) and enum_values:
-        return enum_values[0]
+    enum_example = _infer_enum_example(prop_schema)
+    if enum_example is not None:
+        return enum_example
 
     referenced_example = _infer_ref_example(prop_schema, components)
     if referenced_example is not None:
         return referenced_example
 
-    composite_example = _infer_composite_example(prop_name, prop_schema, components)
-    if composite_example is not None:
-        return composite_example
+    return _infer_composite_example(prop_name, prop_schema, components)
 
-    schema_type = prop_schema.get("type")
+
+def _infer_enum_example(prop_schema: dict[str, Any]) -> Any | None:
+    enum_values = prop_schema.get("enum")
+    if isinstance(enum_values, list) and enum_values:
+        return enum_values[0]
+    return None
+
+
+def _infer_typed_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+    schema_type: Any,
+) -> Any | None:
     if schema_type == "array":
         return _infer_array_example(prop_name, prop_schema, components)
     if schema_type == "object":
@@ -388,10 +419,7 @@ def _infer_example(prop_name: str, prop_schema: dict[str, Any], components: dict
         return _infer_number_example(prop_name)
     if schema_type == "string":
         return _infer_string_example(prop_name, prop_schema)
-    key = _to_snake_case(prop_name)
-    if key in _EXAMPLE_BY_KEY:
-        return _EXAMPLE_BY_KEY[key]
-    return _infer_untyped_example(prop_name)
+    return None
 
 
 def _infer_description(model_name: str, prop_name: str, prop_schema: dict[str, Any]) -> str:

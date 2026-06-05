@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-706
+
+- Scope: OpenAPI example inference
+- Pattern: API-governance example inference should separate priority examples
+  (const/enum/ref/composite), type-specific inference, key-based examples, and fallback text so
+  generated examples remain predictable and easy to extend
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_infer_example` mixed const handling, enum handling, referenced schema examples,
+  composite schema examples, schema-type dispatch, curated key examples, and fallback example
+  generation in one C-ranked function. That made OpenAPI example inference behavior harder to
+  inspect as contract coverage expands.
+- Evidence:
+  - Extracted prioritized example inference, enum example inference, and schema-type dispatch
+    helpers while preserving curated key and fallback behavior.
+  - Existing OpenAPI enrichment tests continue to cover const, enums, refs, composed refs, arrays,
+    objects, booleans, integers, numbers, strings, curated keys, and fallback examples.
+  - Radon now reports `_infer_example` as A-ranked complexity instead of C-ranked complexity.
+- Consequence:
+  - OpenAPI example inference remains behavior-preserving while becoming easier to maintain and
+    govern.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI string-example inference or scalar repair helpers.
+
 ## LA-REV-705
 
 - Scope: OpenAPI field-description inference
