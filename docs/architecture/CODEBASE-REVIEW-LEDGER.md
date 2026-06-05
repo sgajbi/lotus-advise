@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-734
+
+- Scope: Common drift analytics highlight projection
+- Pattern: Drift highlight construction should separate improvement selection, deterioration
+  selection, unmodeled exposure selection, and DTO projection so drift analytics remains auditable.
+- Status: Hardened
+- Finding Class: Common analytics complexity and evidence projection maintainability
+- Summary: `_build_highlights` mixed largest improvement selection, deterioration ordering,
+  unmodeled exposure threshold filtering, unmodeled exposure ordering, max exposure calculation,
+  and response DTO construction in one C-ranked helper. Drift highlights feed advisory proposal
+  evidence and review narratives, so the selection and projection rules should be inspectable.
+- Evidence:
+  - Extracted largest-improvement, largest-deterioration, largest-unmodeled-exposure, highlight
+    entry projection, unmodeled exposure projection, and max portfolio weight helpers.
+  - Preserved existing drift highlight ordering semantics and added a focused assertion for
+    largest-improvement ordering.
+  - Radon no longer reports `_build_highlights` as C-ranked complexity; the current source-only
+    C-ranked inventory is now 11 blocks.
+  - Focused drift analytics `ruff`, format, `mypy`, Radon, and drift analytics unit tests passed.
+- Consequence:
+  - Drift analytics remains behavior-compatible while improvement, deterioration, and unmodeled
+    exposure rules are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal common analytics hardening for existing behavior.
+- Follow-Up:
+  - Continue with suitability state issue evaluation, advisor cockpit, proof-validation,
+    target-generation, infrastructure listing, and integration C-ranked hotspots.
+
 ## LA-REV-733
 
 - Scope: Common suitability result orchestration
