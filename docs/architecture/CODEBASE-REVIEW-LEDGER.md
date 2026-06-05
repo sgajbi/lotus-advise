@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-733
+
+- Scope: Common suitability result orchestration
+- Pattern: Suitability result computation should separate shelf indexing, before/after state scans,
+  post-trade issue enrichment, evidence projection, and summary aggregation so the public scanner
+  entry point remains auditable.
+- Status: Hardened
+- Finding Class: Common suitability complexity and review-gate maintainability
+- Summary: `compute_suitability_result` mixed shelf lookup construction, before-state scanning,
+  after-state scanning, post-trade evaluator execution, evidence lineage construction,
+  issue classification, summary aggregation, and review-gate projection in one C-ranked function.
+  This common path feeds proposal simulation, policy review, memo evidence, and workflow gates, so
+  its orchestration needs clear local boundaries.
+- Evidence:
+  - Extracted shelf indexing, before/after issue scanning, post-trade issue enrichment, suitability
+    evidence construction, status filtering, and summary construction into focused helpers.
+  - Preserved the public `compute_suitability_result` entry point and existing policy-pack
+    identity/version behavior.
+  - Radon no longer reports `compute_suitability_result` as C-ranked complexity; the current
+    source-only C-ranked inventory is now 12 blocks.
+  - Focused suitability `ruff`, format, `mypy`, Radon, suitability scanner tests, and RFC-0025
+    slice-2 cleanup contract tests passed.
+- Consequence:
+  - Suitability scanning remains behavior-compatible while evidence lineage, issue enrichment, and
+    summary/review-gate projection are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal common-domain suitability hardening for existing behavior.
+- Follow-Up:
+  - Continue with suitability state issue evaluation, advisor cockpit, proof-validation,
+    target-generation, infrastructure listing, and integration C-ranked hotspots.
+
 ## LA-REV-732
 
 - Scope: Policy-pack catalog definition validation
