@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-712
+
+- Scope: Proposal input request DTO boundaries
+- Pattern: Proposal simulation, create, and version request DTOs should have separate owner modules
+  while preserving compatibility facades for public imports and OpenAPI schema names.
+- Status: Improved
+- Finding Class: Architecture maintainability and complexity reduction
+- Summary: `src/core/proposals/input_request_models.py` owned simulation, create, and version
+  request DTOs plus repeated legacy/stateless/stateful exclusivity validation. The file had become
+  the remaining proposal input-model concentration point after `input_models.py` was reduced to a
+  facade.
+- Evidence:
+  - Split request DTO ownership into `input_simulation_request_models.py`,
+    `input_create_request_models.py`, and `input_version_request_models.py`.
+  - Preserved `input_request_models.py`, `input_models.py`, `models.py`, and
+    `src.core.proposals` public imports as compatibility facades.
+  - Extracted shared exclusive-input validation to `input_request_validation.py`.
+  - Radon now reports the moved request classes and validation helpers as A-ranked complexity.
+  - Focused proposal model boundary, advisory model contract, OpenAPI lifecycle/simulation
+    contract, async payload, and proposal context tests passed.
+  - Full repository typecheck passed with no issues in 583 source files.
+- Consequence:
+  - Proposal request contracts keep their existing API surface while request-model ownership is
+    smaller, easier to test, and less likely to accumulate cross-flow validation drift.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal DTO
+    ownership hardening with compatibility facades preserved.
+- Follow-Up:
+  - Continue reducing remaining C-ranked proposal service and context-resolution helpers in small
+    behavior-preserving slices.
+
 ## LA-REV-711
 
 - Scope: API structured logging formatter

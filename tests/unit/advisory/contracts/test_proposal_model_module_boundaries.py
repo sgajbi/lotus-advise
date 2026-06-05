@@ -29,6 +29,9 @@ from src.core.proposals.input_context_models import (
 from src.core.proposals.input_context_models import (
     ProposalStatelessInput as ContextProposalStatelessInput,
 )
+from src.core.proposals.input_create_request_models import (
+    ProposalCreateRequest as CreateProposalCreateRequest,
+)
 from src.core.proposals.input_models import ProposalCreateRequest as InputProposalCreateRequest
 from src.core.proposals.input_models import (
     ProposalResolvedContext as InputProposalResolvedContext,
@@ -41,6 +44,12 @@ from src.core.proposals.input_request_models import (
 )
 from src.core.proposals.input_request_models import (
     ProposalVersionRequest as RequestProposalVersionRequest,
+)
+from src.core.proposals.input_simulation_request_models import (
+    ProposalSimulationRequest as SimulationProposalSimulationRequest,
+)
+from src.core.proposals.input_version_request_models import (
+    ProposalVersionRequest as VersionProposalVersionRequest,
 )
 from src.core.proposals.memo_event_models import (
     ProposalMemoAuditEvent as EventProposalMemoAuditEvent,
@@ -150,8 +159,11 @@ from src.core.proposals.workflow_response_models import (
 def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert models.ProposalCreateRequest is InputProposalCreateRequest
     assert InputProposalCreateRequest is RequestProposalCreateRequest
+    assert RequestProposalCreateRequest is CreateProposalCreateRequest
     assert models.ProposalSimulationRequest is RequestProposalSimulationRequest
+    assert RequestProposalSimulationRequest is SimulationProposalSimulationRequest
     assert models.ProposalVersionRequest is RequestProposalVersionRequest
+    assert RequestProposalVersionRequest is VersionProposalVersionRequest
     assert models.ProposalCreateMetadata is ContextProposalCreateMetadata
     assert models.ProposalStatelessInput is ContextProposalStatelessInput
     assert models.ProposalStatefulInput is ContextProposalStatefulInput
@@ -224,6 +236,11 @@ def test_proposal_input_models_are_split_by_context_and_request_boundary() -> No
     facade = (source_root / "input_models.py").read_text(encoding="utf-8")
     contexts = (source_root / "input_context_models.py").read_text(encoding="utf-8")
     requests = (source_root / "input_request_models.py").read_text(encoding="utf-8")
+    simulation_requests = (source_root / "input_simulation_request_models.py").read_text(
+        encoding="utf-8"
+    )
+    create_requests = (source_root / "input_create_request_models.py").read_text(encoding="utf-8")
+    version_requests = (source_root / "input_version_request_models.py").read_text(encoding="utf-8")
 
     for class_name in (
         "ProposalCreateMetadata",
@@ -249,7 +266,11 @@ def test_proposal_input_models_are_split_by_context_and_request_boundary() -> No
         "ProposalCreateRequest",
         "ProposalVersionRequest",
     ):
-        assert f"class {class_name}" in requests
+        assert f"class {class_name}" not in requests
+
+    assert "class ProposalSimulationRequest" in simulation_requests
+    assert "class ProposalCreateRequest" in create_requests
+    assert "class ProposalVersionRequest" in version_requests
 
 
 def test_delivery_response_models_are_split_by_delivery_boundary() -> None:
