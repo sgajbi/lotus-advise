@@ -894,6 +894,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  monetary, quantity, rate/price, status, and fallback descriptions to focused helpers.",
         "- OpenAPI example inference delegates const/enum/ref/composite priority handling",
         "  and schema-type dispatch to focused helpers.",
+        "- OpenAPI string example inference delegates pattern, format, keyed, identifier,",
+        "  semantic-key, and fallback example paths to focused helpers.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
         "  mechanics, and detail projection to focused owner modules.",
         "- Proposal decision-summary assembly delegates status, reason, next-action,",

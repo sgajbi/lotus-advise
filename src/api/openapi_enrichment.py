@@ -174,20 +174,48 @@ def _infer_number_example(prop_name: str) -> float:
 
 def _infer_string_example(prop_name: str, prop_schema: dict[str, Any]) -> str:
     key = _to_snake_case(prop_name)
+    for inference in (
+        _string_pattern_example,
+        _string_format_example,
+        _string_keyed_example,
+        _string_identifier_example,
+        _string_semantic_key_example,
+    ):
+        example = inference(key, prop_schema)
+        if example is not None:
+            return example
+    return _string_fallback_example(key)
+
+
+def _string_pattern_example(key: str, prop_schema: dict[str, Any]) -> str | None:
     pattern = prop_schema.get("pattern")
-    schema_format = prop_schema.get("format")
     if isinstance(pattern, str) and _NUMERIC_STRING_PATTERN_FRAGMENT in pattern:
         return "0.125"
+    return None
+
+
+def _string_format_example(_: str, prop_schema: dict[str, Any]) -> str | None:
+    schema_format = prop_schema.get("format")
     if schema_format == "date":
         return "2026-03-02"
     if schema_format == "date-time":
         return "2026-03-02T10:30:00Z"
+    return None
+
+
+def _string_keyed_example(key: str, _: dict[str, Any]) -> str | None:
     keyed_example = _STRING_EXAMPLE_BY_KEY.get(key)
-    if isinstance(keyed_example, str):
-        return keyed_example
+    return keyed_example if isinstance(keyed_example, str) else None
+
+
+def _string_identifier_example(key: str, _: dict[str, Any]) -> str | None:
     if key.endswith("_id"):
         entity = key[: -len("_id")]
         return f"{entity.upper()}_001"
+    return None
+
+
+def _string_semantic_key_example(key: str, _: dict[str, Any]) -> str | None:
     if "date" in key:
         return "2026-03-02"
     if "time" in key or "timestamp" in key:
@@ -196,6 +224,10 @@ def _infer_string_example(prop_name: str, prop_schema: dict[str, Any]) -> str:
         return "ACTIVE"
     if "currency" in key:
         return "USD"
+    return None
+
+
+def _string_fallback_example(key: str) -> str:
     return f"example_{key}"
 
 

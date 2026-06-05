@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T00:59:47.828218+00:00`
+- Generated At: `2026-06-05T01:02:20.390430+00:00`
 - Branch: `harden/quality-gate-calibration`
-- Head: `4d711abb8d37d3f88f127df3e0c63741cc375b42`
-- Branch Commits Over Main: `39`
+- Head: `015ed1b0dff65ecb8f00b3c0cbf05127f9e3cba0`
+- Branch Commits Over Main: `40`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `920`
 - Packages: `38`
 - Modules: `882`
-- Total Python lines: `139592`
+- Total Python lines: `139627`
 
 ## Largest Files
 
@@ -38,8 +38,8 @@
 | 4 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 5 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 6 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
-| 8 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 228 |
+| 7 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 230 |
+| 8 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 9 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
 
@@ -48,8 +48,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3106`
-- Radon complexity rank inventory: `A=2805, B=244, C=57`
+- Radon analyzed block inventory: `3112`
+- Radon complexity rank inventory: `A=2811, B=245, C=56`
 - Radon worst complexity: `rank=C, complexity=18`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3483, missing=3448, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3489, missing=3454, covered=35, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

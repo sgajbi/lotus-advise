@@ -1,5 +1,31 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-707
+
+- Scope: OpenAPI string example inference
+- Pattern: API-governance string example inference should separate pattern, format, keyed,
+  identifier, semantic-key, and fallback example paths so generated schema examples stay
+  predictable and easy to extend
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_infer_string_example` mixed numeric string pattern handling, date/date-time formats,
+  curated key examples, identifier examples, semantic date/time/status/currency examples, and
+  fallback text in one C-ranked function. That made string example behavior harder to review as the
+  API vocabulary grows.
+- Evidence:
+  - Extracted focused helpers for pattern examples, format examples, curated key examples,
+    identifier examples, semantic key examples, and fallback examples.
+  - Existing OpenAPI enrichment tests continue to prove numeric strings, dates, timestamps, curated
+    keys, ids, lifecycle statuses, currencies, and fallback strings.
+  - Radon now reports `_infer_string_example` as A-ranked complexity instead of C-ranked complexity.
+- Consequence:
+  - OpenAPI string example inference remains behavior-preserving while becoming easier to maintain.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI scalar repair and number inference helpers.
+
 ## LA-REV-706
 
 - Scope: OpenAPI example inference
