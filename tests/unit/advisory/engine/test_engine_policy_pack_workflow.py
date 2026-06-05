@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -15,6 +16,8 @@ from src.core.policy_packs import (
     reset_policy_pack_catalog_for_tests,
     validate_policy_pack_version,
 )
+from src.core.policy_packs.persistence_models import PolicyEvaluationAuditEvent
+from src.core.policy_packs.workflow_conflict_projection import conflict_posture_for_workflow
 from src.core.proposals.exceptions import ProposalValidationError
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -36,6 +39,7 @@ def test_policy_workflow_delegates_projection_and_decision_helpers() -> None:
 
     assert "from src.core.policy_packs.workflow_projection import" in workflow_source
     assert "from src.core.policy_packs.workflow_decision import" in workflow_source
+    assert "from src.core.policy_packs.workflow_conflict_projection import" in projection_source
     assert "def build_policy_evaluation_workflow_projection(" not in workflow_source
     assert "def validate_policy_sign_off_decision(" not in workflow_source
     assert "def build_policy_evaluation_workflow_projection(" in projection_source
@@ -144,6 +148,81 @@ def _create_policy_evaluation(*, material_conflict: bool = False):
         idempotency_key=f"policy-workflow-{material_conflict}",
         reason={"purpose": "workflow projection"},
     ).record
+
+
+def _audit_event_with_reason(reason: dict) -> PolicyEvaluationAuditEvent:
+    return PolicyEvaluationAuditEvent(
+        event_id="peev_conflict_review",
+        evaluation_id="pev_conflict_review",
+        proposal_id="pp_conflict_review",
+        proposal_version_id="ppv_conflict_review",
+        event_type="POLICY_EVALUATION_SIGN_OFF_RECORDED",
+        actor_id="policy_checker_1",
+        occurred_at="2026-05-26T01:00:00+00:00",
+        content_hash="sha256:policy-evaluation",
+        reason_json=reason,
+    )
+
+
+def test_policy_workflow_conflict_projection_blocks_unresolved_material_conflicts() -> None:
+    record = SimpleNamespace(
+        evaluation_json={
+            "rule_results": [
+                {
+                    "rule_id": "SG_CONFLICT_REVIEW",
+                    "reason_codes": [
+                        "MATERIAL_CONFLICT_REQUIRES_SUPERVISORY_REVIEW",
+                        "MATERIAL_CONFLICT_REQUIRES_SUPERVISORY_REVIEW",
+                    ],
+                    "required_actions": [
+                        "SUPERVISORY_CONFLICT_REVIEW",
+                        "REVIEW_CONFLICT_OF_INTEREST",
+                    ],
+                },
+                {
+                    "rule_id": "SG_DISCLOSURE_REVIEW",
+                    "reason_codes": ["PRODUCT_DOCUMENTATION_INCOMPLETE"],
+                    "required_actions": ["REVIEW_PRODUCT_DOCUMENT:NOTE_A"],
+                },
+            ]
+        }
+    )
+
+    posture = conflict_posture_for_workflow(record=record, events=[])
+
+    assert posture == {
+        "status": "BLOCKED",
+        "reason_codes": ["MATERIAL_CONFLICT_REQUIRES_SUPERVISORY_REVIEW"],
+        "blockers": ["SUPERVISORY_CONFLICT_REVIEW", "REVIEW_CONFLICT_OF_INTEREST"],
+        "review_outcome": None,
+    }
+
+
+def test_policy_workflow_conflict_projection_honours_resolution_event() -> None:
+    record = SimpleNamespace(
+        evaluation_json={
+            "rule_results": [
+                {
+                    "rule_id": "SG_CONFLICT_REVIEW",
+                    "reason_codes": ["MATERIAL_CONFLICT_REQUIRES_SUPERVISORY_REVIEW"],
+                    "required_actions": ["SUPERVISORY_CONFLICT_REVIEW"],
+                }
+            ]
+        }
+    )
+    events = [
+        _audit_event_with_reason({"conflict_review_outcome": "MORE_EVIDENCE_REQUIRED"}),
+        _audit_event_with_reason({"conflict_review_outcome": "NO_MATERIAL_CONFLICT_REMAINING"}),
+    ]
+
+    posture = conflict_posture_for_workflow(record=record, events=events)
+
+    assert posture == {
+        "status": "SATISFIED",
+        "reason_codes": ["MATERIAL_CONFLICT_REQUIRES_SUPERVISORY_REVIEW"],
+        "blockers": [],
+        "review_outcome": "NO_MATERIAL_CONFLICT_REMAINING",
+    }
 
 
 def test_policy_workflow_projects_open_approval_disclosure_consent_and_sla_posture() -> None:
