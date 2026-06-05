@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-704
+
+- Scope: OpenAPI schema example repair
+- Pattern: API-governance example repair should separate array, object-property, required-field,
+  existing-field, and additional-property repair paths so generated OpenAPI examples remain
+  predictable and auditable
+- Status: Improved
+- Finding Class: API governance maintainability and complexity reduction
+- Summary: `_repair_example_against_schema` mixed resolved-schema handling, array item repair,
+  required property backfill, existing property repair, additional-property map repair, and scalar
+  repair fallback in one C-ranked function. That made schema-example quality behavior harder to
+  review as OpenAPI coverage expands.
+- Evidence:
+  - Extracted array example repair, object-property repair, required-field backfill, existing-field
+    repair, and additional-property repair helpers.
+  - Added a direct OpenAPI enrichment contract test covering nested referenced array examples,
+    required-field backfill, enum repair, and additional-property numeric string repair.
+  - Existing OpenAPI enrichment tests continue to prove broader schema examples, media examples,
+    refs, composed refs, enums, constants, and numeric/string inference.
+  - Radon now reports `_repair_example_against_schema` as B-ranked complexity instead of C-ranked
+    complexity.
+- Consequence:
+  - OpenAPI example repair remains behavior-preserving while becoming easier to extend and govern.
+- Documentation:
+  - Review ledger and generated refactor-health progress signal updated. No wiki source change is
+    required because this is internal API-governance helper hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked OpenAPI inference helpers before considering stricter
+    API-governance complexity thresholds.
+
 ## LA-REV-703
 
 - Scope: OpenAPI operation enrichment

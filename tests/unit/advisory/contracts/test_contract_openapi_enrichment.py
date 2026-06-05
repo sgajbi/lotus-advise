@@ -45,3 +45,43 @@ def test_openapi_enrichment_adds_operation_defaults_and_idempotency_header_bound
     assert health_operation["tags"] == ["Health"]
     assert "default" not in health_operation["responses"]
     assert metrics_operation["tags"] == ["Monitoring"]
+
+
+def test_openapi_enrichment_repairs_nested_schema_examples() -> None:
+    schema = {
+        "paths": {},
+        "components": {
+            "schemas": {
+                "Envelope": {
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/Item"},
+                            "example": [{"sourceId": "SOURCE_009", "priority": "BAD"}],
+                        },
+                        "weights": {
+                            "type": "object",
+                            "additionalProperties": {"type": "string", "pattern": r"\d*\.?\d*"},
+                            "example": {"USD": 123},
+                        },
+                    }
+                },
+                "Item": {
+                    "properties": {
+                        "sourceId": {"type": "string"},
+                        "priority": {"enum": ["HIGH", "LOW"]},
+                        "summary": {"type": "string"},
+                    },
+                    "required": ["sourceId", "priority", "summary"],
+                },
+            }
+        },
+    }
+
+    enriched = enrich_openapi_schema(schema, service_name="lotus-advise")
+    properties = enriched["components"]["schemas"]["Envelope"]["properties"]
+
+    assert properties["items"]["example"] == [
+        {"sourceId": "SOURCE_009", "priority": "HIGH", "summary": "example_summary"}
+    ]
+    assert properties["weights"]["example"] == {"USD": "0.125"}

@@ -256,50 +256,106 @@ def _repair_example_against_schema(
 ) -> Any:
     resolved_schema = _resolved_example_schema(prop_schema, components)
     schema_type = resolved_schema.get("type")
-    if schema_type == "array" and isinstance(example, list):
-        item_schema = resolved_schema.get("items")
-        if isinstance(item_schema, dict):
-            return [
-                _repair_example_against_schema(f"{prop_name}_item", item, item_schema, components)
-                for item in example
-            ]
+    if schema_type == "array":
+        repaired_array = _repair_array_example(prop_name, example, resolved_schema, components)
+        if repaired_array is not None:
+            return repaired_array
+
     properties = resolved_schema.get("properties")
     if isinstance(properties, dict) and isinstance(example, dict):
-        repaired = dict(example)
-        required = resolved_schema.get("required")
-        if isinstance(required, list):
-            for required_name in required:
-                if required_name not in repaired:
-                    required_schema = properties.get(str(required_name))
-                    if isinstance(required_schema, dict):
-                        repaired[str(required_name)] = _infer_example(
-                            str(required_name),
-                            required_schema,
-                            components,
-                        )
-        for existing_name, existing_value in list(repaired.items()):
-            existing_schema = properties.get(existing_name)
-            if isinstance(existing_schema, dict):
-                repaired[existing_name] = _repair_example_against_schema(
-                    existing_name,
-                    existing_value,
-                    existing_schema,
-                    components,
-                )
-        return repaired
+        return _repair_object_properties_example(example, properties, resolved_schema, components)
+
     if schema_type == "object" and isinstance(example, dict):
-        additional_schema = resolved_schema.get("additionalProperties")
-        if isinstance(additional_schema, dict):
-            return {
-                key: _repair_example_against_schema(
-                    str(key),
-                    value,
-                    additional_schema,
-                    components,
-                )
-                for key, value in example.items()
-            }
+        repaired_additional = _repair_additional_property_examples(
+            example,
+            resolved_schema,
+            components,
+        )
+        if repaired_additional is not None:
+            return repaired_additional
+
     return _repair_scalar_example(prop_name, example, resolved_schema, components)
+
+
+def _repair_array_example(
+    prop_name: str,
+    example: Any,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> list[Any] | None:
+    if not isinstance(example, list):
+        return None
+
+    item_schema = prop_schema.get("items")
+    if not isinstance(item_schema, dict):
+        return None
+
+    return [
+        _repair_example_against_schema(f"{prop_name}_item", item, item_schema, components)
+        for item in example
+    ]
+
+
+def _repair_object_properties_example(
+    example: dict[str, Any],
+    properties: dict[str, Any],
+    resolved_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any]:
+    repaired = dict(example)
+    _add_missing_required_examples(repaired, properties, resolved_schema, components)
+    _repair_existing_property_examples(repaired, properties, components)
+    return repaired
+
+
+def _add_missing_required_examples(
+    repaired: dict[str, Any],
+    properties: dict[str, Any],
+    resolved_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> None:
+    required = resolved_schema.get("required")
+    if not isinstance(required, list):
+        return
+
+    for required_name in required:
+        required_key = str(required_name)
+        if required_key in repaired:
+            continue
+        required_schema = properties.get(required_key)
+        if isinstance(required_schema, dict):
+            repaired[required_key] = _infer_example(required_key, required_schema, components)
+
+
+def _repair_existing_property_examples(
+    repaired: dict[str, Any],
+    properties: dict[str, Any],
+    components: dict[str, Any],
+) -> None:
+    for existing_name, existing_value in list(repaired.items()):
+        existing_schema = properties.get(existing_name)
+        if isinstance(existing_schema, dict):
+            repaired[existing_name] = _repair_example_against_schema(
+                existing_name,
+                existing_value,
+                existing_schema,
+                components,
+            )
+
+
+def _repair_additional_property_examples(
+    example: dict[str, Any],
+    resolved_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any] | None:
+    additional_schema = resolved_schema.get("additionalProperties")
+    if not isinstance(additional_schema, dict):
+        return None
+
+    return {
+        key: _repair_example_against_schema(str(key), value, additional_schema, components)
+        for key, value in example.items()
+    }
 
 
 def _infer_example(prop_name: str, prop_schema: dict[str, Any], components: dict[str, Any]) -> Any:

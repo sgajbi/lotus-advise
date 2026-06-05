@@ -888,6 +888,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  next-cursor calculation to focused query helpers.",
         "- OpenAPI operation enrichment delegates operation eligibility, default",
         "  summary/description, tag inference, error response, and idempotency header handling.",
+        "- OpenAPI example repair delegates array, object-property, required-field,",
+        "  existing-field, and additional-property repair paths to focused helpers.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
         "  mechanics, and detail projection to focused owner modules.",
         "- Proposal decision-summary assembly delegates status, reason, next-action,",
