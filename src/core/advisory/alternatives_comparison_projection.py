@@ -13,48 +13,50 @@ def build_comparison_summary(
     baseline_result: ProposalResult,
     alternative: ProposalAlternative,
 ) -> AlternativeComparisonSummary:
-    baseline_summary = baseline_result.proposal_decision_summary
-    baseline_approval_count = (
-        len(baseline_summary.approval_requirements) if baseline_summary is not None else 0
-    )
-    alternative_summary = alternative.proposal_decision_summary
-    alternative_approval_count = len(alternative_summary.get("approval_requirements", []))
-    baseline_missing_evidence = (
-        len(baseline_summary.missing_evidence) if baseline_summary is not None else 0
-    )
-    alternative_missing_evidence = len(alternative_summary.get("missing_evidence", []))
-
     improvements: list[str] = []
     deteriorations: list[str] = []
-
-    if alternative_approval_count < baseline_approval_count:
-        improvements.append("Approval burden is lower than the baseline proposal.")
-    elif alternative_approval_count > baseline_approval_count:
-        deteriorations.append("Approval burden is higher than the baseline proposal.")
-
-    if alternative_missing_evidence < baseline_missing_evidence:
-        improvements.append("Evidence completeness is stronger than the baseline proposal.")
-    elif alternative_missing_evidence > baseline_missing_evidence:
-        deteriorations.append("Evidence completeness is weaker than the baseline proposal.")
+    baseline_approval_count, alternative_approval_count = approval_requirement_counts(
+        baseline_result=baseline_result,
+        alternative=alternative,
+    )
+    _append_count_delta_messages(
+        baseline_count=baseline_approval_count,
+        alternative_count=alternative_approval_count,
+        improvement_message="Approval burden is lower than the baseline proposal.",
+        deterioration_message="Approval burden is higher than the baseline proposal.",
+        improvements=improvements,
+        deteriorations=deteriorations,
+    )
+    _append_count_delta_messages(
+        baseline_count=baseline_missing_evidence_count(baseline_result),
+        alternative_count=alternative_missing_evidence_count(alternative),
+        improvement_message="Evidence completeness is stronger than the baseline proposal.",
+        deterioration_message="Evidence completeness is weaker than the baseline proposal.",
+        improvements=improvements,
+        deteriorations=deteriorations,
+    )
 
     risk_delta = risk_delta_for_alternative(
         baseline_result=baseline_result, alternative=alternative
     )
-    if risk_delta.get("top_position_weight_delta_improvement") is not None:
-        if Decimal(str(risk_delta["top_position_weight_delta_improvement"])) > Decimal("0"):
-            improvements.append("Single-name concentration is lower than the baseline proposal.")
-        elif Decimal(str(risk_delta["top_position_weight_delta_improvement"])) < Decimal("0"):
-            deteriorations.append("Single-name concentration is higher than the baseline proposal.")
+    _append_decimal_delta_messages(
+        raw_delta=risk_delta.get("top_position_weight_delta_improvement"),
+        improvement_message="Single-name concentration is lower than the baseline proposal.",
+        deterioration_message="Single-name concentration is higher than the baseline proposal.",
+        improvements=improvements,
+        deteriorations=deteriorations,
+    )
 
     cash_delta = cash_delta_for_alternative(
         baseline_result=baseline_result, alternative=alternative
     )
-    if cash_delta.get("base_currency_cash_delta") is not None:
-        delta = Decimal(str(cash_delta["base_currency_cash_delta"]))
-        if delta > Decimal("0"):
-            improvements.append("Base-currency cash is higher than the baseline proposal.")
-        elif delta < Decimal("0"):
-            deteriorations.append("Base-currency cash is lower than the baseline proposal.")
+    _append_decimal_delta_messages(
+        raw_delta=cash_delta.get("base_currency_cash_delta"),
+        improvement_message="Base-currency cash is higher than the baseline proposal.",
+        deterioration_message="Base-currency cash is lower than the baseline proposal.",
+        improvements=improvements,
+        deteriorations=deteriorations,
+    )
 
     return AlternativeComparisonSummary(
         headline=f"{alternative.label} for {alternative.objective.lower().replace('_', ' ')}",
@@ -83,6 +85,62 @@ def build_comparison_summary(
         cost_delta={"status": "NOT_AVAILABLE"},
         evidence_refs=list(alternative.evidence_refs),
     )
+
+
+def approval_requirement_counts(
+    *,
+    baseline_result: ProposalResult,
+    alternative: ProposalAlternative,
+) -> tuple[int, int]:
+    baseline_summary = baseline_result.proposal_decision_summary
+    baseline_count = (
+        len(baseline_summary.approval_requirements) if baseline_summary is not None else 0
+    )
+    alternative_count = len(
+        alternative.proposal_decision_summary.get("approval_requirements", [])
+    )
+    return baseline_count, alternative_count
+
+
+def baseline_missing_evidence_count(baseline_result: ProposalResult) -> int:
+    baseline_summary = baseline_result.proposal_decision_summary
+    return len(baseline_summary.missing_evidence) if baseline_summary is not None else 0
+
+
+def alternative_missing_evidence_count(alternative: ProposalAlternative) -> int:
+    return len(alternative.proposal_decision_summary.get("missing_evidence", []))
+
+
+def _append_count_delta_messages(
+    *,
+    baseline_count: int,
+    alternative_count: int,
+    improvement_message: str,
+    deterioration_message: str,
+    improvements: list[str],
+    deteriorations: list[str],
+) -> None:
+    if alternative_count < baseline_count:
+        improvements.append(improvement_message)
+    elif alternative_count > baseline_count:
+        deteriorations.append(deterioration_message)
+
+
+def _append_decimal_delta_messages(
+    *,
+    raw_delta: Any,
+    improvement_message: str,
+    deterioration_message: str,
+    improvements: list[str],
+    deteriorations: list[str],
+) -> None:
+    if raw_delta is None:
+        return
+    delta = Decimal(str(raw_delta))
+    if delta > Decimal("0"):
+        improvements.append(improvement_message)
+    elif delta < Decimal("0"):
+        deteriorations.append(deterioration_message)
 
 
 def primary_tradeoff_for_alternative(*, alternative: ProposalAlternative) -> str:
