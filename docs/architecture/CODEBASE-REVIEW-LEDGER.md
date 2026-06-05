@@ -1,5 +1,173 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-717
+
+- Scope: Proposal memo section evidence aggregation
+- Pattern: Memo section evidence aggregation should separate missing-evidence, reason-code,
+  evidence-ref, source-ref, and source-status collection.
+- Status: Improved
+- Finding Class: Memo maintainability and evidence aggregation
+- Summary: `_memo_section_evidence` flattened source readiness sections and material claims into
+  missing evidence, reason codes, evidence refs, source authority refs, and statuses in one
+  C-ranked helper.
+- Evidence:
+  - Extracted focused aggregation helpers for missing evidence, reason codes, evidence refs, source
+    refs, source statuses, section string values, and owner refs.
+  - Preserved memo section evidence, source authority refs, degraded evidence, and hash behavior.
+  - Radon now reports `_memo_section_evidence` as A-ranked complexity instead of C-ranked
+    complexity.
+  - Focused proposal memo builder tests passed.
+  - `src/core/proposals` and `src/api/proposals` now have no C-ranked Radon blocks in the scoped
+    local query.
+- Consequence:
+  - Proposal memo section evidence remains deterministic while source-readiness and claim evidence
+    aggregation is easier to audit.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal memo
+    evidence aggregation hardening.
+- Follow-Up:
+  - Continue reducing C-ranked helpers outside the proposal/API scope in future slices.
+
+## LA-REV-716
+
+- Scope: Product policy source-readiness evidence checks
+- Pattern: Product policy evidence checks should separate row validation, nested attribute
+  extraction, required-value checks, and evidence-key checks.
+- Status: Improved
+- Finding Class: Source-readiness maintainability and evidence validation
+- Summary: `_all_products_have_policy_evidence` mixed row shape validation, nested attribute
+  extraction, eligibility/target-market/complexity checks, and private-asset/structured-product
+  flag checks in one C-ranked predicate.
+- Evidence:
+  - Extracted per-product evidence, attribute extraction, required-value, multi-value, and
+    evidence-key helpers.
+  - Preserved direct and nested `attributes` product policy evidence behavior.
+  - Added regression coverage for nested product policy attributes.
+  - Radon now reports `_all_products_have_policy_evidence` as A-ranked complexity instead of
+    C-ranked complexity.
+  - Focused policy source-readiness and memo-builder product-policy tests passed.
+- Consequence:
+  - Product policy source-readiness remains source-backed and easier to audit when product policy
+    evidence evolves.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-readiness maintainability hardening.
+- Follow-Up:
+  - Continue reducing the remaining C-ranked memo-section evidence helper.
+
+## LA-REV-715
+
+- Scope: Proposal reviewed narrative report package builder
+- Pattern: Report package assembly should separate fail-closed review validation, source-lineage
+  construction, review payload assembly, and execution-boundary extraction.
+- Status: Improved
+- Finding Class: Report-package maintainability and evidence boundary hardening
+- Summary: `build_reviewed_narrative_report_package` validated narrative/review evidence, checked
+  review state and hash drift, normalized sections, assembled lineage, and extracted execution
+  boundary context in one C-ranked helper.
+- Evidence:
+  - Extracted required mapping/text validation, approved-review validation, review-hash validation,
+    review payload construction, source-lineage construction, and execution-boundary extraction.
+  - Preserved fail-closed `ProposalValidationError` codes for missing narrative, missing review,
+    unapproved review, incomplete review ids, and hash mismatch.
+  - Preserved source-backed report package shape and support-safe summary behavior.
+  - Radon now reports `build_reviewed_narrative_report_package` as A-ranked complexity instead of
+    C-ranked complexity.
+  - Focused report narrative package, report adapter, report request mapping, report response
+    projection, and proposal report-package API tests passed.
+- Consequence:
+  - Reviewed narrative report packaging remains evidence-bound while validation and lineage
+    assembly are easier to inspect and extend.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    report-package implementation hardening with existing public behavior preserved.
+- Follow-Up:
+  - Continue reducing remaining C-ranked memo-section and policy-source-readiness helpers.
+
+## LA-REV-714
+
+- Scope: Proposal workflow approval transition rules
+- Pattern: Approval transition rules should be table-driven so risk, compliance, and client-consent
+  transitions share one validation path and remain easy to audit.
+- Status: Improved
+- Finding Class: Workflow rule maintainability and complexity reduction
+- Summary: `resolve_approval_transition` encoded risk, compliance, and client-consent approvals as
+  nested branch blocks with duplicated invalid-state and rejected-path handling.
+- Evidence:
+  - Added a bounded approval transition rule map for supported approval types.
+  - Preserved `INVALID_APPROVAL_TYPE` and `INVALID_APPROVAL_STATE` failure semantics.
+  - Added parametrized coverage for approved and rejected paths across all approval types.
+  - Radon now reports `resolve_approval_transition` as A-ranked complexity instead of C-ranked
+    complexity.
+  - Focused workflow rule and command validation tests passed.
+- Consequence:
+  - Workflow approval behavior remains stable while future approval types can be reviewed as data
+    additions rather than duplicated control flow.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    workflow-rule maintainability hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked memo section, policy source readiness, and report
+    narrative helpers.
+
+## LA-REV-713
+
+- Scope: Proposal delivery summary projection
+- Pattern: Delivery summary projection should separate latest workflow-event selection, execution
+  payload assembly, reporting payload assembly, and primitive field normalization.
+- Status: Improved
+- Finding Class: Projection maintainability and complexity reduction
+- Summary: `build_delivery_summary_from_events` selected latest execution/report events and built
+  both execution and reporting payloads in one C-ranked helper. That made delivery projection
+  behavior harder to review as execution and reporting posture fields grow.
+- Evidence:
+  - Added a focused latest-delivery-events value object and extracted latest-event selection.
+  - Split execution and reporting payload assembly into separate helpers.
+  - Preserved public delivery summary return shape and compatibility with response projection.
+  - Radon now reports `build_delivery_summary_from_events` as A-ranked complexity instead of
+    C-ranked complexity.
+  - Focused delivery summary tests passed.
+- Consequence:
+  - Delivery projection behavior remains stable while execution and reporting posture enrichment
+    can evolve independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    projection maintainability hardening.
+- Follow-Up:
+  - Continue reducing remaining C-ranked memo section, policy source readiness, report narrative,
+    and workflow rule helpers.
+
+## LA-REV-712
+
+- Scope: Proposal input request DTO boundaries
+- Pattern: Proposal simulation, create, and version request DTOs should have separate owner modules
+  while preserving compatibility facades for public imports and OpenAPI schema names.
+- Status: Improved
+- Finding Class: Architecture maintainability and complexity reduction
+- Summary: `src/core/proposals/input_request_models.py` owned simulation, create, and version
+  request DTOs plus repeated legacy/stateless/stateful exclusivity validation. The file had become
+  the remaining proposal input-model concentration point after `input_models.py` was reduced to a
+  facade.
+- Evidence:
+  - Split request DTO ownership into `input_simulation_request_models.py`,
+    `input_create_request_models.py`, and `input_version_request_models.py`.
+  - Preserved `input_request_models.py`, `input_models.py`, `models.py`, and
+    `src.core.proposals` public imports as compatibility facades.
+  - Extracted shared exclusive-input validation to `input_request_validation.py`.
+  - Radon now reports the moved request classes and validation helpers as A-ranked complexity.
+  - Focused proposal model boundary, advisory model contract, OpenAPI lifecycle/simulation
+    contract, async payload, and proposal context tests passed.
+  - Full repository typecheck passed with no issues in 583 source files.
+- Consequence:
+  - Proposal request contracts keep their existing API surface while request-model ownership is
+    smaller, easier to test, and less likely to accumulate cross-flow validation drift.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal DTO
+    ownership hardening with compatibility facades preserved.
+- Follow-Up:
+  - Continue reducing remaining C-ranked proposal service and context-resolution helpers in small
+    behavior-preserving slices.
+
 ## LA-REV-711
 
 - Scope: API structured logging formatter

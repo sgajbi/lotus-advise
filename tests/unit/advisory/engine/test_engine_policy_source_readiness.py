@@ -159,6 +159,28 @@ def test_policy_source_readiness_keeps_partial_owner_evidence_pending_review():
     assert "stress" in _section(readiness, "risk_policy_metrics")["missing_evidence"]
 
 
+def test_policy_source_readiness_accepts_nested_product_policy_attributes():
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["inputs"]["shelf_entries"] = [
+        {
+            "instrument_id": "US_EQ_ETF",
+            "attributes": {
+                "eligibility": {"jurisdictions": ["SG"]},
+                "target_market": {"client_segments": ["PRIVATE_BANKING"]},
+                "product_complexity": "NON_COMPLEX",
+                "structured_product_flag": False,
+            },
+        }
+    ]
+
+    readiness = build_policy_source_readiness(evidence)
+
+    product = _section(readiness, "core_product_eligibility_target_market_complexity")
+    assert product["status"] == "READY"
+    assert product["missing_evidence"] == []
+    assert product["reason_codes"] == []
+
+
 def test_policy_source_readiness_keeps_degraded_risk_owner_evidence_pending_review():
     evidence = deepcopy(_base_evidence_bundle())
     evidence["risk_lens"]["supportability_state"] = "DEGRADED"
