@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/remaining-complexity-boundaries`
-- Head: `e137b0157887d1a95668b37ccd0379c354b50ec6`
-- Branch Commits Over Main: `19`
+- Head: `9a2f331710e1de970826835e51bdb4027047208e`
+- Branch Commits Over Main: `21`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -225,6 +225,9 @@
 - Proposal artifact trade projection and advisory auto-funding planning delegate
   execution DTO construction, dependency-note assembly, per-target funding,
   missing-FX handling, and FX-intent recording to focused helpers.
+- Deterministic proposal narrative orchestration delegates section filtering,
+  generation-mode handling, canonical narrative id construction, and status
+  resolution to focused helpers.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 
 ## Remaining Enterprise-Readiness Work

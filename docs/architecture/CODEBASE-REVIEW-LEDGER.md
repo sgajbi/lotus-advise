@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-722
+
+- Scope: Deterministic proposal narrative orchestration
+- Pattern: The public narrative builder should coordinate grounding, section rendering, optional
+  AI-assisted drafting, guardrails, narrative identity, and status resolution through focused
+  helpers rather than mixing each concern in one function.
+- Status: Hardened
+- Finding Class: Advisory narrative orchestration complexity and reviewability
+- Summary: `build_deterministic_proposal_narrative` mixed requested-section selection, deterministic
+  section filtering, optional AI-draft replacement, guardrail payload assembly, canonical narrative
+  id generation, and status resolution. The C-ranked function was central to advisor-review
+  narrative behavior, making policy and evidence-readiness status changes harder to audit.
+- Evidence:
+  - Extracted requested-section resolution, section filtering, generation-mode handling, narrative
+    id construction, status resolution, and blocking-evidence detection into focused helpers.
+  - Kept `build_deterministic_proposal_narrative` as the stable public entry point and preserved
+    deterministic-template and AI-assisted draft behavior.
+  - Radon no longer reports `build_deterministic_proposal_narrative` as C-ranked complexity; the
+    source-only C-ranked inventory is now 23 blocks.
+  - Focused narrative `ruff`, format, `mypy`, module-boundary, policy, and contract tests passed.
+- Consequence:
+  - Proposal narrative generation remains evidence-grounded and advisor-review gated while making
+    narrative status and identity rules easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal narrative orchestration hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing narrative grounding and executive-summary text helpers, then move through
+    copilot, policy-pack, and proof-validation C-ranked hotspots.
+
 ## LA-REV-721
 
 - Scope: Proposal artifact trade projection and auto-funding plan helpers
