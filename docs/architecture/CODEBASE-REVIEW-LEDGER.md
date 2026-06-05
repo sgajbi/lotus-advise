@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-721
+
+- Scope: Proposal artifact trade projection and auto-funding plan helpers
+- Pattern: Advisory artifact execution evidence and auto-funding orchestration should delegate
+  intent projection, FX projection, per-currency funding, and missing-funding recording to focused
+  helpers so proposal execution behavior remains auditable.
+- Status: Hardened
+- Finding Class: Advisory execution-evidence complexity and funding maintainability
+- Summary: `build_trades_and_funding` and `build_auto_funding_plan` still mixed collection
+  orchestration, DTO construction, dependency-note assembly, FX source selection, portfolio cash
+  mutation, missing-FX handling, and insufficient-cash diagnostics. Both were C-ranked Radon
+  hotspots in core proposal behavior, making execution evidence and funding failure paths harder to
+  review safely.
+- Evidence:
+  - Split proposal artifact trade projection into focused helpers for security-trade DTOs, FX DTOs,
+    and dependency execution notes.
+  - Split auto-funding planning into buy-intent grouping, per-target funding, funding-need
+    calculation, missing-funding recording, missing-FX warning/failure handling, and FX-intent
+    recording helpers.
+  - Radon no longer reports `build_trades_and_funding` or `build_auto_funding_plan` as C-ranked
+    complexity; full production C-ranked inventory is now 24 blocks.
+  - Focused `ruff`, `mypy`, artifact tests, funding tests, and proposal simulation tests passed.
+- Consequence:
+  - Proposal execution evidence and auto-funding paths preserve behavior while becoming easier to
+    audit, extend, and test around funding, dependency, missing-FX, and insufficient-cash outcomes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory execution and funding hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining advisory narrative, simulation-intent, copilot, policy-pack, and
+    proof-validation C-ranked hotspots.
+
 ## LA-REV-720
 
 - Scope: Proposal artifact and decision-summary rule helpers
