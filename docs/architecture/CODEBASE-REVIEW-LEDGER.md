@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-727
+
+- Scope: Advisory copilot structured payload safety validation
+- Pattern: Structured copilot payload validation should separate recursive mapping, sequence, key,
+  item-count, and text safety checks so raw AI payload and technical-detail guards remain explicit.
+- Status: Hardened
+- Finding Class: Copilot security boundary complexity and payload hygiene maintainability
+- Summary: `assert_safe_structured_payload` mixed recursion depth, mapping size, unsafe raw-AI key,
+  sequence size, nested item recursion, text length, and technical-detail checks in one C-ranked
+  recursive helper. This validator protects copilot reason, lineage, packet, review, and request
+  hashing payloads, so each guard should be easy to audit.
+- Evidence:
+  - Extracted mapping validation, sequence validation, item-count validation, unsafe-key validation,
+    and text safety validation into focused helpers.
+  - Preserved existing fail-closed error codes for oversized payloads, raw AI keys, and technical
+    detail leakage.
+  - Radon no longer reports `assert_safe_structured_payload` as C-ranked complexity; the
+    source-only C-ranked inventory is now 17 blocks.
+  - Focused copilot structured-payload `ruff`, format, `mypy`, Radon, persistence, and application
+    tests passed.
+- Consequence:
+  - Copilot structured payloads retain the same bounded safety posture while raw provider payload,
+    prompt, trace, oversized, and technical-detail guards are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal copilot security-boundary hardening for existing behavior.
+- Follow-Up:
+  - Continue with copilot persistence, policy-pack, common suitability, advisor cockpit, and
+    proof-validation C-ranked hotspots.
+
 ## LA-REV-726
 
 - Scope: Advisory copilot bounded tuple API validation
