@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `276eebd06f9d3a809f91a39642ce350f1993453a`
-- Branch Commits Over Main: `25`
+- Head: `1ae583f0e499f0966933a7c8465e34ca0e7c0b93`
+- Branch Commits Over Main: `27`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -166,6 +166,8 @@
   and identifier-scope rules to focused helpers.
 - Local valuation state assembly delegates position summary collection, cash
   conversion, shelf allocation, and allocation-metric rendering to focused helpers.
+- Local position valuation delegates trust-snapshot authority handling,
+  mark-to-market valuation, price lookup, and FX conversion to focused helpers.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
   mechanics, and detail projection to focused owner modules.
 - Proposal decision-summary assembly delegates status, reason, next-action,
