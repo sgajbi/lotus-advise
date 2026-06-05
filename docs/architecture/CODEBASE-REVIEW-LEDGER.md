@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-699
+
+- Scope: Local valuation simulated-state assembly
+- Pattern: Portfolio valuation orchestration should delegate position summary collection, cash
+  conversion, shelf enrichment, and allocation metric rendering to focused helpers so local
+  fallback valuation remains reviewable
+- Status: Improved
+- Finding Class: Complexity reduction and valuation maintainability
+- Summary: `build_simulated_state` mixed position valuation, data-quality logging, cash conversion,
+  total-value denominator handling, shelf enrichment, attribute aggregation, and response model
+  rendering in one D-ranked function. That made local fallback valuation behavior harder to audit
+  when proposal simulation depends on deterministic before/after state construction.
+- Evidence:
+  - Extracted position-summary collection, missing price/FX logging, cash valuation, shelf lookup,
+    position allocation aggregation, and allocation metric rendering helpers.
+  - Added direct valuation unit tests covering position/cash valuation, FX conversion, shelf
+    attribute allocations, and missing price/FX data-quality logging.
+  - Preserved the trust-snapshot regression that uses upstream market value over local FX
+    revaluation when configured.
+  - Radon now reports `build_simulated_state` as A-ranked complexity instead of D-ranked
+    complexity, and the repo Radon inventory has no D-ranked blocks.
+- Consequence:
+  - Local fallback valuation is easier to review and extend, and the repo worst Radon complexity
+    improves from `D/24` to `C/20`.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is internal valuation modularity hardening.
+- Follow-Up:
+  - Classify the remaining C-ranked valuation and route/service hotspots before considering a
+    stricter fail-on-C gate.
+
 ## LA-REV-698
 
 - Scope: Workspace draft action request validation

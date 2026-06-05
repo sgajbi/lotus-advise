@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/quality-gate-calibration`
-- Head: `110cc35dc02ca5a527c3166b4169bcc0a66fc0c2`
-- Branch Commits Over Main: `23`
+- Head: `b910526827dafff6ddefc48f5633f58273a93276`
+- Branch Commits Over Main: `24`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -164,6 +164,8 @@
   and lifecycle-handoff route modules behind the public aggregate router.
 - Workspace draft action request validation delegates trade, cash-flow, options,
   and identifier-scope rules to focused helpers.
+- Local valuation state assembly delegates position summary collection, cash
+  conversion, shelf allocation, and allocation-metric rendering to focused helpers.
 - Policy-pack catalog state delegates validation/activation commands, audit-event
   mechanics, and detail projection to focused owner modules.
 - Proposal decision-summary assembly delegates status, reason, next-action,
