@@ -60,9 +60,7 @@ def _proposal_artifact_trade(intent: Any) -> ProposalArtifactTrade:
     )
 
 
-def _proposal_artifact_fx(
-    intent: Any, *, fx_rates: dict[str, Decimal]
-) -> ProposalArtifactFx:
+def _proposal_artifact_fx(intent: Any, *, fx_rates: dict[str, Decimal]) -> ProposalArtifactFx:
     return ProposalArtifactFx(
         intent_id=intent.intent_id,
         pair=intent.pair,

@@ -155,9 +155,7 @@ def _target_currency_funding_need(
         FundingPlanEntry(
             target_currency=target_currency,
             required=quantize_amount_for_currency(required, target_currency),
-            available_before_fx=quantize_amount_for_currency(
-                available_before_fx, target_currency
-            ),
+            available_before_fx=quantize_amount_for_currency(available_before_fx, target_currency),
             fx_needed=quantize_amount_for_currency(fx_needed, target_currency),
             fx_pair=None,
             funding_currency=None,
