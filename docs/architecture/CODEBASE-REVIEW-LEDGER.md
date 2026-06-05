@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-737
+
+- Scope: Advisory alternatives raise-cash strategy
+- Pattern: Raise-cash alternative generation should separate cash-floor validation, liquid-source
+  selection, sell-sizing, rejection construction, and seed-payload projection so cash generation
+  rules remain inspectable.
+- Status: Hardened
+- Finding Class: Advisory strategy complexity and cash-generation maintainability
+- Summary: `RaiseCashStrategy.build_result` mixed cash-floor presence and currency checks,
+  current-cash shortfall calculation, liquid source selection, deterministic rejection handling,
+  sell quantity sizing, estimated cash-raised calculation, and seed payload construction. This
+  strategy backs advisor-facing cash-floor alternatives, so each failure mode and generated trade
+  payload should have a focused owner boundary.
+- Evidence:
+  - Extracted cash-floor shortfall/rejection evaluation, base-currency liquid source selection, and
+    raise-cash seed payload construction helpers.
+  - Centralized raise-cash rejection projection through a small typed rejection envelope.
+  - Preserved existing rejection reason codes, failed-constraint metadata, sell quantity sizing,
+    and generated seed metadata semantics.
+  - Existing focused raise-cash tests cover missing/mismatched cash floors, sufficient cash, no
+    base-currency liquid source, oversized shortfall, and successful seed generation.
+  - Radon no longer reports `RaiseCashStrategy` as C-ranked complexity; the broad Radon inventory
+    is now `A=3051, B=253, C=9`, worst `C/14`.
+  - Focused alternatives strategy `ruff`, format, `mypy`, Radon, and alternatives unit tests passed
+    with 30 tests.
+- Consequence:
+  - Raise-cash alternatives remain behavior-compatible while cash-floor diagnostics and trade seed
+    projection are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory strategy hardening for existing behavior.
+- Follow-Up:
+  - Continue with target generation, advisor cockpit, proof-validation, suitability state issue,
+    infrastructure proposal listing, and Lotus AI integration hotspots.
+
 ## LA-REV-736
 
 - Scope: Advisory alternatives buy-instrument selection
