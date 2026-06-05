@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T10:34:46.601638+00:00`
-- Branch: `harden/remaining-complexity-boundaries`
-- Head: `3d95945e1d2a5e318da405c693999e6555c955e6`
-- Branch Commits Over Main: `49`
+- Generated At: `2026-06-05T11:37:15.872065+00:00`
+- Branch: `harden/advisory-strategy-hotspots`
+- Head: `adc2ab41686f6ead841d3353761789e8d01a27b7`
+- Branch Commits Over Main: `9`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `932`
 - Packages: `38`
 - Modules: `894`
-- Total Python lines: `141729`
+- Total Python lines: `141977`
 
 ## Largest Files
 
@@ -25,7 +25,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1192 |
+| 9 | `scripts/quality_baseline_report.py` | 1194 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -48,9 +48,9 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3303`
-- Radon complexity rank inventory: `A=3037, B=255, C=11`
-- Radon worst complexity: `rank=C, complexity=16`
+- Radon analyzed block inventory: `3318`
+- Radon complexity rank inventory: `A=3057, B=253, C=8`
+- Radon worst complexity: `rank=C, complexity=14`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
 - Xenon and stricter Radon thresholds remain report-only until current
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3690, missing=3655, covered=35, coverage=0.9%`
+- Interrogate docstring inventory: `total=3704, missing=3669, covered=35, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

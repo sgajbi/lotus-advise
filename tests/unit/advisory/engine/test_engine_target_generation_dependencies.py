@@ -3,7 +3,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from src.core import target_generation
-from src.core.models import DiagnosticsData, EngineOptions
+from src.core.models import DiagnosticsData, EngineOptions, ShelfEntry
 
 
 def test_load_target_solver_dependencies_returns_none_when_solver_stack_is_unavailable(
@@ -60,3 +60,50 @@ def test_generate_targets_solver_blocks_with_diagnostic_when_solver_stack_is_una
     assert targets == []
     assert status == "BLOCKED"
     assert diagnostics.warnings == ["SOLVER_ERROR"]
+
+
+def test_collect_infeasibility_hints_reports_cash_band_and_capacity_limits() -> None:
+    hints = target_generation._collect_infeasibility_hints(
+        tradeable_ids=["AAPL"],
+        locked_weight=Decimal("0.20"),
+        options=EngineOptions(
+            cash_band_min_weight=Decimal("0.40"),
+            cash_band_max_weight=Decimal("0.10"),
+            single_position_max_weight=Decimal("0.20"),
+        ),
+        eligible_targets={"AAPL": Decimal("0.80")},
+        shelf=[ShelfEntry(instrument_id="AAPL", status="APPROVED")],
+    )
+
+    assert hints == [
+        "INFEASIBILITY_HINT_CASH_BAND_CONTRADICTION",
+        "INFEASIBILITY_HINT_SINGLE_POSITION_CAPACITY",
+    ]
+
+
+def test_collect_infeasibility_hints_reports_locked_group_weight() -> None:
+    hints = target_generation._collect_infeasibility_hints(
+        tradeable_ids=["BOND_A"],
+        locked_weight=Decimal("0.30"),
+        options=EngineOptions(
+            group_constraints={"sector:TECH": {"max_weight": "0.25"}},
+        ),
+        eligible_targets={
+            "BOND_A": Decimal("0.20"),
+            "TECH_LOCKED": Decimal("0.30"),
+        },
+        shelf=[
+            ShelfEntry(
+                instrument_id="BOND_A",
+                status="APPROVED",
+                attributes={"sector": "BOND"},
+            ),
+            ShelfEntry(
+                instrument_id="TECH_LOCKED",
+                status="SELL_ONLY",
+                attributes={"sector": "TECH"},
+            ),
+        ],
+    )
+
+    assert hints == ["INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_sector:TECH"]

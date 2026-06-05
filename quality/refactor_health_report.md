@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/remaining-complexity-boundaries`
-- Head: `3d95945e1d2a5e318da405c693999e6555c955e6`
-- Branch Commits Over Main: `49`
+- Branch: `harden/advisory-strategy-hotspots`
+- Head: `adc2ab41686f6ead841d3353761789e8d01a27b7`
+- Branch Commits Over Main: `9`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals

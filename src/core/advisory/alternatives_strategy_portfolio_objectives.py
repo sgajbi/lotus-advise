@@ -1,10 +1,13 @@
 from decimal import Decimal
+from typing import NamedTuple
 
+from src.core.advisory.alternatives_models import ProposalAlternativesConstraints
 from src.core.advisory.alternatives_normalizer import NormalizedProposalAlternativesRequest
 from src.core.advisory.alternatives_strategy_base import BaseAlternativeStrategy
 from src.core.advisory.alternatives_strategy_models import (
     AlternativeStrategyBuildResult,
     AlternativeStrategyInputs,
+    StrategyPosition,
 )
 from src.core.advisory.alternatives_strategy_support import (
     decimal_string,
@@ -14,6 +17,13 @@ from src.core.advisory.alternatives_strategy_support import (
     preferred_buy_instrument,
     quantity_for_notional,
 )
+
+
+class RaiseCashRejection(NamedTuple):
+    reason_code: str
+    summary: str
+    pivot: str
+    failed_constraints: list[str] | None = None
 
 
 class ReduceConcentrationStrategy(BaseAlternativeStrategy):
@@ -144,115 +154,164 @@ class RaiseCashStrategy(BaseAlternativeStrategy):
         request: NormalizedProposalAlternativesRequest,
         inputs: AlternativeStrategyInputs,
     ) -> AlternativeStrategyBuildResult:
-        if request.constraints.cash_floor is None:
-            return AlternativeStrategyBuildResult(
-                rejected_candidates=(
-                    self._reject(
-                        inputs=inputs,
-                        reason_code="ALTERNATIVE_CASH_FLOOR_REQUIRED",
-                        summary=(
-                            "Cash-raising alternatives require an explicit cash floor constraint."
-                        ),
-                        pivot=inputs.base_currency,
-                        status="REJECTED_CONSTRAINT_VIOLATION",
-                        failed_constraints=["cash_floor"],
-                    ),
-                )
-            )
-        if request.constraints.cash_floor.currency != inputs.base_currency:
-            return AlternativeStrategyBuildResult(
-                rejected_candidates=(
-                    self._reject(
-                        inputs=inputs,
-                        reason_code="ALTERNATIVE_CASH_FLOOR_CURRENCY_MISMATCH",
-                        summary=(
-                            "Cash-raising alternatives currently require a cash floor "
-                            "in portfolio base currency."
-                        ),
-                        pivot=inputs.base_currency,
-                        status="REJECTED_CONSTRAINT_VIOLATION",
-                        failed_constraints=["cash_floor.currency"],
-                    ),
-                )
-            )
+        shortfall, rejection = raise_cash_shortfall_or_rejection(
+            request=request,
+            inputs=inputs,
+        )
+        if rejection is not None:
+            return self._rejected_result(inputs=inputs, rejection=rejection)
 
-        current_cash = inputs.cash_balances.get(inputs.base_currency, Decimal("0"))
-        shortfall = request.constraints.cash_floor.amount - current_cash
-        if shortfall <= Decimal("0"):
-            return AlternativeStrategyBuildResult(
-                rejected_candidates=(
-                    self._reject(
-                        inputs=inputs,
-                        reason_code="ALTERNATIVE_CASH_ALREADY_SUFFICIENT",
-                        summary="Base-currency cash already satisfies the requested cash floor.",
-                        pivot=inputs.base_currency,
-                        status="REJECTED_CONSTRAINT_VIOLATION",
-                        failed_constraints=["cash_floor"],
-                    ),
-                )
-            )
-
-        candidate = largest_sellable_position(
+        candidate = base_currency_liquid_source(
             inputs=inputs,
             constraints=request.constraints,
-            preferred_currency=inputs.base_currency,
-        ) or largest_sellable_position(inputs=inputs, constraints=request.constraints)
-        if (
-            candidate is None
-            or candidate.price is None
-            or candidate.currency != inputs.base_currency
-        ):
-            return AlternativeStrategyBuildResult(
-                rejected_candidates=(
-                    self._reject(
-                        inputs=inputs,
-                        reason_code="ALTERNATIVE_NO_BASE_CURRENCY_LIQUID_SOURCE",
-                        summary=(
-                            "No sellable base-currency position can raise the requested "
-                            "cash deterministically."
-                        ),
-                        pivot=inputs.base_currency,
-                        status="REJECTED_CONSTRAINT_VIOLATION",
+        )
+        if candidate is None:
+            return self._rejected_result(
+                inputs=inputs,
+                rejection=RaiseCashRejection(
+                    reason_code="ALTERNATIVE_NO_BASE_CURRENCY_LIQUID_SOURCE",
+                    summary=(
+                        "No sellable base-currency position can raise the requested "
+                        "cash deterministically."
                     ),
-                )
+                    pivot=inputs.base_currency,
+                ),
             )
 
-        sell_quantity = quantity_for_notional(shortfall, candidate.price, candidate.quantity)
+        candidate_price = candidate.price
+        if candidate_price is None:
+            return self._rejected_result(
+                inputs=inputs,
+                rejection=RaiseCashRejection(
+                    reason_code="ALTERNATIVE_NO_BASE_CURRENCY_LIQUID_SOURCE",
+                    summary=(
+                        "No sellable base-currency position can raise the requested "
+                        "cash deterministically."
+                    ),
+                    pivot=inputs.base_currency,
+                ),
+            )
+
+        sell_quantity = quantity_for_notional(shortfall, candidate_price, candidate.quantity)
         if sell_quantity is None:
-            return AlternativeStrategyBuildResult(
-                rejected_candidates=(
-                    self._reject(
-                        inputs=inputs,
-                        reason_code="ALTERNATIVE_POSITION_TOO_SMALL",
-                        summary=(
-                            "No sellable position can raise the requested cash floor "
-                            "without exceeding holdings."
-                        ),
-                        pivot=candidate.instrument_id,
-                        status="REJECTED_CONSTRAINT_VIOLATION",
+            return self._rejected_result(
+                inputs=inputs,
+                rejection=RaiseCashRejection(
+                    reason_code="ALTERNATIVE_POSITION_TOO_SMALL",
+                    summary=(
+                        "No sellable position can raise the requested cash floor "
+                        "without exceeding holdings."
                     ),
-                )
+                    pivot=candidate.instrument_id,
+                ),
             )
 
-        estimated_cash_raised = estimated_notional(candidate.price, sell_quantity) or Decimal("0")
+        generated_intents, metadata = raise_cash_seed_payload(
+            candidate=candidate,
+            sell_quantity=sell_quantity,
+            shortfall=shortfall,
+        )
         return AlternativeStrategyBuildResult(
             seeds=(
                 self._seed(
                     request=request,
                     inputs=inputs,
                     pivot=candidate.instrument_id,
-                    generated_intents=[
-                        {
-                            "intent_type": "SECURITY_TRADE",
-                            "side": "SELL",
-                            "instrument_id": candidate.instrument_id,
-                            "quantity": decimal_string(sell_quantity),
-                        }
-                    ],
-                    metadata={
-                        "cash_floor_shortfall": decimal_string(shortfall),
-                        "estimated_cash_raised": decimal_string(estimated_cash_raised),
-                    },
+                    generated_intents=generated_intents,
+                    metadata=metadata,
                 ),
             )
         )
+
+    def _rejected_result(
+        self,
+        *,
+        inputs: AlternativeStrategyInputs,
+        rejection: RaiseCashRejection,
+    ) -> AlternativeStrategyBuildResult:
+        return AlternativeStrategyBuildResult(
+            rejected_candidates=(
+                self._reject(
+                    inputs=inputs,
+                    reason_code=rejection.reason_code,
+                    summary=rejection.summary,
+                    pivot=rejection.pivot,
+                    status="REJECTED_CONSTRAINT_VIOLATION",
+                    failed_constraints=rejection.failed_constraints,
+                ),
+            )
+        )
+
+
+def raise_cash_shortfall_or_rejection(
+    *,
+    request: NormalizedProposalAlternativesRequest,
+    inputs: AlternativeStrategyInputs,
+) -> tuple[Decimal, RaiseCashRejection | None]:
+    cash_floor = request.constraints.cash_floor
+    if cash_floor is None:
+        return Decimal("0"), RaiseCashRejection(
+            reason_code="ALTERNATIVE_CASH_FLOOR_REQUIRED",
+            summary="Cash-raising alternatives require an explicit cash floor constraint.",
+            pivot=inputs.base_currency,
+            failed_constraints=["cash_floor"],
+        )
+    if cash_floor.currency != inputs.base_currency:
+        return Decimal("0"), RaiseCashRejection(
+            reason_code="ALTERNATIVE_CASH_FLOOR_CURRENCY_MISMATCH",
+            summary=(
+                "Cash-raising alternatives currently require a cash floor "
+                "in portfolio base currency."
+            ),
+            pivot=inputs.base_currency,
+            failed_constraints=["cash_floor.currency"],
+        )
+
+    current_cash = inputs.cash_balances.get(inputs.base_currency, Decimal("0"))
+    shortfall = cash_floor.amount - current_cash
+    if shortfall <= Decimal("0"):
+        return Decimal("0"), RaiseCashRejection(
+            reason_code="ALTERNATIVE_CASH_ALREADY_SUFFICIENT",
+            summary="Base-currency cash already satisfies the requested cash floor.",
+            pivot=inputs.base_currency,
+            failed_constraints=["cash_floor"],
+        )
+    return shortfall, None
+
+
+def base_currency_liquid_source(
+    *,
+    inputs: AlternativeStrategyInputs,
+    constraints: ProposalAlternativesConstraints,
+) -> StrategyPosition | None:
+    candidate = largest_sellable_position(
+        inputs=inputs,
+        constraints=constraints,
+        preferred_currency=inputs.base_currency,
+    )
+    if candidate is None or candidate.price is None or candidate.currency != inputs.base_currency:
+        return None
+    return candidate
+
+
+def raise_cash_seed_payload(
+    *,
+    candidate: StrategyPosition,
+    sell_quantity: Decimal,
+    shortfall: Decimal,
+) -> tuple[list[dict[str, object]], dict[str, object]]:
+    estimated_cash_raised = estimated_notional(candidate.price, sell_quantity) or Decimal("0")
+    return (
+        [
+            {
+                "intent_type": "SECURITY_TRADE",
+                "side": "SELL",
+                "instrument_id": candidate.instrument_id,
+                "quantity": decimal_string(sell_quantity),
+            }
+        ],
+        {
+            "cash_floor_shortfall": decimal_string(shortfall),
+            "estimated_cash_raised": decimal_string(estimated_cash_raised),
+        },
+    )

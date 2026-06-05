@@ -109,40 +109,107 @@ def _collect_infeasibility_hints(
     eligible_targets: dict[str, Decimal],
     shelf: list[ShelfEntry],
 ) -> list[str]:
-    hints: list[str] = []
     shelf_attrs_by_id = {s.instrument_id: s.attributes for s in shelf}
+    indexed_tradeable = {i_id: idx for idx, i_id in enumerate(tradeable_ids)}
 
-    invested_min = Decimal("1.0") - options.cash_band_max_weight - locked_weight
-    invested_max = Decimal("1.0") - options.cash_band_min_weight - locked_weight
+    hints: list[str] = []
+    invested_min, invested_max = invested_weight_bounds(
+        options=options,
+        locked_weight=locked_weight,
+    )
+    append_cash_band_hint(hints=hints, invested_min=invested_min, invested_max=invested_max)
+    append_single_position_capacity_hint(
+        hints=hints,
+        options=options,
+        tradeable_count=len(tradeable_ids),
+        invested_min=invested_min,
+    )
+    append_locked_group_weight_hints(
+        hints=hints,
+        options=options,
+        eligible_targets=eligible_targets,
+        shelf_attrs_by_id=shelf_attrs_by_id,
+        indexed_tradeable=indexed_tradeable,
+    )
+    return hints
+
+
+def invested_weight_bounds(
+    *,
+    options: EngineOptions,
+    locked_weight: Decimal,
+) -> tuple[Decimal, Decimal]:
+    return (
+        Decimal("1.0") - options.cash_band_max_weight - locked_weight,
+        Decimal("1.0") - options.cash_band_min_weight - locked_weight,
+    )
+
+
+def append_cash_band_hint(
+    *,
+    hints: list[str],
+    invested_min: Decimal,
+    invested_max: Decimal,
+) -> None:
     if invested_min > invested_max:
         hints.append("INFEASIBILITY_HINT_CASH_BAND_CONTRADICTION")
 
-    if options.single_position_max_weight is not None:
-        max_capacity = options.single_position_max_weight * Decimal(len(tradeable_ids))
-        if max_capacity < invested_min:
-            hints.append("INFEASIBILITY_HINT_SINGLE_POSITION_CAPACITY")
 
-    indexed_tradeable = {i_id: idx for idx, i_id in enumerate(tradeable_ids)}
+def append_single_position_capacity_hint(
+    *,
+    hints: list[str],
+    options: EngineOptions,
+    tradeable_count: int,
+    invested_min: Decimal,
+) -> None:
+    if options.single_position_max_weight is None:
+        return
+    max_capacity = options.single_position_max_weight * Decimal(tradeable_count)
+    if max_capacity < invested_min:
+        hints.append("INFEASIBILITY_HINT_SINGLE_POSITION_CAPACITY")
+
+
+def append_locked_group_weight_hints(
+    *,
+    hints: list[str],
+    options: EngineOptions,
+    eligible_targets: dict[str, Decimal],
+    shelf_attrs_by_id: dict[str, dict[str, str]],
+    indexed_tradeable: dict[str, int],
+) -> None:
     for constraint_key in sorted(options.group_constraints.keys()):
         constraint = options.group_constraints[constraint_key]
-        attr_key, attr_val = constraint_key.split(":", 1)
-        group_locked_weight = Decimal("0")
-        group_tradeable_count = 0
-        for i_id in eligible_targets:
-            attrs = shelf_attrs_by_id.get(i_id)
-            if attrs is None or attrs.get(attr_key) != attr_val:
-                continue
-            if i_id in indexed_tradeable:
-                group_tradeable_count += 1
-            else:
-                group_locked_weight += eligible_targets[i_id]
-
+        group_locked_weight, group_tradeable_count = group_constraint_exposure(
+            constraint_key=constraint_key,
+            eligible_targets=eligible_targets,
+            shelf_attrs_by_id=shelf_attrs_by_id,
+            indexed_tradeable=indexed_tradeable,
+        )
         if group_locked_weight > constraint.max_weight:
             hints.append(f"INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_{constraint_key}")
         if group_tradeable_count == 0 and group_locked_weight == Decimal("0"):
             continue
 
-    return hints
+
+def group_constraint_exposure(
+    *,
+    constraint_key: str,
+    eligible_targets: dict[str, Decimal],
+    shelf_attrs_by_id: dict[str, dict[str, str]],
+    indexed_tradeable: dict[str, int],
+) -> tuple[Decimal, int]:
+    attr_key, attr_val = constraint_key.split(":", 1)
+    locked_weight = Decimal("0")
+    tradeable_count = 0
+    for instrument_id in eligible_targets:
+        attrs = shelf_attrs_by_id.get(instrument_id)
+        if attrs is None or attrs.get(attr_key) != attr_val:
+            continue
+        if instrument_id in indexed_tradeable:
+            tradeable_count += 1
+        else:
+            locked_weight += eligible_targets[instrument_id]
+    return locked_weight, tradeable_count
 
 
 def build_target_trace(

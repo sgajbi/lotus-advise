@@ -1,5 +1,106 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-738
+
+- Scope: Target-generation infeasibility diagnostics
+- Pattern: Target solver infeasibility hints should separate invested-weight bounds, cash-band
+  contradiction checks, single-position capacity checks, group exposure scans, and locked-group
+  hint projection so diagnostics remain auditable.
+- Status: Hardened
+- Finding Class: Target-generation complexity and solver diagnostics maintainability
+- Summary: `_collect_infeasibility_hints` mixed shelf attribute indexing, invested min/max
+  calculation, cash-band contradiction detection, single-position capacity diagnostics, group
+  constraint scanning, locked/tradeable group exposure accounting, and hint projection in one
+  C-ranked helper. These hints explain why deterministic target generation cannot produce a ready
+  target, so they need small rule boundaries and direct tests.
+- Evidence:
+  - Extracted invested-weight bounds, cash-band hint, single-position capacity hint, locked group
+    hint projection, and group exposure scan helpers.
+  - Preserved existing hint ordering and hint code vocabulary.
+  - Added focused tests for cash-band contradiction, single-position capacity, and locked group
+    weight diagnostics.
+  - Radon no longer reports `_collect_infeasibility_hints` as C-ranked complexity; the current
+    source-only C-ranked inventory is now 7 blocks.
+  - Focused target-generation `ruff`, format, `mypy`, Radon, and dependency/diagnostic tests
+    passed with 5 tests.
+- Consequence:
+  - Solver diagnostics remain behavior-compatible while each infeasibility hint rule can be
+    inspected and extended without growing the target-generation orchestration path.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal target-generation diagnostics hardening for existing behavior.
+- Follow-Up:
+  - Continue with advisor cockpit, proof-validation, suitability state issue, infrastructure
+    proposal listing, and Lotus AI integration hotspots.
+
+## LA-REV-737
+
+- Scope: Advisory alternatives raise-cash strategy
+- Pattern: Raise-cash alternative generation should separate cash-floor validation, liquid-source
+  selection, sell-sizing, rejection construction, and seed-payload projection so cash generation
+  rules remain inspectable.
+- Status: Hardened
+- Finding Class: Advisory strategy complexity and cash-generation maintainability
+- Summary: `RaiseCashStrategy.build_result` mixed cash-floor presence and currency checks,
+  current-cash shortfall calculation, liquid source selection, deterministic rejection handling,
+  sell quantity sizing, estimated cash-raised calculation, and seed payload construction. This
+  strategy backs advisor-facing cash-floor alternatives, so each failure mode and generated trade
+  payload should have a focused owner boundary.
+- Evidence:
+  - Extracted cash-floor shortfall/rejection evaluation, base-currency liquid source selection, and
+    raise-cash seed payload construction helpers.
+  - Centralized raise-cash rejection projection through a small typed rejection envelope.
+  - Preserved existing rejection reason codes, failed-constraint metadata, sell quantity sizing,
+    and generated seed metadata semantics.
+  - Existing focused raise-cash tests cover missing/mismatched cash floors, sufficient cash, no
+    base-currency liquid source, oversized shortfall, and successful seed generation.
+  - Radon no longer reports `RaiseCashStrategy` as C-ranked complexity; the broad Radon inventory
+    is now `A=3051, B=253, C=9`, worst `C/14`.
+  - Focused alternatives strategy `ruff`, format, `mypy`, Radon, and alternatives unit tests passed
+    with 30 tests.
+- Consequence:
+  - Raise-cash alternatives remain behavior-compatible while cash-floor diagnostics and trade seed
+    projection are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory strategy hardening for existing behavior.
+- Follow-Up:
+  - Continue with target generation, advisor cockpit, proof-validation, suitability state issue,
+    infrastructure proposal listing, and Lotus AI integration hotspots.
+
+## LA-REV-736
+
+- Scope: Advisory alternatives buy-instrument selection
+- Pattern: Buy-instrument selection should separate approved shelf indexing, blocked instrument
+  calculation, existing-position eligibility, and synthetic fallback candidate projection so
+  advisory strategy rules remain auditable.
+- Status: Hardened
+- Finding Class: Advisory strategy complexity and candidate-selection maintainability
+- Summary: `preferred_buy_instrument` mixed shelf lookup construction, restriction and exclusion
+  handling, existing holding eligibility, value ordering, synthetic shelf fallback construction,
+  and fallback ordering in one C-ranked helper. This helper feeds concentration reduction and
+  currency-alignment alternatives, so candidate selection needs small, directly tested rule
+  boundaries.
+- Evidence:
+  - Extracted approved shelf lookup, blocked candidate set construction, existing-position
+    eligibility, and synthetic fallback candidate projection helpers.
+  - Preserved the public `preferred_buy_instrument` entry point and existing deterministic ordering
+    semantics.
+  - Added focused tests for lowest-ranked approved-position selection and blocked candidate sets.
+  - Radon no longer reports `preferred_buy_instrument` as C-ranked complexity; the current
+    source-only C-ranked inventory is now 9 blocks.
+  - Focused alternatives strategy `ruff`, format, `mypy`, Radon, and alternatives unit tests passed
+    with 30 tests.
+- Consequence:
+  - Advisory alternative generation remains behavior-compatible while buy-candidate selection is
+    easier to inspect, test, and extend without growing the shared strategy support module.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory strategy hardening for existing behavior.
+- Follow-Up:
+  - Continue with target generation, raise-cash strategy, advisor cockpit, proof-validation,
+    suitability state issue, infrastructure proposal listing, and Lotus AI integration hotspots.
+
 ## LA-REV-735
 
 - Scope: Lotus AI advisory copilot request reason sanitization
