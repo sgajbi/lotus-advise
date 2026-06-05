@@ -161,34 +161,70 @@ def _memo_section_evidence(
     forced_missing: list[str] | None,
     forced_reasons: list[str] | None,
 ) -> _MemoSectionEvidence:
-    missing = _unique(
-        [item for section in source_sections for item in _strings(section.get("missing_evidence"))]
-        + (forced_missing or [])
-    )
-    reasons = _unique(
-        [item for section in source_sections for item in _strings(section.get("reason_codes"))]
-        + (forced_reasons or [])
-    )
-    evidence_refs = _unique(
-        [item for section in source_sections for item in _strings(section.get("evidence_refs"))]
-        + [item for claim in claims for item in claim.evidence_refs]
-    )
-    source_refs = _unique(
-        [
-            str(section.get("owner_service"))
-            for section in source_sections
-            if section.get("owner_service")
-        ]
-        + [item for claim in claims for item in claim.source_authority_refs]
-    )
     return _MemoSectionEvidence(
         source_sections=source_sections,
-        missing=missing,
-        reasons=reasons,
-        evidence_refs=evidence_refs,
-        source_refs=source_refs,
-        statuses=[str(section.get("status")) for section in source_sections],
+        missing=_memo_missing_evidence(source_sections, forced_missing=forced_missing),
+        reasons=_memo_reason_codes(source_sections, forced_reasons=forced_reasons),
+        evidence_refs=_memo_evidence_refs(source_sections, claims=claims),
+        source_refs=_memo_source_refs(source_sections, claims=claims),
+        statuses=_memo_source_statuses(source_sections),
     )
+
+
+def _memo_missing_evidence(
+    source_sections: list[dict[str, Any]],
+    *,
+    forced_missing: list[str] | None,
+) -> list[str]:
+    return _unique(
+        _section_string_values(source_sections, "missing_evidence") + (forced_missing or [])
+    )
+
+
+def _memo_reason_codes(
+    source_sections: list[dict[str, Any]],
+    *,
+    forced_reasons: list[str] | None,
+) -> list[str]:
+    return _unique(_section_string_values(source_sections, "reason_codes") + (forced_reasons or []))
+
+
+def _memo_evidence_refs(
+    source_sections: list[dict[str, Any]],
+    *,
+    claims: list[ProposalMemoMaterialClaim],
+) -> list[str]:
+    return _unique(
+        _section_string_values(source_sections, "evidence_refs")
+        + [item for claim in claims for item in claim.evidence_refs]
+    )
+
+
+def _memo_source_refs(
+    source_sections: list[dict[str, Any]],
+    *,
+    claims: list[ProposalMemoMaterialClaim],
+) -> list[str]:
+    return _unique(
+        _section_owner_refs(source_sections)
+        + [item for claim in claims for item in claim.source_authority_refs]
+    )
+
+
+def _memo_source_statuses(source_sections: list[dict[str, Any]]) -> list[str]:
+    return [str(section.get("status")) for section in source_sections]
+
+
+def _section_string_values(source_sections: list[dict[str, Any]], key: str) -> list[str]:
+    return [item for section in source_sections for item in _strings(section.get(key))]
+
+
+def _section_owner_refs(source_sections: list[dict[str, Any]]) -> list[str]:
+    return [
+        str(section.get("owner_service"))
+        for section in source_sections
+        if section.get("owner_service")
+    ]
 
 
 def _section_input_payload(

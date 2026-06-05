@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-717
+
+- Scope: Proposal memo section evidence aggregation
+- Pattern: Memo section evidence aggregation should separate missing-evidence, reason-code,
+  evidence-ref, source-ref, and source-status collection.
+- Status: Improved
+- Finding Class: Memo maintainability and evidence aggregation
+- Summary: `_memo_section_evidence` flattened source readiness sections and material claims into
+  missing evidence, reason codes, evidence refs, source authority refs, and statuses in one
+  C-ranked helper.
+- Evidence:
+  - Extracted focused aggregation helpers for missing evidence, reason codes, evidence refs, source
+    refs, source statuses, section string values, and owner refs.
+  - Preserved memo section evidence, source authority refs, degraded evidence, and hash behavior.
+  - Radon now reports `_memo_section_evidence` as A-ranked complexity instead of C-ranked
+    complexity.
+  - Focused proposal memo builder tests passed.
+  - `src/core/proposals` and `src/api/proposals` now have no C-ranked Radon blocks in the scoped
+    local query.
+- Consequence:
+  - Proposal memo section evidence remains deterministic while source-readiness and claim evidence
+    aggregation is easier to audit.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal memo
+    evidence aggregation hardening.
+- Follow-Up:
+  - Continue reducing C-ranked helpers outside the proposal/API scope in future slices.
+
 ## LA-REV-716
 
 - Scope: Product policy source-readiness evidence checks
