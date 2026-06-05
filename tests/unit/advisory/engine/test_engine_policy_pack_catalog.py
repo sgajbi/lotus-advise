@@ -9,6 +9,7 @@ from src.core.policy_packs import (
     reset_policy_pack_catalog_for_tests,
     validate_policy_pack_version,
 )
+from src.core.policy_packs.catalog_definitions import validate_definition
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalValidationError,
@@ -32,6 +33,7 @@ def test_policy_pack_catalog_definition_helpers_stay_focused() -> None:
     assert "def _summary_from_definition" not in catalog
     assert "def _prepare_definition" not in catalog
 
+    assert "from src.core.policy_packs.catalog_definition_validation import" in definitions
     assert "def validate_definition" in definitions
     assert "def summary_from_definition" in definitions
     assert "def prepare_definition" in definitions
@@ -230,3 +232,52 @@ def test_invalid_policy_pack_definition_fails_fast_with_diagnostics() -> None:
 
     assert "RULE_ID_NOT_UPPER_SNAKE_CASE" in str(exc.value)
     assert "bad-rule_REQUIRED_EVIDENCE_FIELDS_REQUIRED" in str(exc.value)
+
+
+def test_policy_pack_definition_validation_projects_top_level_diagnostics() -> None:
+    diagnostics = validate_definition(
+        {
+            "policy_pack_id": "BAD_REFERENCE",
+            "policy_version": "2026.05",
+            "policy_family": "BAD_REFERENCE",
+            "rules": "not-a-list",
+            "reference_posture": "UNDECLARED",
+        }
+    )
+
+    assert diagnostics == [
+        "APPLICABILITY_REQUIRED",
+        "SOURCE_REQUIREMENTS_REQUIRED",
+        "SAMPLE_FIXTURE_REFS_REQUIRED",
+        "SCHEMA_VERSION_REQUIRED",
+        "REFERENCE_POSTURE_NOT_DECLARED",
+        "RULES_MUST_BE_LIST",
+    ]
+
+
+def test_policy_pack_definition_validation_rejects_unsafe_rule_wording() -> None:
+    diagnostics = validate_definition(
+        {
+            "policy_pack_id": "BAD_REFERENCE",
+            "policy_version": "2026.05",
+            "policy_family": "BAD_REFERENCE",
+            "applicability": {"jurisdiction_scope": ["SG"]},
+            "source_requirements": ["client_classification"],
+            "rules": [
+                {
+                    "rule_id": "SG_UNSAFE_WORDING",
+                    "required_evidence_fields": ["conflict_evidence"],
+                    "positive_wording_when_missing_evidence": "All evidence is ready.",
+                },
+                "not-a-rule",
+            ],
+            "sample_fixture_refs": ["PB_SG_GLOBAL_BAL_001"],
+            "schema_version": "rfc0025.policy-pack-catalog.v1",
+            "reference_posture": "REFERENCE_EXAMPLE_NOT_LEGAL_ADVICE",
+        }
+    )
+
+    assert diagnostics == [
+        "SG_UNSAFE_WORDING_FORBIDDEN_POSITIVE_MISSING_EVIDENCE_WORDING",
+        "RULE_MUST_BE_OBJECT",
+    ]

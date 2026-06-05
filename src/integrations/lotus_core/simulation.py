@@ -70,6 +70,28 @@ def simulate_with_lotus_core(
     correlation_id: str,
     policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
+    del policy_context
+    response = _post_simulation_request(
+        request=request,
+        request_hash=request_hash,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+    payload = _simulation_response_payload(response)
+    _validate_response_contract_header(response)
+    result: ProposalResult = ProposalResult.model_validate(
+        _normalize_suitability_issue_classification(payload)
+    )
+    _validate_result_contracts(result)
+    return result
+
+
+def _simulation_headers(
+    *,
+    request_hash: str,
+    idempotency_key: str | None,
+    correlation_id: str,
+) -> dict[str, str]:
     headers: dict[str, str] = {
         "X-Correlation-Id": resolve_correlation_id(correlation_id),
         "X-Request-Hash": request_hash,
@@ -78,42 +100,61 @@ def simulate_with_lotus_core(
     outbound_idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     if outbound_idempotency_key is not None:
         headers["Idempotency-Key"] = outbound_idempotency_key
+    return headers
 
+
+def _post_simulation_request(
+    *,
+    request: ProposalSimulateRequest,
+    request_hash: str,
+    idempotency_key: str | None,
+    correlation_id: str,
+) -> httpx.Response:
     url = f"{_resolve_base_url()}{_EXECUTION_PATH}"
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
             response = client.post(
                 url,
                 json=request.model_dump(mode="json"),
-                headers=headers,
+                headers=_simulation_headers(
+                    request_hash=request_hash,
+                    idempotency_key=idempotency_key,
+                    correlation_id=correlation_id,
+                ),
             )
             response.raise_for_status()
-            payload = cast(dict[str, Any], response.json())
+            return response
     except httpx.HTTPStatusError as exc:
-        detail = f"LOTUS_CORE_SIMULATION_UNAVAILABLE: {exc.response.status_code}"
-        try:
-            problem_payload = cast(dict[str, Any], exc.response.json())
-            problem_detail = problem_payload.get("detail")
-            contract_version = problem_payload.get("contract_version")
-            if isinstance(problem_detail, str) and problem_detail:
-                detail = problem_detail
-            if (
-                isinstance(contract_version, str)
-                and contract_version != ADVISORY_SIMULATION_CONTRACT_VERSION
-            ):
-                detail = (
-                    "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
-                    f"expected {ADVISORY_SIMULATION_CONTRACT_VERSION}, got {contract_version}"
-                )
-        except ValueError:
-            pass
         raise LotusCoreSimulationUnavailableError(
-            detail,
+            _problem_detail_from_status_error(exc),
             status_code=exc.response.status_code,
         ) from exc
     except (httpx.HTTPError, ValueError) as exc:
         raise LotusCoreSimulationUnavailableError("LOTUS_CORE_SIMULATION_UNAVAILABLE") from exc
 
+
+def _problem_detail_from_status_error(exc: httpx.HTTPStatusError) -> str:
+    detail = f"LOTUS_CORE_SIMULATION_UNAVAILABLE: {exc.response.status_code}"
+    try:
+        problem_payload = cast(dict[str, Any], exc.response.json())
+    except ValueError:
+        return detail
+    problem_detail = problem_payload.get("detail")
+    contract_version = problem_payload.get("contract_version")
+    if isinstance(problem_detail, str) and problem_detail:
+        detail = problem_detail
+    if (
+        isinstance(contract_version, str)
+        and contract_version != ADVISORY_SIMULATION_CONTRACT_VERSION
+    ):
+        return (
+            "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
+            f"expected {ADVISORY_SIMULATION_CONTRACT_VERSION}, got {contract_version}"
+        )
+    return detail
+
+
+def _validate_response_contract_header(response: httpx.Response) -> None:
     response_contract_version = response.headers.get(ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER)
     if response_contract_version != ADVISORY_SIMULATION_CONTRACT_VERSION:
         raise LotusCoreSimulationUnavailableError(
@@ -123,9 +164,15 @@ def simulate_with_lotus_core(
             f"got {response_contract_version or 'missing'}"
         )
 
-    result: ProposalResult = ProposalResult.model_validate(
-        _normalize_suitability_issue_classification(payload)
-    )
+
+def _simulation_response_payload(response: httpx.Response) -> dict[str, Any]:
+    try:
+        return cast(dict[str, Any], response.json())
+    except ValueError as exc:
+        raise LotusCoreSimulationUnavailableError("LOTUS_CORE_SIMULATION_UNAVAILABLE") from exc
+
+
+def _validate_result_contracts(result: ProposalResult) -> None:
     if result.lineage.simulation_contract_version != ADVISORY_SIMULATION_CONTRACT_VERSION:
         raise LotusCoreSimulationUnavailableError(
             "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
@@ -136,4 +183,3 @@ def simulate_with_lotus_core(
             "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
             "response allocation lens did not match the canonical contract version"
         )
-    return result

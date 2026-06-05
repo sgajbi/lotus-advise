@@ -922,6 +922,44 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  assembly to a focused replay module.",
         "- Policy evaluation persistence delegates mutable record storage, idempotency replay,",
         "  event construction, and store-backed projections to a focused record-store module.",
+        "- Lotus Core stateful-context translation delegates payload normalization, market-data",
+        "  projection, and shelf-entry projection to focused owner modules.",
+        "- Lotus Core stateful-context source reads delegate enrichment cache partitioning,",
+        "  missing-id batching, source fetch, and cache writeback to focused helpers.",
+        "- Lotus Core stateful-context resolver and trade-draft hydration paths now read as",
+        "  orchestration over source fetch, validation, DTO assembly, and per-instrument",
+        "  hydration.",
+        "- Lotus Core liquidity-tier and simulation adapter logic delegates ordered policy",
+        "  rule evaluation, HTTP posting, problem-detail mapping, and contract validation.",
+        "- Proposal alternatives comparison summaries delegate approval/evidence count deltas",
+        "  and decimal risk/cash delta message projection to focused helpers.",
+        "- Proposal artifact and decision-summary rule helpers delegate next-step gate mapping,",
+        "  reason-code fallback, and approval-requirement collection to focused helpers.",
+        "- Proposal artifact trade projection and advisory auto-funding planning delegate",
+        "  execution DTO construction, dependency-note assembly, per-target funding,",
+        "  missing-FX handling, and FX-intent recording to focused helpers.",
+        "- Deterministic proposal narrative orchestration delegates section filtering,",
+        "  generation-mode handling, canonical narrative id construction, and status",
+        "  resolution to focused helpers.",
+        "- Proposal narrative executive-summary text delegates blocked, insufficient-evidence,",
+        "  and ready-for-review branches to focused renderers.",
+        "- Proposal narrative grounding facts delegate alternatives availability, selected",
+        "  alternative, count, rejected-summary, decision-scalar, approval, material-change,",
+        "  and missing-evidence projection to focused helpers.",
+        "- Proposal simulation security-trade intent planning delegates shelf presence,",
+        "  shelf eligibility, unsupported-trade diagnostics, and intent construction to",
+        "  focused helpers.",
+        "- Advisory copilot bounded tuple validation delegates sequence validation,",
+        "  bounded item normalization, duplicate handling, and non-empty enforcement to",
+        "  focused helpers.",
+        "- Advisory copilot structured payload validation delegates mapping, sequence,",
+        "  item-count, raw-AI key, and text safety checks to focused helpers.",
+        "- Advisory copilot run persistence delegates payload safety validation,",
+        "  idempotency replay lookup, run-record construction, retryable refresh, and",
+        "  idempotency-record construction to focused helpers.",
+        "- Policy-pack applicability evaluation delegates source context extraction,",
+        "  missing-evidence detection, not-applicable result construction, and selector",
+        "  construction to focused helpers.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "",
         "## Remaining Enterprise-Readiness Work",
@@ -949,6 +987,16 @@ def render_refactor_health_report(context: QualityContext) -> str:
 
 
 def render_quality_scorecard(context: QualityContext) -> str:
+    radon_rank_inventory = ", ".join(
+        f"{rank}={count}" for rank, count in context.radon_rank_counts.items()
+    )
+    if not radon_rank_inventory:
+        radon_rank_inventory = "not run"
+    radon_worst = (
+        f"{context.radon_worst_rank}/{context.radon_worst_complexity}"
+        if context.radon_worst_rank is not None and context.radon_worst_complexity is not None
+        else "not run"
+    )
     rows = [
         ("Code size and hotspots", "Baseline active", "engineering-health + quality baseline"),
         (
@@ -1012,15 +1060,15 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Complexity",
             "Radon and Xenon tracked as pending report-only tools.",
-            "Radon config executable; inventory `A=2827, B=248, C=52`; "
-            "worst block `C/16`; no E/F gate enforced through `make lint`.",
+            f"Radon config executable; inventory `{radon_rank_inventory}`; "
+            f"worst block `{radon_worst}`; no E/F gate enforced through `make lint`.",
             "Complexity is now measured repeatably and regression-blocked for E/F-ranked blocks.",
         ),
         (
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-711` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-735` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

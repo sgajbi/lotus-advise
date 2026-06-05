@@ -163,37 +163,93 @@ def _build_security_trade_intents(
     shelf_by_instrument = {entry.instrument_id: entry for entry in shelf}
     security_intents: list[SecurityTradeIntent] = []
     for idx, trade in enumerate(trades):
-        shelf_entry = shelf_by_instrument.get(trade.instrument_id)
-        if shelf_entry is None:
-            diagnostics.data_quality["shelf_missing"].append(trade.instrument_id)
-            continue
-
-        if trade.side == "BUY" and shelf_entry.status in {"SELL_ONLY", "BANNED", "SUSPENDED"}:
-            diagnostics.warnings.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
-            hard_failures.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
-            continue
-        if (
-            trade.side == "BUY"
-            and shelf_entry.status == "RESTRICTED"
-            and not options.allow_restricted
+        if not _trade_has_shelf_entry(
+            trade=trade,
+            shelf_by_instrument=shelf_by_instrument,
+            diagnostics=diagnostics,
         ):
-            diagnostics.warnings.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
-            hard_failures.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
             continue
 
-        intent, error_code = build_proposal_security_trade_intent(
+        if not _trade_is_supported_by_shelf(
+            trade=trade,
+            shelf_entry=shelf_by_instrument[trade.instrument_id],
+            options=options,
+            diagnostics=diagnostics,
+            hard_failures=hard_failures,
+        ):
+            continue
+
+        intent = _build_supported_security_trade_intent(
             trade=trade,
             market_data=market_data,
             base_currency=portfolio.base_currency,
             intent_id=f"oi_{idx + 1}",
-            dq_log=diagnostics.data_quality,
+            diagnostics=diagnostics,
+            hard_failures=hard_failures,
         )
-        if error_code:
-            diagnostics.warnings.append(error_code)
-            hard_failures.append(error_code)
         if intent is not None:
             security_intents.append(intent)
     return security_intents
+
+
+def _trade_has_shelf_entry(
+    *,
+    trade: ProposedTrade,
+    shelf_by_instrument: dict[str, ShelfEntry],
+    diagnostics: DiagnosticsData,
+) -> bool:
+    if trade.instrument_id in shelf_by_instrument:
+        return True
+    diagnostics.data_quality["shelf_missing"].append(trade.instrument_id)
+    return False
+
+
+def _trade_is_supported_by_shelf(
+    *,
+    trade: ProposedTrade,
+    shelf_entry: ShelfEntry,
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+    hard_failures: list[str],
+) -> bool:
+    if trade.side != "BUY":
+        return True
+    if shelf_entry.status in {"SELL_ONLY", "BANNED", "SUSPENDED"}:
+        _record_unsupported_shelf_trade(diagnostics=diagnostics, hard_failures=hard_failures)
+        return False
+    if shelf_entry.status == "RESTRICTED" and not options.allow_restricted:
+        _record_unsupported_shelf_trade(diagnostics=diagnostics, hard_failures=hard_failures)
+        return False
+    return True
+
+
+def _record_unsupported_shelf_trade(
+    *, diagnostics: DiagnosticsData, hard_failures: list[str]
+) -> None:
+    diagnostics.warnings.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
+    hard_failures.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
+
+
+def _build_supported_security_trade_intent(
+    *,
+    trade: ProposedTrade,
+    market_data: MarketDataSnapshot,
+    base_currency: str,
+    intent_id: str,
+    diagnostics: DiagnosticsData,
+    hard_failures: list[str],
+) -> SecurityTradeIntent | None:
+    intent, error_code = build_proposal_security_trade_intent(
+        trade=trade,
+        market_data=market_data,
+        base_currency=base_currency,
+        intent_id=intent_id,
+        dq_log=diagnostics.data_quality,
+    )
+    if error_code:
+        diagnostics.warnings.append(error_code)
+        hard_failures.append(error_code)
+    return intent
 
 
 def _apply_executable_buy_intents(

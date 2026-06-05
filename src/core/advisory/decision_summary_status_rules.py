@@ -39,23 +39,29 @@ def primary_decision_reason_code(
 ) -> str:
     if decision_status == "INSUFFICIENT_EVIDENCE" and missing_evidence:
         return str(missing_evidence[0].reason_code)
-    if result.gate_decision is not None and result.gate_decision.reasons:
-        return str(result.gate_decision.reasons[0].reason_code)
+    gate_reason_code = _gate_reason_code(result)
+    if gate_reason_code is not None:
+        return gate_reason_code
     if missing_evidence:
         return str(missing_evidence[0].reason_code)
-    if decision_status == "READY_FOR_CLIENT_REVIEW":
-        return "PROPOSAL_READY_FOR_CLIENT_REVIEW"
-    if decision_status == "REVISION_RECOMMENDED":
-        return "PROPOSAL_REVISION_RECOMMENDED"
-    if decision_status == "REQUIRES_CLIENT_CONSENT":
-        return "CLIENT_CONSENT_REQUIRED"
-    if decision_status == "REQUIRES_RISK_REVIEW":
-        return "RISK_REVIEW_REQUIRED"
-    if decision_status == "REQUIRES_COMPLIANCE_REVIEW":
-        return "COMPLIANCE_REVIEW_REQUIRED"
-    if decision_status == "INSUFFICIENT_EVIDENCE":
-        return "INSUFFICIENT_EVIDENCE"
-    return "PROPOSAL_BLOCKED"
+    return _reason_code_for_decision_status(decision_status)
+
+
+def _gate_reason_code(result: ProposalResult) -> str | None:
+    if result.gate_decision is None or not result.gate_decision.reasons:
+        return None
+    return str(result.gate_decision.reasons[0].reason_code)
+
+
+def _reason_code_for_decision_status(decision_status: ProposalDecisionStatus) -> str:
+    return {
+        "READY_FOR_CLIENT_REVIEW": "PROPOSAL_READY_FOR_CLIENT_REVIEW",
+        "REVISION_RECOMMENDED": "PROPOSAL_REVISION_RECOMMENDED",
+        "REQUIRES_CLIENT_CONSENT": "CLIENT_CONSENT_REQUIRED",
+        "REQUIRES_RISK_REVIEW": "RISK_REVIEW_REQUIRED",
+        "REQUIRES_COMPLIANCE_REVIEW": "COMPLIANCE_REVIEW_REQUIRED",
+        "INSUFFICIENT_EVIDENCE": "INSUFFICIENT_EVIDENCE",
+    }.get(decision_status, "PROPOSAL_BLOCKED")
 
 
 def primary_decision_summary(

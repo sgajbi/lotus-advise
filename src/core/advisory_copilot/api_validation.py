@@ -42,30 +42,73 @@ def normalize_bounded_copilot_string_tuple(
     max_item_length: int,
     allow_empty: bool,
 ) -> tuple[str, ...]:
+    raw_items = _bounded_copilot_sequence(value, error_code=error_code, allow_empty=allow_empty)
+    normalized: list[str] = []
+    for item in raw_items:
+        _append_unique_bounded_copilot_string(
+            normalized,
+            item,
+            error_code=error_code,
+            max_items=max_items,
+            max_item_length=max_item_length,
+        )
+    _require_non_empty_copilot_tuple(
+        normalized,
+        error_code=error_code,
+        allow_empty=allow_empty,
+    )
+    return tuple(normalized)
+
+
+def _bounded_copilot_sequence(
+    value: Any, *, error_code: str, allow_empty: bool
+) -> list[Any] | tuple[Any, ...]:
     if value is None:
         if allow_empty:
             return ()
         raise ValueError(error_code)
-    if not isinstance(value, (list, tuple)):
+    if isinstance(value, (list, tuple)):
+        return value
+    raise ValueError(error_code)
+
+
+def _append_unique_bounded_copilot_string(
+    normalized: list[str],
+    item: Any,
+    *,
+    error_code: str,
+    max_items: int,
+    max_item_length: int,
+) -> None:
+    if len(normalized) >= max_items:
         raise ValueError(error_code)
+    candidate = _normalize_bounded_copilot_string_item(
+        item,
+        error_code=error_code,
+        max_item_length=max_item_length,
+    )
+    if candidate not in normalized:
+        normalized.append(candidate)
 
-    normalized: list[str] = []
-    for item in value:
-        if len(normalized) >= max_items:
-            raise ValueError(error_code)
-        if not isinstance(item, str):
-            raise ValueError(error_code)
-        candidate = item.strip()
-        if not candidate:
-            raise ValueError(error_code)
-        if len(candidate) > max_item_length:
-            raise ValueError(error_code)
-        if candidate not in normalized:
-            normalized.append(candidate)
 
+def _normalize_bounded_copilot_string_item(
+    item: Any, *, error_code: str, max_item_length: int
+) -> str:
+    if not isinstance(item, str):
+        raise ValueError(error_code)
+    candidate = item.strip()
+    if not candidate:
+        raise ValueError(error_code)
+    if len(candidate) > max_item_length:
+        raise ValueError(error_code)
+    return candidate
+
+
+def _require_non_empty_copilot_tuple(
+    normalized: list[str], *, error_code: str, allow_empty: bool
+) -> None:
     if not normalized and not allow_empty:
         raise ValueError(error_code)
-    return tuple(normalized)
 
 
 def normalize_copilot_user_instruction(value: str) -> str:

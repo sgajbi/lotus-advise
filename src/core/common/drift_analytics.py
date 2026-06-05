@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Sequence
 from decimal import Decimal
+from typing import cast
 
 from src.core.drift_models import (
     DriftAnalysis,
@@ -87,50 +88,76 @@ def _build_highlights(
     top_limit: int,
     unmodeled_threshold: Decimal,
 ) -> DriftHighlights:
-    improvements = sorted(
+    return DriftHighlights(
+        largest_improvements=highlight_entries(largest_improvements(details, top_limit)),
+        largest_deteriorations=highlight_entries(largest_deteriorations(details, top_limit)),
+        unmodeled_exposures=unmodeled_exposure_entries(
+            largest_unmodeled_exposures(
+                details=details,
+                top_limit=top_limit,
+                unmodeled_threshold=unmodeled_threshold,
+            )
+        ),
+    )
+
+
+def largest_improvements(
+    details: list[DriftBucketDetail], top_limit: int
+) -> list[DriftBucketDetail]:
+    return sorted(
         [detail for detail in details if detail.improvement > 0],
         key=lambda detail: (-detail.improvement, detail.bucket),
     )[:top_limit]
-    deteriorations = sorted(
+
+
+def largest_deteriorations(
+    details: list[DriftBucketDetail], top_limit: int
+) -> list[DriftBucketDetail]:
+    return sorted(
         [detail for detail in details if detail.improvement < 0],
         key=lambda detail: (detail.improvement, detail.bucket),
     )[:top_limit]
-    unmodeled = sorted(
+
+
+def largest_unmodeled_exposures(
+    *,
+    details: list[DriftBucketDetail],
+    top_limit: int,
+    unmodeled_threshold: Decimal,
+) -> list[DriftBucketDetail]:
+    return sorted(
         [
             detail
             for detail in details
-            if detail.model_weight == 0
-            and max(detail.portfolio_weight_before, detail.portfolio_weight_after)
-            >= unmodeled_threshold
+            if detail.model_weight == 0 and max_portfolio_weight(detail) >= unmodeled_threshold
         ],
-        key=lambda detail: (
-            -max(detail.portfolio_weight_before, detail.portfolio_weight_after),
-            detail.bucket,
-        ),
+        key=lambda detail: (-max_portfolio_weight(detail), detail.bucket),
     )[:top_limit]
 
-    return DriftHighlights(
-        largest_improvements=[
-            DriftHighlightEntry(bucket=detail.bucket, improvement=detail.improvement)
-            for detail in improvements
-        ],
-        largest_deteriorations=[
-            DriftHighlightEntry(bucket=detail.bucket, improvement=detail.improvement)
-            for detail in deteriorations
-        ],
-        unmodeled_exposures=[
-            DriftUnmodeledExposure(
-                bucket=detail.bucket,
-                portfolio_weight_before=detail.portfolio_weight_before,
-                portfolio_weight_after=detail.portfolio_weight_after,
-                max_portfolio_weight=max(
-                    detail.portfolio_weight_before,
-                    detail.portfolio_weight_after,
-                ),
-            )
-            for detail in unmodeled
-        ],
-    )
+
+def highlight_entries(details: list[DriftBucketDetail]) -> list[DriftHighlightEntry]:
+    return [
+        DriftHighlightEntry(bucket=detail.bucket, improvement=detail.improvement)
+        for detail in details
+    ]
+
+
+def unmodeled_exposure_entries(
+    details: list[DriftBucketDetail],
+) -> list[DriftUnmodeledExposure]:
+    return [
+        DriftUnmodeledExposure(
+            bucket=detail.bucket,
+            portfolio_weight_before=detail.portfolio_weight_before,
+            portfolio_weight_after=detail.portfolio_weight_after,
+            max_portfolio_weight=max_portfolio_weight(detail),
+        )
+        for detail in details
+    ]
+
+
+def max_portfolio_weight(detail: DriftBucketDetail) -> Decimal:
+    return cast(Decimal, max(detail.portfolio_weight_before, detail.portfolio_weight_after))
 
 
 def compute_drift_analysis(

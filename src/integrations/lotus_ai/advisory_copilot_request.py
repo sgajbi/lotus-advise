@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any
+from typing import Any, TypeGuard, cast
 
 from src.core.advisory_copilot import (
     CopilotActionFamily,
@@ -35,6 +35,7 @@ _RAW_REASON_KEYS = frozenset(
         "system_instruction",
     }
 )
+SafeReasonScalar = bool | int | None
 
 
 def build_advisory_copilot_workflow_pack_request(
@@ -55,43 +56,46 @@ def build_advisory_copilot_workflow_pack_request(
         requested_by,
         max_length=MAX_COPILOT_REQUESTED_BY_LENGTH,
     )
-    return build_workflow_pack_execute_request(
-        pack_id=workflow_pack_id_for_action(action_family),
-        version=workflow_pack_version_for_action(action_family),
-        workflow_surface=workflow_surface(action_family),
-        task_id="explain.v1",
-        correlation_id=caller_correlation_id(evidence_packet),
-        requested_by=bounded_requested_by,
-        context_summary="Draft review-gated advisory copilot output from bounded evidence.",
-        context_payload={
-            "copilot_evidence_packet": evidence_packet.model_dump(mode="json"),
-            "copilot_request": {
-                "action_family": action_family,
-                "audience": audience,
-                "requested_outputs": requested_output_keys(requested_outputs),
-                "requested_by": bounded_requested_by,
-                "reason": safe_reason(reason),
+    return cast(
+        dict[str, object],
+        build_workflow_pack_execute_request(
+            pack_id=workflow_pack_id_for_action(action_family),
+            version=workflow_pack_version_for_action(action_family),
+            workflow_surface=workflow_surface(action_family),
+            task_id="explain.v1",
+            correlation_id=caller_correlation_id(evidence_packet),
+            requested_by=bounded_requested_by,
+            context_summary="Draft review-gated advisory copilot output from bounded evidence.",
+            context_payload={
+                "copilot_evidence_packet": evidence_packet.model_dump(mode="json"),
+                "copilot_request": {
+                    "action_family": action_family,
+                    "audience": audience,
+                    "requested_outputs": requested_output_keys(requested_outputs),
+                    "requested_by": bounded_requested_by,
+                    "reason": safe_reason(reason),
+                },
+                "model_risk_controls": {
+                    "adapter_version": adapter_version,
+                    "approved_instruction_set": approved_instruction_set,
+                    "prompt_template_version": prompt_template_version,
+                    "output_schema_version": output_schema_version,
+                    "evaluation_pack_ref": evaluation_pack_ref,
+                },
+                "supportability": {
+                    "human_review_required": True,
+                    "client_ready_publication": "BLOCKED",
+                    "unsupported_claims": [
+                        "client_ready_publication",
+                        "policy_approval",
+                        "trade_or_order_action",
+                        "missing_evidence_inference",
+                    ],
+                },
             },
-            "model_risk_controls": {
-                "adapter_version": adapter_version,
-                "approved_instruction_set": approved_instruction_set,
-                "prompt_template_version": prompt_template_version,
-                "output_schema_version": output_schema_version,
-                "evaluation_pack_ref": evaluation_pack_ref,
-            },
-            "supportability": {
-                "human_review_required": True,
-                "client_ready_publication": "BLOCKED",
-                "unsupported_claims": [
-                    "client_ready_publication",
-                    "policy_approval",
-                    "trade_or_order_action",
-                    "missing_evidence_inference",
-                ],
-            },
-        },
-        source_refs=source_refs(evidence_packet),
-        expected_output_label="EXPLANATION_ONLY",
+            source_refs=source_refs(evidence_packet),
+            expected_output_label="EXPLANATION_ONLY",
+        ),
     )
 
 
@@ -162,18 +166,30 @@ def safe_reason(reason: dict[str, Any]) -> dict[str, Any]:
 
 
 def _safe_reason_value(value: Any) -> str | int | bool | None | list[str]:
-    if value is None or isinstance(value, bool | int):
+    if is_safe_scalar_reason_value(value):
         return value
     if isinstance(value, str):
-        return bounded_text(value, max_length=MAX_COPILOT_REASON_TEXT_LENGTH) or None
+        return safe_reason_text(value)
     if isinstance(value, list | tuple):
-        items = [
-            bounded_text(item, max_length=MAX_COPILOT_REASON_TEXT_LENGTH)
-            for item in value
-            if isinstance(item, str)
-        ]
-        return [item for item in items if item][:MAX_COPILOT_REASON_LIST_ITEMS] or None
-    return bounded_text(str(value), max_length=MAX_COPILOT_REASON_TEXT_LENGTH) or None
+        return safe_reason_list(value)
+    return safe_reason_text(str(value))
+
+
+def is_safe_scalar_reason_value(value: Any) -> TypeGuard[SafeReasonScalar]:
+    return value is None or isinstance(value, bool | int)
+
+
+def safe_reason_text(value: str) -> str | None:
+    return bounded_text(value, max_length=MAX_COPILOT_REASON_TEXT_LENGTH) or None
+
+
+def safe_reason_list(value: list[Any] | tuple[Any, ...]) -> list[str] | None:
+    items = [
+        bounded
+        for bounded in (safe_reason_text(item) for item in value if isinstance(item, str))
+        if bounded
+    ]
+    return items[:MAX_COPILOT_REASON_LIST_ITEMS] or None
 
 
 def bounded_text(value: str, *, max_length: int) -> str:

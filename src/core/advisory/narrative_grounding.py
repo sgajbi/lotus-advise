@@ -96,14 +96,31 @@ def _alternative_comparison_facts(
 
 
 def _alternative_facts(alternatives: Any | None) -> dict[str, Any]:
-    selected_alternative = None
-    if alternatives is not None:
-        selected_alternative = _selected_alternative(alternatives)
+    selected_alternative = _selected_alternative(alternatives) if alternatives is not None else None
     alternative_tradeoffs, alternative_improvements, alternative_deteriorations = (
         _alternative_comparison_facts(selected_alternative)
     )
     return {
+        **_alternative_availability_facts(alternatives),
+        **_selected_alternative_facts(alternatives, selected_alternative),
+        "alternative_tradeoff_summaries": alternative_tradeoffs,
+        "alternative_improvement_summaries": alternative_improvements,
+        "alternative_deterioration_summaries": alternative_deteriorations,
+        **_alternative_count_facts(alternatives),
+        "rejected_alternative_summaries": _rejected_alternative_summaries(alternatives),
+    }
+
+
+def _alternative_availability_facts(alternatives: Any | None) -> dict[str, str]:
+    return {
         "alternatives_status": "AVAILABLE" if alternatives is not None else "NOT_AVAILABLE",
+    }
+
+
+def _selected_alternative_facts(
+    alternatives: Any | None, selected_alternative: Any | None
+) -> dict[str, Any]:
+    return {
         "selected_alternative_id": (
             alternatives.selected_alternative_id if alternatives is not None else None
         ),
@@ -116,19 +133,22 @@ def _alternative_facts(alternatives: Any | None) -> dict[str, Any]:
         "selected_alternative_status": (
             selected_alternative.status if selected_alternative is not None else None
         ),
-        "alternative_tradeoff_summaries": alternative_tradeoffs,
-        "alternative_improvement_summaries": alternative_improvements,
-        "alternative_deterioration_summaries": alternative_deteriorations,
+    }
+
+
+def _alternative_count_facts(alternatives: Any | None) -> dict[str, int]:
+    return {
         "alternative_count": len(alternatives.alternatives) if alternatives is not None else 0,
         "rejected_alternative_count": (
             len(alternatives.rejected_candidates) if alternatives is not None else 0
         ),
-        "rejected_alternative_summaries": (
-            [item.summary for item in alternatives.rejected_candidates[:3]]
-            if alternatives is not None
-            else []
-        ),
     }
+
+
+def _rejected_alternative_summaries(alternatives: Any | None) -> list[str]:
+    if alternatives is None:
+        return []
+    return [item.summary for item in alternatives.rejected_candidates[:3]]
 
 
 def _decision_summary_facts(decision_summary: Any | None) -> dict[str, Any]:
@@ -140,6 +160,15 @@ def _decision_summary_facts(decision_summary: Any | None) -> dict[str, Any]:
         decision_summary.missing_evidence if decision_summary is not None else []
     )
     return {
+        **_decision_summary_scalar_facts(decision_summary),
+        **_approval_requirement_facts(approval_requirements),
+        **_material_change_facts(material_changes),
+        **_missing_decision_evidence_facts(missing_decision_evidence),
+    }
+
+
+def _decision_summary_scalar_facts(decision_summary: Any | None) -> dict[str, Any]:
+    return {
         "decision_status": (
             decision_summary.decision_status if decision_summary is not None else None
         ),
@@ -149,12 +178,17 @@ def _decision_summary_facts(decision_summary: Any | None) -> dict[str, Any]:
         "recommended_next_action": (
             decision_summary.recommended_next_action if decision_summary is not None else None
         ),
-        "primary_summary": decision_summary.primary_summary
-        if decision_summary is not None
-        else None,
-        "decision_confidence": decision_summary.confidence
-        if decision_summary is not None
-        else None,
+        "primary_summary": (
+            decision_summary.primary_summary if decision_summary is not None else None
+        ),
+        "decision_confidence": (
+            decision_summary.confidence if decision_summary is not None else None
+        ),
+    }
+
+
+def _approval_requirement_facts(approval_requirements: list[Any]) -> dict[str, Any]:
+    return {
         "approval_requirement_count": len(approval_requirements),
         "blocking_approval_count": sum(
             1 for item in approval_requirements if item.blocking_until_approved
@@ -164,8 +198,20 @@ def _decision_summary_facts(decision_summary: Any | None) -> dict[str, Any]:
             for item in approval_requirements[:3]
             if item.required
         ],
+    }
+
+
+def _material_change_facts(material_changes: list[Any]) -> dict[str, Any]:
+    return {
         "material_change_count": len(material_changes),
         "material_change_summaries": [item.summary for item in material_changes[:3]],
+    }
+
+
+def _missing_decision_evidence_facts(
+    missing_decision_evidence: list[Any],
+) -> dict[str, Any]:
+    return {
         "missing_decision_evidence_count": len(missing_decision_evidence),
         "missing_decision_evidence_summaries": [
             item.summary for item in missing_decision_evidence[:3]

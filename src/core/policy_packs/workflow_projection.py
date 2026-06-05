@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from src.core.policy_packs.persistence_models import PolicyEvaluationAuditEvent
+from src.core.policy_packs.workflow_conflict_projection import conflict_posture_for_workflow
 from src.core.policy_packs.workflow_models import (
     PolicyEvaluationRequirementProjection,
     PolicyEvaluationWorkflowResponse,
@@ -101,43 +102,6 @@ def approved_sign_off_values(events: list[PolicyEvaluationAuditEvent], key: str)
         if isinstance(raw, list):
             values.update(str(item) for item in raw)
     return values
-
-
-def conflict_posture_for_workflow(
-    *, record: Any, events: list[PolicyEvaluationAuditEvent]
-) -> dict[str, Any]:
-    conflict_results = [
-        result
-        for result in record.evaluation_json.get("rule_results", [])
-        if isinstance(result, dict) and "CONFLICT" in str(result.get("rule_id", ""))
-    ]
-    reason_codes: list[str] = []
-    blockers: list[str] = []
-    for result in conflict_results:
-        reason_codes.extend(str(item) for item in result.get("reason_codes", []))
-        blockers.extend(str(item) for item in result.get("required_actions", []))
-    outcomes = [
-        str(event.reason_json.get("conflict_review_outcome"))
-        for event in events
-        if event.reason_json.get("conflict_review_outcome")
-    ]
-    if "NO_MATERIAL_CONFLICT_REMAINING" in outcomes:
-        return {
-            "status": "SATISFIED",
-            "reason_codes": unique(reason_codes),
-            "blockers": [],
-            "review_outcome": "NO_MATERIAL_CONFLICT_REMAINING",
-        }
-    blocked = any("MATERIAL_CONFLICT" in code for code in reason_codes) or any(
-        blocker in {"SUPERVISORY_CONFLICT_REVIEW", "REVIEW_CONFLICT_OF_INTEREST"}
-        for blocker in blockers
-    )
-    return {
-        "status": "BLOCKED" if blocked else "SATISFIED",
-        "reason_codes": unique(reason_codes),
-        "blockers": unique(blockers) if blocked else [],
-        "review_outcome": outcomes[-1] if outcomes else None,
-    }
 
 
 def requirement_projection(

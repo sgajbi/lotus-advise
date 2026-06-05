@@ -1,17 +1,17 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T05:06:47.941066+00:00`
-- Branch: `harden/proposal-input-model-boundaries`
-- Head: `676251f0193f08147c22bb5e14d9e7459909af7d`
-- Branch Commits Over Main: `11`
+- Generated At: `2026-06-05T10:34:46.601638+00:00`
+- Branch: `harden/remaining-complexity-boundaries`
+- Head: `3d95945e1d2a5e318da405c693999e6555c955e6`
+- Branch Commits Over Main: `49`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `925`
+- Python files: `932`
 - Packages: `38`
-- Modules: `887`
-- Total Python lines: `140208`
+- Modules: `894`
+- Total Python lines: `141729`
 
 ## Largest Files
 
@@ -25,8 +25,8 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
-| 10 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
+| 9 | `scripts/quality_baseline_report.py` | 1192 |
+| 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 
 ## Largest Functions And Maintainability Hotspots
 
@@ -34,11 +34,11 @@
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
 | 2 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 3 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
-| 4 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
-| 5 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
-| 6 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 7 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 238 |
+| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 276 |
+| 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
+| 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
+| 6 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
+| 7 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
 | 8 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 9 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
 | 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
@@ -48,8 +48,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3156`
-- Radon complexity rank inventory: `A=2870, B=247, C=39`
+- Radon analyzed block inventory: `3303`
+- Radon complexity rank inventory: `A=3037, B=255, C=11`
 - Radon worst complexity: `rank=C, complexity=16`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3537, missing=3502, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3690, missing=3655, covered=35, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

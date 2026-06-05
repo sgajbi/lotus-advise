@@ -52,28 +52,40 @@ def _sentence_list(items: list[str], fallback: str) -> str:
 def _executive_summary_text(facts: dict[str, Any]) -> str:
     decision_status = facts["decision_status"] or "UNAVAILABLE"
     if facts["proposal_status"] == "BLOCKED" or decision_status == "BLOCKED_REMEDIATION_REQUIRED":
-        blocker_text = _sentence_list(
-            facts["missing_decision_evidence_summaries"] or facts["approval_requirement_summaries"],
-            facts["primary_summary"] or "Proposal cannot proceed until blockers are remediated.",
-        )
-        return (
-            f"Blockers require attention before benefits are discussed. {blocker_text} "
-            f"Recommended action is {facts['recommended_next_action'] or 'FIX_INPUT'}."
-        )
+        return _blocked_executive_summary_text(facts)
     if decision_status == "INSUFFICIENT_EVIDENCE":
-        evidence_text = _sentence_list(
-            facts["missing_decision_evidence_summaries"],
-            facts["primary_summary"]
-            or (
-                "Required evidence is unavailable, so suitability and recommendation posture "
-                "cannot be asserted."
-            ),
-        )
-        return (
-            f"Evidence is insufficient for a suitability pass or client-ready recommendation. "
-            f"{evidence_text} Recommended action is "
-            f"{facts['recommended_next_action'] or 'REVISE_PROPOSAL'}."
-        )
+        return _insufficient_evidence_executive_summary_text(facts)
+    return _ready_executive_summary_text(facts, decision_status=decision_status)
+
+
+def _blocked_executive_summary_text(facts: dict[str, Any]) -> str:
+    blocker_text = _sentence_list(
+        facts["missing_decision_evidence_summaries"] or facts["approval_requirement_summaries"],
+        facts["primary_summary"] or "Proposal cannot proceed until blockers are remediated.",
+    )
+    return (
+        f"Blockers require attention before benefits are discussed. {blocker_text} "
+        f"Recommended action is {facts['recommended_next_action'] or 'FIX_INPUT'}."
+    )
+
+
+def _insufficient_evidence_executive_summary_text(facts: dict[str, Any]) -> str:
+    evidence_text = _sentence_list(
+        facts["missing_decision_evidence_summaries"],
+        facts["primary_summary"]
+        or (
+            "Required evidence is unavailable, so suitability and recommendation posture "
+            "cannot be asserted."
+        ),
+    )
+    return (
+        f"Evidence is insufficient for a suitability pass or client-ready recommendation. "
+        f"{evidence_text} Recommended action is "
+        f"{facts['recommended_next_action'] or 'REVISE_PROPOSAL'}."
+    )
+
+
+def _ready_executive_summary_text(facts: dict[str, Any], *, decision_status: str) -> str:
     recommended_action = facts["recommended_next_action"] or facts["recommended_next_step"]
     return (
         f"Proposal status is {facts['proposal_status']} with decision status {decision_status}. "

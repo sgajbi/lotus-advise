@@ -27,7 +27,7 @@ from src.core.advisory_copilot.run_review_policy import (
     review_posture_from_draft_status,
 )
 from src.core.advisory_copilot.structured_payload import assert_safe_structured_payload
-from src.core.advisory_copilot.type_models import CopilotAudience
+from src.core.advisory_copilot.type_models import CopilotAudience, CopilotReviewPosture
 from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
@@ -57,11 +57,7 @@ def persist_advisory_copilot_run(
     created_at: datetime | None = None,
 ) -> AdvisoryCopilotRunPersistenceResult:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    assert_safe_structured_payload(reason)
-    assert_safe_structured_payload(lineage)
-    for section in output_sections:
-        assert_safe_structured_payload(section)
-
+    _assert_safe_run_payloads(reason=reason, lineage=lineage, output_sections=output_sections)
     now = created_at or datetime.now(timezone.utc)
     request_summary = build_advisory_copilot_run_request_summary(
         evidence_packet=evidence_packet,
@@ -73,21 +69,101 @@ def persist_advisory_copilot_run(
         user_instruction=user_instruction,
     )
     request_hash = canonical_json_hash(request_summary)
-    existing_run: AdvisoryCopilotRunRecord | None = None
-    if idempotency_key:
-        existing_idempotency = repository.get_run_idempotency(idempotency_key=idempotency_key)
-        if existing_idempotency is not None:
-            if existing_idempotency.request_hash != request_hash:
-                raise ValueError("COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT")
-            existing_run = repository.get_run(run_id=existing_idempotency.run_id)
-            if existing_run is None:
-                raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
-
+    existing_run = _existing_run_for_idempotency(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
     review_posture = review_posture_from_draft_status(draft_status)
     output_json = [dict(section) for section in output_sections]
-    run_id = stable_copilot_record_id(prefix="copilot_run", value=request_hash)
-    run = AdvisoryCopilotRunRecord(
-        run_id=run_id,
+    run = _build_run_record(
+        evidence_packet=evidence_packet,
+        audience=audience,
+        requested_by=requested_by,
+        request_hash=request_hash,
+        request_summary=request_summary,
+        output_json=output_json,
+        review_posture=review_posture,
+        lineage=lineage,
+        review_guidance=review_guidance,
+        guardrail_reasons=guardrail_reasons,
+        correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+        caller_app=caller_app,
+        tenant_id=tenant_id,
+        now=now,
+    )
+    if existing_run is not None:
+        return _handle_existing_run(
+            repository=repository,
+            existing_run=existing_run,
+            incoming_run=run,
+            review_posture=review_posture,
+        )
+
+    saved_run = repository.save_run_with_idempotency(
+        run=run,
+        idempotency=_run_idempotency_record(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            run_id=run.run_id,
+            now=now,
+        ),
+    )
+    return AdvisoryCopilotRunPersistenceResult(run=saved_run, replayed=False)
+
+
+def _assert_safe_run_payloads(
+    *,
+    reason: dict[str, Any],
+    lineage: dict[str, Any],
+    output_sections: tuple[dict[str, Any], ...],
+) -> None:
+    assert_safe_structured_payload(reason)
+    assert_safe_structured_payload(lineage)
+    for section in output_sections:
+        assert_safe_structured_payload(section)
+
+
+def _existing_run_for_idempotency(
+    *,
+    repository: AdvisoryCopilotRepository,
+    idempotency_key: str | None,
+    request_hash: str,
+) -> AdvisoryCopilotRunRecord | None:
+    if not idempotency_key:
+        return None
+    existing_idempotency = repository.get_run_idempotency(idempotency_key=idempotency_key)
+    if existing_idempotency is None:
+        return None
+    if existing_idempotency.request_hash != request_hash:
+        raise ValueError("COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT")
+    existing_run = repository.get_run(run_id=existing_idempotency.run_id)
+    if existing_run is None:
+        raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
+    return existing_run
+
+
+def _build_run_record(
+    *,
+    evidence_packet: CopilotEvidencePacket,
+    audience: CopilotAudience,
+    requested_by: str,
+    request_hash: str,
+    request_summary: dict[str, Any],
+    output_json: list[dict[str, Any]],
+    review_posture: CopilotReviewPosture,
+    lineage: dict[str, Any],
+    review_guidance: tuple[str, ...],
+    guardrail_reasons: tuple[str, ...],
+    correlation_id: str,
+    idempotency_key: str | None,
+    caller_app: str,
+    tenant_id: str,
+    now: datetime,
+) -> AdvisoryCopilotRunRecord:
+    return AdvisoryCopilotRunRecord(
+        run_id=stable_copilot_record_id(prefix="copilot_run", value=request_hash),
         action_family=evidence_packet.action_family,
         audience=audience,
         portfolio_id=evidence_packet.portfolio_id,
@@ -112,13 +188,10 @@ def persist_advisory_copilot_run(
         updated_at=now,
         lotus_ai_workflow_run_id=optional_lineage_text(lineage.get("workflow_run_id")),
         lotus_ai_model_version=optional_lineage_text(lineage.get("model_version")),
-        workflow_pack_id=str(
-            lineage.get("workflow_pack_id")
-            or workflow_pack_id_for_action(evidence_packet.action_family)
-        ),
-        workflow_pack_version=str(
-            lineage.get("workflow_pack_version")
-            or workflow_pack_version_for_action(evidence_packet.action_family)
+        workflow_pack_id=_workflow_pack_id(evidence_packet=evidence_packet, lineage=lineage),
+        workflow_pack_version=_workflow_pack_version(
+            evidence_packet=evidence_packet,
+            lineage=lineage,
         ),
         prompt_template_version=str(
             lineage.get("prompt_template_version") or DEFAULT_PROMPT_TEMPLATE_VERSION
@@ -134,32 +207,60 @@ def persist_advisory_copilot_run(
         guardrail_results_json=list(guardrail_reasons),
         lineage_json=dict(lineage),
     )
-    if existing_run is not None:
-        if can_refresh_retryable_copilot_run(
-            existing_run=existing_run,
-            incoming_review_posture=review_posture,
-        ):
-            refreshed_run = run.model_copy(
-                update={
-                    "run_id": existing_run.run_id,
-                    "created_at": existing_run.created_at,
-                    "idempotency_key": existing_run.idempotency_key,
-                    "legal_hold": existing_run.legal_hold,
-                }
-            )
-            repository.update_run(refreshed_run)
-            return AdvisoryCopilotRunPersistenceResult(run=refreshed_run, replayed=False)
-        return AdvisoryCopilotRunPersistenceResult(run=existing_run, replayed=True)
 
-    idempotency = (
-        AdvisoryCopilotRunIdempotencyRecord(
-            idempotency_key=idempotency_key,
-            request_hash=request_hash,
-            run_id=run.run_id,
-            created_at=now,
-        )
-        if idempotency_key
-        else None
+
+def _workflow_pack_id(*, evidence_packet: CopilotEvidencePacket, lineage: dict[str, Any]) -> str:
+    return str(
+        lineage.get("workflow_pack_id")
+        or workflow_pack_id_for_action(evidence_packet.action_family)
     )
-    saved_run = repository.save_run_with_idempotency(run=run, idempotency=idempotency)
-    return AdvisoryCopilotRunPersistenceResult(run=saved_run, replayed=False)
+
+
+def _workflow_pack_version(
+    *, evidence_packet: CopilotEvidencePacket, lineage: dict[str, Any]
+) -> str:
+    return str(
+        lineage.get("workflow_pack_version")
+        or workflow_pack_version_for_action(evidence_packet.action_family)
+    )
+
+
+def _handle_existing_run(
+    *,
+    repository: AdvisoryCopilotRepository,
+    existing_run: AdvisoryCopilotRunRecord,
+    incoming_run: AdvisoryCopilotRunRecord,
+    review_posture: CopilotReviewPosture,
+) -> AdvisoryCopilotRunPersistenceResult:
+    if not can_refresh_retryable_copilot_run(
+        existing_run=existing_run,
+        incoming_review_posture=review_posture,
+    ):
+        return AdvisoryCopilotRunPersistenceResult(run=existing_run, replayed=True)
+    refreshed_run = incoming_run.model_copy(
+        update={
+            "run_id": existing_run.run_id,
+            "created_at": existing_run.created_at,
+            "idempotency_key": existing_run.idempotency_key,
+            "legal_hold": existing_run.legal_hold,
+        }
+    )
+    repository.update_run(refreshed_run)
+    return AdvisoryCopilotRunPersistenceResult(run=refreshed_run, replayed=False)
+
+
+def _run_idempotency_record(
+    *,
+    idempotency_key: str | None,
+    request_hash: str,
+    run_id: str,
+    now: datetime,
+) -> AdvisoryCopilotRunIdempotencyRecord | None:
+    if not idempotency_key:
+        return None
+    return AdvisoryCopilotRunIdempotencyRecord(
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        run_id=run_id,
+        created_at=now,
+    )

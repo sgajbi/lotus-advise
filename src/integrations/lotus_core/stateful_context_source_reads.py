@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -75,7 +75,7 @@ def fetch_json_with_cache(
 ) -> dict[str, Any]:
     cached_payload = get_cached_payload(cache, cache_key=cache_key)
     if cached_payload is not None:
-        return cached_payload
+        return cast(dict[str, Any], cached_payload)
     payload = request_json(
         client,
         method=method,
@@ -84,7 +84,7 @@ def fetch_json_with_cache(
         error_code=error_code,
         json_body=json_body,
     )
-    return cache_payload(cache, cache_key=cache_key, payload=payload)
+    return cast(dict[str, Any], cache_payload(cache, cache_key=cache_key, payload=payload))
 
 
 def fetch_instrument_enrichment_bulk(
@@ -93,20 +93,10 @@ def fetch_instrument_enrichment_bulk(
     base_url: str,
     security_ids: list[str],
 ) -> dict[str, dict[str, Any]]:
-    if not security_ids:
-        return {}
-    requested_ids = sorted({security_id for security_id in security_ids if security_id})
-    enrichment_by_security_id: dict[str, dict[str, Any]] = {}
-    missing_ids: list[str] = []
-    for security_id in requested_ids:
-        cached_record = get_cached_payload(
-            INSTRUMENT_ENRICHMENT_CACHE,
-            cache_key=f"instrument-enrichment:{security_id}",
-        )
-        if cached_record is None:
-            missing_ids.append(security_id)
-        else:
-            enrichment_by_security_id[security_id] = cached_record
+    requested_ids = _requested_security_ids(security_ids)
+    enrichment_by_security_id, missing_ids = _cached_instrument_enrichment(requested_ids)
+    if not requested_ids:
+        return enrichment_by_security_id
     if not missing_ids:
         return enrichment_by_security_id
     payload = request_json(
@@ -117,21 +107,60 @@ def fetch_instrument_enrichment_bulk(
         error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
         json_body={"security_ids": missing_ids},
     )
+    return _with_fetched_instrument_enrichment(enrichment_by_security_id, payload)
+
+
+def _requested_security_ids(security_ids: list[str]) -> list[str]:
+    return sorted({security_id for security_id in security_ids if security_id})
+
+
+def _cached_instrument_enrichment(
+    requested_ids: list[str],
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    enrichment_by_security_id: dict[str, dict[str, Any]] = {}
+    missing_ids: list[str] = []
+    for security_id in requested_ids:
+        cached_record = get_cached_payload(
+            INSTRUMENT_ENRICHMENT_CACHE,
+            cache_key=_instrument_enrichment_cache_key(security_id),
+        )
+        if cached_record is None:
+            missing_ids.append(security_id)
+        else:
+            enrichment_by_security_id[security_id] = cached_record
+    return enrichment_by_security_id, missing_ids
+
+
+def _with_fetched_instrument_enrichment(
+    enrichment_by_security_id: dict[str, dict[str, Any]],
+    payload: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
     records = payload.get("records")
     if not isinstance(records, list):
         return enrichment_by_security_id
     for record in records:
-        if not isinstance(record, dict):
-            continue
-        security_id = str(record.get("security_id") or "").strip()
-        if not security_id:
-            continue
-        enrichment_by_security_id[security_id] = cache_payload(
-            INSTRUMENT_ENRICHMENT_CACHE,
-            cache_key=f"instrument-enrichment:{security_id}",
-            payload=record,
-        )
+        _append_instrument_enrichment_record(enrichment_by_security_id, record)
     return enrichment_by_security_id
+
+
+def _append_instrument_enrichment_record(
+    enrichment_by_security_id: dict[str, dict[str, Any]],
+    record: Any,
+) -> None:
+    if not isinstance(record, dict):
+        return
+    security_id = str(record.get("security_id") or "").strip()
+    if not security_id:
+        return
+    enrichment_by_security_id[security_id] = cache_payload(
+        INSTRUMENT_ENRICHMENT_CACHE,
+        cache_key=_instrument_enrichment_cache_key(security_id),
+        payload=record,
+    )
+
+
+def _instrument_enrichment_cache_key(security_id: str) -> str:
+    return f"instrument-enrichment:{security_id}"
 
 
 def fetch_classification_taxonomy(

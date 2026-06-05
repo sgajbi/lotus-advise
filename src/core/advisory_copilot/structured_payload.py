@@ -30,22 +30,41 @@ def assert_safe_structured_payload(value: Any, *, depth: int = 0) -> None:
     if depth > MAX_SAFE_STRUCTURED_PAYLOAD_DEPTH:
         raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
     if isinstance(value, dict):
-        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS:
-            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
-        for key, nested in value.items():
-            if normalize_structured_payload_key(key) in RAW_AI_STORAGE_KEYS:
-                raise ValueError("COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED")
-            assert_safe_structured_payload(nested, depth=depth + 1)
+        _assert_safe_structured_mapping(value, depth=depth)
     elif isinstance(value, list | tuple):
-        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS:
-            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
-        for item in value:
-            assert_safe_structured_payload(item, depth=depth + 1)
+        _assert_safe_structured_sequence(value, depth=depth)
     elif isinstance(value, str):
-        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_TEXT_LENGTH:
-            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
-        if contains_copilot_business_technical_detail(value):
-            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TECHNICAL_DETAIL")
+        _assert_safe_structured_text(value)
+
+
+def _assert_safe_structured_mapping(value: dict[Any, Any], *, depth: int) -> None:
+    _assert_safe_structured_item_count(value)
+    for key, nested in value.items():
+        _assert_safe_structured_key(key)
+        assert_safe_structured_payload(nested, depth=depth + 1)
+
+
+def _assert_safe_structured_sequence(value: list[Any] | tuple[Any, ...], *, depth: int) -> None:
+    _assert_safe_structured_item_count(value)
+    for item in value:
+        assert_safe_structured_payload(item, depth=depth + 1)
+
+
+def _assert_safe_structured_item_count(value: dict[Any, Any] | list[Any] | tuple[Any, ...]) -> None:
+    if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS:
+        raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
+
+
+def _assert_safe_structured_key(value: Any) -> None:
+    if normalize_structured_payload_key(value) in RAW_AI_STORAGE_KEYS:
+        raise ValueError("COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED")
+
+
+def _assert_safe_structured_text(value: str) -> None:
+    if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_TEXT_LENGTH:
+        raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
+    if contains_copilot_business_technical_detail(value):
+        raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TECHNICAL_DETAIL")
 
 
 def normalize_structured_payload_key(value: Any) -> str:

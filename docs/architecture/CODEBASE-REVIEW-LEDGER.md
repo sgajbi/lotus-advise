@@ -1,5 +1,568 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-735
+
+- Scope: Lotus AI advisory copilot request reason sanitization
+- Pattern: Copilot request reason sanitization should separate scalar, text, list/tuple, fallback
+  object, and workflow-request type-boundary handling so sensitive prompt material stays governed.
+- Status: Hardened
+- Finding Class: Integration security posture and request-boundary maintainability
+- Summary: `_safe_reason_value` mixed safe scalar handling, bounded text handling, string-list
+  filtering, tuple handling, fallback object stringification, and empty-value rejection in one
+  C-ranked helper. This integration boundary removes raw prompt/provider material before invoking
+  Lotus AI workflow packs, so value-shape handling should be explicit and type checked.
+- Evidence:
+  - Extracted scalar guard, bounded text sanitizer, and list/tuple sanitizer helpers.
+  - Added explicit type narrowing for safe scalar values and a typed cast for the workflow-pack
+    request boundary.
+  - Preserved raw prompt/provider key exclusion and bounded output semantics.
+  - Added focused tests for tuple sanitization and fallback object stringification.
+  - Radon no longer reports `_safe_reason_value` as C-ranked complexity; the current source-only
+    C-ranked inventory is now 10 blocks.
+  - Focused copilot request `ruff`, format, `mypy`, Radon, and unit tests passed.
+- Consequence:
+  - Advisory copilot requests remain behavior-compatible while reason sanitization rules are easier
+    to audit and less likely to leak raw prompt or provider material.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal Lotus AI integration boundary hardening for existing behavior.
+- Follow-Up:
+  - Continue with remaining proposal, cockpit, proof-validation, target-generation, infrastructure,
+    and integration C-ranked hotspots.
+
+## LA-REV-734
+
+- Scope: Common drift analytics highlight projection
+- Pattern: Drift highlight construction should separate improvement selection, deterioration
+  selection, unmodeled exposure selection, and DTO projection so drift analytics remains auditable.
+- Status: Hardened
+- Finding Class: Common analytics complexity and evidence projection maintainability
+- Summary: `_build_highlights` mixed largest improvement selection, deterioration ordering,
+  unmodeled exposure threshold filtering, unmodeled exposure ordering, max exposure calculation,
+  and response DTO construction in one C-ranked helper. Drift highlights feed advisory proposal
+  evidence and review narratives, so the selection and projection rules should be inspectable.
+- Evidence:
+  - Extracted largest-improvement, largest-deterioration, largest-unmodeled-exposure, highlight
+    entry projection, unmodeled exposure projection, and max portfolio weight helpers.
+  - Preserved existing drift highlight ordering semantics and added a focused assertion for
+    largest-improvement ordering.
+  - Radon no longer reports `_build_highlights` as C-ranked complexity; the current source-only
+    C-ranked inventory is now 11 blocks.
+  - Focused drift analytics `ruff`, format, `mypy`, Radon, and drift analytics unit tests passed.
+- Consequence:
+  - Drift analytics remains behavior-compatible while improvement, deterioration, and unmodeled
+    exposure rules are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal common analytics hardening for existing behavior.
+- Follow-Up:
+  - Continue with suitability state issue evaluation, advisor cockpit, proof-validation,
+    target-generation, infrastructure listing, and integration C-ranked hotspots.
+
+## LA-REV-733
+
+- Scope: Common suitability result orchestration
+- Pattern: Suitability result computation should separate shelf indexing, before/after state scans,
+  post-trade issue enrichment, evidence projection, and summary aggregation so the public scanner
+  entry point remains auditable.
+- Status: Hardened
+- Finding Class: Common suitability complexity and review-gate maintainability
+- Summary: `compute_suitability_result` mixed shelf lookup construction, before-state scanning,
+  after-state scanning, post-trade evaluator execution, evidence lineage construction,
+  issue classification, summary aggregation, and review-gate projection in one C-ranked function.
+  This common path feeds proposal simulation, policy review, memo evidence, and workflow gates, so
+  its orchestration needs clear local boundaries.
+- Evidence:
+  - Extracted shelf indexing, before/after issue scanning, post-trade issue enrichment, suitability
+    evidence construction, status filtering, and summary construction into focused helpers.
+  - Preserved the public `compute_suitability_result` entry point and existing policy-pack
+    identity/version behavior.
+  - Radon no longer reports `compute_suitability_result` as C-ranked complexity; the current
+    source-only C-ranked inventory is now 12 blocks.
+  - Focused suitability `ruff`, format, `mypy`, Radon, suitability scanner tests, and RFC-0025
+    slice-2 cleanup contract tests passed.
+- Consequence:
+  - Suitability scanning remains behavior-compatible while evidence lineage, issue enrichment, and
+    summary/review-gate projection are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal common-domain suitability hardening for existing behavior.
+- Follow-Up:
+  - Continue with suitability state issue evaluation, advisor cockpit, proof-validation,
+    target-generation, infrastructure listing, and integration C-ranked hotspots.
+
+## LA-REV-732
+
+- Scope: Policy-pack catalog definition validation
+- Pattern: Catalog definition validation should separate required-field diagnostics, reference
+  posture checks, rule-list validation, rule identifier validation, required-evidence checks, and
+  forbidden positive-missing-evidence wording checks from the catalog definition facade.
+- Status: Hardened
+- Finding Class: Policy catalog complexity and governance diagnostics maintainability
+- Summary: `validate_definition` mixed top-level policy-pack field validation,
+  `REFERENCE_EXAMPLE_NOT_LEGAL_ADVICE` posture enforcement, rule-list type checks, per-rule object
+  checks, rule-id naming checks, required-evidence checks, and forbidden positive wording checks in
+  one C-ranked function. These diagnostics are governance controls for reference policy packs, so
+  the checks need explicit ownership and direct tests.
+- Evidence:
+  - Extracted catalog definition diagnostics into
+    `src/core/policy_packs/catalog_definition_validation.py`.
+  - Preserved the existing `catalog_definitions.validate_definition` facade used by catalog store
+    validation.
+  - Added focused tests for top-level missing-field diagnostics, non-list rules, forbidden
+    positive missing-evidence wording, and non-object rule diagnostics.
+  - Radon no longer reports `validate_definition` as C-ranked complexity; the current source-only
+    C-ranked inventory is now 13 blocks.
+  - Focused catalog `ruff`, format, `mypy`, Radon, and catalog unit tests passed.
+- Consequence:
+  - Policy-pack catalog validation remains behavior-compatible while governance diagnostics are
+    easier to inspect, extend, and pin against unsafe reference-pack wording.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy-pack catalog validation hardening for existing behavior.
+- Follow-Up:
+  - Continue with common suitability, advisor cockpit, proof-validation, target-generation,
+    infrastructure listing, and integration C-ranked hotspots.
+
+## LA-REV-731
+
+- Scope: Policy-pack conflict disclosure evaluation
+- Pattern: Conflict disclosure evaluation should separate product-document coverage, conflict
+  evidence findings, material-conflict review actions, and result construction from the shared
+  policy review rule facade.
+- Status: Hardened
+- Finding Class: Policy review-rule complexity and evidence maintainability
+- Summary: `evaluate_conflict_disclosure` mixed proposed-product document coverage, missing
+  conflict-evidence handling, material-conflict escalation, product-document review action
+  construction, and blocked/pending/ready result construction in one C-ranked review-rule helper.
+  This rule contributes policy approval dependencies and sign-off blockers, so source-evidence and
+  supervisory-review posture should be independently auditable.
+- Evidence:
+  - Extracted conflict disclosure review evaluation into
+    `src/core/policy_packs/evaluation_conflict_disclosure.py`.
+  - Preserved the existing `evaluation_review_rules.evaluate_conflict_disclosure` public import path
+    as a compatibility facade.
+  - Added focused coverage for missing conflict evidence producing pending review posture while
+    retaining existing material-conflict and ready-path behavior.
+  - Radon no longer reports `evaluate_conflict_disclosure` as C-ranked complexity; the current
+    source-only C-ranked inventory is now 14 blocks.
+  - Focused policy review `ruff`, format, `mypy`, Radon, and policy-pack evaluation tests passed.
+- Consequence:
+  - Conflict disclosure behavior remains compatible while product-document coverage and
+    material-conflict escalation are easier to inspect, test, and extend without growing the shared
+    review-rule facade.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy-pack review-rule hardening for existing behavior.
+- Follow-Up:
+  - Continue with policy-pack catalog definition validation, common suitability, advisor cockpit,
+    proof-validation, infrastructure listing, and integration C-ranked hotspots.
+
+## LA-REV-730
+
+- Scope: Policy evaluation workflow conflict projection
+- Pattern: Workflow projection should delegate material-conflict posture scanning, review-outcome
+  extraction, blocker detection, and duplicate normalization to a focused owner module so sign-off
+  readiness stays auditable.
+- Status: Hardened
+- Finding Class: Policy workflow complexity and sign-off maintainability
+- Summary: `conflict_posture_for_workflow` mixed conflict rule-result filtering, reason/blocker
+  collection, conflict review event extraction, material-conflict resolution, blocker detection,
+  and response projection in the shared workflow projection module. This posture controls whether
+  a policy evaluation can proceed toward sign-off, so the material-conflict rules need a clear
+  local boundary and direct tests.
+- Evidence:
+  - Extracted conflict posture projection into
+    `src/core/policy_packs/workflow_conflict_projection.py`.
+  - Preserved the existing public workflow projection behavior while keeping
+    `build_policy_evaluation_workflow_projection` as the workflow response orchestrator.
+  - Added focused tests for unresolved material-conflict blocking, duplicate reason-code
+    normalization, and resolution through `NO_MATERIAL_CONFLICT_REMAINING` review events.
+  - Radon no longer reports `conflict_posture_for_workflow` as C-ranked complexity; the generated
+    scorecard now reports `A=2999, B=254, C=16`, and the current source-only C-ranked inventory is
+    15 blocks.
+  - Focused policy workflow `ruff`, format, `mypy`, Radon, and workflow contract tests passed.
+- Consequence:
+  - Policy workflow sign-off posture remains behavior-compatible while conflict review logic is
+    easier to audit, test, and extend without growing the workflow response assembler.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy workflow projection hardening for existing behavior.
+- Follow-Up:
+  - Continue with policy-pack catalog definition validation, conflict disclosure, common
+    suitability, advisor cockpit, proof-validation, and integration C-ranked hotspots.
+
+## LA-REV-729
+
+- Scope: Policy-pack applicability evaluation
+- Pattern: Policy-pack applicability should separate context extraction, missing-evidence
+  detection, selector construction, and not-applicable result construction so policy selection
+  remains auditable.
+- Status: Hardened
+- Finding Class: Policy-pack applicability complexity and source-evidence maintainability
+- Summary: `evaluate_policy_pack_applicability` mixed source-context extraction, missing
+  jurisdiction/client evidence, jurisdiction scope checks, booking-location scope checks,
+  client-segment scope checks, matched-selector projection, and result construction in one C-ranked
+  helper. This function decides whether policy rules run at all, so selector and source-evidence
+  handling need clear local ownership.
+- Evidence:
+  - Extracted applicability context resolution, missing-evidence detection, not-applicable result
+    construction, booking-location selector construction, and applicable selector construction into
+    focused helpers.
+  - Preserved existing blocked, not-applicable, and applicable reason codes and matched selectors.
+  - Radon no longer reports `evaluate_policy_pack_applicability` as C-ranked complexity; the
+    source-only C-ranked inventory is now 15 blocks.
+  - Focused policy-pack applicability `ruff`, format, `mypy`, Radon, and policy evaluation tests
+    passed.
+- Consequence:
+  - Policy-pack applicability remains behavior-compatible while jurisdiction, booking-location, and
+    client-segment selection are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy-pack applicability hardening for existing behavior.
+- Follow-Up:
+  - Continue with policy-pack catalog definition validation, conflict disclosure, workflow
+    projection, common suitability, advisor cockpit, and proof-validation C-ranked hotspots.
+
+## LA-REV-728
+
+- Scope: Advisory copilot run persistence orchestration
+- Pattern: Copilot run persistence should separate structured payload validation, idempotency
+  replay lookup, run-record construction, retryable refresh handling, and idempotency-record
+  construction so persistence behavior remains auditable.
+- Status: Hardened
+- Finding Class: Copilot persistence complexity and replay-safety maintainability
+- Summary: `persist_advisory_copilot_run` mixed payload safety validation, request summary hashing,
+  idempotency conflict/orphan handling, run-record construction, lineage default resolution,
+  retryable-run refresh, replay return, idempotency-record construction, and repository persistence
+  in one C-ranked function. This path owns replay-safe copilot audit evidence and needed clearer
+  internal boundaries.
+- Evidence:
+  - Extracted safe payload validation, existing-run idempotency lookup, run-record construction,
+    workflow-pack default resolution, existing-run refresh/replay handling, and idempotency-record
+    construction into focused helpers.
+  - Preserved idempotency conflict, orphaned-record, retryable refresh, replay, lineage default, and
+    retention behavior.
+  - Radon no longer reports `run_persistence.py` C-ranked blocks; no `advisory_copilot` module
+    remains in the source-only C-ranked inventory, now 16 blocks.
+  - Focused copilot persistence/application `ruff`, format, `mypy`, Radon, and tests passed.
+- Consequence:
+  - Copilot run persistence keeps the same replay-safe audit behavior while persistence, refresh,
+    and lineage defaults are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal copilot persistence hardening for existing behavior.
+- Follow-Up:
+  - Continue with policy-pack, common suitability, advisor cockpit, proof-validation, infrastructure
+    projection, and Lotus AI integration C-ranked hotspots.
+
+## LA-REV-727
+
+- Scope: Advisory copilot structured payload safety validation
+- Pattern: Structured copilot payload validation should separate recursive mapping, sequence, key,
+  item-count, and text safety checks so raw AI payload and technical-detail guards remain explicit.
+- Status: Hardened
+- Finding Class: Copilot security boundary complexity and payload hygiene maintainability
+- Summary: `assert_safe_structured_payload` mixed recursion depth, mapping size, unsafe raw-AI key,
+  sequence size, nested item recursion, text length, and technical-detail checks in one C-ranked
+  recursive helper. This validator protects copilot reason, lineage, packet, review, and request
+  hashing payloads, so each guard should be easy to audit.
+- Evidence:
+  - Extracted mapping validation, sequence validation, item-count validation, unsafe-key validation,
+    and text safety validation into focused helpers.
+  - Preserved existing fail-closed error codes for oversized payloads, raw AI keys, and technical
+    detail leakage.
+  - Radon no longer reports `assert_safe_structured_payload` as C-ranked complexity; the
+    source-only C-ranked inventory is now 17 blocks.
+  - Focused copilot structured-payload `ruff`, format, `mypy`, Radon, persistence, and application
+    tests passed.
+- Consequence:
+  - Copilot structured payloads retain the same bounded safety posture while raw provider payload,
+    prompt, trace, oversized, and technical-detail guards are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal copilot security-boundary hardening for existing behavior.
+- Follow-Up:
+  - Continue with copilot persistence, policy-pack, common suitability, advisor cockpit, and
+    proof-validation C-ranked hotspots.
+
+## LA-REV-726
+
+- Scope: Advisory copilot bounded tuple API validation
+- Pattern: Copilot API tuple normalization should separate source shape validation, per-item
+  normalization, duplicate handling, max-count enforcement, and empty-result enforcement so
+  bounded-input controls remain easy to audit.
+- Status: Hardened
+- Finding Class: Copilot API validation complexity and input-boundary maintainability
+- Summary: `normalize_bounded_copilot_string_tuple` mixed `None` handling, sequence-type checks,
+  max item count, string type checks, trimming, empty item rejection, max item length, duplicate
+  suppression, and non-empty enforcement in one C-ranked helper. The function is reused by copilot
+  request and response models, so the validation rules should be explicit and reusable.
+- Evidence:
+  - Extracted bounded sequence validation, unique item append, bounded string item normalization,
+    and non-empty tuple enforcement helpers.
+  - Preserved existing error-code behavior and duplicate suppression semantics.
+  - Radon no longer reports `normalize_bounded_copilot_string_tuple` as C-ranked complexity; the
+    source-only C-ranked inventory is now 18 blocks.
+  - Focused copilot API validation `ruff`, format, `mypy`, Radon, application, and route tests
+    passed.
+- Consequence:
+  - Copilot input boundaries retain behavior while validation constraints are easier to inspect,
+    test, and extend without weakening bounded evidence-packet controls.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal copilot validation hardening for existing API behavior.
+- Follow-Up:
+  - Continue with copilot structured payload validation, copilot persistence, policy-pack, common
+    suitability, and proof-validation C-ranked hotspots.
+
+## LA-REV-725
+
+- Scope: Proposal simulation security-trade intent planning
+- Pattern: Security-trade intent planning should separate shelf presence, shelf eligibility,
+  unsupported-trade diagnostics, and intent construction so proposal execution failures remain
+  deterministic and auditable.
+- Status: Hardened
+- Finding Class: Advisory simulation intent complexity and execution diagnostics maintainability
+- Summary: `_build_security_trade_intents` mixed shelf lookup, missing-shelf diagnostics, restricted
+  and unsupported shelf status checks, proposal intent construction, data-quality logging, warning
+  recording, and hard-failure recording. The C-ranked helper sits on the core proposal simulation
+  path and needed clearer internal boundaries without changing generated intents or failure codes.
+- Evidence:
+  - Extracted shelf-entry presence checks, shelf eligibility checks, unsupported-trade failure
+    recording, and supported security-trade intent construction into focused helpers.
+  - Preserved existing warning and hard-failure codes for missing shelf, restricted buys, unsupported
+    shelf statuses, and intent-build errors.
+  - Radon no longer reports `simulation_intent_plan.py` C-ranked blocks; the source-only C-ranked
+    inventory is now 19 blocks.
+  - Focused simulation-intent `ruff`, format, `mypy`, Radon, and proposal simulation tests passed.
+- Consequence:
+  - Security-trade planning remains behavior-compatible while execution diagnostics and shelf
+    eligibility handling are easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal simulation planning hardening for existing behavior.
+- Follow-Up:
+  - Continue with advisory copilot safety/persistence, policy-pack, common suitability, and
+    proof-validation C-ranked hotspots.
+
+## LA-REV-724
+
+- Scope: Proposal narrative grounding fact projection
+- Pattern: Narrative grounding should build alternatives and decision-summary facts through
+  focused fact groups so downstream section rendering remains stable and auditable.
+- Status: Hardened
+- Finding Class: Advisory narrative grounding complexity and evidence maintainability
+- Summary: `_alternative_facts` and `_decision_summary_facts` mixed availability, selected
+  alternative, counts, rejected-candidate summaries, scalar decision fields, approval requirements,
+  material changes, and missing-evidence summaries in two C-ranked helpers. Those facts feed
+  narrative sections and canonical packet hashing, so the projection needed clearer internal
+  ownership without changing output keys.
+- Evidence:
+  - Split alternative facts into availability, selected-alternative, count, rejected-summary, and
+    comparison-summary helpers.
+  - Split decision-summary facts into scalar, approval-requirement, material-change, and
+    missing-decision-evidence helpers.
+  - Radon no longer reports `narrative_grounding.py` C-ranked blocks; the source-only C-ranked
+    inventory is now 20 blocks.
+  - Focused narrative grounding `ruff`, format, `mypy`, module-boundary, policy, and contract tests
+    passed.
+- Consequence:
+  - Narrative grounding packet facts keep the same shape while alternatives and decision-summary
+    evidence are easier to inspect, extend, and regression-test.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal narrative grounding hardening for existing behavior.
+- Follow-Up:
+  - Continue with simulation-intent planning, advisory copilot safety/persistence, policy-pack, and
+    proof-validation C-ranked hotspots.
+
+## LA-REV-723
+
+- Scope: Proposal narrative executive-summary section text
+- Pattern: Executive-summary narrative text should keep blocker, insufficient-evidence, and
+  ready-for-review branches explicit so advisor-facing status wording remains auditable.
+- Status: Hardened
+- Finding Class: Advisory narrative section complexity and status wording maintainability
+- Summary: `_executive_summary_text` mixed blocked proposal wording, insufficient-evidence wording,
+  and ready/default decision-summary wording in one C-ranked helper. That made the most prominent
+  narrative section harder to review when changing evidence, policy, or recommended-action
+  behavior.
+- Evidence:
+  - Extracted blocked, insufficient-evidence, and ready executive-summary renderers while preserving
+    the existing text templates and fallback actions.
+  - Radon no longer reports `_executive_summary_text` as C-ranked complexity; the source-only
+    C-ranked inventory is now 22 blocks.
+  - Focused narrative section `ruff`, format, `mypy`, module-boundary, policy, and contract tests
+    passed.
+- Consequence:
+  - Executive-summary wording remains deterministic and evidence-grounded while branch-specific
+    status text is easier to inspect and modify without affecting unrelated narrative sections.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal narrative section hardening for existing behavior.
+- Follow-Up:
+  - Continue with narrative grounding facts, simulation-intent planning, copilot validation, and
+    policy-pack C-ranked hotspots.
+
+## LA-REV-722
+
+- Scope: Deterministic proposal narrative orchestration
+- Pattern: The public narrative builder should coordinate grounding, section rendering, optional
+  AI-assisted drafting, guardrails, narrative identity, and status resolution through focused
+  helpers rather than mixing each concern in one function.
+- Status: Hardened
+- Finding Class: Advisory narrative orchestration complexity and reviewability
+- Summary: `build_deterministic_proposal_narrative` mixed requested-section selection, deterministic
+  section filtering, optional AI-draft replacement, guardrail payload assembly, canonical narrative
+  id generation, and status resolution. The C-ranked function was central to advisor-review
+  narrative behavior, making policy and evidence-readiness status changes harder to audit.
+- Evidence:
+  - Extracted requested-section resolution, section filtering, generation-mode handling, narrative
+    id construction, status resolution, and blocking-evidence detection into focused helpers.
+  - Kept `build_deterministic_proposal_narrative` as the stable public entry point and preserved
+    deterministic-template and AI-assisted draft behavior.
+  - Radon no longer reports `build_deterministic_proposal_narrative` as C-ranked complexity; the
+    source-only C-ranked inventory is now 23 blocks.
+  - Focused narrative `ruff`, format, `mypy`, module-boundary, policy, and contract tests passed.
+- Consequence:
+  - Proposal narrative generation remains evidence-grounded and advisor-review gated while making
+    narrative status and identity rules easier to inspect and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal narrative orchestration hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing narrative grounding and executive-summary text helpers, then move through
+    copilot, policy-pack, and proof-validation C-ranked hotspots.
+
+## LA-REV-721
+
+- Scope: Proposal artifact trade projection and auto-funding plan helpers
+- Pattern: Advisory artifact execution evidence and auto-funding orchestration should delegate
+  intent projection, FX projection, per-currency funding, and missing-funding recording to focused
+  helpers so proposal execution behavior remains auditable.
+- Status: Hardened
+- Finding Class: Advisory execution-evidence complexity and funding maintainability
+- Summary: `build_trades_and_funding` and `build_auto_funding_plan` still mixed collection
+  orchestration, DTO construction, dependency-note assembly, FX source selection, portfolio cash
+  mutation, missing-FX handling, and insufficient-cash diagnostics. Both were C-ranked Radon
+  hotspots in core proposal behavior, making execution evidence and funding failure paths harder to
+  review safely.
+- Evidence:
+  - Split proposal artifact trade projection into focused helpers for security-trade DTOs, FX DTOs,
+    and dependency execution notes.
+  - Split auto-funding planning into buy-intent grouping, per-target funding, funding-need
+    calculation, missing-funding recording, missing-FX warning/failure handling, and FX-intent
+    recording helpers.
+  - Radon no longer reports `build_trades_and_funding` or `build_auto_funding_plan` as C-ranked
+    complexity; full production C-ranked inventory is now 24 blocks.
+  - Focused `ruff`, `mypy`, artifact tests, funding tests, and proposal simulation tests passed.
+- Consequence:
+  - Proposal execution evidence and auto-funding paths preserve behavior while becoming easier to
+    audit, extend, and test around funding, dependency, missing-FX, and insufficient-cash outcomes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory execution and funding hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining advisory narrative, simulation-intent, copilot, policy-pack, and
+    proof-validation C-ranked hotspots.
+
+## LA-REV-720
+
+- Scope: Proposal artifact and decision-summary rule helpers
+- Pattern: Artifact next-step, decision reason-code, and approval-requirement helpers should
+  separate gate mapping, suitability fallback, missing-evidence requirements, and status-to-reason
+  projection from response assembly.
+- Status: Improved
+- Finding Class: Advisory decision maintainability and rule clarity
+- Summary: `resolve_next_step`, `primary_decision_reason_code`, and
+  `build_approval_requirements` each carried C-ranked branching across gate, suitability,
+  evidence, and status fallback behavior.
+- Evidence:
+  - Extracted artifact next-step gate mapping, blocked-gate suitability checks, suitability
+    fallback mapping, and status fallback helpers.
+  - Replaced decision reason-code fallback branching with ordered gate/missing-evidence lookup and
+    a status-to-reason map.
+  - Split approval requirements into gate, missing-evidence, and suitability requirement
+    collectors while preserving merge/sort behavior.
+  - Radon now reports all three helpers as A-ranked complexity instead of C-ranked complexity.
+  - Focused proposal artifact and decision-summary tests passed.
+- Consequence:
+  - Advisory artifact and decision-summary progression rules are easier to audit while preserving
+    supported gate, consent, remediation, review, and suitability behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory rule hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining advisory funding, artifact trade/funding, narrative, and
+    alternatives strategy C-ranked helpers in focused slices.
+
+## LA-REV-719
+
+- Scope: Proposal alternatives comparison summary projection
+- Pattern: Alternatives comparison summaries should separate approval/evidence count deltas,
+  decimal risk/cash deltas, and message projection from the response-envelope assembly.
+- Status: Improved
+- Finding Class: Advisory alternatives maintainability and projection clarity
+- Summary: `build_comparison_summary` mixed approval counts, missing-evidence counts, risk delta
+  interpretation, cash delta interpretation, message selection, and response construction in one
+  C-ranked projection helper.
+- Evidence:
+  - Extracted approval requirement counts, missing-evidence counts, count-delta message projection,
+    and decimal-delta message projection helpers.
+  - Preserved comparison headline, primary tradeoff, approval/risk/allocation/cash/currency deltas,
+    unchanged-factor projection, and evidence refs.
+  - Radon now reports `build_comparison_summary` as A-ranked complexity instead of C-ranked
+    complexity.
+  - Focused proposal alternatives projection tests passed.
+- Consequence:
+  - Alternatives comparison summaries remain deterministic while improvement/deterioration message
+    rules are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory projection hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining alternatives strategy, artifact, funding, narrative, and
+    decision-requirement C-ranked helpers in scoped slices.
+
+## LA-REV-718
+
+- Scope: Lotus Core integration stateful-context and simulation boundaries
+- Pattern: Source-backed Lotus Core integration paths should separate source reads, cache
+  partitioning, market-data projection, shelf-entry projection, resolver orchestration, trade-draft
+  hydration, liquidity policy rules, and HTTP contract validation.
+- Status: Improved
+- Finding Class: Integration-boundary maintainability and source-backed proposal reliability
+- Summary: Several Lotus Core integration helpers still carried C-ranked complexity across
+  `stateful_context_translation`, `stateful_context_source_reads`, `stateful_context`,
+  `stateful_context_hydration`, `classification`, and `simulation`. These paths are critical to
+  source-backed advisory proposal hydration and simulation, so mixed responsibilities increased
+  review cost and regression risk.
+- Evidence:
+  - Split stateful-context payload normalization, market-data projection, and shelf-entry
+    projection into focused owner modules while preserving the compatibility facade.
+  - Extracted source-read enrichment cache partitioning, missing-id batching, fetch, and cache
+    writeback helpers.
+  - Reduced the stateful-context resolver to orchestration over source fetch, identity/as-of
+    validation, DTO assembly, and cache storage.
+  - Reduced trade-draft hydration to orchestration over missing-instrument selection, hydration
+    context setup, per-instrument lookup, and market-data/shelf/FX append helpers.
+  - Split liquidity-tier rule families and Lotus Core simulation adapter header, HTTP post,
+    problem-detail, payload, and contract-validation responsibilities.
+  - Radon no longer reports any C-ranked blocks under `src/integrations/lotus_core`.
+  - Focused Lotus Core stateful-context, contract-boundary, and simulation adapter tests passed.
+  - Regenerated quality reports show Radon C-ranked blocks reduced from `39` to `32`.
+- Consequence:
+  - Lotus Core proposal hydration and simulation remain behavior-preserving while the integration
+    boundary is easier to audit, test, and extend without mixing source access, DTO projection, and
+    contract validation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal integration-boundary hardening for existing supported behavior.
+- Follow-Up:
+  - Continue reducing remaining C-ranked advisory, policy-pack, cockpit, copilot, and persistence
+    helpers in focused owner-boundary slices.
+
 ## LA-REV-717
 
 - Scope: Proposal memo section evidence aggregation

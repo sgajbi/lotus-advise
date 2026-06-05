@@ -76,6 +76,11 @@ def test_compute_drift_analysis_asset_class_totals_and_ordering():
         "EQUITY",
         "CASH",
     ]
+    assert [item.bucket for item in analysis.highlights.largest_improvements] == [
+        "FIXED_INCOME",
+        "EQUITY",
+        "CASH",
+    ]
 
 
 def test_compute_drift_analysis_instrument_union_and_unmodeled_exposure():

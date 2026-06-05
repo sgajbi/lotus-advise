@@ -96,29 +96,69 @@ def resolve_liquidity_tier(
     sector_value = classification_key(sector)
     rating_value = classification_key(rating)
 
+    for resolved_tier in (
+        _cash_liquidity_tier(asset_class_value, product_type_value),
+        _listed_product_liquidity_tier(asset_class_value, product_type_value),
+        _bond_liquidity_tier(product_type_value, sector_value, rating_value),
+        _fund_liquidity_tier(asset_class_value, product_type_value, sector_value),
+        _fixed_income_liquidity_tier(asset_class_value, sector_value),
+    ):
+        if resolved_tier is not None:
+            return resolved_tier
+    return None
+
+
+def _cash_liquidity_tier(asset_class_value: str, product_type_value: str) -> str | None:
     if asset_class_value == "CASH" or product_type_value == "CASH":
         return "L1"
-    if product_type_value in {"ETF"}:
+    return None
+
+
+def _listed_product_liquidity_tier(
+    asset_class_value: str,
+    product_type_value: str,
+) -> str | None:
+    if product_type_value == "ETF":
         return "L1"
     if product_type_value == "EQUITY" or asset_class_value == "EQUITY":
         return "L1"
-    if product_type_value == "BOND":
-        if sector_value == "GOVERNMENT":
-            return "L1"
-        if rating_value.startswith("A") or rating_value.startswith("BBB"):
-            return "L2"
-        return "L3"
-    if product_type_value == "FUND" or asset_class_value == "FUND":
-        if "PRIVATE" in sector_value:
-            return "L5"
-        if sector_value in {"FIXED_INCOME", "PRIVATE_CREDIT"}:
-            return "L3"
-        return "L2"
-    if asset_class_value == "FIXED_INCOME":
-        if sector_value == "GOVERNMENT":
-            return "L1"
-        return "L2"
     return None
+
+
+def _bond_liquidity_tier(
+    product_type_value: str,
+    sector_value: str,
+    rating_value: str,
+) -> str | None:
+    if product_type_value != "BOND":
+        return None
+    if sector_value == "GOVERNMENT":
+        return "L1"
+    if rating_value.startswith("A") or rating_value.startswith("BBB"):
+        return "L2"
+    return "L3"
+
+
+def _fund_liquidity_tier(
+    asset_class_value: str,
+    product_type_value: str,
+    sector_value: str,
+) -> str | None:
+    if product_type_value != "FUND" and asset_class_value != "FUND":
+        return None
+    if "PRIVATE" in sector_value:
+        return "L5"
+    if sector_value in {"FIXED_INCOME", "PRIVATE_CREDIT"}:
+        return "L3"
+    return "L2"
+
+
+def _fixed_income_liquidity_tier(asset_class_value: str, sector_value: str) -> str | None:
+    if asset_class_value != "FIXED_INCOME":
+        return None
+    if sector_value == "GOVERNMENT":
+        return "L1"
+    return "L2"
 
 
 def prefer_upstream_liquidity_tier(

@@ -16,81 +16,15 @@ def build_approval_requirements(
 ) -> list[ProposalDecisionApprovalRequirement]:
     requirements: dict[tuple[str, str], ProposalDecisionApprovalRequirement] = {}
 
-    gate = result.gate_decision.gate if result.gate_decision is not None else None
-    if gate == "COMPLIANCE_REVIEW_REQUIRED":
-        _merge_requirement(
-            requirements,
-            ProposalDecisionApprovalRequirement(
-                approval_type="COMPLIANCE_REVIEW",
-                required=True,
-                severity="HIGH",
-                reason_code="COMPLIANCE_REVIEW_REQUIRED",
-                summary="Compliance review is required before client progression.",
-                blocking_until_approved=False,
-                evidence_refs=["proposal.gate_decision"],
-                policy_version=policy_version,
-            ),
-        )
-    if gate == "RISK_REVIEW_REQUIRED":
-        _merge_requirement(
-            requirements,
-            ProposalDecisionApprovalRequirement(
-                approval_type="RISK_REVIEW",
-                required=True,
-                severity="MEDIUM",
-                reason_code="RISK_REVIEW_REQUIRED",
-                summary="Risk review is required before client progression.",
-                blocking_until_approved=False,
-                evidence_refs=["proposal.gate_decision"],
-                policy_version=policy_version,
-            ),
-        )
-    if gate == "CLIENT_CONSENT_REQUIRED":
-        _merge_requirement(
-            requirements,
-            ProposalDecisionApprovalRequirement(
-                approval_type="CLIENT_CONSENT",
-                required=True,
-                severity="MEDIUM",
-                reason_code="CLIENT_CONSENT_REQUIRED",
-                summary="Client consent is required before execution progression.",
-                blocking_until_approved=False,
-                evidence_refs=["proposal.gate_decision"],
-                policy_version=policy_version,
-            ),
-        )
-
-    for item in missing_evidence:
-        if not item.blocking:
-            continue
-        approval_type = _approval_type_for_missing_evidence(item.reason_code)
-        if approval_type is None:
-            continue
-        _merge_requirement(
-            requirements,
-            ProposalDecisionApprovalRequirement(
-                approval_type=approval_type,
-                required=True,
-                severity="HIGH",
-                reason_code=item.reason_code,
-                summary=_missing_evidence_requirement_summary(item),
-                blocking_until_approved=True,
-                evidence_refs=item.evidence_refs,
-                policy_version=policy_version,
-            ),
-        )
-
-    if result.suitability is not None:
-        for issue in result.suitability.issues:
-            if issue.status_change not in {"NEW", "PERSISTENT"}:
-                continue
-            requirement = _requirement_from_suitability_issue(
-                issue=issue,
-                policy_version=policy_version,
-            )
-            if requirement is None:
-                continue
-            _merge_requirement(requirements, requirement)
+    for requirement in _gate_approval_requirements(result, policy_version=policy_version):
+        _merge_requirement(requirements, requirement)
+    for requirement in _missing_evidence_approval_requirements(
+        missing_evidence,
+        policy_version=policy_version,
+    ):
+        _merge_requirement(requirements, requirement)
+    for requirement in _suitability_approval_requirements(result, policy_version=policy_version):
+        _merge_requirement(requirements, requirement)
 
     return sorted(
         requirements.values(),
@@ -100,6 +34,105 @@ def build_approval_requirements(
             item.reason_code,
         ),
     )
+
+
+def _gate_approval_requirements(
+    result: ProposalResult,
+    *,
+    policy_version: str,
+) -> list[ProposalDecisionApprovalRequirement]:
+    gate = result.gate_decision.gate if result.gate_decision is not None else None
+    requirement_args = _gate_requirement_args(str(gate))
+    if requirement_args is None:
+        return []
+    return [
+        ProposalDecisionApprovalRequirement(
+            **requirement_args,
+            required=True,
+            blocking_until_approved=False,
+            evidence_refs=["proposal.gate_decision"],
+            policy_version=policy_version,
+        )
+    ]
+
+
+def _gate_requirement_args(gate: str) -> dict[str, str] | None:
+    return {
+        "COMPLIANCE_REVIEW_REQUIRED": {
+            "approval_type": "COMPLIANCE_REVIEW",
+            "severity": "HIGH",
+            "reason_code": "COMPLIANCE_REVIEW_REQUIRED",
+            "summary": "Compliance review is required before client progression.",
+        },
+        "RISK_REVIEW_REQUIRED": {
+            "approval_type": "RISK_REVIEW",
+            "severity": "MEDIUM",
+            "reason_code": "RISK_REVIEW_REQUIRED",
+            "summary": "Risk review is required before client progression.",
+        },
+        "CLIENT_CONSENT_REQUIRED": {
+            "approval_type": "CLIENT_CONSENT",
+            "severity": "MEDIUM",
+            "reason_code": "CLIENT_CONSENT_REQUIRED",
+            "summary": "Client consent is required before execution progression.",
+        },
+    }.get(gate)
+
+
+def _missing_evidence_approval_requirements(
+    missing_evidence: list[ProposalDecisionMissingEvidence],
+    *,
+    policy_version: str,
+) -> list[ProposalDecisionApprovalRequirement]:
+    return [
+        requirement
+        for item in missing_evidence
+        if (requirement := _requirement_from_missing_evidence(item, policy_version=policy_version))
+        is not None
+    ]
+
+
+def _requirement_from_missing_evidence(
+    item: ProposalDecisionMissingEvidence,
+    *,
+    policy_version: str,
+) -> ProposalDecisionApprovalRequirement | None:
+    if not item.blocking:
+        return None
+    approval_type = _approval_type_for_missing_evidence(item.reason_code)
+    if approval_type is None:
+        return None
+    return ProposalDecisionApprovalRequirement(
+        approval_type=approval_type,
+        required=True,
+        severity="HIGH",
+        reason_code=item.reason_code,
+        summary=_missing_evidence_requirement_summary(item),
+        blocking_until_approved=True,
+        evidence_refs=item.evidence_refs,
+        policy_version=policy_version,
+    )
+
+
+def _suitability_approval_requirements(
+    result: ProposalResult,
+    *,
+    policy_version: str,
+) -> list[ProposalDecisionApprovalRequirement]:
+    if result.suitability is None:
+        return []
+    return [
+        requirement
+        for issue in result.suitability.issues
+        if issue.status_change in {"NEW", "PERSISTENT"}
+        if (
+            requirement := _requirement_from_suitability_issue(
+                issue=issue,
+                policy_version=policy_version,
+            )
+        )
+        is not None
+    ]
 
 
 def _requirement_from_suitability_issue(
