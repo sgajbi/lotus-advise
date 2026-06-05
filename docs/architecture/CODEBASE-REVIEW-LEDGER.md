@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-715
+
+- Scope: Proposal reviewed narrative report package builder
+- Pattern: Report package assembly should separate fail-closed review validation, source-lineage
+  construction, review payload assembly, and execution-boundary extraction.
+- Status: Improved
+- Finding Class: Report-package maintainability and evidence boundary hardening
+- Summary: `build_reviewed_narrative_report_package` validated narrative/review evidence, checked
+  review state and hash drift, normalized sections, assembled lineage, and extracted execution
+  boundary context in one C-ranked helper.
+- Evidence:
+  - Extracted required mapping/text validation, approved-review validation, review-hash validation,
+    review payload construction, source-lineage construction, and execution-boundary extraction.
+  - Preserved fail-closed `ProposalValidationError` codes for missing narrative, missing review,
+    unapproved review, incomplete review ids, and hash mismatch.
+  - Preserved source-backed report package shape and support-safe summary behavior.
+  - Radon now reports `build_reviewed_narrative_report_package` as A-ranked complexity instead of
+    C-ranked complexity.
+  - Focused report narrative package, report adapter, report request mapping, report response
+    projection, and proposal report-package API tests passed.
+- Consequence:
+  - Reviewed narrative report packaging remains evidence-bound while validation and lineage
+    assembly are easier to inspect and extend.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    report-package implementation hardening with existing public behavior preserved.
+- Follow-Up:
+  - Continue reducing remaining C-ranked memo-section and policy-source-readiness helpers.
+
 ## LA-REV-714
 
 - Scope: Proposal workflow approval transition rules
