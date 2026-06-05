@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from src.integrations.lotus_core import stateful_context_translation as facade
 from src.integrations.lotus_core import stateful_context_market_data as market_data
 from src.integrations.lotus_core import stateful_context_payload_values as payload_values
 from src.integrations.lotus_core import stateful_context_shelf_entries as shelf_entries
+from src.integrations.lotus_core import stateful_context_translation as facade
 
 
 def test_stateful_context_translation_facade_preserves_public_imports() -> None:

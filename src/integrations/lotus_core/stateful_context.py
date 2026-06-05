@@ -114,7 +114,7 @@ def _resolve_timeout() -> httpx.Timeout:
 
 
 def _stateful_context_cache_ttl_seconds() -> float:
-    return cast(float, stateful_context_cache_ttl_seconds())
+    return stateful_context_cache_ttl_seconds()  # type: ignore[no-any-return]
 
 
 def _stateful_context_cache_max_size() -> int:
