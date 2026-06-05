@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-05T06:50:59.950190+00:00`
+- Generated At: `2026-06-05T06:56:16.634389+00:00`
 - Branch: `harden/remaining-complexity-boundaries`
-- Head: `1e16408aa695072f3c4caf4cc2bbcba3a8bab16c`
-- Branch Commits Over Main: `33`
+- Head: `e055c7941ee9816634e2d0e855615f676d1b3016`
+- Branch Commits Over Main: `36`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `929`
 - Packages: `38`
 - Modules: `891`
-- Total Python lines: `141215`
+- Total Python lines: `141261`
 
 ## Largest Files
 
@@ -25,7 +25,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1189 |
+| 9 | `scripts/quality_baseline_report.py` | 1192 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -34,8 +34,8 @@
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
 | 2 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 3 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
-| 4 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 273 |
+| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 276 |
+| 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 6 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 7 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
@@ -48,8 +48,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3258`
-- Radon complexity rank inventory: `A=2987, B=253, C=18`
+- Radon analyzed block inventory: `3263`
+- Radon complexity rank inventory: `A=2992, B=254, C=17`
 - Radon worst complexity: `rank=C, complexity=16`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3642, missing=3607, covered=35, coverage=1.0%`
+- Interrogate docstring inventory: `total=3647, missing=3612, covered=35, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

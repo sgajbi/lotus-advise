@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-729
+
+- Scope: Policy-pack applicability evaluation
+- Pattern: Policy-pack applicability should separate context extraction, missing-evidence
+  detection, selector construction, and not-applicable result construction so policy selection
+  remains auditable.
+- Status: Hardened
+- Finding Class: Policy-pack applicability complexity and source-evidence maintainability
+- Summary: `evaluate_policy_pack_applicability` mixed source-context extraction, missing
+  jurisdiction/client evidence, jurisdiction scope checks, booking-location scope checks,
+  client-segment scope checks, matched-selector projection, and result construction in one C-ranked
+  helper. This function decides whether policy rules run at all, so selector and source-evidence
+  handling need clear local ownership.
+- Evidence:
+  - Extracted applicability context resolution, missing-evidence detection, not-applicable result
+    construction, booking-location selector construction, and applicable selector construction into
+    focused helpers.
+  - Preserved existing blocked, not-applicable, and applicable reason codes and matched selectors.
+  - Radon no longer reports `evaluate_policy_pack_applicability` as C-ranked complexity; the
+    source-only C-ranked inventory is now 15 blocks.
+  - Focused policy-pack applicability `ruff`, format, `mypy`, Radon, and policy evaluation tests
+    passed.
+- Consequence:
+  - Policy-pack applicability remains behavior-compatible while jurisdiction, booking-location, and
+    client-segment selection are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy-pack applicability hardening for existing behavior.
+- Follow-Up:
+  - Continue with policy-pack catalog definition validation, conflict disclosure, workflow
+    projection, common suitability, advisor cockpit, and proof-validation C-ranked hotspots.
+
 ## LA-REV-728
 
 - Scope: Advisory copilot run persistence orchestration
