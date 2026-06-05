@@ -27,7 +27,7 @@ from src.core.advisory_copilot.run_review_policy import (
     review_posture_from_draft_status,
 )
 from src.core.advisory_copilot.structured_payload import assert_safe_structured_payload
-from src.core.advisory_copilot.type_models import CopilotAudience
+from src.core.advisory_copilot.type_models import CopilotAudience, CopilotReviewPosture
 from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
@@ -152,7 +152,7 @@ def _build_run_record(
     request_hash: str,
     request_summary: dict[str, Any],
     output_json: list[dict[str, Any]],
-    review_posture: str,
+    review_posture: CopilotReviewPosture,
     lineage: dict[str, Any],
     review_guidance: tuple[str, ...],
     guardrail_reasons: tuple[str, ...],
@@ -230,7 +230,7 @@ def _handle_existing_run(
     repository: AdvisoryCopilotRepository,
     existing_run: AdvisoryCopilotRunRecord,
     incoming_run: AdvisoryCopilotRunRecord,
-    review_posture: str,
+    review_posture: CopilotReviewPosture,
 ) -> AdvisoryCopilotRunPersistenceResult:
     if not can_refresh_retryable_copilot_run(
         existing_run=existing_run,
