@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-735
+
+- Scope: Lotus AI advisory copilot request reason sanitization
+- Pattern: Copilot request reason sanitization should separate scalar, text, list/tuple, fallback
+  object, and workflow-request type-boundary handling so sensitive prompt material stays governed.
+- Status: Hardened
+- Finding Class: Integration security posture and request-boundary maintainability
+- Summary: `_safe_reason_value` mixed safe scalar handling, bounded text handling, string-list
+  filtering, tuple handling, fallback object stringification, and empty-value rejection in one
+  C-ranked helper. This integration boundary removes raw prompt/provider material before invoking
+  Lotus AI workflow packs, so value-shape handling should be explicit and type checked.
+- Evidence:
+  - Extracted scalar guard, bounded text sanitizer, and list/tuple sanitizer helpers.
+  - Added explicit type narrowing for safe scalar values and a typed cast for the workflow-pack
+    request boundary.
+  - Preserved raw prompt/provider key exclusion and bounded output semantics.
+  - Added focused tests for tuple sanitization and fallback object stringification.
+  - Radon no longer reports `_safe_reason_value` as C-ranked complexity; the current source-only
+    C-ranked inventory is now 10 blocks.
+  - Focused copilot request `ruff`, format, `mypy`, Radon, and unit tests passed.
+- Consequence:
+  - Advisory copilot requests remain behavior-compatible while reason sanitization rules are easier
+    to audit and less likely to leak raw prompt or provider material.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal Lotus AI integration boundary hardening for existing behavior.
+- Follow-Up:
+  - Continue with remaining proposal, cockpit, proof-validation, target-generation, infrastructure,
+    and integration C-ranked hotspots.
+
 ## LA-REV-734
 
 - Scope: Common drift analytics highlight projection
