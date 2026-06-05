@@ -178,7 +178,21 @@ class RaiseCashStrategy(BaseAlternativeStrategy):
                 ),
             )
 
-        sell_quantity = quantity_for_notional(shortfall, candidate.price, candidate.quantity)
+        candidate_price = candidate.price
+        if candidate_price is None:
+            return self._rejected_result(
+                inputs=inputs,
+                rejection=RaiseCashRejection(
+                    reason_code="ALTERNATIVE_NO_BASE_CURRENCY_LIQUID_SOURCE",
+                    summary=(
+                        "No sellable base-currency position can raise the requested "
+                        "cash deterministically."
+                    ),
+                    pivot=inputs.base_currency,
+                ),
+            )
+
+        sell_quantity = quantity_for_notional(shortfall, candidate_price, candidate.quantity)
         if sell_quantity is None:
             return self._rejected_result(
                 inputs=inputs,
