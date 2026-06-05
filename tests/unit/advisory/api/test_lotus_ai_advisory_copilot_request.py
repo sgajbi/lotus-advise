@@ -81,6 +81,8 @@ def test_safe_reason_removes_raw_prompt_material_and_bounds_values() -> None:
             "purpose": "advisor review " * 120,
             "raw_prompt": "secret raw prompt should not leave advise",
             "notes": [" cited evidence only ", "x" * 1200, 7],
+            "tuple_notes": (" first tuple note ", "", 8),
+            "metadata": {"proposal_id": "proposal_sg_structured_note_001"},
             "count": 2,
             "accepted": True,
         }
@@ -92,5 +94,7 @@ def test_safe_reason_removes_raw_prompt_material_and_bounds_values() -> None:
     assert isinstance(reason["notes"], list)
     assert reason["notes"][0] == "cited evidence only"
     assert len(reason["notes"][1]) <= 1000
+    assert reason["tuple_notes"] == ["first tuple note"]
+    assert reason["metadata"] == "{'proposal_id': 'proposal_sg_structured_note_001'}"
     assert reason["count"] == 2
     assert reason["accepted"] is True
