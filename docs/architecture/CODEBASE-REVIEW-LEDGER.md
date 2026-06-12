@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-740
+
+- Scope: Suitability governance holding issue scanner
+- Pattern: Governance holding checks should separate shelf-status issue construction from the
+  public state scanner so banned, suspended, sell-only, and restricted-product rules remain easy
+  to audit.
+- Status: Hardened
+- Finding Class: Suitability scanner complexity and governance-rule maintainability
+- Summary: `evaluate_governance_holdings_issues` mixed portfolio weight lookup, shelf-status
+  dispatch, issue-key construction, remediation text, detail projection, and restricted-product
+  severity mapping in one C-ranked function. The scanner is part of advisory suitability posture,
+  so the public evaluator should stay behavior-compatible while each product-governance rule is
+  inspectable in a small helper.
+- Evidence:
+  - Extracted focused helpers for governance issue selection, position-increase detection, presence
+    issues, sell-only increases, restricted-product increases, shared increase details, and
+    restricted-product summaries.
+  - Preserved existing issue ids, issue keys, summaries, details, classifications, remediation
+    text, approval implications, and scanner ordering.
+  - Added focused suitability scanner coverage for restricted-product increases with
+    `allow_restricted=False` and `allow_restricted=True`.
+  - Radon now reports `evaluate_governance_holdings_issues` as A-ranked complexity `4`, down from
+    C-ranked complexity `14`.
+  - Source-only Radon now reports five remaining C-ranked `src/` hotspots.
+  - Focused suitability scanner `ruff`, format check, `mypy`, Radon, and unit tests passed with
+    11 tests.
+- Consequence:
+  - Advisory suitability governance checks remain behavior-compatible while restricted-product,
+    sell-only, banned, and suspended shelf rules can be reviewed independently without expanding
+    the public state-scanner function.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal suitability scanner hardening for existing behavior.
+- Follow-Up:
+  - Continue with proof-validation, supported-claim classification, infrastructure proposal
+    listing, and Lotus AI integration C-ranked hotspots.
+
 ## LA-REV-739
 
 - Scope: Advisor cockpit source-backed action aggregation

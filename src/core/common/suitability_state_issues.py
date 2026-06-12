@@ -191,86 +191,163 @@ def evaluate_governance_holdings_issues(
             continue
         before_weight = before_weights.get(instrument_id, Decimal("0"))
         after_weight = target_weights.get(instrument_id, Decimal("0"))
-        status = shelf_entry.status
-        issue_key = f"GOVERNANCE|{instrument_id}|{status}"
+        issue = _governance_holding_issue(
+            instrument_id=instrument_id,
+            status=shelf_entry.status,
+            before_weight=before_weight,
+            after_weight=after_weight,
+            allow_restricted=options.allow_restricted,
+        )
+        if issue is not None:
+            issue_map[issue.issue_key] = issue
 
-        if status == "BANNED" and after_weight > EPSILON:
-            issue_map[issue_key] = IssueCandidate(
-                issue_key=issue_key,
-                issue_id="SUIT_GOVERNANCE_BANNED",
-                dimension="GOVERNANCE",
-                severity=HIGH,
-                summary=f"BANNED instrument {instrument_id} is present in the portfolio.",
-                details={
-                    "instrument_id": instrument_id,
-                    "shelf_status": status,
-                    "measured": str(after_weight),
-                },
-                classification="NEW",
-                remediation="Remove the banned instrument from the proposal before proceeding.",
-                approval_implication="COMPLIANCE_REVIEW",
-            )
 
-        if status == "SUSPENDED" and after_weight > EPSILON:
-            issue_map[issue_key] = IssueCandidate(
-                issue_key=issue_key,
-                issue_id="SUIT_GOVERNANCE_SUSPENDED",
-                dimension="GOVERNANCE",
-                severity=HIGH,
-                summary=f"SUSPENDED instrument {instrument_id} is present in the portfolio.",
-                details={
-                    "instrument_id": instrument_id,
-                    "shelf_status": status,
-                    "measured": str(after_weight),
-                },
-                classification="NEW",
-                remediation="Hold execution until the suspended instrument is removed or cleared.",
-                approval_implication="COMPLIANCE_REVIEW",
-            )
+def _governance_holding_issue(
+    *,
+    instrument_id: str,
+    status: str,
+    before_weight: Decimal,
+    after_weight: Decimal,
+    allow_restricted: bool,
+) -> IssueCandidate | None:
+    if status in {"BANNED", "SUSPENDED"} and after_weight > EPSILON:
+        return _presence_governance_issue(
+            instrument_id=instrument_id,
+            status=status,
+            after_weight=after_weight,
+        )
+    if status == "SELL_ONLY" and _holding_increased(before_weight, after_weight):
+        return _sell_only_increase_issue(
+            instrument_id=instrument_id,
+            before_weight=before_weight,
+            after_weight=after_weight,
+        )
+    if status == "RESTRICTED" and _holding_increased(before_weight, after_weight):
+        return _restricted_increase_issue(
+            instrument_id=instrument_id,
+            before_weight=before_weight,
+            after_weight=after_weight,
+            allow_restricted=allow_restricted,
+        )
+    return None
 
-        if status == "SELL_ONLY" and after_weight > before_weight + EPSILON:
-            issue_map[issue_key] = IssueCandidate(
-                issue_key=issue_key,
-                issue_id="SUIT_GOVERNANCE_SELL_ONLY_INCREASE",
-                dimension="GOVERNANCE",
-                severity=HIGH,
-                summary=f"SELL_ONLY instrument {instrument_id} increased in proposed state.",
-                details={
-                    "instrument_id": instrument_id,
-                    "shelf_status": status,
-                    "measured_before": str(before_weight),
-                    "measured_after": str(after_weight),
-                },
-                classification="NEW",
-                remediation="Remove the increase or obtain explicit product-control approval.",
-                approval_implication="COMPLIANCE_REVIEW",
-            )
 
-        if status == "RESTRICTED" and after_weight > before_weight + EPSILON:
-            allowed_severity = MEDIUM if options.allow_restricted else HIGH
-            issue_map[issue_key] = IssueCandidate(
-                issue_key=issue_key,
-                issue_id="SUIT_GOVERNANCE_RESTRICTED_INCREASE",
-                dimension="GOVERNANCE",
-                severity=allowed_severity,
-                summary=(
-                    f"RESTRICTED instrument {instrument_id} increased in proposed state"
-                    if not options.allow_restricted
-                    else f"RESTRICTED instrument {instrument_id} increased under allow_restricted"
-                ),
-                details={
-                    "instrument_id": instrument_id,
-                    "shelf_status": status,
-                    "allow_restricted": str(options.allow_restricted).lower(),
-                    "measured_before": str(before_weight),
-                    "measured_after": str(after_weight),
-                },
-                classification="NEW",
-                remediation="Confirm the restricted-product rationale before progressing.",
-                approval_implication=(
-                    "COMPLIANCE_REVIEW" if allowed_severity == HIGH else "RISK_REVIEW"
-                ),
-            )
+def _holding_increased(before_weight: Decimal, after_weight: Decimal) -> bool:
+    return bool(after_weight > before_weight + EPSILON)
+
+
+def _governance_issue_key(*, instrument_id: str, status: str) -> str:
+    return f"GOVERNANCE|{instrument_id}|{status}"
+
+
+def _presence_governance_issue(
+    *,
+    instrument_id: str,
+    status: str,
+    after_weight: Decimal,
+) -> IssueCandidate:
+    issue_id_by_status = {
+        "BANNED": "SUIT_GOVERNANCE_BANNED",
+        "SUSPENDED": "SUIT_GOVERNANCE_SUSPENDED",
+    }
+    remediation_by_status = {
+        "BANNED": "Remove the banned instrument from the proposal before proceeding.",
+        "SUSPENDED": "Hold execution until the suspended instrument is removed or cleared.",
+    }
+    return IssueCandidate(
+        issue_key=_governance_issue_key(instrument_id=instrument_id, status=status),
+        issue_id=issue_id_by_status[status],
+        dimension="GOVERNANCE",
+        severity=HIGH,
+        summary=f"{status} instrument {instrument_id} is present in the portfolio.",
+        details={
+            "instrument_id": instrument_id,
+            "shelf_status": status,
+            "measured": str(after_weight),
+        },
+        classification="NEW",
+        remediation=remediation_by_status[status],
+        approval_implication="COMPLIANCE_REVIEW",
+    )
+
+
+def _sell_only_increase_issue(
+    *,
+    instrument_id: str,
+    before_weight: Decimal,
+    after_weight: Decimal,
+) -> IssueCandidate:
+    status = "SELL_ONLY"
+    return IssueCandidate(
+        issue_key=_governance_issue_key(instrument_id=instrument_id, status=status),
+        issue_id="SUIT_GOVERNANCE_SELL_ONLY_INCREASE",
+        dimension="GOVERNANCE",
+        severity=HIGH,
+        summary=f"SELL_ONLY instrument {instrument_id} increased in proposed state.",
+        details=_governance_increase_details(
+            instrument_id=instrument_id,
+            status=status,
+            before_weight=before_weight,
+            after_weight=after_weight,
+        ),
+        classification="NEW",
+        remediation="Remove the increase or obtain explicit product-control approval.",
+        approval_implication="COMPLIANCE_REVIEW",
+    )
+
+
+def _restricted_increase_issue(
+    *,
+    instrument_id: str,
+    before_weight: Decimal,
+    after_weight: Decimal,
+    allow_restricted: bool,
+) -> IssueCandidate:
+    severity = MEDIUM if allow_restricted else HIGH
+    status = "RESTRICTED"
+    return IssueCandidate(
+        issue_key=_governance_issue_key(instrument_id=instrument_id, status=status),
+        issue_id="SUIT_GOVERNANCE_RESTRICTED_INCREASE",
+        dimension="GOVERNANCE",
+        severity=severity,
+        summary=_restricted_increase_summary(
+            instrument_id=instrument_id,
+            allow_restricted=allow_restricted,
+        ),
+        details={
+            **_governance_increase_details(
+                instrument_id=instrument_id,
+                status=status,
+                before_weight=before_weight,
+                after_weight=after_weight,
+            ),
+            "allow_restricted": str(allow_restricted).lower(),
+        },
+        classification="NEW",
+        remediation="Confirm the restricted-product rationale before progressing.",
+        approval_implication="COMPLIANCE_REVIEW" if severity == HIGH else "RISK_REVIEW",
+    )
+
+
+def _governance_increase_details(
+    *,
+    instrument_id: str,
+    status: str,
+    before_weight: Decimal,
+    after_weight: Decimal,
+) -> Dict[str, str]:
+    return {
+        "instrument_id": instrument_id,
+        "shelf_status": status,
+        "measured_before": str(before_weight),
+        "measured_after": str(after_weight),
+    }
+
+
+def _restricted_increase_summary(*, instrument_id: str, allow_restricted: bool) -> str:
+    if allow_restricted:
+        return f"RESTRICTED instrument {instrument_id} increased under allow_restricted"
+    return f"RESTRICTED instrument {instrument_id} increased in proposed state"
 
 
 def evaluate_cash_band_issue(
