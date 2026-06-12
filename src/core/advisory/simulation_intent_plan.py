@@ -1,7 +1,7 @@
 from copy import deepcopy
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from src.core.advisory.funding import build_auto_funding_plan
 from src.core.advisory.intents import apply_proposal_cash_flow, build_proposal_security_trade_intent
@@ -12,7 +12,12 @@ from src.core.common.simulation_shared import (
 )
 from src.core.diagnostics_models import DiagnosticsData
 from src.core.engine_options_models import EngineOptions
-from src.core.order_intent_models import CashFlowIntent, ProposalOrderIntent, SecurityTradeIntent
+from src.core.order_intent_models import (
+    CashFlowIntent,
+    FxSpotIntent,
+    ProposalOrderIntent,
+    SecurityTradeIntent,
+)
 from src.core.portfolio_models import MarketDataSnapshot, PortfolioSnapshot, ShelfEntry
 from src.core.proposal_request_models import ProposedCashFlow, ProposedTrade
 
@@ -27,6 +32,18 @@ class SimulationIntentPlan:
     force_pending_review: bool
 
 
+@dataclass(frozen=True)
+class _ValidatedProposalInputs:
+    cash_flows: list[ProposedCashFlow]
+    trades: list[ProposedTrade]
+
+
+@dataclass(frozen=True)
+class _SecurityIntentGroups:
+    sell_intents: list[SecurityTradeIntent]
+    buy_intents: list[SecurityTradeIntent]
+
+
 def build_simulation_intent_plan(
     *,
     portfolio: PortfolioSnapshot,
@@ -39,18 +56,93 @@ def build_simulation_intent_plan(
 ) -> SimulationIntentPlan:
     after_portfolio = deepcopy(portfolio)
     hard_failures: list[str] = []
-    force_pending_review = False
-
-    cash_flows = [ProposedCashFlow.model_validate(item) for item in proposed_cash_flows]
-    trades = [ProposedTrade.model_validate(item) for item in proposed_trades]
+    proposal_inputs = _validated_proposal_inputs(
+        proposed_cash_flows=proposed_cash_flows,
+        proposed_trades=proposed_trades,
+    )
 
     cash_flow_intents = _build_cash_flow_intents(
         after_portfolio=after_portfolio,
-        cash_flows=cash_flows,
+        cash_flows=proposal_inputs.cash_flows,
         options=options,
         diagnostics=diagnostics,
         hard_failures=hard_failures,
     )
+    security_groups = _build_security_intent_groups(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        trades=proposal_inputs.trades,
+        options=options,
+        diagnostics=diagnostics,
+        hard_failures=hard_failures,
+    )
+
+    _apply_sell_intents(
+        after_portfolio=after_portfolio,
+        sell_intents=security_groups.sell_intents,
+    )
+    fx_intents, fx_by_currency, unfunded_currencies, force_pending_review = _build_funding_intents(
+        after_portfolio=after_portfolio,
+        market_data=market_data,
+        options=options,
+        buy_intents=security_groups.buy_intents,
+        diagnostics=diagnostics,
+        hard_failures=hard_failures,
+    )
+
+    executable_buy_intents = _apply_executable_buy_intents(
+        after_portfolio=after_portfolio,
+        buy_intents=security_groups.buy_intents,
+        unfunded_currencies=unfunded_currencies,
+        diagnostics=diagnostics,
+    )
+
+    _link_executable_buy_dependencies(
+        options=options,
+        sell_intents=security_groups.sell_intents,
+        executable_buy_intents=executable_buy_intents,
+        fx_intent_id_by_currency=fx_by_currency,
+    )
+
+    intents = _ordered_execution_intents(
+        cash_flow_intents=cash_flow_intents,
+        sell_intents=security_groups.sell_intents,
+        fx_intents=fx_intents,
+        executable_buy_intents=executable_buy_intents,
+    )
+
+    return SimulationIntentPlan(
+        after_portfolio=after_portfolio,
+        cash_flows=proposal_inputs.cash_flows,
+        trades=proposal_inputs.trades,
+        intents=intents,
+        hard_failures=hard_failures,
+        force_pending_review=force_pending_review,
+    )
+
+
+def _validated_proposal_inputs(
+    *,
+    proposed_cash_flows: list[ProposedCashFlow] | list[dict[str, Any]],
+    proposed_trades: list[ProposedTrade] | list[dict[str, Any]],
+) -> _ValidatedProposalInputs:
+    return _ValidatedProposalInputs(
+        cash_flows=[ProposedCashFlow.model_validate(item) for item in proposed_cash_flows],
+        trades=[ProposedTrade.model_validate(item) for item in proposed_trades],
+    )
+
+
+def _build_security_intent_groups(
+    *,
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    shelf: list[ShelfEntry],
+    trades: list[ProposedTrade],
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+    hard_failures: list[str],
+) -> _SecurityIntentGroups:
     security_intents = _build_security_trade_intents(
         portfolio=portfolio,
         market_data=market_data,
@@ -60,19 +152,41 @@ def build_simulation_intent_plan(
         diagnostics=diagnostics,
         hard_failures=hard_failures,
     )
-
-    sell_intents = sorted(
-        [intent for intent in security_intents if intent.side == "SELL"],
-        key=lambda intent: intent.instrument_id,
-    )
-    buy_intents = sorted(
-        [intent for intent in security_intents if intent.side == "BUY"],
-        key=lambda intent: intent.instrument_id,
+    return _SecurityIntentGroups(
+        sell_intents=_sorted_security_intents_by_instrument(security_intents, side="SELL"),
+        buy_intents=_sorted_security_intents_by_instrument(security_intents, side="BUY"),
     )
 
+
+def _sorted_security_intents_by_instrument(
+    intents: list[SecurityTradeIntent],
+    *,
+    side: str,
+) -> list[SecurityTradeIntent]:
+    return sorted(
+        [intent for intent in intents if intent.side == side],
+        key=lambda intent: intent.instrument_id,
+    )
+
+
+def _apply_sell_intents(
+    *,
+    after_portfolio: PortfolioSnapshot,
+    sell_intents: list[SecurityTradeIntent],
+) -> None:
     for sell_intent in sell_intents:
         apply_security_trade_to_portfolio(after_portfolio, sell_intent)
 
+
+def _build_funding_intents(
+    *,
+    after_portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    options: EngineOptions,
+    buy_intents: list[SecurityTradeIntent],
+    diagnostics: DiagnosticsData,
+    hard_failures: list[str],
+) -> tuple[list[FxSpotIntent], dict[str, str], set[str], bool]:
     (
         fx_intents,
         fx_by_currency,
@@ -87,36 +201,37 @@ def build_simulation_intent_plan(
         diagnostics=diagnostics,
     )
     hard_failures.extend(funding_failures)
-    force_pending_review = force_pending_review or funding_pending
+    return fx_intents, fx_by_currency, unfunded_currencies, funding_pending
 
-    executable_buy_intents = _apply_executable_buy_intents(
-        after_portfolio=after_portfolio,
-        buy_intents=buy_intents,
-        unfunded_currencies=unfunded_currencies,
-        diagnostics=diagnostics,
-    )
 
-    include_sell_dependency = options.link_buy_to_same_currency_sell_dependency
-    if include_sell_dependency is None:
-        include_sell_dependency = False
+def _link_executable_buy_dependencies(
+    *,
+    options: EngineOptions,
+    sell_intents: list[SecurityTradeIntent],
+    executable_buy_intents: list[SecurityTradeIntent],
+    fx_intent_id_by_currency: dict[str, str],
+) -> None:
+    include_sell_dependency = options.link_buy_to_same_currency_sell_dependency or False
     link_buy_intent_dependencies(
         sell_intents + executable_buy_intents,
-        fx_intent_id_by_currency=fx_by_currency,
+        fx_intent_id_by_currency=fx_intent_id_by_currency,
         include_same_currency_sell_dependency=include_sell_dependency,
     )
 
-    fx_intents = sorted(fx_intents, key=lambda intent: intent.pair)
-    intents = sort_execution_intents(
-        cash_flow_intents + sell_intents + fx_intents + executable_buy_intents
-    )
 
-    return SimulationIntentPlan(
-        after_portfolio=after_portfolio,
-        cash_flows=cash_flows,
-        trades=trades,
-        intents=intents,
-        hard_failures=hard_failures,
-        force_pending_review=force_pending_review,
+def _ordered_execution_intents(
+    *,
+    cash_flow_intents: list[CashFlowIntent],
+    sell_intents: list[SecurityTradeIntent],
+    fx_intents: list[FxSpotIntent],
+    executable_buy_intents: list[SecurityTradeIntent],
+) -> list[ProposalOrderIntent]:
+    ordered_fx_intents = sorted(fx_intents, key=lambda intent: intent.pair)
+    return cast(
+        list[ProposalOrderIntent],
+        sort_execution_intents(
+            cash_flow_intents + sell_intents + ordered_fx_intents + executable_buy_intents
+        ),
     )
 
 

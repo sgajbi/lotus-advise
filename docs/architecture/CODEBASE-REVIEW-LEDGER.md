@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-780
+
+- Scope: Advisory proposal simulation intent planning
+- Pattern: Simulation intent planning should separate input validation, security-intent grouping,
+  sell application, auto-funding, dependency linking, and final execution ordering.
+- Status: Hardened
+- Finding Class: Advisory simulation orchestration modularity and behavior-preservation coverage
+- Summary: `build_simulation_intent_plan` mixed proposal input validation, cash-flow mutation,
+  shelf-supported trade projection, sell/buy ordering, funding-plan application, dependency policy,
+  and final intent ordering in one orchestration helper. This path shapes the backend-owned
+  proposal simulation contract, so splitting the orchestration into named helpers makes the
+  execution plan easier to audit without changing cash-flow ordering, shelf rejection behavior,
+  funding posture, same-currency sell dependencies, or after-portfolio mutation semantics.
+- Evidence:
+  - Extracted validated input, security-intent grouping, sell-application, funding-intent,
+    dependency-linking, and final-ordering helpers.
+  - Preserved restricted-buy hard failure behavior, missing-shelf data-quality recording,
+    cash-flow-first ordering, SELL-before-BUY execution ordering, same-currency BUY dependency
+    linking, and after-state cash/position mutation.
+  - Added focused mixed-intent coverage proving cash flow, sell, and buy ordering plus
+    same-currency dependency and after-portfolio state.
+  - Radon no longer reports `build_simulation_intent_plan` as B-ranked; remaining helpers in
+    `src/core/advisory/simulation_intent_plan.py` are bounded at `B/7` and `B/6`.
+  - Focused simulation-intent-plan tests passed with 3 tests, and `ruff`, `mypy`, format check,
+    and Radon checks passed.
+- Consequence:
+  - Advisory proposal simulation intent planning remains behavior-compatible while orchestration
+    responsibilities are smaller, named, and easier to test independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    simulation-planning maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked proposal simulation, decision-summary, and source-readiness helpers
+    with focused behavior-preservation tests.
+
 ## LA-REV-779
 
 - Scope: Proposal alternatives strategy-input projection
