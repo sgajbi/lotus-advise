@@ -749,6 +749,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused projection builders.",
         "- Bank-demo commercial material pack assembly delegates governed material rows to",
         "  a focused catalog module.",
+        "- Bank-demo commercial material register validation delegates claim lookup,",
+        "  reference aggregation, and client-facing claim-posture checks to focused helpers.",
         "- Bank-demo journey integration proof DTOs and validators are split into a focused",
         "  model owner while preserving the proof summary builder and public import path.",
         "- Proposal artifact assembly delegates portfolio, summary, trade/funding, review,",
@@ -1069,7 +1071,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-740` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-741` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

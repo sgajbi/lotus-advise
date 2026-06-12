@@ -1,7 +1,7 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/suitability-state-issues`
-- Head: `4f89dd8e68deef8db205db09102422539222abd3`
+- Branch: `harden/commercial-material-validation`
+- Head: `b5431d4501897c6e9ff48af499401b6f6f5d2c0a`
 - Branch Commits Over Main: `0`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
@@ -36,6 +36,8 @@
   focused projection builders.
 - Bank-demo commercial material pack assembly delegates governed material rows to
   a focused catalog module.
+- Bank-demo commercial material register validation delegates claim lookup,
+  reference aggregation, and client-facing claim-posture checks to focused helpers.
 - Bank-demo journey integration proof DTOs and validators are split into a focused
   model owner while preserving the proof summary builder and public import path.
 - Proposal artifact assembly delegates portfolio, summary, trade/funding, review,
