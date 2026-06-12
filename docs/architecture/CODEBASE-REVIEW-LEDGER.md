@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-751
+
+- Scope: Proposal reporting service request orchestration
+- Pattern: Report-request orchestration should separate immutable version selection, optional
+  reviewed-narrative package construction, downstream request assembly, response normalization,
+  and advisory workflow recording.
+- Status: Hardened
+- Finding Class: API service modularity and delivery-boundary maintainability
+- Summary: `request_proposal_report` mixed proposal/version lookup, version-range validation,
+  execution-status projection, optional reviewed-narrative replay packaging, lotus-report request
+  payload construction, response id normalization, explanation enrichment, and workflow-event
+  recording in one B-ranked service helper. This endpoint is the advisory/reporting integration
+  boundary, so preserving behavior while making each step inspectable reduces future drift risk.
+- Evidence:
+  - Extracted focused helpers for related-version resolution, replay-evidence hashing,
+    reviewed-narrative package construction, execution-status payload projection, report-request
+    assembly, response normalization, and report-request recording.
+  - Preserved generated report request id ownership, related-version validation, execution summary
+    inclusion, reviewed-narrative package behavior, and workflow-event recording.
+  - Radon now reports no B-ranked blocks in `src/api/services/proposal_reporting_service.py`.
+  - Focused proposal lifecycle report-request tests passed with 88 tests, import-boundary test
+    passed, and `ruff`, format check, mypy, and Radon checks passed.
+- Consequence:
+  - The advisory-to-lotus-report boundary remains behavior-compatible while report payload
+    construction, narrative packaging, and persistence side effects are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API service modularity hardening for existing report-request behavior.
+- Follow-Up:
+  - Continue reducing the remaining OpenAPI enrichment B-ranked helpers while preserving generated
+    contract examples and schema-documentation semantics.
+
 ## LA-REV-750
 
 - Scope: API observability request-id normalization
