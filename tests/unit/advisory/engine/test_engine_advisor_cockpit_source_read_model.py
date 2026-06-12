@@ -71,6 +71,10 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
     for helper_name in (
         "_execution_handoff_source",
         "_execution_status_source",
+        "_latest_attention_execution_event",
+        "_execution_status_attention_source",
+        "_execution_reference",
+        "_execution_status_materiality_rank",
         "_latest_execution_event",
     ):
         assert f"def {helper_name}(" not in read_model_source
@@ -165,9 +169,17 @@ def test_source_projection_delegates_execution_projection_rules() -> None:
     assert "build_execution_status_sources" in projection_source
     assert "def _execution_handoff_source(" not in projection_source
     assert "def _execution_status_source(" not in projection_source
+    assert "def _latest_attention_execution_event(" not in projection_source
+    assert "def _execution_status_attention_source(" not in projection_source
+    assert "def _execution_reference(" not in projection_source
+    assert "def _execution_status_materiality_rank(" not in projection_source
     assert "def _latest_execution_event(" not in projection_source
     assert "def _execution_handoff_source(" in execution_source
     assert "def _execution_status_source(" in execution_source
+    assert "def _latest_attention_execution_event(" in execution_source
+    assert "def _execution_status_attention_source(" in execution_source
+    assert "def _execution_reference(" in execution_source
+    assert "def _execution_status_materiality_rank(" in execution_source
     assert "def _latest_execution_event(" in execution_source
 
 
@@ -520,6 +532,26 @@ def test_source_read_model_uses_latest_rejected_approval_timestamp() -> None:
 
     assert [source.source_timestamp for source in read_model.approval_dependencies] == [
         later_rejection_at.isoformat()
+    ]
+
+
+def test_source_read_model_uses_external_execution_id_for_status_reference() -> None:
+    read_model = build_advisor_cockpit_source_read_model(
+        AdvisorCockpitSourceBatch(
+            proposals=[_proposal("EXECUTION_READY")],
+            workflow_events=[
+                _event(
+                    proposal_id="proposal_sg_001",
+                    event_type="EXECUTION_ACCEPTED",
+                    event_id="pwe_execution_accepted",
+                    reason={"external_execution_id": "external_execution_sg_001"},
+                )
+            ],
+        )
+    )
+
+    assert [source.execution_ref for source in read_model.execution_status_items] == [
+        "external_execution_sg_001"
     ]
 
 

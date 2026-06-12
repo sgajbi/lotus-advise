@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-761
+
+- Scope: Advisor cockpit execution status source projection
+- Pattern: Execution status projection should separate attention-event selection, execution
+  reference derivation, materiality ranking, and action-source DTO construction.
+- Status: Hardened
+- Finding Class: Advisor cockpit lifecycle source-projection modularity and execution evidence
+  correctness
+- Summary: `_execution_status_source` mixed proposal presence checks, latest execution event
+  selection, terminal-status suppression, execution reference fallback, materiality ranking, and
+  source DTO construction. This projection feeds source-backed execution attention actions while
+  preserving the downstream execution system-of-record boundary, so splitting those decisions makes
+  the lifecycle evidence easier to review without changing action semantics.
+- Evidence:
+  - Extracted attention-event selection, execution reference, materiality rank, and source DTO
+    construction helpers.
+  - Preserved missing-proposal suppression, executed-event suppression, non-execution-event
+    suppression, downstream execution SOR language, and materiality ranking.
+  - Added focused coverage proving execution status references use `external_execution_id` before
+    falling back to the workflow event id when no request id is present.
+  - Radon reports no B-ranked blocks in
+    `src/core/advisor_cockpit/source_projection_execution.py`.
+  - Focused advisor cockpit source-read-model tests passed with 14 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit execution status projection remains behavior-compatible while source event
+    selection and reference fallback behavior can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-projection maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked service, action-building, and reporting
+    helpers with the same source-backed evidence posture.
+
 ## LA-REV-760
 
 - Scope: Advisor cockpit approval dependency source projection
