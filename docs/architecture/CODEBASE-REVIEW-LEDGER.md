@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-749
+
+- Scope: Integration capability dependency reason selection
+- Pattern: Capability dependency degraded-reason selection should separate readiness checks from
+  public reason extraction so malformed dependency rows fail closed without hiding later concrete
+  dependency reasons.
+- Status: Hardened
+- Finding Class: Capability posture complexity and dependency diagnostics maintainability
+- Summary: `first_unready_dependency_reason` mixed readiness evaluation, dependency-row lookup,
+  degraded-reason type validation, empty-string handling, and fallback selection in one B-ranked
+  helper. The helper feeds bank-demo proof readiness and workflow degraded reasons, so the public
+  reason ordering should remain stable while malformed or missing reason values stay bounded.
+- Evidence:
+  - Extracted focused dependency degraded-reason and unready-reason helpers.
+  - Preserved first concrete degraded-reason selection and governed fallback behavior.
+  - Added focused tests for empty string, malformed non-string, missing reason, and later concrete
+    dependency reason selection.
+  - Radon now reports no B-ranked blocks in `src/api/capabilities/dependencies.py`.
+  - Focused integration capability tests, `ruff`, format check, mypy, and Radon checks passed.
+- Consequence:
+  - Bank-demo proof and integration capability diagnostics remain behavior-compatible while
+    dependency readiness and public degraded-reason selection are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal capability diagnostics hardening for existing readiness behavior.
+- Follow-Up:
+  - Continue reducing B-ranked API capability and OpenAPI helpers while preserving fail-closed
+    dependency posture and bounded public degraded reasons.
+
 ## LA-REV-748
 
 - Scope: Advisory supportability projection
