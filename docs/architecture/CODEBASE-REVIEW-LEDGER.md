@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-759
+
+- Scope: Suitability governance holding issue selection
+- Pattern: Governance holding checks should separate presence-based restrictions from
+  increase-based restrictions before constructing suitability issues.
+- Status: Hardened
+- Finding Class: Domain policy modularity and governance diagnostics maintainability
+- Summary: `_governance_holding_issue` mixed banned/suspended presence checks with sell-only and
+  restricted increase checks in one branch chain. These rules decide compliance or risk review
+  posture for governed product holdings, so separating presence selection from increase selection
+  makes the status policy easier to audit while preserving issue construction.
+- Evidence:
+  - Extracted presence-governance and increase-governance selectors.
+  - Preserved banned, suspended, sell-only increase, and restricted increase issue ids, keys,
+    details, severities, summaries, remediation, and approval implications.
+  - Radon reports no B-ranked blocks in `src/core/common/suitability_state_issues.py`.
+  - Focused suitability scanner and governance tests passed with 11 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Suitability governance status selection remains behavior-compatible while presence and
+    increase policy decisions can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal domain policy maintainability hardening.
+- Follow-Up:
+  - Move to another source-only hotspot with broader domain or integration payoff; this module has
+    no remaining B-ranked blocks.
+
 ## LA-REV-758
 
 - Scope: Suitability issuer and liquidity state issue aggregation

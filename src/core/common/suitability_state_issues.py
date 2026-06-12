@@ -271,19 +271,54 @@ def _governance_holding_issue(
     after_weight: Decimal,
     allow_restricted: bool,
 ) -> IssueCandidate | None:
-    if status in {"BANNED", "SUSPENDED"} and after_weight > EPSILON:
-        return _presence_governance_issue(
-            instrument_id=instrument_id,
-            status=status,
-            after_weight=after_weight,
-        )
-    if status == "SELL_ONLY" and _holding_increased(before_weight, after_weight):
+    presence_issue = _presence_governance_issue_if_applicable(
+        instrument_id=instrument_id,
+        status=status,
+        after_weight=after_weight,
+    )
+    if presence_issue is not None:
+        return presence_issue
+    return _increase_governance_issue_if_applicable(
+        instrument_id=instrument_id,
+        status=status,
+        before_weight=before_weight,
+        after_weight=after_weight,
+        allow_restricted=allow_restricted,
+    )
+
+
+def _presence_governance_issue_if_applicable(
+    *,
+    instrument_id: str,
+    status: str,
+    after_weight: Decimal,
+) -> IssueCandidate | None:
+    if status not in {"BANNED", "SUSPENDED"} or after_weight <= EPSILON:
+        return None
+    return _presence_governance_issue(
+        instrument_id=instrument_id,
+        status=status,
+        after_weight=after_weight,
+    )
+
+
+def _increase_governance_issue_if_applicable(
+    *,
+    instrument_id: str,
+    status: str,
+    before_weight: Decimal,
+    after_weight: Decimal,
+    allow_restricted: bool,
+) -> IssueCandidate | None:
+    if not _holding_increased(before_weight, after_weight):
+        return None
+    if status == "SELL_ONLY":
         return _sell_only_increase_issue(
             instrument_id=instrument_id,
             before_weight=before_weight,
             after_weight=after_weight,
         )
-    if status == "RESTRICTED" and _holding_increased(before_weight, after_weight):
+    if status == "RESTRICTED":
         return _restricted_increase_issue(
             instrument_id=instrument_id,
             before_weight=before_weight,
