@@ -1,34 +1,21 @@
 from __future__ import annotations
 
+from typing import cast
+
 from src.core.advisor_cockpit import action_components
 from src.core.advisor_cockpit.action_models import AdvisoryActionItem
 from src.core.advisor_cockpit.action_sources import CockpitActionConstructionInput
 from src.core.advisor_cockpit.projection_bounds import bounded_optional_reference
+from src.core.advisor_cockpit.reference_models import CockpitLineageRef
 
 LOTUS_ADVISE_SOURCE_SYSTEM = action_components.LOTUS_ADVISE_SOURCE_SYSTEM
 
 
 def build_source_backed_action(source: CockpitActionConstructionInput) -> AdvisoryActionItem:
-    if not source.reason_codes:
-        raise ValueError("cockpit action construction requires at least one reason code")
-    if not (
-        source.evidence_refs
-        or source.source_readiness_gaps
-        or source.dependency_readiness
-        or source.unsupported_capabilities
-    ):
-        raise ValueError(
-            "cockpit action construction requires evidence, readiness, dependency, "
-            "or unsupported-capability context"
-        )
-
-    action_item_id = action_components.build_action_item_id(
-        source.action_family,
-        source.source_action_id,
-    )
+    _validate_source_action_context(source)
     source_refs = action_components.bounded_source_refs(source.source_refs)
     return AdvisoryActionItem(
-        action_item_id=action_item_id,
+        action_item_id=_source_action_item_id(source),
         action_item_version=1,
         action_family=source.action_family,
         status=source.status,
@@ -54,11 +41,47 @@ def build_source_backed_action(source: CockpitActionConstructionInput) -> Adviso
         evidence_refs=source.evidence_refs,
         source_readiness_gaps=source.source_readiness_gaps,
         dependency_readiness=source.dependency_readiness,
-        lineage_refs=source.lineage_refs
+        lineage_refs=_source_lineage_refs(source),
+        unsupported_capabilities=action_components.unique_ordered(source.unsupported_capabilities),
+        correlation_id=bounded_optional_reference(source.correlation_id),
+    )
+
+
+def _validate_source_action_context(source: CockpitActionConstructionInput) -> None:
+    if not source.reason_codes:
+        raise ValueError("cockpit action construction requires at least one reason code")
+    if not _has_source_action_context(source):
+        raise ValueError(
+            "cockpit action construction requires evidence, readiness, dependency, "
+            "or unsupported-capability context"
+        )
+
+
+def _has_source_action_context(source: CockpitActionConstructionInput) -> bool:
+    return bool(
+        source.evidence_refs
+        or source.source_readiness_gaps
+        or source.dependency_readiness
+        or source.unsupported_capabilities
+    )
+
+
+def _source_action_item_id(source: CockpitActionConstructionInput) -> str:
+    return cast(
+        str,
+        action_components.build_action_item_id(
+            source.action_family,
+            source.source_action_id,
+        ),
+    )
+
+
+def _source_lineage_refs(source: CockpitActionConstructionInput) -> list[CockpitLineageRef]:
+    return cast(
+        list[CockpitLineageRef],
+        source.lineage_refs
         or action_components.lineage_refs(
             f"{source.action_family.lower()}:{source.source_action_id}",
             None,
         ),
-        unsupported_capabilities=action_components.unique_ordered(source.unsupported_capabilities),
-        correlation_id=bounded_optional_reference(source.correlation_id),
     )

@@ -8,6 +8,7 @@ from src.core.advisor_cockpit import (
     CockpitActionConstructionInput,
     CockpitActionSourceRefs,
     CockpitEvidenceRef,
+    CockpitLineageRef,
     ExecutionHandoffReadyActionSource,
     ExecutionStatusAttentionActionSource,
     HouseViewImpactActionSource,
@@ -404,6 +405,36 @@ def test_source_backed_action_builder_constructs_each_cockpit_family_with_eviden
     assert actions[0].lineage_refs[0].lineage_id == (
         f"{actions[0].action_family.lower()}:source_{actions[0].action_family}"
     )
+
+
+def test_source_backed_action_builder_preserves_explicit_lineage_refs() -> None:
+    action = build_source_backed_action(
+        CockpitActionConstructionInput(
+            source_action_id="source_explicit_lineage",
+            action_family="CLIENT_FOLLOW_UP_REQUIRED",
+            status="READY",
+            priority="LOW",
+            owner_role="ADVISOR",
+            title="Review advisory action",
+            next_required_action="Review the source-backed advisory evidence.",
+            reason_codes=["FOLLOW_UP_READY"],
+            evidence_refs=[_evidence()],
+            lineage_refs=[
+                CockpitLineageRef(
+                    lineage_id="proposal_lifecycle:proposal_sg_001",
+                    source_system="lotus-advise",
+                    content_hash="sha256:proposal-lifecycle",
+                )
+            ],
+        )
+    )
+
+    assert [lineage.lineage_id for lineage in action.lineage_refs] == [
+        "proposal_lifecycle:proposal_sg_001"
+    ]
+    assert [lineage.content_hash for lineage in action.lineage_refs] == [
+        "sha256:proposal-lifecycle"
+    ]
 
 
 def test_source_backed_action_builder_rejects_unexplained_actions() -> None:

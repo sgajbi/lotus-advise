@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-764
+
+- Scope: Advisor cockpit generic source-backed action construction
+- Pattern: Generic cockpit action construction should separate source-context validation,
+  stable action id derivation, bounded source refs, and fallback lineage selection.
+- Status: Hardened
+- Finding Class: Advisor cockpit action-construction modularity and source lineage correctness
+- Summary: `build_source_backed_action` mixed required-context validation, action id creation,
+  source-reference bounding, duplicate reason/unsupported-capability normalization, optional
+  timestamp/correlation bounding, and fallback lineage creation in one helper. This generic builder
+  is used by every source-backed cockpit action family, so extracting validation and lineage
+  decisions reduces review risk without changing emitted action shape.
+- Evidence:
+  - Extracted source-action context validation, context-presence predicate, action-item id, and
+    source-lineage helpers.
+  - Preserved missing-reason and missing-context validation errors, stable action-item ids, bounded
+    source refs, duplicate reason-code and unsupported-capability de-duplication, optional timestamp
+    and correlation bounding, and fallback lineage behavior.
+  - Added focused coverage proving explicit lineage refs are preserved instead of being replaced by
+    fallback lineage.
+  - Radon reports no B-ranked blocks in `src/core/advisor_cockpit/action_builder.py`.
+  - Focused advisor cockpit action-factory tests passed with 18 tests, and `ruff`, `mypy`, format
+    check, and Radon checks passed.
+- Consequence:
+  - Source-backed cockpit action construction remains behavior-compatible while validation and
+    lineage fallback rules can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    action-construction maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked approval-action, SLA, service
+    projection, and acknowledgement helpers.
+
 ## LA-REV-763
 
 - Scope: Advisor cockpit report/render/archive readiness projection
