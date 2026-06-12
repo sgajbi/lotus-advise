@@ -788,46 +788,71 @@ def _ensure_property_example(
 
 def _ensure_media_example_documentation(schema: dict[str, Any]) -> None:
     schemas = _component_schemas(schema)
+    for operation in _iter_path_operations(schema):
+        responses = operation.get("responses")
+        if isinstance(responses, dict):
+            _repair_response_media_examples(responses, schemas)
+
+
+def _iter_path_operations(schema: dict[str, Any]) -> list[dict[str, Any]]:
     paths = schema.get("paths", {})
     if not isinstance(paths, dict):
-        return
+        return []
+
+    operations: list[dict[str, Any]] = []
     for methods in paths.values():
-        if not isinstance(methods, dict):
-            continue
-        for operation in methods.values():
-            if not isinstance(operation, dict):
-                continue
-            responses = operation.get("responses")
-            if isinstance(responses, dict):
-                _repair_response_media_examples(responses, schemas)
+        if isinstance(methods, dict):
+            operations.extend(
+                operation for operation in methods.values() if isinstance(operation, dict)
+            )
+    return operations
 
 
 def _repair_response_media_examples(responses: dict[str, Any], schemas: dict[str, Any]) -> None:
+    for media in _iter_response_media(responses):
+        _repair_media_examples(media, schemas)
+
+
+def _iter_response_media(responses: dict[str, Any]) -> list[dict[str, Any]]:
+    media_entries: list[dict[str, Any]] = []
     for response in responses.values():
-        if not isinstance(response, dict):
-            continue
-        content = response.get("content")
-        if not isinstance(content, dict):
-            continue
-        for media in content.values():
-            if isinstance(media, dict):
-                _repair_media_examples(media, schemas)
+        content = response.get("content") if isinstance(response, dict) else None
+        if isinstance(content, dict):
+            media_entries.extend(media for media in content.values() if isinstance(media, dict))
+    return media_entries
 
 
 def _repair_media_examples(media: dict[str, Any], schemas: dict[str, Any]) -> None:
     media_schema = media.get("schema")
     if not isinstance(media_schema, dict):
         return
+    _repair_named_media_examples(media, media_schema, schemas)
+    _repair_single_media_example(media, media_schema, schemas)
+
+
+def _repair_named_media_examples(
+    media: dict[str, Any],
+    media_schema: dict[str, Any],
+    schemas: dict[str, Any],
+) -> None:
     examples = media.get("examples")
-    if isinstance(examples, dict):
-        for example_name, example in examples.items():
-            if isinstance(example, dict) and "value" in example:
-                example["value"] = _repair_example_against_schema(
-                    str(example_name),
-                    example["value"],
-                    media_schema,
-                    schemas,
-                )
+    if not isinstance(examples, dict):
+        return
+    for example_name, example in examples.items():
+        if isinstance(example, dict) and "value" in example:
+            example["value"] = _repair_example_against_schema(
+                str(example_name),
+                example["value"],
+                media_schema,
+                schemas,
+            )
+
+
+def _repair_single_media_example(
+    media: dict[str, Any],
+    media_schema: dict[str, Any],
+    schemas: dict[str, Any],
+) -> None:
     if "example" in media:
         media["example"] = _repair_example_against_schema(
             "media_example",

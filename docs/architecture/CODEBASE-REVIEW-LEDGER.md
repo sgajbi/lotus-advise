@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-754
+
+- Scope: OpenAPI response media example traversal
+- Pattern: Generated response-media example repair should separate path-operation traversal,
+  response content discovery, named media example repair, and single media example repair.
+- Status: Hardened
+- Finding Class: API contract quality and response-example maintainability
+- Summary: The response media example repair path still mixed nested path, operation, response,
+  content, named-example, and single-example handling in a compact set of traversal helpers. These
+  helpers repair generated response examples for the OpenAPI contract, so separating discovery from
+  repair keeps media example behavior easier to audit while preserving the published examples.
+- Evidence:
+  - Extracted operation traversal, response media discovery, named media example repair, and single
+    media example repair helpers.
+  - Preserved named response examples and single media examples against the same referenced schema
+    repair path.
+  - Radon no longer reports `_ensure_media_example_documentation`,
+    `_repair_response_media_examples`, or `_repair_media_examples` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, format
+    check, and Radon checks passed.
+- Consequence:
+  - OpenAPI response-media example repair remains behavior-compatible while traversal and repair
+    policy are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Continue reducing remaining OpenAPI example-inference helpers only where the resulting helper
+    boundaries clarify domain example policy rather than adding churn.
+
 ## LA-REV-753
 
 - Scope: OpenAPI schema and parameter documentation enrichment
