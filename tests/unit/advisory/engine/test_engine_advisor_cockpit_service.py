@@ -17,10 +17,13 @@ from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
 from src.core.tactical_house_view import (
+    TacticalHouseViewAffectedCohort,
+    TacticalHouseViewAffectedPortfolio,
     TacticalHouseViewCandidatePortfolio,
     TacticalHouseViewCohortRequest,
     TacticalHouseViewDefinition,
     TacticalHouseViewSourceRef,
+    TacticalHouseViewSupportability,
     build_tactical_house_view_affected_cohort,
 )
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
@@ -39,6 +42,9 @@ def test_cockpit_service_delegates_source_loading_to_focused_module() -> None:
     for helper_name in (
         "load_advisor_cockpit_source_read_model",
         "_house_view_impacts",
+        "_matching_house_view_portfolios",
+        "_house_view_impact_source",
+        "_house_view_impact_code",
     ):
         assert f"def {helper_name}(" not in service_source
         assert f"def {helper_name}(" in loader_source
@@ -339,6 +345,53 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
     )
     assert [action.action_family for action in legacy_page.items] == ["HOUSE_VIEW_IMPACT_REVIEW"]
     assert legacy_page.items[0].owner_role == "PORTFOLIO_MANAGER"
+
+
+def test_cockpit_source_loader_uses_first_non_default_house_view_reason() -> None:
+    source_ref = TacticalHouseViewSourceRef(
+        source_system="lotus-core",
+        source_type="HoldingsAsOf",
+        source_id="holdings:PB_SG_GLOBAL_BAL_001:2026-05-14",
+        source_version="v1",
+        content_hash="sha256:holdings",
+    )
+    cohort = TacticalHouseViewAffectedCohort(
+        cohort_id="thv_cohort_non_default",
+        tactical_view_id="thv_2026_05_asia_duration",
+        tactical_view_version="2026.05",
+        theme_id="asia_duration_reduce",
+        as_of_date="2026-05-14",
+        target_action="REDUCE",
+        affected_portfolios=[
+            TacticalHouseViewAffectedPortfolio(
+                portfolio_id="PB_SG_GLOBAL_BAL_001",
+                mandate_id="MANDATE_PB_SG_GLOBAL_BAL_001",
+                inclusion_reason_codes=["DURATION_EXPOSURE_ABOVE_HOUSE_VIEW"],
+                source_refs=[source_ref],
+            )
+        ],
+        excluded_portfolios=[],
+        supportability=TacticalHouseViewSupportability(
+            state="READY",
+            reason_codes=["TACTICAL_HOUSE_VIEW_READY"],
+            evaluated_candidate_count=1,
+            affected_count=1,
+            excluded_count=0,
+        ),
+        source_refs=[source_ref],
+        content_hash="sha256:house-view-cohort",
+        generated_at=NOW.isoformat(),
+        correlation_id="corr-thv-source",
+    )
+
+    impacts = cockpit_source_loader._house_view_impacts(
+        [cohort],
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id=None,
+    )
+
+    assert [impact.impact_code for impact in impacts] == ["DURATION_EXPOSURE_ABOVE_HOUSE_VIEW"]
+    assert [impact.correlation_id for impact in impacts] == ["corr-thv-source"]
 
 
 def test_cockpit_service_snapshot_preserves_supported_downstream_posture(

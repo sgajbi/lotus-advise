@@ -12,8 +12,11 @@ from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.tactical_house_view import (
     TacticalHouseViewAffectedCohort,
+    TacticalHouseViewAffectedPortfolio,
     list_tactical_house_view_affected_cohorts,
 )
+
+DEFAULT_HOUSE_VIEW_IMPACT_CODE = "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"
 
 
 def load_advisor_cockpit_source_read_model(
@@ -69,35 +72,58 @@ def _house_view_impacts(
     portfolio_id: str | None,
     correlation_id: str | None,
 ) -> list[HouseViewImpactActionSource]:
-    impacts: list[HouseViewImpactActionSource] = []
-    for cohort in cohorts:
-        for affected in cohort.affected_portfolios:
-            if portfolio_id is not None and affected.portfolio_id != portfolio_id:
-                continue
-            inclusion_reason_codes = affected.inclusion_reason_codes or [
-                "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"
-            ]
-            impact_code = (
-                "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"
-                if "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED" in inclusion_reason_codes
-                else inclusion_reason_codes[0]
-            )
-            impacts.append(
-                HouseViewImpactActionSource(
-                    cohort_id=cohort.cohort_id,
-                    tactical_view_id=cohort.tactical_view_id,
-                    tactical_view_version=cohort.tactical_view_version,
-                    portfolio_id=affected.portfolio_id,
-                    impact_code=impact_code,
-                    summary=(
-                        "Portfolio is included in a source-backed tactical house-view affected "
-                        "cohort for discretionary portfolio-management review."
-                    ),
-                    lineage_id=f"tactical_house_view_cohort:{cohort.cohort_id}",
-                    content_hash=cohort.content_hash,
-                    source_timestamp=cohort.generated_at,
-                    materiality_rank=52,
-                    correlation_id=correlation_id or cohort.correlation_id,
-                )
-            )
-    return impacts
+    return [
+        _house_view_impact_source(
+            cohort=cohort,
+            affected=affected,
+            correlation_id=correlation_id,
+        )
+        for cohort in cohorts
+        for affected in _matching_house_view_portfolios(
+            cohort=cohort,
+            portfolio_id=portfolio_id,
+        )
+    ]
+
+
+def _matching_house_view_portfolios(
+    *,
+    cohort: TacticalHouseViewAffectedCohort,
+    portfolio_id: str | None,
+) -> list[TacticalHouseViewAffectedPortfolio]:
+    return [
+        affected
+        for affected in cohort.affected_portfolios
+        if portfolio_id is None or affected.portfolio_id == portfolio_id
+    ]
+
+
+def _house_view_impact_source(
+    *,
+    cohort: TacticalHouseViewAffectedCohort,
+    affected: TacticalHouseViewAffectedPortfolio,
+    correlation_id: str | None,
+) -> HouseViewImpactActionSource:
+    return HouseViewImpactActionSource(
+        cohort_id=cohort.cohort_id,
+        tactical_view_id=cohort.tactical_view_id,
+        tactical_view_version=cohort.tactical_view_version,
+        portfolio_id=affected.portfolio_id,
+        impact_code=_house_view_impact_code(affected),
+        summary=(
+            "Portfolio is included in a source-backed tactical house-view affected "
+            "cohort for discretionary portfolio-management review."
+        ),
+        lineage_id=f"tactical_house_view_cohort:{cohort.cohort_id}",
+        content_hash=cohort.content_hash,
+        source_timestamp=cohort.generated_at,
+        materiality_rank=52,
+        correlation_id=correlation_id or cohort.correlation_id,
+    )
+
+
+def _house_view_impact_code(affected: TacticalHouseViewAffectedPortfolio) -> str:
+    inclusion_reason_codes = affected.inclusion_reason_codes or [DEFAULT_HOUSE_VIEW_IMPACT_CODE]
+    if DEFAULT_HOUSE_VIEW_IMPACT_CODE in inclusion_reason_codes:
+        return DEFAULT_HOUSE_VIEW_IMPACT_CODE
+    return str(inclusion_reason_codes[0])

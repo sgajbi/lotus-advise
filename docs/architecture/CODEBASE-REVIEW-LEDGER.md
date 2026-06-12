@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-762
+
+- Scope: Advisor cockpit tactical house-view source loading
+- Pattern: Tactical house-view source loading should separate affected-portfolio filtering,
+  impact-code selection, and cockpit action-source construction.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-loading modularity and tactical house-view evidence
+  correctness
+- Summary: `_house_view_impacts` mixed cohort traversal, portfolio-scope filtering, inclusion
+  reason fallback, impact-code selection, and action-source DTO construction in one helper. This
+  path projects source-backed tactical house-view cohorts into portfolio-manager cockpit queues, so
+  splitting those decisions makes source evidence handling easier to review without changing
+  action semantics.
+- Evidence:
+  - Extracted matching affected-portfolio selection, impact-source construction, and impact-code
+    selection helpers.
+  - Preserved portfolio filtering, default house-view impact-code preference, cockpit correlation
+    override behavior, source cohort lineage, content hash, timestamp, and materiality rank.
+  - Added focused coverage proving non-default house-view inclusion reasons are projected as the
+    cockpit impact code when the default affected-portfolio reason is absent.
+  - Radon reports no B-ranked blocks in
+    `src/core/advisor_cockpit/service_source_loader.py`.
+  - Focused advisor cockpit service tests passed with 16 tests, and `ruff`, `mypy`, format check,
+    and Radon checks passed.
+- Consequence:
+  - Advisor cockpit house-view source loading remains behavior-compatible while source filtering
+    and impact-code fallback behavior can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-loading maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked action-building, rules, service
+    projection, acknowledgement, and report-readiness helpers.
+
 ## LA-REV-761
 
 - Scope: Advisor cockpit execution status source projection
