@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-775
+
+- Scope: Lotus AI advisory copilot request reason sanitization
+- Pattern: Copilot request reason sanitization should separate key filtering, value mapping, and
+  bounded list mapping while preserving raw-material exclusion.
+- Status: Hardened
+- Finding Class: AI request safety modularity and raw-material redaction
+- Summary: `safe_reason` and `safe_reason_list` mixed key normalization, raw key filtering, value
+  type dispatch, bounded string mapping, bounded list mapping, and request-size limiting in compact
+  branch-heavy helpers. These paths prevent raw prompts, provider responses, model responses, and
+  system instructions from leaving Advise in Lotus AI workflow requests, so splitting the sanitizer
+  boundaries makes the fail-closed behavior easier to review without changing the request contract.
+- Evidence:
+  - Extracted safe reason item and key helpers, and rewrote bounded list mapping as explicit
+    validation steps.
+  - Preserved raw reason-key exclusion, bounded string/list handling, scalar handling, reason item
+    limits, and existing request payload shape.
+  - Added focused coverage proving raw-material keys are removed after whitespace and case
+    normalization.
+  - Radon reports no B-ranked blocks in `src/integrations/lotus_ai/advisory_copilot_request.py`.
+  - Focused Lotus AI advisory copilot request tests passed with 5 tests, and `ruff`, `mypy`,
+    format check, diff check, and Radon checks passed.
+- Consequence:
+  - Advisory copilot workflow-pack requests remain behavior-compatible while raw-material
+    sanitization and bounded list handling are easier to audit independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal AI
+    request-safety maintainability hardening.
+- Follow-Up:
+  - Re-run the broad quality baseline and full repository gate before PR handoff.
+
 ## LA-REV-774
 
 - Scope: Lotus AI output safety section mapping
