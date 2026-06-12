@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-757
+
+- Scope: OpenAPI response media traversal helpers
+- Pattern: Generated response-media traversal should separate dictionary-value filtering,
+  path-operation collection, and response-content media discovery from example repair.
+- Status: Hardened
+- Finding Class: API contract quality and traversal maintainability
+- Summary: After the OpenAPI example-policy refactors, the enrichment module still had two
+  B-ranked traversal iterators that mixed dictionary filtering, path-method traversal, response
+  content discovery, and media entry collection. These helpers decide which generated response
+  examples are repaired, so making traversal primitives explicit reduces review cost without
+  changing OpenAPI contract output.
+- Evidence:
+  - Extracted reusable dictionary-value filtering and response-content media discovery helpers.
+  - Preserved ignored non-dictionary path entries, ignored non-operation method entries, named
+    response example repair, and single media example repair behavior.
+  - Radon reports no B-ranked blocks in `src/api/openapi_enrichment.py`.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - OpenAPI enrichment has no remaining B-ranked helpers, and response-media traversal remains
+    behavior-compatible with the generated contract example repair path.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Move to the next source-only hotspot with stronger domain maintainability payoff rather than
+    continuing to micro-optimize already A-ranked OpenAPI helpers.
+
 ## LA-REV-756
 
 - Scope: OpenAPI object and reference example inference

@@ -890,14 +890,11 @@ def _iter_path_operations(schema: dict[str, Any]) -> list[dict[str, Any]]:
     paths = schema.get("paths", {})
     if not isinstance(paths, dict):
         return []
+    return [operation for methods in _dict_values(paths) for operation in _dict_values(methods)]
 
-    operations: list[dict[str, Any]] = []
-    for methods in paths.values():
-        if isinstance(methods, dict):
-            operations.extend(
-                operation for operation in methods.values() if isinstance(operation, dict)
-            )
-    return operations
+
+def _dict_values(mapping: dict[str, Any]) -> list[dict[str, Any]]:
+    return [value for value in mapping.values() if isinstance(value, dict)]
 
 
 def _repair_response_media_examples(responses: dict[str, Any], schemas: dict[str, Any]) -> None:
@@ -906,12 +903,14 @@ def _repair_response_media_examples(responses: dict[str, Any], schemas: dict[str
 
 
 def _iter_response_media(responses: dict[str, Any]) -> list[dict[str, Any]]:
-    media_entries: list[dict[str, Any]] = []
-    for response in responses.values():
-        content = response.get("content") if isinstance(response, dict) else None
-        if isinstance(content, dict):
-            media_entries.extend(media for media in content.values() if isinstance(media, dict))
-    return media_entries
+    return [
+        media for response in _dict_values(responses) for media in _response_content_media(response)
+    ]
+
+
+def _response_content_media(response: dict[str, Any]) -> list[dict[str, Any]]:
+    content = response.get("content")
+    return _dict_values(content) if isinstance(content, dict) else []
 
 
 def _repair_media_examples(media: dict[str, Any], schemas: dict[str, Any]) -> None:
