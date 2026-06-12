@@ -19,10 +19,7 @@ def rank_alternatives(
     candidate_seeds: tuple[AlternativeCandidateSeed, ...],
     selected_alternative_id: str | None,
 ) -> list[ProposalAlternative]:
-    objective_order = {
-        seed.candidate_id: int(seed.metadata.get("objective_rank", index))
-        for index, seed in enumerate(candidate_seeds)
-    }
+    objective_order = candidate_objective_order(candidate_seeds)
     ordered = sorted(
         alternatives,
         key=lambda alternative: ranking_key(
@@ -31,40 +28,85 @@ def rank_alternatives(
         ),
     )
 
-    ranked_ids = [
-        item.alternative_id for item in ordered if item.status in READY_ALTERNATIVE_STATUSES
-    ]
+    ranked_ids = ready_alternative_ids(ordered)
     next_rank = 1
     for alternative in ordered:
-        comparator_values = comparator_inputs(
-            alternative=alternative,
-            objective_rank=objective_order.get(alternative.alternative_id, 999),
-        )
-        alternative.ranking_policy_version = RANKING_POLICY_VERSION
-        alternative.comparison_summary = build_comparison_summary(
+        objective_rank = objective_order.get(alternative.alternative_id, 999)
+        apply_ranking_projection(
             baseline_result=baseline_result,
             alternative=alternative,
+            objective_rank=objective_rank,
+            ranked_ids=ranked_ids,
         )
-        alternative.ranking_projection = AlternativeRankingProjection(
-            ranking_reason_codes=ranking_reason_codes(alternative=alternative),
-            ranked_against_alternative_ids=[
-                alternative_id
-                for alternative_id in ranked_ids
-                if alternative_id != alternative.alternative_id
-            ],
-            comparator_inputs=comparator_values,
-        )
-        if alternative.status in READY_ALTERNATIVE_STATUSES:
+        if is_ready_alternative(alternative):
             alternative.rank = next_rank
             next_rank += 1
         else:
             alternative.rank = None
-        alternative.selected = (
-            selected_alternative_id is not None
-            and selected_alternative_id == alternative.alternative_id
-            and alternative.rank is not None
+        alternative.selected = selected_ranked_alternative(
+            alternative=alternative,
+            selected_alternative_id=selected_alternative_id,
         )
     return ordered
+
+
+def candidate_objective_order(
+    candidate_seeds: tuple[AlternativeCandidateSeed, ...],
+) -> dict[str, int]:
+    return {
+        seed.candidate_id: int(seed.metadata.get("objective_rank", index))
+        for index, seed in enumerate(candidate_seeds)
+    }
+
+
+def ready_alternative_ids(alternatives: list[ProposalAlternative]) -> list[str]:
+    return [
+        alternative.alternative_id
+        for alternative in alternatives
+        if is_ready_alternative(alternative)
+    ]
+
+
+def is_ready_alternative(alternative: ProposalAlternative) -> bool:
+    return alternative.status in READY_ALTERNATIVE_STATUSES
+
+
+def apply_ranking_projection(
+    *,
+    baseline_result: ProposalResult,
+    alternative: ProposalAlternative,
+    objective_rank: int,
+    ranked_ids: list[str],
+) -> None:
+    alternative.ranking_policy_version = RANKING_POLICY_VERSION
+    alternative.comparison_summary = build_comparison_summary(
+        baseline_result=baseline_result,
+        alternative=alternative,
+    )
+    alternative.ranking_projection = AlternativeRankingProjection(
+        ranking_reason_codes=ranking_reason_codes(alternative=alternative),
+        ranked_against_alternative_ids=[
+            alternative_id
+            for alternative_id in ranked_ids
+            if alternative_id != alternative.alternative_id
+        ],
+        comparator_inputs=comparator_inputs(
+            alternative=alternative,
+            objective_rank=objective_rank,
+        ),
+    )
+
+
+def selected_ranked_alternative(
+    *,
+    alternative: ProposalAlternative,
+    selected_alternative_id: str | None,
+) -> bool:
+    return (
+        selected_alternative_id is not None
+        and selected_alternative_id == alternative.alternative_id
+        and alternative.rank is not None
+    )
 
 
 def ranking_key(*, alternative: ProposalAlternative, objective_rank: int) -> tuple[Any, ...]:
@@ -123,8 +165,13 @@ def ranking_reason_codes(*, alternative: ProposalAlternative) -> list[str]:
 __all__ = [
     "RANKING_POLICY_VERSION",
     "READY_ALTERNATIVE_STATUSES",
+    "apply_ranking_projection",
+    "candidate_objective_order",
     "comparator_inputs",
+    "is_ready_alternative",
     "rank_alternatives",
     "ranking_key",
     "ranking_reason_codes",
+    "ready_alternative_ids",
+    "selected_ranked_alternative",
 ]

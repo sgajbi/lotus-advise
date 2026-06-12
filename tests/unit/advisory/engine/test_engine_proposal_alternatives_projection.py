@@ -363,6 +363,89 @@ def test_rank_alternatives_leaves_rejected_selection_unranked() -> None:
     assert _rank_alternatives.__module__ == "src.core.advisory.alternatives_ranking_projection"
 
 
+def test_rank_alternatives_compares_only_ranked_ready_alternatives() -> None:
+    baseline_result = _baseline_result(_request())
+    ready = ProposalAlternative(
+        alternative_id="alt_ready",
+        label="Ready",
+        objective="LOWER_TURNOVER",
+        status="FEASIBLE",
+        construction_policy_version="advisory-construction.2026-04",
+        ranking_policy_version="advisory-ranking.2026-04",
+        intents=[{"intent_type": "SECURITY_TRADE", "side": "BUY", "instrument_id": "NVDA"}],
+        proposal_decision_summary={"decision_status": "READY_FOR_CLIENT_REVIEW"},
+    )
+    review = ProposalAlternative(
+        alternative_id="alt_review",
+        label="Review",
+        objective="REDUCE_CONCENTRATION",
+        status="FEASIBLE_WITH_REVIEW",
+        construction_policy_version="advisory-construction.2026-04",
+        ranking_policy_version="advisory-ranking.2026-04",
+        intents=[{"intent_type": "SECURITY_TRADE", "side": "SELL", "instrument_id": "AAPL"}],
+        proposal_decision_summary={"decision_status": "REQUIRES_RISK_REVIEW"},
+    )
+    blocked = ProposalAlternative(
+        alternative_id="alt_blocked",
+        label="Blocked",
+        objective="RAISE_CASH",
+        status="REJECTED_POLICY_BLOCKED",
+        construction_policy_version="advisory-construction.2026-04",
+        ranking_policy_version="advisory-ranking.2026-04",
+        intents=[],
+        proposal_decision_summary={"decision_status": "BLOCKED_REMEDIATION_REQUIRED"},
+    )
+
+    ranked = _rank_alternatives(
+        baseline_result=baseline_result,
+        alternatives=[blocked, review, ready],
+        candidate_seeds=(
+            AlternativeCandidateSeed(
+                candidate_id="alt_ready",
+                objective="LOWER_TURNOVER",
+                strategy_id="lower_turnover_v1",
+                label="Ready",
+                summary="Ready",
+                metadata={"objective_rank": 0},
+            ),
+            AlternativeCandidateSeed(
+                candidate_id="alt_review",
+                objective="REDUCE_CONCENTRATION",
+                strategy_id="reduce_concentration_v1",
+                label="Review",
+                summary="Review",
+                metadata={"objective_rank": 1},
+            ),
+            AlternativeCandidateSeed(
+                candidate_id="alt_blocked",
+                objective="RAISE_CASH",
+                strategy_id="raise_cash_v1",
+                label="Blocked",
+                summary="Blocked",
+                metadata={"objective_rank": 2},
+            ),
+        ),
+        selected_alternative_id="alt_review",
+    )
+
+    assert [alternative.alternative_id for alternative in ranked] == [
+        "alt_ready",
+        "alt_review",
+        "alt_blocked",
+    ]
+    assert [alternative.rank for alternative in ranked] == [1, 2, None]
+    assert ranked[1].selected is True
+    assert ranked[0].ranking_projection is not None
+    assert ranked[0].ranking_projection.ranked_against_alternative_ids == ["alt_review"]
+    assert ranked[1].ranking_projection is not None
+    assert ranked[1].ranking_projection.ranked_against_alternative_ids == ["alt_ready"]
+    assert ranked[2].ranking_projection is not None
+    assert ranked[2].ranking_projection.ranked_against_alternative_ids == [
+        "alt_ready",
+        "alt_review",
+    ]
+
+
 def test_build_comparison_summary_records_improvements_and_deteriorations() -> None:
     request = _request()
     baseline_result = _baseline_result(request)

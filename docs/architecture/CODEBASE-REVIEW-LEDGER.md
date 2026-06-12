@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-777
+
+- Scope: Proposal alternatives ranking projection
+- Pattern: Alternatives ranking should separate candidate objective ordering, ready-alternative
+  comparison scope, per-alternative projection assignment, and ranked-selection marking.
+- Status: Hardened
+- Finding Class: Advisory alternatives modularity and ranking evidence clarity
+- Summary: `rank_alternatives` mixed objective-rank indexing, sorted ordering, ready-id collection,
+  comparison-summary construction, ranking-projection DTO construction, rank assignment, and
+  selected-alternative marking in one branch-heavy loop. This path shapes advisor-facing
+  alternatives comparison and selection state, so splitting the ranking responsibilities makes the
+  projection easier to review without changing ordering, comparator inputs, reason codes, or
+  selected-state semantics.
+- Evidence:
+  - Extracted candidate objective-order mapping, ready-alternative id collection, ready-status
+    checks, ranking-projection assignment, and ranked-selection marking helpers.
+  - Preserved comparator input shape, ranking-policy version, comparison summary construction,
+    ready/review ranking, rejected-alternative unranking, and selected-alternative behavior.
+  - Added focused coverage proving ranked-against ids include only ready ranked alternatives and
+    exclude the current alternative while rejected alternatives remain unranked.
+  - Radon reports no B-ranked blocks in `src/core/advisory/alternatives_ranking_projection.py`.
+  - Focused alternatives projection tests passed with 9 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Proposal alternatives ranking remains behavior-compatible while advisor-facing comparison
+    projection and selected-state rules are independently testable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    alternatives projection maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked alternatives normalization and strategy-input helpers with
+    focused behavior-preservation tests.
+
 ## LA-REV-776
 
 - Scope: Tactical house-view candidate exclusion rules
