@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-753
+
+- Scope: OpenAPI schema and parameter documentation enrichment
+- Pattern: Generated OpenAPI documentation enrichment should isolate component-schema discovery,
+  model example repair, property description/example enrichment, and idempotency-header parameter
+  policy application behind focused helpers.
+- Status: Hardened
+- Finding Class: API contract quality and documentation-enrichment maintainability
+- Summary: `_ensure_schema_documentation` and `_ensure_operation_parameter_documentation` still
+  mixed traversal, type filtering, contract example repair, description inference, example
+  inference, and idempotency-header bounds in inline loops. These helpers affect generated API
+  contracts across all routes, so separating traversal from policy application makes the
+  enrichment behavior easier to review without changing published schema semantics.
+- Evidence:
+  - Extracted component-schema discovery, model-schema iteration, model example repair, model
+    property documentation, property description, property example, idempotency-header detection,
+    idempotency-header max-length binding, and idempotency-header description helpers.
+  - Preserved existing schema examples, repaired nested examples, inferred field descriptions,
+    operation defaults, idempotency header bounds, and response media example behavior.
+  - Radon no longer reports `_ensure_schema_documentation` or
+    `_ensure_operation_parameter_documentation` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, format
+    check, and Radon checks passed.
+- Consequence:
+  - OpenAPI documentation enrichment remains behavior-compatible while traversal and contract
+    policy decisions can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Continue reducing the remaining OpenAPI enrichment media traversal and example-inference
+    helpers where the refactor produces clearer policy boundaries.
+
 ## LA-REV-752
 
 - Scope: OpenAPI example repair schema resolution

@@ -677,57 +677,117 @@ def _ensure_operation_parameter_documentation(operation: dict[str, Any]) -> None
     if not isinstance(parameters, list):
         return
     for parameter in parameters:
-        if not isinstance(parameter, dict):
+        if not _is_idempotency_header_parameter(parameter):
             continue
-        if parameter.get("name") != "Idempotency-Key" or parameter.get("in") != "header":
-            continue
-        schema = parameter.setdefault("schema", {})
-        if isinstance(schema, dict):
-            schema["maxLength"] = MAX_IDEMPOTENCY_KEY_LENGTH
-        description = parameter.get("description") or ""
-        if _IDEMPOTENCY_HEADER_DESCRIPTION not in description:
-            parameter["description"] = f"{description} {_IDEMPOTENCY_HEADER_DESCRIPTION}".strip()
+        _ensure_idempotency_header_schema_bound(parameter)
+        _ensure_idempotency_header_description(parameter)
+
+
+def _is_idempotency_header_parameter(parameter: Any) -> bool:
+    return (
+        isinstance(parameter, dict)
+        and parameter.get("name") == "Idempotency-Key"
+        and parameter.get("in") == "header"
+    )
+
+
+def _ensure_idempotency_header_schema_bound(parameter: dict[str, Any]) -> None:
+    schema = parameter.setdefault("schema", {})
+    if isinstance(schema, dict):
+        schema["maxLength"] = MAX_IDEMPOTENCY_KEY_LENGTH
+
+
+def _ensure_idempotency_header_description(parameter: dict[str, Any]) -> None:
+    description = parameter.get("description") or ""
+    if _IDEMPOTENCY_HEADER_DESCRIPTION not in description:
+        parameter["description"] = f"{description} {_IDEMPOTENCY_HEADER_DESCRIPTION}".strip()
 
 
 def _ensure_schema_documentation(schema: dict[str, Any]) -> None:
+    schemas = _component_schemas(schema)
+    for model_name, model_schema in _iter_component_model_schemas(schemas):
+        _ensure_model_example_documentation(model_name, model_schema, schemas)
+        _ensure_model_property_documentation(model_name, model_schema, schemas)
+
+
+def _component_schemas(schema: dict[str, Any]) -> dict[str, Any]:
     components = schema.get("components", {})
-    schemas = components.get("schemas", {})
-    if not isinstance(schemas, dict):
-        schemas = {}
-    for model_name, model_schema in schemas.items():
-        if not isinstance(model_schema, dict):
-            continue
-        if "example" in model_schema:
-            model_schema["example"] = _repair_example_against_schema(
-                str(model_name),
-                model_schema["example"],
-                model_schema,
-                schemas,
-            )
-        properties = model_schema.get("properties", {})
-        if not isinstance(properties, dict):
-            continue
-        for prop_name, prop_schema in properties.items():
-            if not isinstance(prop_schema, dict):
-                continue
-            if not prop_schema.get("description"):
-                prop_schema["description"] = _infer_description(model_name, prop_name, prop_schema)
-            if "example" not in prop_schema:
-                prop_schema["example"] = _infer_example(prop_name, prop_schema, schemas)
-            else:
-                prop_schema["example"] = _repair_example_against_schema(
-                    prop_name,
-                    prop_schema["example"],
-                    prop_schema,
-                    schemas,
-                )
+    schemas = components.get("schemas", {}) if isinstance(components, dict) else {}
+    return schemas if isinstance(schemas, dict) else {}
+
+
+def _iter_component_model_schemas(
+    schemas: dict[str, Any],
+) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (str(model_name), model_schema)
+        for model_name, model_schema in schemas.items()
+        if isinstance(model_schema, dict)
+    ]
+
+
+def _ensure_model_example_documentation(
+    model_name: str,
+    model_schema: dict[str, Any],
+    schemas: dict[str, Any],
+) -> None:
+    if "example" in model_schema:
+        model_schema["example"] = _repair_example_against_schema(
+            model_name,
+            model_schema["example"],
+            model_schema,
+            schemas,
+        )
+
+
+def _ensure_model_property_documentation(
+    model_name: str,
+    model_schema: dict[str, Any],
+    schemas: dict[str, Any],
+) -> None:
+    for prop_name, prop_schema in _iter_model_properties(model_schema):
+        _ensure_property_description(model_name, prop_name, prop_schema)
+        _ensure_property_example(prop_name, prop_schema, schemas)
+
+
+def _iter_model_properties(model_schema: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    properties = model_schema.get("properties", {})
+    if not isinstance(properties, dict):
+        return []
+    return [
+        (str(prop_name), prop_schema)
+        for prop_name, prop_schema in properties.items()
+        if isinstance(prop_schema, dict)
+    ]
+
+
+def _ensure_property_description(
+    model_name: str,
+    prop_name: str,
+    prop_schema: dict[str, Any],
+) -> None:
+    if not prop_schema.get("description"):
+        prop_schema["description"] = _infer_description(model_name, prop_name, prop_schema)
+
+
+def _ensure_property_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    schemas: dict[str, Any],
+) -> None:
+    if "example" not in prop_schema:
+        prop_schema["example"] = _infer_example(prop_name, prop_schema, schemas)
+        return
+    prop_schema["example"] = _repair_example_against_schema(
+        prop_name,
+        prop_schema["example"],
+        prop_schema,
+        schemas,
+    )
 
 
 def _ensure_media_example_documentation(schema: dict[str, Any]) -> None:
-    components = schema.get("components", {})
-    schemas = components.get("schemas", {})
-    if not isinstance(schemas, dict):
-        schemas = {}
+    schemas = _component_schemas(schema)
     paths = schema.get("paths", {})
     if not isinstance(paths, dict):
         return
