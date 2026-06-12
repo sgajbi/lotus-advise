@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-778
+
+- Scope: Proposal alternatives request normalization
+- Pattern: Alternatives request normalization should separate request-shape guards, selection-mode
+  compatibility, deferred-objective rejection, normalized DTO projection, and missing-evidence
+  inference.
+- Status: Hardened
+- Finding Class: Advisory alternatives modularity and evidence-governance clarity
+- Summary: `normalize_alternatives_request` and `_infer_missing_evidence_reason_codes` mixed
+  enabled-state handling, objective presence checks, maximum-result limits, selection-mode rules,
+  deferred-objective rejection, normalized DTO construction, and conditional evidence inference in
+  compact helpers. These paths guard advisor-facing alternatives generation and selection writes, so
+  splitting the validation and evidence-inference responsibilities makes the contract easier to
+  audit without changing error codes, error details, normalized payload shape, or missing-evidence
+  reason codes.
+- Evidence:
+  - Extracted request validation helpers for required objectives, maximum alternatives,
+    selection-mode compatibility, supported objectives, normalized DTO projection, and
+    evidence-specific missing-reason inference.
+  - Preserved disabled-request handling, `ALTERNATIVES_*` error codes and details, selection-mode
+    behavior, deferred-objective rejection, and evidence requirement propagation.
+  - Added focused coverage proving declared restricted-product and mandate evidence suppress the
+    corresponding inferred missing-evidence reason codes.
+  - Radon reports no B-ranked blocks in `src/core/advisory/alternatives_normalizer.py`.
+  - Focused alternatives tests passed with 31 tests, and `ruff`, `mypy`, format check, diff check,
+    and Radon checks passed.
+- Consequence:
+  - Alternatives request normalization remains behavior-compatible while validation and
+    evidence-governance rules are independently testable and easier to review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    alternatives request-normalization maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked alternatives strategy-input and enrichment helpers with focused
+    behavior-preservation tests.
+
 ## LA-REV-777
 
 - Scope: Proposal alternatives ranking projection
