@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-763
+
+- Scope: Advisor cockpit report/render/archive readiness projection
+- Pattern: Report readiness projection should separate report-package evidence gaps,
+  archive-reference evidence gaps, and shared action-source construction.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and report evidence correctness
+- Summary: `_report_readiness_source` mixed memo readiness filtering, missing report-package
+  handling, missing archive-reference handling, owner-role assignment, and action-source DTO
+  construction in one helper. This projection feeds reporting-owner and archive-owner cockpit
+  queues, so splitting the evidence-gap branches makes report/render/archive supportability easier
+  to audit without changing action semantics.
+- Evidence:
+  - Extracted report-package missing, archive-reference missing, and shared readiness action-source
+    construction helpers.
+  - Preserved READY-only projection, missing report-package readiness ids, archive-reference
+    readiness ids, owner roles, summaries, materiality ranks, memo lineage, content hash, and
+    proposal portfolio lookup behavior.
+  - Added focused coverage proving ready memos with report package events but no archive refs emit
+    `ARCHIVE_REF_MISSING` for `ARCHIVE_OWNER`.
+  - Radon reports no B-ranked blocks in
+    `src/core/advisor_cockpit/source_projection_reporting.py`.
+  - Focused advisor cockpit source-read-model tests passed with 15 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit report readiness projection remains behavior-compatible while report-package
+    and archive-reference evidence gaps can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-projection maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked action-building, SLA, service
+    projection, and acknowledgement helpers.
+
 ## LA-REV-762
 
 - Scope: Advisor cockpit tactical house-view source loading

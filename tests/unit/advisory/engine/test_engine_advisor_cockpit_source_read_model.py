@@ -64,9 +64,15 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
         REPO_ROOT / "src/core/advisor_cockpit/source_projection_execution.py"
     ).read_text(encoding="utf-8")
 
-    assert "def _report_readiness_source(" not in read_model_source
-    assert "def _report_readiness_source(" not in projection_source
-    assert "def _report_readiness_source(" in reporting_source
+    for helper_name in (
+        "_report_readiness_source",
+        "_report_package_readiness_source",
+        "_archive_ref_readiness_source",
+        "_report_readiness_action_source",
+    ):
+        assert f"def {helper_name}(" not in read_model_source
+        assert f"def {helper_name}(" not in projection_source
+        assert f"def {helper_name}(" in reporting_source
 
     for helper_name in (
         "_execution_handoff_source",
@@ -153,7 +159,13 @@ def test_source_projection_delegates_reporting_projection_rules() -> None:
     assert "from src.core.advisor_cockpit.source_projection_reporting import" in projection_source
     assert "build_report_render_archive_sources" in projection_source
     assert "def _report_readiness_source(" not in projection_source
+    assert "def _report_package_readiness_source(" not in projection_source
+    assert "def _archive_ref_readiness_source(" not in projection_source
+    assert "def _report_readiness_action_source(" not in projection_source
     assert "def _report_readiness_source(" in reporting_source
+    assert "def _report_package_readiness_source(" in reporting_source
+    assert "def _archive_ref_readiness_source(" in reporting_source
+    assert "def _report_readiness_action_source(" in reporting_source
 
 
 def test_source_projection_delegates_execution_projection_rules() -> None:
@@ -457,6 +469,32 @@ def test_source_read_model_keeps_policy_and_memo_lineage_hashes() -> None:
         action.reason_codes == ["MEMO_FINALIZATION_REQUIRED", "CLIENT_READY_BLOCKED"]
         for action in read_model.action_items
     )
+
+
+def test_source_read_model_marks_ready_memo_missing_archive_reference() -> None:
+    read_model = build_advisor_cockpit_source_read_model(
+        AdvisorCockpitSourceBatch(
+            proposals=[_proposal("EXECUTION_READY")],
+            memos=[
+                _memo(
+                    memo_status="READY",
+                    memo_id="memo_sg_archive_missing",
+                    review_events=[{"event_type": "MEMO_REVIEW_RECORDED"}],
+                    report_events=[{"event_type": "MEMO_REPORT_PACKAGE_REQUESTED"}],
+                )
+            ],
+        )
+    )
+
+    assert [source.readiness_code for source in read_model.report_render_archive_items] == [
+        "ARCHIVE_REF_MISSING"
+    ]
+    assert [source.owner_role for source in read_model.report_render_archive_items] == [
+        "ARCHIVE_OWNER"
+    ]
+    assert [source.lineage_id for source in read_model.report_render_archive_items] == [
+        "proposal_memo:memo_sg_archive_missing"
+    ]
 
 
 def test_source_read_model_suppresses_completed_approval_dependencies() -> None:
