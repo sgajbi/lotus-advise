@@ -182,6 +182,23 @@ def test_tactical_house_view_minimum_exposure_requires_source_exposure_evidence(
     )
 
 
+def test_tactical_house_view_minimum_exposure_excludes_below_threshold_candidate() -> None:
+    payload = _request().model_dump(mode="json")
+    payload["candidate_portfolios"][0]["current_exposure_weight"] = "0.05"
+    request = TacticalHouseViewCohortRequest.model_validate(payload)
+
+    cohort = build_tactical_house_view_affected_cohort(
+        request,
+        generated_at=datetime(2026, 5, 14, 8, 0, tzinfo=timezone.utc),
+    )
+
+    assert cohort.affected_portfolios == []
+    assert cohort.excluded_portfolios[1].portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert "TACTICAL_HOUSE_VIEW_EXPOSURE_BELOW_MINIMUM" in (
+        cohort.excluded_portfolios[1].exclusion_reason_codes
+    )
+
+
 def test_tactical_house_view_candidate_requires_source_refs() -> None:
     payload = _request().model_dump(mode="json")
     payload["candidate_portfolios"][0]["source_refs"] = []

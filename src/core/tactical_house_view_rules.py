@@ -26,15 +26,27 @@ def candidate_exclusion_reasons(
         reasons.append("TACTICAL_HOUSE_VIEW_ALREADY_ALIGNED")
     if candidate.alignment_signal == "UNKNOWN":
         reasons.append("TACTICAL_HOUSE_VIEW_ALIGNMENT_UNKNOWN")
-    if min_exposure_weight is not None and candidate.current_exposure_weight is None:
-        reasons.append("TACTICAL_HOUSE_VIEW_EXPOSURE_EVIDENCE_MISSING")
-    if (
-        min_exposure_weight is not None
-        and candidate.current_exposure_weight is not None
-        and candidate.current_exposure_weight < min_exposure_weight
-    ):
-        reasons.append("TACTICAL_HOUSE_VIEW_EXPOSURE_BELOW_MINIMUM")
+    reasons.extend(
+        exposure_exclusion_reasons(
+            current_exposure_weight=candidate.current_exposure_weight,
+            min_exposure_weight=min_exposure_weight,
+        )
+    )
     return reasons
+
+
+def exposure_exclusion_reasons(
+    *,
+    current_exposure_weight: Decimal | None,
+    min_exposure_weight: Decimal | None,
+) -> list[str]:
+    if min_exposure_weight is None:
+        return []
+    if current_exposure_weight is None:
+        return ["TACTICAL_HOUSE_VIEW_EXPOSURE_EVIDENCE_MISSING"]
+    if current_exposure_weight < min_exposure_weight:
+        return ["TACTICAL_HOUSE_VIEW_EXPOSURE_BELOW_MINIMUM"]
+    return []
 
 
 def candidate_inclusion_reason_codes(
@@ -92,6 +104,7 @@ __all__ = [
     "candidate_exclusion_reasons",
     "candidate_inclusion_reason_codes",
     "dedupe_source_refs",
+    "exposure_exclusion_reasons",
     "normalize_portfolio_type",
     "supportability",
 ]

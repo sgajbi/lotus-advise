@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-776
+
+- Scope: Tactical house-view candidate exclusion rules
+- Pattern: Candidate eligibility rules should separate mandate/type/alignment decisions from
+  source-backed exposure-threshold evidence checks.
+- Status: Hardened
+- Finding Class: Tactical house-view modularity and source-evidence threshold proof
+- Summary: `candidate_exclusion_reasons` mixed portfolio-type eligibility, discretionary mandate
+  checks, alignment-state checks, missing exposure evidence, and below-threshold exposure decisions
+  in one branch-heavy helper. The affected-cohort product must remain source-owned and auditable, so
+  isolating exposure-threshold decisions makes the exclusion policy easier to review without
+  changing emitted reason codes or cohort shape.
+- Evidence:
+  - Extracted `exposure_exclusion_reasons` for missing and below-minimum exposure decisions while
+    preserving existing exclusion reason codes and order.
+  - Added focused coverage proving a source-backed candidate below the configured minimum exposure
+    threshold is excluded with `TACTICAL_HOUSE_VIEW_EXPOSURE_BELOW_MINIMUM`.
+  - Radon reports no B-ranked blocks in `src/core/tactical_house_view_rules.py`.
+  - Focused tactical house-view tests passed with 7 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Tactical house-view affected-cohort behavior remains behavior-compatible while the exposure
+    evidence rule is independently testable and auditable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-product rule maintainability hardening for existing tactical house-view behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory source-product and projection helpers with focused
+    behavior-preservation tests.
+
 ## LA-REV-775
 
 - Scope: Lotus AI advisory copilot request reason sanitization
