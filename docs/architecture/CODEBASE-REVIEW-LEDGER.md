@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-769
+
+- Scope: Bank-demo commercial material validation
+- Pattern: Commercial material pack invariants and repository source-reference checks should be
+  isolated from Pydantic model orchestration.
+- Status: Hardened
+- Finding Class: Bank-demo proof material modularity and source-reference validation
+- Summary: `CommercialMaterialPack._materials_must_map_to_required_claims` mixed required-versus
+  blocked claim validation, material-id uniqueness, per-material mapping checks, blocked-claim
+  exclusion checks, and aggregate required-claim coverage in one model validator. The same module
+  also embedded repository-local source-reference location and path-safety rules in branch-heavy
+  helpers. Splitting those invariants makes commercial proof-material validation easier to review
+  without changing the governed material-pack contract.
+- Evidence:
+  - Extracted pack invariant helpers for distinct required/blocked claims, unique material ids,
+    per-material mapping validation, blocked-claim exclusion, and aggregate required-claim
+    coverage.
+  - Extracted repository source-reference helpers for non-local location detection, absolute-path
+    detection, path segmentation, parent-directory rejection, and sensitive path-part rejection.
+  - Added focused coverage for absolute repository source refs and parent-directory traversal while
+    preserving existing query-string, sensitive-copy, duplicate, blocked-claim, and claim-mapping
+    behavior.
+  - Radon reports no B-ranked blocks in `src/core/bank_demo_proof/commercial_materials.py`.
+  - Focused commercial material tests passed with 8 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Bank-demo commercial material validation remains behavior-compatible while claim-governance and
+    source-reference safety rules are easier to audit independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    validation maintainability hardening for existing bank-demo proof material behavior.
+- Follow-Up:
+  - Continue reducing the remaining bank-demo proof and AI copilot B-ranked hotspots with focused
+    behavior-preserving tests.
+
 ## LA-REV-768
 
 - Scope: Advisor cockpit acknowledgement orchestration
