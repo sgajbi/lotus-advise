@@ -90,3 +90,53 @@ def test_suitability_restricted_increase_respects_allowed_posture(
     assert issue.approval_implication == expected_gate
     assert issue.details["allow_restricted"] == expected_allow_value
     assert result.recommended_gate == expected_gate
+
+
+def test_suitability_restricted_buy_requires_mandate_context_when_missing() -> None:
+    before = _state(instrument_weights={"EQ_RESTRICTED": "0.05", "EQ_B": "0.95"})
+    after = _state(instrument_weights={"EQ_RESTRICTED": "0.10", "EQ_B": "0.90"})
+    options = EngineOptions(
+        allow_restricted=True,
+        suitability_thresholds={
+            "single_position_max_weight": "1.00",
+            "issuer_max_weight": "1.00",
+            "max_weight_by_liquidity_tier": {},
+            "cash_band_min_weight": "0",
+            "cash_band_max_weight": "1",
+        },
+    )
+
+    result = compute_suitability_result(
+        before=before,
+        after=after,
+        shelf=[
+            ShelfEntry(
+                instrument_id="EQ_RESTRICTED",
+                status="RESTRICTED",
+                issuer_id="ISS_RESTRICTED",
+                liquidity_tier="L1",
+            ),
+            ShelfEntry(
+                instrument_id="EQ_B",
+                status="APPROVED",
+                issuer_id="ISS_B",
+                liquidity_tier="L1",
+            ),
+        ],
+        options=options,
+        portfolio_snapshot_id="pf_restricted_missing_mandate",
+        market_data_snapshot_id="md_restricted_missing_mandate",
+        proposed_trades=[{"side": "BUY", "instrument_id": "EQ_RESTRICTED"}],
+        policy_context={"mandate_context_status": "MISSING"},
+    )
+
+    mandate_issue = next(
+        issue
+        for issue in result.issues
+        if issue.issue_id == "MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE"
+    )
+    assert mandate_issue.details == {
+        "instrument_id": "EQ_RESTRICTED",
+        "shelf_status": "RESTRICTED",
+    }
+    assert mandate_issue.approval_implication == "MANDATE_EXCEPTION_APPROVAL"

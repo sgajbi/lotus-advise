@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-773
+
+- Scope: Suitability post-trade issue evaluation
+- Pattern: Post-trade suitability evaluators should separate trade scanning, shelf-status
+  decisions, product-complexity evidence checks, mandate-context checks, and issue construction.
+- Status: Hardened
+- Finding Class: Suitability modularity and private-banking governance evidence
+- Summary: `append_governance_trade_attempt_issues`, `append_product_complexity_issues`, and
+  `append_restricted_product_mandate_context_issues` mixed proposed-trade scanning, shelf lookup,
+  status-specific issue decisions, context availability checks, exposure-increase comparisons, and
+  issue DTO construction. These paths shape compliance, risk, client-context, and mandate-exception
+  gates, so splitting the rule families makes the private-banking suitability posture easier to
+  audit without changing emitted issue semantics.
+- Evidence:
+  - Extracted BUY instrument scanning, governance issue selection, SELL_ONLY issue construction,
+    RESTRICTED issue construction, governance weight details, product-complexity evidence checks,
+    exposure-increase checks, product-complexity issue construction, mandate-context checks, and
+    restricted-product mandate issue selection.
+  - Preserved SELL_ONLY compliance review, RESTRICTED risk/compliance severity based on
+    `allow_restricted`, client product-complexity evidence behavior, mandate-context suppression
+    when context is available, and deterministic issue-key construction.
+  - Added focused coverage proving a restricted BUY with missing mandate context emits
+    `MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE` with mandate-exception approval implication.
+  - Radon reports no B-ranked blocks in `src/core/common/suitability_post_trade_issues.py`.
+  - Focused suitability scanner and governance tests passed with 12 tests, and `ruff`, `mypy`,
+    format check, diff check, and Radon checks passed.
+- Consequence:
+  - Suitability post-trade governance behavior remains behavior-compatible while compliance,
+    risk, client-context, and mandate-context decisions are independently reviewable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    suitability maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing remaining Lotus AI output-safety and advisory-copilot request-safety
+    helpers with focused fail-closed tests.
+
 ## LA-REV-772
 
 - Scope: Advisory copilot run pagination cursor decoding
