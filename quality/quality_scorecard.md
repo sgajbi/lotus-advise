@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `harden/advisor-cockpit-action-factory`
-- Head: `a8641401f210a568921138ecebd3ee5d30123705`
+- Head: `003968c349deae7a9e1345576c0d57f19dfb654e`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |
