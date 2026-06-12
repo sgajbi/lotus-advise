@@ -9,6 +9,8 @@ from src.core.advisory_copilot import (
     CopilotAudience,
     CopilotEvidencePacket,
     CopilotGuardrailReasonCode,
+    CopilotLineageRef,
+    CopilotSourceRef,
     evaluate_copilot_guardrails,
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
@@ -316,26 +318,44 @@ def _build_lineage(
 
 
 def _proposal_version_id(evidence_packet: CopilotEvidencePacket) -> str | None:
+    return _proposal_version_lineage_id(evidence_packet) or _proposal_version_source_id(
+        evidence_packet
+    )
+
+
+def _proposal_version_lineage_id(evidence_packet: CopilotEvidencePacket) -> str | None:
     for lineage_ref in evidence_packet.lineage_refs:
-        lineage_id = lineage_ref.lineage_id
-        if (
-            lineage_ref.source_system == "lotus-advise"
-            and lineage_ref.lineage_type == "PROPOSAL_VERSION"
-            and isinstance(lineage_id, str)
-            and lineage_id
-        ):
-            return lineage_id
+        if _is_proposal_version_lineage_ref(lineage_ref):
+            return lineage_ref.lineage_id
+    return None
+
+
+def _is_proposal_version_lineage_ref(lineage_ref: CopilotLineageRef) -> bool:
+    return (
+        lineage_ref.source_system == "lotus-advise"
+        and lineage_ref.lineage_type == "PROPOSAL_VERSION"
+        and _is_present_string(lineage_ref.lineage_id)
+    )
+
+
+def _proposal_version_source_id(evidence_packet: CopilotEvidencePacket) -> str | None:
     for section in evidence_packet.sections:
         for source_ref in section.source_refs:
-            source_id = source_ref.source_id
-            if (
-                source_ref.source_system == "lotus-advise"
-                and source_ref.source_type == "PROPOSAL_VERSION"
-                and isinstance(source_id, str)
-                and source_id
-            ):
-                return source_id
+            if _is_proposal_version_source_ref(source_ref):
+                return source_ref.source_id
     return None
+
+
+def _is_proposal_version_source_ref(source_ref: CopilotSourceRef) -> bool:
+    return (
+        source_ref.source_system == "lotus-advise"
+        and source_ref.source_type == "PROPOSAL_VERSION"
+        and _is_present_string(source_ref.source_id)
+    )
+
+
+def _is_present_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value)
 
 
 def _proposal_version_no(evidence_packet: CopilotEvidencePacket) -> int | None:

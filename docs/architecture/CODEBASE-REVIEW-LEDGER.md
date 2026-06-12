@@ -1,5 +1,110 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-745
+
+- Scope: Persistent proposal listing query assembly
+- Pattern: Persistent repository list queries should separate optional filter assembly, cursor
+  predicate assembly, SQL rendering, and page projection so keyset pagination remains auditable
+  without concentrating query-shape logic in one function.
+- Status: Hardened
+- Finding Class: Persistent proposal query complexity and pagination maintainability
+- Summary: `list_proposals` mixed optional filter selection, cursor filter mirroring, keyset
+  cursor subquery construction, SQL rendering, argument ordering, database execution, row mapping,
+  and next-cursor projection in one C-ranked repository helper. This path owns persisted proposal
+  list pagination, so the existing SQL shape and argument order should remain behavior-compatible
+  while query responsibilities become inspectable in small helpers.
+- Evidence:
+  - Extracted focused helpers for optional filter specs, filter SQL accumulation, cursor predicate
+    application, cursor subquery rendering, list query rendering, and page/next-cursor projection.
+  - Preserved existing keyset ordering, cursor filter mirroring, invalid-cursor empty result
+    behavior, `limit + 1` fetch behavior, and argument ordering asserted by repository tests.
+  - Existing focused Postgres repository tests passed, including filtered listing, cursor
+    pagination, mismatched cursor filter handling, invalid cursor handling, and keyset limit
+    assertions.
+  - Radon now reports `list_proposals` as A-ranked complexity `1`, down from C-ranked complexity
+    `12`.
+  - Source-only Radon now reports no C-ranked `src/` hotspots.
+  - Focused Postgres repository Radon and unit tests passed with 19 tests.
+- Consequence:
+  - Persisted advisory proposal listing remains behavior-compatible while SQL assembly and cursor
+    pagination rules are easier to review and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal repository-query hardening for existing proposal listing behavior.
+- Follow-Up:
+  - Continue with B-ranked complexity, query-shape, and architecture-boundary hardening in scoped
+    future slices.
+
+## LA-REV-744
+
+- Scope: Lotus AI advisory copilot proposal-version lineage extraction
+- Pattern: Proposal-version lineage extraction should separate lineage-ref matching from
+  section-source-ref fallback so AI lineage projection remains auditable without duplicating
+  source-system/type predicates.
+- Status: Hardened
+- Finding Class: Lotus AI integration complexity and lineage maintainability
+- Summary: `_proposal_version_id` duplicated Lotus Advise proposal-version matching across
+  top-level copilot lineage refs and section source refs in one C-ranked helper. This integration
+  boundary contributes proposal-version continuity to advisory copilot lineage, so the fallback
+  order should remain behavior-compatible while source matching is inspectable through focused
+  predicates.
+- Evidence:
+  - Extracted focused helpers for proposal-version lineage id lookup, proposal-version source id
+    fallback lookup, lineage-ref matching, source-ref matching, and present-string checks.
+  - Preserved the existing precedence where Lotus Advise `PROPOSAL_VERSION` lineage refs win
+    before section-level Lotus Advise `PROPOSAL_VERSION` source refs.
+  - Added focused coverage proving unrelated proposal-version lineage refs and non-version Advise
+    lineage refs are ignored before using the valid section source-ref fallback.
+  - Radon now reports `_proposal_version_id` as A-ranked complexity `2`, down from C-ranked
+    complexity `12`.
+  - Source-only Radon now reports one remaining C-ranked `src/` hotspot.
+  - Focused Lotus AI advisory copilot Radon and unit tests passed with 14 tests.
+- Consequence:
+  - Advisory copilot lineage remains behavior-compatible while proposal-version continuity logic is
+    easier to audit as workflow-pack lineage families expand.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal integration-lineage hardening for existing advisory copilot behavior.
+- Follow-Up:
+  - Continue with persistent proposal listing, the last remaining C-ranked source hotspot.
+
+## LA-REV-743
+
+- Scope: RFC-0028 proof-pack contract-reference normalization
+- Pattern: Logical contract-reference validation should separate text normalization, scheme
+  authority, credential/query/fragment rejection, path presence, traversal rejection, and
+  sensitive-detail checks so proof-pack reference governance remains auditable.
+- Status: Hardened
+- Finding Class: Bank-demo proof contract-reference validation complexity and sensitive-reference
+  hygiene
+- Summary: `normalize_lotus_advise_contract_ref` mixed required-text normalization, control
+  character rejection, Lotus Advise logical URI validation, credential/query/fragment rejection,
+  path extraction, traversal rejection, and sensitive-term rejection in one C-ranked function. This
+  validator protects RFC-0028 proof-pack contract identifiers, so the public Pydantic behavior
+  should remain compatible while each safety rule is inspectable independently.
+- Evidence:
+  - Extracted focused helpers for control-character rejection, Lotus Advise logical contract-ref
+    requirements, credential/query/fragment rejection, path extraction, path presence, and
+    parent-directory traversal rejection.
+  - Preserved existing validation messages for non-Lotus-Advise refs, credentials/query/fragment
+    material, sensitive technical detail, and parent-directory traversal.
+  - Added focused proof-pack model coverage for NUL control-character rejection and missing
+    contract-path rejection, complementing existing unsafe scheme, query, sensitive term, and
+    traversal coverage.
+  - Radon now reports `normalize_lotus_advise_contract_ref` as A-ranked complexity `2`, down from
+    C-ranked complexity `14`.
+  - Source-only Radon now reports two remaining C-ranked `src/` hotspots.
+  - Focused proof-pack model Radon and unit tests passed with 11 tests.
+- Consequence:
+  - RFC-0028 logical contract-reference validation remains behavior-compatible and easier to audit,
+    reducing the risk that future proof-pack reference changes loosen sensitive or unsafe logical
+    reference handling.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proof-pack validator hardening for existing RFC-0028 behavior.
+- Follow-Up:
+  - Continue with persistent proposal listing and Lotus AI proposal-version C-ranked hotspots.
+
 ## LA-REV-742
 
 - Scope: RFC-0028 supported-claim classification validator

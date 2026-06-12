@@ -89,6 +89,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Before/After Evidence" in scorecard
     assert "does not claim bank" in scorecard
     assert "Proposal input models are split" in refactor_health
+    assert "Advisory-copilot proposal-version lineage extraction delegates" in refactor_health
     assert "Advisory simulation orchestration is split" in refactor_health
     assert "Feature capability catalog assembly is split" in refactor_health
     assert "Workflow capability catalog assembly is split" in refactor_health
@@ -101,6 +102,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Bank-demo commercial material pack assembly delegates" in refactor_health
     assert "Bank-demo commercial material register validation delegates" in refactor_health
     assert "Bank-demo supported-claim classification validation delegates" in refactor_health
+    assert "Bank-demo proof-pack contract-reference normalization delegates" in refactor_health
     assert "evidence-bundle, and hash finalization" in refactor_health
     assert "Advisory auto-funding planning delegates FX source selection" in refactor_health
     assert "Policy source-readiness assembly is split" in refactor_health
@@ -150,6 +152,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Local position valuation delegates" in refactor_health
     assert "Enterprise write authorization delegates" in refactor_health
     assert "In-memory proposal listing delegates" in refactor_health
+    assert "Persistent proposal listing delegates" in refactor_health
     assert "OpenAPI operation enrichment delegates" in refactor_health
     assert "OpenAPI example repair delegates" in refactor_health
     assert "OpenAPI field-description inference delegates" in refactor_health

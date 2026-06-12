@@ -296,7 +296,18 @@ def test_generate_advisory_copilot_extracts_proposal_version_from_source_refs(
     )
     packet = _packet().model_copy(
         update={
-            "lineage_refs": (),
+            "lineage_refs": (
+                CopilotLineageRef(
+                    lineage_type="PROPOSAL_VERSION",
+                    lineage_id="external_version_ignored",
+                    source_system="lotus-core",
+                ),
+                CopilotLineageRef(
+                    lineage_type="POLICY_EVALUATION",
+                    lineage_id="policy_eval_not_version",
+                    source_system="lotus-advise",
+                ),
+            ),
             "sections": (_packet().sections[0].model_copy(update={"source_refs": (source_ref,)}),),
         }
     )

@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/supported-claim-classification`
-- Head: `3eceba04dcd6509f418f0d703e64c6280c899880`
-- Branch Commits Over Main: `0`
+- Branch: `harden/contract-ref-normalization`
+- Head: `1fa103f039031319165dca6a5855082779be3cbd`
+- Branch Commits Over Main: `2`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -14,6 +14,8 @@
 - Advisory-copilot API DTOs are split into request, response, limits, and compatibility
   modules.
 - Advisory-copilot source projections and run-record limits have focused owner modules.
+- Advisory-copilot proposal-version lineage extraction delegates lineage-ref and
+  section-source-ref matching to focused helpers.
 - Advisory simulation orchestration is split into intent planning, review policy,
   and decision-support modules with focused boundary tests.
 - Feature capability catalog assembly is split into foundation, evidence-product,
@@ -40,6 +42,8 @@
   reference aggregation, and client-facing claim-posture checks to focused helpers.
 - Bank-demo supported-claim classification validation delegates evidence,
   proof-reference, planned/unsupported, and UI-pending posture checks to focused helpers.
+- Bank-demo proof-pack contract-reference normalization delegates scheme, credential,
+  path, traversal, and sensitive-detail checks to focused helpers.
 - Bank-demo journey integration proof DTOs and validators are split into a focused
   model owner while preserving the proof summary builder and public import path.
 - Proposal artifact assembly delegates portfolio, summary, trade/funding, review,
@@ -177,6 +181,8 @@
   focused helpers.
 - In-memory proposal listing delegates filter matching, cursor slicing, and
   next-cursor calculation to focused query helpers.
+- Persistent proposal listing delegates filter SQL, cursor SQL, query rendering,
+  and page projection to focused helpers.
 - OpenAPI operation enrichment delegates operation eligibility, default
   summary/description, tag inference, error response, and idempotency header handling.
 - OpenAPI example repair delegates array, object-property, required-field,

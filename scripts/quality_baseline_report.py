@@ -727,6 +727,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Advisory-copilot API DTOs are split into request, response, limits, and compatibility",
         "  modules.",
         "- Advisory-copilot source projections and run-record limits have focused owner modules.",
+        "- Advisory-copilot proposal-version lineage extraction delegates lineage-ref and",
+        "  section-source-ref matching to focused helpers.",
         "- Advisory simulation orchestration is split into intent planning, review policy,",
         "  and decision-support modules with focused boundary tests.",
         "- Feature capability catalog assembly is split into foundation, evidence-product,",
@@ -753,6 +755,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  reference aggregation, and client-facing claim-posture checks to focused helpers.",
         "- Bank-demo supported-claim classification validation delegates evidence,",
         "  proof-reference, planned/unsupported, and UI-pending posture checks to focused helpers.",
+        "- Bank-demo proof-pack contract-reference normalization delegates scheme, credential,",
+        "  path, traversal, and sensitive-detail checks to focused helpers.",
         "- Bank-demo journey integration proof DTOs and validators are split into a focused",
         "  model owner while preserving the proof summary builder and public import path.",
         "- Proposal artifact assembly delegates portfolio, summary, trade/funding, review,",
@@ -890,6 +894,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused helpers.",
         "- In-memory proposal listing delegates filter matching, cursor slicing, and",
         "  next-cursor calculation to focused query helpers.",
+        "- Persistent proposal listing delegates filter SQL, cursor SQL, query rendering,",
+        "  and page projection to focused helpers.",
         "- OpenAPI operation enrichment delegates operation eligibility, default",
         "  summary/description, tag inference, error response, and idempotency header handling.",
         "- OpenAPI example repair delegates array, object-property, required-field,",
@@ -1073,7 +1079,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-742` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-745` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
