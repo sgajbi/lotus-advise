@@ -56,6 +56,13 @@ _NUMBER_EXAMPLE_POLICIES = (
     (("pnl", "amount", "value"), 125000.5),
 )
 
+_STRING_SEMANTIC_EXAMPLE_POLICIES = (
+    (("date",), "2026-03-02"),
+    (("time", "timestamp"), "2026-03-02T10:30:00Z"),
+    (("status",), "ACTIVE"),
+    (("currency",), "USD"),
+)
+
 _TypedExampleBuilder = Callable[[str, dict[str, Any], dict[str, Any]], Any]
 
 
@@ -84,29 +91,54 @@ def _example_for_object_schema(
     properties = model_schema.get("properties")
     if not isinstance(properties, dict):
         return {"key": "sample_text"}
+    selected_names = _selected_object_example_property_names(model_schema, properties)
+    example = _object_property_examples(selected_names, properties, components)
+    return example or {"key": _to_snake_case(model_name)}
+
+
+def _selected_object_example_property_names(
+    model_schema: dict[str, Any],
+    properties: dict[str, Any],
+) -> list[str]:
     required = model_schema.get("required")
-    if not isinstance(required, list) or not required:
-        selected_names = list(properties.keys())[:3]
-    else:
-        selected_names = [str(name) for name in required]
+    if isinstance(required, list) and required:
+        return [str(name) for name in required]
+    return list(properties.keys())[:3]
+
+
+def _object_property_examples(
+    selected_names: list[str],
+    properties: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any]:
     example: dict[str, Any] = {}
     for prop_name in selected_names:
         prop_schema = properties.get(prop_name)
         if isinstance(prop_schema, dict):
             example[prop_name] = _infer_example(prop_name, prop_schema, components)
-    return example or {"key": _to_snake_case(model_name)}
+    return example
 
 
 def _infer_ref_example(prop_schema: dict[str, Any], components: dict[str, Any]) -> Any | None:
-    ref = prop_schema.get("$ref")
-    if not isinstance(ref, str):
+    resolved = _resolved_ref_model(prop_schema, components)
+    if resolved is None:
         return None
-    model_name = _ref_name(ref)
-    model_schema = components.get(model_name or "")
-    if isinstance(model_name, str) and isinstance(model_schema, dict):
-        if isinstance(model_schema.get("properties"), dict):
-            return _example_for_object_schema(model_name, model_schema, components)
-        return _infer_example(model_name, model_schema, components)
+    model_name, model_schema = resolved
+    if isinstance(model_schema.get("properties"), dict):
+        return _example_for_object_schema(model_name, model_schema, components)
+    return _infer_example(model_name, model_schema, components)
+
+
+def _resolved_ref_model(
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> tuple[str, dict[str, Any]] | None:
+    ref = prop_schema.get("$ref")
+    if isinstance(ref, str):
+        model_name = _ref_name(ref)
+        model_schema = components.get(model_name or "")
+        if isinstance(model_name, str) and isinstance(model_schema, dict):
+            return model_name, model_schema
     return None
 
 
@@ -233,14 +265,9 @@ def _string_identifier_example(key: str, _: dict[str, Any]) -> str | None:
 
 
 def _string_semantic_key_example(key: str, _: dict[str, Any]) -> str | None:
-    if "date" in key:
-        return "2026-03-02"
-    if "time" in key or "timestamp" in key:
-        return "2026-03-02T10:30:00Z"
-    if "status" in key:
-        return "ACTIVE"
-    if "currency" in key:
-        return "USD"
+    for markers, example in _STRING_SEMANTIC_EXAMPLE_POLICIES:
+        if any(marker in key for marker in markers):
+            return example
     return None
 
 

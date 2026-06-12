@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-756
+
+- Scope: OpenAPI object and reference example inference
+- Pattern: Generated object/reference/string example inference should separate object property
+  selection, referenced-model resolution, and semantic string marker policy from example assembly.
+- Status: Hardened
+- Finding Class: API contract quality and example-policy maintainability
+- Summary: The remaining OpenAPI example inference helpers still mixed required-property
+  selection, fallback property sampling, referenced-model lookup, object example assembly, and
+  semantic string examples in branch-heavy helpers. These paths affect generated schema and
+  response examples across the API contract, so isolating selection and policy decisions reduces
+  future drift risk while preserving generated examples.
+- Evidence:
+  - Extracted object example property selection and property-example assembly helpers.
+  - Extracted referenced-model resolution before object or scalar referenced example inference.
+  - Replaced semantic string branch chains with a named marker policy table.
+  - Preserved referenced object, composed object, enum, date, timestamp, status, currency, and
+    fallback string examples.
+  - Radon no longer reports `_example_for_object_schema`, `_infer_ref_example`, or
+    `_string_semantic_key_example` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - OpenAPI object/reference/string example policy remains behavior-compatible while object
+    selection, referenced schema lookup, and semantic string examples are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Consider whether the two remaining OpenAPI B/6 traversal iterators are worth reducing, or move
+    to a higher-risk source-only hotspot where the maintainability payoff is larger.
+
 ## LA-REV-755
 
 - Scope: OpenAPI scalar example inference
