@@ -354,6 +354,16 @@ def test_planned_unsupported_and_ui_pending_claims_cannot_use_client_materials()
             claim_text="External certification is planned.",
         )
 
+    with pytest.raises(ValidationError, match="cannot be client-facing"):
+        SupportedClaim(
+            claim_id="unsupported_security_pack",
+            title="Unsupported security pack",
+            classification="UNSUPPORTED",
+            audiences=["RFP_SECURITY"],
+            allowed_materials=["PRODUCT_ONE_PAGER"],
+            claim_text="External security pack publication is not supported.",
+        )
+
     with pytest.raises(ValidationError, match="cannot use screenshots"):
         SupportedClaim(
             claim_id="backend_only_claim",

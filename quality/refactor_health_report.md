@@ -1,7 +1,7 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/commercial-material-validation`
-- Head: `b5431d4501897c6e9ff48af499401b6f6f5d2c0a`
+- Branch: `harden/supported-claim-classification`
+- Head: `3eceba04dcd6509f418f0d703e64c6280c899880`
 - Branch Commits Over Main: `0`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
@@ -38,6 +38,8 @@
   a focused catalog module.
 - Bank-demo commercial material register validation delegates claim lookup,
   reference aggregation, and client-facing claim-posture checks to focused helpers.
+- Bank-demo supported-claim classification validation delegates evidence,
+  proof-reference, planned/unsupported, and UI-pending posture checks to focused helpers.
 - Bank-demo journey integration proof DTOs and validators are split into a focused
   model owner while preserving the proof summary builder and public import path.
 - Proposal artifact assembly delegates portfolio, summary, trade/funding, review,

@@ -1,5 +1,43 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-742
+
+- Scope: RFC-0028 supported-claim classification validator
+- Pattern: Supported-claim classification rules should separate implementation-backed evidence
+  requirements, proof-requirement reference integrity, planned/unsupported material posture, and
+  UI-pending material posture so proof-register governance stays auditable as claim families grow.
+- Status: Hardened
+- Finding Class: Bank-demo proof register complexity and claim-promotion governance
+- Summary: `SupportedClaim._classification_matches_evidence_and_materials` mixed
+  implementation-backed proof requirements, evidence-ref reconciliation, planned/unsupported
+  client-facing material rejection, and UI-pending screenshot/client-demo/material rejection in one
+  C-ranked model validator. This validator protects RFC-0028 supported claims from premature
+  promotion, so the public Pydantic contract should remain behavior-compatible while each
+  classification rule family is readable independently.
+- Evidence:
+  - Extracted helpers for implementation-backed evidence requirements, proof-requirement evidence
+    reference checks, planned/unsupported material checks, and backend-backed UI-pending material
+    checks.
+  - Preserved existing validation messages for missing implementation evidence, undeclared proof
+    requirement refs, planned/unsupported client-facing material, UI-pending screenshots,
+    UI-pending client-demo audiences, and UI-pending client-facing material.
+  - Added focused coverage proving `UNSUPPORTED` claims cannot use client-facing commercial
+    material, complementing existing planned and UI-pending classification coverage.
+  - Radon now reports `SupportedClaim._classification_matches_evidence_and_materials` as A-ranked
+    complexity `1`, down from C-ranked complexity `14`.
+  - Source-only Radon now reports three remaining C-ranked `src/` hotspots.
+  - Focused supported-claim model `ruff`, format check, Radon, and unit tests passed with 11 tests.
+- Consequence:
+  - RFC-0028 supported-claim promotion rules remain behavior-compatible and easier to audit,
+    reducing the risk that future proof or commercial-material changes loosen blocked
+    client-facing claims.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proof-register validator hardening for existing RFC-0028 behavior.
+- Follow-Up:
+  - Continue with contract-ref normalization, persistent proposal listing, and Lotus AI
+    proposal-version C-ranked hotspots.
+
 ## LA-REV-741
 
 - Scope: RFC-0028 commercial material register validation

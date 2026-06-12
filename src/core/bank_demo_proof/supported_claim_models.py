@@ -18,6 +18,13 @@ from src.core.bank_demo_proof.model_common import (
     normalize_required_text,
 )
 
+_PLANNED_OR_UNSUPPORTED_CLIENT_FACING_MATERIALS = frozenset(
+    {"SCREENSHOT", "PRODUCT_ONE_PAGER", "RFP_RESPONSE"}
+)
+_UI_PENDING_CLIENT_FACING_MATERIALS = frozenset(
+    {"PRODUCT_ONE_PAGER", "RFP_RESPONSE", "SECURITY_PACK"}
+)
+
 
 class SupportedClaimProofRequirement(BaseModel):
     requirement_id: str = Field(
@@ -102,40 +109,71 @@ class SupportedClaim(BaseModel):
 
     @model_validator(mode="after")
     def _classification_matches_evidence_and_materials(self) -> SupportedClaim:
-        if self.classification == "IMPLEMENTATION_BACKED" and (
-            not self.evidence_refs or not self.proof_requirements
-        ):
-            raise ValueError("IMPLEMENTATION_BACKED claims require evidence and proof requirements")
-        evidence_refs = set(self.evidence_refs)
-        missing_requirement_refs = [
-            requirement.evidence_ref
-            for requirement in self.proof_requirements
-            if requirement.evidence_ref not in evidence_refs
-        ]
-        if missing_requirement_refs:
-            raise ValueError("supported claim proof requirements must use declared evidence refs")
-        if self.classification in {"PLANNED_RFC", "UNSUPPORTED"}:
-            forbidden_materials = {"SCREENSHOT", "PRODUCT_ONE_PAGER", "RFP_RESPONSE"}
-            if forbidden_materials.intersection(self.allowed_materials):
-                raise ValueError("PLANNED_RFC and UNSUPPORTED claims cannot be client-facing")
-        if (
-            self.classification == "BACKEND_BACKED_UI_PENDING"
-            and "SCREENSHOT" in self.allowed_materials
-        ):
-            raise ValueError("BACKEND_BACKED_UI_PENDING claims cannot use screenshots")
-        if self.classification == "BACKEND_BACKED_UI_PENDING":
-            if "CLIENT_DEMO" in self.audiences:
-                raise ValueError("BACKEND_BACKED_UI_PENDING claims cannot target client demos")
-            forbidden_materials = {
-                "PRODUCT_ONE_PAGER",
-                "RFP_RESPONSE",
-                "SECURITY_PACK",
-            }
-            if forbidden_materials.intersection(self.allowed_materials):
-                raise ValueError(
-                    "BACKEND_BACKED_UI_PENDING claims cannot use client-facing materials"
-                )
+        _validate_implementation_backed_evidence(
+            self.classification,
+            self.evidence_refs,
+            self.proof_requirements,
+        )
+        _validate_claim_proof_requirement_refs(self.evidence_refs, self.proof_requirements)
+        _validate_planned_or_unsupported_materials(
+            self.classification,
+            self.allowed_materials,
+        )
+        _validate_ui_pending_materials(
+            self.classification,
+            self.audiences,
+            self.allowed_materials,
+        )
         return self
+
+
+def _validate_implementation_backed_evidence(
+    classification: SupportedClaimClassification,
+    evidence_refs: list[str],
+    proof_requirements: list[SupportedClaimProofRequirement],
+) -> None:
+    if classification == "IMPLEMENTATION_BACKED" and (not evidence_refs or not proof_requirements):
+        raise ValueError("IMPLEMENTATION_BACKED claims require evidence and proof requirements")
+
+
+def _validate_claim_proof_requirement_refs(
+    evidence_refs: list[str],
+    proof_requirements: list[SupportedClaimProofRequirement],
+) -> None:
+    declared_evidence_refs = set(evidence_refs)
+    missing_requirement_refs = [
+        requirement.evidence_ref
+        for requirement in proof_requirements
+        if requirement.evidence_ref not in declared_evidence_refs
+    ]
+    if missing_requirement_refs:
+        raise ValueError("supported claim proof requirements must use declared evidence refs")
+
+
+def _validate_planned_or_unsupported_materials(
+    classification: SupportedClaimClassification,
+    allowed_materials: list[SupportedClaimMaterial],
+) -> None:
+    if classification in {
+        "PLANNED_RFC",
+        "UNSUPPORTED",
+    } and _PLANNED_OR_UNSUPPORTED_CLIENT_FACING_MATERIALS.intersection(allowed_materials):
+        raise ValueError("PLANNED_RFC and UNSUPPORTED claims cannot be client-facing")
+
+
+def _validate_ui_pending_materials(
+    classification: SupportedClaimClassification,
+    audiences: list[SupportedClaimAudience],
+    allowed_materials: list[SupportedClaimMaterial],
+) -> None:
+    if classification != "BACKEND_BACKED_UI_PENDING":
+        return
+    if "SCREENSHOT" in allowed_materials:
+        raise ValueError("BACKEND_BACKED_UI_PENDING claims cannot use screenshots")
+    if "CLIENT_DEMO" in audiences:
+        raise ValueError("BACKEND_BACKED_UI_PENDING claims cannot target client demos")
+    if _UI_PENDING_CLIENT_FACING_MATERIALS.intersection(allowed_materials):
+        raise ValueError("BACKEND_BACKED_UI_PENDING claims cannot use client-facing materials")
 
 
 class ArtifactPolicy(BaseModel):
