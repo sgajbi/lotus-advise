@@ -1069,7 +1069,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-738` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-740` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1093,7 +1093,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Tests",
             "Unit suite existed; new focused refactor regressions were absent.",
-            "Unit suite now has `1940` passing tests in `make check`; added focused tests "
+            "Unit suite now has `1943` passing tests in `make check`; added focused tests "
             "for OpenAPI enrichment, proof refs, source refs, dependency linking, and "
             "structured logging.",
             "Refactors are covered by behavior-preserving regression tests.",
