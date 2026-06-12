@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/source-b-hotspots`
-- Head: `98d1643a8e3085c7ffff1df61240256cfe18c731`
-- Branch Commits Over Main: `8`
+- Head: `e7031dd4922feee168dc4745f2b9e26b0faa13aa`
+- Branch Commits Over Main: `10`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -187,6 +187,8 @@
   summary/description, tag inference, error response, and idempotency header handling.
 - OpenAPI example repair delegates array, object-property, required-field,
   existing-field, and additional-property repair paths to focused helpers.
+- OpenAPI example repair now delegates `$ref` and composite schema resolution,
+  structured example dispatch, scalar enum/type checks, and integer bound checks.
 - OpenAPI field-description inference delegates identifier, date/time, currency,
   monetary, quantity, rate/price, status, and fallback descriptions to focused helpers.
 - OpenAPI example inference delegates const/enum/ref/composite priority handling

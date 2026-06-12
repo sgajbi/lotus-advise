@@ -900,6 +900,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  summary/description, tag inference, error response, and idempotency header handling.",
         "- OpenAPI example repair delegates array, object-property, required-field,",
         "  existing-field, and additional-property repair paths to focused helpers.",
+        "- OpenAPI example repair now delegates `$ref` and composite schema resolution,",
+        "  structured example dispatch, scalar enum/type checks, and integer bound checks.",
         "- OpenAPI field-description inference delegates identifier, date/time, currency,",
         "  monetary, quantity, rate/price, status, and fallback descriptions to focused helpers.",
         "- OpenAPI example inference delegates const/enum/ref/composite priority handling",
@@ -1097,7 +1099,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-751` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-752` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
