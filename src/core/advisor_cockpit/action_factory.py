@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import cast
+from collections.abc import Callable, Sequence
+from typing import TypeVar, cast
 
 from src.core.advisor_cockpit import action_components
 from src.core.advisor_cockpit.action_advisor_workflow import (
@@ -37,11 +37,21 @@ from src.core.advisor_cockpit.action_sources import (
 )
 from src.core.advisor_cockpit.vocabulary import sort_cockpit_action_items
 
+_ActionSourceT = TypeVar("_ActionSourceT")
+
 LOTUS_ADVISE_SOURCE_SYSTEM = action_components.LOTUS_ADVISE_SOURCE_SYSTEM
 _dependency_readiness = action_components.dependency_readiness
 _evidence_ref = action_components.evidence_ref
 _lineage_refs = action_components.lineage_refs
 _unique_ordered = action_components.unique_ordered
+
+
+def _append_source_actions(
+    actions: list[AdvisoryActionItem],
+    sources: Sequence[_ActionSourceT],
+    builder: Callable[[_ActionSourceT], AdvisoryActionItem],
+) -> None:
+    actions.extend(builder(source) for source in sources)
 
 
 def build_house_view_impact_action(source: HouseViewImpactActionSource) -> AdvisoryActionItem:
@@ -147,17 +157,24 @@ def build_source_backed_cockpit_actions(
     supportability_events: Sequence[SupportabilityDegradedActionSource] = (),
     unsupported_capabilities: Sequence[UnsupportedCapabilityActionSource] = (),
 ) -> list[AdvisoryActionItem]:
-    actions = [
-        *(build_policy_review_required_action(source) for source in policy_reviews),
-        *(build_memo_package_blocked_action(source) for source in memo_blocks),
-        *(build_meeting_preparation_action(source) for source in meeting_preparations),
-        *(build_client_follow_up_action(source) for source in client_follow_ups),
-        *(build_approval_dependency_action(source) for source in approval_dependencies),
-        *(build_report_render_archive_action(source) for source in report_render_archive_items),
-        *(build_execution_handoff_ready_action(source) for source in execution_handoffs),
-        *(build_execution_status_attention_action(source) for source in execution_status_items),
-        *(build_house_view_impact_action(source) for source in house_view_impacts),
-        *(build_supportability_degraded_action(source) for source in supportability_events),
-        *(build_unsupported_capability_action(source) for source in unsupported_capabilities),
-    ]
+    actions: list[AdvisoryActionItem] = []
+    _append_source_actions(actions, policy_reviews, build_policy_review_required_action)
+    _append_source_actions(actions, memo_blocks, build_memo_package_blocked_action)
+    _append_source_actions(actions, meeting_preparations, build_meeting_preparation_action)
+    _append_source_actions(actions, client_follow_ups, build_client_follow_up_action)
+    _append_source_actions(actions, approval_dependencies, build_approval_dependency_action)
+    _append_source_actions(
+        actions,
+        report_render_archive_items,
+        build_report_render_archive_action,
+    )
+    _append_source_actions(actions, execution_handoffs, build_execution_handoff_ready_action)
+    _append_source_actions(
+        actions,
+        execution_status_items,
+        build_execution_status_attention_action,
+    )
+    _append_source_actions(actions, house_view_impacts, build_house_view_impact_action)
+    _append_source_actions(actions, supportability_events, build_supportability_degraded_action)
+    _append_source_actions(actions, unsupported_capabilities, build_unsupported_capability_action)
     return cast(list[AdvisoryActionItem], sort_cockpit_action_items(actions))

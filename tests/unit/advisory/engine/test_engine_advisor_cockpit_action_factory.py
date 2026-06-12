@@ -477,3 +477,102 @@ def test_source_backed_builder_returns_stable_priority_order() -> None:
         "CLIENT_FOLLOW_UP_REQUIRED",
         "CLIENT_MEETING_PREPARATION",
     ]
+
+
+def test_source_backed_builder_aggregates_every_source_family() -> None:
+    actions = build_source_backed_cockpit_actions(
+        policy_reviews=[
+            PolicyReviewActionSource(
+                policy_evaluation_id="policy_eval_sg_all",
+                portfolio_id="PB_SG_GLOBAL_BAL_001",
+                policy_result="PENDING_REVIEW",
+            )
+        ],
+        memo_blocks=[
+            MemoPackageBlockedActionSource(
+                memo_id="memo_sg_all",
+                proposal_id="proposal_sg_all",
+                blockage_code="MEMO_REVIEW_REQUIRED",
+            )
+        ],
+        meeting_preparations=[
+            MeetingPreparationActionSource(
+                preparation_id="prep_sg_all",
+                context_ref="PB_SG_GLOBAL_BAL_001",
+            )
+        ],
+        client_follow_ups=[
+            ClientFollowUpActionSource(
+                follow_up_id="follow_up_sg_all",
+                proposal_id="proposal_sg_all",
+                follow_up_code="CLIENT_CONSENT_FOLLOW_UP_REQUIRED",
+            )
+        ],
+        approval_dependencies=[
+            ApprovalDependencyActionSource(
+                dependency_id="approval_dependency_sg_all",
+                proposal_id="proposal_sg_all",
+                approval_type="COMPLIANCE",
+                approval_status="PENDING",
+            )
+        ],
+        report_render_archive_items=[
+            ReportRenderArchiveActionSource(
+                readiness_id="report_archive_readiness_sg_all",
+                memo_id="memo_sg_all",
+                proposal_id="proposal_sg_all",
+                readiness_code="REPORT_PACKAGE_NOT_REQUESTED",
+            )
+        ],
+        execution_handoffs=[
+            ExecutionHandoffReadyActionSource(
+                handoff_id="execution_handoff_sg_all",
+                proposal_id="proposal_sg_all",
+            )
+        ],
+        execution_status_items=[
+            ExecutionStatusAttentionActionSource(
+                execution_ref="execution_status_sg_all",
+                proposal_id="proposal_sg_all",
+                handoff_status="REJECTED",
+            )
+        ],
+        house_view_impacts=[
+            HouseViewImpactActionSource(
+                cohort_id="house_view_sg_all",
+                tactical_view_id="tactical_view_sg_all",
+                tactical_view_version="2026.06",
+                portfolio_id="PB_SG_GLOBAL_BAL_001",
+                impact_code="TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED",
+            )
+        ],
+        supportability_events=[
+            SupportabilityDegradedActionSource(
+                dependency="lotus-report",
+                state="DEGRADED",
+                reason_code="REPORT_PACKAGE_DEGRADED",
+            )
+        ],
+        unsupported_capabilities=[
+            UnsupportedCapabilityActionSource(
+                capability="CLIENT_READY_PUBLICATION",
+                context_ref="PB_SG_GLOBAL_BAL_001",
+                reason_code="CLIENT_READY_PUBLICATION_NOT_SUPPORTED",
+            )
+        ],
+    )
+
+    assert {action.action_family for action in actions} == {
+        "POLICY_REVIEW_REQUIRED",
+        "MEMO_PACKAGE_BLOCKED",
+        "CLIENT_MEETING_PREPARATION",
+        "CLIENT_FOLLOW_UP_REQUIRED",
+        "APPROVAL_DEPENDENCY_AGING",
+        "REPORT_RENDER_ARCHIVE_BLOCKED",
+        "EXECUTION_HANDOFF_READY",
+        "EXECUTION_STATUS_ATTENTION",
+        "HOUSE_VIEW_IMPACT_REVIEW",
+        "SUPPORTABILITY_DEGRADED",
+        "UNSUPPORTED_CAPABILITY",
+    }
+    assert len(actions) == 11
