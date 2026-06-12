@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-745
+
+- Scope: Persistent proposal listing query assembly
+- Pattern: Persistent repository list queries should separate optional filter assembly, cursor
+  predicate assembly, SQL rendering, and page projection so keyset pagination remains auditable
+  without concentrating query-shape logic in one function.
+- Status: Hardened
+- Finding Class: Persistent proposal query complexity and pagination maintainability
+- Summary: `list_proposals` mixed optional filter selection, cursor filter mirroring, keyset
+  cursor subquery construction, SQL rendering, argument ordering, database execution, row mapping,
+  and next-cursor projection in one C-ranked repository helper. This path owns persisted proposal
+  list pagination, so the existing SQL shape and argument order should remain behavior-compatible
+  while query responsibilities become inspectable in small helpers.
+- Evidence:
+  - Extracted focused helpers for optional filter specs, filter SQL accumulation, cursor predicate
+    application, cursor subquery rendering, list query rendering, and page/next-cursor projection.
+  - Preserved existing keyset ordering, cursor filter mirroring, invalid-cursor empty result
+    behavior, `limit + 1` fetch behavior, and argument ordering asserted by repository tests.
+  - Existing focused Postgres repository tests passed, including filtered listing, cursor
+    pagination, mismatched cursor filter handling, invalid cursor handling, and keyset limit
+    assertions.
+  - Radon now reports `list_proposals` as A-ranked complexity `1`, down from C-ranked complexity
+    `12`.
+  - Source-only Radon now reports no C-ranked `src/` hotspots.
+  - Focused Postgres repository Radon and unit tests passed with 19 tests.
+- Consequence:
+  - Persisted advisory proposal listing remains behavior-compatible while SQL assembly and cursor
+    pagination rules are easier to review and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal repository-query hardening for existing proposal listing behavior.
+- Follow-Up:
+  - Continue with B-ranked complexity, query-shape, and architecture-boundary hardening in scoped
+    future slices.
+
 ## LA-REV-744
 
 - Scope: Lotus AI advisory copilot proposal-version lineage extraction

@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/contract-ref-normalization`
-- Head: `28519fe3672d80347314160297bb878aa6ed5a82`
-- Branch Commits Over Main: `1`
+- Head: `1fa103f039031319165dca6a5855082779be3cbd`
+- Branch Commits Over Main: `2`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -181,6 +181,8 @@
   focused helpers.
 - In-memory proposal listing delegates filter matching, cursor slicing, and
   next-cursor calculation to focused query helpers.
+- Persistent proposal listing delegates filter SQL, cursor SQL, query rendering,
+  and page projection to focused helpers.
 - OpenAPI operation enrichment delegates operation eligibility, default
   summary/description, tag inference, error response, and idempotency header handling.
 - OpenAPI example repair delegates array, object-property, required-field,

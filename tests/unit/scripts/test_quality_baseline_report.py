@@ -152,6 +152,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Local position valuation delegates" in refactor_health
     assert "Enterprise write authorization delegates" in refactor_health
     assert "In-memory proposal listing delegates" in refactor_health
+    assert "Persistent proposal listing delegates" in refactor_health
     assert "OpenAPI operation enrichment delegates" in refactor_health
     assert "OpenAPI example repair delegates" in refactor_health
     assert "OpenAPI field-description inference delegates" in refactor_health

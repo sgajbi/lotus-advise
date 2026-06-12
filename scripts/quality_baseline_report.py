@@ -894,6 +894,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused helpers.",
         "- In-memory proposal listing delegates filter matching, cursor slicing, and",
         "  next-cursor calculation to focused query helpers.",
+        "- Persistent proposal listing delegates filter SQL, cursor SQL, query rendering,",
+        "  and page projection to focused helpers.",
         "- OpenAPI operation enrichment delegates operation eligibility, default",
         "  summary/description, tag inference, error response, and idempotency header handling.",
         "- OpenAPI example repair delegates array, object-property, required-field,",
@@ -1077,7 +1079,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-744` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-745` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
