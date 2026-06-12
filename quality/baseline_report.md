@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-12T16:20:15.891732+00:00`
+- Generated At: `2026-06-12T16:32:15.057516+00:00`
 - Branch: `harden/source-b-hotspots`
-- Head: `8a5ced3a730e6e59eba9664005942779d89e53b0`
-- Branch Commits Over Main: `38`
+- Head: `eb9ac5a364002efa23b031455aba816f30f85dc0`
+- Branch Commits Over Main: `41`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `143536`
+- Total Python lines: `143595`
 
 ## Largest Files
 
@@ -49,7 +49,7 @@
   complexity proxies.
 - Radon config executable: `True`
 - Radon analyzed block inventory: `3456`
-- Radon complexity rank inventory: `A=3236, B=220`
+- Radon complexity rank inventory: `A=3237, B=219`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
