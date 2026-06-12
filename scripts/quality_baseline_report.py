@@ -971,6 +971,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  write-authorization denial selection, recursive audit redaction, and",
         "  audit-identity validation to focused helpers while preserving bounded denial and",
         "  redaction behavior.",
+        "- Integration dependency readiness delegates sanitized URL configuration,",
+        "  health-endpoint probing, readiness-basis selection, and unavailable-reason",
+        "  projection to focused helpers while preserving fail-closed dependency posture.",
         "- Policy-pack applicability evaluation delegates source context extraction,",
         "  missing-evidence detection, not-applicable result construction, and selector",
         "  construction to focused helpers.",
@@ -1083,7 +1086,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-746` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-747` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

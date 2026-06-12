@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-747
+
+- Scope: Integration dependency readiness state and health probing
+- Pattern: Dependency readiness construction should separate configured URL sanitization, probe
+  endpoint behavior, readiness basis selection, and unavailable-reason projection so operational
+  status remains auditable without mixing runtime probing mechanics into the public state builder.
+- Status: Hardened
+- Finding Class: Operational readiness complexity and dependency-health maintainability
+- Summary: `src/integrations/base.py` concentrated HTTP base-url sanitization, health endpoint
+  probing, dependency readiness basis selection, runtime-probe enablement, and degraded-reason
+  projection in B-ranked helpers. These helpers feed capability/readiness posture for Lotus
+  dependencies, so behavior should stay fail-closed and sanitized while probe and readiness
+  responsibilities become small named seams.
+- Evidence:
+  - Added focused internal configuration and readiness envelopes for sanitized public dependency
+    URLs, configuration validity, operational readiness, runtime-probe status, readiness basis, and
+    degraded reason.
+  - Split health probing into ready-endpoint and fallback-health endpoint helpers while preserving
+    ready endpoint `503` fail-closed behavior and transport-error fallback behavior.
+  - Split HTTP base-url sanitization into parsing and netloc projection helpers, preserving removal
+    of credentials, query strings, and fragments from public dependency posture and probe targets.
+  - Radon now reports `build_dependency_state`, `probe_dependency_health`, and
+    `sanitized_http_base_url` as A-ranked helpers; the focused module has no B-ranked blocks.
+  - Focused integration-base tests passed with 13 tests, and focused `ruff`, format check, mypy,
+    and Radon checks passed.
+- Consequence:
+  - Dependency readiness remains behavior-compatible and fail-closed while capability and runtime
+    posture can be reviewed without untangling URL sanitization, probe fallback, and readiness
+    projection in a single helper.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal operational-readiness hardening for existing integration dependency
+    posture.
+- Follow-Up:
+  - Continue with B-ranked dependency/client and OpenAPI helpers, then classify report-only
+    dependency and security inventories in future slices.
+
 ## LA-REV-746
 
 - Scope: Enterprise readiness runtime policy and audit redaction helpers
