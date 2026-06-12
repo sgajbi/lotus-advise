@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/contract-ref-normalization`
-- Head: `1fa103f039031319165dca6a5855082779be3cbd`
-- Branch Commits Over Main: `2`
+- Branch: `harden/source-b-hotspots`
+- Head: `e4b9e761badfe362b05f9e60b1bd1442d548f9ac`
+- Branch Commits Over Main: `0`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -254,6 +254,10 @@
 - Advisory copilot run persistence delegates payload safety validation,
   idempotency replay lookup, run-record construction, retryable refresh, and
   idempotency-record construction to focused helpers.
+- Enterprise readiness runtime policy delegates config issue collection,
+  write-authorization denial selection, recursive audit redaction, and
+  audit-identity validation to focused helpers while preserving bounded denial and
+  redaction behavior.
 - Policy-pack applicability evaluation delegates source context extraction,
   missing-evidence detection, not-applicable result construction, and selector
   construction to focused helpers.

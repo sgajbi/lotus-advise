@@ -74,35 +74,53 @@ def enterprise_policy_version() -> str:
 
 
 def validate_enterprise_runtime_config() -> list[str]:
+    issues = _enterprise_runtime_config_issues()
+    if issues and _env_enabled("ENTERPRISE_ENFORCE_RUNTIME_CONFIG", "false"):
+        raise RuntimeError(f"enterprise_runtime_config_invalid:{','.join(issues)}")
+    return issues
+
+
+def _enterprise_runtime_config_issues() -> list[str]:
     issues: list[str] = []
+    _append_missing_policy_version_issue(issues)
+    _append_secret_rotation_issue(issues)
+    _append_primary_key_issue(issues)
+    _append_json_map_issue(
+        issues,
+        "ENTERPRISE_FEATURE_FLAGS_JSON",
+        "invalid_feature_flags_json",
+    )
+    _append_json_map_issue(
+        issues,
+        "ENTERPRISE_CAPABILITY_RULES_JSON",
+        "invalid_capability_rules_json",
+    )
+    return issues
+
+
+def _append_missing_policy_version_issue(issues: list[str]) -> None:
     if not enterprise_policy_version().strip():
         issues.append("missing_policy_version")
 
+
+def _append_secret_rotation_issue(issues: list[str]) -> None:
     rotation_days = _env_int("ENTERPRISE_SECRET_ROTATION_DAYS", 90)
     if rotation_days <= 0 or rotation_days > 90:
         issues.append("secret_rotation_days_out_of_range")
 
+
+def _append_primary_key_issue(issues: list[str]) -> None:
     if (
         _env_enabled("ENTERPRISE_ENFORCE_AUTHZ", "false")
         and not os.getenv("ENTERPRISE_PRIMARY_KEY_ID", "").strip()
     ):
         issues.append("missing_primary_key_id")
-    for issue in (
-        _json_map_config_issue(
-            "ENTERPRISE_FEATURE_FLAGS_JSON",
-            "invalid_feature_flags_json",
-        ),
-        _json_map_config_issue(
-            "ENTERPRISE_CAPABILITY_RULES_JSON",
-            "invalid_capability_rules_json",
-        ),
-    ):
-        if issue is not None:
-            issues.append(issue)
 
-    if issues and _env_enabled("ENTERPRISE_ENFORCE_RUNTIME_CONFIG", "false"):
-        raise RuntimeError(f"enterprise_runtime_config_invalid:{','.join(issues)}")
-    return issues
+
+def _append_json_map_issue(issues: list[str], name: str, issue_code: str) -> None:
+    issue = _json_map_config_issue(name, issue_code)
+    if issue is not None:
+        issues.append(issue)
 
 
 def load_feature_flags() -> dict[str, dict[str, dict[str, bool]]]:
@@ -162,23 +180,34 @@ def authorize_write_request(
     if not _should_enforce_write_authorization(method):
         return True, None
 
+    denial_reason = _write_authorization_denial_reason(method, path, headers)
+    if denial_reason is not None:
+        return False, denial_reason
+    return True, None
+
+
+def _write_authorization_denial_reason(
+    method: str,
+    path: str,
+    headers: dict[str, str],
+) -> str | None:
     normalized = _normalize_headers(headers)
     missing = _missing_required_enterprise_headers(normalized)
     if missing:
-        return False, f"missing_headers:{','.join(missing)}"
+        return f"missing_headers:{','.join(missing)}"
 
     if not _has_service_identity(normalized):
-        return False, "missing_service_identity"
+        return "missing_service_identity"
 
     capability_rule_issue = _capability_rule_config_issue()
     if capability_rule_issue is not None:
-        return False, capability_rule_issue
+        return capability_rule_issue
 
     missing_capability = _missing_required_capability(method, path, normalized)
     if missing_capability is not None:
-        return False, f"missing_capability:{missing_capability}"
+        return f"missing_capability:{missing_capability}"
 
-    return True, None
+    return None
 
 
 def _should_enforce_write_authorization(method: str) -> bool:
@@ -224,16 +253,21 @@ def _request_capabilities(headers: dict[str, str]) -> set[str]:
 
 def redact_sensitive(value: Any) -> Any:
     if isinstance(value, dict):
-        out: dict[str, Any] = {}
-        for key, item in value.items():
-            if _is_sensitive_field_name(key):
-                out[key] = _REDACTED_VALUE
-            else:
-                out[key] = redact_sensitive(item)
-        return out
+        return _redact_sensitive_mapping(value)
     if isinstance(value, list):
-        return [redact_sensitive(item) for item in value]
+        return _redact_sensitive_sequence(value)
     return value
+
+
+def _redact_sensitive_mapping(value: dict[Any, Any]) -> dict[Any, Any]:
+    return {
+        key: _REDACTED_VALUE if _is_sensitive_field_name(key) else redact_sensitive(item)
+        for key, item in value.items()
+    }
+
+
+def _redact_sensitive_sequence(value: list[Any]) -> list[Any]:
+    return [redact_sensitive(item) for item in value]
 
 
 def _is_sensitive_field_name(key: Any) -> bool:
@@ -247,13 +281,19 @@ def _is_sensitive_field_name(key: Any) -> bool:
 
 def _normalize_audit_identity(value: str, *, default: str) -> str:
     normalized = value.strip()
-    if (
-        not normalized
-        or len(normalized) > MAX_CORRELATION_ID_LENGTH
-        or any(ord(char) < 32 or ord(char) == 127 for char in normalized)
-    ):
-        return default
-    return normalized
+    return normalized if _valid_audit_identity(normalized) else default
+
+
+def _valid_audit_identity(value: str) -> bool:
+    return (
+        bool(value)
+        and len(value) <= MAX_CORRELATION_ID_LENGTH
+        and not _contains_control_character(value)
+    )
+
+
+def _contains_control_character(value: str) -> bool:
+    return any(ord(char) < 32 or ord(char) == 127 for char in value)
 
 
 def emit_audit_event(

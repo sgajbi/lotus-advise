@@ -1,5 +1,45 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-746
+
+- Scope: Enterprise readiness runtime policy and audit redaction helpers
+- Pattern: API enterprise-readiness policy checks should separate runtime-config issue collection,
+  write-authorization denial selection, recursive audit redaction, and audit-identity validation so
+  security-sensitive middleware behavior stays easy to audit without growing public helpers.
+- Status: Hardened
+- Finding Class: API security-boundary complexity and auditability
+- Summary: `src/api/enterprise_readiness.py` still concentrated runtime configuration validation,
+  write authorization denial ordering, recursive audit metadata redaction, and audit identity
+  validation in B-ranked public helpers. These paths guard write-request authorization posture and
+  structured audit events, so the existing behavior should remain stable while the policy and
+  redaction branches become small, named helpers.
+- Evidence:
+  - Extracted focused helpers for runtime configuration issue collection, missing policy version,
+    secret-rotation, primary-key, and JSON-map issue appending.
+  - Extracted write-authorization denial selection from the public authorization facade while
+    preserving missing-header, service-identity, invalid-capability-config, and missing-capability
+    denial order and reason vocabulary.
+  - Extracted recursive audit redaction dispatch for mappings and sequences, plus audit identity
+    and control-character validation helpers.
+  - Added focused runtime-config coverage for missing policy version, out-of-range secret rotation,
+    and missing primary key when authorization enforcement is enabled.
+  - Radon now reports `validate_enterprise_runtime_config`, `authorize_write_request`,
+    `redact_sensitive`, and `_normalize_audit_identity` as A-ranked helpers; the focused module has
+    no B-ranked blocks.
+  - Focused enterprise-readiness tests passed with 17 tests, and focused `ruff`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Enterprise policy middleware behavior remains behavior-compatible while runtime-config posture,
+    authorization denial selection, and sensitive audit metadata redaction are easier to review and
+    extend without weakening API security boundaries.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API security-boundary hardening for existing enterprise-readiness
+    behavior.
+- Follow-Up:
+  - Continue with B-ranked API/OpenAPI and security-boundary helpers, then classify remaining
+    report-only Bandit and dead-code inventories in scoped future slices.
+
 ## LA-REV-745
 
 - Scope: Persistent proposal listing query assembly
