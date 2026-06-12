@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/source-b-hotspots`
-- Head: `62b5c0e36f53d2e5351034e039816b895c2cadaa`
-- Branch Commits Over Main: `7`
+- Head: `98d1643a8e3085c7ffff1df61240256cfe18c731`
+- Branch Commits Over Main: `8`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -269,6 +269,9 @@
   fail-closed fallback behavior.
 - API observability request-id normalization reuses the shared bounded
   identifier policy while preserving generated request-id fallback behavior.
+- Proposal reporting service orchestration delegates related-version selection,
+  reviewed-narrative packaging, request assembly, response normalization, and
+  workflow recording to focused helpers.
 - Policy-pack applicability evaluation delegates source context extraction,
   missing-evidence detection, not-applicable result construction, and selector
   construction to focused helpers.

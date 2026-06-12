@@ -982,6 +982,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  fail-closed fallback behavior.",
         "- API observability request-id normalization reuses the shared bounded",
         "  identifier policy while preserving generated request-id fallback behavior.",
+        "- Proposal reporting service orchestration delegates related-version selection,",
+        "  reviewed-narrative packaging, request assembly, response normalization, and",
+        "  workflow recording to focused helpers.",
         "- Policy-pack applicability evaluation delegates source context extraction,",
         "  missing-evidence detection, not-applicable result construction, and selector",
         "  construction to focused helpers.",
@@ -1094,7 +1097,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-750` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-751` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
