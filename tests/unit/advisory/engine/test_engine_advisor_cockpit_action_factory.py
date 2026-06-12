@@ -267,6 +267,31 @@ def test_client_consent_dependency_preserves_external_communication_boundary() -
     ]
 
 
+def test_rejected_approval_dependency_is_blocking_and_critical() -> None:
+    action = build_approval_dependency_action(
+        ApprovalDependencyActionSource(
+            dependency_id="approval_dependency_proposal_sg_001_risk",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            approval_type="RISK",
+            approval_status="REJECTED",
+            summary="Risk approval rejected because suitability evidence is incomplete.",
+        )
+    )
+
+    assert action.action_family == "APPROVAL_DEPENDENCY_AGING"
+    assert action.status == "BLOCKED"
+    assert action.priority == "CRITICAL"
+    assert action.owner_role == "INVESTMENT_DESK"
+    assert action.reason_codes == ["RISK_APPROVAL_REJECTED", "CLIENT_READY_BLOCKED"]
+    assert action.source_readiness_gaps[0].gap_code == "RISK_APPROVAL_REJECTED"
+    assert action.source_readiness_gaps[0].owner_role == "INVESTMENT_DESK"
+    assert action.unsupported_capabilities == [
+        "CLIENT_READY_PUBLICATION",
+        "COMPLETED_POLICY_APPROVAL_AUTHORITY",
+    ]
+
+
 def test_report_render_archive_action_preserves_downstream_owner_boundary() -> None:
     action = build_report_render_archive_action(
         ReportRenderArchiveActionSource(

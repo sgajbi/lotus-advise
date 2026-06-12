@@ -20,34 +20,19 @@ from src.core.advisor_cockpit.type_models import (
 def build_approval_dependency_action(
     source: ApprovalDependencyActionSource,
 ) -> AdvisoryActionItem:
-    action_family: AdvisorCockpitActionFamily = (
-        "CLIENT_CONSENT_REQUIRED"
-        if source.approval_type == "CLIENT_CONSENT"
-        else "APPROVAL_DEPENDENCY_AGING"
-    )
+    action_family = _approval_action_family(source.approval_type)
     owner_role = _approval_owner_role(source.approval_type)
-    pending_reason = f"{source.approval_type}_APPROVAL_PENDING"
-    reason_codes = (
-        [f"{source.approval_type}_APPROVAL_REJECTED", "CLIENT_READY_BLOCKED"]
-        if source.approval_status == "REJECTED"
-        else [pending_reason, "CLIENT_READY_BLOCKED"]
+    reason_codes = _approval_reason_codes(
+        approval_type=source.approval_type,
+        approval_status=source.approval_status,
     )
-    unsupported_capabilities: list[AdvisorCockpitUnsupportedCapability] = [
-        "CLIENT_READY_PUBLICATION",
-        "COMPLETED_POLICY_APPROVAL_AUTHORITY",
-    ]
-    if source.approval_type == "CLIENT_CONSENT":
-        unsupported_capabilities = [
-            "EXTERNAL_CLIENT_COMMUNICATION",
-            "CRM_SYSTEM_OF_RECORD",
-        ]
 
     return build_source_backed_action(
         CockpitActionConstructionInput(
             source_action_id=source.dependency_id,
             action_family=action_family,
-            status="BLOCKED" if source.approval_status == "REJECTED" else "PENDING_REVIEW",
-            priority="CRITICAL" if source.approval_status == "REJECTED" else "HIGH",
+            status=_approval_action_status(source.approval_status),
+            priority=_approval_action_priority(source.approval_status),
             owner_role=owner_role,
             title=_approval_action_title(source.approval_type),
             next_required_action=_approval_next_required_action(source.approval_type),
@@ -76,10 +61,52 @@ def build_approval_dependency_action(
                     message=source.summary,
                 )
             ],
-            unsupported_capabilities=unsupported_capabilities,
+            unsupported_capabilities=_approval_unsupported_capabilities(source.approval_type),
             correlation_id=source.correlation_id,
         )
     )
+
+
+def _approval_action_family(
+    approval_type: Literal["RISK", "COMPLIANCE", "CLIENT_CONSENT"],
+) -> AdvisorCockpitActionFamily:
+    if approval_type == "CLIENT_CONSENT":
+        return "CLIENT_CONSENT_REQUIRED"
+    return "APPROVAL_DEPENDENCY_AGING"
+
+
+def _approval_action_status(
+    approval_status: Literal["PENDING", "REJECTED"],
+) -> Literal["BLOCKED", "PENDING_REVIEW"]:
+    if approval_status == "REJECTED":
+        return "BLOCKED"
+    return "PENDING_REVIEW"
+
+
+def _approval_action_priority(
+    approval_status: Literal["PENDING", "REJECTED"],
+) -> Literal["CRITICAL", "HIGH"]:
+    if approval_status == "REJECTED":
+        return "CRITICAL"
+    return "HIGH"
+
+
+def _approval_reason_codes(
+    *,
+    approval_type: Literal["RISK", "COMPLIANCE", "CLIENT_CONSENT"],
+    approval_status: Literal["PENDING", "REJECTED"],
+) -> list[str]:
+    if approval_status == "REJECTED":
+        return [f"{approval_type}_APPROVAL_REJECTED", "CLIENT_READY_BLOCKED"]
+    return [f"{approval_type}_APPROVAL_PENDING", "CLIENT_READY_BLOCKED"]
+
+
+def _approval_unsupported_capabilities(
+    approval_type: Literal["RISK", "COMPLIANCE", "CLIENT_CONSENT"],
+) -> list[AdvisorCockpitUnsupportedCapability]:
+    if approval_type == "CLIENT_CONSENT":
+        return ["EXTERNAL_CLIENT_COMMUNICATION", "CRM_SYSTEM_OF_RECORD"]
+    return ["CLIENT_READY_PUBLICATION", "COMPLETED_POLICY_APPROVAL_AUTHORITY"]
 
 
 def _approval_owner_role(

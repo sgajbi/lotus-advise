@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-767
+
+- Scope: Advisor cockpit approval dependency action construction
+- Pattern: Approval dependency construction should isolate approval-type and approval-status
+  decisions from the generic source-backed action DTO assembly.
+- Status: Hardened
+- Finding Class: Advisor cockpit action-construction modularity and approval dependency correctness
+- Summary: `build_approval_dependency_action` mixed approval type family selection, owner-role
+  routing, pending/rejected reason codes, blocked/critical status selection, unsupported capability
+  selection, evidence refs, source gaps, and generic action construction. This path shapes risk,
+  compliance, and client-consent dependency actions, so extracting status/type decisions makes the
+  supervisory and external-communication boundaries easier to review without changing emitted
+  action semantics.
+- Evidence:
+  - Extracted approval action family, status, priority, reason-code, and unsupported-capability
+    helpers.
+  - Preserved compliance and risk supervisory ownership, client-consent advisor ownership,
+    pending-review behavior, rejected blocked/critical behavior, client-ready blocking reason
+    codes, and external communication capability boundaries.
+  - Added focused coverage proving rejected risk approvals emit a `BLOCKED`/`CRITICAL` investment
+    desk action with rejected reason code and supervisory capability blocks.
+  - Radon no longer reports `build_approval_dependency_action` as B-ranked; the remaining advisor
+    cockpit B-ranked helper is acknowledgement orchestration.
+  - Focused advisor cockpit action-factory tests passed with 19 tests, and `ruff`, `mypy`, format
+    check, diff check, and Radon checks passed.
+- Consequence:
+  - Approval dependency action construction remains behavior-compatible while approval status/type
+    rules are now reviewable independently from DTO assembly.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    action-construction maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit acknowledgement orchestration helper.
+
 ## LA-REV-766
 
 - Scope: Advisor cockpit SLA age-band rule classification
