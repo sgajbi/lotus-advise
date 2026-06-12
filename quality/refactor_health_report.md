@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/source-b-hotspots`
-- Head: `117161155d07f4e11c1eed1ed54f8f5fd4cab3be`
-- Branch Commits Over Main: `4`
+- Head: `62b5c0e36f53d2e5351034e039816b895c2cadaa`
+- Branch Commits Over Main: `7`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -267,6 +267,8 @@
 - Integration capability dependency diagnostics delegate readiness checks and
   public degraded-reason extraction to focused helpers while preserving
   fail-closed fallback behavior.
+- API observability request-id normalization reuses the shared bounded
+  identifier policy while preserving generated request-id fallback behavior.
 - Policy-pack applicability evaluation delegates source context extraction,
   missing-evidence detection, not-applicable result construction, and selector
   construction to focused helpers.

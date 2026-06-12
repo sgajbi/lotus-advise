@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-12T11:23:39.246991+00:00`
+- Generated At: `2026-06-12T11:36:59.341460+00:00`
 - Branch: `harden/source-b-hotspots`
-- Head: `117161155d07f4e11c1eed1ed54f8f5fd4cab3be`
-- Branch Commits Over Main: `4`
+- Head: `62b5c0e36f53d2e5351034e039816b895c2cadaa`
+- Branch Commits Over Main: `7`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `142744`
+- Total Python lines: `142751`
 
 ## Largest Files
 
@@ -25,7 +25,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1217 |
+| 9 | `scripts/quality_baseline_report.py` | 1220 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -34,7 +34,7 @@
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
 | 2 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 299 |
+| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 301 |
 | 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 6 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
@@ -49,7 +49,7 @@
   complexity proxies.
 - Radon config executable: `True`
 - Radon analyzed block inventory: `3389`
-- Radon complexity rank inventory: `A=3145, B=244`
+- Radon complexity rank inventory: `A=3146, B=243`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
