@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-752
+
+- Scope: OpenAPI example repair schema resolution
+- Pattern: Generated OpenAPI example repair should separate `$ref`/composite schema resolution,
+  structured array/object repair, scalar enum/type checks, and integer bound checks so contract
+  examples remain explainable without a large dispatch helper.
+- Status: Hardened
+- Finding Class: OpenAPI quality and schema-example maintainability
+- Summary: The OpenAPI enrichment example-repair path still had B-ranked helpers that mixed
+  reference/composite schema traversal, array/object dispatch, enum validation, scalar type
+  validation, and integer maximum enforcement. These helpers govern generated API examples for
+  route responses and schemas, so preserving example output while isolating repair decisions
+  reduces future contract drift risk.
+- Evidence:
+  - Extracted focused helpers for `$ref` schema resolution, non-null composite schema selection,
+    structured array/object example repair, enum validation, scalar type validation, and integer
+    maximum checks.
+  - Preserved nested array, object-property, additional-property, enum, numeric-string, and media
+    response example repair behavior.
+  - Radon no longer reports `_repair_scalar_example`, `_resolved_example_schema`, or
+    `_repair_example_against_schema` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, format
+    check, mypy, and Radon checks passed.
+- Consequence:
+  - OpenAPI example repair remains behavior-compatible while schema resolution, structured repair,
+    and scalar validation paths can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal OpenAPI quality hardening for existing generated API contracts.
+- Follow-Up:
+  - Continue reducing the remaining OpenAPI enrichment operation/schema/media traversal and
+    inference helpers while preserving generated contract examples and Spectral zero-finding
+    posture.
+
 ## LA-REV-751
 
 - Scope: Proposal reporting service request orchestration

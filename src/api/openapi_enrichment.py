@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from numbers import Real
 from typing import Any
 
 from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
@@ -243,20 +244,46 @@ def _resolved_example_schema(
     prop_schema: dict[str, Any],
     components: dict[str, Any],
 ) -> dict[str, Any]:
+    referenced_schema = _resolved_ref_schema(prop_schema, components)
+    if referenced_schema is not None:
+        return referenced_schema
+    composite_schema = _resolved_composite_schema(prop_schema, components)
+    if composite_schema is not None:
+        return composite_schema
+    return prop_schema
+
+
+def _resolved_ref_schema(
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any] | None:
     ref = prop_schema.get("$ref")
-    if isinstance(ref, str):
-        model_name = _ref_name(ref)
-        model_schema = components.get(model_name or "")
-        if isinstance(model_schema, dict):
-            return model_schema
+    if not isinstance(ref, str):
+        return None
+    model_name = _ref_name(ref)
+    model_schema = components.get(model_name or "")
+    return model_schema if isinstance(model_schema, dict) else None
+
+
+def _resolved_composite_schema(
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any] | None:
     for composite_key in ("allOf", "anyOf", "oneOf"):
         composite_schemas = prop_schema.get(composite_key)
         if not isinstance(composite_schemas, list):
             continue
-        for candidate in composite_schemas:
-            if isinstance(candidate, dict) and candidate.get("type") != "null":
-                return _resolved_example_schema(candidate, components)
-    return prop_schema
+        candidate = _first_non_null_schema(composite_schemas)
+        if candidate is not None:
+            return _resolved_example_schema(candidate, components)
+    return None
+
+
+def _first_non_null_schema(composite_schemas: list[Any]) -> dict[str, Any] | None:
+    for candidate in composite_schemas:
+        if isinstance(candidate, dict) and candidate.get("type") != "null":
+            return candidate
+    return None
 
 
 def _repair_scalar_example(
@@ -265,19 +292,35 @@ def _repair_scalar_example(
     prop_schema: dict[str, Any],
     components: dict[str, Any],
 ) -> Any:
-    enum_values = prop_schema.get("enum")
-    if isinstance(enum_values, list) and enum_values and example not in enum_values:
+    if _example_violates_enum(example, prop_schema):
         return _infer_example(prop_name, prop_schema, components)
-    schema_type = prop_schema.get("type")
-    if schema_type == "string" and not isinstance(example, str):
+    if _example_violates_scalar_type(example, prop_schema):
         return _infer_example(prop_name, prop_schema, components)
-    if schema_type == "integer":
-        maximum = prop_schema.get("maximum")
-        if not isinstance(example, int):
-            return _infer_example(prop_name, prop_schema, components)
-        if isinstance(maximum, (int, float)) and example > maximum:
-            return _infer_example(prop_name, prop_schema, components)
+    if _integer_example_exceeds_maximum(example, prop_schema):
+        return _infer_example(prop_name, prop_schema, components)
     return example
+
+
+def _example_violates_enum(example: Any, prop_schema: dict[str, Any]) -> bool:
+    enum_values = prop_schema.get("enum")
+    return isinstance(enum_values, list) and bool(enum_values) and example not in enum_values
+
+
+def _example_violates_scalar_type(example: Any, prop_schema: dict[str, Any]) -> bool:
+    schema_type = prop_schema.get("type")
+    return (
+        schema_type == "string"
+        and not isinstance(example, str)
+        or schema_type == "integer"
+        and not isinstance(example, int)
+    )
+
+
+def _integer_example_exceeds_maximum(example: Any, prop_schema: dict[str, Any]) -> bool:
+    if prop_schema.get("type") != "integer" or not isinstance(example, int):
+        return False
+    maximum = prop_schema.get("maximum")
+    return isinstance(maximum, Real) and example > maximum
 
 
 def _repair_example_against_schema(
@@ -287,26 +330,55 @@ def _repair_example_against_schema(
     components: dict[str, Any],
 ) -> Any:
     resolved_schema = _resolved_example_schema(prop_schema, components)
-    schema_type = resolved_schema.get("type")
-    if schema_type == "array":
-        repaired_array = _repair_array_example(prop_name, example, resolved_schema, components)
-        if repaired_array is not None:
-            return repaired_array
+    structured_example = _repair_structured_example(
+        prop_name,
+        example,
+        resolved_schema,
+        components,
+    )
+    if structured_example is not None:
+        return structured_example
+    return _repair_scalar_example(prop_name, example, resolved_schema, components)
 
+
+def _repair_structured_example(
+    prop_name: str,
+    example: Any,
+    resolved_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> Any | None:
+    repaired_array = _repaired_array_or_none(prop_name, example, resolved_schema, components)
+    if repaired_array is not None:
+        return repaired_array
+    repaired_object = _repaired_object_or_none(example, resolved_schema, components)
+    if repaired_object is not None:
+        return repaired_object
+    return None
+
+
+def _repaired_array_or_none(
+    prop_name: str,
+    example: Any,
+    resolved_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> list[Any] | None:
+    if resolved_schema.get("type") != "array":
+        return None
+    return _repair_array_example(prop_name, example, resolved_schema, components)
+
+
+def _repaired_object_or_none(
+    example: Any,
+    resolved_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any] | None:
     properties = resolved_schema.get("properties")
     if isinstance(properties, dict) and isinstance(example, dict):
         return _repair_object_properties_example(example, properties, resolved_schema, components)
 
-    if schema_type == "object" and isinstance(example, dict):
-        repaired_additional = _repair_additional_property_examples(
-            example,
-            resolved_schema,
-            components,
-        )
-        if repaired_additional is not None:
-            return repaired_additional
-
-    return _repair_scalar_example(prop_name, example, resolved_schema, components)
+    if resolved_schema.get("type") != "object" or not isinstance(example, dict):
+        return None
+    return _repair_additional_property_examples(example, resolved_schema, components)
 
 
 def _repair_array_example(
