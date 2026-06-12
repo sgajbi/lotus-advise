@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-739
+
+- Scope: Advisor cockpit source-backed action aggregation
+- Pattern: Source-backed cockpit action aggregation should keep family-specific builders separate
+  from the public orchestration path so action construction remains easy to audit as source
+  families grow.
+- Status: Hardened
+- Finding Class: Advisor cockpit complexity and action-register maintainability
+- Summary: `build_source_backed_cockpit_actions` assembled every advisor cockpit source family in
+  one C-ranked list expression. The helper is the central aggregation path for
+  `AdvisoryActionItemRegister:v1`, so the public facade should stay behavior-compatible while the
+  per-family builder dispatch remains simple, typed, and directly tested.
+- Evidence:
+  - Added a typed `_append_source_actions` helper and converted
+    `build_source_backed_cockpit_actions` into straight source-family orchestration.
+  - Preserved all public action builder names, package exports, sorting semantics, and supported
+    cockpit action families.
+  - Added focused aggregation coverage proving the public builder accepts all eleven supported
+    source categories in one call.
+  - Radon now reports `build_source_backed_cockpit_actions` as A-ranked complexity `1`, down from
+    C-ranked complexity `12`.
+  - Generated quality reports now show Radon inventory `A=3059, B=253, C=7` with worst block
+    `C/14`.
+  - Source-only Radon now reports six remaining C-ranked `src/` hotspots.
+  - Focused cockpit action factory `ruff`, format check, `mypy`, Radon, and unit tests passed with
+    17 tests.
+- Consequence:
+  - Advisor cockpit action aggregation remains behavior-compatible while the RFC-0026 action
+    register boundary is easier to extend without reintroducing a complex orchestration helper.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisor cockpit action-construction hardening for existing behavior.
+- Follow-Up:
+  - Continue with proof-validation, suitability state issue, infrastructure proposal listing, and
+    Lotus AI integration C-ranked hotspots.
+
 ## LA-REV-738
 
 - Scope: Target-generation infeasibility diagnostics

@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/advisory-strategy-hotspots`
-- Head: `adc2ab41686f6ead841d3353761789e8d01a27b7`
-- Branch Commits Over Main: `9`
+- Branch: `harden/advisor-cockpit-action-factory`
+- Head: `a8641401f210a568921138ecebd3ee5d30123705`
+- Branch Commits Over Main: `1`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
