@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-771
+
+- Scope: Advisory copilot guardrail evaluation
+- Pattern: Copilot guardrail evaluation should separate intent, source-evidence, instruction, and
+  output marker decisions while preserving stable reason ordering and deduplication.
+- Status: Hardened
+- Finding Class: Advisory copilot safety modularity and reason-code stability
+- Summary: `evaluate_copilot_guardrails` mixed forbidden-intent mapping, missing source-evidence
+  checks, prompt-injection marker checks, client-ready output marker checks, sensitive-output marker
+  checks, and reason-code deduplication in one branch-heavy function. This path blocks autonomous
+  advice, order/trade action, policy approval, client-ready publication, prompt-injection, and
+  sensitive-output leakage, so isolating the rule families makes the safety posture easier to
+  review without changing emitted reason codes.
+- Evidence:
+  - Extracted intent, source-evidence, instruction, output, and marker-matching helpers while
+    preserving the public `evaluate_copilot_guardrails` contract.
+  - Added focused coverage proving repeated unsafe intents and repeated unsafe output markers
+    deduplicate to stable reason-code order.
+  - Radon reports no B-ranked blocks in `src/core/advisory_copilot/guardrails.py`.
+  - Focused advisory copilot foundation tests passed with 35 tests, and `ruff`, `mypy`, format
+    check, diff check, and Radon checks passed.
+- Consequence:
+  - Advisory copilot safety evaluation remains behavior-compatible while guardrail rule families
+    are independently reviewable and easier to extend.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    guardrail modularity hardening for existing advisory copilot behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked advisory copilot helpers, especially pagination and
+    persistence replay rules, with behavior-preserving tests.
+
 ## LA-REV-770
 
 - Scope: Lotus AI advisory copilot draft adapter
