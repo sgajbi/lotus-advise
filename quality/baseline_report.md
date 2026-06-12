@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-12T17:40:01.741054+00:00`
+- Generated At: `2026-06-12T17:42:52.995045+00:00`
 - Branch: `harden/source-b-hotspots`
-- Head: `08c7f96bff7ef0f16d7b019eb90d56475148e717`
-- Branch Commits Over Main: `64`
+- Head: `9f0faf4ca86ce21038b61f9d88b77cdb05a1c3d5`
+- Branch Commits Over Main: `66`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `144287`
+- Total Python lines: `144319`
 
 ## Largest Files
 
@@ -48,8 +48,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3505`
-- Radon complexity rank inventory: `A=3300, B=205`
+- Radon analyzed block inventory: `3507`
+- Radon complexity rank inventory: `A=3304, B=203`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3889, missing=3854, covered=35, coverage=0.9%`
+- Interrogate docstring inventory: `total=3891, missing=3856, covered=35, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
