@@ -12,6 +12,12 @@ from src.core.advisor_cockpit import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
     CockpitCallerContext,
+    PolicyReviewActionSource,
+    build_policy_review_required_action,
+)
+from src.core.advisor_cockpit.service_projection import (
+    project_actions_for_caller,
+    visible_owner_roles_for_role,
 )
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
@@ -183,6 +189,59 @@ def _caller(
     role: str = "ADVISOR", advisor_id: str | None = "advisor_sg_001"
 ) -> CockpitCallerContext:
     return CockpitCallerContext(advisor_id=advisor_id, role=role)
+
+
+def _policy_action():
+    return build_policy_review_required_action(
+        PolicyReviewActionSource(
+            policy_evaluation_id="policy_eval_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_001",
+            policy_result="PENDING_REVIEW",
+            due_at="2026-05-27T07:30:00+00:00",
+        )
+    )
+
+
+def test_cockpit_projection_role_visibility_contract_is_explicit() -> None:
+    assert visible_owner_roles_for_role("ADVISOR") is None
+    assert visible_owner_roles_for_role("DESK_HEAD") is None
+    assert visible_owner_roles_for_role("COMPLIANCE_REVIEWER") == {"COMPLIANCE_REVIEWER"}
+    assert visible_owner_roles_for_role("OPERATIONS") == {
+        "REPORTING_OWNER",
+        "ARCHIVE_OWNER",
+        "EXECUTION_OWNER",
+        "OPERATIONS",
+    }
+    assert visible_owner_roles_for_role("PORTFOLIO_MANAGER") == {"PORTFOLIO_MANAGER"}
+    assert visible_owner_roles_for_role("DPM_OWNER") == {"PORTFOLIO_MANAGER"}
+    assert visible_owner_roles_for_role("CRM_OWNER") == {"CRM_OWNER", "ADVISOR"}
+    assert visible_owner_roles_for_role("BESPOKE_OWNER") == {"BESPOKE_OWNER"}
+
+
+def test_cockpit_projection_always_includes_system_actions_for_scoped_roles() -> None:
+    policy_action = _policy_action()
+    system_action = policy_action.model_copy(
+        update={
+            "action_item_id": "aci_system_supportability",
+            "owner_role": "SYSTEM",
+            "owner_role_label": "System",
+        }
+    )
+    portfolio_manager_action = policy_action.model_copy(
+        update={
+            "action_item_id": "aci_house_view_pm",
+            "owner_role": "PORTFOLIO_MANAGER",
+            "owner_role_label": "Portfolio manager",
+        }
+    )
+
+    projected = project_actions_for_caller(
+        actions=[policy_action, system_action, portfolio_manager_action],
+        caller_context=_caller(role="COMPLIANCE_REVIEWER", advisor_id=None),
+    )
+
+    assert [action.owner_role for action in projected] == ["COMPLIANCE_REVIEWER", "SYSTEM"]
 
 
 def test_cockpit_service_lists_source_backed_actions_with_counts(

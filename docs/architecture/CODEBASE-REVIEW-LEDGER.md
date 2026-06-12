@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-765
+
+- Scope: Advisor cockpit role-based action visibility projection
+- Pattern: Caller-role visibility should be expressed as an explicit projection contract rather
+  than as a branching ladder embedded in the service projection helper.
+- Status: Hardened
+- Finding Class: Advisor cockpit role-visibility modularity and reviewability
+- Summary: `visible_owner_roles_for_role` encoded privileged caller roles, operations queue
+  expansion, legacy DPM-owner compatibility, CRM co-ownership, and unknown-role fallback in a
+  branch-heavy helper. This projection controls which cockpit actions each non-advisor queue can
+  see, so converting it to named role-visibility tables makes the access-shaping behavior easier to
+  review and extend without changing emitted action visibility.
+- Evidence:
+  - Extracted privileged all-visible caller roles and mapped owner-role visibility into named
+    constants.
+  - Preserved advisor and desk-head full visibility, compliance/investment/operations queue
+    scoping, DPM-owner compatibility with portfolio-manager actions, CRM owner visibility of
+    advisor-owned actions, unknown-role self-scoping, and `SYSTEM` action visibility.
+  - Added focused coverage for the role-visibility contract and the `SYSTEM` action exception for
+    scoped caller roles.
+  - Radon no longer reports `visible_owner_roles_for_role` as B-ranked; remaining advisor cockpit
+    B-ranked helpers are approval dependency construction, SLA band derivation, and acknowledgement
+    orchestration.
+  - Focused advisor cockpit service tests passed with 18 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit role projection remains behavior-compatible while the queue visibility contract
+    is now explicit data rather than nested control flow.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    role-projection maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked approval-action, SLA, and
+    acknowledgement helpers.
+
 ## LA-REV-764
 
 - Scope: Advisor cockpit generic source-backed action construction
