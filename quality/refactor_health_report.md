@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/contract-ref-normalization`
-- Head: `cc899c1bb21803de71d70adbaafc7e3619e6de4d`
-- Branch Commits Over Main: `0`
+- Head: `28519fe3672d80347314160297bb878aa6ed5a82`
+- Branch Commits Over Main: `1`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -14,6 +14,8 @@
 - Advisory-copilot API DTOs are split into request, response, limits, and compatibility
   modules.
 - Advisory-copilot source projections and run-record limits have focused owner modules.
+- Advisory-copilot proposal-version lineage extraction delegates lineage-ref and
+  section-source-ref matching to focused helpers.
 - Advisory simulation orchestration is split into intent planning, review policy,
   and decision-support modules with focused boundary tests.
 - Feature capability catalog assembly is split into foundation, evidence-product,

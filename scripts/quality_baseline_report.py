@@ -727,6 +727,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Advisory-copilot API DTOs are split into request, response, limits, and compatibility",
         "  modules.",
         "- Advisory-copilot source projections and run-record limits have focused owner modules.",
+        "- Advisory-copilot proposal-version lineage extraction delegates lineage-ref and",
+        "  section-source-ref matching to focused helpers.",
         "- Advisory simulation orchestration is split into intent planning, review policy,",
         "  and decision-support modules with focused boundary tests.",
         "- Feature capability catalog assembly is split into foundation, evidence-product,",
@@ -1075,7 +1077,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-743` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-744` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

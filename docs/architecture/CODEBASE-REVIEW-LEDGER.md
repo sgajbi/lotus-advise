@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-744
+
+- Scope: Lotus AI advisory copilot proposal-version lineage extraction
+- Pattern: Proposal-version lineage extraction should separate lineage-ref matching from
+  section-source-ref fallback so AI lineage projection remains auditable without duplicating
+  source-system/type predicates.
+- Status: Hardened
+- Finding Class: Lotus AI integration complexity and lineage maintainability
+- Summary: `_proposal_version_id` duplicated Lotus Advise proposal-version matching across
+  top-level copilot lineage refs and section source refs in one C-ranked helper. This integration
+  boundary contributes proposal-version continuity to advisory copilot lineage, so the fallback
+  order should remain behavior-compatible while source matching is inspectable through focused
+  predicates.
+- Evidence:
+  - Extracted focused helpers for proposal-version lineage id lookup, proposal-version source id
+    fallback lookup, lineage-ref matching, source-ref matching, and present-string checks.
+  - Preserved the existing precedence where Lotus Advise `PROPOSAL_VERSION` lineage refs win
+    before section-level Lotus Advise `PROPOSAL_VERSION` source refs.
+  - Added focused coverage proving unrelated proposal-version lineage refs and non-version Advise
+    lineage refs are ignored before using the valid section source-ref fallback.
+  - Radon now reports `_proposal_version_id` as A-ranked complexity `2`, down from C-ranked
+    complexity `12`.
+  - Source-only Radon now reports one remaining C-ranked `src/` hotspot.
+  - Focused Lotus AI advisory copilot Radon and unit tests passed with 14 tests.
+- Consequence:
+  - Advisory copilot lineage remains behavior-compatible while proposal-version continuity logic is
+    easier to audit as workflow-pack lineage families expand.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal integration-lineage hardening for existing advisory copilot behavior.
+- Follow-Up:
+  - Continue with persistent proposal listing, the last remaining C-ranked source hotspot.
+
 ## LA-REV-743
 
 - Scope: RFC-0028 proof-pack contract-reference normalization
