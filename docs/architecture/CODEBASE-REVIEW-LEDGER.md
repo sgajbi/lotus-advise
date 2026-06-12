@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-755
+
+- Scope: OpenAPI scalar example inference
+- Pattern: Generated scalar example inference should keep numeric, bounded-integer, and typed
+  schema dispatch policy in named helpers and policy tables rather than branch chains.
+- Status: Hardened
+- Finding Class: API contract quality and example-policy maintainability
+- Summary: The OpenAPI scalar example inference path still encoded numeric field examples,
+  bounded integer examples, keyed integer examples, and schema-type dispatch in branch-heavy
+  helpers. These policies govern generated examples across API contracts, so moving them behind
+  explicit helper boundaries makes the example policy easier to review and extend without changing
+  generated contract behavior.
+- Evidence:
+  - Extracted bounded-integer and keyed-integer example helpers.
+  - Replaced numeric example branch chains with a named marker policy table.
+  - Replaced schema-type dispatch branch chains with typed example builder helpers.
+  - Preserved existing OpenAPI examples for bounded integer, numeric string, market price,
+    quantity, market value, generic ratio, string, boolean, array, and object schema fields.
+  - Radon no longer reports `_infer_integer_example`, `_infer_number_example`, or
+    `_infer_typed_example` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, `mypy`,
+    monetary float guard, and Radon checks passed.
+- Consequence:
+  - OpenAPI scalar example policy remains behavior-compatible while numeric and typed dispatch
+    decisions are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Continue reducing the remaining OpenAPI object/ref/string inference helpers only where helper
+    boundaries clarify generated contract semantics.
+
 ## LA-REV-754
 
 - Scope: OpenAPI response media example traversal

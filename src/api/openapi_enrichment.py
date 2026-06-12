@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from numbers import Real
-from typing import Any
+from typing import Any, Callable, cast
 
 from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
 
@@ -48,6 +48,15 @@ _EXAMPLE_BY_KEY = {
 _STRING_EXAMPLE_BY_KEY = {
     key: value for key, value in _EXAMPLE_BY_KEY.items() if isinstance(value, str)
 }
+
+_NUMBER_EXAMPLE_POLICIES = (
+    (("weight",), 0.125),
+    (("price", "rate"), 1.2345),
+    (("quantity",), 100.0),
+    (("pnl", "amount", "value"), 125000.5),
+)
+
+_TypedExampleBuilder = Callable[[str, dict[str, Any], dict[str, Any]], Any]
 
 
 def _to_snake_case(value: str) -> str:
@@ -147,29 +156,36 @@ def _infer_object_example(
 
 def _infer_integer_example(prop_name: str, prop_schema: dict[str, Any]) -> int:
     key = _to_snake_case(prop_name)
+    bounded_example = _bounded_integer_example(prop_schema)
+    if bounded_example is not None:
+        return bounded_example
+    keyed_example = _keyed_integer_example(key)
+    return keyed_example if keyed_example is not None else 10
+
+
+def _bounded_integer_example(prop_schema: dict[str, Any]) -> int | None:
     maximum = prop_schema.get("maximum")
     minimum = prop_schema.get("minimum")
-    if isinstance(maximum, (int, float)) and maximum <= 10:
-        lower_bound = int(minimum) if isinstance(minimum, (int, float)) else 1
-        upper_bound = int(maximum)
+    if isinstance(maximum, Real) and maximum <= 10:
+        lower_bound = int(cast(Any, minimum)) if isinstance(minimum, Real) else 1
+        upper_bound = int(cast(Any, maximum))
         return max(lower_bound, min(upper_bound, 5))
+    return None
+
+
+def _keyed_integer_example(key: str) -> int | None:
     if "ttl" in key or "hours" in key:
         return 24
     if "version" in key:
         return 1
-    return 10
+    return None
 
 
 def _infer_number_example(prop_name: str) -> float:
     key = _to_snake_case(prop_name)
-    if "weight" in key:
-        return 0.125
-    if "price" in key or "rate" in key:
-        return 1.2345
-    if "quantity" in key:
-        return 100.0
-    if "pnl" in key or "amount" in key or "value" in key:
-        return 125000.5
+    for markers, example in _NUMBER_EXAMPLE_POLICIES:
+        if any(marker in key for marker in markers):
+            return example
     return 10.5
 
 
@@ -511,19 +527,68 @@ def _infer_typed_example(
     components: dict[str, Any],
     schema_type: Any,
 ) -> Any | None:
-    if schema_type == "array":
-        return _infer_array_example(prop_name, prop_schema, components)
-    if schema_type == "object":
-        return _infer_object_example(prop_name, prop_schema, components)
-    if schema_type == "boolean":
-        return True
-    if schema_type == "integer":
-        return _infer_integer_example(prop_name, prop_schema)
-    if schema_type == "number":
-        return _infer_number_example(prop_name)
-    if schema_type == "string":
-        return _infer_string_example(prop_name, prop_schema)
-    return None
+    if not isinstance(schema_type, str):
+        return None
+    builder = _TYPED_EXAMPLE_BUILDERS.get(schema_type)
+    return builder(prop_name, prop_schema, components) if builder is not None else None
+
+
+def _typed_array_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> list[Any]:
+    return _infer_array_example(prop_name, prop_schema, components)
+
+
+def _typed_object_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    components: dict[str, Any],
+) -> dict[str, Any]:
+    return _infer_object_example(prop_name, prop_schema, components)
+
+
+def _typed_boolean_example(
+    _: str,
+    __: dict[str, Any],
+    ___: dict[str, Any],
+) -> bool:
+    return True
+
+
+def _typed_integer_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    _: dict[str, Any],
+) -> int:
+    return _infer_integer_example(prop_name, prop_schema)
+
+
+def _typed_number_example(
+    prop_name: str,
+    _: dict[str, Any],
+    __: dict[str, Any],
+) -> float:
+    return _infer_number_example(prop_name)
+
+
+def _typed_string_example(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    _: dict[str, Any],
+) -> str:
+    return _infer_string_example(prop_name, prop_schema)
+
+
+_TYPED_EXAMPLE_BUILDERS: dict[str, _TypedExampleBuilder] = {
+    "array": _typed_array_example,
+    "object": _typed_object_example,
+    "boolean": _typed_boolean_example,
+    "integer": _typed_integer_example,
+    "number": _typed_number_example,
+    "string": _typed_string_example,
+}
 
 
 def _infer_description(model_name: str, prop_name: str, prop_schema: dict[str, Any]) -> str:
