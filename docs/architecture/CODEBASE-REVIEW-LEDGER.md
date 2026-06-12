@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-766
+
+- Scope: Advisor cockpit SLA age-band rule classification
+- Pattern: SLA due-date normalization should be separated from threshold classification so the
+  due-soon, due-now, overdue, and critical-overdue boundaries are explicit and independently
+  testable.
+- Status: Hardened
+- Finding Class: Advisor cockpit rule modularity and SLA boundary correctness
+- Summary: `derive_cockpit_sla_age_band` mixed missing-value handling, UTC parsing, current-time
+  normalization, delta calculation, and threshold classification in one branch-heavy helper. This
+  rule affects cockpit priority and queue aging semantics, so splitting delta classification makes
+  the exact boundary behavior easier to review without changing the public SLA band contract.
+- Evidence:
+  - Extracted SLA delta classification into a focused helper while preserving missing due-date
+    behavior, UTC normalization, `Z` timestamp parsing, due-soon threshold, due-now grace window,
+    overdue band, and critical-overdue threshold.
+  - Added focused coverage for exact 24-hour due-soon, zero-delta due-now, one-hour due-now,
+    overdue, 24-hour critical-overdue, `Z` timestamp, and naive-UTC normalization behavior.
+  - Radon no longer reports `derive_cockpit_sla_age_band` as B-ranked; remaining advisor cockpit
+    B-ranked helpers are approval dependency construction and acknowledgement orchestration.
+  - Focused advisor cockpit rules tests passed with 7 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit SLA aging remains behavior-compatible while threshold ownership and regression
+    coverage are clearer for future queue-aging changes.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal SLA
+    rule maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked approval-action and acknowledgement
+    helpers.
+
 ## LA-REV-765
 
 - Scope: Advisor cockpit role-based action visibility projection

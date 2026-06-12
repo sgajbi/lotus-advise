@@ -11,6 +11,7 @@ DUE_SOON_WINDOW = timedelta(hours=24)
 DUE_NOW_GRACE_WINDOW = timedelta(hours=1)
 CRITICAL_OVERDUE_WINDOW = timedelta(hours=24)
 OWNER_BLOCKING_STATUSES = frozenset({"BLOCKED", "PENDING_REVIEW", "HANDOFF_REQUESTED"})
+_ZERO_DELTA = timedelta(0)
 
 
 def derive_cockpit_sla_age_band(
@@ -21,12 +22,13 @@ def derive_cockpit_sla_age_band(
     if not due_at:
         return "NOT_APPLICABLE"
 
-    due = _parse_utc(due_at)
-    current = _ensure_utc(now)
-    delta = due - current
+    return _sla_age_band_from_delta(_parse_utc(due_at) - _ensure_utc(now))
+
+
+def _sla_age_band_from_delta(delta: timedelta) -> AdvisorCockpitSlaAgeBand:
     if delta > DUE_SOON_WINDOW:
         return "NOT_DUE"
-    if delta > timedelta(0):
+    if delta > _ZERO_DELTA:
         return "DUE_SOON"
     if delta >= -DUE_NOW_GRACE_WINDOW:
         return "DUE_NOW"

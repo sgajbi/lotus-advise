@@ -50,6 +50,26 @@ def test_sla_age_band_is_deterministic_from_due_time() -> None:
     assert derive_cockpit_sla_age_band(due_at="2026-05-26T20:00:00+00:00", now=NOW) == "OVERDUE"
 
 
+def test_sla_age_band_preserves_threshold_boundaries() -> None:
+    assert derive_cockpit_sla_age_band(due_at="2026-05-28T08:00:01+00:00", now=NOW) == "NOT_DUE"
+    assert derive_cockpit_sla_age_band(due_at="2026-05-28T08:00:00+00:00", now=NOW) == "DUE_SOON"
+    assert derive_cockpit_sla_age_band(due_at="2026-05-27T08:00:00+00:00", now=NOW) == "DUE_NOW"
+    assert derive_cockpit_sla_age_band(due_at="2026-05-27T07:00:00+00:00", now=NOW) == "DUE_NOW"
+    assert derive_cockpit_sla_age_band(due_at="2026-05-27T06:59:59+00:00", now=NOW) == "OVERDUE"
+    assert derive_cockpit_sla_age_band(due_at="2026-05-26T08:00:01+00:00", now=NOW) == "OVERDUE"
+    assert (
+        derive_cockpit_sla_age_band(due_at="2026-05-26T08:00:00+00:00", now=NOW)
+        == "CRITICAL_OVERDUE"
+    )
+
+
+def test_sla_age_band_normalizes_zulu_and_naive_datetimes_to_utc() -> None:
+    naive_now = datetime(2026, 5, 27, 8, 0)
+
+    assert derive_cockpit_sla_age_band(due_at="2026-05-27T08:30:00Z", now=naive_now) == "DUE_SOON"
+    assert derive_cockpit_sla_age_band(due_at="2026-05-27T07:30:00Z", now=naive_now) == "DUE_NOW"
+
+
 def test_sla_age_band_can_be_applied_without_changing_action_identity() -> None:
     action = _policy_action()
 
