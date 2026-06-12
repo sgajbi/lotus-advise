@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-774
+
+- Scope: Lotus AI output safety section mapping
+- Pattern: Review-required AI output mapping should separate list traversal from section shape,
+  text-bound, and review-state projection rules.
+- Status: Hardened
+- Finding Class: AI output safety modularity and fail-closed parsing
+- Summary: `map_review_required_sections` mixed payload type validation, section limit handling,
+  item shape checks, section-key/title/text bounds, invalid-section filtering, and review-state
+  projection in one helper. This path bounds Lotus AI structured output before advisory surfaces
+  consume it, so isolating section validation makes fail-closed behavior easier to audit without
+  changing the mapped output contract.
+- Evidence:
+  - Extracted review-required section validation and projection into a focused helper.
+  - Preserved non-list fail-closed behavior, invalid item filtering, section count limits, bounded
+    section key/title/text handling, and `REVIEW_REQUIRED` projection.
+  - Added focused coverage proving non-list section payloads fail closed to an empty tuple.
+  - Radon reports no B-ranked blocks in `src/integrations/lotus_ai/output_safety.py`.
+  - Focused Lotus AI output-safety tests passed with 3 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Lotus AI structured-output safety mapping remains behavior-compatible while each parsing and
+    projection boundary is independently reviewable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal AI
+    output-safety maintainability hardening.
+- Follow-Up:
+  - Continue reducing advisory-copilot request-safety helpers and other B-ranked integration
+    boundaries with focused fail-closed tests.
+
 ## LA-REV-773
 
 - Scope: Suitability post-trade issue evaluation
