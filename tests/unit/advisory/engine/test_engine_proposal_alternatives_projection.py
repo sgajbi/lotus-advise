@@ -203,12 +203,14 @@ def test_build_proposal_alternatives_selection_mode_marks_only_ranked_selection(
 def test_build_strategy_inputs_preserves_missing_prices_and_notional_trades() -> None:
     payload = _request().model_dump(mode="json")
     payload["market_data_snapshot"]["prices"] = payload["market_data_snapshot"]["prices"][:1]
+    payload["shelf_entries"][0]["asset_class"] = "EQUITY"
     payload["proposed_trades"] = [
+        {"side": "SELL", "instrument_id": "AAPL", "quantity": "10"},
         {
             "side": "BUY",
             "instrument_id": "NVDA",
             "notional": {"amount": "2500", "currency": "USD"},
-        }
+        },
     ]
     request = ProposalSimulateRequest.model_validate(payload)
 
@@ -216,8 +218,13 @@ def test_build_strategy_inputs_preserves_missing_prices_and_notional_trades() ->
 
     assert strategy_inputs.positions[1].price is None
     assert strategy_inputs.positions[1].currency is None
-    assert strategy_inputs.current_proposed_trades[0].notional_amount == Decimal("2500")
-    assert strategy_inputs.current_proposed_trades[0].notional_currency == "USD"
+    assert strategy_inputs.cash_balances["USD"] == Decimal("1000")
+    assert strategy_inputs.shelf_instruments[0].asset_class == "EQUITY"
+    assert strategy_inputs.current_proposed_trades[0].quantity == Decimal("10")
+    assert strategy_inputs.current_proposed_trades[0].notional_amount is None
+    assert strategy_inputs.current_proposed_trades[1].quantity is None
+    assert strategy_inputs.current_proposed_trades[1].notional_amount == Decimal("2500")
+    assert strategy_inputs.current_proposed_trades[1].notional_currency == "USD"
     assert _build_strategy_inputs.__module__ == "src.core.advisory.alternatives_projection_inputs"
 
 

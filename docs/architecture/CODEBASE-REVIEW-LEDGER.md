@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-779
+
+- Scope: Proposal alternatives strategy-input projection
+- Pattern: Alternatives strategy input construction should separate market-data lookup, position
+  projection, cash projection, shelf projection, and trade-intent projection.
+- Status: Hardened
+- Finding Class: Advisory alternatives modularity and source-input mapping clarity
+- Summary: `build_strategy_inputs` mixed market-price indexing, position price/currency lookup,
+  cash balance mapping, shelf entry mapping, and proposed-trade quantity/notional projection in one
+  helper. This path shapes every alternatives strategy from source-backed proposal inputs, so
+  splitting the projection families makes strategy input behavior easier to audit without changing
+  ordering, missing-price handling, shelf asset-class propagation, cash balance mapping, or
+  quantity/notional trade semantics.
+- Evidence:
+  - Extracted helpers for price lookup, strategy positions, cash balances, shelf instruments, and
+    strategy trade intents.
+  - Preserved missing-price projection to `None`, cash balances keyed by currency, shelf status and
+    asset-class mapping, and mixed quantity/notional trade mapping.
+  - Extended focused projection coverage for shelf asset class, cash balance, quantity trade, and
+    notional trade behavior.
+  - Radon reports no B-ranked blocks in `src/core/advisory/alternatives_projection_inputs.py`.
+  - Focused alternatives projection tests passed with 9 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Alternatives strategy inputs remain behavior-compatible while each source-input projection
+    family is independently testable and easier to review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    alternatives strategy-input maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked alternatives enrichment and strategy-support helpers with focused
+    behavior-preservation tests.
+
 ## LA-REV-778
 
 - Scope: Proposal alternatives request normalization
