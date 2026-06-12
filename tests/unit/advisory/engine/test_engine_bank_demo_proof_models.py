@@ -508,6 +508,22 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
             }
         )
 
+    with pytest.raises(ValidationError, match="control characters"):
+        AdvisoryBankDemoProofPack(
+            **{
+                **proof_pack.model_dump(),
+                "scenario_contract_ref": "lotus-advise://rfc0028/scenario.v1.json\x00leak",
+            }
+        )
+
+    with pytest.raises(ValidationError, match="must include a contract path"):
+        AdvisoryBankDemoProofPack(
+            **{
+                **proof_pack.model_dump(),
+                "supported_claim_register_ref": "lotus-advise://rfc0028",
+            }
+        )
+
     with pytest.raises(ValidationError, match="canonical sha256 digest"):
         ProofAsset(
             asset_id="bad_hash",

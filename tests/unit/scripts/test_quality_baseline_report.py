@@ -101,6 +101,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Bank-demo commercial material pack assembly delegates" in refactor_health
     assert "Bank-demo commercial material register validation delegates" in refactor_health
     assert "Bank-demo supported-claim classification validation delegates" in refactor_health
+    assert "Bank-demo proof-pack contract-reference normalization delegates" in refactor_health
     assert "evidence-bundle, and hash finalization" in refactor_health
     assert "Advisory auto-funding planning delegates FX source selection" in refactor_health
     assert "Policy source-readiness assembly is split" in refactor_health

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from urllib.parse import urlsplit
+from urllib.parse import SplitResult, urlsplit
 
 RFC28_CAPTURE_IDENTIFIER_MAX_LENGTH = 160
 RFC28_CAPTURE_METADATA_LABEL_MAX_LENGTH = 64
@@ -79,18 +79,44 @@ def contains_sensitive_rfc28_term(value: str) -> bool:
 
 def normalize_lotus_advise_contract_ref(value: str, *, field_name: str) -> str:
     normalized = normalize_required_rfc28_text(value, field_name=field_name, max_length=512)
-    if any(char in normalized for char in ("\r", "\n", "\t", "\x00")):
-        raise ValueError(f"{field_name} cannot contain control characters")
     parsed = urlsplit(normalized)
-    if parsed.scheme != "lotus-advise" or not parsed.netloc:
-        raise ValueError(f"{field_name} must be a lotus-advise logical contract reference")
-    if parsed.query or parsed.fragment or "@" in parsed.netloc:
-        raise ValueError(f"{field_name} must not include credentials, query, or fragment")
-    path_parts = [part for part in parsed.path.split("/") if part]
-    if not path_parts:
-        raise ValueError(f"{field_name} must include a contract path")
-    if any(part == ".." for part in path_parts):
-        raise ValueError(f"{field_name} cannot contain parent-directory traversal")
+    path_parts = _lotus_advise_contract_path_parts(parsed)
+    _reject_control_characters(normalized, field_name=field_name)
+    _require_lotus_advise_contract_ref(parsed, field_name=field_name)
+    _reject_contract_ref_credentials_query_or_fragment(parsed, field_name=field_name)
+    _require_contract_path(path_parts, field_name=field_name)
+    _reject_contract_ref_path_traversal(path_parts, field_name=field_name)
     if contains_sensitive_rfc28_term(normalized):
         raise ValueError(f"{field_name} cannot contain sensitive technical detail")
     return normalized
+
+
+def _reject_control_characters(value: str, *, field_name: str) -> None:
+    if any(char in value for char in ("\r", "\n", "\t", "\x00")):
+        raise ValueError(f"{field_name} cannot contain control characters")
+
+
+def _require_lotus_advise_contract_ref(parsed: SplitResult, *, field_name: str) -> None:
+    if parsed.scheme != "lotus-advise" or not parsed.netloc:
+        raise ValueError(f"{field_name} must be a lotus-advise logical contract reference")
+
+
+def _reject_contract_ref_credentials_query_or_fragment(
+    parsed: SplitResult, *, field_name: str
+) -> None:
+    if parsed.query or parsed.fragment or "@" in parsed.netloc:
+        raise ValueError(f"{field_name} must not include credentials, query, or fragment")
+
+
+def _lotus_advise_contract_path_parts(parsed: SplitResult) -> list[str]:
+    return [part for part in parsed.path.split("/") if part]
+
+
+def _require_contract_path(path_parts: list[str], *, field_name: str) -> None:
+    if not path_parts:
+        raise ValueError(f"{field_name} must include a contract path")
+
+
+def _reject_contract_ref_path_traversal(path_parts: list[str], *, field_name: str) -> None:
+    if any(part == ".." for part in path_parts):
+        raise ValueError(f"{field_name} cannot contain parent-directory traversal")

@@ -1,7 +1,7 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/supported-claim-classification`
-- Head: `3eceba04dcd6509f418f0d703e64c6280c899880`
+- Branch: `harden/contract-ref-normalization`
+- Head: `cc899c1bb21803de71d70adbaafc7e3619e6de4d`
 - Branch Commits Over Main: `0`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
@@ -40,6 +40,8 @@
   reference aggregation, and client-facing claim-posture checks to focused helpers.
 - Bank-demo supported-claim classification validation delegates evidence,
   proof-reference, planned/unsupported, and UI-pending posture checks to focused helpers.
+- Bank-demo proof-pack contract-reference normalization delegates scheme, credential,
+  path, traversal, and sensitive-detail checks to focused helpers.
 - Bank-demo journey integration proof DTOs and validators are split into a focused
   model owner while preserving the proof summary builder and public import path.
 - Proposal artifact assembly delegates portfolio, summary, trade/funding, review,
