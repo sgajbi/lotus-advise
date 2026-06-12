@@ -2,11 +2,13 @@ import json
 import logging
 import re
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.api.observability import (
     JsonFormatter,
+    _normalize_request_id,
     correlation_id_var,
     request_id_var,
     setup_observability,
@@ -69,6 +71,15 @@ def test_observability_middleware_rejects_unsafe_request_id_and_generates_safe_h
     assert re.fullmatch(r"req_[0-9a-f]{12}", response.json()["request_id"])
     assert response.headers["X-Request-Id"] == response.json()["request_id"]
     assert re.fullmatch(r"[0-9a-f]{32}", response.headers["X-Trace-Id"])
+
+
+def test_normalize_request_id_trims_meaningful_values() -> None:
+    assert _normalize_request_id("  req-observability-trimmed  ") == "req-observability-trimmed"
+
+
+@pytest.mark.parametrize("request_id", [None, "", "   ", "r" * 129, "req-observability\x7f"])
+def test_normalize_request_id_rejects_absent_or_unsafe_values(request_id: str | None) -> None:
+    assert _normalize_request_id(request_id) is None
 
 
 def test_json_formatter_includes_context_and_structured_extra_fields() -> None:

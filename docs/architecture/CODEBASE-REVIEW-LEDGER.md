@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-750
+
+- Scope: API observability request-id normalization
+- Pattern: Request-id normalization should reuse the governed bounded identifier policy instead
+  of maintaining a separate inline length/control-character implementation.
+- Status: Hardened
+- Finding Class: Observability security posture and identifier normalization maintainability
+- Summary: `_normalize_request_id` duplicated trimming, maximum-length, blank-value, and
+  control-character checks that already exist in the shared correlation-id normalization policy.
+  The duplicated inline checks kept a B-ranked observability helper and increased drift risk
+  between request and correlation identifiers at the API boundary.
+- Evidence:
+  - Reused `normalize_optional_correlation_id` for request-id normalization while preserving the
+    generated `req_*` fallback behavior.
+  - Added focused tests for trimmed request IDs plus absent, blank, oversized, and control-character
+    rejection.
+  - Radon now reports no B-ranked blocks in `src/api/observability.py`.
+  - Focused observability tests, `ruff`, format check, mypy, and Radon checks passed.
+- Consequence:
+  - Correlation and request identifiers now share the same bounded-input policy, reducing
+    observability-header drift while preserving safe request-id fallback behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal observability normalization hardening for existing API middleware
+    behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked OpenAPI enrichment and proposal reporting helpers while
+    preserving public contract semantics.
+
 ## LA-REV-749
 
 - Scope: Integration capability dependency reason selection
