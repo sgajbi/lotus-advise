@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-758
+
+- Scope: Suitability issuer and liquidity state issue aggregation
+- Pattern: Suitability state checks should separate enrichment data-quality diagnostics, exposure
+  bucket aggregation, and issue construction from the public evaluator orchestration.
+- Status: Hardened
+- Finding Class: Domain policy modularity and suitability diagnostics maintainability
+- Summary: `evaluate_issuer_issues` and `evaluate_liquidity_issues` both mixed target-weight
+  traversal, shelf enrichment lookup, missing enrichment diagnostics, exposure aggregation, cap
+  comparison, and issue construction. These rules drive private-banking suitability gate decisions,
+  so separating data-quality diagnostics from issuer/liquidity exposure issue construction makes
+  the policy easier to audit without changing issue output.
+- Evidence:
+  - Extracted shared enriched-weight aggregation for issuer and liquidity buckets.
+  - Extracted missing shelf, missing enrichment, issuer exposure, and liquidity exposure issue
+    builders.
+  - Preserved missing shelf, missing issuer, missing liquidity tier, issuer cap, and liquidity cap
+    issue keys, summaries, details, severities, and approval implications.
+  - Radon no longer reports `evaluate_issuer_issues` or `evaluate_liquidity_issues` as B-ranked.
+  - Focused suitability scanner and governance tests passed with 11 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Suitability state issue aggregation remains behavior-compatible while enrichment diagnostics
+    and exposure issue construction can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal domain policy maintainability hardening.
+- Follow-Up:
+  - Continue reducing the remaining governance holding selector or move to another source-only
+    hotspot with stronger cross-workflow payoff.
+
 ## LA-REV-757
 
 - Scope: OpenAPI response media traversal helpers
