@@ -68,6 +68,8 @@ def append_product_complexity_issues(
 
     for instrument_id in sorted(set(after_weights) | buy_attempts):
         shelf_entry = shelf_by_instrument.get(instrument_id)
+        if shelf_entry is None:
+            continue
         if not _requires_product_complexity_evidence(shelf_entry, policy_context):
             continue
         before_weight = before_weights.get(instrument_id, Decimal("0"))
@@ -218,11 +220,9 @@ def _governance_weight_details(
 
 
 def _requires_product_complexity_evidence(
-    shelf_entry: ShelfEntry | None,
+    shelf_entry: ShelfEntry,
     policy_context: dict[str, Any] | None,
 ) -> bool:
-    if shelf_entry is None:
-        return False
     if _product_complexity(shelf_entry) not in {"HIGH", "COMPLEX"}:
         return False
     return not client_context_available(policy_context)
