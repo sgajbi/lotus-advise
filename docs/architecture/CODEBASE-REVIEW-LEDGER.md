@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-760
+
+- Scope: Advisor cockpit approval dependency source projection
+- Pattern: Proposal approval dependency projection should separate state matching, completion
+  suppression, rejection timestamp selection, and source DTO construction.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and lifecycle evidence correctness
+- Summary: `_approval_dependency_source` mixed proposal-state approval-type lookup, approval record
+  filtering, completed-approval suppression, latest rejection selection, and action-source DTO
+  construction in one helper. This projection feeds advisor cockpit approval and client-consent
+  actions, so splitting the decision points makes supervisory evidence behavior easier to review
+  without changing source-backed action output.
+- Evidence:
+  - Extracted matching-approval, completed-approval, and pending-dependency source helpers.
+  - Preserved completed approval suppression and pending/rejected dependency construction.
+  - Added focused coverage proving rejected approval dependencies use the latest rejected approval
+    timestamp.
+  - Radon reports no B-ranked blocks in
+    `src/core/advisor_cockpit/source_projection_proposal.py`.
+  - Focused advisor cockpit source-read-model tests passed with 13 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit approval dependency projection remains behavior-compatible while lifecycle
+    evidence selection and action-source construction can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-projection maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked source projection and action-building
+    helpers with the same source-backed evidence posture.
+
 ## LA-REV-759
 
 - Scope: Suitability governance holding issue selection

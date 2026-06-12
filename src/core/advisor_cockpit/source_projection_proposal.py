@@ -100,12 +100,37 @@ def _approval_dependency_source(
     approval_type = APPROVAL_DEPENDENCY_STATES.get(proposal.current_state)
     if approval_type is None:
         return None
-    matching_approvals = [
-        approval for approval in approvals if approval.approval_type == approval_type
-    ]
-    if any(approval.approved for approval in matching_approvals):
+    matching_approvals = _matching_approval_records(
+        approvals=approvals,
+        approval_type=approval_type,
+    )
+    if _has_completed_approval(matching_approvals):
         return None
-    latest_rejection = _latest_rejected_approval(matching_approvals)
+    return _pending_approval_dependency_source(
+        proposal=proposal,
+        approval_type=approval_type,
+        latest_rejection=_latest_rejected_approval(matching_approvals),
+    )
+
+
+def _matching_approval_records(
+    *,
+    approvals: list[ProposalApprovalRecordData],
+    approval_type: ProposalApprovalType,
+) -> list[ProposalApprovalRecordData]:
+    return [approval for approval in approvals if approval.approval_type == approval_type]
+
+
+def _has_completed_approval(approvals: list[ProposalApprovalRecordData]) -> bool:
+    return any(approval.approved for approval in approvals)
+
+
+def _pending_approval_dependency_source(
+    *,
+    proposal: ProposalRecord,
+    approval_type: ProposalApprovalType,
+    latest_rejection: ProposalApprovalRecordData | None,
+) -> ApprovalDependencyActionSource:
     approval_status = "REJECTED" if latest_rejection is not None else "PENDING"
     dependency_id = f"approval_dependency_{proposal.proposal_id}_{approval_type.lower()}"
     return ApprovalDependencyActionSource(

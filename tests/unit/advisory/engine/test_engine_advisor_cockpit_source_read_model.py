@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -90,6 +90,9 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
         "_meeting_preparation_source",
         "_client_follow_up_source",
         "_approval_dependency_source",
+        "_matching_approval_records",
+        "_has_completed_approval",
+        "_pending_approval_dependency_source",
         "_latest_rejected_approval",
         "_approval_dependency_summary",
     ):
@@ -245,6 +248,7 @@ def _approval(
     approval_type: str,
     approved: bool,
     approval_id: str = "approval_sg_001",
+    occurred_at: datetime = AS_OF,
 ) -> ProposalApprovalRecordData:
     return ProposalApprovalRecordData(
         approval_id=approval_id,
@@ -252,7 +256,7 @@ def _approval(
         approval_type=approval_type,
         approved=approved,
         actor_id="reviewer_sg_001",
-        occurred_at=AS_OF,
+        occurred_at=occurred_at,
         details_json={"source": "unit-test"},
         related_version_no=1,
     )
@@ -488,6 +492,35 @@ def test_source_read_model_marks_rejected_approval_dependency_blocked() -> None:
     assert action.priority == "CRITICAL"
     assert action.owner_role == "INVESTMENT_DESK"
     assert action.reason_codes == ["RISK_APPROVAL_REJECTED", "CLIENT_READY_BLOCKED"]
+
+
+def test_source_read_model_uses_latest_rejected_approval_timestamp() -> None:
+    later_rejection_at = AS_OF + timedelta(hours=2)
+
+    read_model = build_advisor_cockpit_source_read_model(
+        AdvisorCockpitSourceBatch(
+            proposals=[_proposal("COMPLIANCE_REVIEW")],
+            approvals=[
+                _approval(
+                    proposal_id="proposal_sg_001",
+                    approval_type="COMPLIANCE",
+                    approved=False,
+                    approval_id="approval_sg_rejected_older",
+                ),
+                _approval(
+                    proposal_id="proposal_sg_001",
+                    approval_type="COMPLIANCE",
+                    approved=False,
+                    approval_id="approval_sg_rejected_later",
+                    occurred_at=later_rejection_at,
+                ),
+            ],
+        )
+    )
+
+    assert [source.source_timestamp for source in read_model.approval_dependencies] == [
+        later_rejection_at.isoformat()
+    ]
 
 
 def test_source_read_model_does_not_create_actions_for_completed_sources() -> None:
