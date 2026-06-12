@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-772
+
+- Scope: Advisory copilot run pagination cursor decoding
+- Pattern: Cursor decoding should isolate base64/JSON parsing, payload shape validation, timestamp
+  parsing, and run-id normalization while preserving bounded API error codes.
+- Status: Hardened
+- Finding Class: Advisory copilot pagination modularity and cursor safety
+- Summary: `decode_copilot_run_cursor` mixed nullable cursor handling, base64 padding, URL-safe
+  decode, UTF-8 decode, JSON parsing, payload shape checks, timestamp parsing, timezone
+  enforcement, run-id normalization, and final cursor construction in one helper. This path
+  controls keyset pagination for advisory copilot run history, so splitting the parse and
+  validation boundaries makes malformed cursor behavior easier to audit without changing the public
+  cursor contract.
+- Evidence:
+  - Extracted cursor JSON decoding, payload decoding, payload value validation, timestamp parsing,
+    and run-id normalization helpers.
+  - Preserved bounded `COPILOT_RUN_CURSOR_INVALID` failures for invalid base64, invalid JSON,
+    non-object payloads, missing fields, non-string fields, naive timestamps, and blank run ids.
+  - Added focused coverage proving padded URL-safe base64 cursors decode alongside existing
+    unpadded cursor behavior.
+  - Radon reports no B-ranked blocks in `src/core/advisory_copilot/pagination.py`.
+  - Focused advisory copilot pagination tests passed with 6 tests, and `ruff`, `mypy`, format
+    check, diff check, and Radon checks passed.
+- Consequence:
+  - Advisory copilot run pagination remains behavior-compatible while each cursor validation
+    boundary is independently reviewable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    pagination maintainability hardening for existing advisory copilot behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked suitability and Lotus AI output-safety helpers with
+    focused behavior-preserving tests.
+
 ## LA-REV-771
 
 - Scope: Advisory copilot guardrail evaluation
