@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-12T17:15:13.634193+00:00`
+- Generated At: `2026-06-12T17:24:25.157531+00:00`
 - Branch: `harden/source-b-hotspots`
-- Head: `f525b39fc92cb74ac0dc68d21fdf3742dde70833`
-- Branch Commits Over Main: `55`
+- Head: `da17b42c24b293ca4a3f7a8a17d3c0604a7a56f6`
+- Branch Commits Over Main: `58`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `144006`
+- Total Python lines: `144049`
 
 ## Largest Files
 
@@ -26,7 +26,7 @@
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 9 | `scripts/quality_baseline_report.py` | 1225 |
-| 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
+| 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1197 |
 
 ## Largest Functions And Maintainability Hotspots
 
@@ -48,8 +48,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3482`
-- Radon complexity rank inventory: `A=3271, B=211`
+- Radon analyzed block inventory: `3487`
+- Radon complexity rank inventory: `A=3277, B=210`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3866, missing=3831, covered=35, coverage=0.9%`
+- Interrogate docstring inventory: `total=3871, missing=3836, covered=35, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
