@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
 - Branch: `harden/source-b-hotspots`
-- Head: `5d8abf3051c814b45934183c2ba095b236b15444`
-- Branch Commits Over Main: `1`
+- Head: `386b363b121c147b451b18578fdeae9544d0c080`
+- Branch Commits Over Main: `2`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -261,6 +261,9 @@
 - Integration dependency readiness delegates sanitized URL configuration,
   health-endpoint probing, readiness-basis selection, and unavailable-reason
   projection to focused helpers while preserving fail-closed dependency posture.
+- Advisory supportability projection delegates dependency/feature counts,
+  posture selection, degraded-state detection, and metric emission to focused
+  helpers while preserving bounded supportability labels.
 - Policy-pack applicability evaluation delegates source context extraction,
   missing-evidence detection, not-applicable result construction, and selector
   construction to focused helpers.

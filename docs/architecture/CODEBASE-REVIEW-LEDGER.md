@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-748
+
+- Scope: Advisory supportability projection
+- Pattern: Capability supportability projection should separate dependency/feature count
+  collection, posture selection, and metric emission so readiness state changes remain auditable
+  without expanding the public response builder.
+- Status: Hardened
+- Finding Class: Capability posture complexity and observability maintainability
+- Summary: `build_advisory_supportability` mixed dependency-row counting, enabled-feature
+  counting, lifecycle-disabled state selection, degraded dependency/feature selection, ready-state
+  projection, response construction, and metric emission in one B-ranked helper. This path feeds
+  Gateway and Workbench supportability posture plus bounded Prometheus labels, so public behavior
+  should remain stable while count and posture decisions become inspectable.
+- Evidence:
+  - Extracted focused dependency and feature count helpers, a supportability-count envelope,
+    posture-selection helper, degraded-posture predicate, and metric emission helper.
+  - Preserved existing state/reason/freshness values for lifecycle-disabled, degraded, and ready
+    supportability posture.
+  - Existing integration capability tests passed, covering unsupported lifecycle posture, ready
+    advisory supportability, degraded feature readiness, malformed dependency rows, bounded metric
+    labels, and supportability metric recording.
+  - Radon now reports `build_advisory_supportability` and all helper blocks in
+    `src/api/capabilities/supportability.py` as A-ranked.
+  - Focused integration capability tests, `ruff`, format check, mypy, and Radon checks passed.
+- Consequence:
+  - Advisory supportability projection remains behavior-compatible while dependency/feature
+    supportability counts, posture decisioning, and metric emission can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal capability-posture hardening for existing supportability behavior.
+- Follow-Up:
+  - Continue reducing B-ranked API capability and OpenAPI helpers while preserving metric-label and
+    no-sensitive-label proof.
+
 ## LA-REV-747
 
 - Scope: Integration dependency readiness state and health probing
