@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-768
+
+- Scope: Advisor cockpit acknowledgement orchestration
+- Pattern: Acknowledgement orchestration should separate idempotency validation, request hashing,
+  replay resolution, record construction, audit metadata, and persistence conflict mapping.
+- Status: Hardened
+- Finding Class: Advisor cockpit acknowledgement modularity and idempotency correctness
+- Summary: `acknowledge_cockpit_action` mixed idempotency key normalization, stale-version
+  validation, canonical request hashing, replay conflict handling, missing replay-record handling,
+  acknowledgement persistence record construction, idempotency persistence record construction, and
+  response projection in one helper. This path controls replay-safe advisor acknowledgement
+  behavior, so extracting the branches makes idempotency and audit behavior easier to review without
+  changing the acknowledgement contract.
+- Evidence:
+  - Extracted acknowledgement version validation, request hash construction, replay response
+    resolution, acknowledgement record construction, audit reason metadata, and persistence save
+    helpers.
+  - Preserved stale-version validation, idempotency conflict behavior, replay audit behavior,
+    bounded acknowledgement ids, normalized acknowledgement persistence metadata, owner/status audit
+    metadata, and repository `ValueError` conflict mapping.
+  - Added focused coverage proving replayed idempotency records require the saved acknowledgement
+    record and raise `ADVISOR_COCKPIT_ACKNOWLEDGEMENT_NOT_FOUND` if it is missing.
+  - Radon reports no B-ranked blocks in `src/core/advisor_cockpit/service_acknowledgement.py`;
+    the advisor cockpit package has no remaining B-ranked blocks.
+  - Focused advisor cockpit service tests passed with 19 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit acknowledgement remains behavior-compatible while replay and persistence
+    branches are independently reviewable and covered by regression tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    acknowledgement maintainability hardening.
+- Follow-Up:
+  - Continue broader source-only hotspot reduction outside advisor cockpit.
+
 ## LA-REV-767
 
 - Scope: Advisor cockpit approval dependency action construction

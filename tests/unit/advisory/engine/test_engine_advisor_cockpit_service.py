@@ -20,7 +20,11 @@ from src.core.advisor_cockpit.service_projection import (
     visible_owner_roles_for_role,
 )
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
-from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
+from src.core.proposals.exceptions import (
+    ProposalIdempotencyConflictError,
+    ProposalNotFoundError,
+    ProposalValidationError,
+)
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
 from src.core.tactical_house_view import (
     TacticalHouseViewAffectedCohort,
@@ -113,6 +117,13 @@ class CountingCockpitRepository(InMemoryProposalRepository):
     def list_events_for_proposals(self, *, proposal_ids: list[str]):
         self.bulk_event_reads += 1
         return super().list_events_for_proposals(proposal_ids=proposal_ids)
+
+
+class MissingReplayAcknowledgementRepository(InMemoryProposalRepository):
+    def get_cockpit_acknowledgement(
+        self, *, action_item_id: str
+    ) -> CockpitAcknowledgementRecord | None:
+        return None
 
 
 def _proposal(
@@ -807,6 +818,55 @@ def test_cockpit_acknowledgement_rejects_conflict_and_stale_version(
             ),
             idempotency_key="ack-stale-001",
             correlation_id=None,
+            caller_context=_caller(),
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+        )
+
+
+def test_cockpit_acknowledgement_replay_requires_saved_acknowledgement_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = MissingReplayAcknowledgementRepository()
+    repository.create_proposal(_proposal())
+    repository.create_memo(_memo())
+    monkeypatch.setattr(
+        cockpit_source_loader,
+        "list_policy_evaluation_records",
+        lambda **_: [_policy()],
+    )
+    monkeypatch.setattr(
+        cockpit_source_loader,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+    action = service.list_actions(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id=None,
+    ).items[0]
+    payload = AdvisorCockpitAcknowledgeRequest(
+        action_item_version=action.action_item_version,
+        acknowledged_by="advisor_sg_001",
+    )
+
+    service.acknowledge_action(
+        action_item_id=action.action_item_id,
+        payload=payload,
+        idempotency_key="ack-missing-record-001",
+        correlation_id="corr-ack-missing-record",
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+    )
+
+    with pytest.raises(ProposalNotFoundError, match="ADVISOR_COCKPIT_ACKNOWLEDGEMENT_NOT_FOUND"):
+        service.acknowledge_action(
+            action_item_id=action.action_item_id,
+            payload=payload,
+            idempotency_key="ack-missing-record-001",
+            correlation_id="corr-ack-missing-record-replay",
             caller_context=_caller(),
             portfolio_id="PB_SG_GLOBAL_BAL_001",
         )
