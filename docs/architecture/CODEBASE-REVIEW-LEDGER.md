@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-770
+
+- Scope: Lotus AI advisory copilot draft adapter
+- Pattern: Advisory copilot draft generation should separate preflight guardrails, workflow-pack
+  execution, response validation, completed-output mapping, and lineage projection.
+- Status: Hardened
+- Finding Class: AI integration adapter modularity and fail-closed parsing
+- Summary: `generate_advisory_copilot_draft_with_lotus_ai` mixed preflight safety rejection, base
+  URL and timeout resolution, workflow-pack request construction, HTTP execution, JSON parsing,
+  non-success fallback mapping, execution-status validation, output-section validation, output
+  guardrails, lineage extraction, and final draft projection. This path bridges Advise evidence
+  packets to Lotus AI, so isolating each boundary makes fallback and guardrail behavior easier to
+  audit without changing the adapter contract.
+- Evidence:
+  - Extracted preflight guardrail rejection, workflow-pack execution, workflow response mapping,
+    and completed-output draft projection helpers.
+  - Preserved unavailable fallback behavior for missing Lotus AI configuration, transport errors,
+    non-200 workflow responses, non-completed executions, invalid output sections, output
+    guardrail rejections, workflow run lineage, model version lineage, and proposal version lineage.
+  - Added focused coverage proving malformed Lotus AI JSON fails closed to
+    `LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE`.
+  - Radon reports no B-ranked blocks in `src/integrations/lotus_ai/advisory_copilot.py`; the
+    previously checked source-hotspot list no longer reports B-ranked blocks.
+  - Focused Lotus AI advisory copilot adapter tests passed with 15 tests, and `ruff`, `mypy`,
+    format check, diff check, and Radon checks passed.
+- Consequence:
+  - Advisory copilot AI draft generation remains behavior-compatible while integration, parsing,
+    safety, and projection decisions are independently reviewable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal AI
+    adapter maintainability and fail-closed boundary hardening.
+- Follow-Up:
+  - Re-run the broad quality baseline and full repository gate before PR handoff.
+
 ## LA-REV-769
 
 - Scope: Bank-demo commercial material validation

@@ -26,6 +26,13 @@ class _FakeResponse:
         return self._payload
 
 
+class _InvalidJsonResponse:
+    status_code = 200
+
+    def json(self) -> dict[str, object]:
+        raise ValueError("invalid json")
+
+
 class _FakeClient:
     def __init__(
         self,
@@ -633,6 +640,34 @@ def test_generate_advisory_copilot_masks_transport_failure(
         lambda *args, **kwargs: _FakeClient(
             *args,
             raised_error=httpx.ReadTimeout("timeout"),
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert response.lineage["fallback_reason"] == "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE"
+
+
+def test_generate_advisory_copilot_masks_invalid_lotus_ai_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _InvalidJsonResponse(),
+            },
             **kwargs,
         ),
     )
