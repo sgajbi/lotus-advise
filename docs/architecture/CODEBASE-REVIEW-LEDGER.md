@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-741
+
+- Scope: RFC-0028 commercial material register validation
+- Pattern: Commercial material/register alignment should keep claim inventory lookup, referenced
+  claim collection, and client-facing claim posture checks separate so proof-pack governance stays
+  auditable as material families grow.
+- Status: Hardened
+- Finding Class: Bank-demo proof validation complexity and commercial material governance
+- Summary: `validate_commercial_material_pack_against_register` mixed active claim lookup,
+  required/mapped claim aggregation, unknown-claim detection, client-facing material detection, and
+  classification-specific rejection in one C-ranked function. This validator protects the
+  RFC-0028 commercial material pack from unsupported or UI-pending claim promotion, so the public
+  guard should stay behavior-compatible while the claim-posture rules remain inspectable in small
+  helpers.
+- Evidence:
+  - Extracted helpers for registered-claim indexing, commercial claim-reference aggregation,
+    unknown-claim rejection, client-facing material detection, and client-facing claim mapping
+    rejection.
+  - Preserved existing error messages for unknown supported claims, planned/unsupported claim
+    mappings, and UI-pending claim mappings.
+  - Existing focused commercial material tests continue to cover canonical pack validation,
+    unknown-claim rejection, UI-pending rejection, planned claim rejection, and retired/unsupported
+    claim rejection.
+  - Radon now reports `validate_commercial_material_pack_against_register` as A-ranked complexity
+    `2`, down from C-ranked complexity `11`.
+  - Source-only Radon now reports four remaining C-ranked `src/` hotspots.
+  - Focused commercial material `ruff`, format check, Radon, and unit tests passed with 8 tests.
+- Consequence:
+  - RFC-0028 commercial material proof remains behavior-compatible and claim-controlled while the
+    register alignment rules can be reviewed independently without expanding the public validator.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proof-validator hardening for existing RFC-0028 behavior.
+- Follow-Up:
+  - Continue with supported-claim classification, contract-ref normalization, persistent proposal
+    listing, and Lotus AI proposal-version C-ranked hotspots.
+
 ## LA-REV-740
 
 - Scope: Suitability governance holding issue scanner

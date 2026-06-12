@@ -12,7 +12,10 @@ from src.core.bank_demo_proof.model_common import (
     RFC28_CANONICAL_SCENARIO_ID,
     SupportedClaimAudience,
 )
-from src.core.bank_demo_proof.supported_claim_models import AdvisorySupportedClaimRegister
+from src.core.bank_demo_proof.supported_claim_models import (
+    AdvisorySupportedClaimRegister,
+    SupportedClaim,
+)
 from src.core.bank_demo_proof.validation import (
     contains_sensitive_rfc28_term,
     normalize_required_rfc28_text,
@@ -250,36 +253,64 @@ def validate_commercial_material_pack_against_register(
     pack: CommercialMaterialPack,
     register: AdvisorySupportedClaimRegister,
 ) -> CommercialMaterialPack:
-    claim_by_id = {claim.claim_id: claim for claim in register.claims}
+    claim_by_id = _registered_claims_by_id(register)
+    _validate_all_referenced_claims_registered(
+        _referenced_commercial_claim_ids(pack),
+        claim_by_id,
+    )
+    for material in pack.materials:
+        _validate_client_facing_material_claims(material, claim_by_id)
+    return pack
+
+
+def _registered_claims_by_id(
+    register: AdvisorySupportedClaimRegister,
+) -> dict[str, SupportedClaim]:
+    return {claim.claim_id: claim for claim in register.claims}
+
+
+def _referenced_commercial_claim_ids(pack: CommercialMaterialPack) -> set[str]:
     referenced_claim_ids = set(pack.required_claim_ids)
     for material in pack.materials:
         referenced_claim_ids.update(material.mapped_claim_ids)
+    return referenced_claim_ids
 
+
+def _validate_all_referenced_claims_registered(
+    referenced_claim_ids: set[str],
+    claim_by_id: dict[str, SupportedClaim],
+) -> None:
     missing = sorted(referenced_claim_ids.difference(claim_by_id))
     if missing:
         raise ValueError(f"commercial material references unknown supported claims: {missing}")
 
-    for material in pack.materials:
-        is_client_facing = (
-            "CLIENT_DEMO" in material.allowed_audiences
-            or material.material_type in _CLIENT_FACING_MATERIAL_TYPES
+
+def _validate_client_facing_material_claims(
+    material: CommercialMaterial,
+    claim_by_id: dict[str, SupportedClaim],
+) -> None:
+    if not _is_client_facing_material(material):
+        return
+    for claim_id in material.mapped_claim_ids:
+        _validate_client_facing_claim_mapping(claim_id, claim_by_id[claim_id])
+
+
+def _is_client_facing_material(material: CommercialMaterial) -> bool:
+    return (
+        "CLIENT_DEMO" in material.allowed_audiences
+        or material.material_type in _CLIENT_FACING_MATERIAL_TYPES
+    )
+
+
+def _validate_client_facing_claim_mapping(claim_id: str, claim: SupportedClaim) -> None:
+    if claim.classification in {"PLANNED_RFC", "UNSUPPORTED"} and (
+        claim_id not in _CLIENT_FACING_BOUNDARY_CLAIM_IDS
+    ):
+        raise ValueError(
+            "commercial material cannot map client-facing assets to planned or unsupported claims"
         )
-        if not is_client_facing:
-            continue
-        for claim_id in material.mapped_claim_ids:
-            claim = claim_by_id[claim_id]
-            if claim.classification in {"PLANNED_RFC", "UNSUPPORTED"} and (
-                claim_id not in _CLIENT_FACING_BOUNDARY_CLAIM_IDS
-            ):
-                raise ValueError(
-                    "commercial material cannot map client-facing assets to planned or "
-                    "unsupported claims"
-                )
-            if claim.classification == "BACKEND_BACKED_UI_PENDING":
-                raise ValueError(
-                    "commercial material cannot map client-facing assets to UI-pending claims"
-                )
-    return pack
+    if claim.classification == "BACKEND_BACKED_UI_PENDING":
+        raise ValueError("commercial material cannot map client-facing assets to UI-pending claims")
 
 
 def build_commercial_material_pack() -> CommercialMaterialPack:
