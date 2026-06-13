@@ -256,7 +256,8 @@
   orchestration over source fetch, validation, DTO assembly, and per-instrument
   hydration.
 - Lotus Core liquidity-tier and simulation adapter logic delegates ordered policy
-  rule evaluation, HTTP posting, problem-detail mapping, and contract validation.
+  rule evaluation, HTTP posting, problem-detail mapping, contract validation,
+  and suitability classification normalization.
 - Proposal alternatives comparison summaries delegate approval/evidence count deltas
   and decimal risk/cash delta message projection to focused helpers.
 - Proposal artifact and decision-summary rule helpers delegate next-step gate mapping,

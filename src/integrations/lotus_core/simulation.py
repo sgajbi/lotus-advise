@@ -21,6 +21,7 @@ _SUITABILITY_CLASSIFICATIONS = {
     "PERSISTENT",
     "UNKNOWN_DUE_TO_MISSING_EVIDENCE",
 }
+_UNKNOWN_SUITABILITY_CLASSIFICATION = "UNKNOWN_DUE_TO_MISSING_EVIDENCE"
 
 
 class LotusCoreSimulationUnavailableError(Exception):
@@ -42,24 +43,35 @@ def _resolve_timeout() -> httpx.Timeout:
 
 
 def _normalize_suitability_issue_classification(payload: dict[str, Any]) -> dict[str, Any]:
+    for issue in _suitability_issue_records(payload):
+        issue["classification"] = _resolved_suitability_issue_classification(issue)
+    return payload
+
+
+def _suitability_issue_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
     suitability = payload.get("suitability")
     if not isinstance(suitability, dict):
-        return payload
+        return []
     issues = suitability.get("issues")
     if not isinstance(issues, list):
-        return payload
-    for issue in issues:
-        if not isinstance(issue, dict):
-            continue
-        classification = issue.get("classification")
-        if isinstance(classification, str) and classification in _SUITABILITY_CLASSIFICATIONS:
-            continue
-        status_change = issue.get("status_change")
-        if isinstance(status_change, str) and status_change in _SUITABILITY_CLASSIFICATIONS:
-            issue["classification"] = status_change
-            continue
-        issue["classification"] = "UNKNOWN_DUE_TO_MISSING_EVIDENCE"
-    return payload
+        return []
+    return [issue for issue in issues if isinstance(issue, dict)]
+
+
+def _resolved_suitability_issue_classification(issue: dict[str, Any]) -> str:
+    classification = _known_suitability_issue_classification(issue.get("classification"))
+    if classification is not None:
+        return classification
+    status_change = _known_suitability_issue_classification(issue.get("status_change"))
+    if status_change is not None:
+        return status_change
+    return _UNKNOWN_SUITABILITY_CLASSIFICATION
+
+
+def _known_suitability_issue_classification(value: object) -> str | None:
+    if isinstance(value, str) and value in _SUITABILITY_CLASSIFICATIONS:
+        return value
+    return None
 
 
 def simulate_with_lotus_core(

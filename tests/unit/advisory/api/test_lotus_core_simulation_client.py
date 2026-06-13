@@ -137,6 +137,55 @@ def _result_payload() -> dict[str, Any]:
     return result.model_dump(mode="json")
 
 
+def _suitability_issue_payload(
+    *,
+    issue_id: str = "PRODUCT_COMPLEXITY_1",
+    classification: object | None = None,
+    status_change: object | None = "NEW",
+) -> dict[str, Any]:
+    issue: dict[str, Any] = {
+        "issue_id": issue_id,
+        "issue_key": "PRODUCT_COMPLEXITY|STRUCT_NOTE_1",
+        "dimension": "PRODUCT",
+        "severity": "HIGH",
+        "summary": "Complex product evidence is incomplete.",
+        "remediation": "Capture client product-complexity evidence before proceeding.",
+        "approval_implication": "CLIENT_CONTEXT_REQUIRED",
+        "details": {"instrument_id": "STRUCT_NOTE_1"},
+        "evidence": {
+            "as_of": "md_test",
+            "snapshot_ids": {
+                "portfolio_snapshot_id": "pf_client",
+                "market_data_snapshot_id": "md_1",
+            },
+        },
+        "policy_pack_id": "global-private-banking-baseline",
+        "policy_version": "enterprise-suitability-policy.2026-04",
+    }
+    if classification is not None:
+        issue["classification"] = classification
+    if status_change is not None:
+        issue["status_change"] = status_change
+    return issue
+
+
+def _payload_with_suitability_issue(issue: dict[str, Any]) -> dict[str, Any]:
+    payload = _result_payload()
+    payload["suitability"] = {
+        "summary": {
+            "new_count": 1,
+            "resolved_count": 0,
+            "persistent_count": 0,
+            "highest_severity_new": "HIGH",
+        },
+        "issues": [issue],
+        "policy_pack_id": "global-private-banking-baseline",
+        "policy_version": "enterprise-suitability-policy.2026-04",
+        "recommended_gate": "COMPLIANCE_REVIEW",
+    }
+    return payload
+
+
 class _FakeResponse:
     def __init__(
         self, *, status_code: int, payload: dict[str, Any], headers: dict[str, str]
@@ -476,40 +525,9 @@ def test_simulate_with_lotus_core_preserves_upstream_problem_status(monkeypatch)
 
 
 def test_simulate_with_lotus_core_backfills_missing_suitability_classification(monkeypatch):
-    payload = _result_payload()
-    payload["suitability"] = {
-        "summary": {
-            "new_count": 1,
-            "resolved_count": 0,
-            "persistent_count": 0,
-            "highest_severity_new": "HIGH",
-        },
-        "issues": [
-            {
-                "issue_id": "MISSING_CLASSIFICATION",
-                "issue_key": "PRODUCT_COMPLEXITY|STRUCT_NOTE_1",
-                "dimension": "PRODUCT",
-                "severity": "HIGH",
-                "status_change": "NEW",
-                "summary": "Complex product evidence is incomplete.",
-                "remediation": "Capture client product-complexity evidence before proceeding.",
-                "approval_implication": "CLIENT_CONTEXT_REQUIRED",
-                "details": {"instrument_id": "STRUCT_NOTE_1"},
-                "evidence": {
-                    "as_of": "md_test",
-                    "snapshot_ids": {
-                        "portfolio_snapshot_id": "pf_client",
-                        "market_data_snapshot_id": "md_1",
-                    },
-                },
-                "policy_pack_id": "global-private-banking-baseline",
-                "policy_version": "enterprise-suitability-policy.2026-04",
-            }
-        ],
-        "policy_pack_id": "global-private-banking-baseline",
-        "policy_version": "enterprise-suitability-policy.2026-04",
-        "recommended_gate": "COMPLIANCE_REVIEW",
-    }
+    payload = _payload_with_suitability_issue(
+        _suitability_issue_payload(issue_id="MISSING_CLASSIFICATION")
+    )
     fake_client = _FakeClient(
         _FakeResponse(
             status_code=200,
@@ -533,3 +551,69 @@ def test_simulate_with_lotus_core_backfills_missing_suitability_classification(m
 
     assert result.suitability is not None
     assert result.suitability.issues[0].classification == "NEW"
+
+
+def test_simulate_with_lotus_core_preserves_canonical_suitability_classification(monkeypatch):
+    payload = _payload_with_suitability_issue(
+        _suitability_issue_payload(
+            issue_id="PERSISTENT_CLASSIFICATION",
+            classification="PERSISTENT",
+            status_change="NEW",
+        )
+    )
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=200,
+            payload=payload,
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    result = simulate_with_lotus_core(
+        request=_request(),
+        request_hash="sha256:test-hash",
+        idempotency_key="idem-1",
+        correlation_id="corr-1",
+    )
+
+    assert result.suitability is not None
+    assert result.suitability.issues[0].classification == "PERSISTENT"
+
+
+def test_simulate_with_lotus_core_replaces_malformed_suitability_classification(monkeypatch):
+    payload = _payload_with_suitability_issue(
+        _suitability_issue_payload(
+            issue_id="MALFORMED_CLASSIFICATION",
+            classification="STALE",
+            status_change="RESOLVED",
+        )
+    )
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=200,
+            payload=payload,
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    result = simulate_with_lotus_core(
+        request=_request(),
+        request_hash="sha256:test-hash",
+        idempotency_key="idem-1",
+        correlation_id="corr-1",
+    )
+
+    assert result.suitability is not None
+    assert result.suitability.issues[0].classification == "RESOLVED"
