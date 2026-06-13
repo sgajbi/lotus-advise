@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-798
+
+- Scope: In-memory proposal async recovery query policy
+- Pattern: Recovery query logic should keep retry eligibility, lease expiry, and limit handling as
+  named helpers instead of one compound repository predicate.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and async recovery reliability
+- Summary: `recoverable_operations` in `in_memory_query.py` was one of the highest remaining
+  B-ranked source helpers at `B/10`. The recovery query now delegates non-positive limit handling,
+  recoverable row selection, pending-operation detection, expired running lease detection, and
+  result limiting to focused helpers while preserving repository ordering and copy semantics.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_repository_in_memory.py tests/unit/advisory/engine/test_engine_proposal_async_operation_recovery_read_model.py -q`
+    passed with 14 tests.
+  - `python -m ruff check src/infrastructure/proposals/in_memory_query.py tests/unit/advisory/engine/test_engine_proposal_repository_in_memory.py`
+    passed.
+  - `python -m mypy src/infrastructure/proposals/in_memory_query.py` passed.
+  - `python -m radon cc src/infrastructure/proposals/in_memory_query.py -s --min B`
+    no longer reports `recoverable_operations`; remaining B-ranked helpers in the file are
+    unrelated proposal filtering and batch ordering helpers.
+- Consequence:
+  - Async operation recovery policy remains behavior-compatible while making stuck pending and
+    expired-lease recovery easier to audit against production retry expectations.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal repository-query maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing repository query B-ranked helpers where extraction preserves in-memory and
+    Postgres parity without introducing duplicate policy.
+
 ## LA-REV-797
 
 - Scope: Proposal alternatives enrichment helper classification

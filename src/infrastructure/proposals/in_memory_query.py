@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
-from typing import Iterable, Optional, TypeVar
+from typing import Iterable, Optional, TypeVar, cast
 
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
@@ -103,7 +103,7 @@ def _next_page_cursor(
 ) -> Optional[str]:
     if len(filtered) <= limit or not page:
         return None
-    return page[-1].proposal_id
+    return cast(str, page[-1].proposal_id)
 
 
 def ordered_memos_for_proposal(
@@ -222,23 +222,52 @@ def recoverable_operations(
     as_of: datetime,
     limit: Optional[int],
 ) -> list[ProposalAsyncOperationRecord]:
-    if limit is not None and limit <= 0:
+    if non_positive_limit(limit):
         return []
-    recoverable = [
-        operation
-        for operation in operations
-        if operation.status == "PENDING"
-        or (
-            operation.status == "RUNNING"
-            and operation.finished_at is None
-            and operation.lease_expires_at is not None
-            and operation.lease_expires_at <= as_of
-        )
-    ]
+    recoverable = recoverable_operation_rows(operations, as_of=as_of)
     recoverable.sort(key=lambda operation: (operation.created_at, operation.operation_id))
-    if limit is not None:
-        recoverable = recoverable[:limit]
-    return copy_records(recoverable)
+    return copy_records(limited_records(recoverable, limit))
+
+
+def non_positive_limit(limit: Optional[int]) -> bool:
+    return limit is not None and limit <= 0
+
+
+def recoverable_operation_rows(
+    operations: Iterable[ProposalAsyncOperationRecord],
+    *,
+    as_of: datetime,
+) -> list[ProposalAsyncOperationRecord]:
+    return [operation for operation in operations if operation_is_recoverable(operation, as_of)]
+
+
+def limited_records(
+    records: list[RecordT],
+    limit: Optional[int],
+) -> list[RecordT]:
+    if limit is None:
+        return records
+    return records[:limit]
+
+
+def operation_is_recoverable(operation: ProposalAsyncOperationRecord, as_of: datetime) -> bool:
+    return operation_is_pending(operation) or running_operation_lease_has_expired(operation, as_of)
+
+
+def operation_is_pending(operation: ProposalAsyncOperationRecord) -> bool:
+    return cast(bool, operation.status == "PENDING")
+
+
+def running_operation_lease_has_expired(
+    operation: ProposalAsyncOperationRecord,
+    as_of: datetime,
+) -> bool:
+    return (
+        operation.status == "RUNNING"
+        and operation.finished_at is None
+        and operation.lease_expires_at is not None
+        and operation.lease_expires_at <= as_of
+    )
 
 
 __all__ = [
@@ -253,5 +282,11 @@ __all__ = [
     "ordered_memos_for_proposal",
     "ordered_memos_for_proposals",
     "ordered_versions_for_proposal",
+    "limited_records",
+    "non_positive_limit",
+    "operation_is_pending",
+    "operation_is_recoverable",
     "recoverable_operations",
+    "recoverable_operation_rows",
+    "running_operation_lease_has_expired",
 ]
