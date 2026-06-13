@@ -19,7 +19,7 @@ from src.core.advisory.decision_summary_status_rules import (
 )
 from src.core.advisory.policy_context import client_context_available, mandate_context_available
 from src.core.proposal_result_models import ProposalResult
-from src.core.suitability_models import SuitabilityResult
+from src.core.suitability_models import SuitabilityIssue, SuitabilityResult
 
 _DECISION_POLICY_VERSION = "advisory-decision-policy.2026-04"
 
@@ -140,64 +140,91 @@ def _build_client_and_mandate_posture(
 
 
 def _build_missing_evidence(result: ProposalResult) -> list[ProposalDecisionMissingEvidence]:
-    items: list[ProposalDecisionMissingEvidence] = []
-    data_quality = result.diagnostics.data_quality
-    if data_quality.get("price_missing"):
-        items.append(
-            ProposalDecisionMissingEvidence(
-                evidence_type="MARKET_PRICE",
-                reason_code="MISSING_REQUIRED_MARKET_PRICE",
-                summary="Required price data is missing for one or more instruments.",
-                blocking=result.status == "BLOCKED",
-                evidence_refs=["proposal.diagnostics.data_quality.price_missing"],
-            )
-        )
-    if data_quality.get("fx_missing"):
-        items.append(
-            ProposalDecisionMissingEvidence(
-                evidence_type="FX_RATE",
-                reason_code="MISSING_REQUIRED_FX_DATA",
-                summary="Required FX data is missing for one or more currency pairs.",
-                blocking=result.status == "BLOCKED",
-                evidence_refs=["proposal.diagnostics.data_quality.fx_missing"],
-            )
-        )
-    authority_resolution = result.explanation.get("authority_resolution", {})
-    if authority_resolution.get("risk_authority") == "unavailable":
-        items.append(
-            ProposalDecisionMissingEvidence(
-                evidence_type="RISK_LENS",
-                reason_code="MISSING_RISK_LENS",
-                summary="Canonical risk evidence is unavailable for this proposal run.",
-                blocking=True,
-                evidence_refs=["proposal.explanation.authority_resolution"],
-            )
-        )
-    if result.suitability is not None:
-        for issue in result.suitability.issues:
-            if issue.dimension == "DATA_QUALITY":
-                items.append(
-                    ProposalDecisionMissingEvidence(
-                        evidence_type="SUITABILITY_DATA_QUALITY",
-                        reason_code=issue.issue_id,
-                        summary=issue.summary,
-                        blocking=result.status == "BLOCKED" and issue.severity == "HIGH",
-                        evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
-                    )
-                )
-                continue
-            if issue.classification != "UNKNOWN_DUE_TO_MISSING_EVIDENCE":
-                continue
-            items.append(
-                ProposalDecisionMissingEvidence(
-                    evidence_type="SUITABILITY_CONTEXT",
-                    reason_code=issue.issue_id,
-                    summary=issue.summary,
-                    blocking=issue.severity == "HIGH" or result.status != "READY",
-                    evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
-                )
-            )
+    items = _market_data_missing_evidence(result)
+    risk_evidence = _risk_missing_evidence(result)
+    if risk_evidence is not None:
+        items.append(risk_evidence)
+    items.extend(_suitability_missing_evidence(result))
     return items
+
+
+def _market_data_missing_evidence(result: ProposalResult) -> list[ProposalDecisionMissingEvidence]:
+    data_quality = result.diagnostics.data_quality
+    items: list[ProposalDecisionMissingEvidence] = []
+    if data_quality.get("price_missing"):
+        items.append(_price_missing_evidence(blocking=result.status == "BLOCKED"))
+    if data_quality.get("fx_missing"):
+        items.append(_fx_missing_evidence(blocking=result.status == "BLOCKED"))
+    return items
+
+
+def _price_missing_evidence(*, blocking: bool) -> ProposalDecisionMissingEvidence:
+    return ProposalDecisionMissingEvidence(
+        evidence_type="MARKET_PRICE",
+        reason_code="MISSING_REQUIRED_MARKET_PRICE",
+        summary="Required price data is missing for one or more instruments.",
+        blocking=blocking,
+        evidence_refs=["proposal.diagnostics.data_quality.price_missing"],
+    )
+
+
+def _fx_missing_evidence(*, blocking: bool) -> ProposalDecisionMissingEvidence:
+    return ProposalDecisionMissingEvidence(
+        evidence_type="FX_RATE",
+        reason_code="MISSING_REQUIRED_FX_DATA",
+        summary="Required FX data is missing for one or more currency pairs.",
+        blocking=blocking,
+        evidence_refs=["proposal.diagnostics.data_quality.fx_missing"],
+    )
+
+
+def _risk_missing_evidence(result: ProposalResult) -> ProposalDecisionMissingEvidence | None:
+    authority_resolution = result.explanation.get("authority_resolution", {})
+    if authority_resolution.get("risk_authority") != "unavailable":
+        return None
+    return ProposalDecisionMissingEvidence(
+        evidence_type="RISK_LENS",
+        reason_code="MISSING_RISK_LENS",
+        summary="Canonical risk evidence is unavailable for this proposal run.",
+        blocking=True,
+        evidence_refs=["proposal.explanation.authority_resolution"],
+    )
+
+
+def _suitability_missing_evidence(
+    result: ProposalResult,
+) -> list[ProposalDecisionMissingEvidence]:
+    if result.suitability is None:
+        return []
+    items: list[ProposalDecisionMissingEvidence] = []
+    for issue in result.suitability.issues:
+        missing_evidence = _missing_evidence_from_suitability_issue(result, issue)
+        if missing_evidence is not None:
+            items.append(missing_evidence)
+    return items
+
+
+def _missing_evidence_from_suitability_issue(
+    result: ProposalResult,
+    issue: SuitabilityIssue,
+) -> ProposalDecisionMissingEvidence | None:
+    if issue.dimension == "DATA_QUALITY":
+        return ProposalDecisionMissingEvidence(
+            evidence_type="SUITABILITY_DATA_QUALITY",
+            reason_code=issue.issue_id,
+            summary=issue.summary,
+            blocking=result.status == "BLOCKED" and issue.severity == "HIGH",
+            evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
+        )
+    if issue.classification != "UNKNOWN_DUE_TO_MISSING_EVIDENCE":
+        return None
+    return ProposalDecisionMissingEvidence(
+        evidence_type="SUITABILITY_CONTEXT",
+        reason_code=issue.issue_id,
+        summary=issue.summary,
+        blocking=issue.severity == "HIGH" or result.status != "READY",
+        evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
+    )
 
 
 def _build_evidence_refs(
