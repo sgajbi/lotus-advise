@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-782
+
+- Scope: Policy-pack source-readiness rule evaluation
+- Pattern: Required source-evidence evaluation should separate source-section indexing,
+  required-field normalization, advisory-review-only field exclusion, evidence collection, and
+  result projection.
+- Status: Hardened
+- Finding Class: Policy-pack source-readiness modularity and evidence-governance coverage
+- Summary: `required_source_result` mixed section indexing, required-field aliasing, advisory-only
+  field exclusion, policy-source-readiness handling, per-section collection, and blocked/pending
+  result projection in one helper. This path controls whether policy-pack rules block, pend, or
+  proceed based on source-owner evidence, so splitting these responsibilities makes source
+  evidence posture easier to audit without changing missing-section blocking, pending posture,
+  blocked posture, source-readiness aggregate handling, or advisory-only field behavior.
+- Evidence:
+  - Extracted helpers for source sections by key, required evidence field normalization,
+    advisory-review-only field exclusion, and final blocked/pending source-evidence projection.
+  - Preserved private/structured product flag mapping to
+    `core_product_eligibility_target_market_complexity`.
+  - Added direct coverage proving fee/conflict/product-document advisory-review fields do not
+    require source-readiness sections and the private/structured-product flag still routes to the
+    product eligibility/target-market/complexity section.
+  - Radon reports no B-ranked blocks in `src/core/policy_packs/evaluation_source_rules.py`.
+  - Focused policy source-rule tests passed with 7 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Policy-pack source-readiness gating remains behavior-compatible while source evidence routing
+    and result projection are independently inspectable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    policy-pack source-readiness maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked decision-summary missing-evidence, target-generation, and
+    report-package helpers with focused behavior-preservation tests.
+
 ## LA-REV-781
 
 - Scope: Advisory decision-summary status rules
