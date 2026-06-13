@@ -1032,6 +1032,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  to focused helpers.",
         "- Advisory copilot source-projection persistence delegates shared refresh policy,",
         "  proposal-version run filtering, and run page projection to focused helpers.",
+        "- Advisory copilot section tuple validation delegates bounded summary normalization",
+        "  and unique audience literal policy to focused helpers.",
         "- Bank-demo runtime proof evidence delegates summary value sanitization,",
         "  capability endpoint lookup, readiness validation, and promoted feature/workflow",
         "  proof checks to focused helpers.",
@@ -1168,7 +1170,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-826` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-827` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1200,8 +1202,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "route-resolution policy, advisory copilot idempotency replay, classification "
             "boundaries, Lotus Risk issuer mapping, Lotus Report request mapping, Lotus Core "
             "held-position selection, Lotus Core dated-row selection, proposal narrative "
-            "product-type policy, advisory copilot review/source-projection persistence, and CI "
-            "warning/topology contracts.",
+            "product-type policy, advisory copilot review/source-projection persistence, "
+            "advisory copilot section tuple validation, and CI warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (

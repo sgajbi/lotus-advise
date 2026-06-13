@@ -1090,6 +1090,59 @@ def test_copilot_evidence_section_input_normalizes_and_bounds_source_evidence() 
         )
 
 
+def test_copilot_evidence_section_tuple_policy_has_focused_owner() -> None:
+    section_source = Path("src/core/advisory_copilot/section_models.py").read_text(encoding="utf-8")
+    tuple_source = Path("src/core/advisory_copilot/section_tuple_normalization.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "def _normalized_summary_item" not in section_source
+    assert "def _append_unique_literal" not in section_source
+    assert "def normalize_summary_items" in tuple_source
+    assert "def normalize_unique_literal_items" in tuple_source
+
+
+def test_copilot_evidence_section_tuple_policy_preserves_error_codes() -> None:
+    source_ref = CopilotSourceRef(
+        source_system="lotus-advise",
+        source_type="POLICY_EVALUATION",
+        source_id="policy_eval_sg_001",
+        content_hash="sha256:policy-evaluation",
+        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+    )
+    base_payload = {
+        "section_key": "POLICY_POSTURE",
+        "title": "Policy posture",
+        "evidence_class": "COMPLIANCE_REVIEW_EVIDENCE",
+        "source_refs": (source_ref,),
+        "summary_items": ("Policy evaluation requires compliance review.",),
+        "allowed_audiences": ("ADVISOR",),
+    }
+
+    invalid_summary = base_payload | {"summary_items": ("Policy posture.", 42)}
+    empty_summary = base_payload | {"summary_items": ()}
+    oversized_summary = base_payload | {
+        "summary_items": (*("Policy posture." for _ in range(8)), 42)
+    }
+    invalid_audience = base_payload | {"allowed_audiences": ("ADVISOR", 42)}
+    empty_audience = base_payload | {"allowed_audiences": ()}
+    duplicate_audiences = CopilotEvidenceSectionInput(
+        **(base_payload | {"allowed_audiences": (" ADVISOR ", "ADVISOR", "DESK_HEAD")})
+    )
+
+    with pytest.raises(ValidationError, match="COPILOT_EVIDENCE_SUMMARY_INVALID"):
+        CopilotEvidenceSectionInput(**invalid_summary)
+    with pytest.raises(ValidationError, match="COPILOT_EVIDENCE_SUMMARY_REQUIRED"):
+        CopilotEvidenceSectionInput(**empty_summary)
+    with pytest.raises(ValidationError, match="COPILOT_EVIDENCE_SUMMARY_TOO_LARGE"):
+        CopilotEvidenceSectionInput(**oversized_summary)
+    with pytest.raises(ValidationError, match="COPILOT_AUDIENCE_INVALID"):
+        CopilotEvidenceSectionInput(**invalid_audience)
+    with pytest.raises(ValidationError, match="COPILOT_AUDIENCE_REQUIRED"):
+        CopilotEvidenceSectionInput(**empty_audience)
+    assert duplicate_audiences.allowed_audiences == ("ADVISOR", "DESK_HEAD")
+
+
 def test_copilot_evidence_packet_builder_projects_allowed_sections_and_hashes() -> None:
     source_ref = CopilotSourceRef(
         source_system="lotus-advise",
