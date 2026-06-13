@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-811
+
+- Scope: Policy-pack rule dispatch and Singapore product-rule complexity
+- Pattern: Policy evaluation dispatch and disclosure-action assembly should be explicit helper
+  boundaries rather than long branch chains inside public rule evaluators.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, policy evidence behavior preservation
+- Summary: `evaluate_policy_rule` carried source-readiness, mandate, product eligibility,
+  complex-product disclosure, best-interest, conflict-review, and fallback dispatch in one B/9
+  function, while `evaluate_sg_complex_product_disclosure` built complex product detection,
+  missing evidence, required actions, and result construction in one B/9 function. Rule dispatch
+  now uses a named evaluator registry with small adapter functions, and Singapore product rules
+  delegate eligibility issue collection plus disclosure evidence/action construction to focused
+  helpers while preserving existing policy outcomes.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_policy_pack_evaluation_product_rules.py tests/unit/advisory/engine/test_engine_policy_pack_evaluation.py -q`
+    passed with 21 tests.
+  - `python -m ruff check src/core/policy_packs/evaluation_rules.py src/core/policy_packs/evaluation_product_rules.py tests/unit/advisory/engine/test_engine_policy_pack_evaluation_product_rules.py tests/unit/advisory/engine/test_engine_policy_pack_evaluation.py`
+    passed.
+  - `python -m mypy src/core/policy_packs/evaluation_rules.py src/core/policy_packs/evaluation_product_rules.py`
+    passed.
+  - `python -m radon cc src/core/policy_packs/evaluation_rules.py src/core/policy_packs/evaluation_product_rules.py -s --min B --no-assert`
+    reports no B-ranked blocks.
+- Consequence:
+  - Policy-pack rule support remains behavior-compatible while new rule evaluators, unsupported
+    fallback handling, and complex-product disclosure actions are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy evaluation hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining B/9 hotspots in replay, workspace draft, Lotus Core suitability
+    normalization, risk concentration request mapping, and policy catalog activation before
+    considering stricter B-ranked enforcement.
+
 ## LA-REV-810
 
 - Scope: Policy-pack product helper complexity

@@ -116,6 +116,8 @@
   rule evaluation logic.
 - Policy evaluation product helper complexity classification and proposed-shelf
   projection delegate source extraction and product flags to focused helpers.
+- Policy evaluation rule dispatch and Singapore product disclosure actions
+  delegate rule selection and evidence/action list construction to focused helpers.
 - Policy evaluation Singapore product rule implementations are split
   into a focused rule-family module.
 - Policy evaluation cost and conflict review rules are split into a

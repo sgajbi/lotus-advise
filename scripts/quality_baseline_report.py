@@ -835,6 +835,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  rule evaluation logic.",
         "- Policy evaluation product helper complexity classification and proposed-shelf",
         "  projection delegate source extraction and product flags to focused helpers.",
+        "- Policy evaluation rule dispatch and Singapore product disclosure actions",
+        "  delegate rule selection and evidence/action list construction to focused helpers.",
         "- Policy evaluation Singapore product rule implementations are split",
         "  into a focused rule-family module.",
         "- Policy evaluation cost and conflict review rules are split into a",
@@ -1131,7 +1133,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-810` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-811` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
