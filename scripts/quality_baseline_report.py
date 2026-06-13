@@ -1008,6 +1008,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  resolution to focused helpers.",
         "- Proposal narrative executive-summary text delegates blocked, insufficient-evidence,",
         "  and ready-for-review branches to focused renderers.",
+        "- Proposal narrative deterministic section rendering delegates section-specific",
+        "  source refs, limitation refs, and fallback text to focused renderers.",
         "- Proposal narrative grounding facts delegate alternatives availability, selected",
         "  alternative, count, rejected-summary, decision-scalar, approval, material-change,",
         "  and missing-evidence projection to focused helpers.",
@@ -1161,7 +1163,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-823` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-824` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
