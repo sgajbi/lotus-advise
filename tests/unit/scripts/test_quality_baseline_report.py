@@ -161,6 +161,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     )
     assert "Advisor cockpit service delegates repository-backed source loading" in refactor_health
     assert "Workspace draft action request validation delegates" in refactor_health
+    assert "Workspace draft action reduction delegates" in refactor_health
     assert "Local valuation state assembly delegates" in refactor_health
     assert "Local position valuation delegates" in refactor_health
     assert "Enterprise write authorization delegates" in refactor_health
