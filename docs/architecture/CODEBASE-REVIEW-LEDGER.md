@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-784
+
+- Scope: Reviewed narrative report-package section projection
+- Pattern: Report-package section projection should separate list traversal, single-section
+  normalization, compatibility-field selection, and text cleanup.
+- Status: Hardened
+- Finding Class: Proposal narrative reporting modularity and contract compatibility coverage
+- Summary: `_narrative_sections_for_report` combined list filtering, canonical/legacy section
+  field selection, whitespace normalization, incomplete-section rejection, and output cleanup in
+  one B/10 helper. This path shapes the reviewed advisor-use narrative package handed to
+  `lotus-report`, so isolating single-section normalization makes the contract easier to audit
+  while preserving canonical `section_id`/`body` precedence, `section_key`/`text` compatibility,
+  incomplete-section filtering, and stripped compatibility keys in the downstream payload.
+- Evidence:
+  - Extracted single-section projection, section-id resolution, body resolution, and shared text
+    normalization helpers behind the existing package builder.
+  - Added focused coverage proving canonical fields are preferred, legacy fields remain accepted,
+    invalid sections and non-dicts are skipped, and compatibility keys are stripped from the
+    report payload.
+  - Radon reports no B-ranked blocks in
+    `src/core/proposals/report_narrative_package.py`.
+  - Focused reviewed narrative report-package tests passed with 5 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Reviewed narrative report handoff remains behavior-compatible while section projection is
+    smaller, named, and covered by direct contract-compatibility tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    report-package maintainability hardening for existing reviewed narrative behavior.
+- Follow-Up:
+  - Continue reducing B-ranked decision-summary missing-evidence, target-generation, source
+    readiness, and stateful-context hydration helpers with focused behavior-preservation tests.
+
 ## LA-REV-783
 
 - Scope: Lotus Report request date mapping
