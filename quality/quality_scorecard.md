@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
-- Branch: `harden/target-generation-solver-index`
-- Head: `1cc83af44f14351cdd833e81c06ff7ac2cf17c57`
+- Branch: `harden/target-solver-fallbacks`
+- Head: `a15731ab06330dafabbf39e6355e63db5e6e9ff7`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |
@@ -28,11 +28,11 @@
 
 | Area | Before | After | Improvement Evidence |
 | --- | --- | --- | --- |
-| Complexity | Radon and Xenon tracked as pending report-only tools. | Radon config executable; inventory `A=3385, B=188`; worst block `B/10`; no E/F gate enforced through `make lint`. | Complexity is now measured repeatably and regression-blocked for E/F-ranked blocks. |
-| Maintainability | Review ledger existed but recent proposal, policy-pack, OpenAPI, proof-material, dependency-linking, and observability slices were absent. | Review ledger includes `LA-REV-611` through `LA-REV-788` with scoped findings, evidence, and follow-up. | Modularization and hotspot reductions are traceable by owner boundary and test evidence. |
+| Complexity | Radon and Xenon tracked as pending report-only tools. | Radon config executable; inventory `A=3390, B=187`; worst block `B/10`; no E/F gate enforced through `make lint`. | Complexity is now measured repeatably and regression-blocked for E/F-ranked blocks. |
+| Maintainability | Review ledger existed but recent proposal, policy-pack, OpenAPI, proof-material, dependency-linking, and observability slices were absent. | Review ledger includes `LA-REV-611` through `LA-REV-789` with scoped findings, evidence, and follow-up. | Modularization and hotspot reductions are traceable by owner boundary and test evidence. |
 | OpenAPI quality | Spectral rules were present but report-only until Node/Spectral execution was added to CI. | Spectral config executable; OpenAPI path inventory `84`; current Spectral issue inventory `0`; enforced through `make openapi-gate`. | OpenAPI quality moved from report-only posture to enforced zero-finding gate. |
 | Architecture boundaries | Import-linter contracts were present but report-only pending installation and baseline. | Import-linter inventory `total=3, kept=3, broken=0`; architecture contracts run inside `make lint`. | Layering contracts are now executable and locally enforced. |
-| Tests | Unit suite existed; new focused refactor regressions were absent. | Repo-native test gates are enforced through `make check`; focused regression tests cover OpenAPI enrichment, proof refs, source refs, dependency linking, capability dependency diagnostics, observability request-id normalization, structured logging, and target-generation solver index construction. | Refactors are covered by behavior-preserving regression tests. |
+| Tests | Unit suite existed; new focused refactor regressions were absent. | Repo-native test gates are enforced through `make check`; focused regression tests cover OpenAPI enrichment, proof refs, source refs, dependency linking, capability dependency diagnostics, observability request-id normalization, structured logging, target-generation solver index construction, and target-generation solver fallback policy. | Refactors are covered by behavior-preserving regression tests. |
 | Security | Bandit config was present for report-only rollout; sensitive-data handling remained test-governed. | Bandit inventory executable with `high=0, medium=26, low=1`; high-severity gate enforced through `make security-audit`; proof/source refs reject unsafe and sensitive paths. | Security posture is measured and high-severity findings are gated. |
 | Dependency hygiene | Dependency audit configured; deptry inventory absent from the scorecard. | Deptry config executable with current inventory `14`; dependency/security tools inventory recorded. | Dependency hygiene moved from broad audit posture to measurable inventory. |
 | Observability | Observability docs and diagnostics were tracked as baseline gaps. | `make observability-diagnostics` target exists; structured formatter has direct tests for context, extra fields, audit fields, and null filtering. | Observability behavior is documented, testable, and less complex. |

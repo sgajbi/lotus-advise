@@ -64,37 +64,84 @@ def _build_solver_attempts(cp: Any) -> tuple[tuple[Any, tuple[dict[str, Any], ..
 
 
 def _solve_with_fallbacks(prob: Any, cp: Any) -> tuple[bool, str | None]:
+    installed = _installed_solver_names(cp)
     latest_status: str | None = None
-    installed: set[str] = set()
-    try:
-        installed = {str(s) for s in cp.installed_solvers()}
-    except (AttributeError, TypeError, ValueError):
-        installed = set()
 
     for solver_name, kwargs_attempts in _build_solver_attempts(cp):
-        if installed and str(solver_name) not in installed:
+        if not _solver_available(solver_name=solver_name, installed=installed):
             continue
 
-        for solve_kwargs in kwargs_attempts:
-            try:
-                prob.solve(
-                    solver=solver_name,
-                    verbose=False,
-                    warm_start=False,
-                    **solve_kwargs,
-                )
-            except TypeError:
-                # Binding rejected one or more kwargs; try compatibility profile.
-                continue
-            except (cp.SolverError, ValueError):
-                # Runtime/configuration failure; still try compatibility profile.
-                continue
-
-            latest_status = str(prob.status).lower()
-            if latest_status in _SOLVER_STATUS_OPTIMAL:
-                return True, latest_status
+        solved, latest_status = _solve_with_solver_attempts(
+            prob=prob,
+            cp=cp,
+            solver_name=solver_name,
+            kwargs_attempts=kwargs_attempts,
+            latest_status=latest_status,
+        )
+        if solved:
+            return True, latest_status
 
     return False, latest_status
+
+
+def _installed_solver_names(cp: Any) -> set[str]:
+    try:
+        return {str(s) for s in cp.installed_solvers()}
+    except (AttributeError, TypeError, ValueError):
+        return set()
+
+
+def _solver_available(*, solver_name: Any, installed: set[str]) -> bool:
+    return not installed or str(solver_name) in installed
+
+
+def _solve_with_solver_attempts(
+    *,
+    prob: Any,
+    cp: Any,
+    solver_name: Any,
+    kwargs_attempts: tuple[dict[str, Any], ...],
+    latest_status: str | None,
+) -> tuple[bool, str | None]:
+    for solve_kwargs in kwargs_attempts:
+        status = _solve_status(
+            prob=prob,
+            cp=cp,
+            solver_name=solver_name,
+            solve_kwargs=solve_kwargs,
+        )
+        if status is None:
+            continue
+
+        latest_status = status
+        if latest_status in _SOLVER_STATUS_OPTIMAL:
+            return True, latest_status
+
+    return False, latest_status
+
+
+def _solve_status(
+    *,
+    prob: Any,
+    cp: Any,
+    solver_name: Any,
+    solve_kwargs: dict[str, Any],
+) -> str | None:
+    try:
+        prob.solve(
+            solver=solver_name,
+            verbose=False,
+            warm_start=False,
+            **solve_kwargs,
+        )
+    except TypeError:
+        # Binding rejected one or more kwargs; try compatibility profile.
+        return None
+    except (cp.SolverError, ValueError):
+        # Runtime/configuration failure; still try compatibility profile.
+        return None
+
+    return str(prob.status).lower()
 
 
 def _solver_failure_reason(latest_status: str | None) -> str:
