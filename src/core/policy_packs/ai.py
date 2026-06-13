@@ -142,18 +142,37 @@ def _validate_ai_request(
 
 
 def _normalize_requested_actions(actions: list[str]) -> list[str]:
-    normalized = [str(action).strip().upper() for action in actions if str(action).strip()]
+    normalized = _normalized_action_names(actions)
     if not normalized:
         raise ProposalValidationError("POLICY_AI_EVIDENCE_ACTION_REQUIRED")
-    forbidden = [
-        action
-        for action in normalized
-        if action not in _SUPPORTED_ACTIONS
-        or any(fragment in action for fragment in _FORBIDDEN_ACTION_FRAGMENTS)
-    ]
-    if forbidden:
+    if any(_is_forbidden_ai_evidence_action(action) for action in normalized):
         raise ProposalValidationError("POLICY_AI_EVIDENCE_FORBIDDEN_ACTION")
     return normalized
+
+
+def _normalized_action_names(actions: list[str]) -> list[str]:
+    normalized_actions: list[str] = []
+    for action in actions:
+        normalized = _normalized_action_name(action)
+        if normalized:
+            normalized_actions.append(normalized)
+    return normalized_actions
+
+
+def _normalized_action_name(action: str) -> str:
+    return str(action).strip().upper()
+
+
+def _is_forbidden_ai_evidence_action(action: str) -> bool:
+    return _is_unsupported_ai_evidence_action(action) or _contains_forbidden_action_fragment(action)
+
+
+def _is_unsupported_ai_evidence_action(action: str) -> bool:
+    return action not in _SUPPORTED_ACTIONS
+
+
+def _contains_forbidden_action_fragment(action: str) -> bool:
+    return any(fragment in action for fragment in _FORBIDDEN_ACTION_FRAGMENTS)
 
 
 def _find_replayed_ai_event(

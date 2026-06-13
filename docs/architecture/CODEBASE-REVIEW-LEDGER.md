@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-808
+
+- Scope: Policy AI evidence requested-action normalization
+- Pattern: AI evidence action trimming, empty-request handling, allowlist enforcement, and
+  forbidden mutation/publication fragment checks should be named helpers rather than one branching
+  request-normalization helper.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, AI governance and policy-boundary preservation
+- Summary: `_normalize_requested_actions` carried whitespace/case normalization, empty-action
+  rejection, supported-action validation, and forbidden approval/waiver/mutation/client-ready
+  publication checks in one B/9 helper. The policy AI evidence boundary now delegates action-name
+  normalization, unsupported-action detection, and forbidden-fragment detection to focused helpers
+  while preserving the non-authoritative AI evidence posture and existing validation errors.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_api_advisory_policy_evaluations.py -q`
+    passed with 10 tests.
+  - `python -m ruff check src/core/policy_packs/ai.py tests/unit/advisory/api/test_api_advisory_policy_evaluations.py`
+    passed.
+  - `python -m ruff format --check src/core/policy_packs/ai.py tests/unit/advisory/api/test_api_advisory_policy_evaluations.py`
+    passed.
+  - `python -m mypy src/core/policy_packs/ai.py` passed.
+  - `python -m radon cc src/core/policy_packs/ai.py -s --min B --no-assert` reports no
+    B-ranked blocks.
+- Consequence:
+  - Policy AI evidence requests remain behavior-compatible while the action boundary is easier to
+    audit for unsupported actions, approval/waiver/mutation attempts, and client-ready publication
+    overclaims.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy AI evidence boundary hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked policy-pack decision helpers where allowlist, blocker, and
+    source-evidence rules can be expressed as named predicates with endpoint or service tests.
+
 ## LA-REV-807
 
 - Scope: Common workflow gate decision policy

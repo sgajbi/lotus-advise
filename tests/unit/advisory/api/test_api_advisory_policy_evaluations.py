@@ -481,7 +481,10 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy(
             json={
                 "requested_by": "policy_checker_1",
                 "source_evaluation_hash": record["evaluation_hash"],
-                "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
+                "requested_actions": [
+                    " summarize_policy_posture ",
+                    "explain_open_requirements",
+                ],
                 "reason": {"purpose": "policy evidence explanation"},
             },
             headers={"Idempotency-Key": "  api-policy-ai-evidence-001  "},
@@ -500,6 +503,10 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy(
             captured_requests[0]["policy_evidence"]["evaluation_hash"]
             == (record["evaluation_hash"])
         )
+        assert captured_requests[0]["requested_actions"] == [
+            "SUMMARIZE_POLICY_POSTURE",
+            "EXPLAIN_OPEN_REQUIREMENTS",
+        ]
         assert (
             captured_requests[0]["policy_evidence"]["redaction_profile"][
                 "raw_source_evidence_included"
@@ -513,7 +520,10 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy(
             json={
                 "requested_by": "policy_checker_1",
                 "source_evaluation_hash": record["evaluation_hash"],
-                "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
+                "requested_actions": [
+                    "SUMMARIZE_POLICY_POSTURE",
+                    "EXPLAIN_OPEN_REQUIREMENTS",
+                ],
                 "reason": {"purpose": "policy evidence explanation"},
             },
             headers={"Idempotency-Key": "api-policy-ai-evidence-001"},
@@ -549,6 +559,17 @@ def test_policy_ai_evidence_rejects_forbidden_action_and_stale_hash() -> None:
         )
         assert forbidden.status_code == 422
         assert forbidden.json()["detail"] == "POLICY_AI_EVIDENCE_FORBIDDEN_ACTION"
+
+        blank_action = client.post(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/ai-evidence",
+            json={
+                "requested_by": "policy_checker_1",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "requested_actions": ["   "],
+            },
+        )
+        assert blank_action.status_code == 422
+        assert blank_action.json()["detail"] == "POLICY_AI_EVIDENCE_ACTION_REQUIRED"
 
         stale = client.post(
             f"/advisory/policy-evaluations/{record['evaluation_id']}/ai-evidence",
