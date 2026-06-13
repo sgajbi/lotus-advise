@@ -107,3 +107,74 @@ def test_collect_infeasibility_hints_reports_locked_group_weight() -> None:
     )
 
     assert hints == ["INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_sector:TECH"]
+
+
+def test_target_solver_index_preserves_tradeable_order_and_locked_weight() -> None:
+    solver_index = target_generation._build_target_solver_index(
+        eligible_targets={
+            "LOCKED_BOND": Decimal("0.25"),
+            "BUY_EQ_A": Decimal("0.30"),
+            "BUY_EQ_B": Decimal("0.45"),
+        },
+        buy_list=["BUY_EQ_B", "BUY_EQ_A"],
+        shelf=[
+            ShelfEntry(
+                instrument_id="LOCKED_BOND",
+                status="SELL_ONLY",
+                attributes={"asset_class": "FIXED_INCOME", "region": "GLOBAL"},
+            ),
+            ShelfEntry(
+                instrument_id="BUY_EQ_A",
+                status="APPROVED",
+                attributes={"asset_class": "EQUITY", "region": "US"},
+            ),
+        ],
+    )
+
+    assert solver_index.tradeable_ids == ["BUY_EQ_A", "BUY_EQ_B"]
+    assert solver_index.locked_weight == Decimal("0.25")
+    assert solver_index.indexed_tradeable == {"BUY_EQ_A": 0, "BUY_EQ_B": 1}
+    assert solver_index.shelf_attrs_by_id["LOCKED_BOND"]["asset_class"] == "FIXED_INCOME"
+    assert solver_index.known_attr_keys == {"asset_class", "region"}
+
+
+def test_solver_group_constraint_exposure_splits_tradeable_and_locked_weight() -> None:
+    solver_index = target_generation._build_target_solver_index(
+        eligible_targets={
+            "BUY_EQ_A": Decimal("0.30"),
+            "LOCKED_EQ": Decimal("0.20"),
+            "BUY_BOND": Decimal("0.50"),
+        },
+        buy_list=["BUY_EQ_A", "BUY_BOND"],
+        shelf=[
+            ShelfEntry(
+                instrument_id="BUY_EQ_A",
+                status="APPROVED",
+                attributes={"asset_class": "EQUITY"},
+            ),
+            ShelfEntry(
+                instrument_id="LOCKED_EQ",
+                status="SELL_ONLY",
+                attributes={"asset_class": "EQUITY"},
+            ),
+            ShelfEntry(
+                instrument_id="BUY_BOND",
+                status="APPROVED",
+                attributes={"asset_class": "FIXED_INCOME"},
+            ),
+        ],
+    )
+
+    exposure = target_generation._solver_group_constraint_exposure(
+        attr_key="asset_class",
+        attr_val="EQUITY",
+        solver_index=solver_index,
+        eligible_targets={
+            "BUY_EQ_A": Decimal("0.30"),
+            "LOCKED_EQ": Decimal("0.20"),
+            "BUY_BOND": Decimal("0.50"),
+        },
+    )
+
+    assert exposure.tradeable_ids == ["BUY_EQ_A"]
+    assert exposure.locked_weight == Decimal("0.20")

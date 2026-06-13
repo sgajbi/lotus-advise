@@ -28,6 +28,12 @@ class _TargetSolverProblem:
     constraints: list[Any]
 
 
+@dataclass(frozen=True)
+class _GroupConstraintExposure:
+    tradeable_ids: list[str]
+    locked_weight: Decimal
+
+
 def _build_solver_attempts(cp: Any) -> tuple[tuple[Any, tuple[dict[str, Any], ...]], ...]:
     """
     Ordered solver attempts with bounded runtime and compatibility fallbacks.
@@ -282,16 +288,47 @@ def _build_target_solver_index(
     buy_list: list[str],
     shelf: list[ShelfEntry],
 ) -> _TargetSolverIndex:
-    tradeable_ids = [i_id for i_id in eligible_targets if i_id in buy_list]
-    locked_ids = [i_id for i_id in eligible_targets if i_id not in buy_list]
-    shelf_attrs_by_id = {s.instrument_id: s.attributes for s in shelf}
+    buy_ids = set(buy_list)
+    tradeable_ids = _target_tradeable_ids(eligible_targets=eligible_targets, buy_ids=buy_ids)
+    shelf_attrs_by_id = _shelf_attrs_by_instrument_id(shelf)
     return _TargetSolverIndex(
         tradeable_ids=tradeable_ids,
-        locked_weight=sum((eligible_targets[i_id] for i_id in locked_ids), Decimal("0")),
+        locked_weight=_target_locked_weight(eligible_targets=eligible_targets, buy_ids=buy_ids),
         shelf_attrs_by_id=shelf_attrs_by_id,
-        known_attr_keys={k for attrs in shelf_attrs_by_id.values() for k in attrs},
+        known_attr_keys=_known_shelf_attr_keys(shelf_attrs_by_id),
         indexed_tradeable={i_id: idx for idx, i_id in enumerate(tradeable_ids)},
     )
+
+
+def _target_tradeable_ids(
+    *,
+    eligible_targets: dict[str, Decimal],
+    buy_ids: set[str],
+) -> list[str]:
+    return [instrument_id for instrument_id in eligible_targets if instrument_id in buy_ids]
+
+
+def _target_locked_weight(
+    *,
+    eligible_targets: dict[str, Decimal],
+    buy_ids: set[str],
+) -> Decimal:
+    return sum(
+        (
+            weight
+            for instrument_id, weight in eligible_targets.items()
+            if instrument_id not in buy_ids
+        ),
+        Decimal("0"),
+    )
+
+
+def _shelf_attrs_by_instrument_id(shelf: list[ShelfEntry]) -> dict[str, dict[str, str]]:
+    return {entry.instrument_id: entry.attributes for entry in shelf}
+
+
+def _known_shelf_attr_keys(shelf_attrs_by_id: dict[str, dict[str, str]]) -> set[str]:
+    return {key for attrs in shelf_attrs_by_id.values() for key in attrs}
 
 
 def _append_cash_band_constraints(
@@ -326,24 +363,43 @@ def _append_group_constraints(
             diagnostics.warnings.append(f"UNKNOWN_CONSTRAINT_ATTRIBUTE_{attr_key}")
             continue
 
-        group_tradeable: list[str] = []
-        group_locked_weight = Decimal("0")
-        for i_id in eligible_targets:
-            attrs = solver_index.shelf_attrs_by_id.get(i_id)
-            if attrs is None or attrs.get(attr_key) != attr_val:
-                continue
-            if i_id in solver_index.indexed_tradeable:
-                group_tradeable.append(i_id)
-            else:
-                group_locked_weight += eligible_targets[i_id]
-
-        if not group_tradeable and group_locked_weight == Decimal("0"):
+        exposure = _solver_group_constraint_exposure(
+            attr_key=attr_key,
+            attr_val=attr_val,
+            solver_index=solver_index,
+            eligible_targets=eligible_targets,
+        )
+        if not exposure.tradeable_ids and exposure.locked_weight == Decimal("0"):
             continue
 
+        group_locked_weight = exposure.locked_weight
         group_expr = cp.sum(
-            [w[solver_index.indexed_tradeable[i_id]] for i_id in group_tradeable]
+            [w[solver_index.indexed_tradeable[i_id]] for i_id in exposure.tradeable_ids]
         ) + float(group_locked_weight)
         constraints.append(group_expr <= float(constraint.max_weight))
+
+
+def _solver_group_constraint_exposure(
+    *,
+    attr_key: str,
+    attr_val: str,
+    solver_index: _TargetSolverIndex,
+    eligible_targets: dict[str, Decimal],
+) -> _GroupConstraintExposure:
+    tradeable_ids: list[str] = []
+    locked_weight = Decimal("0")
+    for instrument_id in eligible_targets:
+        attrs = solver_index.shelf_attrs_by_id.get(instrument_id)
+        if attrs is None or attrs.get(attr_key) != attr_val:
+            continue
+        if instrument_id in solver_index.indexed_tradeable:
+            tradeable_ids.append(instrument_id)
+        else:
+            locked_weight += eligible_targets[instrument_id]
+    return _GroupConstraintExposure(
+        tradeable_ids=tradeable_ids,
+        locked_weight=locked_weight,
+    )
 
 
 def _build_target_solver_problem(
