@@ -918,6 +918,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and lifecycle-handoff route modules behind the public aggregate router.",
         "- Workspace draft action request validation delegates trade, cash-flow, options,",
         "  and identifier-scope rules to focused helpers.",
+        "- Workspace draft action reduction delegates trade, cash-flow, and options",
+        "  mutations to explicit action handlers behind a registry dispatch boundary.",
         "- Local valuation state assembly delegates position summary collection, cash",
         "  conversion, shelf allocation, and allocation-metric rendering to focused helpers.",
         "- Local position valuation delegates trust-snapshot authority handling,",
@@ -1137,7 +1139,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-813` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-814` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

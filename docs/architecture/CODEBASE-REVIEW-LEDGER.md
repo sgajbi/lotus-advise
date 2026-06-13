@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-814
+
+- Scope: Workspace draft action reducer boundary
+- Pattern: Workspace draft action mutation should dispatch through named action handlers instead of
+  growing a long conditional branch inside the public reducer.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, workspace behavior preservation
+- Summary: `apply_workspace_draft_action_to_state` previously handled trade, cash-flow, and options
+  mutations in one B/9 branch chain. The reducer now resolves the action handler from an explicit
+  registry and delegates add/update/remove/replace behavior to focused helpers while preserving the
+  existing in-place draft-state mutation contract and domain error codes.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_workspace_draft_actions.py -q` passed with 9
+    tests.
+  - `python -m ruff check src/core/workspace/draft_actions.py tests/unit/advisory/api/test_workspace_draft_actions.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/core/workspace/draft_actions.py` passed.
+  - `python -m radon cc src/core/workspace/draft_actions.py -s` reports
+    `apply_workspace_draft_action_to_state` as A/2, down from B/9.
+- Consequence:
+  - Workspace draft mutation is easier to extend and review without changing API behavior,
+    preserving existing trade, cash-flow, options, missing-row, and constructed-invalid-request
+    handling.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal workspace reducer hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing remaining B/9 hotspots in advisory-copilot idempotency persistence, Lotus
+    Core route resolution, issuer mapping, and adjacent B-ranked workspace/session validators
+    before considering stricter B-ranked enforcement.
+
 ## LA-REV-813
 
 - Scope: Async operation replay response boundary

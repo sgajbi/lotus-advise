@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 
+from src.core.engine_options_models import EngineOptions
 from src.core.workspace.draft_actions import (
     WorkspaceDraftActionError,
     apply_workspace_draft_action_to_state,
@@ -93,6 +94,27 @@ def test_apply_workspace_draft_action_reports_missing_rows():
         apply_workspace_draft_action_to_state(draft_state=draft_state, request=request)
 
     assert str(exc.value) == "WORKSPACE_TRADE_NOT_FOUND"
+
+
+def test_apply_workspace_draft_action_replaces_options_with_copied_payload():
+    draft_state = WorkspaceDraftState()
+    replacement_options = EngineOptions(
+        auto_funding=False,
+        fx_buffer_pct=Decimal("0.02"),
+        max_overdraft_by_ccy={"USD": Decimal("1000")},
+    )
+    request = WorkspaceDraftActionRequest(
+        actor_id="advisor_123",
+        action_type="REPLACE_OPTIONS",
+        options=replacement_options,
+    )
+
+    apply_workspace_draft_action_to_state(draft_state=draft_state, request=request)
+    replacement_options.max_overdraft_by_ccy["USD"] = Decimal("2000")
+
+    assert draft_state.options.auto_funding is False
+    assert draft_state.options.fx_buffer_pct == Decimal("0.02")
+    assert draft_state.options.max_overdraft_by_ccy == {"USD": Decimal("1000")}
 
 
 @pytest.mark.parametrize(
