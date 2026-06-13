@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/source-b-hotspots`
-- Head: `047d7581baccaf1d35fb1abacc13e570ac2384a0`
-- Branch Commits Over Main: `101`
+- Branch: `harden/decision-summary-evidence`
+- Head: `63e50b5ee1f992144c5d941aa111b7679bfb63bf`
+- Branch Commits Over Main: `1`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
