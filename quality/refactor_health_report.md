@@ -303,6 +303,9 @@
 - Advisory copilot run persistence delegates payload safety validation,
   idempotency replay lookup, run-record construction, retryable refresh, and
   idempotency-record construction to focused helpers.
+- Advisory copilot review persistence delegates idempotent replay,
+  active-posture validation, review-record construction, and run-posture mutation
+  to focused helpers.
 - In-memory advisory copilot run persistence delegates idempotency replay,
   run-id replay, conflict policy, and new-run storage to focused helpers.
 - Enterprise readiness runtime policy delegates config issue collection,
