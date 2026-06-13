@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-818
+
+- Scope: Lotus Report request mapping safety boundary
+- Pattern: Report-package request mapping should expose source-date selection, lineage fallback,
+  safe status-path validation, and bounded identity checks as named helpers instead of embedding
+  those policies in branch-heavy integration helpers.
+- Status: Hardened
+- Finding Class: Complexity, downstream integration safety, behavior preservation
+- Summary: `src/integrations/lotus_report/request_mapping.py::extract_report_as_of_date` and
+  `report_status_path` previously combined direct proposal-result date scanning, lineage snapshot
+  fallback, current-date fallback, control-character rejection, query/fragment rejection, and
+  report-job path allowlisting in two B/8 helpers. The mapping boundary now delegates those rules
+  to focused helpers while preserving the existing Advise-to-Report request payload behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_report_request_mapping.py -q`
+    passed with 6 tests.
+  - `python -m ruff check src/integrations/lotus_report/request_mapping.py tests/unit/advisory/api/test_lotus_report_request_mapping.py`
+    passed.
+  - `python -m ruff format --check src/integrations/lotus_report/request_mapping.py tests/unit/advisory/api/test_lotus_report_request_mapping.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/integrations/lotus_report/request_mapping.py`
+    passed.
+  - `python -m radon cc -s src/integrations/lotus_report/request_mapping.py` reports
+    `extract_report_as_of_date` as A/3 and `report_status_path` as A/3, both down from B/8.
+- Consequence:
+  - Advisor-use report, memo, and policy sign-off package handoffs remain behavior-compatible
+    while status URL safety and as-of-date fallback behavior are easier to audit.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal Lotus Report integration mapping hardening for existing request
+    behavior.
+- Follow-Up:
+  - Continue reducing B/8 hotspots where integration safety, idempotency, supportability, or
+    ownership clarity improves, then consider ratcheting B-ranked report-only thresholds.
+
 ## LA-REV-817
 
 - Scope: Lotus Risk concentration request issuer mapping
