@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-781
+
+- Scope: Advisory decision-summary status rules
+- Pattern: Decision-summary status policy should be represented as explicit status, summary,
+  reason-code, and next-action maps with a small missing-evidence owner classifier.
+- Status: Hardened
+- Finding Class: Advisory decision policy modularity and next-action coverage
+- Summary: `decision_summary_status_rules.py` encoded status-to-summary, status-to-reason,
+  status-to-next-action, and insufficient-evidence owner routing through repeated conditional
+  chains. This path drives backend-owned proposal decision summaries, so making the policy tables
+  explicit makes client-context, mandate-context, risk-review, compliance-review, consent, and
+  remediation decisions easier to audit without changing the emitted decision status, primary
+  reason, primary summary, next action, or confidence semantics.
+- Evidence:
+  - Extracted explicit maps for gate-to-status, status-to-reason-code, status-to-summary, and
+    status-to-next-action rules.
+  - Extracted insufficient-evidence next-action routing for client-context and mandate-context
+    evidence gaps.
+  - Added direct focused coverage for client-context, mandate-context, and generic
+    insufficient-evidence next-action routing.
+  - Radon no longer reports `primary_decision_summary` or `recommended_decision_next_action` as
+    B-ranked; the module is bounded to one remaining `B/7` helper.
+  - Focused decision-summary tests passed with 15 tests, and `ruff`, `mypy`, format check, diff
+    check, and Radon checks passed.
+- Consequence:
+  - Advisory decision-summary policy remains behavior-compatible while the status, reason, summary,
+    and next-action tables are easier to inspect and extend.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    decision-policy maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked decision-summary missing-evidence and target-generation helpers with
+    focused behavior-preservation tests.
+
 ## LA-REV-780
 
 - Scope: Advisory proposal simulation intent planning
