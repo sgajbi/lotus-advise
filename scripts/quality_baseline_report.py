@@ -1100,7 +1100,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-791` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-792` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1128,7 +1128,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "tests cover OpenAPI enrichment, proof refs, source refs, dependency linking, "
             "capability dependency diagnostics, observability request-id normalization, "
             "structured logging, target-generation solver index construction, "
-            "target-generation solver fallback policy, and runtime base URL safety.",
+            "target-generation solver fallback policy, runtime base URL safety, and "
+            "CI warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (

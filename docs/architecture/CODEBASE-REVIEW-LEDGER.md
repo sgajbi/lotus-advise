@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-792
+
+- Scope: CI warning cleanup and independent job parallelization
+- Pattern: CI should avoid redundant configuration warnings and should not serialize independent
+  checks behind unrelated gate jobs when required check names and real prerequisites can stay
+  stable.
+- Status: Hardened
+- Finding Class: CI efficiency, warning remediation, and workflow contract clarity
+- Summary: Local pytest runs emitted an avoidable warning because `pytest.ini` and
+  `pyproject.toml` both declared pytest configuration, with `pytest.ini` taking precedence. The
+  GitHub Feature Lane, PR Merge Gate, and Main Releasability workflows also serialized independent
+  unit/runtime test jobs behind static governance jobs even though coverage and Docker jobs already
+  carry the real downstream prerequisites. The slice keeps check display names stable while
+  allowing independent work to start earlier.
+- Evidence:
+  - Removed redundant `[tool.pytest.ini_options]` from `pyproject.toml`, leaving `pytest.ini` as
+    the single pytest configuration source.
+  - Removed unnecessary `needs` edges from Feature Lane unit tests and from PR/Main test and
+    runtime-smoke jobs, while preserving coverage and Docker dependency requirements.
+  - Added workflow contract tests proving pytest has one authoritative config, Feature Lane unit
+    tests run independently of static governance, PR/Main test and runtime jobs are not serialized
+    behind static governance, and required check display names remain stable.
+  - Focused CI workflow contract tests passed with 4 tests; a focused pytest run for the Radon gate
+    reported only pass output and no ignored-pyproject warning.
+- Consequence:
+  - CI retains the same required check names and gates while reducing unnecessary waiting and
+    removing a recurring pytest warning from local and CI output.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal CI
+    quality and workflow-topology hardening.
+- Follow-Up:
+  - Continue looking for warning remediation and safe parallelization opportunities as CI evidence
+    surfaces them, without weakening required gates.
+
 ## LA-REV-791
 
 - Scope: Radon no-C/D/E/F complexity regression gate

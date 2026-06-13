@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-13T04:36:04.612761+00:00`
+- Generated At: `2026-06-13T04:42:22.577084+00:00`
 - Branch: `harden/runtime-base-url-normalization`
-- Head: `abbd79dbd9ce73bf0448121c2da65afe71c9a6c6`
-- Branch Commits Over Main: `1`
+- Head: `7e41bc7b08c4a04ed4f2739fc06e17c569a08a4b`
+- Branch Commits Over Main: `3`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `145680`
+- Total Python lines: `145739`
 
 ## Largest Files
 
@@ -25,7 +25,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1227 |
+| 9 | `scripts/quality_baseline_report.py` | 1228 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1197 |
 
 ## Largest Functions And Maintainability Hotspots
