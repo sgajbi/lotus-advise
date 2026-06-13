@@ -158,6 +158,20 @@ def test_workflow_gate_execution_ready_requires_clear_status_and_client_consent_
     assert decision.recommended_next_step == "EXECUTE"
 
 
+def test_workflow_gate_requires_client_consent_when_policy_requires_it() -> None:
+    decision = evaluate_gate_decision(
+        status="READY",
+        rule_results=[],
+        suitability=None,
+        diagnostics=_empty_diagnostics(),
+        options=EngineOptions(enable_proposal_simulation=True),
+        default_requires_client_consent=True,
+    )
+
+    assert decision.gate == "CLIENT_CONSENT_REQUIRED"
+    assert decision.recommended_next_step == "REQUEST_CLIENT_CONSENT"
+
+
 def test_workflow_gate_data_quality_reasons_are_recorded_even_when_status_drives_blocking() -> None:
     decision = evaluate_gate_decision(
         status="BLOCKED",
@@ -175,3 +189,29 @@ def test_workflow_gate_data_quality_reasons_are_recorded_even_when_status_drives
     assert decision.gate == "BLOCKED"
     assert "DATA_QUALITY_MISSING_PRICE" in reason_codes
     assert "DATA_QUALITY_MISSING_FX" in reason_codes
+
+
+def test_workflow_gate_orders_reasons_deterministically() -> None:
+    decision = evaluate_gate_decision(
+        status="BLOCKED",
+        rule_results=[_soft_rule("SOFT_B"), _hard_rule("HARD_A")],
+        suitability=_suitability_result(
+            _suitability_issue(severity="MEDIUM"),
+            _suitability_issue(severity="HIGH"),
+        ),
+        diagnostics=DiagnosticsData(
+            warnings=[],
+            data_quality={"price_missing": ["EQ_1"], "fx_missing": ["USD/SGD"]},
+        ),
+        options=EngineOptions(enable_proposal_simulation=True),
+        default_requires_client_consent=False,
+    )
+
+    assert [reason.reason_code for reason in decision.reasons] == [
+        "DATA_QUALITY_MISSING_FX",
+        "DATA_QUALITY_MISSING_PRICE",
+        "HARD_RULE_FAIL:HARD_A",
+        "NEW_HIGH_SUITABILITY_ISSUE",
+        "SOFT_RULE_FAIL:SOFT_B",
+        "NEW_MEDIUM_SUITABILITY_ISSUE",
+    ]

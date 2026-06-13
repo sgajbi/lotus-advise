@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-807
+
+- Scope: Common workflow gate decision policy
+- Pattern: Gate reason collection, ordered workflow-outcome policy, client-consent checks, and
+  deterministic reason sorting should be named helpers rather than one branching public helper.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, advisory workflow behavior preservation
+- Summary: `evaluate_gate_decision` carried rule failure counts, suitability issue counts, data
+  quality reason aggregation, client-consent policy, gate precedence, and reason sorting in one
+  B/9 common helper. The public helper now delegates reason bundling, ordered outcome-rule
+  evaluation, client-consent checks, and reason sorting to focused helpers while preserving the
+  existing gate precedence and response vocabulary.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_workflow_gates.py -q`
+    passed with 7 tests.
+  - `python -m ruff check src/core/common/workflow_gates.py tests/unit/advisory/engine/test_engine_workflow_gates.py`
+    passed.
+  - `python -m ruff format --check src/core/common/workflow_gates.py tests/unit/advisory/engine/test_engine_workflow_gates.py`
+    passed.
+  - `python -m mypy src/core/common/workflow_gates.py` passed.
+  - `python -m radon cc src/core/common/workflow_gates.py -s --min B --no-assert`
+    no longer reports `evaluate_gate_decision`; the module is bounded by the pre-existing
+    `_suitability_reasons` B/6 helper.
+- Consequence:
+  - Advisory workflow routing remains behavior-compatible while the gate-decision precedence is
+    easier to audit, test, and extend without weakening client-consent or review-routing rules.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal common-policy maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked workflow and policy-pack decision helpers where ordered policy
+    rules can be made explicit and directly tested.
+
 ## LA-REV-806
 
 - Scope: Bank-demo proof asset commit-safety validation
