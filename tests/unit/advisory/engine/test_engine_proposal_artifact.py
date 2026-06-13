@@ -182,6 +182,10 @@ def test_proposal_artifact_builder_delegates_projection_helpers():
     assert "from src.core.advisory.artifact_assumption_models import" in source
     assert "from src.core.advisory.artifact_portfolio_models import" in source
     assert "from src.core.advisory.artifact_summary_models import" in source
+    assert "def _artifact_gate_decision(" in source
+    assert "def _artifact_portfolio_impact(" in source
+    assert "def _artifact_assumptions(" in source
+    assert "def _artifact_disclosures(" in source
     assert "def largest_weight_changes(" not in source
     assert "def resolve_next_step(" not in source
     assert "def build_trades_and_funding(" not in source
@@ -273,7 +277,11 @@ def test_proposal_artifact_surfaces_persisted_proposal_alternatives():
     artifact = build_proposal_artifact(request=request, proposal_result=result)
 
     assert artifact.proposal_alternatives is not None
+    assert artifact.proposal_alternatives is not result.proposal_alternatives
     assert artifact.proposal_alternatives.selected_alternative_id == (
         "alt_lower_turnover_pf_artifact_1_us_eq"
     )
+    assert artifact.proposal_alternatives.alternatives[0].selected is True
+
+    result.proposal_alternatives.alternatives[0].selected = False
     assert artifact.proposal_alternatives.alternatives[0].selected is True
