@@ -182,12 +182,20 @@ def _sanitize_summary_value(value: Any) -> Any:
     if isinstance(value, dict):
         return _sanitize_summary_dict(value)
     if isinstance(value, list):
-        return [_sanitize_summary_value(item) for item in value[:_MAX_SUMMARY_LIST_ITEMS]]
+        return _sanitize_summary_list(value)
     if isinstance(value, str):
         return _sanitize_string(value)
-    if isinstance(value, bool) or isinstance(value, Number) or value is None:
+    if _is_safe_summary_scalar(value):
         return value
     return str(type(value).__name__)
+
+
+def _sanitize_summary_list(value: list[Any]) -> list[Any]:
+    return [_sanitize_summary_value(item) for item in value[:_MAX_SUMMARY_LIST_ITEMS]]
+
+
+def _is_safe_summary_scalar(value: Any) -> bool:
+    return isinstance(value, (bool, Number)) or value is None
 
 
 def _sanitize_string(value: str) -> str:

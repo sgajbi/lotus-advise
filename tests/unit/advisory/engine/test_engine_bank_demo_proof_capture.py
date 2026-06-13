@@ -474,6 +474,48 @@ def test_backend_proof_capture_requires_promoted_runtime_capability_evidence() -
         )
 
 
+def test_backend_proof_capture_keeps_runtime_capability_posture_policy() -> None:
+    degraded_capabilities = _runtime_posture().model_copy(
+        update={
+            "endpoints": [
+                RuntimeEndpointEvidence(
+                    endpoint="/platform/capabilities",
+                    http_status=503,
+                    posture="DEGRADED",
+                    summary={},
+                )
+            ]
+        }
+    )
+
+    with pytest.raises(ValueError, match="/platform/capabilities was not ready"):
+        build_backend_proof_capture(
+            _live_runtime_payload(),
+            metadata=_metadata(),
+            runtime_posture=degraded_capabilities,
+        )
+
+    not_probed_capabilities = _runtime_posture().model_copy(
+        update={
+            "endpoints": [
+                RuntimeEndpointEvidence(
+                    endpoint="/platform/capabilities",
+                    posture="NOT_PROBED",
+                    summary={},
+                )
+            ]
+        }
+    )
+
+    bundle = build_backend_proof_capture(
+        _live_runtime_payload(),
+        metadata=_metadata(),
+        runtime_posture=not_probed_capabilities,
+    )
+
+    assert bundle.runtime_posture.endpoints[0].posture == "NOT_PROBED"
+
+
 def test_backend_proof_capture_rejects_sensitive_artifact_reference_prefixes() -> None:
     with pytest.raises(ValueError, match="output_ref_prefix must not include URL"):
         build_backend_proof_capture(

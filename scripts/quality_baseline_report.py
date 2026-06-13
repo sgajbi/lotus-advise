@@ -1025,6 +1025,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Advisory copilot review persistence delegates idempotent replay,",
         "  active-posture validation, review-record construction, and run-posture mutation",
         "  to focused helpers.",
+        "- Bank-demo runtime proof evidence delegates summary value sanitization,",
+        "  capability endpoint lookup, readiness validation, and promoted feature/workflow",
+        "  proof checks to focused helpers.",
         "- In-memory advisory copilot run persistence delegates idempotency replay,",
         "  run-id replay, conflict policy, and new-run storage to focused helpers.",
         "- Enterprise readiness runtime policy delegates config issue collection,",
@@ -1158,7 +1161,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-822` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-823` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
