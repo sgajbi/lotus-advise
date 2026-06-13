@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-806
+
+- Scope: Bank-demo proof asset commit-safety validation
+- Pattern: Proof asset access, retention, and commit-hash rules should be named validation
+  helpers rather than one branching model validator.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, security/privacy proof-boundary preservation
+- Summary: `ProofAsset._sensitive_assets_cannot_be_committed` carried local-only commit blocking,
+  secret-material retention, commit-safe access-class checks, commit-source retention checks, and
+  required content-hash validation in one B/9 model validator. The validator now delegates those
+  safeguards to focused helper functions while preserving the existing RFC-0028 proof asset
+  failure messages and commit-safe material rules.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py tests/unit/advisory/engine/test_engine_bank_demo_proof_assets.py -q`
+    passed with 20 tests.
+  - `python -m ruff check src/core/bank_demo_proof/proof_asset_models.py tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py tests/unit/advisory/engine/test_engine_bank_demo_proof_assets.py`
+    passed.
+  - `python -m ruff format --check src/core/bank_demo_proof/proof_asset_models.py tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py tests/unit/advisory/engine/test_engine_bank_demo_proof_assets.py`
+    passed.
+  - `python -m mypy src/core/bank_demo_proof/proof_asset_models.py` passed.
+  - `python -m radon cc src/core/bank_demo_proof/proof_asset_models.py -s --min B --no-assert`
+    reports no B-ranked blocks.
+- Consequence:
+  - RFC-0028 proof asset commit-safety remains behavior-compatible while the model boundary is
+    easier to audit for local-only runtime evidence, secret material, and commit-safe summaries.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proof-model maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked bank-demo proof and policy-pack validators where proof or workflow
+    safety rules can be decomposed without changing supported behavior.
+
 ## LA-REV-805
 
 - Scope: Lotus Core classification label resolution

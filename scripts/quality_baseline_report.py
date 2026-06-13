@@ -762,6 +762,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  proof-reference, planned/unsupported, and UI-pending posture checks to focused helpers.",
         "- Bank-demo proof-pack contract-reference normalization delegates scheme, credential,",
         "  path, traversal, and sensitive-detail checks to focused helpers.",
+        "- Bank-demo proof asset commit-safety validation delegates local-only, secret",
+        "  retention, and commit-safe hash checks to focused helpers.",
         "- Bank-demo journey integration proof DTOs and validators are split into a focused",
         "  model owner while preserving the proof summary builder and public import path.",
         "- Proposal artifact assembly delegates gate fallback, decision-summary fallback,",
@@ -1119,7 +1121,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-805` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-806` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
