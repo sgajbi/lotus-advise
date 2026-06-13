@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-821
+
+- Scope: Proposal narrative product-type evidence policy boundary
+- Pattern: Narrative disclosure policy should expose shelf-entry product-type extraction,
+  asset-class mapping, and FX evidence inference as named helpers instead of embedding those
+  evidence rules in one branch-heavy iterator.
+- Status: Hardened
+- Finding Class: Complexity, narrative disclosure policy reliability, behavior preservation
+- Summary: `src/core/advisory/narrative_policy.py::_iter_evidence_product_types` previously
+  combined malformed shelf-entry filtering, attribute product-type extraction, asset-class mapping,
+  and FX-list inference in a B/8 helper. The policy boundary now delegates shelf-entry evidence
+  extraction to focused helpers while preserving deterministic product-type resolution for
+  advisor-review narrative disclosures.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_narrative_policy.py -q`
+    passed with 3 tests.
+  - `python -m ruff check src/core/advisory/narrative_policy.py tests/unit/advisory/engine/test_engine_proposal_narrative_policy.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/core/advisory/narrative_policy.py` passed.
+  - `python -m radon cc -s src/core/advisory/narrative_policy.py` reports
+    `_iter_evidence_product_types` as A/3, down from B/8.
+- Consequence:
+  - Advisor-review narrative disclosure selection still merges request product hints, shelf-entry
+    attribute evidence, asset-class-derived product types, and FX evidence while the unsupported
+    client-ready boundary remains unchanged.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal narrative policy hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B/8 advisory orchestration and policy hotspots where named policy helpers
+    improve auditability without widening supported client-ready claims.
+
 ## LA-REV-820
 
 - Scope: Lotus Core stateful-context dated-row selection boundary

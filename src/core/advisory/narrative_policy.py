@@ -118,19 +118,33 @@ def _product_type_from_asset_class(asset_class: str | None) -> str | None:
 
 def _iter_evidence_product_types(artifact: ProposalArtifact) -> Iterable[str]:
     for shelf_entry in artifact.evidence_bundle.inputs.shelf_entries:
-        if isinstance(shelf_entry, dict):
-            attributes = shelf_entry.get("attributes")
-            if isinstance(attributes, dict):
-                product_type = attributes.get("product_type")
-                if isinstance(product_type, str):
-                    yield product_type
-            asset_class = shelf_entry.get("asset_class")
-            if isinstance(asset_class, str):
-                mapped = _product_type_from_asset_class(asset_class)
-                if mapped is not None:
-                    yield mapped
+        yield from _iter_shelf_entry_product_types(shelf_entry)
     if artifact.trades_and_funding.fx_list:
         yield "FX"
+
+
+def _iter_shelf_entry_product_types(shelf_entry: object) -> Iterable[str]:
+    if not isinstance(shelf_entry, dict):
+        return
+    if product_type := _shelf_entry_attribute_product_type(shelf_entry):
+        yield product_type
+    if product_type := _shelf_entry_asset_class_product_type(shelf_entry):
+        yield product_type
+
+
+def _shelf_entry_attribute_product_type(shelf_entry: dict[str, object]) -> str | None:
+    attributes = shelf_entry.get("attributes")
+    if not isinstance(attributes, dict):
+        return None
+    product_type = attributes.get("product_type")
+    return product_type if isinstance(product_type, str) else None
+
+
+def _shelf_entry_asset_class_product_type(shelf_entry: dict[str, object]) -> str | None:
+    asset_class = shelf_entry.get("asset_class")
+    if not isinstance(asset_class, str):
+        return None
+    return _product_type_from_asset_class(asset_class)
 
 
 def resolve_narrative_product_types(
