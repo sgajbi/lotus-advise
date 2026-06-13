@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-809
+
+- Scope: Workspace rationale Lotus AI workflow-pack run mapping
+- Pattern: Workflow-pack run DTO assembly should delegate bounded finding normalization and
+  malformed-input handling to focused helpers rather than carrying run identity, posture, actions,
+  replacement lineage, and finding filtering in one mapper.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, Lotus AI integration supportability
+- Summary: `_map_workflow_pack_run` carried run identity validation, runtime/review/supportability
+  posture mapping, allowed review action filtering, replacement lineage, summary note selection,
+  and bounded finding normalization in one B/9 helper. The mapper now delegates finding-list and
+  per-finding normalization to focused helpers while preserving fail-closed missing-run identity
+  handling, bounded allowed-review actions, historical replacement lineage, and non-authoritative
+  workspace rationale posture.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_ai_rationale.py -q` passed with 20
+    tests.
+  - `python -m ruff check src/integrations/lotus_ai/rationale.py tests/unit/advisory/api/test_lotus_ai_rationale.py`
+    passed.
+  - `python -m radon cc src/integrations/lotus_ai/rationale.py -s --min B --no-assert` no longer
+    reports `_map_workflow_pack_run`; the module is bounded by pre-existing B/6 helpers.
+- Consequence:
+  - Workspace rationale Lotus AI run posture remains behavior-compatible while malformed finding
+    payloads and missing run identities are easier to audit and test.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal Lotus AI integration mapper hardening for existing workspace behavior.
+- Follow-Up:
+  - Continue reducing B-ranked Lotus AI integration helpers where request execution, workflow-pack
+    response mapping, and bounded action filtering can be split without changing API behavior.
+
 ## LA-REV-808
 
 - Scope: Policy AI evidence requested-action normalization

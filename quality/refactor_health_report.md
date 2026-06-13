@@ -125,6 +125,9 @@
 - Policy AI evidence action normalization delegates request trimming,
   empty-action rejection, allowlist checks, and forbidden-fragment blocking to
   focused helpers while preserving non-authoritative AI evidence posture.
+- Workspace rationale Lotus AI workflow-pack run mapping delegates bounded
+  finding normalization to focused helpers while preserving fail-closed run
+  identity handling and bounded review-action posture.
 - Proposal artifact summary DTOs are split into a focused summary model module
   while preserving the existing artifact model facade.
 - Proposal artifact portfolio-impact DTOs are split into a focused portfolio model

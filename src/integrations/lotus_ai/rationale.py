@@ -243,33 +243,6 @@ def _map_workflow_pack_run(
     run_id = map_bounded_text(payload.get("run_id"), max_length=_MAX_RUN_ID_LENGTH)
     if run_id is None:
         return None
-    findings: list[WorkspaceAssistantWorkflowPackRunFinding] = []
-    for item in payload.get("findings", []):
-        if len(findings) >= _MAX_FINDINGS:
-            break
-        if not isinstance(item, dict):
-            continue
-        finding_id = map_bounded_text(
-            item.get("finding_id"),
-            max_length=_MAX_FINDING_ID_LENGTH,
-        )
-        severity = map_bounded_text(
-            item.get("severity"),
-            max_length=_MAX_FINDING_SEVERITY_LENGTH,
-        )
-        summary = map_bounded_text(
-            item.get("summary"),
-            max_length=_MAX_FINDING_SUMMARY_LENGTH,
-        )
-        if finding_id is None or severity is None or summary is None:
-            continue
-        findings.append(
-            WorkspaceAssistantWorkflowPackRunFinding(
-                finding_id=finding_id,
-                severity=severity,
-                summary=summary,
-            )
-        )
     return WorkspaceAssistantWorkflowPackRun(
         run_id=run_id,
         runtime_state=_map_run_text(payload.get("runtime_state")),
@@ -286,7 +259,47 @@ def _map_workflow_pack_run(
         replacement_run_id=(
             map_bounded_text(payload.get("replacement_run_id"), max_length=_MAX_RUN_ID_LENGTH)
         ),
-        findings=findings,
+        findings=_map_workflow_pack_run_findings(payload.get("findings")),
+    )
+
+
+def _map_workflow_pack_run_findings(value: Any) -> list[WorkspaceAssistantWorkflowPackRunFinding]:
+    if not isinstance(value, list):
+        return []
+    findings: list[WorkspaceAssistantWorkflowPackRunFinding] = []
+    for item in value:
+        finding = _map_workflow_pack_run_finding(item)
+        if finding is None:
+            continue
+        findings.append(finding)
+        if len(findings) >= _MAX_FINDINGS:
+            break
+    return findings
+
+
+def _map_workflow_pack_run_finding(
+    value: Any,
+) -> WorkspaceAssistantWorkflowPackRunFinding | None:
+    if not isinstance(value, dict):
+        return None
+    finding_id = map_bounded_text(
+        value.get("finding_id"),
+        max_length=_MAX_FINDING_ID_LENGTH,
+    )
+    severity = map_bounded_text(
+        value.get("severity"),
+        max_length=_MAX_FINDING_SEVERITY_LENGTH,
+    )
+    summary = map_bounded_text(
+        value.get("summary"),
+        max_length=_MAX_FINDING_SUMMARY_LENGTH,
+    )
+    if finding_id is None or severity is None or summary is None:
+        return None
+    return WorkspaceAssistantWorkflowPackRunFinding(
+        finding_id=finding_id,
+        severity=severity,
+        summary=summary,
     )
 
 
