@@ -9,24 +9,29 @@
 - Status: Hardened
 - Finding Class: CI efficiency, warning remediation, and workflow contract clarity
 - Summary: Local pytest runs emitted an avoidable warning because `pytest.ini` and
-  `pyproject.toml` both declared pytest configuration, with `pytest.ini` taking precedence. The
-  GitHub Feature Lane, PR Merge Gate, and Main Releasability workflows also serialized independent
-  unit/runtime test jobs behind static governance jobs even though coverage and Docker jobs already
-  carry the real downstream prerequisites. The slice keeps check display names stable while
-  allowing independent work to start earlier.
+  `pyproject.toml` both declared pytest configuration, with `pytest.ini` taking precedence. Mypy
+  also reported unused test/script override sections because the repo typecheck scope is `src`.
+  The GitHub Feature Lane, PR Merge Gate, and Main Releasability workflows also serialized
+  independent unit/runtime test jobs behind static governance jobs even though coverage and Docker
+  jobs already carry the real downstream prerequisites. The slice keeps check display names stable
+  while allowing independent work to start earlier.
 - Evidence:
   - Removed redundant `[tool.pytest.ini_options]` from `pyproject.toml`, leaving `pytest.ini` as
     the single pytest configuration source.
+  - Removed stale `[mypy-tests.*]` and `[mypy-scripts.*]` override sections from `mypy.ini`,
+    eliminating the unused-configuration warning while preserving the `src` typecheck scope.
   - Removed unnecessary `needs` edges from Feature Lane unit tests and from PR/Main test and
     runtime-smoke jobs, while preserving coverage and Docker dependency requirements.
-  - Added workflow contract tests proving pytest has one authoritative config, Feature Lane unit
-    tests run independently of static governance, PR/Main test and runtime jobs are not serialized
-    behind static governance, and required check display names remain stable.
-  - Focused CI workflow contract tests passed with 4 tests; a focused pytest run for the Radon gate
-    reported only pass output and no ignored-pyproject warning.
+  - Added workflow contract tests proving pytest has one authoritative config, mypy has no stale
+    override sections, Feature Lane unit tests run independently of static governance, PR/Main test
+    and runtime jobs are not serialized behind static governance, and required check display names
+    remain stable.
+  - Focused CI workflow contract tests passed with 5 tests, a focused pytest run for the Radon gate
+    reported only pass output and no ignored-pyproject warning, and mypy completed with no unused
+    config warning.
 - Consequence:
   - CI retains the same required check names and gates while reducing unnecessary waiting and
-    removing a recurring pytest warning from local and CI output.
+    removing recurring pytest and mypy warnings from local and CI output.
 - Documentation:
   - Review ledger updated. No README/wiki source change is required because this is internal CI
     quality and workflow-topology hardening.

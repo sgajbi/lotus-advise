@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `harden/runtime-base-url-normalization`
-- Head: `7e41bc7b08c4a04ed4f2739fc06e17c569a08a4b`
+- Head: `81854b5b31506d9cd80e7db083f39a77de47f9ed`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |

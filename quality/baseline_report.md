@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-13T04:42:22.577084+00:00`
+- Generated At: `2026-06-13T04:47:14.149551+00:00`
 - Branch: `harden/runtime-base-url-normalization`
-- Head: `7e41bc7b08c4a04ed4f2739fc06e17c569a08a4b`
-- Branch Commits Over Main: `3`
+- Head: `81854b5b31506d9cd80e7db083f39a77de47f9ed`
+- Branch Commits Over Main: `5`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `145739`
+- Total Python lines: `145747`
 
 ## Largest Files
 
