@@ -604,6 +604,20 @@ def test_map_workflow_pack_run_bounds_actions_findings_and_identifiers() -> None
     assert all(len(finding.summary) <= _MAX_FINDING_SUMMARY_LENGTH for finding in run.findings)
 
 
+def test_map_workflow_pack_run_requires_identity_and_list_findings() -> None:
+    assert _map_workflow_pack_run({"run_id": " "}) is None
+
+    run = _map_workflow_pack_run(
+        {
+            "run_id": "packrun_workspace_rationale_req_001",
+            "findings": {"finding_id": "not-a-list"},
+        }
+    )
+
+    assert run is not None
+    assert run.findings == []
+
+
 def test_workflow_pack_request_includes_resolved_context_and_portfolio_source_ref(
     monkeypatch,
 ) -> None:
