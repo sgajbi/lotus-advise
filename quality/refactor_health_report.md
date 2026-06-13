@@ -122,6 +122,9 @@
   a focused source-rule module.
 - Policy evaluation source-readiness rule handling delegates policy-posture
   aggregation and section evidence collection to focused helpers.
+- Policy AI evidence action normalization delegates request trimming,
+  empty-action rejection, allowlist checks, and forbidden-fragment blocking to
+  focused helpers while preserving non-authoritative AI evidence posture.
 - Proposal artifact summary DTOs are split into a focused summary model module
   while preserving the existing artifact model facade.
 - Proposal artifact portfolio-impact DTOs are split into a focused portfolio model

@@ -841,6 +841,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  a focused source-rule module.",
         "- Policy evaluation source-readiness rule handling delegates policy-posture",
         "  aggregation and section evidence collection to focused helpers.",
+        "- Policy AI evidence action normalization delegates request trimming,",
+        "  empty-action rejection, allowlist checks, and forbidden-fragment blocking to",
+        "  focused helpers while preserving non-authoritative AI evidence posture.",
         "- Proposal artifact summary DTOs are split into a focused summary model module",
         "  while preserving the existing artifact model facade.",
         "- Proposal artifact portfolio-impact DTOs are split into a focused portfolio model",
@@ -1123,7 +1126,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-807` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-808` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
