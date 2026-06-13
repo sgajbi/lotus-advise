@@ -135,61 +135,161 @@ def append_shelf_entry_if_missing(
     enrichment_row: dict[str, Any] | None = None,
     classification_taxonomy: ClassificationTaxonomy | None = None,
 ) -> None:
-    if any(entry.instrument_id == instrument_id for entry in simulate_request.shelf_entries):
+    if _shelf_entry_exists(simulate_request, instrument_id=instrument_id):
         return
-    asset_class, asset_class_source = resolve_taxonomy_label(
+    asset_class, asset_class_source = _resolved_shelf_label(
         instrument_row.get("asset_class"),
         dimension_name="asset_class",
         taxonomy=classification_taxonomy,
     )
-    product_type, product_type_source = resolve_taxonomy_label(
+    product_type, product_type_source = _resolved_shelf_label(
         instrument_row.get("product_type"),
         dimension_name="product_type",
         taxonomy=classification_taxonomy,
         preserve_raw_when_ungoverned=True,
     )
+    enrichment = enrichment_row or {}
     simulate_request.shelf_entries.append(
-        ShelfEntry(
+        _trade_draft_shelf_entry(
             instrument_id=instrument_id,
-            status="APPROVED",
+            instrument_row=instrument_row,
+            enrichment_row=enrichment,
             asset_class=asset_class,
-            issuer_id=normalized_optional_str(
-                instrument_row.get("issuer_id")
-                if instrument_row.get("issuer_id") is not None
-                else (enrichment_row or {}).get("issuer_id")
+            asset_class_source=asset_class_source,
+            product_type=product_type,
+            product_type_source=product_type_source,
+            classification_taxonomy=classification_taxonomy,
+        )
+    )
+
+
+def _shelf_entry_exists(
+    simulate_request: ProposalSimulateRequest,
+    *,
+    instrument_id: str,
+) -> bool:
+    return any(entry.instrument_id == instrument_id for entry in simulate_request.shelf_entries)
+
+
+def _resolved_shelf_label(
+    value: Any,
+    *,
+    dimension_name: str,
+    taxonomy: ClassificationTaxonomy | None,
+    preserve_raw_when_ungoverned: bool = False,
+) -> tuple[str, str]:
+    return cast(
+        tuple[str, str],
+        resolve_taxonomy_label(
+            value,
+            dimension_name=dimension_name,
+            taxonomy=taxonomy,
+            preserve_raw_when_ungoverned=preserve_raw_when_ungoverned,
+        ),
+    )
+
+
+def _trade_draft_shelf_entry(
+    *,
+    instrument_id: str,
+    instrument_row: dict[str, Any],
+    enrichment_row: dict[str, Any],
+    asset_class: str,
+    asset_class_source: str,
+    product_type: str,
+    product_type_source: str,
+    classification_taxonomy: ClassificationTaxonomy | None,
+) -> ShelfEntry:
+    return ShelfEntry(
+        instrument_id=instrument_id,
+        status="APPROVED",
+        asset_class=asset_class,
+        issuer_id=_source_or_enrichment_text(
+            instrument_row=instrument_row,
+            enrichment_row=enrichment_row,
+            key="issuer_id",
+        ),
+        liquidity_tier=_trade_draft_liquidity_tier(
+            instrument_row=instrument_row,
+            enrichment_row=enrichment_row,
+            asset_class=asset_class,
+            product_type=product_type,
+        ),
+        attributes=_trade_draft_shelf_attributes(
+            instrument_row=instrument_row,
+            enrichment_row=enrichment_row,
+            product_type=product_type,
+            asset_class_source=asset_class_source,
+            product_type_source=product_type_source,
+            classification_taxonomy=classification_taxonomy,
+        ),
+    )
+
+
+def _source_or_enrichment_text(
+    *,
+    instrument_row: dict[str, Any],
+    enrichment_row: dict[str, Any],
+    key: str,
+) -> str | None:
+    value = instrument_row.get(key)
+    if value is None:
+        value = enrichment_row.get(key)
+    return cast(str | None, normalized_optional_str(value))
+
+
+def _trade_draft_liquidity_tier(
+    *,
+    instrument_row: dict[str, Any],
+    enrichment_row: dict[str, Any],
+    asset_class: str,
+    product_type: str,
+) -> str | None:
+    return cast(
+        str | None,
+        prefer_upstream_liquidity_tier(
+            raw_liquidity_tier=instrument_row.get("liquidity_tier"),
+            enrichment_liquidity_tier=enrichment_row.get("liquidity_tier"),
+            asset_class=asset_class,
+            product_type=product_type,
+            sector=instrument_row.get("sector"),
+            rating=instrument_row.get("rating"),
+        ),
+    )
+
+
+def _trade_draft_shelf_attributes(
+    *,
+    instrument_row: dict[str, Any],
+    enrichment_row: dict[str, Any],
+    product_type: str,
+    asset_class_source: str,
+    product_type_source: str,
+    classification_taxonomy: ClassificationTaxonomy | None,
+) -> dict[str, Any]:
+    return cast(
+        dict[str, Any],
+        shelf_attributes_from_payload(
+            sector=instrument_row.get("sector"),
+            country=instrument_row.get("country_of_risk"),
+            product_type=product_type,
+            rating=instrument_row.get("rating"),
+            ultimate_parent_issuer_id=_source_or_enrichment_text(
+                instrument_row=instrument_row,
+                enrichment_row=enrichment_row,
+                key="ultimate_parent_issuer_id",
             ),
-            liquidity_tier=prefer_upstream_liquidity_tier(
-                raw_liquidity_tier=instrument_row.get("liquidity_tier"),
-                enrichment_liquidity_tier=(enrichment_row or {}).get("liquidity_tier"),
-                asset_class=asset_class,
-                product_type=product_type,
-                sector=instrument_row.get("sector"),
-                rating=instrument_row.get("rating"),
-            ),
-            attributes=(
-                shelf_attributes_from_payload(
-                    sector=instrument_row.get("sector"),
-                    country=instrument_row.get("country_of_risk"),
-                    product_type=product_type,
-                    rating=instrument_row.get("rating"),
-                    ultimate_parent_issuer_id=(
-                        instrument_row.get("ultimate_parent_issuer_id")
-                        if instrument_row.get("ultimate_parent_issuer_id") is not None
-                        else (enrichment_row or {}).get("ultimate_parent_issuer_id")
-                    ),
-                    ultimate_parent_issuer_name=(
-                        instrument_row.get("ultimate_parent_issuer_name")
-                        if instrument_row.get("ultimate_parent_issuer_name") is not None
-                        else (enrichment_row or {}).get("ultimate_parent_issuer_name")
-                    ),
-                )
-                | classification_supportability_attributes(
-                    asset_class_source=asset_class_source,
-                    product_type_source=product_type_source,
-                    taxonomy=classification_taxonomy,
-                )
+            ultimate_parent_issuer_name=_source_or_enrichment_text(
+                instrument_row=instrument_row,
+                enrichment_row=enrichment_row,
+                key="ultimate_parent_issuer_name",
             ),
         )
+        | classification_supportability_attributes(
+            asset_class_source=asset_class_source,
+            product_type_source=product_type_source,
+            taxonomy=classification_taxonomy,
+        ),
     )
 
 

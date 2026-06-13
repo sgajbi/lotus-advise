@@ -154,15 +154,33 @@ def requested_output_keys(values: list[str]) -> list[str]:
 def safe_reason(reason: dict[str, Any]) -> dict[str, Any]:
     safe: dict[str, Any] = {}
     for key, value in reason.items():
-        key_text = bounded_text(str(key), max_length=MAX_COPILOT_REASON_KEY_LENGTH)
-        if not key_text or key_text.strip().lower() in _RAW_REASON_KEYS:
-            continue
-        safe_value = _safe_reason_value(value)
-        if safe_value is not None:
+        safe_item = _safe_reason_item(key, value)
+        if safe_item is not None:
+            key_text, safe_value = safe_item
             safe[key_text] = safe_value
         if len(safe) >= MAX_COPILOT_REASON_KEYS:
             break
     return safe
+
+
+def _safe_reason_item(
+    key: Any,
+    value: Any,
+) -> tuple[str, str | int | bool | None | list[str]] | None:
+    key_text = _safe_reason_key(key)
+    if key_text is None:
+        return None
+    safe_value = _safe_reason_value(value)
+    if safe_value is None:
+        return None
+    return key_text, safe_value
+
+
+def _safe_reason_key(key: Any) -> str | None:
+    key_text = bounded_text(str(key), max_length=MAX_COPILOT_REASON_KEY_LENGTH)
+    if not key_text or key_text.strip().lower() in _RAW_REASON_KEYS:
+        return None
+    return key_text
 
 
 def _safe_reason_value(value: Any) -> str | int | bool | None | list[str]:
@@ -184,11 +202,13 @@ def safe_reason_text(value: str) -> str | None:
 
 
 def safe_reason_list(value: list[Any] | tuple[Any, ...]) -> list[str] | None:
-    items = [
-        bounded
-        for bounded in (safe_reason_text(item) for item in value if isinstance(item, str))
-        if bounded
-    ]
+    items: list[str] = []
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        bounded = safe_reason_text(item)
+        if bounded is not None:
+            items.append(bounded)
     return items[:MAX_COPILOT_REASON_LIST_ITEMS] or None
 
 

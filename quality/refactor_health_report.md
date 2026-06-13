@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/contract-ref-normalization`
-- Head: `1fa103f039031319165dca6a5855082779be3cbd`
-- Branch Commits Over Main: `2`
+- Branch: `harden/source-b-hotspots`
+- Head: `047d7581baccaf1d35fb1abacc13e570ac2384a0`
+- Branch Commits Over Main: `101`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -187,6 +187,8 @@
   summary/description, tag inference, error response, and idempotency header handling.
 - OpenAPI example repair delegates array, object-property, required-field,
   existing-field, and additional-property repair paths to focused helpers.
+- OpenAPI example repair now delegates `$ref` and composite schema resolution,
+  structured example dispatch, scalar enum/type checks, and integer bound checks.
 - OpenAPI field-description inference delegates identifier, date/time, currency,
   monetary, quantity, rate/price, status, and fallback descriptions to focused helpers.
 - OpenAPI example inference delegates const/enum/ref/composite priority handling
@@ -254,6 +256,24 @@
 - Advisory copilot run persistence delegates payload safety validation,
   idempotency replay lookup, run-record construction, retryable refresh, and
   idempotency-record construction to focused helpers.
+- Enterprise readiness runtime policy delegates config issue collection,
+  write-authorization denial selection, recursive audit redaction, and
+  audit-identity validation to focused helpers while preserving bounded denial and
+  redaction behavior.
+- Integration dependency readiness delegates sanitized URL configuration,
+  health-endpoint probing, readiness-basis selection, and unavailable-reason
+  projection to focused helpers while preserving fail-closed dependency posture.
+- Advisory supportability projection delegates dependency/feature counts,
+  posture selection, degraded-state detection, and metric emission to focused
+  helpers while preserving bounded supportability labels.
+- Integration capability dependency diagnostics delegate readiness checks and
+  public degraded-reason extraction to focused helpers while preserving
+  fail-closed fallback behavior.
+- API observability request-id normalization reuses the shared bounded
+  identifier policy while preserving generated request-id fallback behavior.
+- Proposal reporting service orchestration delegates related-version selection,
+  reviewed-narrative packaging, request assembly, response normalization, and
+  workflow recording to focused helpers.
 - Policy-pack applicability evaluation delegates source context extraction,
   missing-evidence detection, not-applicable result construction, and selector
   construction to focused helpers.

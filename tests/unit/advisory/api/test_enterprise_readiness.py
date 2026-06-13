@@ -36,6 +36,19 @@ def test_enterprise_runtime_config_can_fail_fast_on_invalid_json_maps(monkeypatc
         validate_enterprise_runtime_config()
 
 
+def test_enterprise_runtime_config_reports_policy_and_secret_posture(monkeypatch) -> None:
+    monkeypatch.setenv("ENTERPRISE_POLICY_VERSION", " ")
+    monkeypatch.setenv("ENTERPRISE_SECRET_ROTATION_DAYS", "180")
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+    monkeypatch.delenv("ENTERPRISE_PRIMARY_KEY_ID", raising=False)
+
+    issues = validate_enterprise_runtime_config()
+
+    assert "missing_policy_version" in issues
+    assert "secret_rotation_days_out_of_range" in issues
+    assert "missing_primary_key_id" in issues
+
+
 def test_authorize_write_request_rejects_blank_enterprise_headers(
     monkeypatch,
 ) -> None:

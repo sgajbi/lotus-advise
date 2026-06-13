@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from src.core.advisory.decision_summary import build_proposal_decision_summary
+from src.core.advisory.decision_summary_models import ProposalDecisionMissingEvidence
+from src.core.advisory.decision_summary_status_rules import recommended_decision_next_action
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import (
     EngineOptions,
@@ -32,6 +34,45 @@ def test_decision_summary_delegates_status_rules_to_focused_module() -> None:
     assert "def primary_decision_reason_code(" in status_rules_source
     assert "def recommended_decision_next_action(" in status_rules_source
     assert "def decision_confidence(" in status_rules_source
+
+
+def _missing_evidence(reason_code: str) -> ProposalDecisionMissingEvidence:
+    return ProposalDecisionMissingEvidence(
+        evidence_type="TEST_EVIDENCE",
+        reason_code=reason_code,
+        summary=f"{reason_code} is unavailable.",
+        blocking=True,
+    )
+
+
+def test_decision_next_action_requests_client_context_for_client_evidence_gap() -> None:
+    assert (
+        recommended_decision_next_action(
+            "INSUFFICIENT_EVIDENCE",
+            [_missing_evidence("MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE")],
+        )
+        == "REQUEST_CLIENT_CONTEXT"
+    )
+
+
+def test_decision_next_action_requests_mandate_context_for_mandate_evidence_gap() -> None:
+    assert (
+        recommended_decision_next_action(
+            "INSUFFICIENT_EVIDENCE",
+            [_missing_evidence("MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE")],
+        )
+        == "REQUEST_MANDATE_CONTEXT"
+    )
+
+
+def test_decision_next_action_revises_when_insufficient_evidence_has_no_context_owner() -> None:
+    assert (
+        recommended_decision_next_action(
+            "INSUFFICIENT_EVIDENCE",
+            [_missing_evidence("MISSING_RISK_LENS")],
+        )
+        == "REVISE_PROPOSAL"
+    )
 
 
 def _base_result() -> ProposalResult:

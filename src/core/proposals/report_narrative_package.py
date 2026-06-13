@@ -143,16 +143,34 @@ def _execution_boundary(replay_evidence: dict[str, Any]) -> Any:
 def _narrative_sections_for_report(value: Any) -> list[dict[str, Any]]:
     sections: list[dict[str, Any]] = []
     for item in _list_of_dicts(value):
-        section_id = str(item.get("section_id") or item.get("section_key") or "").strip()
-        title = str(item.get("title") or "").strip()
-        body = str(item.get("body") or item.get("text") or "").strip()
-        if not section_id or not title or not body:
-            continue
-        section = dict(item)
-        section["section_id"] = section_id
-        section["title"] = title
-        section["body"] = body
-        section.pop("section_key", None)
-        section.pop("text", None)
-        sections.append(section)
+        section = _narrative_section_for_report(item)
+        if section is not None:
+            sections.append(section)
     return sections
+
+
+def _narrative_section_for_report(item: dict[str, Any]) -> dict[str, Any] | None:
+    section_id = _section_id(item)
+    title = _normalized_text(item.get("title"))
+    body = _section_body(item)
+    if not section_id or not title or not body:
+        return None
+    section = dict(item)
+    section["section_id"] = section_id
+    section["title"] = title
+    section["body"] = body
+    section.pop("section_key", None)
+    section.pop("text", None)
+    return section
+
+
+def _section_id(item: dict[str, Any]) -> str:
+    return _normalized_text(item.get("section_id")) or _normalized_text(item.get("section_key"))
+
+
+def _section_body(item: dict[str, Any]) -> str:
+    return _normalized_text(item.get("body")) or _normalized_text(item.get("text"))
+
+
+def _normalized_text(value: Any) -> str:
+    return str(value or "").strip()

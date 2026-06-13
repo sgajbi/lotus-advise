@@ -13,7 +13,6 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
 from src.core.proposals.correlation import (
-    MAX_CORRELATION_ID_LENGTH,
     normalize_optional_correlation_id,
     resolve_correlation_id,
 )
@@ -37,14 +36,8 @@ def _meaningful_header(value: str | None) -> str | None:
 
 
 def _normalize_request_id(request_id: str | None) -> str | None:
-    meaningful = _meaningful_header(request_id)
-    if meaningful is None:
-        return None
-    if len(meaningful) > MAX_CORRELATION_ID_LENGTH:
-        return None
-    if any(ord(char) < 32 or ord(char) == 127 for char in meaningful):
-        return None
-    return meaningful
+    normalized: str | None = normalize_optional_correlation_id(request_id)
+    return normalized
 
 
 def _resolve_request_id(request_id: str | None) -> str:

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 from src.core.engine_options_models import EngineOptions
 from src.core.portfolio_models import ShelfEntry
@@ -16,6 +16,8 @@ from .suitability_policy import (
     to_cash_weight,
     to_instrument_weight_map,
 )
+
+SuitabilityWeightBucket = Literal["issuer_id", "liquidity_tier"]
 
 
 def evaluate_single_position_issues(
@@ -62,59 +64,26 @@ def evaluate_issuer_issues(
 ) -> None:
     thresholds = options.suitability_thresholds
     target_weights = to_instrument_weight_map(target_state)
-    issuer_weights: Dict[str, Decimal] = {}
-
-    for instrument_id, weight in target_weights.items():
-        shelf_entry = shelf_by_instrument.get(instrument_id)
-        if shelf_entry is None:
-            dq_key = f"DQ|MISSING_SHELF|{instrument_id}"
-            issue_map[dq_key] = issue_data_quality(
-                issue_key=dq_key,
-                summary=f"Shelf enrichment missing for {instrument_id}.",
-                details={"instrument_id": instrument_id, "missing_fields": "shelf_entry"},
-                severity=thresholds.data_quality_issue_severity,
-            )
-            continue
-
-        if not shelf_entry.issuer_id:
-            dq_key = f"DQ|MISSING_ISSUER|{instrument_id}"
-            issue_map[dq_key] = issue_data_quality(
-                issue_key=dq_key,
-                summary=f"Issuer enrichment missing for {instrument_id}.",
-                details={"instrument_id": instrument_id, "missing_fields": "issuer_id"},
-                severity=thresholds.data_quality_issue_severity,
-            )
-            continue
-
-        issuer_weights[shelf_entry.issuer_id] = (
-            issuer_weights.get(
-                shelf_entry.issuer_id,
-                Decimal("0"),
-            )
-            + weight
-        )
+    issuer_weights = _aggregate_enriched_weights(
+        target_weights=target_weights,
+        shelf_by_instrument=shelf_by_instrument,
+        bucket="issuer_id",
+        missing_shelf=True,
+        issue_map=issue_map,
+        missing_detail="issuer_id",
+        missing_summary_label="Issuer enrichment",
+        missing_issue_key_prefix="DQ|MISSING_ISSUER",
+        data_quality_severity=thresholds.data_quality_issue_severity,
+    )
 
     for issuer_id, weight in issuer_weights.items():
         if weight > thresholds.issuer_max_weight + EPSILON:
-            severity = severity_for_concentration(weight, thresholds.issuer_max_weight)
-            issue_key = f"ISSUER_MAX|{issuer_id}"
-            issue_map[issue_key] = IssueCandidate(
-                issue_key=issue_key,
-                issue_id="SUIT_ISSUER_MAX",
-                dimension="ISSUER",
-                severity=severity,
-                summary=(
-                    f"Issuer {issuer_id} exceeds {thresholds.issuer_max_weight:.2%} exposure cap."
-                ),
-                details={
-                    "issuer_id": issuer_id,
-                    "threshold": str(thresholds.issuer_max_weight),
-                    "measured": str(weight),
-                },
-                classification="NEW",
-                remediation="Reduce issuer concentration or add diversified replacement exposure.",
-                approval_implication=("COMPLIANCE_REVIEW" if severity == HIGH else "RISK_REVIEW"),
+            issue = _issuer_exposure_issue(
+                issuer_id=issuer_id,
+                weight=weight,
+                cap=thresholds.issuer_max_weight,
             )
+            issue_map[issue.issue_key] = issue
 
 
 def evaluate_liquidity_issues(
@@ -127,49 +96,141 @@ def evaluate_liquidity_issues(
 ) -> None:
     thresholds = options.suitability_thresholds
     target_weights = to_instrument_weight_map(target_state)
-    liquidity_weights: Dict[str, Decimal] = {}
-
-    for instrument_id, weight in target_weights.items():
-        shelf_entry = shelf_by_instrument.get(instrument_id)
-        if shelf_entry is None:
-            continue
-        if not shelf_entry.liquidity_tier:
-            dq_key = f"DQ|MISSING_LIQUIDITY_TIER|{instrument_id}"
-            issue_map[dq_key] = issue_data_quality(
-                issue_key=dq_key,
-                summary=f"Liquidity tier enrichment missing for {instrument_id}.",
-                details={"instrument_id": instrument_id, "missing_fields": "liquidity_tier"},
-                severity=thresholds.data_quality_issue_severity,
-            )
-            continue
-        liquidity_weights[shelf_entry.liquidity_tier] = (
-            liquidity_weights.get(
-                shelf_entry.liquidity_tier,
-                Decimal("0"),
-            )
-            + weight
-        )
+    liquidity_weights = _aggregate_enriched_weights(
+        target_weights=target_weights,
+        shelf_by_instrument=shelf_by_instrument,
+        bucket="liquidity_tier",
+        missing_shelf=False,
+        issue_map=issue_map,
+        missing_detail="liquidity_tier",
+        missing_summary_label="Liquidity tier enrichment",
+        missing_issue_key_prefix="DQ|MISSING_LIQUIDITY_TIER",
+        data_quality_severity=thresholds.data_quality_issue_severity,
+    )
 
     for tier, cap in thresholds.max_weight_by_liquidity_tier.items():
         measured = liquidity_weights.get(tier, Decimal("0"))
         if measured > cap + EPSILON:
-            severity = severity_for_concentration(measured, cap)
-            issue_key = f"LIQUIDITY_MAX|{tier}"
-            issue_map[issue_key] = IssueCandidate(
-                issue_key=issue_key,
-                issue_id="SUIT_LIQUIDITY_MAX",
-                dimension="LIQUIDITY",
-                severity=severity,
-                summary=f"Liquidity tier {tier} exceeds {cap:.2%} exposure cap.",
-                details={
-                    "liquidity_tier": tier,
-                    "threshold": str(cap),
-                    "measured": str(measured),
-                },
-                classification="NEW",
-                remediation="Reduce illiquid exposure or increase liquid funding assets.",
-                approval_implication="RISK_REVIEW",
+            issue = _liquidity_exposure_issue(tier=tier, measured=measured, cap=cap)
+            issue_map[issue.issue_key] = issue
+
+
+def _aggregate_enriched_weights(
+    *,
+    target_weights: Dict[str, Decimal],
+    shelf_by_instrument: Dict[str, ShelfEntry],
+    bucket: SuitabilityWeightBucket,
+    missing_shelf: bool,
+    issue_map: Dict[str, IssueCandidate],
+    missing_detail: str,
+    missing_summary_label: str,
+    missing_issue_key_prefix: str,
+    data_quality_severity: str,
+) -> Dict[str, Decimal]:
+    weights: Dict[str, Decimal] = {}
+    for instrument_id, weight in target_weights.items():
+        shelf_entry = shelf_by_instrument.get(instrument_id)
+        if shelf_entry is None:
+            if missing_shelf:
+                _add_missing_shelf_issue(
+                    instrument_id=instrument_id,
+                    issue_map=issue_map,
+                    data_quality_severity=data_quality_severity,
+                )
+            continue
+
+        bucket_value = getattr(shelf_entry, bucket)
+        if not bucket_value:
+            _add_missing_enrichment_issue(
+                instrument_id=instrument_id,
+                issue_map=issue_map,
+                missing_detail=missing_detail,
+                missing_summary_label=missing_summary_label,
+                missing_issue_key_prefix=missing_issue_key_prefix,
+                data_quality_severity=data_quality_severity,
             )
+            continue
+
+        weights[bucket_value] = weights.get(bucket_value, Decimal("0")) + weight
+    return weights
+
+
+def _add_missing_shelf_issue(
+    *,
+    instrument_id: str,
+    issue_map: Dict[str, IssueCandidate],
+    data_quality_severity: str,
+) -> None:
+    issue_key = f"DQ|MISSING_SHELF|{instrument_id}"
+    issue_map[issue_key] = issue_data_quality(
+        issue_key=issue_key,
+        summary=f"Shelf enrichment missing for {instrument_id}.",
+        details={"instrument_id": instrument_id, "missing_fields": "shelf_entry"},
+        severity=data_quality_severity,
+    )
+
+
+def _add_missing_enrichment_issue(
+    *,
+    instrument_id: str,
+    issue_map: Dict[str, IssueCandidate],
+    missing_detail: str,
+    missing_summary_label: str,
+    missing_issue_key_prefix: str,
+    data_quality_severity: str,
+) -> None:
+    issue_key = f"{missing_issue_key_prefix}|{instrument_id}"
+    issue_map[issue_key] = issue_data_quality(
+        issue_key=issue_key,
+        summary=f"{missing_summary_label} missing for {instrument_id}.",
+        details={"instrument_id": instrument_id, "missing_fields": missing_detail},
+        severity=data_quality_severity,
+    )
+
+
+def _issuer_exposure_issue(*, issuer_id: str, weight: Decimal, cap: Decimal) -> IssueCandidate:
+    severity = severity_for_concentration(weight, cap)
+    issue_key = f"ISSUER_MAX|{issuer_id}"
+    return IssueCandidate(
+        issue_key=issue_key,
+        issue_id="SUIT_ISSUER_MAX",
+        dimension="ISSUER",
+        severity=severity,
+        summary=f"Issuer {issuer_id} exceeds {cap:.2%} exposure cap.",
+        details={
+            "issuer_id": issuer_id,
+            "threshold": str(cap),
+            "measured": str(weight),
+        },
+        classification="NEW",
+        remediation="Reduce issuer concentration or add diversified replacement exposure.",
+        approval_implication=("COMPLIANCE_REVIEW" if severity == HIGH else "RISK_REVIEW"),
+    )
+
+
+def _liquidity_exposure_issue(
+    *,
+    tier: str,
+    measured: Decimal,
+    cap: Decimal,
+) -> IssueCandidate:
+    severity = severity_for_concentration(measured, cap)
+    issue_key = f"LIQUIDITY_MAX|{tier}"
+    return IssueCandidate(
+        issue_key=issue_key,
+        issue_id="SUIT_LIQUIDITY_MAX",
+        dimension="LIQUIDITY",
+        severity=severity,
+        summary=f"Liquidity tier {tier} exceeds {cap:.2%} exposure cap.",
+        details={
+            "liquidity_tier": tier,
+            "threshold": str(cap),
+            "measured": str(measured),
+        },
+        classification="NEW",
+        remediation="Reduce illiquid exposure or increase liquid funding assets.",
+        approval_implication="RISK_REVIEW",
+    )
 
 
 def evaluate_governance_holdings_issues(
@@ -210,19 +271,54 @@ def _governance_holding_issue(
     after_weight: Decimal,
     allow_restricted: bool,
 ) -> IssueCandidate | None:
-    if status in {"BANNED", "SUSPENDED"} and after_weight > EPSILON:
-        return _presence_governance_issue(
-            instrument_id=instrument_id,
-            status=status,
-            after_weight=after_weight,
-        )
-    if status == "SELL_ONLY" and _holding_increased(before_weight, after_weight):
+    presence_issue = _presence_governance_issue_if_applicable(
+        instrument_id=instrument_id,
+        status=status,
+        after_weight=after_weight,
+    )
+    if presence_issue is not None:
+        return presence_issue
+    return _increase_governance_issue_if_applicable(
+        instrument_id=instrument_id,
+        status=status,
+        before_weight=before_weight,
+        after_weight=after_weight,
+        allow_restricted=allow_restricted,
+    )
+
+
+def _presence_governance_issue_if_applicable(
+    *,
+    instrument_id: str,
+    status: str,
+    after_weight: Decimal,
+) -> IssueCandidate | None:
+    if status not in {"BANNED", "SUSPENDED"} or after_weight <= EPSILON:
+        return None
+    return _presence_governance_issue(
+        instrument_id=instrument_id,
+        status=status,
+        after_weight=after_weight,
+    )
+
+
+def _increase_governance_issue_if_applicable(
+    *,
+    instrument_id: str,
+    status: str,
+    before_weight: Decimal,
+    after_weight: Decimal,
+    allow_restricted: bool,
+) -> IssueCandidate | None:
+    if not _holding_increased(before_weight, after_weight):
+        return None
+    if status == "SELL_ONLY":
         return _sell_only_increase_issue(
             instrument_id=instrument_id,
             before_weight=before_weight,
             after_weight=after_weight,
         )
-    if status == "RESTRICTED" and _holding_increased(before_weight, after_weight):
+    if status == "RESTRICTED":
         return _restricted_increase_issue(
             instrument_id=instrument_id,
             before_weight=before_weight,

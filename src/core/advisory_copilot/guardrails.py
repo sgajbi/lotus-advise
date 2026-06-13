@@ -73,23 +73,50 @@ def evaluate_copilot_guardrails(
     output_text: str,
 ) -> tuple[CopilotGuardrailReasonCode, ...]:
     reasons: list[CopilotGuardrailReasonCode] = []
+    reasons.extend(_intent_guardrail_reasons(requested_intents))
+    reasons.extend(_source_evidence_guardrail_reasons(source_refs_present))
+    reasons.extend(_instruction_guardrail_reasons(user_instruction))
+    reasons.extend(_output_guardrail_reasons(output_text))
 
+    return tuple(dict.fromkeys(reasons))
+
+
+def _intent_guardrail_reasons(
+    requested_intents: tuple[str, ...],
+) -> tuple[CopilotGuardrailReasonCode, ...]:
+    reasons: list[CopilotGuardrailReasonCode] = []
     for intent in requested_intents:
         reason = guardrail_reason_for_intent(intent)
         if reason is not None:
             reasons.append(reason)
+    return tuple(reasons)
 
-    if not source_refs_present:
-        reasons.append("SOURCE_EVIDENCE_REQUIRED")
 
-    instruction = user_instruction.lower()
-    if any(marker in instruction for marker in _PROMPT_INJECTION_MARKERS):
-        reasons.append("PROMPT_INJECTION_REJECTED")
+def _source_evidence_guardrail_reasons(
+    source_refs_present: bool,
+) -> tuple[CopilotGuardrailReasonCode, ...]:
+    if source_refs_present:
+        return ()
+    return ("SOURCE_EVIDENCE_REQUIRED",)
 
-    output = output_text.lower()
-    if any(marker in output for marker in _CLIENT_READY_MARKERS):
+
+def _instruction_guardrail_reasons(
+    user_instruction: str,
+) -> tuple[CopilotGuardrailReasonCode, ...]:
+    if _contains_marker(user_instruction, _PROMPT_INJECTION_MARKERS):
+        return ("PROMPT_INJECTION_REJECTED",)
+    return ()
+
+
+def _output_guardrail_reasons(output_text: str) -> tuple[CopilotGuardrailReasonCode, ...]:
+    reasons: list[CopilotGuardrailReasonCode] = []
+    if _contains_marker(output_text, _CLIENT_READY_MARKERS):
         reasons.append("CLIENT_READY_PUBLICATION_FORBIDDEN")
-    if any(marker in output for marker in _SENSITIVE_OUTPUT_MARKERS):
+    if _contains_marker(output_text, _SENSITIVE_OUTPUT_MARKERS):
         reasons.append("SENSITIVE_DATA_EXPOSURE_REJECTED")
+    return tuple(reasons)
 
-    return tuple(dict.fromkeys(reasons))
+
+def _contains_marker(value: str, markers: tuple[str, ...]) -> bool:
+    normalized = value.lower()
+    return any(marker in normalized for marker in markers)

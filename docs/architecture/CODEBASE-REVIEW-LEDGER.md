@@ -1,5 +1,1357 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-786
+
+- Scope: Lotus Core stateful trade-draft shelf hydration
+- Pattern: Trade-draft shelf hydration should separate duplicate detection, taxonomy label
+  resolution, enrichment fallback, liquidity-tier policy, and shelf-attribute projection.
+- Status: Hardened
+- Finding Class: Lotus Core integration modularity and source-enrichment coverage
+- Summary: `append_shelf_entry_if_missing` mixed duplicate detection, asset/product taxonomy
+  resolution, issuer fallback, upstream liquidity selection, ultimate-parent fallback,
+  supportability metadata, and `ShelfEntry` projection in one B/10 helper. This path hydrates
+  missing shelf data for stateful proposal trade drafts from Lotus Core, so splitting the
+  responsibilities makes source enrichment behavior easier to audit without changing duplicate
+  handling, taxonomy metadata, enrichment fallback, liquidity-tier precedence, or shelf-entry
+  defaults.
+- Evidence:
+  - Extracted helpers for existing shelf-entry detection, governed shelf label resolution,
+    shelf-entry projection, source-or-enrichment text fallback, trade-draft liquidity-tier
+    selection, and shelf attributes.
+  - Added focused coverage proving enrichment fallback for issuer and ultimate-parent fields,
+    upstream liquidity tier preservation, governed taxonomy metadata, and existing `ShelfEntry`
+    defaults.
+  - Radon no longer reports `append_shelf_entry_if_missing` as B-ranked; the module remains bounded
+    to unrelated `B/8` and `B/6` helpers.
+  - Focused Lotus Core stateful-context tests passed with 35 tests, and `ruff`, `mypy`, format
+    check, and Radon checks passed.
+- Consequence:
+  - Stateful trade-draft shelf hydration remains behavior-compatible while source enrichment and
+    supportability metadata projection are smaller, named, and directly covered.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal Lotus
+    Core integration maintainability hardening for existing stateful trade-draft hydration behavior.
+- Follow-Up:
+  - Continue reducing B-ranked target-generation, decision-summary missing-evidence,
+    recoverable-operation, and remaining stateful-context hydration helpers with focused
+    behavior-preservation tests.
+
+## LA-REV-785
+
+- Scope: Memo source-readiness product evidence evaluation
+- Pattern: Product source-readiness checks should separate row validation, nested attribute
+  extraction, eligibility evidence lookup, and complexity evidence lookup.
+- Status: Hardened
+- Finding Class: Memo source-readiness modularity and source-evidence coverage
+- Summary: `_all_products_have_eligibility_and_complexity` mixed shelf-row type validation,
+  attributes extraction, eligibility detection, product complexity detection, and aggregate
+  all-products policy in one B/10 helper. This path controls whether advisor-use memo source
+  readiness is ready or pending based on source-owner product eligibility and complexity evidence,
+  so splitting row-level evidence helpers makes the policy easier to audit without changing direct
+  field handling, nested `attributes` fallback, pending-review posture, or reason-code behavior.
+- Evidence:
+  - Extracted row-level product evidence validation, nested attributes extraction, eligibility
+    lookup, and complexity lookup behind the existing source-readiness section builder.
+  - Added focused coverage proving nested `attributes.eligibility` plus
+    `attributes.product_complexity` is accepted, and missing product complexity keeps the section
+    in `PENDING_REVIEW` with existing missing-evidence and reason-code output.
+  - Radon no longer reports `_all_products_have_eligibility_and_complexity` as B-ranked; the module
+    is bounded to one unrelated `B/6` helper.
+  - Focused memo source-readiness tests passed with 7 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Memo source-readiness product gating remains behavior-compatible while source evidence handling
+    is smaller, named, and covered by direct regression tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal memo
+    source-readiness maintainability hardening for existing advisor-use memo behavior.
+- Follow-Up:
+  - Continue reducing B-ranked target-generation, decision-summary missing-evidence, stateful
+    context hydration, and recoverable-operation helpers with focused behavior-preservation tests.
+
+## LA-REV-784
+
+- Scope: Reviewed narrative report-package section projection
+- Pattern: Report-package section projection should separate list traversal, single-section
+  normalization, compatibility-field selection, and text cleanup.
+- Status: Hardened
+- Finding Class: Proposal narrative reporting modularity and contract compatibility coverage
+- Summary: `_narrative_sections_for_report` combined list filtering, canonical/legacy section
+  field selection, whitespace normalization, incomplete-section rejection, and output cleanup in
+  one B/10 helper. This path shapes the reviewed advisor-use narrative package handed to
+  `lotus-report`, so isolating single-section normalization makes the contract easier to audit
+  while preserving canonical `section_id`/`body` precedence, `section_key`/`text` compatibility,
+  incomplete-section filtering, and stripped compatibility keys in the downstream payload.
+- Evidence:
+  - Extracted single-section projection, section-id resolution, body resolution, and shared text
+    normalization helpers behind the existing package builder.
+  - Added focused coverage proving canonical fields are preferred, legacy fields remain accepted,
+    invalid sections and non-dicts are skipped, and compatibility keys are stripped from the
+    report payload.
+  - Radon reports no B-ranked blocks in
+    `src/core/proposals/report_narrative_package.py`.
+  - Focused reviewed narrative report-package tests passed with 5 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Reviewed narrative report handoff remains behavior-compatible while section projection is
+    smaller, named, and covered by direct contract-compatibility tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    report-package maintainability hardening for existing reviewed narrative behavior.
+- Follow-Up:
+  - Continue reducing B-ranked decision-summary missing-evidence, target-generation, source
+    readiness, and stateful-context hydration helpers with focused behavior-preservation tests.
+
+## LA-REV-783
+
+- Scope: Lotus Report request date mapping
+- Pattern: Recursive report-date lookup should separate payload type dispatch, mapping traversal,
+  sequence traversal, and snapshot-date normalization.
+- Status: Hardened
+- Finding Class: Reporting integration modularity and behavior-preservation coverage
+- Summary: `find_first_key_value` combined recursive dictionary traversal, list traversal,
+  candidate key detection, string normalization, and snapshot-date validation in one B/10 helper.
+  This path selects the source-backed as-of date for downstream `lotus-report` handoff packages,
+  so splitting traversal and date validation makes the mapping easier to audit without changing
+  depth-first search order, invalid-date rejection, lineage fallback, or default date behavior.
+- Evidence:
+  - Extracted mapping traversal, sequence traversal, and snapshot-date normalization helpers behind
+    the existing `find_first_key_value` entrypoint.
+  - Added focused coverage proving depth-first list/dict selection and invalid direct report dates
+    falling back to lineage snapshot dates.
+  - Radon no longer reports `find_first_key_value` as B-ranked in
+    `src/integrations/lotus_report/request_mapping.py`; the module remains bounded to unrelated
+    B-ranked helpers.
+  - Focused Lotus Report request-mapping tests passed with 6 tests, and `ruff`, `mypy`, format
+    check, and Radon checks passed.
+- Consequence:
+  - Advise-to-Report handoff date selection remains behavior-compatible while traversal, validation,
+    and fallback responsibilities are smaller and easier to test.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    integration mapping maintainability hardening for existing report-package behavior.
+- Follow-Up:
+  - Continue reducing B-ranked report request mapping, decision-summary missing-evidence,
+    target-generation, and source-readiness helpers with focused behavior-preservation tests.
+
+## LA-REV-782
+
+- Scope: Policy-pack source-readiness rule evaluation
+- Pattern: Required source-evidence evaluation should separate source-section indexing,
+  required-field normalization, advisory-review-only field exclusion, evidence collection, and
+  result projection.
+- Status: Hardened
+- Finding Class: Policy-pack source-readiness modularity and evidence-governance coverage
+- Summary: `required_source_result` mixed section indexing, required-field aliasing, advisory-only
+  field exclusion, policy-source-readiness handling, per-section collection, and blocked/pending
+  result projection in one helper. This path controls whether policy-pack rules block, pend, or
+  proceed based on source-owner evidence, so splitting these responsibilities makes source
+  evidence posture easier to audit without changing missing-section blocking, pending posture,
+  blocked posture, source-readiness aggregate handling, or advisory-only field behavior.
+- Evidence:
+  - Extracted helpers for source sections by key, required evidence field normalization,
+    advisory-review-only field exclusion, and final blocked/pending source-evidence projection.
+  - Preserved private/structured product flag mapping to
+    `core_product_eligibility_target_market_complexity`.
+  - Added direct coverage proving fee/conflict/product-document advisory-review fields do not
+    require source-readiness sections and the private/structured-product flag still routes to the
+    product eligibility/target-market/complexity section.
+  - Radon reports no B-ranked blocks in `src/core/policy_packs/evaluation_source_rules.py`.
+  - Focused policy source-rule tests passed with 7 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Policy-pack source-readiness gating remains behavior-compatible while source evidence routing
+    and result projection are independently inspectable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    policy-pack source-readiness maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked decision-summary missing-evidence, target-generation, and
+    report-package helpers with focused behavior-preservation tests.
+
+## LA-REV-781
+
+- Scope: Advisory decision-summary status rules
+- Pattern: Decision-summary status policy should be represented as explicit status, summary,
+  reason-code, and next-action maps with a small missing-evidence owner classifier.
+- Status: Hardened
+- Finding Class: Advisory decision policy modularity and next-action coverage
+- Summary: `decision_summary_status_rules.py` encoded status-to-summary, status-to-reason,
+  status-to-next-action, and insufficient-evidence owner routing through repeated conditional
+  chains. This path drives backend-owned proposal decision summaries, so making the policy tables
+  explicit makes client-context, mandate-context, risk-review, compliance-review, consent, and
+  remediation decisions easier to audit without changing the emitted decision status, primary
+  reason, primary summary, next action, or confidence semantics.
+- Evidence:
+  - Extracted explicit maps for gate-to-status, status-to-reason-code, status-to-summary, and
+    status-to-next-action rules.
+  - Extracted insufficient-evidence next-action routing for client-context and mandate-context
+    evidence gaps.
+  - Added direct focused coverage for client-context, mandate-context, and generic
+    insufficient-evidence next-action routing.
+  - Radon no longer reports `primary_decision_summary` or `recommended_decision_next_action` as
+    B-ranked; the module is bounded to one remaining `B/7` helper.
+  - Focused decision-summary tests passed with 15 tests, and `ruff`, `mypy`, format check, diff
+    check, and Radon checks passed.
+- Consequence:
+  - Advisory decision-summary policy remains behavior-compatible while the status, reason, summary,
+    and next-action tables are easier to inspect and extend.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    decision-policy maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked decision-summary missing-evidence and target-generation helpers with
+    focused behavior-preservation tests.
+
+## LA-REV-780
+
+- Scope: Advisory proposal simulation intent planning
+- Pattern: Simulation intent planning should separate input validation, security-intent grouping,
+  sell application, auto-funding, dependency linking, and final execution ordering.
+- Status: Hardened
+- Finding Class: Advisory simulation orchestration modularity and behavior-preservation coverage
+- Summary: `build_simulation_intent_plan` mixed proposal input validation, cash-flow mutation,
+  shelf-supported trade projection, sell/buy ordering, funding-plan application, dependency policy,
+  and final intent ordering in one orchestration helper. This path shapes the backend-owned
+  proposal simulation contract, so splitting the orchestration into named helpers makes the
+  execution plan easier to audit without changing cash-flow ordering, shelf rejection behavior,
+  funding posture, same-currency sell dependencies, or after-portfolio mutation semantics.
+- Evidence:
+  - Extracted validated input, security-intent grouping, sell-application, funding-intent,
+    dependency-linking, and final-ordering helpers.
+  - Preserved restricted-buy hard failure behavior, missing-shelf data-quality recording,
+    cash-flow-first ordering, SELL-before-BUY execution ordering, same-currency BUY dependency
+    linking, and after-state cash/position mutation.
+  - Added focused mixed-intent coverage proving cash flow, sell, and buy ordering plus
+    same-currency dependency and after-portfolio state.
+  - Radon no longer reports `build_simulation_intent_plan` as B-ranked; remaining helpers in
+    `src/core/advisory/simulation_intent_plan.py` are bounded at `B/7` and `B/6`.
+  - Focused simulation-intent-plan tests passed with 3 tests, and `ruff`, `mypy`, format check,
+    and Radon checks passed.
+- Consequence:
+  - Advisory proposal simulation intent planning remains behavior-compatible while orchestration
+    responsibilities are smaller, named, and easier to test independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    simulation-planning maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked proposal simulation, decision-summary, and source-readiness helpers
+    with focused behavior-preservation tests.
+
+## LA-REV-779
+
+- Scope: Proposal alternatives strategy-input projection
+- Pattern: Alternatives strategy input construction should separate market-data lookup, position
+  projection, cash projection, shelf projection, and trade-intent projection.
+- Status: Hardened
+- Finding Class: Advisory alternatives modularity and source-input mapping clarity
+- Summary: `build_strategy_inputs` mixed market-price indexing, position price/currency lookup,
+  cash balance mapping, shelf entry mapping, and proposed-trade quantity/notional projection in one
+  helper. This path shapes every alternatives strategy from source-backed proposal inputs, so
+  splitting the projection families makes strategy input behavior easier to audit without changing
+  ordering, missing-price handling, shelf asset-class propagation, cash balance mapping, or
+  quantity/notional trade semantics.
+- Evidence:
+  - Extracted helpers for price lookup, strategy positions, cash balances, shelf instruments, and
+    strategy trade intents.
+  - Preserved missing-price projection to `None`, cash balances keyed by currency, shelf status and
+    asset-class mapping, and mixed quantity/notional trade mapping.
+  - Extended focused projection coverage for shelf asset class, cash balance, quantity trade, and
+    notional trade behavior.
+  - Radon reports no B-ranked blocks in `src/core/advisory/alternatives_projection_inputs.py`.
+  - Focused alternatives projection tests passed with 9 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Alternatives strategy inputs remain behavior-compatible while each source-input projection
+    family is independently testable and easier to review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    alternatives strategy-input maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked alternatives enrichment and strategy-support helpers with focused
+    behavior-preservation tests.
+
+## LA-REV-778
+
+- Scope: Proposal alternatives request normalization
+- Pattern: Alternatives request normalization should separate request-shape guards, selection-mode
+  compatibility, deferred-objective rejection, normalized DTO projection, and missing-evidence
+  inference.
+- Status: Hardened
+- Finding Class: Advisory alternatives modularity and evidence-governance clarity
+- Summary: `normalize_alternatives_request` and `_infer_missing_evidence_reason_codes` mixed
+  enabled-state handling, objective presence checks, maximum-result limits, selection-mode rules,
+  deferred-objective rejection, normalized DTO construction, and conditional evidence inference in
+  compact helpers. These paths guard advisor-facing alternatives generation and selection writes, so
+  splitting the validation and evidence-inference responsibilities makes the contract easier to
+  audit without changing error codes, error details, normalized payload shape, or missing-evidence
+  reason codes.
+- Evidence:
+  - Extracted request validation helpers for required objectives, maximum alternatives,
+    selection-mode compatibility, supported objectives, normalized DTO projection, and
+    evidence-specific missing-reason inference.
+  - Preserved disabled-request handling, `ALTERNATIVES_*` error codes and details, selection-mode
+    behavior, deferred-objective rejection, and evidence requirement propagation.
+  - Added focused coverage proving declared restricted-product and mandate evidence suppress the
+    corresponding inferred missing-evidence reason codes.
+  - Radon reports no B-ranked blocks in `src/core/advisory/alternatives_normalizer.py`.
+  - Focused alternatives tests passed with 31 tests, and `ruff`, `mypy`, format check, diff check,
+    and Radon checks passed.
+- Consequence:
+  - Alternatives request normalization remains behavior-compatible while validation and
+    evidence-governance rules are independently testable and easier to review.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    alternatives request-normalization maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked alternatives strategy-input and enrichment helpers with focused
+    behavior-preservation tests.
+
+## LA-REV-777
+
+- Scope: Proposal alternatives ranking projection
+- Pattern: Alternatives ranking should separate candidate objective ordering, ready-alternative
+  comparison scope, per-alternative projection assignment, and ranked-selection marking.
+- Status: Hardened
+- Finding Class: Advisory alternatives modularity and ranking evidence clarity
+- Summary: `rank_alternatives` mixed objective-rank indexing, sorted ordering, ready-id collection,
+  comparison-summary construction, ranking-projection DTO construction, rank assignment, and
+  selected-alternative marking in one branch-heavy loop. This path shapes advisor-facing
+  alternatives comparison and selection state, so splitting the ranking responsibilities makes the
+  projection easier to review without changing ordering, comparator inputs, reason codes, or
+  selected-state semantics.
+- Evidence:
+  - Extracted candidate objective-order mapping, ready-alternative id collection, ready-status
+    checks, ranking-projection assignment, and ranked-selection marking helpers.
+  - Preserved comparator input shape, ranking-policy version, comparison summary construction,
+    ready/review ranking, rejected-alternative unranking, and selected-alternative behavior.
+  - Added focused coverage proving ranked-against ids include only ready ranked alternatives and
+    exclude the current alternative while rejected alternatives remain unranked.
+  - Radon reports no B-ranked blocks in `src/core/advisory/alternatives_ranking_projection.py`.
+  - Focused alternatives projection tests passed with 9 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Proposal alternatives ranking remains behavior-compatible while advisor-facing comparison
+    projection and selected-state rules are independently testable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    alternatives projection maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked alternatives normalization and strategy-input helpers with
+    focused behavior-preservation tests.
+
+## LA-REV-776
+
+- Scope: Tactical house-view candidate exclusion rules
+- Pattern: Candidate eligibility rules should separate mandate/type/alignment decisions from
+  source-backed exposure-threshold evidence checks.
+- Status: Hardened
+- Finding Class: Tactical house-view modularity and source-evidence threshold proof
+- Summary: `candidate_exclusion_reasons` mixed portfolio-type eligibility, discretionary mandate
+  checks, alignment-state checks, missing exposure evidence, and below-threshold exposure decisions
+  in one branch-heavy helper. The affected-cohort product must remain source-owned and auditable, so
+  isolating exposure-threshold decisions makes the exclusion policy easier to review without
+  changing emitted reason codes or cohort shape.
+- Evidence:
+  - Extracted `exposure_exclusion_reasons` for missing and below-minimum exposure decisions while
+    preserving existing exclusion reason codes and order.
+  - Added focused coverage proving a source-backed candidate below the configured minimum exposure
+    threshold is excluded with `TACTICAL_HOUSE_VIEW_EXPOSURE_BELOW_MINIMUM`.
+  - Radon reports no B-ranked blocks in `src/core/tactical_house_view_rules.py`.
+  - Focused tactical house-view tests passed with 7 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Tactical house-view affected-cohort behavior remains behavior-compatible while the exposure
+    evidence rule is independently testable and auditable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-product rule maintainability hardening for existing tactical house-view behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory source-product and projection helpers with focused
+    behavior-preservation tests.
+
+## LA-REV-775
+
+- Scope: Lotus AI advisory copilot request reason sanitization
+- Pattern: Copilot request reason sanitization should separate key filtering, value mapping, and
+  bounded list mapping while preserving raw-material exclusion.
+- Status: Hardened
+- Finding Class: AI request safety modularity and raw-material redaction
+- Summary: `safe_reason` and `safe_reason_list` mixed key normalization, raw key filtering, value
+  type dispatch, bounded string mapping, bounded list mapping, and request-size limiting in compact
+  branch-heavy helpers. These paths prevent raw prompts, provider responses, model responses, and
+  system instructions from leaving Advise in Lotus AI workflow requests, so splitting the sanitizer
+  boundaries makes the fail-closed behavior easier to review without changing the request contract.
+- Evidence:
+  - Extracted safe reason item and key helpers, and rewrote bounded list mapping as explicit
+    validation steps.
+  - Preserved raw reason-key exclusion, bounded string/list handling, scalar handling, reason item
+    limits, and existing request payload shape.
+  - Added focused coverage proving raw-material keys are removed after whitespace and case
+    normalization.
+  - Radon reports no B-ranked blocks in `src/integrations/lotus_ai/advisory_copilot_request.py`.
+  - Focused Lotus AI advisory copilot request tests passed with 5 tests, and `ruff`, `mypy`,
+    format check, diff check, and Radon checks passed.
+- Consequence:
+  - Advisory copilot workflow-pack requests remain behavior-compatible while raw-material
+    sanitization and bounded list handling are easier to audit independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal AI
+    request-safety maintainability hardening.
+- Follow-Up:
+  - Re-run the broad quality baseline and full repository gate before PR handoff.
+
+## LA-REV-774
+
+- Scope: Lotus AI output safety section mapping
+- Pattern: Review-required AI output mapping should separate list traversal from section shape,
+  text-bound, and review-state projection rules.
+- Status: Hardened
+- Finding Class: AI output safety modularity and fail-closed parsing
+- Summary: `map_review_required_sections` mixed payload type validation, section limit handling,
+  item shape checks, section-key/title/text bounds, invalid-section filtering, and review-state
+  projection in one helper. This path bounds Lotus AI structured output before advisory surfaces
+  consume it, so isolating section validation makes fail-closed behavior easier to audit without
+  changing the mapped output contract.
+- Evidence:
+  - Extracted review-required section validation and projection into a focused helper.
+  - Preserved non-list fail-closed behavior, invalid item filtering, section count limits, bounded
+    section key/title/text handling, and `REVIEW_REQUIRED` projection.
+  - Added focused coverage proving non-list section payloads fail closed to an empty tuple.
+  - Radon reports no B-ranked blocks in `src/integrations/lotus_ai/output_safety.py`.
+  - Focused Lotus AI output-safety tests passed with 3 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Lotus AI structured-output safety mapping remains behavior-compatible while each parsing and
+    projection boundary is independently reviewable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal AI
+    output-safety maintainability hardening.
+- Follow-Up:
+  - Continue reducing advisory-copilot request-safety helpers and other B-ranked integration
+    boundaries with focused fail-closed tests.
+
+## LA-REV-773
+
+- Scope: Suitability post-trade issue evaluation
+- Pattern: Post-trade suitability evaluators should separate trade scanning, shelf-status
+  decisions, product-complexity evidence checks, mandate-context checks, and issue construction.
+- Status: Hardened
+- Finding Class: Suitability modularity and private-banking governance evidence
+- Summary: `append_governance_trade_attempt_issues`, `append_product_complexity_issues`, and
+  `append_restricted_product_mandate_context_issues` mixed proposed-trade scanning, shelf lookup,
+  status-specific issue decisions, context availability checks, exposure-increase comparisons, and
+  issue DTO construction. These paths shape compliance, risk, client-context, and mandate-exception
+  gates, so splitting the rule families makes the private-banking suitability posture easier to
+  audit without changing emitted issue semantics.
+- Evidence:
+  - Extracted BUY instrument scanning, governance issue selection, SELL_ONLY issue construction,
+    RESTRICTED issue construction, governance weight details, product-complexity evidence checks,
+    exposure-increase checks, product-complexity issue construction, mandate-context checks, and
+    restricted-product mandate issue selection.
+  - Preserved SELL_ONLY compliance review, RESTRICTED risk/compliance severity based on
+    `allow_restricted`, client product-complexity evidence behavior, mandate-context suppression
+    when context is available, and deterministic issue-key construction.
+  - Added focused coverage proving a restricted BUY with missing mandate context emits
+    `MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE` with mandate-exception approval implication.
+  - Radon reports no B-ranked blocks in `src/core/common/suitability_post_trade_issues.py`.
+  - Focused suitability scanner and governance tests passed with 12 tests, and `ruff`, `mypy`,
+    format check, diff check, and Radon checks passed.
+- Consequence:
+  - Suitability post-trade governance behavior remains behavior-compatible while compliance,
+    risk, client-context, and mandate-context decisions are independently reviewable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    suitability maintainability hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing remaining Lotus AI output-safety and advisory-copilot request-safety
+    helpers with focused fail-closed tests.
+
+## LA-REV-772
+
+- Scope: Advisory copilot run pagination cursor decoding
+- Pattern: Cursor decoding should isolate base64/JSON parsing, payload shape validation, timestamp
+  parsing, and run-id normalization while preserving bounded API error codes.
+- Status: Hardened
+- Finding Class: Advisory copilot pagination modularity and cursor safety
+- Summary: `decode_copilot_run_cursor` mixed nullable cursor handling, base64 padding, URL-safe
+  decode, UTF-8 decode, JSON parsing, payload shape checks, timestamp parsing, timezone
+  enforcement, run-id normalization, and final cursor construction in one helper. This path
+  controls keyset pagination for advisory copilot run history, so splitting the parse and
+  validation boundaries makes malformed cursor behavior easier to audit without changing the public
+  cursor contract.
+- Evidence:
+  - Extracted cursor JSON decoding, payload decoding, payload value validation, timestamp parsing,
+    and run-id normalization helpers.
+  - Preserved bounded `COPILOT_RUN_CURSOR_INVALID` failures for invalid base64, invalid JSON,
+    non-object payloads, missing fields, non-string fields, naive timestamps, and blank run ids.
+  - Added focused coverage proving padded URL-safe base64 cursors decode alongside existing
+    unpadded cursor behavior.
+  - Radon reports no B-ranked blocks in `src/core/advisory_copilot/pagination.py`.
+  - Focused advisory copilot pagination tests passed with 6 tests, and `ruff`, `mypy`, format
+    check, diff check, and Radon checks passed.
+- Consequence:
+  - Advisory copilot run pagination remains behavior-compatible while each cursor validation
+    boundary is independently reviewable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    pagination maintainability hardening for existing advisory copilot behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked suitability and Lotus AI output-safety helpers with
+    focused behavior-preserving tests.
+
+## LA-REV-771
+
+- Scope: Advisory copilot guardrail evaluation
+- Pattern: Copilot guardrail evaluation should separate intent, source-evidence, instruction, and
+  output marker decisions while preserving stable reason ordering and deduplication.
+- Status: Hardened
+- Finding Class: Advisory copilot safety modularity and reason-code stability
+- Summary: `evaluate_copilot_guardrails` mixed forbidden-intent mapping, missing source-evidence
+  checks, prompt-injection marker checks, client-ready output marker checks, sensitive-output marker
+  checks, and reason-code deduplication in one branch-heavy function. This path blocks autonomous
+  advice, order/trade action, policy approval, client-ready publication, prompt-injection, and
+  sensitive-output leakage, so isolating the rule families makes the safety posture easier to
+  review without changing emitted reason codes.
+- Evidence:
+  - Extracted intent, source-evidence, instruction, output, and marker-matching helpers while
+    preserving the public `evaluate_copilot_guardrails` contract.
+  - Added focused coverage proving repeated unsafe intents and repeated unsafe output markers
+    deduplicate to stable reason-code order.
+  - Radon reports no B-ranked blocks in `src/core/advisory_copilot/guardrails.py`.
+  - Focused advisory copilot foundation tests passed with 35 tests, and `ruff`, `mypy`, format
+    check, diff check, and Radon checks passed.
+- Consequence:
+  - Advisory copilot safety evaluation remains behavior-compatible while guardrail rule families
+    are independently reviewable and easier to extend.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    guardrail modularity hardening for existing advisory copilot behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked advisory copilot helpers, especially pagination and
+    persistence replay rules, with behavior-preserving tests.
+
+## LA-REV-770
+
+- Scope: Lotus AI advisory copilot draft adapter
+- Pattern: Advisory copilot draft generation should separate preflight guardrails, workflow-pack
+  execution, response validation, completed-output mapping, and lineage projection.
+- Status: Hardened
+- Finding Class: AI integration adapter modularity and fail-closed parsing
+- Summary: `generate_advisory_copilot_draft_with_lotus_ai` mixed preflight safety rejection, base
+  URL and timeout resolution, workflow-pack request construction, HTTP execution, JSON parsing,
+  non-success fallback mapping, execution-status validation, output-section validation, output
+  guardrails, lineage extraction, and final draft projection. This path bridges Advise evidence
+  packets to Lotus AI, so isolating each boundary makes fallback and guardrail behavior easier to
+  audit without changing the adapter contract.
+- Evidence:
+  - Extracted preflight guardrail rejection, workflow-pack execution, workflow response mapping,
+    and completed-output draft projection helpers.
+  - Preserved unavailable fallback behavior for missing Lotus AI configuration, transport errors,
+    non-200 workflow responses, non-completed executions, invalid output sections, output
+    guardrail rejections, workflow run lineage, model version lineage, and proposal version lineage.
+  - Added focused coverage proving malformed Lotus AI JSON fails closed to
+    `LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE`.
+  - Radon reports no B-ranked blocks in `src/integrations/lotus_ai/advisory_copilot.py`; the
+    previously checked source-hotspot list no longer reports B-ranked blocks.
+  - Focused Lotus AI advisory copilot adapter tests passed with 15 tests, and `ruff`, `mypy`,
+    format check, diff check, and Radon checks passed.
+- Consequence:
+  - Advisory copilot AI draft generation remains behavior-compatible while integration, parsing,
+    safety, and projection decisions are independently reviewable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal AI
+    adapter maintainability and fail-closed boundary hardening.
+- Follow-Up:
+  - Re-run the broad quality baseline and full repository gate before PR handoff.
+
+## LA-REV-769
+
+- Scope: Bank-demo commercial material validation
+- Pattern: Commercial material pack invariants and repository source-reference checks should be
+  isolated from Pydantic model orchestration.
+- Status: Hardened
+- Finding Class: Bank-demo proof material modularity and source-reference validation
+- Summary: `CommercialMaterialPack._materials_must_map_to_required_claims` mixed required-versus
+  blocked claim validation, material-id uniqueness, per-material mapping checks, blocked-claim
+  exclusion checks, and aggregate required-claim coverage in one model validator. The same module
+  also embedded repository-local source-reference location and path-safety rules in branch-heavy
+  helpers. Splitting those invariants makes commercial proof-material validation easier to review
+  without changing the governed material-pack contract.
+- Evidence:
+  - Extracted pack invariant helpers for distinct required/blocked claims, unique material ids,
+    per-material mapping validation, blocked-claim exclusion, and aggregate required-claim
+    coverage.
+  - Extracted repository source-reference helpers for non-local location detection, absolute-path
+    detection, path segmentation, parent-directory rejection, and sensitive path-part rejection.
+  - Added focused coverage for absolute repository source refs and parent-directory traversal while
+    preserving existing query-string, sensitive-copy, duplicate, blocked-claim, and claim-mapping
+    behavior.
+  - Radon reports no B-ranked blocks in `src/core/bank_demo_proof/commercial_materials.py`.
+  - Focused commercial material tests passed with 8 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Bank-demo commercial material validation remains behavior-compatible while claim-governance and
+    source-reference safety rules are easier to audit independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    validation maintainability hardening for existing bank-demo proof material behavior.
+- Follow-Up:
+  - Continue reducing the remaining bank-demo proof and AI copilot B-ranked hotspots with focused
+    behavior-preserving tests.
+
+## LA-REV-768
+
+- Scope: Advisor cockpit acknowledgement orchestration
+- Pattern: Acknowledgement orchestration should separate idempotency validation, request hashing,
+  replay resolution, record construction, audit metadata, and persistence conflict mapping.
+- Status: Hardened
+- Finding Class: Advisor cockpit acknowledgement modularity and idempotency correctness
+- Summary: `acknowledge_cockpit_action` mixed idempotency key normalization, stale-version
+  validation, canonical request hashing, replay conflict handling, missing replay-record handling,
+  acknowledgement persistence record construction, idempotency persistence record construction, and
+  response projection in one helper. This path controls replay-safe advisor acknowledgement
+  behavior, so extracting the branches makes idempotency and audit behavior easier to review without
+  changing the acknowledgement contract.
+- Evidence:
+  - Extracted acknowledgement version validation, request hash construction, replay response
+    resolution, acknowledgement record construction, audit reason metadata, and persistence save
+    helpers.
+  - Preserved stale-version validation, idempotency conflict behavior, replay audit behavior,
+    bounded acknowledgement ids, normalized acknowledgement persistence metadata, owner/status audit
+    metadata, and repository `ValueError` conflict mapping.
+  - Added focused coverage proving replayed idempotency records require the saved acknowledgement
+    record and raise `ADVISOR_COCKPIT_ACKNOWLEDGEMENT_NOT_FOUND` if it is missing.
+  - Radon reports no B-ranked blocks in `src/core/advisor_cockpit/service_acknowledgement.py`;
+    the advisor cockpit package has no remaining B-ranked blocks.
+  - Focused advisor cockpit service tests passed with 19 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit acknowledgement remains behavior-compatible while replay and persistence
+    branches are independently reviewable and covered by regression tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    acknowledgement maintainability hardening.
+- Follow-Up:
+  - Continue broader source-only hotspot reduction outside advisor cockpit.
+
+## LA-REV-767
+
+- Scope: Advisor cockpit approval dependency action construction
+- Pattern: Approval dependency construction should isolate approval-type and approval-status
+  decisions from the generic source-backed action DTO assembly.
+- Status: Hardened
+- Finding Class: Advisor cockpit action-construction modularity and approval dependency correctness
+- Summary: `build_approval_dependency_action` mixed approval type family selection, owner-role
+  routing, pending/rejected reason codes, blocked/critical status selection, unsupported capability
+  selection, evidence refs, source gaps, and generic action construction. This path shapes risk,
+  compliance, and client-consent dependency actions, so extracting status/type decisions makes the
+  supervisory and external-communication boundaries easier to review without changing emitted
+  action semantics.
+- Evidence:
+  - Extracted approval action family, status, priority, reason-code, and unsupported-capability
+    helpers.
+  - Preserved compliance and risk supervisory ownership, client-consent advisor ownership,
+    pending-review behavior, rejected blocked/critical behavior, client-ready blocking reason
+    codes, and external communication capability boundaries.
+  - Added focused coverage proving rejected risk approvals emit a `BLOCKED`/`CRITICAL` investment
+    desk action with rejected reason code and supervisory capability blocks.
+  - Radon no longer reports `build_approval_dependency_action` as B-ranked; the remaining advisor
+    cockpit B-ranked helper is acknowledgement orchestration.
+  - Focused advisor cockpit action-factory tests passed with 19 tests, and `ruff`, `mypy`, format
+    check, diff check, and Radon checks passed.
+- Consequence:
+  - Approval dependency action construction remains behavior-compatible while approval status/type
+    rules are now reviewable independently from DTO assembly.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    action-construction maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit acknowledgement orchestration helper.
+
+## LA-REV-766
+
+- Scope: Advisor cockpit SLA age-band rule classification
+- Pattern: SLA due-date normalization should be separated from threshold classification so the
+  due-soon, due-now, overdue, and critical-overdue boundaries are explicit and independently
+  testable.
+- Status: Hardened
+- Finding Class: Advisor cockpit rule modularity and SLA boundary correctness
+- Summary: `derive_cockpit_sla_age_band` mixed missing-value handling, UTC parsing, current-time
+  normalization, delta calculation, and threshold classification in one branch-heavy helper. This
+  rule affects cockpit priority and queue aging semantics, so splitting delta classification makes
+  the exact boundary behavior easier to review without changing the public SLA band contract.
+- Evidence:
+  - Extracted SLA delta classification into a focused helper while preserving missing due-date
+    behavior, UTC normalization, `Z` timestamp parsing, due-soon threshold, due-now grace window,
+    overdue band, and critical-overdue threshold.
+  - Added focused coverage for exact 24-hour due-soon, zero-delta due-now, one-hour due-now,
+    overdue, 24-hour critical-overdue, `Z` timestamp, and naive-UTC normalization behavior.
+  - Radon no longer reports `derive_cockpit_sla_age_band` as B-ranked; remaining advisor cockpit
+    B-ranked helpers are approval dependency construction and acknowledgement orchestration.
+  - Focused advisor cockpit rules tests passed with 7 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit SLA aging remains behavior-compatible while threshold ownership and regression
+    coverage are clearer for future queue-aging changes.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal SLA
+    rule maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked approval-action and acknowledgement
+    helpers.
+
+## LA-REV-765
+
+- Scope: Advisor cockpit role-based action visibility projection
+- Pattern: Caller-role visibility should be expressed as an explicit projection contract rather
+  than as a branching ladder embedded in the service projection helper.
+- Status: Hardened
+- Finding Class: Advisor cockpit role-visibility modularity and reviewability
+- Summary: `visible_owner_roles_for_role` encoded privileged caller roles, operations queue
+  expansion, legacy DPM-owner compatibility, CRM co-ownership, and unknown-role fallback in a
+  branch-heavy helper. This projection controls which cockpit actions each non-advisor queue can
+  see, so converting it to named role-visibility tables makes the access-shaping behavior easier to
+  review and extend without changing emitted action visibility.
+- Evidence:
+  - Extracted privileged all-visible caller roles and mapped owner-role visibility into named
+    constants.
+  - Preserved advisor and desk-head full visibility, compliance/investment/operations queue
+    scoping, DPM-owner compatibility with portfolio-manager actions, CRM owner visibility of
+    advisor-owned actions, unknown-role self-scoping, and `SYSTEM` action visibility.
+  - Added focused coverage for the role-visibility contract and the `SYSTEM` action exception for
+    scoped caller roles.
+  - Radon no longer reports `visible_owner_roles_for_role` as B-ranked; remaining advisor cockpit
+    B-ranked helpers are approval dependency construction, SLA band derivation, and acknowledgement
+    orchestration.
+  - Focused advisor cockpit service tests passed with 18 tests, and `ruff`, `mypy`, format check,
+    diff check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit role projection remains behavior-compatible while the queue visibility contract
+    is now explicit data rather than nested control flow.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    role-projection maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked approval-action, SLA, and
+    acknowledgement helpers.
+
+## LA-REV-764
+
+- Scope: Advisor cockpit generic source-backed action construction
+- Pattern: Generic cockpit action construction should separate source-context validation,
+  stable action id derivation, bounded source refs, and fallback lineage selection.
+- Status: Hardened
+- Finding Class: Advisor cockpit action-construction modularity and source lineage correctness
+- Summary: `build_source_backed_action` mixed required-context validation, action id creation,
+  source-reference bounding, duplicate reason/unsupported-capability normalization, optional
+  timestamp/correlation bounding, and fallback lineage creation in one helper. This generic builder
+  is used by every source-backed cockpit action family, so extracting validation and lineage
+  decisions reduces review risk without changing emitted action shape.
+- Evidence:
+  - Extracted source-action context validation, context-presence predicate, action-item id, and
+    source-lineage helpers.
+  - Preserved missing-reason and missing-context validation errors, stable action-item ids, bounded
+    source refs, duplicate reason-code and unsupported-capability de-duplication, optional timestamp
+    and correlation bounding, and fallback lineage behavior.
+  - Added focused coverage proving explicit lineage refs are preserved instead of being replaced by
+    fallback lineage.
+  - Radon reports no B-ranked blocks in `src/core/advisor_cockpit/action_builder.py`.
+  - Focused advisor cockpit action-factory tests passed with 18 tests, and `ruff`, `mypy`, format
+    check, and Radon checks passed.
+- Consequence:
+  - Source-backed cockpit action construction remains behavior-compatible while validation and
+    lineage fallback rules can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    action-construction maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked approval-action, SLA, service
+    projection, and acknowledgement helpers.
+
+## LA-REV-763
+
+- Scope: Advisor cockpit report/render/archive readiness projection
+- Pattern: Report readiness projection should separate report-package evidence gaps,
+  archive-reference evidence gaps, and shared action-source construction.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and report evidence correctness
+- Summary: `_report_readiness_source` mixed memo readiness filtering, missing report-package
+  handling, missing archive-reference handling, owner-role assignment, and action-source DTO
+  construction in one helper. This projection feeds reporting-owner and archive-owner cockpit
+  queues, so splitting the evidence-gap branches makes report/render/archive supportability easier
+  to audit without changing action semantics.
+- Evidence:
+  - Extracted report-package missing, archive-reference missing, and shared readiness action-source
+    construction helpers.
+  - Preserved READY-only projection, missing report-package readiness ids, archive-reference
+    readiness ids, owner roles, summaries, materiality ranks, memo lineage, content hash, and
+    proposal portfolio lookup behavior.
+  - Added focused coverage proving ready memos with report package events but no archive refs emit
+    `ARCHIVE_REF_MISSING` for `ARCHIVE_OWNER`.
+  - Radon reports no B-ranked blocks in
+    `src/core/advisor_cockpit/source_projection_reporting.py`.
+  - Focused advisor cockpit source-read-model tests passed with 15 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit report readiness projection remains behavior-compatible while report-package
+    and archive-reference evidence gaps can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-projection maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked action-building, SLA, service
+    projection, and acknowledgement helpers.
+
+## LA-REV-762
+
+- Scope: Advisor cockpit tactical house-view source loading
+- Pattern: Tactical house-view source loading should separate affected-portfolio filtering,
+  impact-code selection, and cockpit action-source construction.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-loading modularity and tactical house-view evidence
+  correctness
+- Summary: `_house_view_impacts` mixed cohort traversal, portfolio-scope filtering, inclusion
+  reason fallback, impact-code selection, and action-source DTO construction in one helper. This
+  path projects source-backed tactical house-view cohorts into portfolio-manager cockpit queues, so
+  splitting those decisions makes source evidence handling easier to review without changing
+  action semantics.
+- Evidence:
+  - Extracted matching affected-portfolio selection, impact-source construction, and impact-code
+    selection helpers.
+  - Preserved portfolio filtering, default house-view impact-code preference, cockpit correlation
+    override behavior, source cohort lineage, content hash, timestamp, and materiality rank.
+  - Added focused coverage proving non-default house-view inclusion reasons are projected as the
+    cockpit impact code when the default affected-portfolio reason is absent.
+  - Radon reports no B-ranked blocks in
+    `src/core/advisor_cockpit/service_source_loader.py`.
+  - Focused advisor cockpit service tests passed with 16 tests, and `ruff`, `mypy`, format check,
+    and Radon checks passed.
+- Consequence:
+  - Advisor cockpit house-view source loading remains behavior-compatible while source filtering
+    and impact-code fallback behavior can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-loading maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked action-building, rules, service
+    projection, acknowledgement, and report-readiness helpers.
+
+## LA-REV-761
+
+- Scope: Advisor cockpit execution status source projection
+- Pattern: Execution status projection should separate attention-event selection, execution
+  reference derivation, materiality ranking, and action-source DTO construction.
+- Status: Hardened
+- Finding Class: Advisor cockpit lifecycle source-projection modularity and execution evidence
+  correctness
+- Summary: `_execution_status_source` mixed proposal presence checks, latest execution event
+  selection, terminal-status suppression, execution reference fallback, materiality ranking, and
+  source DTO construction. This projection feeds source-backed execution attention actions while
+  preserving the downstream execution system-of-record boundary, so splitting those decisions makes
+  the lifecycle evidence easier to review without changing action semantics.
+- Evidence:
+  - Extracted attention-event selection, execution reference, materiality rank, and source DTO
+    construction helpers.
+  - Preserved missing-proposal suppression, executed-event suppression, non-execution-event
+    suppression, downstream execution SOR language, and materiality ranking.
+  - Added focused coverage proving execution status references use `external_execution_id` before
+    falling back to the workflow event id when no request id is present.
+  - Radon reports no B-ranked blocks in
+    `src/core/advisor_cockpit/source_projection_execution.py`.
+  - Focused advisor cockpit source-read-model tests passed with 14 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit execution status projection remains behavior-compatible while source event
+    selection and reference fallback behavior can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-projection maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked service, action-building, and reporting
+    helpers with the same source-backed evidence posture.
+
+## LA-REV-760
+
+- Scope: Advisor cockpit approval dependency source projection
+- Pattern: Proposal approval dependency projection should separate state matching, completion
+  suppression, rejection timestamp selection, and source DTO construction.
+- Status: Hardened
+- Finding Class: Advisor cockpit source-projection modularity and lifecycle evidence correctness
+- Summary: `_approval_dependency_source` mixed proposal-state approval-type lookup, approval record
+  filtering, completed-approval suppression, latest rejection selection, and action-source DTO
+  construction in one helper. This projection feeds advisor cockpit approval and client-consent
+  actions, so splitting the decision points makes supervisory evidence behavior easier to review
+  without changing source-backed action output.
+- Evidence:
+  - Extracted matching-approval, completed-approval, and pending-dependency source helpers.
+  - Preserved completed approval suppression and pending/rejected dependency construction.
+  - Added focused coverage proving rejected approval dependencies use the latest rejected approval
+    timestamp.
+  - Radon reports no B-ranked blocks in
+    `src/core/advisor_cockpit/source_projection_proposal.py`.
+  - Focused advisor cockpit source-read-model tests passed with 13 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Advisor cockpit approval dependency projection remains behavior-compatible while lifecycle
+    evidence selection and action-source construction can be reviewed independently.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    source-projection maintainability hardening.
+- Follow-Up:
+  - Continue through the remaining advisor cockpit B-ranked source projection and action-building
+    helpers with the same source-backed evidence posture.
+
+## LA-REV-759
+
+- Scope: Suitability governance holding issue selection
+- Pattern: Governance holding checks should separate presence-based restrictions from
+  increase-based restrictions before constructing suitability issues.
+- Status: Hardened
+- Finding Class: Domain policy modularity and governance diagnostics maintainability
+- Summary: `_governance_holding_issue` mixed banned/suspended presence checks with sell-only and
+  restricted increase checks in one branch chain. These rules decide compliance or risk review
+  posture for governed product holdings, so separating presence selection from increase selection
+  makes the status policy easier to audit while preserving issue construction.
+- Evidence:
+  - Extracted presence-governance and increase-governance selectors.
+  - Preserved banned, suspended, sell-only increase, and restricted increase issue ids, keys,
+    details, severities, summaries, remediation, and approval implications.
+  - Radon reports no B-ranked blocks in `src/core/common/suitability_state_issues.py`.
+  - Focused suitability scanner and governance tests passed with 11 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Suitability governance status selection remains behavior-compatible while presence and
+    increase policy decisions can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal domain policy maintainability hardening.
+- Follow-Up:
+  - Move to another source-only hotspot with broader domain or integration payoff; this module has
+    no remaining B-ranked blocks.
+
+## LA-REV-758
+
+- Scope: Suitability issuer and liquidity state issue aggregation
+- Pattern: Suitability state checks should separate enrichment data-quality diagnostics, exposure
+  bucket aggregation, and issue construction from the public evaluator orchestration.
+- Status: Hardened
+- Finding Class: Domain policy modularity and suitability diagnostics maintainability
+- Summary: `evaluate_issuer_issues` and `evaluate_liquidity_issues` both mixed target-weight
+  traversal, shelf enrichment lookup, missing enrichment diagnostics, exposure aggregation, cap
+  comparison, and issue construction. These rules drive private-banking suitability gate decisions,
+  so separating data-quality diagnostics from issuer/liquidity exposure issue construction makes
+  the policy easier to audit without changing issue output.
+- Evidence:
+  - Extracted shared enriched-weight aggregation for issuer and liquidity buckets.
+  - Extracted missing shelf, missing enrichment, issuer exposure, and liquidity exposure issue
+    builders.
+  - Preserved missing shelf, missing issuer, missing liquidity tier, issuer cap, and liquidity cap
+    issue keys, summaries, details, severities, and approval implications.
+  - Radon no longer reports `evaluate_issuer_issues` or `evaluate_liquidity_issues` as B-ranked.
+  - Focused suitability scanner and governance tests passed with 11 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - Suitability state issue aggregation remains behavior-compatible while enrichment diagnostics
+    and exposure issue construction can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal domain policy maintainability hardening.
+- Follow-Up:
+  - Continue reducing the remaining governance holding selector or move to another source-only
+    hotspot with stronger cross-workflow payoff.
+
+## LA-REV-757
+
+- Scope: OpenAPI response media traversal helpers
+- Pattern: Generated response-media traversal should separate dictionary-value filtering,
+  path-operation collection, and response-content media discovery from example repair.
+- Status: Hardened
+- Finding Class: API contract quality and traversal maintainability
+- Summary: After the OpenAPI example-policy refactors, the enrichment module still had two
+  B-ranked traversal iterators that mixed dictionary filtering, path-method traversal, response
+  content discovery, and media entry collection. These helpers decide which generated response
+  examples are repaired, so making traversal primitives explicit reduces review cost without
+  changing OpenAPI contract output.
+- Evidence:
+  - Extracted reusable dictionary-value filtering and response-content media discovery helpers.
+  - Preserved ignored non-dictionary path entries, ignored non-operation method entries, named
+    response example repair, and single media example repair behavior.
+  - Radon reports no B-ranked blocks in `src/api/openapi_enrichment.py`.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - OpenAPI enrichment has no remaining B-ranked helpers, and response-media traversal remains
+    behavior-compatible with the generated contract example repair path.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Move to the next source-only hotspot with stronger domain maintainability payoff rather than
+    continuing to micro-optimize already A-ranked OpenAPI helpers.
+
+## LA-REV-756
+
+- Scope: OpenAPI object and reference example inference
+- Pattern: Generated object/reference/string example inference should separate object property
+  selection, referenced-model resolution, and semantic string marker policy from example assembly.
+- Status: Hardened
+- Finding Class: API contract quality and example-policy maintainability
+- Summary: The remaining OpenAPI example inference helpers still mixed required-property
+  selection, fallback property sampling, referenced-model lookup, object example assembly, and
+  semantic string examples in branch-heavy helpers. These paths affect generated schema and
+  response examples across the API contract, so isolating selection and policy decisions reduces
+  future drift risk while preserving generated examples.
+- Evidence:
+  - Extracted object example property selection and property-example assembly helpers.
+  - Extracted referenced-model resolution before object or scalar referenced example inference.
+  - Replaced semantic string branch chains with a named marker policy table.
+  - Preserved referenced object, composed object, enum, date, timestamp, status, currency, and
+    fallback string examples.
+  - Radon no longer reports `_example_for_object_schema`, `_infer_ref_example`, or
+    `_string_semantic_key_example` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, `mypy`,
+    format check, and Radon checks passed.
+- Consequence:
+  - OpenAPI object/reference/string example policy remains behavior-compatible while object
+    selection, referenced schema lookup, and semantic string examples are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Consider whether the two remaining OpenAPI B/6 traversal iterators are worth reducing, or move
+    to a higher-risk source-only hotspot where the maintainability payoff is larger.
+
+## LA-REV-755
+
+- Scope: OpenAPI scalar example inference
+- Pattern: Generated scalar example inference should keep numeric, bounded-integer, and typed
+  schema dispatch policy in named helpers and policy tables rather than branch chains.
+- Status: Hardened
+- Finding Class: API contract quality and example-policy maintainability
+- Summary: The OpenAPI scalar example inference path still encoded numeric field examples,
+  bounded integer examples, keyed integer examples, and schema-type dispatch in branch-heavy
+  helpers. These policies govern generated examples across API contracts, so moving them behind
+  explicit helper boundaries makes the example policy easier to review and extend without changing
+  generated contract behavior.
+- Evidence:
+  - Extracted bounded-integer and keyed-integer example helpers.
+  - Replaced numeric example branch chains with a named marker policy table.
+  - Replaced schema-type dispatch branch chains with typed example builder helpers.
+  - Preserved existing OpenAPI examples for bounded integer, numeric string, market price,
+    quantity, market value, generic ratio, string, boolean, array, and object schema fields.
+  - Radon no longer reports `_infer_integer_example`, `_infer_number_example`, or
+    `_infer_typed_example` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, `mypy`,
+    monetary float guard, and Radon checks passed.
+- Consequence:
+  - OpenAPI scalar example policy remains behavior-compatible while numeric and typed dispatch
+    decisions are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Continue reducing the remaining OpenAPI object/ref/string inference helpers only where helper
+    boundaries clarify generated contract semantics.
+
+## LA-REV-754
+
+- Scope: OpenAPI response media example traversal
+- Pattern: Generated response-media example repair should separate path-operation traversal,
+  response content discovery, named media example repair, and single media example repair.
+- Status: Hardened
+- Finding Class: API contract quality and response-example maintainability
+- Summary: The response media example repair path still mixed nested path, operation, response,
+  content, named-example, and single-example handling in a compact set of traversal helpers. These
+  helpers repair generated response examples for the OpenAPI contract, so separating discovery from
+  repair keeps media example behavior easier to audit while preserving the published examples.
+- Evidence:
+  - Extracted operation traversal, response media discovery, named media example repair, and single
+    media example repair helpers.
+  - Preserved named response examples and single media examples against the same referenced schema
+    repair path.
+  - Radon no longer reports `_ensure_media_example_documentation`,
+    `_repair_response_media_examples`, or `_repair_media_examples` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, format
+    check, and Radon checks passed.
+- Consequence:
+  - OpenAPI response-media example repair remains behavior-compatible while traversal and repair
+    policy are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Continue reducing remaining OpenAPI example-inference helpers only where the resulting helper
+    boundaries clarify domain example policy rather than adding churn.
+
+## LA-REV-753
+
+- Scope: OpenAPI schema and parameter documentation enrichment
+- Pattern: Generated OpenAPI documentation enrichment should isolate component-schema discovery,
+  model example repair, property description/example enrichment, and idempotency-header parameter
+  policy application behind focused helpers.
+- Status: Hardened
+- Finding Class: API contract quality and documentation-enrichment maintainability
+- Summary: `_ensure_schema_documentation` and `_ensure_operation_parameter_documentation` still
+  mixed traversal, type filtering, contract example repair, description inference, example
+  inference, and idempotency-header bounds in inline loops. These helpers affect generated API
+  contracts across all routes, so separating traversal from policy application makes the
+  enrichment behavior easier to review without changing published schema semantics.
+- Evidence:
+  - Extracted component-schema discovery, model-schema iteration, model example repair, model
+    property documentation, property description, property example, idempotency-header detection,
+    idempotency-header max-length binding, and idempotency-header description helpers.
+  - Preserved existing schema examples, repaired nested examples, inferred field descriptions,
+    operation defaults, idempotency header bounds, and response media example behavior.
+  - Radon no longer reports `_ensure_schema_documentation` or
+    `_ensure_operation_parameter_documentation` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, format
+    check, and Radon checks passed.
+- Consequence:
+  - OpenAPI documentation enrichment remains behavior-compatible while traversal and contract
+    policy decisions can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal generated API contract quality hardening.
+- Follow-Up:
+  - Continue reducing the remaining OpenAPI enrichment media traversal and example-inference
+    helpers where the refactor produces clearer policy boundaries.
+
+## LA-REV-752
+
+- Scope: OpenAPI example repair schema resolution
+- Pattern: Generated OpenAPI example repair should separate `$ref`/composite schema resolution,
+  structured array/object repair, scalar enum/type checks, and integer bound checks so contract
+  examples remain explainable without a large dispatch helper.
+- Status: Hardened
+- Finding Class: OpenAPI quality and schema-example maintainability
+- Summary: The OpenAPI enrichment example-repair path still had B-ranked helpers that mixed
+  reference/composite schema traversal, array/object dispatch, enum validation, scalar type
+  validation, and integer maximum enforcement. These helpers govern generated API examples for
+  route responses and schemas, so preserving example output while isolating repair decisions
+  reduces future contract drift risk.
+- Evidence:
+  - Extracted focused helpers for `$ref` schema resolution, non-null composite schema selection,
+    structured array/object example repair, enum validation, scalar type validation, and integer
+    maximum checks.
+  - Preserved nested array, object-property, additional-property, enum, numeric-string, and media
+    response example repair behavior.
+  - Radon no longer reports `_repair_scalar_example`, `_resolved_example_schema`, or
+    `_repair_example_against_schema` as B-ranked.
+  - Focused OpenAPI enrichment API and contract tests passed with 5 tests, and `ruff`, format
+    check, mypy, and Radon checks passed.
+- Consequence:
+  - OpenAPI example repair remains behavior-compatible while schema resolution, structured repair,
+    and scalar validation paths can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal OpenAPI quality hardening for existing generated API contracts.
+- Follow-Up:
+  - Continue reducing the remaining OpenAPI enrichment operation/schema/media traversal and
+    inference helpers while preserving generated contract examples and Spectral zero-finding
+    posture.
+
+## LA-REV-751
+
+- Scope: Proposal reporting service request orchestration
+- Pattern: Report-request orchestration should separate immutable version selection, optional
+  reviewed-narrative package construction, downstream request assembly, response normalization,
+  and advisory workflow recording.
+- Status: Hardened
+- Finding Class: API service modularity and delivery-boundary maintainability
+- Summary: `request_proposal_report` mixed proposal/version lookup, version-range validation,
+  execution-status projection, optional reviewed-narrative replay packaging, lotus-report request
+  payload construction, response id normalization, explanation enrichment, and workflow-event
+  recording in one B-ranked service helper. This endpoint is the advisory/reporting integration
+  boundary, so preserving behavior while making each step inspectable reduces future drift risk.
+- Evidence:
+  - Extracted focused helpers for related-version resolution, replay-evidence hashing,
+    reviewed-narrative package construction, execution-status payload projection, report-request
+    assembly, response normalization, and report-request recording.
+  - Preserved generated report request id ownership, related-version validation, execution summary
+    inclusion, reviewed-narrative package behavior, and workflow-event recording.
+  - Radon now reports no B-ranked blocks in `src/api/services/proposal_reporting_service.py`.
+  - Focused proposal lifecycle report-request tests passed with 88 tests, import-boundary test
+    passed, and `ruff`, format check, mypy, and Radon checks passed.
+- Consequence:
+  - The advisory-to-lotus-report boundary remains behavior-compatible while report payload
+    construction, narrative packaging, and persistence side effects are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API service modularity hardening for existing report-request behavior.
+- Follow-Up:
+  - Continue reducing the remaining OpenAPI enrichment B-ranked helpers while preserving generated
+    contract examples and schema-documentation semantics.
+
+## LA-REV-750
+
+- Scope: API observability request-id normalization
+- Pattern: Request-id normalization should reuse the governed bounded identifier policy instead
+  of maintaining a separate inline length/control-character implementation.
+- Status: Hardened
+- Finding Class: Observability security posture and identifier normalization maintainability
+- Summary: `_normalize_request_id` duplicated trimming, maximum-length, blank-value, and
+  control-character checks that already exist in the shared correlation-id normalization policy.
+  The duplicated inline checks kept a B-ranked observability helper and increased drift risk
+  between request and correlation identifiers at the API boundary.
+- Evidence:
+  - Reused `normalize_optional_correlation_id` for request-id normalization while preserving the
+    generated `req_*` fallback behavior.
+  - Added focused tests for trimmed request IDs plus absent, blank, oversized, and control-character
+    rejection.
+  - Radon now reports no B-ranked blocks in `src/api/observability.py`.
+  - Focused observability tests, `ruff`, format check, mypy, and Radon checks passed.
+- Consequence:
+  - Correlation and request identifiers now share the same bounded-input policy, reducing
+    observability-header drift while preserving safe request-id fallback behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal observability normalization hardening for existing API middleware
+    behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked OpenAPI enrichment and proposal reporting helpers while
+    preserving public contract semantics.
+
+## LA-REV-749
+
+- Scope: Integration capability dependency reason selection
+- Pattern: Capability dependency degraded-reason selection should separate readiness checks from
+  public reason extraction so malformed dependency rows fail closed without hiding later concrete
+  dependency reasons.
+- Status: Hardened
+- Finding Class: Capability posture complexity and dependency diagnostics maintainability
+- Summary: `first_unready_dependency_reason` mixed readiness evaluation, dependency-row lookup,
+  degraded-reason type validation, empty-string handling, and fallback selection in one B-ranked
+  helper. The helper feeds bank-demo proof readiness and workflow degraded reasons, so the public
+  reason ordering should remain stable while malformed or missing reason values stay bounded.
+- Evidence:
+  - Extracted focused dependency degraded-reason and unready-reason helpers.
+  - Preserved first concrete degraded-reason selection and governed fallback behavior.
+  - Added focused tests for empty string, malformed non-string, missing reason, and later concrete
+    dependency reason selection.
+  - Radon now reports no B-ranked blocks in `src/api/capabilities/dependencies.py`.
+  - Focused integration capability tests, `ruff`, format check, mypy, and Radon checks passed.
+- Consequence:
+  - Bank-demo proof and integration capability diagnostics remain behavior-compatible while
+    dependency readiness and public degraded-reason selection are independently reviewable.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal capability diagnostics hardening for existing readiness behavior.
+- Follow-Up:
+  - Continue reducing B-ranked API capability and OpenAPI helpers while preserving fail-closed
+    dependency posture and bounded public degraded reasons.
+
+## LA-REV-748
+
+- Scope: Advisory supportability projection
+- Pattern: Capability supportability projection should separate dependency/feature count
+  collection, posture selection, and metric emission so readiness state changes remain auditable
+  without expanding the public response builder.
+- Status: Hardened
+- Finding Class: Capability posture complexity and observability maintainability
+- Summary: `build_advisory_supportability` mixed dependency-row counting, enabled-feature
+  counting, lifecycle-disabled state selection, degraded dependency/feature selection, ready-state
+  projection, response construction, and metric emission in one B-ranked helper. This path feeds
+  Gateway and Workbench supportability posture plus bounded Prometheus labels, so public behavior
+  should remain stable while count and posture decisions become inspectable.
+- Evidence:
+  - Extracted focused dependency and feature count helpers, a supportability-count envelope,
+    posture-selection helper, degraded-posture predicate, and metric emission helper.
+  - Preserved existing state/reason/freshness values for lifecycle-disabled, degraded, and ready
+    supportability posture.
+  - Existing integration capability tests passed, covering unsupported lifecycle posture, ready
+    advisory supportability, degraded feature readiness, malformed dependency rows, bounded metric
+    labels, and supportability metric recording.
+  - Radon now reports `build_advisory_supportability` and all helper blocks in
+    `src/api/capabilities/supportability.py` as A-ranked.
+  - Focused integration capability tests, `ruff`, format check, mypy, and Radon checks passed.
+- Consequence:
+  - Advisory supportability projection remains behavior-compatible while dependency/feature
+    supportability counts, posture decisioning, and metric emission can be reviewed independently.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal capability-posture hardening for existing supportability behavior.
+- Follow-Up:
+  - Continue reducing B-ranked API capability and OpenAPI helpers while preserving metric-label and
+    no-sensitive-label proof.
+
+## LA-REV-747
+
+- Scope: Integration dependency readiness state and health probing
+- Pattern: Dependency readiness construction should separate configured URL sanitization, probe
+  endpoint behavior, readiness basis selection, and unavailable-reason projection so operational
+  status remains auditable without mixing runtime probing mechanics into the public state builder.
+- Status: Hardened
+- Finding Class: Operational readiness complexity and dependency-health maintainability
+- Summary: `src/integrations/base.py` concentrated HTTP base-url sanitization, health endpoint
+  probing, dependency readiness basis selection, runtime-probe enablement, and degraded-reason
+  projection in B-ranked helpers. These helpers feed capability/readiness posture for Lotus
+  dependencies, so behavior should stay fail-closed and sanitized while probe and readiness
+  responsibilities become small named seams.
+- Evidence:
+  - Added focused internal configuration and readiness envelopes for sanitized public dependency
+    URLs, configuration validity, operational readiness, runtime-probe status, readiness basis, and
+    degraded reason.
+  - Split health probing into ready-endpoint and fallback-health endpoint helpers while preserving
+    ready endpoint `503` fail-closed behavior and transport-error fallback behavior.
+  - Split HTTP base-url sanitization into parsing and netloc projection helpers, preserving removal
+    of credentials, query strings, and fragments from public dependency posture and probe targets.
+  - Radon now reports `build_dependency_state`, `probe_dependency_health`, and
+    `sanitized_http_base_url` as A-ranked helpers; the focused module has no B-ranked blocks.
+  - Focused integration-base tests passed with 13 tests, and focused `ruff`, format check, mypy,
+    and Radon checks passed.
+- Consequence:
+  - Dependency readiness remains behavior-compatible and fail-closed while capability and runtime
+    posture can be reviewed without untangling URL sanitization, probe fallback, and readiness
+    projection in a single helper.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal operational-readiness hardening for existing integration dependency
+    posture.
+- Follow-Up:
+  - Continue with B-ranked dependency/client and OpenAPI helpers, then classify report-only
+    dependency and security inventories in future slices.
+
+## LA-REV-746
+
+- Scope: Enterprise readiness runtime policy and audit redaction helpers
+- Pattern: API enterprise-readiness policy checks should separate runtime-config issue collection,
+  write-authorization denial selection, recursive audit redaction, and audit-identity validation so
+  security-sensitive middleware behavior stays easy to audit without growing public helpers.
+- Status: Hardened
+- Finding Class: API security-boundary complexity and auditability
+- Summary: `src/api/enterprise_readiness.py` still concentrated runtime configuration validation,
+  write authorization denial ordering, recursive audit metadata redaction, and audit identity
+  validation in B-ranked public helpers. These paths guard write-request authorization posture and
+  structured audit events, so the existing behavior should remain stable while the policy and
+  redaction branches become small, named helpers.
+- Evidence:
+  - Extracted focused helpers for runtime configuration issue collection, missing policy version,
+    secret-rotation, primary-key, and JSON-map issue appending.
+  - Extracted write-authorization denial selection from the public authorization facade while
+    preserving missing-header, service-identity, invalid-capability-config, and missing-capability
+    denial order and reason vocabulary.
+  - Extracted recursive audit redaction dispatch for mappings and sequences, plus audit identity
+    and control-character validation helpers.
+  - Added focused runtime-config coverage for missing policy version, out-of-range secret rotation,
+    and missing primary key when authorization enforcement is enabled.
+  - Radon now reports `validate_enterprise_runtime_config`, `authorize_write_request`,
+    `redact_sensitive`, and `_normalize_audit_identity` as A-ranked helpers; the focused module has
+    no B-ranked blocks.
+  - Focused enterprise-readiness tests passed with 17 tests, and focused `ruff`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Enterprise policy middleware behavior remains behavior-compatible while runtime-config posture,
+    authorization denial selection, and sensitive audit metadata redaction are easier to review and
+    extend without weakening API security boundaries.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API security-boundary hardening for existing enterprise-readiness
+    behavior.
+- Follow-Up:
+  - Continue with B-ranked API/OpenAPI and security-boundary helpers, then classify remaining
+    report-only Bandit and dead-code inventories in scoped future slices.
+
 ## LA-REV-745
 
 - Scope: Persistent proposal listing query assembly

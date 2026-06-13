@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-12T10:36:42.055499+00:00`
-- Branch: `harden/contract-ref-normalization`
-- Head: `1fa103f039031319165dca6a5855082779be3cbd`
-- Branch Commits Over Main: `2`
+- Generated At: `2026-06-13T01:05:18.375066+00:00`
+- Branch: `harden/source-b-hotspots`
+- Head: `047d7581baccaf1d35fb1abacc13e570ac2384a0`
+- Branch Commits Over Main: `101`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `142497`
+- Total Python lines: `145234`
 
 ## Largest Files
 
@@ -21,12 +21,12 @@
 | 2 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 3861 |
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2566 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2538 |
-| 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
+| 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1935 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1204 |
-| 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
+| 9 | `scripts/quality_baseline_report.py` | 1225 |
+| 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1197 |
 
 ## Largest Functions And Maintainability Hotspots
 
@@ -34,22 +34,22 @@
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
 | 2 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 286 |
+| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 306 |
 | 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 6 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 7 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
 | 8 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 | 9 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
-| 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
+| 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 700 | 225 |
 
 ## Complexity
 
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3355`
-- Radon complexity rank inventory: `A=3102, B=253`
+- Radon analyzed block inventory: `3561`
+- Radon complexity rank inventory: `A=3371, B=190`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3741, missing=3706, covered=35, coverage=0.9%`
+- Interrogate docstring inventory: `total=3945, missing=3910, covered=35, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

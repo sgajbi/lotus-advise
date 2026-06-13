@@ -7,8 +7,10 @@ from src.api.capabilities.degraded_reasons import (
     lifecycle_disabled_reason,
 )
 from src.api.capabilities.dependencies import (
+    bank_demo_proof_dependency_keys,
     bank_demo_proof_readiness,
     dependency_map,
+    first_unready_dependency_reason,
     resolve_capability_dependency_status,
 )
 from src.api.capabilities.runtime_flags import resolve_capability_runtime_flags
@@ -669,6 +671,59 @@ def test_capability_dependency_helpers_fail_closed_for_missing_proof_dependency(
     assert "malformed-row" not in dependencies
     assert ready is False
     assert reason == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+
+
+def test_first_unready_dependency_reason_ignores_empty_or_malformed_reason_values():
+    dependencies = dependency_map(
+        {
+            "dependencies": [
+                {
+                    "dependency_key": "lotus_core",
+                    "operational_ready": False,
+                    "degraded_reason": "",
+                },
+                {
+                    "dependency_key": "lotus_risk",
+                    "operational_ready": False,
+                    "degraded_reason": ["LOTUS_RISK_DEPENDENCY_UNAVAILABLE"],
+                },
+                {
+                    "dependency_key": "lotus_ai",
+                    "operational_ready": False,
+                    "degraded_reason": "LOTUS_AI_DEPENDENCY_UNAVAILABLE",
+                },
+            ]
+        }
+    )
+
+    assert (
+        first_unready_dependency_reason(
+            dependencies,
+            tuple(bank_demo_proof_dependency_keys()),
+            fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
+        )
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
+
+
+def test_first_unready_dependency_reason_uses_fallback_when_no_public_reason_is_available():
+    dependencies = dependency_map(
+        {
+            "dependencies": [
+                {"dependency_key": "lotus_core", "operational_ready": False},
+                {"dependency_key": "lotus_risk", "operational_ready": False},
+            ]
+        }
+    )
+
+    assert (
+        first_unready_dependency_reason(
+            dependencies,
+            tuple(bank_demo_proof_dependency_keys()),
+            fallback_reason="RFC0028_PROOF_DEPENDENCY_UNAVAILABLE",
+        )
+        == "RFC0028_PROOF_DEPENDENCY_UNAVAILABLE"
+    )
 
 
 def test_capability_dependency_status_projects_common_readiness_once():

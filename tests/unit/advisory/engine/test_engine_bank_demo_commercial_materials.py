@@ -227,6 +227,28 @@ def test_commercial_material_rejects_unsafe_source_refs_and_technical_copy() -> 
             excluded_claims=["client_ready_publication"],
         )
 
+    with pytest.raises(ValidationError, match="relative, not absolute"):
+        CommercialMaterial(
+            material_id="absolute_source",
+            title="Absolute source",
+            material_type="DEMO_SCRIPT",
+            source_ref="/docs/commercial/material.md",
+            mapped_claim_ids=["commercial_rfp_security_material_available"],
+            allowed_audiences=["SALES"],
+            excluded_claims=["client_ready_publication"],
+        )
+
+    with pytest.raises(ValidationError, match="parent-directory traversal"):
+        CommercialMaterial(
+            material_id="traversal_source",
+            title="Traversal source",
+            material_type="DEMO_SCRIPT",
+            source_ref="docs/../commercial/material.md",
+            mapped_claim_ids=["commercial_rfp_security_material_available"],
+            allowed_audiences=["SALES"],
+            excluded_claims=["client_ready_publication"],
+        )
+
     with pytest.raises(ValidationError, match="sensitive technical detail"):
         CommercialMaterial(
             material_id="unsafe_title",

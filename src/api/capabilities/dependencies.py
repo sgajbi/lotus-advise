@@ -48,6 +48,28 @@ def dependency_ready(dependencies: DependencyMap, dependency_key: str) -> bool:
     return bool(dependency.get("operational_ready"))
 
 
+def _dependency_degraded_reason(
+    dependencies: DependencyMap,
+    dependency_key: str,
+) -> str | None:
+    dependency = dependencies.get(dependency_key)
+    if dependency is None:
+        return None
+    reason = dependency.get("degraded_reason")
+    if not isinstance(reason, str) or not reason:
+        return None
+    return reason
+
+
+def _unready_dependency_reason(
+    dependencies: DependencyMap,
+    dependency_key: str,
+) -> str | None:
+    if dependency_ready(dependencies, dependency_key):
+        return None
+    return _dependency_degraded_reason(dependencies, dependency_key)
+
+
 def first_unready_dependency_reason(
     dependencies: DependencyMap,
     dependency_keys: tuple[str, ...],
@@ -55,11 +77,8 @@ def first_unready_dependency_reason(
     fallback_reason: str,
 ) -> str:
     for dependency_key in dependency_keys:
-        if dependency_ready(dependencies, dependency_key):
-            continue
-        dependency = dependencies.get(dependency_key)
-        reason = dependency.get("degraded_reason") if dependency is not None else None
-        if isinstance(reason, str) and reason:
+        reason = _unready_dependency_reason(dependencies, dependency_key)
+        if reason is not None:
             return reason
     return fallback_reason
 

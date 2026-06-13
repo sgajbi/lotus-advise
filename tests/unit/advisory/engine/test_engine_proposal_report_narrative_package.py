@@ -86,6 +86,56 @@ def test_build_reviewed_narrative_report_package_keeps_report_handoff_source_bac
     )
 
 
+def test_report_narrative_sections_prefer_canonical_fields_and_strip_compatibility_keys():
+    replay_evidence = _reviewed_replay_evidence()
+    replay_evidence["proposal_narrative"]["sections"] = [
+        {
+            "section_id": "CANONICAL_SECTION",
+            "section_key": "LEGACY_SECTION",
+            "title": "  Canonical title  ",
+            "body": "  Canonical body.  ",
+            "text": "Legacy body.",
+            "source_ref": "advisor-reviewed-narrative",
+        },
+        {
+            "section_key": "LEGACY_ONLY_SECTION",
+            "title": "Legacy title",
+            "text": "Legacy body.",
+        },
+        {
+            "section_id": "MISSING_BODY",
+            "title": "Skipped section",
+        },
+        "not-a-section",
+    ]
+    replay_evidence["proposal_narrative_review"]["source_narrative_hash"] = hash_canonical_payload(
+        replay_evidence["proposal_narrative"]
+    )
+
+    package = build_reviewed_narrative_report_package(
+        proposal_id="pp_report_001",
+        version_no=2,
+        replay_evidence=replay_evidence,
+    )
+
+    assert package["sections"] == [
+        {
+            "section_id": "CANONICAL_SECTION",
+            "title": "Canonical title",
+            "body": "Canonical body.",
+            "source_ref": "advisor-reviewed-narrative",
+        },
+        {
+            "section_id": "LEGACY_ONLY_SECTION",
+            "title": "Legacy title",
+            "body": "Legacy body.",
+        },
+    ]
+    assert all(
+        "section_key" not in section and "text" not in section for section in package["sections"]
+    )
+
+
 def test_reviewed_narrative_report_package_fails_closed_for_unapproved_review():
     replay_evidence = _reviewed_replay_evidence()
     replay_evidence["proposal_narrative_review"]["review_state"] = "REJECTED"

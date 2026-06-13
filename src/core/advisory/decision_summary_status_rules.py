@@ -6,6 +6,58 @@ from src.core.advisory.decision_summary_models import (
 )
 from src.core.proposal_result_models import ProposalResult
 
+_GATE_DECISION_STATUS: dict[str, ProposalDecisionStatus] = {
+    "COMPLIANCE_REVIEW_REQUIRED": "REQUIRES_COMPLIANCE_REVIEW",
+    "RISK_REVIEW_REQUIRED": "REQUIRES_RISK_REVIEW",
+    "CLIENT_CONSENT_REQUIRED": "REQUIRES_CLIENT_CONSENT",
+}
+
+_DECISION_STATUS_REASON_CODES: dict[ProposalDecisionStatus, str] = {
+    "READY_FOR_CLIENT_REVIEW": "PROPOSAL_READY_FOR_CLIENT_REVIEW",
+    "REVISION_RECOMMENDED": "PROPOSAL_REVISION_RECOMMENDED",
+    "REQUIRES_CLIENT_CONSENT": "CLIENT_CONSENT_REQUIRED",
+    "REQUIRES_RISK_REVIEW": "RISK_REVIEW_REQUIRED",
+    "REQUIRES_COMPLIANCE_REVIEW": "COMPLIANCE_REVIEW_REQUIRED",
+    "INSUFFICIENT_EVIDENCE": "INSUFFICIENT_EVIDENCE",
+    "BLOCKED_REMEDIATION_REQUIRED": "PROPOSAL_BLOCKED",
+}
+
+_DECISION_STATUS_SUMMARIES: dict[ProposalDecisionStatus, str] = {
+    "BLOCKED_REMEDIATION_REQUIRED": (
+        "Proposal cannot proceed until blocking issues are remediated."
+    ),
+    "REQUIRES_COMPLIANCE_REVIEW": (
+        "Proposal requires compliance review before client progression."
+    ),
+    "REQUIRES_RISK_REVIEW": "Proposal requires risk review before client progression.",
+    "REQUIRES_CLIENT_CONSENT": (
+        "Proposal is ready for client discussion and recorded client consent."
+    ),
+    "INSUFFICIENT_EVIDENCE": (
+        "Proposal cannot be fully assessed because required evidence is unavailable."
+    ),
+    "REVISION_RECOMMENDED": "Proposal should be revised before further progression.",
+    "READY_FOR_CLIENT_REVIEW": "Proposal is ready for client review.",
+}
+
+_DECISION_STATUS_NEXT_ACTIONS: dict[ProposalDecisionStatus, ProposalDecisionNextAction] = {
+    "BLOCKED_REMEDIATION_REQUIRED": "FIX_INPUT",
+    "REQUIRES_COMPLIANCE_REVIEW": "REVIEW_COMPLIANCE",
+    "REQUIRES_RISK_REVIEW": "REVIEW_RISK",
+    "REQUIRES_CLIENT_CONSENT": "DISCUSS_WITH_CLIENT",
+    "REVISION_RECOMMENDED": "REVISE_PROPOSAL",
+    "READY_FOR_CLIENT_REVIEW": "DISCUSS_WITH_CLIENT",
+}
+
+_CLIENT_CONTEXT_EVIDENCE_GAPS = {
+    "MISSING_CLIENT_CONTEXT",
+    "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE",
+}
+_MANDATE_CONTEXT_EVIDENCE_GAPS = {
+    "MISSING_MANDATE_CONTEXT",
+    "MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE",
+}
+
 
 def derive_decision_status(
     result: ProposalResult,
@@ -19,12 +71,8 @@ def derive_decision_status(
         return "INSUFFICIENT_EVIDENCE"
 
     gate = result.gate_decision.gate if result.gate_decision is not None else None
-    if gate == "COMPLIANCE_REVIEW_REQUIRED":
-        return "REQUIRES_COMPLIANCE_REVIEW"
-    if gate == "RISK_REVIEW_REQUIRED":
-        return "REQUIRES_RISK_REVIEW"
-    if gate == "CLIENT_CONSENT_REQUIRED":
-        return "REQUIRES_CLIENT_CONSENT"
+    if gate_status := _GATE_DECISION_STATUS.get(str(gate)):
+        return gate_status
 
     if result.status == "PENDING_REVIEW":
         return "REVISION_RECOMMENDED"
@@ -54,64 +102,35 @@ def _gate_reason_code(result: ProposalResult) -> str | None:
 
 
 def _reason_code_for_decision_status(decision_status: ProposalDecisionStatus) -> str:
-    return {
-        "READY_FOR_CLIENT_REVIEW": "PROPOSAL_READY_FOR_CLIENT_REVIEW",
-        "REVISION_RECOMMENDED": "PROPOSAL_REVISION_RECOMMENDED",
-        "REQUIRES_CLIENT_CONSENT": "CLIENT_CONSENT_REQUIRED",
-        "REQUIRES_RISK_REVIEW": "RISK_REVIEW_REQUIRED",
-        "REQUIRES_COMPLIANCE_REVIEW": "COMPLIANCE_REVIEW_REQUIRED",
-        "INSUFFICIENT_EVIDENCE": "INSUFFICIENT_EVIDENCE",
-    }.get(decision_status, "PROPOSAL_BLOCKED")
+    return _DECISION_STATUS_REASON_CODES[decision_status]
 
 
 def primary_decision_summary(
     decision_status: ProposalDecisionStatus, primary_reason_code: str
 ) -> str:
-    if decision_status == "BLOCKED_REMEDIATION_REQUIRED":
-        return "Proposal cannot proceed until blocking issues are remediated."
-    if decision_status == "REQUIRES_COMPLIANCE_REVIEW":
-        return "Proposal requires compliance review before client progression."
-    if decision_status == "REQUIRES_RISK_REVIEW":
-        return "Proposal requires risk review before client progression."
-    if decision_status == "REQUIRES_CLIENT_CONSENT":
-        return "Proposal is ready for client discussion and recorded client consent."
-    if decision_status == "INSUFFICIENT_EVIDENCE":
-        return "Proposal cannot be fully assessed because required evidence is unavailable."
-    if decision_status == "REVISION_RECOMMENDED":
-        return "Proposal should be revised before further progression."
     if primary_reason_code == "MISSING_RISK_LENS":
         return "Proposal is ready, but risk evidence is currently unavailable."
-    return "Proposal is ready for client review."
+    return _DECISION_STATUS_SUMMARIES[decision_status]
 
 
 def recommended_decision_next_action(
     decision_status: ProposalDecisionStatus,
     missing_evidence: list[ProposalDecisionMissingEvidence],
 ) -> ProposalDecisionNextAction:
-    if decision_status == "BLOCKED_REMEDIATION_REQUIRED":
-        return "FIX_INPUT"
-    if decision_status == "REQUIRES_COMPLIANCE_REVIEW":
-        return "REVIEW_COMPLIANCE"
-    if decision_status == "REQUIRES_RISK_REVIEW":
-        return "REVIEW_RISK"
-    if decision_status == "REQUIRES_CLIENT_CONSENT":
-        return "DISCUSS_WITH_CLIENT"
     if decision_status == "INSUFFICIENT_EVIDENCE":
-        for item in missing_evidence:
-            if item.reason_code in {
-                "MISSING_CLIENT_CONTEXT",
-                "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE",
-            }:
-                return "REQUEST_CLIENT_CONTEXT"
-            if item.reason_code in {
-                "MISSING_MANDATE_CONTEXT",
-                "MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE",
-            }:
-                return "REQUEST_MANDATE_CONTEXT"
-        return "REVISE_PROPOSAL"
-    if decision_status == "REVISION_RECOMMENDED":
-        return "REVISE_PROPOSAL"
-    return "DISCUSS_WITH_CLIENT"
+        return _insufficient_evidence_next_action(missing_evidence)
+    return _DECISION_STATUS_NEXT_ACTIONS[decision_status]
+
+
+def _insufficient_evidence_next_action(
+    missing_evidence: list[ProposalDecisionMissingEvidence],
+) -> ProposalDecisionNextAction:
+    for item in missing_evidence:
+        if item.reason_code in _CLIENT_CONTEXT_EVIDENCE_GAPS:
+            return "REQUEST_CLIENT_CONTEXT"
+        if item.reason_code in _MANDATE_CONTEXT_EVIDENCE_GAPS:
+            return "REQUEST_MANDATE_CONTEXT"
+    return "REVISE_PROPOSAL"
 
 
 def decision_confidence(

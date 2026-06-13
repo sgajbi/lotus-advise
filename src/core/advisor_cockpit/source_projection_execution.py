@@ -67,26 +67,55 @@ def _execution_status_source(
 ) -> ExecutionStatusAttentionActionSource | None:
     if proposal is None:
         return None
+    latest_event = _latest_attention_execution_event(events)
+    if latest_event is None:
+        return None
+    handoff_status = execution_status_for_event(latest_event.event_type)
+    return _execution_status_attention_source(
+        proposal=proposal,
+        latest_event=latest_event,
+        handoff_status=handoff_status,
+    )
+
+
+def _latest_attention_execution_event(
+    events: list[ProposalWorkflowEventRecord],
+) -> ProposalWorkflowEventRecord | None:
     latest_event = _latest_execution_event(events)
     if latest_event is None or latest_event.event_type == "EXECUTED":
         return None
-    handoff_status = execution_status_for_event(latest_event.event_type)
-    if handoff_status == "NOT_REQUESTED":
+    if execution_status_for_event(latest_event.event_type) == "NOT_REQUESTED":
         return None
-    execution_ref = str(
-        latest_event.reason_json.get("execution_request_id")
-        or latest_event.reason_json.get("external_execution_id")
-        or latest_event.event_id
-    )
+    return latest_event
+
+
+def _execution_status_attention_source(
+    *,
+    proposal: ProposalRecord,
+    latest_event: ProposalWorkflowEventRecord,
+    handoff_status: str,
+) -> ExecutionStatusAttentionActionSource:
     return ExecutionStatusAttentionActionSource(
-        execution_ref=execution_ref,
+        execution_ref=_execution_reference(latest_event),
         proposal_id=proposal.proposal_id,
         portfolio_id=proposal.portfolio_id,
         handoff_status=handoff_status,
         summary=f"Execution handoff status is {handoff_status}; downstream execution remains SOR.",
         source_timestamp=latest_event.occurred_at.isoformat(),
-        materiality_rank=72 if handoff_status in {"REJECTED", "CANCELLED", "EXPIRED"} else 50,
+        materiality_rank=_execution_status_materiality_rank(handoff_status),
     )
+
+
+def _execution_reference(event: ProposalWorkflowEventRecord) -> str:
+    return str(
+        event.reason_json.get("execution_request_id")
+        or event.reason_json.get("external_execution_id")
+        or event.event_id
+    )
+
+
+def _execution_status_materiality_rank(handoff_status: str) -> int:
+    return 72 if handoff_status in {"REJECTED", "CANCELLED", "EXPIRED"} else 50
 
 
 def _latest_execution_event(

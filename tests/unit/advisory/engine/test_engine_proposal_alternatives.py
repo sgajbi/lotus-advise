@@ -137,6 +137,24 @@ def test_normalize_alternatives_request_flags_missing_evidence_for_conditional_s
     )
 
 
+def test_normalize_alternatives_request_honors_declared_conditional_evidence():
+    normalized = normalize_alternatives_request(
+        ProposalAlternativesRequest(
+            objectives=["AVOID_RESTRICTED_PRODUCTS"],
+            constraints={"mandate_restrictions": {"restricted_product_exception": False}},
+            evidence_requirements=["RESTRICTED_PRODUCT_ELIGIBILITY", "MANDATE_CONTEXT"],
+        ),
+        selection_mode="selection",
+    )
+
+    assert normalized is not None
+    assert normalized.evidence_requirements == (
+        "RESTRICTED_PRODUCT_ELIGIBILITY",
+        "MANDATE_CONTEXT",
+    )
+    assert normalized.missing_evidence_reason_codes == ()
+
+
 def test_normalize_alternatives_request_flags_missing_client_preferences_when_required():
     normalized = normalize_alternatives_request(
         ProposalAlternativesRequest(

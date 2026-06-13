@@ -900,6 +900,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  summary/description, tag inference, error response, and idempotency header handling.",
         "- OpenAPI example repair delegates array, object-property, required-field,",
         "  existing-field, and additional-property repair paths to focused helpers.",
+        "- OpenAPI example repair now delegates `$ref` and composite schema resolution,",
+        "  structured example dispatch, scalar enum/type checks, and integer bound checks.",
         "- OpenAPI field-description inference delegates identifier, date/time, currency,",
         "  monetary, quantity, rate/price, status, and fallback descriptions to focused helpers.",
         "- OpenAPI example inference delegates const/enum/ref/composite priority handling",
@@ -967,6 +969,24 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Advisory copilot run persistence delegates payload safety validation,",
         "  idempotency replay lookup, run-record construction, retryable refresh, and",
         "  idempotency-record construction to focused helpers.",
+        "- Enterprise readiness runtime policy delegates config issue collection,",
+        "  write-authorization denial selection, recursive audit redaction, and",
+        "  audit-identity validation to focused helpers while preserving bounded denial and",
+        "  redaction behavior.",
+        "- Integration dependency readiness delegates sanitized URL configuration,",
+        "  health-endpoint probing, readiness-basis selection, and unavailable-reason",
+        "  projection to focused helpers while preserving fail-closed dependency posture.",
+        "- Advisory supportability projection delegates dependency/feature counts,",
+        "  posture selection, degraded-state detection, and metric emission to focused",
+        "  helpers while preserving bounded supportability labels.",
+        "- Integration capability dependency diagnostics delegate readiness checks and",
+        "  public degraded-reason extraction to focused helpers while preserving",
+        "  fail-closed fallback behavior.",
+        "- API observability request-id normalization reuses the shared bounded",
+        "  identifier policy while preserving generated request-id fallback behavior.",
+        "- Proposal reporting service orchestration delegates related-version selection,",
+        "  reviewed-narrative packaging, request assembly, response normalization, and",
+        "  workflow recording to focused helpers.",
         "- Policy-pack applicability evaluation delegates source context extraction,",
         "  missing-evidence detection, not-applicable result construction, and selector",
         "  construction to focused helpers.",
@@ -1079,7 +1099,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-745` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-786` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1103,9 +1123,10 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Tests",
             "Unit suite existed; new focused refactor regressions were absent.",
-            "Unit suite now has `1943` passing tests in `make check`; added focused tests "
-            "for OpenAPI enrichment, proof refs, source refs, dependency linking, and "
-            "structured logging.",
+            "Unit suite now has `1952` passing tests in `make check`; added focused tests "
+            "for OpenAPI enrichment, proof refs, source refs, dependency linking, "
+            "capability dependency diagnostics, observability request-id normalization, "
+            "and structured logging.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (

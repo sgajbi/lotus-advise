@@ -54,6 +54,23 @@ def test_decode_copilot_run_cursor_allows_non_utc_offsets() -> None:
     assert decoded.created_at.utcoffset() == timedelta(hours=8)
 
 
+def test_decode_copilot_run_cursor_accepts_padded_urlsafe_base64() -> None:
+    payload = json.dumps(
+        {
+            "created_at": "2026-05-28T09:00:00+00:00",
+            "run_id": "copilot_run_padded",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    cursor = base64.urlsafe_b64encode(payload).decode("ascii")
+
+    decoded = decode_copilot_run_cursor(cursor)
+
+    assert decoded is not None
+    assert decoded.run_id == "copilot_run_padded"
+
+
 def test_decode_copilot_run_cursor_rejects_invalid_shapes() -> None:
     invalid_cursors = [
         "not-a-valid-cursor",

@@ -77,6 +77,22 @@ def normalize_alternatives_request(
 ) -> NormalizedProposalAlternativesRequest | None:
     if request is None or request.enabled is False:
         return None
+    validate_alternatives_request(request, selection_mode=selection_mode)
+    return normalized_alternatives_request(request)
+
+
+def validate_alternatives_request(
+    request: ProposalAlternativesRequest,
+    *,
+    selection_mode: Literal["generation", "selection"],
+) -> None:
+    require_requested_objectives(request)
+    require_supported_max_alternatives(request)
+    require_selection_mode_compatible_request(request, selection_mode=selection_mode)
+    require_supported_objectives(request)
+
+
+def require_requested_objectives(request: ProposalAlternativesRequest) -> None:
     if not request.objectives:
         raise AlternativesRequestNormalizationError(
             reason_code="ALTERNATIVES_OBJECTIVES_REQUIRED",
@@ -84,6 +100,9 @@ def normalize_alternatives_request(
                 "At least one alternatives objective is required when alternatives are enabled."
             ),
         )
+
+
+def require_supported_max_alternatives(request: ProposalAlternativesRequest) -> None:
     if request.max_alternatives > FIRST_IMPLEMENTATION_MAX_ALTERNATIVES:
         raise AlternativesRequestNormalizationError(
             reason_code="ALTERNATIVES_MAX_LIMIT_EXCEEDED",
@@ -93,6 +112,13 @@ def normalize_alternatives_request(
             ),
             details={"max_alternatives": request.max_alternatives},
         )
+
+
+def require_selection_mode_compatible_request(
+    request: ProposalAlternativesRequest,
+    *,
+    selection_mode: Literal["generation", "selection"],
+) -> None:
     if selection_mode == "generation" and request.selected_alternative_id is not None:
         raise AlternativesRequestNormalizationError(
             reason_code="ALTERNATIVES_SELECTION_NOT_ALLOWED_ON_GENERATION",
@@ -101,6 +127,9 @@ def normalize_alternatives_request(
                 "not on first-time generation requests."
             ),
         )
+
+
+def require_supported_objectives(request: ProposalAlternativesRequest) -> None:
     deferred_objectives = [
         objective for objective in request.objectives if objective in DEFERRED_OBJECTIVES
     ]
@@ -110,6 +139,11 @@ def normalize_alternatives_request(
             message="One or more requested alternatives objectives are explicitly deferred.",
             details={"deferred_objectives": deferred_objectives},
         )
+
+
+def normalized_alternatives_request(
+    request: ProposalAlternativesRequest,
+) -> NormalizedProposalAlternativesRequest:
     missing_evidence_reason_codes = _infer_missing_evidence_reason_codes(request)
     return NormalizedProposalAlternativesRequest(
         requested_objectives=tuple(request.objectives),
@@ -129,13 +163,37 @@ def _infer_missing_evidence_reason_codes(
 ) -> list[str]:
     declared = set(request.evidence_requirements)
     missing: list[str] = []
-    if (
-        "AVOID_RESTRICTED_PRODUCTS" in request.objectives
-        and "RESTRICTED_PRODUCT_ELIGIBILITY" not in declared
-    ):
+    if _requires_restricted_product_eligibility(request, declared=declared):
         missing.append("MISSING_RESTRICTED_PRODUCT_ELIGIBILITY")
-    if request.constraints.mandate_restrictions and "MANDATE_CONTEXT" not in declared:
+    if _requires_mandate_context(request, declared=declared):
         missing.append("MISSING_MANDATE_CONTEXT")
-    if request.constraints.client_preferences and "CLIENT_PREFERENCES" not in declared:
+    if _requires_client_preferences(request, declared=declared):
         missing.append("MISSING_CLIENT_PREFERENCES")
     return missing
+
+
+def _requires_restricted_product_eligibility(
+    request: ProposalAlternativesRequest,
+    *,
+    declared: set[AlternativeEvidenceRequirement],
+) -> bool:
+    return (
+        "AVOID_RESTRICTED_PRODUCTS" in request.objectives
+        and "RESTRICTED_PRODUCT_ELIGIBILITY" not in declared
+    )
+
+
+def _requires_mandate_context(
+    request: ProposalAlternativesRequest,
+    *,
+    declared: set[AlternativeEvidenceRequirement],
+) -> bool:
+    return bool(request.constraints.mandate_restrictions) and "MANDATE_CONTEXT" not in declared
+
+
+def _requires_client_preferences(
+    request: ProposalAlternativesRequest,
+    *,
+    declared: set[AlternativeEvidenceRequirement],
+) -> bool:
+    return bool(request.constraints.client_preferences) and "CLIENT_PREFERENCES" not in declared

@@ -72,33 +72,22 @@ def generate_advisory_copilot_draft_with_lotus_ai(
     requested_intents: tuple[str, ...] = (),
     user_instruction: str = "",
 ) -> AdvisoryCopilotAiDraft:
-    preflight_reasons = evaluate_copilot_guardrails(
+    preflight_rejection = _preflight_guardrail_rejection(
+        evidence_packet=evidence_packet,
         requested_intents=requested_intents,
-        source_refs_present=has_source_refs(evidence_packet),
         user_instruction=user_instruction,
-        output_text="",
     )
-    if preflight_reasons:
-        return _guardrail_rejected_draft(
-            evidence_packet=evidence_packet,
-            guardrail_reasons=preflight_reasons,
-            fallback_reason="COPILOT_GUARDRAIL_PREFLIGHT_REJECTED",
-        )
+    if preflight_rejection is not None:
+        return preflight_rejection
 
     try:
-        base_url = _resolve_base_url()
-        with httpx.Client(timeout=_resolve_timeout()) as client:
-            response = client.post(
-                f"{base_url}/platform/workflow-packs/execute",
-                json=_build_workflow_pack_request(
-                    evidence_packet=evidence_packet,
-                    audience=audience,
-                    requested_outputs=requested_outputs,
-                    requested_by=requested_by,
-                    reason=reason,
-                ),
-            )
-            payload = response.json()
+        response_status, payload = _execute_workflow_pack(
+            evidence_packet=evidence_packet,
+            audience=audience,
+            requested_outputs=requested_outputs,
+            requested_by=requested_by,
+            reason=reason,
+        )
     except (httpx.HTTPError, ValueError, LotusAIAdvisoryCopilotUnavailableError) as exc:
         return build_advisory_copilot_unavailable_draft(
             evidence_packet=evidence_packet,
@@ -106,7 +95,64 @@ def generate_advisory_copilot_draft_with_lotus_ai(
             caused_by=exc,
         )
 
-    if response.status_code != 200:
+    return _draft_from_workflow_response(
+        evidence_packet=evidence_packet,
+        response_status=response_status,
+        payload=payload,
+    )
+
+
+def _preflight_guardrail_rejection(
+    *,
+    evidence_packet: CopilotEvidencePacket,
+    requested_intents: tuple[str, ...],
+    user_instruction: str,
+) -> AdvisoryCopilotAiDraft | None:
+    preflight_reasons = evaluate_copilot_guardrails(
+        requested_intents=requested_intents,
+        source_refs_present=has_source_refs(evidence_packet),
+        user_instruction=user_instruction,
+        output_text="",
+    )
+    if not preflight_reasons:
+        return None
+    return _guardrail_rejected_draft(
+        evidence_packet=evidence_packet,
+        guardrail_reasons=preflight_reasons,
+        fallback_reason="COPILOT_GUARDRAIL_PREFLIGHT_REJECTED",
+    )
+
+
+def _execute_workflow_pack(
+    *,
+    evidence_packet: CopilotEvidencePacket,
+    audience: CopilotAudience,
+    requested_outputs: list[str],
+    requested_by: str,
+    reason: dict[str, Any],
+) -> tuple[int, dict[str, Any]]:
+    base_url = _resolve_base_url()
+    with httpx.Client(timeout=_resolve_timeout()) as client:
+        response = client.post(
+            f"{base_url}/platform/workflow-packs/execute",
+            json=_build_workflow_pack_request(
+                evidence_packet=evidence_packet,
+                audience=audience,
+                requested_outputs=requested_outputs,
+                requested_by=requested_by,
+                reason=reason,
+            ),
+        )
+        return response.status_code, response.json()
+
+
+def _draft_from_workflow_response(
+    *,
+    evidence_packet: CopilotEvidencePacket,
+    response_status: int,
+    payload: dict[str, Any],
+) -> AdvisoryCopilotAiDraft:
+    if response_status != 200:
         return build_advisory_copilot_unavailable_draft(
             evidence_packet=evidence_packet,
             fallback_reason=extract_error_detail(
@@ -134,6 +180,23 @@ def generate_advisory_copilot_draft_with_lotus_ai(
             fallback_reason="LOTUS_AI_ADVISORY_COPILOT_INVALID_OUTPUT",
             caused_by=None,
         )
+    return _draft_from_completed_workflow_output(
+        evidence_packet=evidence_packet,
+        payload=payload,
+        result=result,
+        structured_output=structured_output,
+        sections=sections,
+    )
+
+
+def _draft_from_completed_workflow_output(
+    *,
+    evidence_packet: CopilotEvidencePacket,
+    payload: dict[str, Any],
+    result: dict[str, Any],
+    structured_output: dict[str, Any],
+    sections: tuple[dict[str, Any], ...],
+) -> AdvisoryCopilotAiDraft:
     output_reasons = evaluate_copilot_guardrails(
         requested_intents=(),
         source_refs_present=True,
@@ -240,17 +303,20 @@ def _build_workflow_pack_request(
     requested_by: str,
     reason: dict[str, Any],
 ) -> dict[str, object]:
-    return build_advisory_copilot_workflow_pack_request(
-        evidence_packet=evidence_packet,
-        audience=audience,
-        requested_outputs=requested_outputs,
-        requested_by=requested_by,
-        reason=reason,
-        adapter_version=ADAPTER_VERSION,
-        approved_instruction_set=APPROVED_INSTRUCTION_SET,
-        prompt_template_version=PROMPT_TEMPLATE_VERSION,
-        output_schema_version=OUTPUT_SCHEMA_VERSION,
-        evaluation_pack_ref=EVALUATION_PACK_REF,
+    return cast(
+        dict[str, object],
+        build_advisory_copilot_workflow_pack_request(
+            evidence_packet=evidence_packet,
+            audience=audience,
+            requested_outputs=requested_outputs,
+            requested_by=requested_by,
+            reason=reason,
+            adapter_version=ADAPTER_VERSION,
+            approved_instruction_set=APPROVED_INSTRUCTION_SET,
+            prompt_template_version=PROMPT_TEMPLATE_VERSION,
+            output_schema_version=OUTPUT_SCHEMA_VERSION,
+            evaluation_pack_ref=EVALUATION_PACK_REF,
+        ),
     )
 
 
@@ -326,7 +392,7 @@ def _proposal_version_id(evidence_packet: CopilotEvidencePacket) -> str | None:
 def _proposal_version_lineage_id(evidence_packet: CopilotEvidencePacket) -> str | None:
     for lineage_ref in evidence_packet.lineage_refs:
         if _is_proposal_version_lineage_ref(lineage_ref):
-            return lineage_ref.lineage_id
+            return cast(str, lineage_ref.lineage_id)
     return None
 
 
@@ -342,7 +408,7 @@ def _proposal_version_source_id(evidence_packet: CopilotEvidencePacket) -> str |
     for section in evidence_packet.sections:
         for source_ref in section.source_refs:
             if _is_proposal_version_source_ref(source_ref):
-                return source_ref.source_id
+                return cast(str, source_ref.source_id)
     return None
 
 

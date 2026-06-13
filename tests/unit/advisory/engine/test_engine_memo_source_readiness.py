@@ -177,3 +177,37 @@ def test_memo_source_readiness_treats_price_and_fx_open_end_dates_as_source_cont
     assert _section(readiness, "core_fx_rates")["missing_evidence"] == [
         "FX rate validity end 31-Dec-3999"
     ]
+
+
+def test_memo_source_readiness_accepts_nested_product_eligibility_and_complexity():
+    evidence = _base_evidence_bundle()
+    evidence["inputs"]["shelf_entries"] = [
+        {
+            "instrument_id": "US_EQ_ETF",
+            "attributes": {
+                "eligibility": {"jurisdictions": ["SG"]},
+                "product_complexity": "NON_COMPLEX",
+            },
+        }
+    ]
+
+    readiness = build_memo_source_readiness(evidence)
+
+    assert _section(readiness, "core_product_eligibility_complexity")["status"] == "READY"
+
+
+def test_memo_source_readiness_pends_when_product_complexity_evidence_is_missing():
+    evidence = _base_evidence_bundle()
+    evidence["inputs"]["shelf_entries"] = [
+        {
+            "instrument_id": "US_EQ_ETF",
+            "attributes": {"eligibility": {"jurisdictions": ["SG"]}},
+        }
+    ]
+
+    readiness = build_memo_source_readiness(evidence)
+
+    product = _section(readiness, "core_product_eligibility_complexity")
+    assert product["status"] == "PENDING_REVIEW"
+    assert product["missing_evidence"] == ["product_eligibility", "product_complexity"]
+    assert product["reason_codes"] == ["CORE_PRODUCT_ELIGIBILITY_OR_COMPLEXITY_NOT_PROVIDED"]

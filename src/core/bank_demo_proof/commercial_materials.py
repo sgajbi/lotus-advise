@@ -173,21 +173,10 @@ class CommercialMaterialPack(BaseModel):
     def _materials_must_map_to_required_claims(self) -> CommercialMaterialPack:
         required = set(self.required_claim_ids)
         blocked = set(self.blocked_claims)
-        if required.intersection(blocked):
-            raise ValueError("commercial material required and blocked claims must be distinct")
-        material_ids = [material.material_id for material in self.materials]
-        if len(set(material_ids)) != len(material_ids):
-            raise ValueError("commercial material ids must be unique")
-        mapped: set[str] = set()
-        for material in self.materials:
-            mapped_claims = set(material.mapped_claim_ids)
-            if not mapped_claims.issubset(required):
-                raise ValueError("commercial material maps to an unsupported claim id")
-            mapped.update(mapped_claims)
-            if not blocked.issubset(material.excluded_claims):
-                raise ValueError("commercial material must exclude every blocked claim")
-        if not required.issubset(mapped):
-            raise ValueError("commercial material required claims must all be mapped")
+        _validate_required_and_blocked_claims_are_distinct(required, blocked)
+        _validate_material_ids_are_unique(self.materials)
+        mapped = _mapped_commercial_claims(self.materials, required, blocked)
+        _validate_required_claims_are_mapped(required, mapped)
         return self
 
 
@@ -203,6 +192,49 @@ def _normalize_ref_list(value: list[str], *, field_name: str) -> list[str]:
     if len(set(normalized)) != len(normalized):
         raise ValueError(f"{field_name} entries must be unique")
     return normalized
+
+
+def _validate_required_and_blocked_claims_are_distinct(
+    required: set[str],
+    blocked: set[str],
+) -> None:
+    if required.intersection(blocked):
+        raise ValueError("commercial material required and blocked claims must be distinct")
+
+
+def _validate_material_ids_are_unique(materials: list[CommercialMaterial]) -> None:
+    material_ids = [material.material_id for material in materials]
+    if len(set(material_ids)) != len(material_ids):
+        raise ValueError("commercial material ids must be unique")
+
+
+def _mapped_commercial_claims(
+    materials: list[CommercialMaterial],
+    required: set[str],
+    blocked: set[str],
+) -> set[str]:
+    mapped: set[str] = set()
+    for material in materials:
+        mapped.update(_validated_material_claims(material, required, blocked))
+    return mapped
+
+
+def _validated_material_claims(
+    material: CommercialMaterial,
+    required: set[str],
+    blocked: set[str],
+) -> set[str]:
+    mapped_claims = set(material.mapped_claim_ids)
+    if not mapped_claims.issubset(required):
+        raise ValueError("commercial material maps to an unsupported claim id")
+    if not blocked.issubset(material.excluded_claims):
+        raise ValueError("commercial material must exclude every blocked claim")
+    return mapped_claims
+
+
+def _validate_required_claims_are_mapped(required: set[str], mapped: set[str]) -> None:
+    if not required.issubset(mapped):
+        raise ValueError("commercial material required claims must all be mapped")
 
 
 def _normalize_repository_source_ref(value: str) -> str:
@@ -223,19 +255,40 @@ def _validate_source_ref_text(normalized: str) -> None:
 
 
 def _validate_source_ref_location(normalized: str, parsed: SplitResult) -> None:
-    if parsed.scheme or parsed.netloc or parsed.query:
+    if _has_non_repository_source_location(parsed):
         raise ValueError("commercial material source_ref must be a repository-local reference")
-    if normalized.startswith("/") or _RFC28_WINDOWS_DRIVE_REF.match(normalized):
+    if _is_absolute_source_ref(normalized):
         raise ValueError("commercial material source_ref must be relative, not absolute")
 
 
+def _has_non_repository_source_location(parsed: SplitResult) -> bool:
+    return bool(parsed.scheme or parsed.netloc or parsed.query)
+
+
+def _is_absolute_source_ref(normalized: str) -> bool:
+    return normalized.startswith("/") or bool(_RFC28_WINDOWS_DRIVE_REF.match(normalized))
+
+
 def _normalized_source_ref_path(path: str) -> str:
-    path_parts = [part for part in path.split("/") if part]
-    if any(part == ".." for part in path_parts):
-        raise ValueError("commercial material source_ref cannot contain parent-directory traversal")
-    if any(contains_sensitive_rfc28_term(part) for part in path_parts):
-        raise ValueError("commercial material source_ref cannot contain sensitive material")
+    path_parts = _source_ref_path_parts(path)
+    _validate_source_ref_has_no_parent_directory(path_parts)
+    _validate_source_ref_path_is_not_sensitive(path_parts)
     return "/".join(path_parts)
+
+
+def _source_ref_path_parts(path: str) -> list[str]:
+    return [part for part in path.split("/") if part]
+
+
+def _validate_source_ref_has_no_parent_directory(path_parts: list[str]) -> None:
+    if ".." in path_parts:
+        raise ValueError("commercial material source_ref cannot contain parent-directory traversal")
+
+
+def _validate_source_ref_path_is_not_sensitive(path_parts: list[str]) -> None:
+    for part in path_parts:
+        if contains_sensitive_rfc28_term(part):
+            raise ValueError("commercial material source_ref cannot contain sensitive material")
 
 
 def _normalized_source_ref_fragment(fragment: str) -> str:

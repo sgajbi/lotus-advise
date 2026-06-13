@@ -6,6 +6,8 @@ from src.integrations.lotus_report.request_mapping import (
     build_policy_sign_off_package_job_request,
     build_portfolio_review_job_request,
     build_report_headers,
+    extract_report_as_of_date,
+    find_first_key_value,
     normalized_output_formats,
     report_status_path,
 )
@@ -112,6 +114,39 @@ def test_mapping_bounds_headers_output_formats_and_status_paths() -> None:
     assert report_status_path("/reports/jobs/rjob_001") == "/reports/jobs/rjob_001"
     assert report_status_path("https://example.invalid/reports/jobs/rjob_001") is None
     assert report_status_path("/reports/jobs/rjob_001?token=secret") is None
+
+
+def test_find_first_key_value_preserves_depth_first_report_date_selection() -> None:
+    payload = {
+        "metadata": [
+            {"ignored": {"as_of_date": ""}},
+            {"nested": {"report_end_date": "2026-04-11"}},
+        ],
+        "analytics": {"valuation_date": "2026-04-12"},
+    }
+
+    assert (
+        find_first_key_value(
+            payload,
+            keys={"as_of_date", "report_end_date", "valuation_date"},
+        )
+        == "2026-04-11"
+    )
+
+
+def test_extract_report_as_of_date_ignores_invalid_direct_dates_before_lineage_fallback() -> None:
+    request = _proposal_request()
+    request["proposal_version"]["proposal_result"] = {
+        "analytics": {
+            "metadata": {
+                "as_of_date": "2026-04",
+                "valuation_date": "not-a-date",
+            }
+        },
+        "lineage": {"snapshot_ref": "lotus-core/snapshot/2026-04-13.json"},
+    }
+
+    assert extract_report_as_of_date(request) == "2026-04-13"
 
 
 def test_mapping_fails_closed_when_required_advisory_source_identity_is_missing() -> None:

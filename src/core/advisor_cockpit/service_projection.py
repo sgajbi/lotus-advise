@@ -14,6 +14,16 @@ from src.core.advisor_cockpit.reference_models import CockpitCallerContext, Cock
 from src.core.advisor_cockpit.snapshot_models import MeetingPreparationPacket
 from src.core.advisor_cockpit.source_read_model import AdvisorCockpitSourceReadModel
 
+_ALL_VISIBLE_CALLER_ROLES = frozenset({"ADVISOR", "DESK_HEAD"})
+_ROLE_VISIBLE_OWNER_ROLES: dict[str, frozenset[str]] = {
+    "COMPLIANCE_REVIEWER": frozenset({"COMPLIANCE_REVIEWER"}),
+    "INVESTMENT_DESK": frozenset({"INVESTMENT_DESK"}),
+    "OPERATIONS": frozenset({"REPORTING_OWNER", "ARCHIVE_OWNER", "EXECUTION_OWNER", "OPERATIONS"}),
+    "PORTFOLIO_MANAGER": frozenset({"PORTFOLIO_MANAGER"}),
+    "DPM_OWNER": frozenset({"PORTFOLIO_MANAGER"}),
+    "CRM_OWNER": frozenset({"CRM_OWNER", "ADVISOR"}),
+}
+
 
 def project_actions_for_caller(
     *,
@@ -31,19 +41,9 @@ def project_actions_for_caller(
 
 
 def visible_owner_roles_for_role(role: str) -> set[str] | None:
-    if role in {"ADVISOR", "DESK_HEAD"}:
+    if role in _ALL_VISIBLE_CALLER_ROLES:
         return None
-    if role == "COMPLIANCE_REVIEWER":
-        return {"COMPLIANCE_REVIEWER"}
-    if role == "INVESTMENT_DESK":
-        return {"INVESTMENT_DESK"}
-    if role == "OPERATIONS":
-        return {"REPORTING_OWNER", "ARCHIVE_OWNER", "EXECUTION_OWNER", "OPERATIONS"}
-    if role in {"PORTFOLIO_MANAGER", "DPM_OWNER"}:
-        return {"PORTFOLIO_MANAGER"}
-    if role == "CRM_OWNER":
-        return {"CRM_OWNER", "ADVISOR"}
-    return {role}
+    return set(_ROLE_VISIBLE_OWNER_ROLES.get(role, frozenset({role})))
 
 
 def action_counts(actions: list[AdvisoryActionItem]) -> dict[str, int]:

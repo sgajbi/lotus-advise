@@ -32,33 +32,55 @@ def encode_copilot_run_cursor(run: AdvisoryCopilotRunRecord) -> str:
 def decode_copilot_run_cursor(cursor: str | None) -> AdvisoryCopilotRunCursor | None:
     if cursor is None:
         return None
-    try:
-        padded = cursor + ("=" * (-len(cursor) % 4))
-        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
-        payload = json.loads(decoded)
-    except (binascii.Error, json.JSONDecodeError, UnicodeError) as exc:
-        raise ValueError(_INVALID_CURSOR) from exc
+    payload = _decode_cursor_payload(cursor)
+    raw_created_at = _cursor_payload_value(payload, "created_at")
+    raw_run_id = _cursor_payload_value(payload, "run_id")
+    created_at = _parse_cursor_created_at(raw_created_at)
+    run_id = _normalize_cursor_run_id(raw_run_id)
+    return AdvisoryCopilotRunCursor(created_at=created_at, run_id=run_id)
 
+
+def _decode_cursor_payload(cursor: str) -> dict[str, object]:
+    decoded = _decode_cursor_json(cursor)
+    try:
+        payload = json.loads(decoded)
+    except json.JSONDecodeError as exc:
+        raise ValueError(_INVALID_CURSOR) from exc
     if not isinstance(payload, dict):
         raise ValueError(_INVALID_CURSOR)
+    return payload
 
-    raw_created_at = payload.get("created_at")
-    raw_run_id = payload.get("run_id")
-    if not isinstance(raw_created_at, str) or not isinstance(raw_run_id, str):
+
+def _decode_cursor_json(cursor: str) -> str:
+    try:
+        padded = cursor + ("=" * (-len(cursor) % 4))
+        return base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+    except (binascii.Error, UnicodeError) as exc:
+        raise ValueError(_INVALID_CURSOR) from exc
+
+
+def _cursor_payload_value(payload: dict[str, object], key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str):
         raise ValueError(_INVALID_CURSOR)
+    return value
 
+
+def _parse_cursor_created_at(raw_created_at: str) -> datetime:
     try:
         created_at = datetime.fromisoformat(raw_created_at)
     except ValueError as exc:
         raise ValueError(_INVALID_CURSOR) from exc
-
     if created_at.tzinfo is None or created_at.utcoffset() is None:
         raise ValueError(_INVALID_CURSOR)
+    return created_at
 
+
+def _normalize_cursor_run_id(raw_run_id: str) -> str:
     run_id = raw_run_id.strip()
     if not run_id:
         raise ValueError(_INVALID_CURSOR)
-    return AdvisoryCopilotRunCursor(created_at=created_at, run_id=run_id)
+    return run_id
 
 
 def normalize_copilot_run_page_size(limit: int | None) -> int:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -64,13 +64,23 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
         REPO_ROOT / "src/core/advisor_cockpit/source_projection_execution.py"
     ).read_text(encoding="utf-8")
 
-    assert "def _report_readiness_source(" not in read_model_source
-    assert "def _report_readiness_source(" not in projection_source
-    assert "def _report_readiness_source(" in reporting_source
+    for helper_name in (
+        "_report_readiness_source",
+        "_report_package_readiness_source",
+        "_archive_ref_readiness_source",
+        "_report_readiness_action_source",
+    ):
+        assert f"def {helper_name}(" not in read_model_source
+        assert f"def {helper_name}(" not in projection_source
+        assert f"def {helper_name}(" in reporting_source
 
     for helper_name in (
         "_execution_handoff_source",
         "_execution_status_source",
+        "_latest_attention_execution_event",
+        "_execution_status_attention_source",
+        "_execution_reference",
+        "_execution_status_materiality_rank",
         "_latest_execution_event",
     ):
         assert f"def {helper_name}(" not in read_model_source
@@ -90,6 +100,9 @@ def test_source_read_model_delegates_source_projection_helpers() -> None:
         "_meeting_preparation_source",
         "_client_follow_up_source",
         "_approval_dependency_source",
+        "_matching_approval_records",
+        "_has_completed_approval",
+        "_pending_approval_dependency_source",
         "_latest_rejected_approval",
         "_approval_dependency_summary",
     ):
@@ -146,7 +159,13 @@ def test_source_projection_delegates_reporting_projection_rules() -> None:
     assert "from src.core.advisor_cockpit.source_projection_reporting import" in projection_source
     assert "build_report_render_archive_sources" in projection_source
     assert "def _report_readiness_source(" not in projection_source
+    assert "def _report_package_readiness_source(" not in projection_source
+    assert "def _archive_ref_readiness_source(" not in projection_source
+    assert "def _report_readiness_action_source(" not in projection_source
     assert "def _report_readiness_source(" in reporting_source
+    assert "def _report_package_readiness_source(" in reporting_source
+    assert "def _archive_ref_readiness_source(" in reporting_source
+    assert "def _report_readiness_action_source(" in reporting_source
 
 
 def test_source_projection_delegates_execution_projection_rules() -> None:
@@ -162,9 +181,17 @@ def test_source_projection_delegates_execution_projection_rules() -> None:
     assert "build_execution_status_sources" in projection_source
     assert "def _execution_handoff_source(" not in projection_source
     assert "def _execution_status_source(" not in projection_source
+    assert "def _latest_attention_execution_event(" not in projection_source
+    assert "def _execution_status_attention_source(" not in projection_source
+    assert "def _execution_reference(" not in projection_source
+    assert "def _execution_status_materiality_rank(" not in projection_source
     assert "def _latest_execution_event(" not in projection_source
     assert "def _execution_handoff_source(" in execution_source
     assert "def _execution_status_source(" in execution_source
+    assert "def _latest_attention_execution_event(" in execution_source
+    assert "def _execution_status_attention_source(" in execution_source
+    assert "def _execution_reference(" in execution_source
+    assert "def _execution_status_materiality_rank(" in execution_source
     assert "def _latest_execution_event(" in execution_source
 
 
@@ -245,6 +272,7 @@ def _approval(
     approval_type: str,
     approved: bool,
     approval_id: str = "approval_sg_001",
+    occurred_at: datetime = AS_OF,
 ) -> ProposalApprovalRecordData:
     return ProposalApprovalRecordData(
         approval_id=approval_id,
@@ -252,7 +280,7 @@ def _approval(
         approval_type=approval_type,
         approved=approved,
         actor_id="reviewer_sg_001",
-        occurred_at=AS_OF,
+        occurred_at=occurred_at,
         details_json={"source": "unit-test"},
         related_version_no=1,
     )
@@ -443,6 +471,32 @@ def test_source_read_model_keeps_policy_and_memo_lineage_hashes() -> None:
     )
 
 
+def test_source_read_model_marks_ready_memo_missing_archive_reference() -> None:
+    read_model = build_advisor_cockpit_source_read_model(
+        AdvisorCockpitSourceBatch(
+            proposals=[_proposal("EXECUTION_READY")],
+            memos=[
+                _memo(
+                    memo_status="READY",
+                    memo_id="memo_sg_archive_missing",
+                    review_events=[{"event_type": "MEMO_REVIEW_RECORDED"}],
+                    report_events=[{"event_type": "MEMO_REPORT_PACKAGE_REQUESTED"}],
+                )
+            ],
+        )
+    )
+
+    assert [source.readiness_code for source in read_model.report_render_archive_items] == [
+        "ARCHIVE_REF_MISSING"
+    ]
+    assert [source.owner_role for source in read_model.report_render_archive_items] == [
+        "ARCHIVE_OWNER"
+    ]
+    assert [source.lineage_id for source in read_model.report_render_archive_items] == [
+        "proposal_memo:memo_sg_archive_missing"
+    ]
+
+
 def test_source_read_model_suppresses_completed_approval_dependencies() -> None:
     read_model = build_advisor_cockpit_source_read_model(
         AdvisorCockpitSourceBatch(
@@ -488,6 +542,55 @@ def test_source_read_model_marks_rejected_approval_dependency_blocked() -> None:
     assert action.priority == "CRITICAL"
     assert action.owner_role == "INVESTMENT_DESK"
     assert action.reason_codes == ["RISK_APPROVAL_REJECTED", "CLIENT_READY_BLOCKED"]
+
+
+def test_source_read_model_uses_latest_rejected_approval_timestamp() -> None:
+    later_rejection_at = AS_OF + timedelta(hours=2)
+
+    read_model = build_advisor_cockpit_source_read_model(
+        AdvisorCockpitSourceBatch(
+            proposals=[_proposal("COMPLIANCE_REVIEW")],
+            approvals=[
+                _approval(
+                    proposal_id="proposal_sg_001",
+                    approval_type="COMPLIANCE",
+                    approved=False,
+                    approval_id="approval_sg_rejected_older",
+                ),
+                _approval(
+                    proposal_id="proposal_sg_001",
+                    approval_type="COMPLIANCE",
+                    approved=False,
+                    approval_id="approval_sg_rejected_later",
+                    occurred_at=later_rejection_at,
+                ),
+            ],
+        )
+    )
+
+    assert [source.source_timestamp for source in read_model.approval_dependencies] == [
+        later_rejection_at.isoformat()
+    ]
+
+
+def test_source_read_model_uses_external_execution_id_for_status_reference() -> None:
+    read_model = build_advisor_cockpit_source_read_model(
+        AdvisorCockpitSourceBatch(
+            proposals=[_proposal("EXECUTION_READY")],
+            workflow_events=[
+                _event(
+                    proposal_id="proposal_sg_001",
+                    event_type="EXECUTION_ACCEPTED",
+                    event_id="pwe_execution_accepted",
+                    reason={"external_execution_id": "external_execution_sg_001"},
+                )
+            ],
+        )
+    )
+
+    assert [source.execution_ref for source in read_model.execution_status_items] == [
+        "external_execution_sg_001"
+    ]
 
 
 def test_source_read_model_does_not_create_actions_for_completed_sources() -> None:

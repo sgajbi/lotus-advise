@@ -12,15 +12,28 @@ from src.core.advisor_cockpit import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
     CockpitCallerContext,
+    PolicyReviewActionSource,
+    build_policy_review_required_action,
+)
+from src.core.advisor_cockpit.service_projection import (
+    project_actions_for_caller,
+    visible_owner_roles_for_role,
 )
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
-from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
+from src.core.proposals.exceptions import (
+    ProposalIdempotencyConflictError,
+    ProposalNotFoundError,
+    ProposalValidationError,
+)
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
 from src.core.tactical_house_view import (
+    TacticalHouseViewAffectedCohort,
+    TacticalHouseViewAffectedPortfolio,
     TacticalHouseViewCandidatePortfolio,
     TacticalHouseViewCohortRequest,
     TacticalHouseViewDefinition,
     TacticalHouseViewSourceRef,
+    TacticalHouseViewSupportability,
     build_tactical_house_view_affected_cohort,
 )
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
@@ -39,6 +52,9 @@ def test_cockpit_service_delegates_source_loading_to_focused_module() -> None:
     for helper_name in (
         "load_advisor_cockpit_source_read_model",
         "_house_view_impacts",
+        "_matching_house_view_portfolios",
+        "_house_view_impact_source",
+        "_house_view_impact_code",
     ):
         assert f"def {helper_name}(" not in service_source
         assert f"def {helper_name}(" in loader_source
@@ -101,6 +117,13 @@ class CountingCockpitRepository(InMemoryProposalRepository):
     def list_events_for_proposals(self, *, proposal_ids: list[str]):
         self.bulk_event_reads += 1
         return super().list_events_for_proposals(proposal_ids=proposal_ids)
+
+
+class MissingReplayAcknowledgementRepository(InMemoryProposalRepository):
+    def get_cockpit_acknowledgement(
+        self, *, action_item_id: str
+    ) -> CockpitAcknowledgementRecord | None:
+        return None
 
 
 def _proposal(
@@ -177,6 +200,59 @@ def _caller(
     role: str = "ADVISOR", advisor_id: str | None = "advisor_sg_001"
 ) -> CockpitCallerContext:
     return CockpitCallerContext(advisor_id=advisor_id, role=role)
+
+
+def _policy_action():
+    return build_policy_review_required_action(
+        PolicyReviewActionSource(
+            policy_evaluation_id="policy_eval_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_001",
+            policy_result="PENDING_REVIEW",
+            due_at="2026-05-27T07:30:00+00:00",
+        )
+    )
+
+
+def test_cockpit_projection_role_visibility_contract_is_explicit() -> None:
+    assert visible_owner_roles_for_role("ADVISOR") is None
+    assert visible_owner_roles_for_role("DESK_HEAD") is None
+    assert visible_owner_roles_for_role("COMPLIANCE_REVIEWER") == {"COMPLIANCE_REVIEWER"}
+    assert visible_owner_roles_for_role("OPERATIONS") == {
+        "REPORTING_OWNER",
+        "ARCHIVE_OWNER",
+        "EXECUTION_OWNER",
+        "OPERATIONS",
+    }
+    assert visible_owner_roles_for_role("PORTFOLIO_MANAGER") == {"PORTFOLIO_MANAGER"}
+    assert visible_owner_roles_for_role("DPM_OWNER") == {"PORTFOLIO_MANAGER"}
+    assert visible_owner_roles_for_role("CRM_OWNER") == {"CRM_OWNER", "ADVISOR"}
+    assert visible_owner_roles_for_role("BESPOKE_OWNER") == {"BESPOKE_OWNER"}
+
+
+def test_cockpit_projection_always_includes_system_actions_for_scoped_roles() -> None:
+    policy_action = _policy_action()
+    system_action = policy_action.model_copy(
+        update={
+            "action_item_id": "aci_system_supportability",
+            "owner_role": "SYSTEM",
+            "owner_role_label": "System",
+        }
+    )
+    portfolio_manager_action = policy_action.model_copy(
+        update={
+            "action_item_id": "aci_house_view_pm",
+            "owner_role": "PORTFOLIO_MANAGER",
+            "owner_role_label": "Portfolio manager",
+        }
+    )
+
+    projected = project_actions_for_caller(
+        actions=[policy_action, system_action, portfolio_manager_action],
+        caller_context=_caller(role="COMPLIANCE_REVIEWER", advisor_id=None),
+    )
+
+    assert [action.owner_role for action in projected] == ["COMPLIANCE_REVIEWER", "SYSTEM"]
 
 
 def test_cockpit_service_lists_source_backed_actions_with_counts(
@@ -339,6 +415,53 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
     )
     assert [action.action_family for action in legacy_page.items] == ["HOUSE_VIEW_IMPACT_REVIEW"]
     assert legacy_page.items[0].owner_role == "PORTFOLIO_MANAGER"
+
+
+def test_cockpit_source_loader_uses_first_non_default_house_view_reason() -> None:
+    source_ref = TacticalHouseViewSourceRef(
+        source_system="lotus-core",
+        source_type="HoldingsAsOf",
+        source_id="holdings:PB_SG_GLOBAL_BAL_001:2026-05-14",
+        source_version="v1",
+        content_hash="sha256:holdings",
+    )
+    cohort = TacticalHouseViewAffectedCohort(
+        cohort_id="thv_cohort_non_default",
+        tactical_view_id="thv_2026_05_asia_duration",
+        tactical_view_version="2026.05",
+        theme_id="asia_duration_reduce",
+        as_of_date="2026-05-14",
+        target_action="REDUCE",
+        affected_portfolios=[
+            TacticalHouseViewAffectedPortfolio(
+                portfolio_id="PB_SG_GLOBAL_BAL_001",
+                mandate_id="MANDATE_PB_SG_GLOBAL_BAL_001",
+                inclusion_reason_codes=["DURATION_EXPOSURE_ABOVE_HOUSE_VIEW"],
+                source_refs=[source_ref],
+            )
+        ],
+        excluded_portfolios=[],
+        supportability=TacticalHouseViewSupportability(
+            state="READY",
+            reason_codes=["TACTICAL_HOUSE_VIEW_READY"],
+            evaluated_candidate_count=1,
+            affected_count=1,
+            excluded_count=0,
+        ),
+        source_refs=[source_ref],
+        content_hash="sha256:house-view-cohort",
+        generated_at=NOW.isoformat(),
+        correlation_id="corr-thv-source",
+    )
+
+    impacts = cockpit_source_loader._house_view_impacts(
+        [cohort],
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id=None,
+    )
+
+    assert [impact.impact_code for impact in impacts] == ["DURATION_EXPOSURE_ABOVE_HOUSE_VIEW"]
+    assert [impact.correlation_id for impact in impacts] == ["corr-thv-source"]
 
 
 def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
@@ -695,6 +818,55 @@ def test_cockpit_acknowledgement_rejects_conflict_and_stale_version(
             ),
             idempotency_key="ack-stale-001",
             correlation_id=None,
+            caller_context=_caller(),
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+        )
+
+
+def test_cockpit_acknowledgement_replay_requires_saved_acknowledgement_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = MissingReplayAcknowledgementRepository()
+    repository.create_proposal(_proposal())
+    repository.create_memo(_memo())
+    monkeypatch.setattr(
+        cockpit_source_loader,
+        "list_policy_evaluation_records",
+        lambda **_: [_policy()],
+    )
+    monkeypatch.setattr(
+        cockpit_source_loader,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+    action = service.list_actions(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id=None,
+    ).items[0]
+    payload = AdvisorCockpitAcknowledgeRequest(
+        action_item_version=action.action_item_version,
+        acknowledged_by="advisor_sg_001",
+    )
+
+    service.acknowledge_action(
+        action_item_id=action.action_item_id,
+        payload=payload,
+        idempotency_key="ack-missing-record-001",
+        correlation_id="corr-ack-missing-record",
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+    )
+
+    with pytest.raises(ProposalNotFoundError, match="ADVISOR_COCKPIT_ACKNOWLEDGEMENT_NOT_FOUND"):
+        service.acknowledge_action(
+            action_item_id=action.action_item_id,
+            payload=payload,
+            idempotency_key="ack-missing-record-001",
+            correlation_id="corr-ack-missing-record-replay",
             caller_context=_caller(),
             portfolio_id="PB_SG_GLOBAL_BAL_001",
         )

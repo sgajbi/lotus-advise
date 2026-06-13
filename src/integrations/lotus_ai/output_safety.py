@@ -25,23 +25,14 @@ def map_review_required_sections(
     for item in value:
         if len(sections) >= max_sections:
             break
-        if not isinstance(item, dict):
-            continue
-
-        section_key = _bounded_text(item.get("section_key"), max_length=max_section_key_length)
-        title = _bounded_text(item.get("title"), max_length=max_title_length)
-        text = _bounded_text(item.get("text"), max_length=max_text_length)
-        if section_key is None or title is None or text is None:
-            continue
-
-        sections.append(
-            {
-                "section_key": section_key,
-                "title": title,
-                "text": text,
-                "review_state": "REVIEW_REQUIRED",
-            }
+        section = _review_required_section(
+            item,
+            max_section_key_length=max_section_key_length,
+            max_title_length=max_title_length,
+            max_text_length=max_text_length,
         )
+        if section is not None:
+            sections.append(section)
     return tuple(sections)
 
 
@@ -66,6 +57,28 @@ def map_bounded_string_list(
 
 def map_bounded_text(value: Any, *, max_length: int) -> str | None:
     return _bounded_text(value, max_length=max_length)
+
+
+def _review_required_section(
+    value: Any,
+    *,
+    max_section_key_length: int,
+    max_title_length: int,
+    max_text_length: int,
+) -> dict[str, str] | None:
+    if not isinstance(value, dict):
+        return None
+    section_key = _bounded_text(value.get("section_key"), max_length=max_section_key_length)
+    title = _bounded_text(value.get("title"), max_length=max_title_length)
+    text = _bounded_text(value.get("text"), max_length=max_text_length)
+    if section_key is None or title is None or text is None:
+        return None
+    return {
+        "section_key": section_key,
+        "title": title,
+        "text": text,
+        "review_state": "REVIEW_REQUIRED",
+    }
 
 
 def _bounded_text(value: Any, *, max_length: int) -> str | None:

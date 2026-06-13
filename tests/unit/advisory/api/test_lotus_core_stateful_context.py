@@ -560,6 +560,71 @@ def test_append_helpers_skip_duplicates_and_invalid_market_data(monkeypatch) -> 
     assert request.market_data_snapshot.fx_rates == []
 
 
+def test_append_shelf_entry_if_missing_preserves_enrichment_and_taxonomy_metadata() -> None:
+    request = ProposalSimulateRequest(
+        portfolio_snapshot=PortfolioSnapshot(
+            portfolio_id="pf_1",
+            base_currency="USD",
+            positions=[],
+            cash_balances=[],
+        ),
+        market_data_snapshot=MarketDataSnapshot(prices=[], fx_rates=[]),
+        shelf_entries=[],
+        options=EngineOptions(enable_proposal_simulation=True),
+        proposed_cash_flows=[],
+        proposed_trades=[],
+        reference_model=None,
+    )
+    taxonomy = ClassificationTaxonomy(
+        labels_by_dimension={
+            "ASSET_CLASS": {"EQUITY": "EQUITY"},
+            "PRODUCT_TYPE": {"ETF": "ETF"},
+        },
+        taxonomy_version="rfc_062_v1",
+    )
+
+    _append_shelf_entry_if_missing(
+        simulate_request=request,
+        instrument_id="SEC_1",
+        instrument_row={
+            "asset_class": "equity",
+            "product_type": "ETF",
+            "sector": "Technology",
+            "country_of_risk": "US",
+            "rating": "A",
+        },
+        enrichment_row={
+            "issuer_id": "ISSUER_1",
+            "liquidity_tier": "L4",
+            "ultimate_parent_issuer_id": "ULTIMATE_1",
+            "ultimate_parent_issuer_name": "Issuer Parent",
+        },
+        classification_taxonomy=taxonomy,
+    )
+
+    assert request.shelf_entries[0].model_dump(mode="json") == {
+        "instrument_id": "SEC_1",
+        "status": "APPROVED",
+        "asset_class": "EQUITY",
+        "issuer_id": "ISSUER_1",
+        "liquidity_tier": "L4",
+        "min_notional": None,
+        "settlement_days": 2,
+        "attributes": {
+            "asset_class_source": "lotus_core_classification_taxonomy",
+            "classification_taxonomy_version": "rfc_062_v1",
+            "country": "US",
+            "product_type": "ETF",
+            "product_type_source": "lotus_core_classification_taxonomy",
+            "rating": "A",
+            "sector": "Technology",
+            "source": "LOTUS_CORE_STATEFUL_CONTEXT",
+            "ultimate_parent_issuer_id": "ULTIMATE_1",
+            "ultimate_parent_issuer_name": "Issuer Parent",
+        },
+    }
+
+
 def test_enrich_trade_drafts_skips_missing_price_date_and_missing_currency(monkeypatch) -> None:
     simulate_request = ProposalSimulateRequest.model_validate(
         {

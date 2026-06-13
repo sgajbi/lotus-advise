@@ -87,6 +87,36 @@ def test_policy_evaluation_source_rules_return_none_for_ready_source_sections() 
     assert result is None
 
 
+def test_policy_evaluation_source_rules_ignore_advisory_review_only_fields() -> None:
+    result = required_source_result(
+        rule=_rule(["fee_evidence", "conflict_evidence", "product_document_NOTE_A"]),
+        source_posture={"sections": []},
+    )
+
+    assert result is None
+
+
+def test_policy_evaluation_source_rules_map_private_asset_flag_to_product_section() -> None:
+    result = required_source_result(
+        rule=_rule(["private_asset_or_structured_product_flag"]),
+        source_posture={
+            "sections": [
+                {
+                    "key": "core_product_eligibility_target_market_complexity",
+                    "status": "BLOCKED",
+                    "missing_evidence": ["target_market"],
+                    "reason_codes": ["TARGET_MARKET_MISSING"],
+                }
+            ],
+        },
+    )
+
+    assert result is not None
+    assert result.status == "BLOCKED"
+    assert result.missing_evidence == ["target_market"]
+    assert result.reason_codes == ["TARGET_MARKET_MISSING"]
+
+
 def test_policy_evaluation_source_rules_project_mandate_readiness_refs() -> None:
     result = evaluate_mandate_rule(
         rule={

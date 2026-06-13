@@ -98,3 +98,15 @@ def test_safe_reason_removes_raw_prompt_material_and_bounds_values() -> None:
     assert reason["metadata"] == "{'proposal_id': 'proposal_sg_structured_note_001'}"
     assert reason["count"] == 2
     assert reason["accepted"] is True
+
+
+def test_safe_reason_removes_raw_material_keys_after_normalization() -> None:
+    reason = safe_reason(
+        {
+            " Raw_Prompt ": "secret raw prompt should not leave advise",
+            "Provider_Response": "raw provider response",
+            "purpose": "advisor review",
+        }
+    )
+
+    assert reason == {"purpose": "advisor review"}

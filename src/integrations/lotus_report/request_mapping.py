@@ -151,19 +151,44 @@ def extract_reporting_currency(request: dict[str, Any]) -> str | None:
 
 def find_first_key_value(payload: Any, *, keys: set[str]) -> str | None:
     if isinstance(payload, dict):
-        for key, value in payload.items():
-            if key in keys:
-                normalized = optional_string(value)
-                if normalized and _SNAPSHOT_DATE_PATTERN.fullmatch(normalized):
-                    return normalized
-            nested = find_first_key_value(value, keys=keys)
-            if nested:
-                return nested
+        return find_first_key_value_in_mapping(payload, keys=keys)
     if isinstance(payload, list):
-        for value in payload:
-            nested = find_first_key_value(value, keys=keys)
-            if nested:
-                return nested
+        return find_first_key_value_in_sequence(payload, keys=keys)
+    return None
+
+
+def find_first_key_value_in_mapping(
+    payload: dict[str, Any],
+    *,
+    keys: set[str],
+) -> str | None:
+    for key, value in payload.items():
+        if key in keys:
+            normalized = normalized_snapshot_date(value)
+            if normalized:
+                return normalized
+        nested = find_first_key_value(value, keys=keys)
+        if nested:
+            return nested
+    return None
+
+
+def find_first_key_value_in_sequence(
+    payload: list[Any],
+    *,
+    keys: set[str],
+) -> str | None:
+    for value in payload:
+        nested = find_first_key_value(value, keys=keys)
+        if nested:
+            return nested
+    return None
+
+
+def normalized_snapshot_date(value: Any) -> str | None:
+    normalized = optional_string(value)
+    if normalized and _SNAPSHOT_DATE_PATTERN.fullmatch(normalized):
+        return normalized
     return None
 
 

@@ -29,6 +29,10 @@ def test_map_review_required_sections_trims_bounds_and_discards_invalid_items() 
     )
 
 
+def test_map_review_required_sections_fails_closed_for_non_list_payload() -> None:
+    assert map_review_required_sections({"section_key": "SUMMARY"}) == ()
+
+
 def test_map_bounded_string_list_trims_bounds_and_discards_invalid_items() -> None:
     guidance = map_bounded_string_list(
         [" Review evidence. ", "", "x" * 25, 7, "Check policy posture.", "Extra item"],

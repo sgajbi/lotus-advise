@@ -8,6 +8,7 @@ from src.core.advisor_cockpit import (
     CockpitActionConstructionInput,
     CockpitActionSourceRefs,
     CockpitEvidenceRef,
+    CockpitLineageRef,
     ExecutionHandoffReadyActionSource,
     ExecutionStatusAttentionActionSource,
     HouseViewImpactActionSource,
@@ -266,6 +267,31 @@ def test_client_consent_dependency_preserves_external_communication_boundary() -
     ]
 
 
+def test_rejected_approval_dependency_is_blocking_and_critical() -> None:
+    action = build_approval_dependency_action(
+        ApprovalDependencyActionSource(
+            dependency_id="approval_dependency_proposal_sg_001_risk",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            approval_type="RISK",
+            approval_status="REJECTED",
+            summary="Risk approval rejected because suitability evidence is incomplete.",
+        )
+    )
+
+    assert action.action_family == "APPROVAL_DEPENDENCY_AGING"
+    assert action.status == "BLOCKED"
+    assert action.priority == "CRITICAL"
+    assert action.owner_role == "INVESTMENT_DESK"
+    assert action.reason_codes == ["RISK_APPROVAL_REJECTED", "CLIENT_READY_BLOCKED"]
+    assert action.source_readiness_gaps[0].gap_code == "RISK_APPROVAL_REJECTED"
+    assert action.source_readiness_gaps[0].owner_role == "INVESTMENT_DESK"
+    assert action.unsupported_capabilities == [
+        "CLIENT_READY_PUBLICATION",
+        "COMPLETED_POLICY_APPROVAL_AUTHORITY",
+    ]
+
+
 def test_report_render_archive_action_preserves_downstream_owner_boundary() -> None:
     action = build_report_render_archive_action(
         ReportRenderArchiveActionSource(
@@ -404,6 +430,36 @@ def test_source_backed_action_builder_constructs_each_cockpit_family_with_eviden
     assert actions[0].lineage_refs[0].lineage_id == (
         f"{actions[0].action_family.lower()}:source_{actions[0].action_family}"
     )
+
+
+def test_source_backed_action_builder_preserves_explicit_lineage_refs() -> None:
+    action = build_source_backed_action(
+        CockpitActionConstructionInput(
+            source_action_id="source_explicit_lineage",
+            action_family="CLIENT_FOLLOW_UP_REQUIRED",
+            status="READY",
+            priority="LOW",
+            owner_role="ADVISOR",
+            title="Review advisory action",
+            next_required_action="Review the source-backed advisory evidence.",
+            reason_codes=["FOLLOW_UP_READY"],
+            evidence_refs=[_evidence()],
+            lineage_refs=[
+                CockpitLineageRef(
+                    lineage_id="proposal_lifecycle:proposal_sg_001",
+                    source_system="lotus-advise",
+                    content_hash="sha256:proposal-lifecycle",
+                )
+            ],
+        )
+    )
+
+    assert [lineage.lineage_id for lineage in action.lineage_refs] == [
+        "proposal_lifecycle:proposal_sg_001"
+    ]
+    assert [lineage.content_hash for lineage in action.lineage_refs] == [
+        "sha256:proposal-lifecycle"
+    ]
 
 
 def test_source_backed_action_builder_rejects_unexplained_actions() -> None:
