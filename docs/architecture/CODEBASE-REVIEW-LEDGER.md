@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-800
+
+- Scope: Proposal alternatives currency-alignment strategy
+- Pattern: Currency-alignment strategy orchestration should delegate FX precondition, misaligned
+  holding selection, replacement selection, and trade-plan construction to named helpers instead of
+  one branching strategy method.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and advisory alternatives behavior preservation
+- Summary: `ImproveCurrencyAlignmentStrategy.build_result` carried the full FX-permission,
+  allowed-currency, replacement, quantity, price-evidence, generated-intent, and metadata policy in
+  one B-ranked method. The strategy now delegates the policy to typed rejection and trade-plan
+  helpers while preserving existing rejection reason codes, generated intent payloads, and
+  metadata shape.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_alternatives.py -q`
+    passed with 32 tests.
+  - `python -m ruff check src/core/advisory/alternatives_strategy_currency_objectives.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/alternatives_strategy_currency_objectives.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m mypy src/core/advisory/alternatives_strategy_currency_objectives.py` passed.
+  - `python -m radon cc src/core/advisory/alternatives_strategy_currency_objectives.py -s --min B`
+    no longer reports `ImproveCurrencyAlignmentStrategy` or its `build_result` method.
+- Consequence:
+  - Currency-alignment alternatives remain behavior-compatible while making allowed-currency and
+    base-currency replacement policy easier to review and extend without touching strategy
+    orchestration.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory-strategy maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue ratcheting B-ranked advisory strategy helpers where extraction preserves
+    source-authority and proposal-alternatives semantics.
+
 ## LA-REV-799
 
 - Scope: In-memory proposal list filter criteria

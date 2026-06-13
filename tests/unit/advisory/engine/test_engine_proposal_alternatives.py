@@ -595,6 +595,58 @@ def test_build_candidate_plan_rejects_currency_alignment_without_misaligned_hold
     assert result.rejected_candidates[0].reason_code == "ALTERNATIVE_NO_MISALIGNED_HOLDING"
 
 
+def test_build_candidate_plan_currency_alignment_honors_allowed_currency_set():
+    inputs = AlternativeStrategyInputs(
+        portfolio_id="pf_alignment_allowed_set",
+        base_currency="USD",
+        positions=(
+            StrategyPosition(
+                instrument_id="SAP",
+                quantity=Decimal("80"),
+                price=Decimal("120"),
+                currency="EUR",
+            ),
+            StrategyPosition(
+                instrument_id="SONY",
+                quantity=Decimal("60"),
+                price=Decimal("100"),
+                currency="JPY",
+            ),
+            StrategyPosition(
+                instrument_id="MSFT",
+                quantity=Decimal("50"),
+                price=Decimal("100"),
+                currency="USD",
+            ),
+        ),
+        cash_balances={"USD": Decimal("1000")},
+        shelf_instruments=(
+            StrategyShelfInstrument(instrument_id="SAP", status="APPROVED"),
+            StrategyShelfInstrument(instrument_id="SONY", status="APPROVED"),
+            StrategyShelfInstrument(instrument_id="MSFT", status="APPROVED"),
+        ),
+        current_proposed_trades=(),
+    )
+
+    result = build_candidate_plan(
+        request=_normalized(
+            objectives=["IMPROVE_CURRENCY_ALIGNMENT"],
+            constraints={"allowed_currencies": ["USD", "EUR"]},
+        ),
+        inputs=inputs,
+    )
+
+    assert result.rejected_candidates == ()
+    assert result.seeds[0].generated_intents[0] == {
+        "intent_type": "SECURITY_TRADE",
+        "side": "SELL",
+        "instrument_id": "SONY",
+        "quantity": "30",
+    }
+    assert result.seeds[0].metadata["from_currency"] == "JPY"
+    assert result.seeds[0].metadata["to_currency"] == "USD"
+
+
 def test_build_candidate_plan_rejects_currency_alignment_without_aligned_replacement():
     inputs = AlternativeStrategyInputs(
         portfolio_id="pf_alignment_no_replacement",
