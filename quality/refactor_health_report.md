@@ -63,6 +63,9 @@
   diagnostics to a focused funding-selection module.
 - Policy source-readiness assembly is split into Lotus Core, product-policy,
   and Lotus Risk source-owner section modules.
+- Lotus Risk concentration request issuer mapping delegates changed-security
+  detection, issuer-evidence eligibility, and compact payload projection to
+  focused helpers.
 - Proposal memo foundational sections are split into focused per-section builders
   outside the shared memo section group coordinator.
 - Proposal memo foundational sections delegate summary extraction and value

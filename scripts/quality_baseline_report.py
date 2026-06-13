@@ -782,6 +782,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  diagnostics to a focused funding-selection module.",
         "- Policy source-readiness assembly is split into Lotus Core, product-policy,",
         "  and Lotus Risk source-owner section modules.",
+        "- Lotus Risk concentration request issuer mapping delegates changed-security",
+        "  detection, issuer-evidence eligibility, and compact payload projection to",
+        "  focused helpers.",
         "- Proposal memo foundational sections are split into focused per-section builders",
         "  outside the shared memo section group coordinator.",
         "- Proposal memo foundational sections delegate summary extraction and value",
@@ -1143,7 +1146,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-816` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-817` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1173,7 +1176,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "structured logging, target-generation solver index construction, "
             "target-generation solver fallback policy, runtime base URL safety, Lotus Core "
             "route-resolution policy, advisory copilot idempotency replay, classification "
-            "boundaries, and CI warning/topology contracts.",
+            "boundaries, Lotus Risk issuer mapping, and CI warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (

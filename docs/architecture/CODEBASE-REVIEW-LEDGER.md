@@ -1,5 +1,43 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-817
+
+- Scope: Lotus Risk concentration request issuer mapping
+- Pattern: Stateful concentration request assembly should separate changed-security discovery,
+  issuer-evidence eligibility, compact payload projection, and request attachment instead of
+  embedding the full mapping policy in one branch-heavy helper.
+- Status: Hardened
+- Finding Class: Complexity, integration payload reliability, behavior preservation
+- Summary: `src/integrations/lotus_risk/concentration_request.py::_issuer_mappings` previously
+  combined changed-security extraction, shelf-entry filtering, issuer-evidence checks, payload
+  projection, and null pruning in one B/9 helper. The mapping boundary now delegates those steps
+  to named helpers while preserving the existing stateful concentration request shape and caller
+  enrichment policy.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_risk_concentration_request.py -q`
+    passed with 3 tests.
+  - `python -m ruff check src/integrations/lotus_risk/concentration_request.py tests/unit/advisory/api/test_lotus_risk_concentration_request.py`
+    passed.
+  - `python -m ruff format --check src/integrations/lotus_risk/concentration_request.py tests/unit/advisory/api/test_lotus_risk_concentration_request.py`
+    passed after formatting the touched files.
+  - `python -m mypy --config-file mypy.ini src/integrations/lotus_risk/concentration_request.py`
+    passed.
+  - `python -m radon cc -s src/integrations/lotus_risk/concentration_request.py` reports
+    `_issuer_mappings` as A/4, down from B/9; generated quality evidence reports global worst
+    complexity as B/8.
+- Consequence:
+  - Lotus Risk concentration simulation payloads are easier to review for issuer evidence
+    inclusion and omission behavior without changing advisory simulation outputs or Lotus Risk
+    integration semantics.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal integration-payload hardening for existing concentration-risk
+    behavior.
+- Follow-Up:
+  - Continue reducing B-ranked complexity where it improves ownership clarity, then consider
+    tightening the report-only B-ranked quality threshold only after remaining B/8 hotspots are
+    audited and stable.
+
 ## LA-REV-816
 
 - Scope: In-memory advisory copilot run idempotency persistence

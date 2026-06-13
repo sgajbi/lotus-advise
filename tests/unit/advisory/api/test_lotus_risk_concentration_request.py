@@ -41,6 +41,25 @@ def _request() -> ProposalSimulateRequest:
     )
 
 
+def _request_without_changed_security_issuer() -> ProposalSimulateRequest:
+    payload = _request().model_dump(mode="json")
+    payload["market_data_snapshot"]["prices"].append(
+        {"instrument_id": "EQ_NO_ISSUER", "price": "50", "currency": "USD"}
+    )
+    payload["shelf_entries"].append(
+        {
+            "instrument_id": "EQ_NO_ISSUER",
+            "status": "APPROVED",
+            "issuer_id": None,
+            "attributes": {
+                "issuer_name": "Issuer evidence is intentionally absent",
+            },
+        }
+    )
+    payload["proposed_trades"] = [{"side": "BUY", "instrument_id": "EQ_NO_ISSUER", "quantity": "1"}]
+    return ProposalSimulateRequest.model_validate(payload)
+
+
 def _proposal_result(request: ProposalSimulateRequest) -> ProposalResult:
     return run_proposal_simulation(
         portfolio=request.portfolio_snapshot,
@@ -132,3 +151,31 @@ def test_stateful_concentration_request_projects_simulation_changes_and_issuer_m
             "ultimate_parent_issuer_name": "Parent 1",
         }
     ]
+
+
+def test_stateful_concentration_request_omits_issuer_mappings_without_issuer_evidence() -> None:
+    request = _request_without_changed_security_issuer()
+    result = _proposal_result(request)
+
+    payload = build_concentration_request(
+        request=request,
+        proposal_result=result,
+        resolved_as_of="2026-03-25",
+        input_mode="stateful",
+    )
+
+    simulation_input = payload["simulation_input"]
+    assert simulation_input["simulation_changes"] == [
+        {
+            "security_id": "EQ_NO_ISSUER",
+            "transaction_type": "BUY",
+            "quantity": "1",
+            "metadata": {
+                "proposal_intent_id": "oi_1",
+                "proposal_intent_type": "SECURITY_TRADE",
+            },
+            "amount": "50",
+            "currency": "USD",
+        }
+    ]
+    assert "issuer_mappings" not in simulation_input
