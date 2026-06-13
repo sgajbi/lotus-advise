@@ -2,6 +2,7 @@ from src.core.policy_packs.evaluation_product_rules import (
     evaluate_sg_complex_product_disclosure,
     evaluate_sg_product_eligibility,
 )
+from src.core.policy_packs.evaluation_rules import evaluate_policy_rule
 
 
 def _rule(rule_id: str) -> dict:
@@ -77,3 +78,53 @@ def test_policy_evaluation_product_rules_project_complex_disclosure_posture() ->
     )
     assert ready.status == "READY"
     assert ready.outcome == "NO_COMPLEX_PRODUCT_DISCLOSURE_TRIGGER"
+
+
+def test_policy_evaluation_product_rules_keep_multi_instrument_disclosure_actions() -> None:
+    result = evaluate_sg_complex_product_disclosure(
+        rule=_rule("SG_COMPLEX_PRODUCT_DISCLOSURE_REVIEW"),
+        evidence_bundle={
+            "inputs": {
+                "shelf_entries": [
+                    {"instrument_id": "NOTE_A", "attributes": {"structured_product": True}},
+                    {"instrument_id": "PE_FUND", "private_asset": True},
+                ],
+                "proposed_trades": [
+                    {"instrument_id": "NOTE_A"},
+                    {"instrument_id": "PE_FUND"},
+                ],
+            }
+        },
+    )
+
+    assert result.missing_evidence == [
+        "advisor_reviewed_disclosure:NOTE_A",
+        "advisor_reviewed_disclosure:PE_FUND",
+        "client_consent:NOTE_A",
+        "client_consent:PE_FUND",
+    ]
+    assert result.required_actions == [
+        "REVIEW_DISCLOSURE:NOTE_A",
+        "REVIEW_DISCLOSURE:PE_FUND",
+        "CAPTURE_CLIENT_CONSENT:NOTE_A",
+        "CAPTURE_CLIENT_CONSENT:PE_FUND",
+    ]
+
+
+def test_policy_evaluation_rule_dispatch_keeps_unsupported_rules_pending() -> None:
+    result = evaluate_policy_rule(
+        rule={
+            "rule_id": "LOCAL_POLICY_STEWARD_REVIEW",
+            "severity": "MEDIUM",
+            "outcome_mapping": "LOCAL_STEWARD_REVIEW_REQUIRED",
+        },
+        evidence_bundle={"inputs": {}},
+        source_posture={"overall_posture": "READY"},
+        jurisdiction="SG",
+        client_segment="ACCREDITED_INVESTOR",
+    )
+
+    assert result.status == "PENDING_REVIEW"
+    assert result.outcome == "LOCAL_STEWARD_REVIEW_REQUIRED"
+    assert result.reason_codes == ["POLICY_RULE_EVALUATOR_NOT_SPECIALIZED"]
+    assert result.required_actions == ["POLICY_STEWARD_REVIEW"]
