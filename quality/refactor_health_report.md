@@ -315,6 +315,8 @@
   proposal-version run filtering, and run page projection to focused helpers.
 - Advisory copilot section tuple validation delegates bounded summary normalization
   and unique audience literal policy to focused helpers.
+- Suitability issue projection delegates transition selection, deterministic
+  ordering, and highest-new-severity gate policy to focused helpers.
 - Bank-demo runtime proof evidence delegates summary value sanitization,
   capability endpoint lookup, readiness validation, and promoted feature/workflow
   proof checks to focused helpers.
