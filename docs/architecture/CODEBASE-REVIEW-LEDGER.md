@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-820
+
+- Scope: Lotus Core stateful-context dated-row selection boundary
+- Pattern: Source payload date selection should expose malformed-row filtering, as-of eligibility,
+  and latest-row fallback as named helpers instead of embedding the complete policy in one dense
+  selector.
+- Status: Hardened
+- Finding Class: Complexity, upstream integration payload reliability, behavior preservation
+- Summary: `src/integrations/lotus_core/stateful_context_hydration.py::select_latest_dated_row`
+  previously combined payload-shape filtering, as-of date eligibility, future-row fallback, and
+  latest-row selection in a B/8 helper. The hydration boundary now delegates those rules to focused
+  helpers while preserving the existing policy: choose the latest dated row on or before `as_of`,
+  or the latest dated row overall when all source rows are future dated.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_core_stateful_context_hydration.py tests/unit/advisory/api/test_lotus_core_stateful_context.py -q`
+    passed with 38 tests.
+  - `python -m ruff check src/integrations/lotus_core/stateful_context_hydration.py tests/unit/advisory/api/test_lotus_core_stateful_context_hydration.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/integrations/lotus_core/stateful_context_hydration.py`
+    passed.
+  - `python -m radon cc -s src/integrations/lotus_core/stateful_context_hydration.py`
+    reports `select_latest_dated_row` as A/3, down from B/8.
+- Consequence:
+  - Lotus Core price and FX hydration retain deterministic as-of selection semantics while the
+    malformed-payload and future-row fallback rules are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal Lotus Core integration boundary hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B/8 integration and orchestration hotspots where contract clarity and
+    behavior-preserving regression coverage improve supportability.
+
 ## LA-REV-819
 
 - Scope: Lotus Core stateful-context held-position selection boundary

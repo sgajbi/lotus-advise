@@ -35,6 +35,7 @@ from src.integrations.lotus_core.stateful_context_translation import (
 )
 
 HttpClientFactory = Callable[[httpx.Timeout], httpx.Client]
+DatedSourceRow = dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -47,19 +48,43 @@ class _TradeDraftHydrationContext:
 
 
 def select_latest_dated_row(
-    rows: list[dict[str, Any]],
+    rows: list[Any],
     *,
     date_key: str,
     as_of: str,
-) -> dict[str, Any] | None:
-    dated_rows = [
-        row for row in rows if isinstance(row, dict) and isinstance(row.get(date_key), str)
-    ]
+) -> DatedSourceRow | None:
+    dated_rows = _dated_source_rows(rows, date_key=date_key)
     if not dated_rows:
         return None
-    eligible_rows = [row for row in dated_rows if row[date_key] <= as_of]
-    target_rows = eligible_rows or dated_rows
-    return max(target_rows, key=lambda row: str(row[date_key]))
+    return _latest_source_row(
+        _eligible_source_rows(dated_rows, date_key=date_key, as_of=as_of) or dated_rows,
+        date_key=date_key,
+    )
+
+
+def _dated_source_rows(
+    rows: list[Any],
+    *,
+    date_key: str,
+) -> list[DatedSourceRow]:
+    return [row for row in rows if isinstance(row, dict) and isinstance(row.get(date_key), str)]
+
+
+def _eligible_source_rows(
+    rows: list[DatedSourceRow],
+    *,
+    date_key: str,
+    as_of: str,
+) -> list[DatedSourceRow]:
+    return [row for row in rows if cast(str, row[date_key]) <= as_of]
+
+
+def _latest_source_row(
+    rows: list[DatedSourceRow],
+    *,
+    date_key: str,
+) -> DatedSourceRow:
+    return max(rows, key=lambda row: cast(str, row[date_key]))
 
 
 def has_fx_pair(

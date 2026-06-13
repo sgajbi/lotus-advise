@@ -790,6 +790,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  helpers.",
         "- Lotus Core stateful-context held-position selection delegates cash exclusion",
         "  and security-id normalization to focused helpers.",
+        "- Lotus Core stateful-context dated-row selection delegates malformed-row",
+        "  filtering, as-of eligibility, and future-row fallback to focused helpers.",
         "- Proposal memo foundational sections are split into focused per-section builders",
         "  outside the shared memo section group coordinator.",
         "- Proposal memo foundational sections delegate summary extraction and value",
@@ -1151,7 +1153,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-819` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-820` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1182,7 +1184,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "target-generation solver fallback policy, runtime base URL safety, Lotus Core "
             "route-resolution policy, advisory copilot idempotency replay, classification "
             "boundaries, Lotus Risk issuer mapping, Lotus Report request mapping, Lotus Core "
-            "held-position selection, and CI warning/topology contracts.",
+            "held-position selection, Lotus Core dated-row selection, and CI "
+            "warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (
