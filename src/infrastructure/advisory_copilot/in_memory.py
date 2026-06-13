@@ -69,26 +69,54 @@ class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):
     ) -> AdvisoryCopilotRunRecord:
         with self._lock:
             if idempotency is not None:
-                existing_idempotency = self._run_idempotency.get(idempotency.idempotency_key)
-                if existing_idempotency is not None:
-                    if (
-                        existing_idempotency.request_hash != idempotency.request_hash
-                        or existing_idempotency.run_id != run.run_id
-                    ):
-                        raise ValueError("COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT")
-                    existing_run = self._runs.get(existing_idempotency.run_id)
-                    if existing_run is None:
-                        raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
-                    return deepcopy(existing_run)
-            existing_run = self._runs.get(run.run_id)
-            if existing_run is not None:
-                if existing_run.request_hash != run.request_hash:
-                    raise ValueError("COPILOT_RUN_HASH_CONFLICT")
-                return deepcopy(existing_run)
-            self._runs[run.run_id] = deepcopy(run)
-            if idempotency is not None:
-                self._run_idempotency[idempotency.idempotency_key] = deepcopy(idempotency)
-            return deepcopy(run)
+                replay = self._run_replay_for_idempotency(run=run, idempotency=idempotency)
+                if replay is not None:
+                    return replay
+            replay = self._run_replay_for_run_id(run)
+            if replay is not None:
+                return replay
+            return self._store_new_run(run=run, idempotency=idempotency)
+
+    def _run_replay_for_idempotency(
+        self,
+        *,
+        run: AdvisoryCopilotRunRecord,
+        idempotency: AdvisoryCopilotRunIdempotencyRecord,
+    ) -> AdvisoryCopilotRunRecord | None:
+        existing_idempotency = self._run_idempotency.get(idempotency.idempotency_key)
+        if existing_idempotency is None:
+            return None
+        if _run_idempotency_conflicts(
+            existing=existing_idempotency,
+            incoming=idempotency,
+            incoming_run_id=run.run_id,
+        ):
+            raise ValueError("COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT")
+        existing_run = self._runs.get(existing_idempotency.run_id)
+        if existing_run is None:
+            raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
+        return deepcopy(existing_run)
+
+    def _run_replay_for_run_id(
+        self, run: AdvisoryCopilotRunRecord
+    ) -> AdvisoryCopilotRunRecord | None:
+        existing_run = self._runs.get(run.run_id)
+        if existing_run is None:
+            return None
+        if existing_run.request_hash != run.request_hash:
+            raise ValueError("COPILOT_RUN_HASH_CONFLICT")
+        return deepcopy(existing_run)
+
+    def _store_new_run(
+        self,
+        *,
+        run: AdvisoryCopilotRunRecord,
+        idempotency: AdvisoryCopilotRunIdempotencyRecord | None,
+    ) -> AdvisoryCopilotRunRecord:
+        self._runs[run.run_id] = deepcopy(run)
+        if idempotency is not None:
+            self._run_idempotency[idempotency.idempotency_key] = deepcopy(idempotency)
+        return deepcopy(run)
 
     def update_run(self, run: AdvisoryCopilotRunRecord) -> None:
         with self._lock:
@@ -163,10 +191,21 @@ def _matches_proposal_version(
 ) -> bool:
     lineage = run.lineage_json
     if proposal_version_id is not None:
-        return lineage.get("proposal_version_id") == proposal_version_id
+        return bool(lineage.get("proposal_version_id") == proposal_version_id)
     if proposal_version_no is not None:
-        return lineage.get("proposal_version_no") == proposal_version_no
+        return bool(lineage.get("proposal_version_no") == proposal_version_no)
     return True
+
+
+def _run_idempotency_conflicts(
+    *,
+    existing: AdvisoryCopilotRunIdempotencyRecord,
+    incoming: AdvisoryCopilotRunIdempotencyRecord,
+    incoming_run_id: str,
+) -> bool:
+    return bool(
+        existing.request_hash != incoming.request_hash or existing.run_id != incoming_run_id
+    )
 
 
 def _can_refresh_source_projection_packet(
@@ -174,7 +213,7 @@ def _can_refresh_source_projection_packet(
     existing: AdvisoryCopilotEvidencePacketRecord,
     incoming: AdvisoryCopilotEvidencePacketRecord,
 ) -> bool:
-    return (
+    return bool(
         existing.reason_json.get("source_projection") == "PROPOSAL_VERSION"
         and incoming.reason_json.get("source_projection") == "PROPOSAL_VERSION"
         and existing.reason_json.get("proposal_id") == incoming.reason_json.get("proposal_id")

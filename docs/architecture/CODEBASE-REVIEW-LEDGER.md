@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-816
+
+- Scope: In-memory advisory copilot run idempotency persistence
+- Pattern: Run persistence should separate idempotency-key replay, run-id replay, conflict
+  detection, orphan detection, and new-run storage instead of embedding all paths in one
+  branch-heavy repository method.
+- Status: Hardened
+- Finding Class: Complexity, idempotency reliability, behavior preservation
+- Summary: `InMemoryAdvisoryCopilotRepository.save_run_with_idempotency` previously combined
+  idempotency lookup, request-hash conflict detection, incoming run-id conflict detection,
+  orphaned idempotency detection, existing-run hash replay, run storage, and idempotency index
+  storage in one B/9 method. The repository now delegates idempotency replay, run-id replay,
+  idempotency conflict policy, and new-run storage to named helpers while preserving the existing
+  direct repository behavior and public advisory-copilot persistence contract.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_advisory_copilot_persistence.py -q`
+    passed with 39 tests.
+  - `python -m ruff check src/infrastructure/advisory_copilot/in_memory.py tests/unit/advisory/engine/test_advisory_copilot_persistence.py`
+    passed.
+  - `python -m ruff format --check src/infrastructure/advisory_copilot/in_memory.py tests/unit/advisory/engine/test_advisory_copilot_persistence.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/infrastructure/advisory_copilot/in_memory.py`
+    passed.
+  - `python -m radon cc src/infrastructure/advisory_copilot/in_memory.py -s` reports
+    `save_run_with_idempotency` as A/4, down from B/9.
+- Consequence:
+  - Advisory copilot in-memory persistence is easier to audit for idempotent replay, duplicate-run
+    conflict handling, and orphaned idempotency-record failure behavior without changing supported
+    advisory-copilot outputs.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal persistence-boundary hardening for existing advisory-copilot behavior.
+- Follow-Up:
+  - Reduce the remaining B/9 hotspot in Lotus Risk issuer mapping before considering stricter
+    B-ranked enforcement.
+
 ## LA-REV-815
 
 - Scope: Lotus Core stateful-context route resolution
