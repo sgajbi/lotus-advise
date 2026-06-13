@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-783
+
+- Scope: Lotus Report request date mapping
+- Pattern: Recursive report-date lookup should separate payload type dispatch, mapping traversal,
+  sequence traversal, and snapshot-date normalization.
+- Status: Hardened
+- Finding Class: Reporting integration modularity and behavior-preservation coverage
+- Summary: `find_first_key_value` combined recursive dictionary traversal, list traversal,
+  candidate key detection, string normalization, and snapshot-date validation in one B/10 helper.
+  This path selects the source-backed as-of date for downstream `lotus-report` handoff packages,
+  so splitting traversal and date validation makes the mapping easier to audit without changing
+  depth-first search order, invalid-date rejection, lineage fallback, or default date behavior.
+- Evidence:
+  - Extracted mapping traversal, sequence traversal, and snapshot-date normalization helpers behind
+    the existing `find_first_key_value` entrypoint.
+  - Added focused coverage proving depth-first list/dict selection and invalid direct report dates
+    falling back to lineage snapshot dates.
+  - Radon no longer reports `find_first_key_value` as B-ranked in
+    `src/integrations/lotus_report/request_mapping.py`; the module remains bounded to unrelated
+    B-ranked helpers.
+  - Focused Lotus Report request-mapping tests passed with 6 tests, and `ruff`, `mypy`, format
+    check, and Radon checks passed.
+- Consequence:
+  - Advise-to-Report handoff date selection remains behavior-compatible while traversal, validation,
+    and fallback responsibilities are smaller and easier to test.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    integration mapping maintainability hardening for existing report-package behavior.
+- Follow-Up:
+  - Continue reducing B-ranked report request mapping, decision-summary missing-evidence,
+    target-generation, and source-readiness helpers with focused behavior-preservation tests.
+
 ## LA-REV-782
 
 - Scope: Policy-pack source-readiness rule evaluation
