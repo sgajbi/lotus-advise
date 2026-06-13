@@ -74,6 +74,8 @@
   to focused strategy modules.
 - Alternatives objective strategies are split into portfolio/cash, baseline-trade,
   currency-alignment, and deferred restricted-product modules.
+- Alternative sellable-position selection delegates blocked-position eligibility and
+  currency filtering to focused predicates while preserving rank ordering.
 - Proposal alternatives models are split into vocabulary, request-validation,
   response/evidence, and compatibility facade modules.
 - Proposal alternatives projection delegates request-to-strategy input mapping

@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-13T05:09:34.700762+00:00`
+- Generated At: `2026-06-13T05:14:15.536314+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - Python Files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python Lines: `145839`
+- Total Python Lines: `145886`
 
 ## Largest Files
 
@@ -20,7 +20,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1271 |
+| 9 | `scripts/quality_baseline_report.py` | 1273 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1197 |
 | 11 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
 | 12 | `src/api/openapi_enrichment.py` | 983 |
@@ -28,7 +28,7 @@
 | 14 | `tests/unit/advisory/engine/test_engine_advisor_cockpit_service.py` | 872 |
 | 15 | `tests/unit/advisory/api/test_api_integration_capabilities.py` | 867 |
 | 16 | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 862 |
-| 17 | `tests/unit/advisory/engine/test_engine_proposal_alternatives.py` | 831 |
+| 17 | `tests/unit/advisory/engine/test_engine_proposal_alternatives.py` | 847 |
 | 18 | `tests/unit/advisory/api/test_api_advisory_copilot.py` | 830 |
 | 19 | `tests/unit/advisory/engine/test_advisory_copilot_application.py` | 817 |
 | 20 | `tests/unit/advisory/api/test_api_internal_guards.py` | 752 |
@@ -39,7 +39,7 @@
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
 | 2 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 718 | 304 |
+| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 718 | 306 |
 | 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 6 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
@@ -50,7 +50,7 @@
 | 11 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 496 | 220 |
 | 12 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 381 | 216 |
 | 13 | `_live_runtime_payload` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` | 23 | 187 |
-| 14 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1024 | 180 |
+| 14 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1026 | 180 |
 | 15 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 13 | 180 |
 | 16 | `test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples` | `tests/unit/advisory/api/test_openapi_enrichment.py` | 6 | 179 |
 | 17 | `test_lifecycle_endpoints_use_separate_request_and_response_objects` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 396 | 178 |

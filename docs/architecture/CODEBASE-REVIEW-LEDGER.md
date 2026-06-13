@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-794
+
+- Scope: Proposal alternatives sellable-position selection helper
+- Pattern: Alternative strategy support helpers should keep eligibility predicates separate from
+  ranking and should avoid materializing sorted candidate lists when only the highest-ranked
+  candidate is needed.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and bounded selection efficiency
+- Summary: `largest_sellable_position` combined blocked-holding checks, preferred/excluded
+  currency filters, candidate materialization, and ranking in one B-ranked helper. The helper now
+  delegates sellable-position eligibility and currency filtering to focused predicates and uses a
+  bounded `min(..., default=None)` selection over the existing rank key.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_alternatives.py -q`
+    passed with 31 tests.
+  - `python -m ruff check src/core/advisory/alternatives_strategy_support.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/alternatives_strategy_support.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m radon cc src/core/advisory/alternatives_strategy_support.py -s --min B`
+    no longer reports `largest_sellable_position`; remaining B-ranked helpers in the file are
+    `first_adjustable_trade` and `reduced_trade_payload`, both `B/6`.
+- Consequence:
+  - Sellable-position selection is easier to test and change, preserves behavior for blocked,
+    preferred-currency, and excluded-currency cases, and avoids sorting the full candidate list.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory strategy maintainability hardening.
+- Follow-Up:
+  - Continue reducing B-ranked alternatives strategy helpers before considering stricter B-ranked
+    regression policy.
+
 ## LA-REV-793
 
 - Scope: Quality report freshness and non-volatile evidence metadata
