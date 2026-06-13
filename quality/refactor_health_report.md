@@ -78,6 +78,8 @@
   currency filtering to focused predicates while preserving rank ordering.
 - Alternative baseline-trade reduction delegates trade adjustability and
   quantity/notional payload shaping to focused helpers.
+- Alternatives enrichment delegates candidate-intent simulation splitting,
+  authority rejection, and alternative status classification to focused helpers.
 - Proposal alternatives models are split into vocabulary, request-validation,
   response/evidence, and compatibility facade modules.
 - Proposal alternatives projection delegates request-to-strategy input mapping

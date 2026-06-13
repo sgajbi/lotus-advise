@@ -55,6 +55,17 @@ def build_alternative_simulate_request(
     base_request: ProposalSimulateRequest,
     candidate: AlternativeCandidateSeed,
 ) -> ProposalSimulateRequest:
+    proposed_cash_flows, proposed_trades = split_candidate_simulation_intents(candidate)
+    payload = base_request.model_dump(mode="json")
+    payload["proposed_cash_flows"] = proposed_cash_flows
+    payload["proposed_trades"] = proposed_trades
+    payload["alternatives_request"] = None
+    return cast(ProposalSimulateRequest, ProposalSimulateRequest.model_validate(payload))
+
+
+def split_candidate_simulation_intents(
+    candidate: AlternativeCandidateSeed,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     generated_intents = list(candidate.generated_intents)
     if not generated_intents:
         raise AlternativesSimulationError(
@@ -69,30 +80,43 @@ def build_alternative_simulate_request(
     proposed_cash_flows: list[dict[str, Any]] = []
     proposed_trades: list[dict[str, Any]] = []
     for intent in generated_intents:
-        intent_type = str(intent.get("intent_type", "")).upper()
-        if intent_type == "CASH_FLOW":
-            proposed_cash_flows.append(dict(intent))
-            continue
-        if intent_type == "SECURITY_TRADE":
-            proposed_trades.append(dict(intent))
-            continue
-        raise AlternativesSimulationError(
-            reason_code="ALTERNATIVE_INTENT_UNSUPPORTED",
-            message=(
-                "Alternative candidate contains an unsupported intent type for "
-                "canonical simulation."
-            ),
-            details={
-                "candidate_id": candidate.candidate_id,
-                "intent_type": intent_type or None,
-            },
+        append_candidate_simulation_intent(
+            candidate=candidate,
+            intent=intent,
+            proposed_cash_flows=proposed_cash_flows,
+            proposed_trades=proposed_trades,
         )
+    return proposed_cash_flows, proposed_trades
 
-    payload = base_request.model_dump(mode="json")
-    payload["proposed_cash_flows"] = proposed_cash_flows
-    payload["proposed_trades"] = proposed_trades
-    payload["alternatives_request"] = None
-    return cast(ProposalSimulateRequest, ProposalSimulateRequest.model_validate(payload))
+
+def append_candidate_simulation_intent(
+    *,
+    candidate: AlternativeCandidateSeed,
+    intent: dict[str, Any],
+    proposed_cash_flows: list[dict[str, Any]],
+    proposed_trades: list[dict[str, Any]],
+) -> None:
+    match normalized_intent_type(intent):
+        case "CASH_FLOW":
+            proposed_cash_flows.append(dict(intent))
+        case "SECURITY_TRADE":
+            proposed_trades.append(dict(intent))
+        case unsupported_type:
+            raise AlternativesSimulationError(
+                reason_code="ALTERNATIVE_INTENT_UNSUPPORTED",
+                message=(
+                    "Alternative candidate contains an unsupported intent type for "
+                    "canonical simulation."
+                ),
+                details={
+                    "candidate_id": candidate.candidate_id,
+                    "intent_type": unsupported_type or None,
+                },
+            )
+
+
+def normalized_intent_type(intent: dict[str, Any]) -> str:
+    return str(intent.get("intent_type", "")).upper()
 
 
 def evaluate_alternative_candidates_batch(
@@ -187,53 +211,27 @@ def _classify_candidate_result(
     request_hash: str,
     proposal_result: ProposalResult,
 ) -> ProposalAlternative | RejectedAlternativeCandidate:
-    authority_resolution = dict(proposal_result.explanation.get("authority_resolution", {}))
-    simulation_authority = str(authority_resolution.get("simulation_authority", ""))
-    risk_authority = str(authority_resolution.get("risk_authority", ""))
-
-    if simulation_authority != _SIMULATION_AUTHORITY:
-        return _rejected_candidate(
-            candidate=candidate,
-            status="REJECTED_SIMULATION_FAILED",
-            reason_code="LOTUS_CORE_SIMULATION_UNAVAILABLE",
-            summary=(
-                "Canonical Lotus Core simulation authority was unavailable for this alternative."
-            ),
-            evidence_refs=[
-                f"candidate:{candidate.candidate_id}",
-                request_hash,
-                "proposal.explanation.authority_resolution",
-            ],
-        )
-
-    if risk_authority != _RISK_AUTHORITY:
-        return _rejected_candidate(
-            candidate=candidate,
-            status="REJECTED_RISK_EVIDENCE_UNAVAILABLE",
-            reason_code="LOTUS_RISK_ENRICHMENT_UNAVAILABLE",
-            summary="Canonical Lotus Risk enrichment was unavailable for this alternative.",
-            evidence_refs=[
-                f"candidate:{candidate.candidate_id}",
-                request_hash,
-                "proposal.explanation.authority_resolution",
-            ],
-        )
-
     proposal_decision_summary = (
         proposal_result.proposal_decision_summary.model_dump(mode="json")
         if proposal_result.proposal_decision_summary is not None
         else {}
     )
-    decision_status = str(proposal_decision_summary.get("decision_status", ""))
-    alternative_status = "FEASIBLE" if proposal_result.status == "READY" else "FEASIBLE_WITH_REVIEW"
-    if decision_status in {"BLOCKED_REMEDIATION_REQUIRED", "INSUFFICIENT_EVIDENCE"}:
-        alternative_status = "REJECTED_POLICY_BLOCKED"
+    authority_rejection = unavailable_authority_rejection(
+        candidate=candidate,
+        request_hash=request_hash,
+        proposal_result=proposal_result,
+    )
+    if authority_rejection is not None:
+        return authority_rejection
 
     return ProposalAlternative(
         alternative_id=candidate.candidate_id,
         label=candidate.label,
         objective=candidate.objective,
-        status=alternative_status,
+        status=alternative_status(
+            proposal_result=proposal_result,
+            proposal_decision_summary=proposal_decision_summary,
+        ),
         construction_policy_version=_CONSTRUCTION_POLICY_VERSION,
         ranking_policy_version=_RANKING_POLICY_VERSION,
         intents=[dict(intent) for intent in candidate.generated_intents],
@@ -247,6 +245,64 @@ def _classify_candidate_result(
             request_hash,
         ],
     )
+
+
+def unavailable_authority_rejection(
+    *,
+    candidate: AlternativeCandidateSeed,
+    request_hash: str,
+    proposal_result: ProposalResult,
+) -> RejectedAlternativeCandidate | None:
+    authority_resolution = dict(proposal_result.explanation.get("authority_resolution", {}))
+    simulation_authority = str(authority_resolution.get("simulation_authority", ""))
+    risk_authority = str(authority_resolution.get("risk_authority", ""))
+
+    if simulation_authority != _SIMULATION_AUTHORITY:
+        return _rejected_candidate(
+            candidate=candidate,
+            status="REJECTED_SIMULATION_FAILED",
+            reason_code="LOTUS_CORE_SIMULATION_UNAVAILABLE",
+            summary=(
+                "Canonical Lotus Core simulation authority was unavailable for this alternative."
+            ),
+            evidence_refs=authority_rejection_refs(candidate=candidate, request_hash=request_hash),
+        )
+
+    if risk_authority != _RISK_AUTHORITY:
+        return _rejected_candidate(
+            candidate=candidate,
+            status="REJECTED_RISK_EVIDENCE_UNAVAILABLE",
+            reason_code="LOTUS_RISK_ENRICHMENT_UNAVAILABLE",
+            summary="Canonical Lotus Risk enrichment was unavailable for this alternative.",
+            evidence_refs=authority_rejection_refs(candidate=candidate, request_hash=request_hash),
+        )
+
+    return None
+
+
+def authority_rejection_refs(
+    *,
+    candidate: AlternativeCandidateSeed,
+    request_hash: str,
+) -> list[str]:
+    return [
+        f"candidate:{candidate.candidate_id}",
+        request_hash,
+        "proposal.explanation.authority_resolution",
+    ]
+
+
+def alternative_status(
+    *,
+    proposal_result: ProposalResult,
+    proposal_decision_summary: dict[str, Any],
+) -> str:
+    decision_status = str(proposal_decision_summary.get("decision_status", ""))
+    if decision_status in {"BLOCKED_REMEDIATION_REQUIRED", "INSUFFICIENT_EVIDENCE"}:
+        return "REJECTED_POLICY_BLOCKED"
+    if proposal_result.status == "READY":
+        return "FEASIBLE"
+    return "FEASIBLE_WITH_REVIEW"
 
 
 def _append_candidate_outcome(

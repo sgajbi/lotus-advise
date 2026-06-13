@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-797
+
+- Scope: Proposal alternatives enrichment helper classification
+- Pattern: Candidate simulation request shaping and enrichment classification should keep
+  intent-splitting, authority rejection, and status derivation as named rules instead of one
+  branching enrichment helper.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and source-authority evidence clarity
+- Summary: `alternatives_enrichment.py` had B-ranked helpers for candidate simulation request
+  construction, batch evaluation, and candidate result classification. The module now delegates
+  generated-intent splitting, unsupported-intent rejection, Lotus Core/Lotus Risk authority
+  rejection, evidence-ref construction, and policy-blocked status derivation to focused helpers.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_alternatives_enrichment.py -q`
+    passed with 9 tests.
+  - `python -m ruff check src/core/advisory/alternatives_enrichment.py tests/unit/advisory/engine/test_engine_proposal_alternatives_enrichment.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/alternatives_enrichment.py tests/unit/advisory/engine/test_engine_proposal_alternatives_enrichment.py`
+    passed.
+  - `python -m radon cc src/core/advisory/alternatives_enrichment.py -s --min B`
+    now reports only `evaluate_alternative_candidates_batch` at `B/6`; `_classify_candidate_result`
+    and `build_alternative_simulate_request` no longer appear as B-ranked helpers.
+- Consequence:
+  - Alternatives enrichment remains behavior-compatible while making source-authority rejection and
+    policy-blocked status derivation easier to audit against Lotus Core/Lotus Risk ownership
+    boundaries.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory alternatives maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing the remaining B-ranked alternatives enrichment batch orchestration function
+    only when a clean orchestration abstraction can preserve caching and replay evidence.
+
 ## LA-REV-796
 
 - Scope: Proposal alternatives baseline-trade reduction helpers
