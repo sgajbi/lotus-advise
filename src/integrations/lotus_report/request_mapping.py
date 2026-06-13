@@ -7,6 +7,7 @@ from typing import Any, cast
 from src.core.proposals.correlation import MAX_CORRELATION_ID_LENGTH
 
 _SNAPSHOT_DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
+_REPORT_DATE_KEYS = {"as_of_date", "report_end_date", "valuation_date"}
 _DEFAULT_ACTOR_ID = "lotus-advise"
 _DEFAULT_TENANT_ID = "tenant-sg-001"
 
@@ -118,22 +119,37 @@ def normalized_output_formats(value: Any) -> list[str]:
 
 
 def extract_report_as_of_date(request: dict[str, Any]) -> str:
-    proposal_version = cast(dict[str, Any], request.get("proposal_version") or {})
-    proposal_result = cast(dict[str, Any], proposal_version.get("proposal_result") or {})
-    direct_date = find_first_key_value(
-        proposal_result,
-        keys={"as_of_date", "report_end_date", "valuation_date"},
+    proposal_result = _proposal_result_payload(request)
+    return (
+        _direct_report_as_of_date(proposal_result)
+        or _lineage_report_as_of_date(proposal_result)
+        or datetime.now(UTC).date().isoformat()
     )
-    if direct_date is not None:
-        return direct_date
+
+
+def _proposal_result_payload(request: dict[str, Any]) -> dict[str, Any]:
+    proposal_version = cast(dict[str, Any], request.get("proposal_version") or {})
+    return cast(dict[str, Any], proposal_version.get("proposal_result") or {})
+
+
+def _direct_report_as_of_date(proposal_result: dict[str, Any]) -> str | None:
+    return find_first_key_value(proposal_result, keys=_REPORT_DATE_KEYS)
+
+
+def _lineage_report_as_of_date(proposal_result: dict[str, Any]) -> str | None:
     lineage = proposal_result.get("lineage")
     if isinstance(lineage, dict):
-        for value in lineage.values():
-            if isinstance(value, str):
-                match = _SNAPSHOT_DATE_PATTERN.search(value)
-                if match:
-                    return match.group(0)
-    return datetime.now(UTC).date().isoformat()
+        return _first_snapshot_date_in_mapping(lineage)
+    return None
+
+
+def _first_snapshot_date_in_mapping(lineage: dict[str, Any]) -> str | None:
+    for value in lineage.values():
+        if isinstance(value, str):
+            match = _SNAPSHOT_DATE_PATTERN.search(value)
+            if match:
+                return match.group(0)
+    return None
 
 
 def extract_reporting_currency(request: dict[str, Any]) -> str | None:
@@ -207,13 +223,29 @@ def bounded_tenant_id(value: Any) -> str:
 
 def report_status_path(status_url: Any) -> str | None:
     normalized = optional_string(status_url)
-    if normalized is None or any(ord(char) < 32 or ord(char) == 127 for char in normalized):
-        return None
-    if "?" in normalized or "#" in normalized:
-        return None
-    if not normalized.startswith("/reports/jobs/"):
+    if normalized is None or not _is_safe_report_status_path(normalized):
         return None
     return normalized
+
+
+def _is_safe_report_status_path(value: str) -> bool:
+    return (
+        not _contains_control_character(value)
+        and not _has_url_metadata(value)
+        and _is_lotus_report_job_status_path(value)
+    )
+
+
+def _contains_control_character(value: str) -> bool:
+    return any(ord(char) < 32 or ord(char) == 127 for char in value)
+
+
+def _has_url_metadata(value: str) -> bool:
+    return "?" in value or "#" in value
+
+
+def _is_lotus_report_job_status_path(value: str) -> bool:
+    return value.startswith("/reports/jobs/")
 
 
 def normalize_report_job_status(value: Any) -> str:
@@ -254,7 +286,7 @@ def bounded_identity(value: Any, *, default: str) -> str:
     if (
         normalized is None
         or len(normalized) > MAX_CORRELATION_ID_LENGTH
-        or any(ord(char) < 32 or ord(char) == 127 for char in normalized)
+        or _contains_control_character(normalized)
     ):
         return default
     return normalized

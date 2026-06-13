@@ -114,6 +114,8 @@ def test_mapping_bounds_headers_output_formats_and_status_paths() -> None:
     assert report_status_path("/reports/jobs/rjob_001") == "/reports/jobs/rjob_001"
     assert report_status_path("https://example.invalid/reports/jobs/rjob_001") is None
     assert report_status_path("/reports/jobs/rjob_001?token=secret") is None
+    assert report_status_path("/reports/jobs/rjob_001#fragment") is None
+    assert report_status_path("/reports/jobs/rjob_001\x7f") is None
 
 
 def test_find_first_key_value_preserves_depth_first_report_date_selection() -> None:
