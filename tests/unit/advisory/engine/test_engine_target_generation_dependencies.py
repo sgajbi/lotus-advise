@@ -6,6 +6,38 @@ from src.core import target_generation
 from src.core.models import DiagnosticsData, EngineOptions, ShelfEntry
 
 
+class _FakeSolverError(Exception):
+    pass
+
+
+class _FakeCp:
+    OSQP = "OSQP"
+    SCS = "SCS"
+    SolverError = _FakeSolverError
+
+    def __init__(self, installed: list[str] | None = None) -> None:
+        self._installed = installed
+
+    def installed_solvers(self) -> list[str]:
+        if self._installed is None:
+            raise AttributeError("installed solver discovery unavailable")
+        return self._installed
+
+
+class _FakeProblem:
+    def __init__(self, outcomes: list[str | type[Exception]]) -> None:
+        self.outcomes = outcomes
+        self.status: str | None = None
+        self.calls: list[dict[str, object]] = []
+
+    def solve(self, **kwargs: object) -> None:
+        self.calls.append(kwargs)
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            raise outcome("solver attempt failed")
+        self.status = outcome
+
+
 def test_load_target_solver_dependencies_returns_none_when_solver_stack_is_unavailable(
     monkeypatch,
 ):
@@ -60,6 +92,51 @@ def test_generate_targets_solver_blocks_with_diagnostic_when_solver_stack_is_una
     assert targets == []
     assert status == "BLOCKED"
     assert diagnostics.warnings == ["SOLVER_ERROR"]
+
+
+def test_solve_with_fallbacks_skips_unavailable_installed_solver() -> None:
+    cp = _FakeCp(installed=["SCS"])
+    prob = _FakeProblem(outcomes=["optimal"])
+
+    solved, latest_status = target_generation._solve_with_fallbacks(prob, cp)
+
+    assert solved is True
+    assert latest_status == "optimal"
+    assert [call["solver"] for call in prob.calls] == ["SCS"]
+
+
+def test_solve_with_fallbacks_tries_compatibility_kwargs_after_type_error() -> None:
+    cp = _FakeCp(installed=["OSQP"])
+    prob = _FakeProblem(outcomes=[TypeError, "optimal_inaccurate"])
+
+    solved, latest_status = target_generation._solve_with_fallbacks(prob, cp)
+
+    assert solved is True
+    assert latest_status == "optimal_inaccurate"
+    assert len(prob.calls) == 2
+    assert "time_limit" in prob.calls[0]
+    assert "time_limit" not in prob.calls[1]
+
+
+def test_solve_with_fallbacks_continues_after_solver_error() -> None:
+    cp = _FakeCp(installed=["OSQP"])
+    prob = _FakeProblem(outcomes=[_FakeSolverError, "optimal"])
+
+    solved, latest_status = target_generation._solve_with_fallbacks(prob, cp)
+
+    assert solved is True
+    assert latest_status == "optimal"
+    assert len(prob.calls) == 2
+
+
+def test_solve_with_fallbacks_returns_latest_non_optimal_status() -> None:
+    cp = _FakeCp(installed=["OSQP"])
+    prob = _FakeProblem(outcomes=["infeasible", "unbounded", ValueError, TypeError])
+
+    solved, latest_status = target_generation._solve_with_fallbacks(prob, cp)
+
+    assert solved is False
+    assert latest_status == "unbounded"
 
 
 def test_collect_infeasibility_hints_reports_cash_band_and_capacity_limits() -> None:
