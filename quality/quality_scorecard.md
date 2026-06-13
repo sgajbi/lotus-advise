@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
 - Branch: `harden/source-b-hotspots`
-- Head: `b03ac50e4bace3efcff4653aeaf764f7a86bdc32`
+- Head: `047d7581baccaf1d35fb1abacc13e570ac2384a0`
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |
@@ -28,8 +28,8 @@
 
 | Area | Before | After | Improvement Evidence |
 | --- | --- | --- | --- |
-| Complexity | Radon and Xenon tracked as pending report-only tools. | Radon config executable; inventory `A=3364, B=191`; worst block `B/10`; no E/F gate enforced through `make lint`. | Complexity is now measured repeatably and regression-blocked for E/F-ranked blocks. |
-| Maintainability | Review ledger existed but recent proposal, policy-pack, OpenAPI, proof-material, dependency-linking, and observability slices were absent. | Review ledger includes `LA-REV-611` through `LA-REV-785` with scoped findings, evidence, and follow-up. | Modularization and hotspot reductions are traceable by owner boundary and test evidence. |
+| Complexity | Radon and Xenon tracked as pending report-only tools. | Radon config executable; inventory `A=3371, B=190`; worst block `B/10`; no E/F gate enforced through `make lint`. | Complexity is now measured repeatably and regression-blocked for E/F-ranked blocks. |
+| Maintainability | Review ledger existed but recent proposal, policy-pack, OpenAPI, proof-material, dependency-linking, and observability slices were absent. | Review ledger includes `LA-REV-611` through `LA-REV-786` with scoped findings, evidence, and follow-up. | Modularization and hotspot reductions are traceable by owner boundary and test evidence. |
 | OpenAPI quality | Spectral rules were present but report-only until Node/Spectral execution was added to CI. | Spectral config executable; OpenAPI path inventory `84`; current Spectral issue inventory `0`; enforced through `make openapi-gate`. | OpenAPI quality moved from report-only posture to enforced zero-finding gate. |
 | Architecture boundaries | Import-linter contracts were present but report-only pending installation and baseline. | Import-linter inventory `total=3, kept=3, broken=0`; architecture contracts run inside `make lint`. | Layering contracts are now executable and locally enforced. |
 | Tests | Unit suite existed; new focused refactor regressions were absent. | Unit suite now has `1952` passing tests in `make check`; added focused tests for OpenAPI enrichment, proof refs, source refs, dependency linking, capability dependency diagnostics, observability request-id normalization, and structured logging. | Refactors are covered by behavior-preserving regression tests. |
