@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from copy import deepcopy
 from threading import Lock
 
 from src.core.advisory_copilot.idempotency_records import AdvisoryCopilotRunIdempotencyRecord
 from src.core.advisory_copilot.packet_records import AdvisoryCopilotEvidencePacketRecord
 from src.core.advisory_copilot.pagination import (
+    AdvisoryCopilotRunCursor,
     decode_copilot_run_cursor,
     encode_copilot_run_cursor,
     run_is_after_cursor,
@@ -13,6 +15,9 @@ from src.core.advisory_copilot.pagination import (
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
+from src.core.advisory_copilot.source_projection_packets import (
+    can_refresh_source_projection_packet,
+)
 
 
 class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):
@@ -31,7 +36,7 @@ class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):
             existing = self._evidence_packets.get(record.evidence_packet_id)
             if existing is not None:
                 if existing.evidence_packet_hash != record.evidence_packet_hash:
-                    if not _can_refresh_source_projection_packet(
+                    if not can_refresh_source_projection_packet(
                         existing=existing,
                         incoming=record,
                     ):
@@ -166,21 +171,66 @@ class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):
     ) -> tuple[list[AdvisoryCopilotRunRecord], str | None]:
         decoded_cursor = decode_copilot_run_cursor(cursor)
         with self._lock:
-            runs = [
-                run
-                for run in self._runs.values()
-                if run.proposal_id == proposal_id
-                and _matches_proposal_version(
-                    run=run,
-                    proposal_version_id=proposal_version_id,
-                    proposal_version_no=proposal_version_no,
-                )
-                and run_is_after_cursor(run, decoded_cursor)
-            ]
-        runs.sort(key=lambda run: (run.created_at, run.run_id), reverse=True)
-        page = runs[:limit]
-        next_cursor = encode_copilot_run_cursor(page[-1]) if len(runs) > limit and page else None
-        return [deepcopy(run) for run in page], next_cursor
+            runs = _runs_for_proposal_version(
+                runs=self._runs.values(),
+                proposal_id=proposal_id,
+                proposal_version_id=proposal_version_id,
+                proposal_version_no=proposal_version_no,
+                cursor=decoded_cursor,
+            )
+        return _copilot_run_page(runs=runs, limit=limit)
+
+
+def _runs_for_proposal_version(
+    *,
+    runs: Iterable[AdvisoryCopilotRunRecord],
+    proposal_id: str,
+    proposal_version_id: str | None,
+    proposal_version_no: int | None,
+    cursor: AdvisoryCopilotRunCursor | None,
+) -> list[AdvisoryCopilotRunRecord]:
+    matched_runs = [
+        run
+        for run in runs
+        if _matches_run_filter(
+            run=run,
+            proposal_id=proposal_id,
+            proposal_version_id=proposal_version_id,
+            proposal_version_no=proposal_version_no,
+            cursor=cursor,
+        )
+    ]
+    matched_runs.sort(key=lambda run: (run.created_at, run.run_id), reverse=True)
+    return matched_runs
+
+
+def _matches_run_filter(
+    *,
+    run: AdvisoryCopilotRunRecord,
+    proposal_id: str,
+    proposal_version_id: str | None,
+    proposal_version_no: int | None,
+    cursor: AdvisoryCopilotRunCursor | None,
+) -> bool:
+    return bool(
+        run.proposal_id == proposal_id
+        and _matches_proposal_version(
+            run=run,
+            proposal_version_id=proposal_version_id,
+            proposal_version_no=proposal_version_no,
+        )
+        and run_is_after_cursor(run, cursor)
+    )
+
+
+def _copilot_run_page(
+    *,
+    runs: list[AdvisoryCopilotRunRecord],
+    limit: int,
+) -> tuple[list[AdvisoryCopilotRunRecord], str | None]:
+    page = runs[:limit]
+    next_cursor = encode_copilot_run_cursor(page[-1]) if len(runs) > limit and page else None
+    return [deepcopy(run) for run in page], next_cursor
 
 
 def _matches_proposal_version(
@@ -205,22 +255,4 @@ def _run_idempotency_conflicts(
 ) -> bool:
     return bool(
         existing.request_hash != incoming.request_hash or existing.run_id != incoming_run_id
-    )
-
-
-def _can_refresh_source_projection_packet(
-    *,
-    existing: AdvisoryCopilotEvidencePacketRecord,
-    incoming: AdvisoryCopilotEvidencePacketRecord,
-) -> bool:
-    return bool(
-        existing.reason_json.get("source_projection") == "PROPOSAL_VERSION"
-        and incoming.reason_json.get("source_projection") == "PROPOSAL_VERSION"
-        and existing.reason_json.get("proposal_id") == incoming.reason_json.get("proposal_id")
-        and existing.reason_json.get("proposal_version_no")
-        == incoming.reason_json.get("proposal_version_no")
-        and existing.action_family == incoming.action_family
-        and existing.audience == incoming.audience
-        and existing.portfolio_id == incoming.portfolio_id
-        and existing.proposal_id == incoming.proposal_id
     )

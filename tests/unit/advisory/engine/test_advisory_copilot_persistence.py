@@ -439,11 +439,76 @@ def test_postgres_repository_record_mapping_stays_in_focused_module() -> None:
         "review_from_row",
         "json_dump",
         "json_load",
-        "can_refresh_source_projection_packet",
     ):
         assert f"def {helper_name}" not in postgres_source
         assert f"def {helper_name}" in records_source
     assert "from src.infrastructure.advisory_copilot.postgres_records import" in postgres_source
+
+
+def test_source_projection_packet_refresh_policy_stays_in_core_module() -> None:
+    import src.core.advisory_copilot.source_projection_packets as policy_module
+    import src.infrastructure.advisory_copilot.in_memory as in_memory_module
+    import src.infrastructure.advisory_copilot.postgres as postgres_module
+    import src.infrastructure.advisory_copilot.postgres_records as postgres_records_module
+
+    policy_source = Path(policy_module.__file__).read_text(encoding="utf-8")
+    postgres_records_source = Path(postgres_records_module.__file__).read_text(encoding="utf-8")
+    in_memory_source = Path(in_memory_module.__file__).read_text(encoding="utf-8")
+    postgres_source = Path(postgres_module.__file__).read_text(encoding="utf-8")
+
+    assert "def can_refresh_source_projection_packet" in policy_source
+    assert "def can_refresh_source_projection_packet" not in postgres_records_source
+    assert "def _can_refresh_source_projection_packet" not in in_memory_source
+    assert "from src.core.advisory_copilot.source_projection_packets import" in in_memory_source
+    assert "from src.core.advisory_copilot.source_projection_packets import" in postgres_source
+
+
+def test_source_projection_packet_refresh_policy_requires_same_source_and_identity() -> None:
+    from src.core.advisory_copilot.source_projection_packets import (
+        can_refresh_source_projection_packet,
+    )
+
+    reason = {
+        "source_projection": "PROPOSAL_VERSION",
+        "proposal_id": "proposal_sg_structured_note_001",
+        "proposal_version_no": 1,
+    }
+    record = AdvisoryCopilotEvidencePacketRecord(
+        evidence_packet_id="copilot_packet_source_projection_001",
+        evidence_packet_hash="sha256:source-projection-001",
+        action_family="PROPOSAL_EXPLANATION",
+        audience="ADVISOR",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        proposal_id="proposal_sg_structured_note_001",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
+        correlation_id="corr_rfc0027_packet_001",
+        packet_json={"evidence_packet_id": "copilot_packet_source_projection_001"},
+        reason_json=reason,
+    )
+
+    assert can_refresh_source_projection_packet(
+        existing=record,
+        incoming=record.model_copy(update={"evidence_packet_hash": "sha256:refreshed"}),
+    )
+    assert not can_refresh_source_projection_packet(
+        existing=record,
+        incoming=record.model_copy(
+            update={
+                "evidence_packet_hash": "sha256:different-version",
+                "reason_json": reason | {"proposal_version_no": 2},
+            }
+        ),
+    )
+    assert not can_refresh_source_projection_packet(
+        existing=record,
+        incoming=record.model_copy(
+            update={
+                "evidence_packet_hash": "sha256:different-audience",
+                "audience": "CLIENT",
+            }
+        ),
+    )
 
 
 def test_advisory_copilot_service_is_pure_compatibility_facade() -> None:
