@@ -795,6 +795,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  currency-alignment, and deferred restricted-product modules.",
         "- Alternative sellable-position selection delegates blocked-position eligibility and",
         "  currency filtering to focused predicates while preserving rank ordering.",
+        "- Alternative baseline-trade reduction delegates trade adjustability and",
+        "  quantity/notional payload shaping to focused helpers.",
         "- Proposal alternatives models are split into vocabulary, request-validation,",
         "  response/evidence, and compatibility facade modules.",
         "- Proposal alternatives projection delegates request-to-strategy input mapping",
@@ -1107,7 +1109,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-794` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-796` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

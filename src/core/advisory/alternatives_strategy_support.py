@@ -162,39 +162,56 @@ def first_synthetic_buy_candidate(
 def first_adjustable_trade(
     trades: tuple[StrategyTradeIntent, ...],
 ) -> StrategyTradeIntent | None:
-    for trade in trades:
-        if (trade.quantity is not None and trade.quantity > Decimal("1")) or (
-            trade.notional_amount is not None and trade.notional_amount > Decimal("0.01")
-        ):
-            return trade
-    return None
+    return next((trade for trade in trades if trade_is_adjustable(trade)), None)
+
+
+def trade_is_adjustable(trade: StrategyTradeIntent) -> bool:
+    return quantity_trade_is_adjustable(trade) or notional_trade_is_adjustable(trade)
+
+
+def quantity_trade_is_adjustable(trade: StrategyTradeIntent) -> bool:
+    return trade.quantity is not None and trade.quantity > Decimal("1")
+
+
+def notional_trade_is_adjustable(trade: StrategyTradeIntent) -> bool:
+    return trade.notional_amount is not None and trade.notional_amount > _MONEY_STEP
 
 
 def reduced_trade_payload(trade: StrategyTradeIntent) -> dict[str, object] | None:
     if trade.quantity is not None:
-        reduced_quantity = half_quantity(trade.quantity)
-        if reduced_quantity is None:
-            return None
-        return {
-            "intent_type": "SECURITY_TRADE",
-            "side": trade.side,
-            "instrument_id": trade.instrument_id,
-            "quantity": decimal_string(reduced_quantity),
-        }
-    if trade.notional_amount is not None and trade.notional_currency is not None:
-        reduced_notional = half_money(trade.notional_amount)
-        if reduced_notional is None:
-            return None
-        return {
-            "intent_type": "SECURITY_TRADE",
-            "side": trade.side,
-            "instrument_id": trade.instrument_id,
-            "notional": {
-                "amount": decimal_string(reduced_notional),
-                "currency": trade.notional_currency,
-            },
-        }
-    return None
+        return reduced_quantity_trade_payload(trade)
+    return reduced_notional_trade_payload(trade)
+
+
+def reduced_quantity_trade_payload(trade: StrategyTradeIntent) -> dict[str, object] | None:
+    if trade.quantity is None:
+        return None
+    reduced_quantity = half_quantity(trade.quantity)
+    if reduced_quantity is None:
+        return None
+    return {
+        "intent_type": "SECURITY_TRADE",
+        "side": trade.side,
+        "instrument_id": trade.instrument_id,
+        "quantity": decimal_string(reduced_quantity),
+    }
+
+
+def reduced_notional_trade_payload(trade: StrategyTradeIntent) -> dict[str, object] | None:
+    if trade.notional_amount is None or trade.notional_currency is None:
+        return None
+    reduced_notional = half_money(trade.notional_amount)
+    if reduced_notional is None:
+        return None
+    return {
+        "intent_type": "SECURITY_TRADE",
+        "side": trade.side,
+        "instrument_id": trade.instrument_id,
+        "notional": {
+            "amount": decimal_string(reduced_notional),
+            "currency": trade.notional_currency,
+        },
+    }
 
 
 def position_rank_value(position: StrategyPosition) -> Decimal:
