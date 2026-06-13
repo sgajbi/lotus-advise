@@ -73,6 +73,8 @@
   and security-id normalization to focused helpers.
 - Lotus Core stateful-context dated-row selection delegates malformed-row
   filtering, as-of eligibility, and future-row fallback to focused helpers.
+- Proposal narrative product-type policy delegates shelf-entry attribute
+  evidence, asset-class mapping, and FX evidence inference to focused helpers.
 - Proposal memo foundational sections are split into focused per-section builders
   outside the shared memo section group coordinator.
 - Proposal memo foundational sections delegate summary extraction and value
