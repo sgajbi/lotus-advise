@@ -1297,6 +1297,17 @@ def test_in_memory_repository_rejects_direct_conflicts_and_missing_updates() -> 
             idempotency=None,
         )
 
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT"):
+        repository.save_run_with_idempotency(
+            run=run.model_copy(update={"run_id": "copilot_run_conflicting_replay"}),
+            idempotency=AdvisoryCopilotRunIdempotencyRecord(
+                idempotency_key="copilot-action-idem-001",
+                request_hash=run.request_hash,
+                run_id="copilot_run_conflicting_replay",
+                created_at=datetime(2026, 5, 28, 9, 10, tzinfo=timezone.utc),
+            ),
+        )
+
     missing_run = run.model_copy(update={"run_id": "copilot_run_missing"})
     with pytest.raises(ValueError, match="COPILOT_RUN_NOT_FOUND"):
         repository.update_run(missing_run)

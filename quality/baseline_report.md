@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-13T13:11:54.358139+00:00`
+- Generated At: `2026-06-13T13:29:22.962279+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `935`
 - Packages: `38`
 - Modules: `897`
-- Total Python lines: `147650`
+- Total Python lines: `147702`
 
 ## Largest Files
 
@@ -22,9 +22,9 @@
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2538 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1935 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
-| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
+| 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1602 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1308 |
+| 9 | `scripts/quality_baseline_report.py` | 1310 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1197 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -32,7 +32,7 @@
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
-| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 718 | 340 |
+| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 718 | 342 |
 | 3 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
 | 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3717`
-- Radon complexity rank inventory: `A=3563, B=154`
+- Radon analyzed block inventory: `3724`
+- Radon complexity rank inventory: `A=3572, B=152`
 - Radon worst complexity: `rank=B, complexity=9`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -119,7 +119,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4103, missing=4068, covered=35, coverage=0.9%`
+- Interrogate docstring inventory: `total=4107, missing=4072, covered=35, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
