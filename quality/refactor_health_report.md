@@ -242,6 +242,9 @@
   idempotency, version, and replay views to a focused service boundary.
 - Proposal workflow command operations delegate create, version, transition, and
   approval commands to a focused service boundary.
+- Async operation replay evidence delegates proposal-version-backed replay,
+  operation-only diagnostics, subject continuity, and runtime evidence projection
+  to focused helpers.
 - Policy evaluation persistence delegates lineage/posture projection and audit-event
   attachment mapping to a focused projection module.
 - Policy evaluation persistence delegates replay hash comparison and replay response

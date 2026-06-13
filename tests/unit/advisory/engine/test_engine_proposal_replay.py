@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
 
 from src.core.proposals.models import (
+    ProposalAsyncOperationRecord,
     ProposalRecord,
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
 )
 from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
+from src.core.replay.service import build_async_operation_replay_response
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 
@@ -59,6 +61,30 @@ def _event(event_id: str, related_version_no: int | None = 1) -> ProposalWorkflo
     )
 
 
+def _async_operation(
+    *,
+    proposal_id: str | None = "pp_replay",
+    status: str = "SUCCEEDED",
+) -> ProposalAsyncOperationRecord:
+    return ProposalAsyncOperationRecord(
+        operation_id="pop_replay_1",
+        operation_type="CREATE_PROPOSAL_VERSION",
+        status=status,
+        correlation_id="corr_replay",
+        idempotency_key="idem_replay",
+        proposal_id=proposal_id,
+        created_by="advisor_replay",
+        created_at=_now(),
+        payload_json={"proposal_id": proposal_id, "request_hash": "sha256:req-replay"},
+        attempt_count=2,
+        max_attempts=3,
+        started_at=_now(),
+        finished_at=_now(),
+        result_json={"version": {"version_no": 1}},
+        error_json={"code": "UPSTREAM_RETRYABLE"},
+    )
+
+
 def test_load_proposal_version_replay_referents_returns_complete_replay_context():
     repository = InMemoryProposalRepository()
     repository.create_proposal(_proposal())
@@ -104,3 +130,64 @@ def test_load_proposal_version_replay_referents_preserves_missing_version_bounda
     assert referents.proposal is not None
     assert referents.version is None
     assert referents.events == []
+
+
+def test_build_async_operation_replay_response_links_terminal_proposal_version():
+    response = build_async_operation_replay_response(
+        operation=_async_operation(),
+        proposal=_proposal(),
+        version=_version(),
+        events=[_event("pwe_replay_1")],
+    )
+
+    assert response.subject.scope == "ASYNC_OPERATION"
+    assert response.subject.proposal_id == "pp_replay"
+    assert response.subject.proposal_version_id == "ppv_replay_1"
+    assert response.subject.operation_id == "pop_replay_1"
+    assert response.continuity.async_operation_id == "pop_replay_1"
+    assert response.continuity.async_operation_type == "CREATE_PROPOSAL_VERSION"
+    assert response.continuity.correlation_id == "corr_replay"
+    assert response.continuity.idempotency_key == "idem_replay"
+    assert response.hashes.request_hash == "sha256:req-replay"
+    assert response.hashes.simulation_hash == "sha256:sim-replay"
+    assert response.evidence["async_runtime"] == {
+        "status": "SUCCEEDED",
+        "attempt_count": 2,
+        "max_attempts": 3,
+        "created_at": "2026-05-21T10:00:00+00:00",
+        "started_at": "2026-05-21T10:00:00+00:00",
+        "finished_at": "2026-05-21T10:00:00+00:00",
+    }
+    assert "payload_json" not in response.evidence["async_runtime"]
+    assert response.explanation["source"] == "ASYNC_OPERATION_AND_PROPOSAL_VERSION"
+
+
+def test_build_async_operation_replay_response_preserves_operation_only_runtime_evidence():
+    response = build_async_operation_replay_response(
+        operation=_async_operation(proposal_id=None, status="FAILED"),
+        proposal=None,
+        version=None,
+        events=None,
+    )
+
+    assert response.subject.scope == "ASYNC_OPERATION"
+    assert response.subject.proposal_id is None
+    assert response.subject.operation_id == "pop_replay_1"
+    assert response.resolved_context is None
+    assert response.hashes.model_dump(exclude_none=True) == {}
+    assert response.continuity.async_operation_id == "pop_replay_1"
+    assert response.continuity.async_operation_type == "CREATE_PROPOSAL_VERSION"
+    assert response.evidence["async_runtime"] == {
+        "status": "FAILED",
+        "attempt_count": 2,
+        "max_attempts": 3,
+        "created_at": "2026-05-21T10:00:00+00:00",
+        "started_at": "2026-05-21T10:00:00+00:00",
+        "finished_at": "2026-05-21T10:00:00+00:00",
+        "payload_json": {"proposal_id": None, "request_hash": "sha256:req-replay"},
+        "error": {"code": "UPSTREAM_RETRYABLE"},
+    }
+    assert response.explanation == {
+        "source": "ASYNC_OPERATION_ONLY",
+        "continuity_status": "NO_TERMINAL_PROPOSAL_VERSION_AVAILABLE",
+    }
