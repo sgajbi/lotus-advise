@@ -771,6 +771,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  cash, drift, and suitability takeaways to focused summary helpers.",
         "- Shared valuation FX lookup delegates pair formatting, market-rate lookup,",
         "  decimal conversion, and inverse-rate handling to focused helpers.",
+        "- Lotus Core classification label resolution delegates taxonomy-record parsing,",
+        "  ungoverned fallback, governed dimension lookup, and label resolution to",
+        "  focused helpers.",
         "- Advisory auto-funding planning delegates FX source selection and missing-rate",
         "  diagnostics to a focused funding-selection module.",
         "- Policy source-readiness assembly is split into Lotus Core, product-policy,",
@@ -1116,7 +1119,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-804` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-805` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1144,8 +1147,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "tests cover OpenAPI enrichment, proof refs, source refs, dependency linking, "
             "capability dependency diagnostics, observability request-id normalization, "
             "structured logging, target-generation solver index construction, "
-            "target-generation solver fallback policy, runtime base URL safety, and "
-            "CI warning/topology contracts.",
+            "target-generation solver fallback policy, runtime base URL safety, Lotus Core "
+            "classification boundaries, and CI warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (

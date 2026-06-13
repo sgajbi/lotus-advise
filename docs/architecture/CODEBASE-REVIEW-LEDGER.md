@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-805
+
+- Scope: Lotus Core classification label resolution
+- Pattern: Source taxonomy parsing, ungoverned-label fallback, governed-dimension lookup, and
+  governed-label resolution should be named helpers instead of one branching integration utility.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, upstream taxonomy behavior preservation
+- Summary: `resolve_taxonomy_label` carried missing upstream labels, ungoverned taxonomy fallback,
+  missing governed dimension fallback, governed taxonomy match, and governed taxonomy miss behavior
+  in one B-ranked helper. The classification module now delegates taxonomy-record parsing,
+  ungoverned label selection, governed dimension lookup, and governed-label resolution to focused
+  helpers while preserving the existing source labels and reason-code semantics.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_core_classification.py tests/unit/advisory/api/test_lotus_core_stateful_context.py -q`
+    passed with 42 tests.
+  - `python -m ruff check src/integrations/lotus_core/classification.py tests/unit/advisory/api/test_lotus_core_classification.py`
+    passed.
+  - `python -m ruff format --check src/integrations/lotus_core/classification.py tests/unit/advisory/api/test_lotus_core_classification.py`
+    passed.
+  - `python -m mypy src/integrations/lotus_core/classification.py` passed.
+  - `python -m radon cc src/integrations/lotus_core/classification.py -s --min B --no-assert`
+    reports no B-ranked blocks.
+- Consequence:
+  - Lotus Core classification hydration remains behavior-compatible while the governed-taxonomy
+    source boundary is easier to audit and covered by direct regression tests.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal integration-boundary maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked upstream integration helpers where source-boundary reason codes and
+    fallback semantics can be locked by focused tests.
+
 ## LA-REV-804
 
 - Scope: Shared valuation FX lookup
