@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-813
+
+- Scope: Async operation replay response boundary
+- Pattern: Async replay evidence should separate proposal-version-backed replay projection from
+  operation-only runtime diagnostics instead of assembling both response shapes in one branch-heavy
+  helper.
+- Status: Hardened
+- Finding Class: Complexity, resilience evidence maintainability, replay behavior preservation
+- Summary: `build_async_operation_replay_response` combined proposal-version replay loading,
+  async subject mutation, continuity mutation, runtime evidence projection, operation-only
+  diagnostic payload projection, and explanation construction in one B/9 helper. The replay service
+  now delegates proposal-backed replay projection, operation-only replay projection, subject and
+  continuity patching, and async runtime evidence construction to focused helpers.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_replay.py -q` passed with 5
+    tests.
+  - `python -m ruff check src/core/replay/service.py tests/unit/advisory/engine/test_engine_proposal_replay.py`
+    passed.
+  - `python -m ruff format --check src/core/replay/service.py tests/unit/advisory/engine/test_engine_proposal_replay.py`
+    passed.
+  - `python -m mypy src/core/replay/service.py` passed.
+  - `python -m radon cc src/core/replay/service.py -s --min B --no-assert` no longer reports
+    `build_async_operation_replay_response`; the remaining B-ranked block in the module is
+    `_to_replay_resolved_context`.
+- Consequence:
+  - Async replay remains behavior-compatible while terminal proposal-version replay and
+    operation-only runtime diagnostics are easier to audit for recovery, supportability, and
+    sensitive-payload exposure boundaries.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal replay response hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing remaining B/9 hotspots in workspace draft actions, advisory-copilot
+    idempotency persistence, risk concentration request mapping, policy catalog activation, and
+    Lotus Core stateful-context route resolution before considering stricter B-ranked enforcement.
+
 ## LA-REV-812
 
 - Scope: Lotus Core simulation suitability classification adapter

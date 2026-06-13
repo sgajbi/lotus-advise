@@ -961,6 +961,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  idempotency, version, and replay views to a focused service boundary.",
         "- Proposal workflow command operations delegate create, version, transition, and",
         "  approval commands to a focused service boundary.",
+        "- Async operation replay evidence delegates proposal-version-backed replay,",
+        "  operation-only diagnostics, subject continuity, and runtime evidence projection",
+        "  to focused helpers.",
         "- Policy evaluation persistence delegates lineage/posture projection and audit-event",
         "  attachment mapping to a focused projection module.",
         "- Policy evaluation persistence delegates replay hash comparison and replay response",
@@ -1134,7 +1137,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-812` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-813` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

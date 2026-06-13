@@ -144,50 +144,56 @@ def build_async_operation_replay_response(
     version: Optional[ProposalVersionRecord],
     events: list[ProposalWorkflowEventRecord] | None = None,
 ) -> AdvisoryReplayEvidenceResponse:
-    proposal_replay = (
-        build_proposal_version_replay_response(
-            proposal=proposal,
-            version=version,
-            events=events or [],
-        )
-        if proposal is not None and version is not None
-        else None
+    proposal_replay = _proposal_replay_response(
+        proposal=proposal,
+        version=version,
+        events=events,
     )
     if proposal_replay is not None:
-        subject = proposal_replay.subject.model_copy(
-            update={
-                "scope": "ASYNC_OPERATION",
-                "operation_id": operation.operation_id,
-            }
+        return _async_operation_with_proposal_replay_response(
+            operation=operation,
+            proposal_replay=proposal_replay,
         )
-        continuity = proposal_replay.continuity.model_copy(
-            update={
-                "async_operation_id": operation.operation_id,
-                "async_operation_type": operation.operation_type,
-                "correlation_id": operation.correlation_id,
-                "idempotency_key": operation.idempotency_key,
-            }
-        )
-        evidence = dict(proposal_replay.evidence)
-        evidence["async_runtime"] = {
-            "status": operation.status,
-            "attempt_count": operation.attempt_count,
-            "max_attempts": operation.max_attempts,
-            "created_at": operation.created_at.isoformat(),
-            "started_at": operation.started_at.isoformat() if operation.started_at else None,
-            "finished_at": operation.finished_at.isoformat() if operation.finished_at else None,
-        }
-        explanation = dict(proposal_replay.explanation)
-        explanation["source"] = "ASYNC_OPERATION_AND_PROPOSAL_VERSION"
-        return AdvisoryReplayEvidenceResponse(
-            subject=subject,
-            resolved_context=proposal_replay.resolved_context,
-            hashes=proposal_replay.hashes,
-            continuity=continuity,
-            evidence=evidence,
-            explanation=explanation,
-        )
+    return _async_operation_only_replay_response(operation)
 
+
+def _proposal_replay_response(
+    *,
+    proposal: Optional[ProposalRecord],
+    version: Optional[ProposalVersionRecord],
+    events: list[ProposalWorkflowEventRecord] | None,
+) -> AdvisoryReplayEvidenceResponse | None:
+    if proposal is None or version is None:
+        return None
+    return build_proposal_version_replay_response(
+        proposal=proposal,
+        version=version,
+        events=events or [],
+    )
+
+
+def _async_operation_with_proposal_replay_response(
+    *,
+    operation: ProposalAsyncOperationRecord,
+    proposal_replay: AdvisoryReplayEvidenceResponse,
+) -> AdvisoryReplayEvidenceResponse:
+    evidence = dict(proposal_replay.evidence)
+    evidence["async_runtime"] = _async_runtime_evidence(operation)
+    explanation = dict(proposal_replay.explanation)
+    explanation["source"] = "ASYNC_OPERATION_AND_PROPOSAL_VERSION"
+    return AdvisoryReplayEvidenceResponse(
+        subject=_async_operation_subject(operation, proposal_replay),
+        resolved_context=proposal_replay.resolved_context,
+        hashes=proposal_replay.hashes,
+        continuity=_async_operation_continuity(operation, proposal_replay),
+        evidence=evidence,
+        explanation=explanation,
+    )
+
+
+def _async_operation_only_replay_response(
+    operation: ProposalAsyncOperationRecord,
+) -> AdvisoryReplayEvidenceResponse:
     return AdvisoryReplayEvidenceResponse(
         subject=AdvisoryReplaySubject(
             scope="ASYNC_OPERATION",
@@ -203,22 +209,67 @@ def build_async_operation_replay_response(
             idempotency_key=operation.idempotency_key,
         ),
         evidence={
-            "async_runtime": {
-                "status": operation.status,
-                "attempt_count": operation.attempt_count,
-                "max_attempts": operation.max_attempts,
-                "created_at": operation.created_at.isoformat(),
-                "started_at": operation.started_at.isoformat() if operation.started_at else None,
-                "finished_at": operation.finished_at.isoformat() if operation.finished_at else None,
-                "payload_json": operation.payload_json,
-                "error": operation.error_json,
-            }
+            "async_runtime": _async_runtime_evidence(
+                operation,
+                include_payload=True,
+            )
         },
         explanation={
             "source": "ASYNC_OPERATION_ONLY",
             "continuity_status": "NO_TERMINAL_PROPOSAL_VERSION_AVAILABLE",
         },
     )
+
+
+def _async_operation_subject(
+    operation: ProposalAsyncOperationRecord,
+    proposal_replay: AdvisoryReplayEvidenceResponse,
+) -> AdvisoryReplaySubject:
+    return cast(
+        AdvisoryReplaySubject,
+        proposal_replay.subject.model_copy(
+            update={
+                "scope": "ASYNC_OPERATION",
+                "operation_id": operation.operation_id,
+            }
+        ),
+    )
+
+
+def _async_operation_continuity(
+    operation: ProposalAsyncOperationRecord,
+    proposal_replay: AdvisoryReplayEvidenceResponse,
+) -> AdvisoryReplayContinuity:
+    return cast(
+        AdvisoryReplayContinuity,
+        proposal_replay.continuity.model_copy(
+            update={
+                "async_operation_id": operation.operation_id,
+                "async_operation_type": operation.operation_type,
+                "correlation_id": operation.correlation_id,
+                "idempotency_key": operation.idempotency_key,
+            }
+        ),
+    )
+
+
+def _async_runtime_evidence(
+    operation: ProposalAsyncOperationRecord,
+    *,
+    include_payload: bool = False,
+) -> dict[str, Any]:
+    evidence: dict[str, Any] = {
+        "status": operation.status,
+        "attempt_count": operation.attempt_count,
+        "max_attempts": operation.max_attempts,
+        "created_at": operation.created_at.isoformat(),
+        "started_at": operation.started_at.isoformat() if operation.started_at else None,
+        "finished_at": operation.finished_at.isoformat() if operation.finished_at else None,
+    }
+    if include_payload:
+        evidence["payload_json"] = operation.payload_json
+        evidence["error"] = operation.error_json
+    return evidence
 
 
 def _to_replay_resolved_context(
