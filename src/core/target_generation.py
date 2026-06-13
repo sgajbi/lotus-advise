@@ -372,9 +372,10 @@ def _append_group_constraints(
         if not exposure.tradeable_ids and exposure.locked_weight == Decimal("0"):
             continue
 
+        group_locked_weight = exposure.locked_weight
         group_expr = cp.sum(
             [w[solver_index.indexed_tradeable[i_id]] for i_id in exposure.tradeable_ids]
-        ) + float(exposure.locked_weight)
+        ) + float(group_locked_weight)
         constraints.append(group_expr <= float(constraint.max_weight))
 
 
