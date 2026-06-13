@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-785
+
+- Scope: Memo source-readiness product evidence evaluation
+- Pattern: Product source-readiness checks should separate row validation, nested attribute
+  extraction, eligibility evidence lookup, and complexity evidence lookup.
+- Status: Hardened
+- Finding Class: Memo source-readiness modularity and source-evidence coverage
+- Summary: `_all_products_have_eligibility_and_complexity` mixed shelf-row type validation,
+  attributes extraction, eligibility detection, product complexity detection, and aggregate
+  all-products policy in one B/10 helper. This path controls whether advisor-use memo source
+  readiness is ready or pending based on source-owner product eligibility and complexity evidence,
+  so splitting row-level evidence helpers makes the policy easier to audit without changing direct
+  field handling, nested `attributes` fallback, pending-review posture, or reason-code behavior.
+- Evidence:
+  - Extracted row-level product evidence validation, nested attributes extraction, eligibility
+    lookup, and complexity lookup behind the existing source-readiness section builder.
+  - Added focused coverage proving nested `attributes.eligibility` plus
+    `attributes.product_complexity` is accepted, and missing product complexity keeps the section
+    in `PENDING_REVIEW` with existing missing-evidence and reason-code output.
+  - Radon no longer reports `_all_products_have_eligibility_and_complexity` as B-ranked; the module
+    is bounded to one unrelated `B/6` helper.
+  - Focused memo source-readiness tests passed with 7 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Memo source-readiness product gating remains behavior-compatible while source evidence handling
+    is smaller, named, and covered by direct regression tests.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal memo
+    source-readiness maintainability hardening for existing advisor-use memo behavior.
+- Follow-Up:
+  - Continue reducing B-ranked target-generation, decision-summary missing-evidence, stateful
+    context hydration, and recoverable-operation helpers with focused behavior-preservation tests.
+
 ## LA-REV-784
 
 - Scope: Reviewed narrative report-package section projection

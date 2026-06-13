@@ -271,20 +271,36 @@ def _product_source_reasons(*, shelf_entries: list[Any], proposed_trades: list[A
 
 def _all_products_have_eligibility_and_complexity(rows: list[Any]) -> bool:
     for row in rows:
-        if not isinstance(row, dict):
-            return False
-        raw_attributes = row.get("attributes")
-        attributes: dict[str, Any] = raw_attributes if isinstance(raw_attributes, dict) else {}
-        has_eligibility = bool(row.get("eligibility") or attributes.get("eligibility"))
-        has_complexity = bool(
-            row.get("complexity")
-            or row.get("product_complexity")
-            or attributes.get("complexity")
-            or attributes.get("product_complexity")
-        )
-        if not has_eligibility or not has_complexity:
+        if not _product_has_eligibility_and_complexity(row):
             return False
     return True
+
+
+def _product_has_eligibility_and_complexity(row: Any) -> bool:
+    if not isinstance(row, dict):
+        return False
+    attributes = _product_attributes(row)
+    return bool(_product_eligibility(row, attributes)) and bool(
+        _product_complexity(row, attributes)
+    )
+
+
+def _product_attributes(row: dict[str, Any]) -> dict[str, Any]:
+    raw_attributes = row.get("attributes")
+    return raw_attributes if isinstance(raw_attributes, dict) else {}
+
+
+def _product_eligibility(row: dict[str, Any], attributes: dict[str, Any]) -> Any:
+    return row.get("eligibility") or attributes.get("eligibility")
+
+
+def _product_complexity(row: dict[str, Any], attributes: dict[str, Any]) -> Any:
+    return (
+        row.get("complexity")
+        or row.get("product_complexity")
+        or attributes.get("complexity")
+        or attributes.get("product_complexity")
+    )
 
 
 __all__ = ["build_core_memo_source_sections"]
