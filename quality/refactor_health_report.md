@@ -52,6 +52,9 @@
   cash, drift, and suitability takeaways to focused summary helpers.
 - Shared valuation FX lookup delegates pair formatting, market-rate lookup,
   decimal conversion, and inverse-rate handling to focused helpers.
+- Lotus Core classification label resolution delegates taxonomy-record parsing,
+  ungoverned fallback, governed dimension lookup, and label resolution to
+  focused helpers.
 - Advisory auto-funding planning delegates FX source selection and missing-rate
   diagnostics to a focused funding-selection module.
 - Policy source-readiness assembly is split into Lotus Core, product-policy,

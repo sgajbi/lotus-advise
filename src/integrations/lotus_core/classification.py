@@ -24,21 +24,33 @@ def classification_key(value: Any) -> str:
 
 def parse_classification_taxonomy(payload: dict[str, Any]) -> ClassificationTaxonomy:
     labels_by_dimension: dict[str, dict[str, str]] = {}
-    records = payload.get("records")
-    if not isinstance(records, list):
-        records = []
-    for record in records:
-        if not isinstance(record, dict):
+    for record in _classification_taxonomy_records(payload):
+        parsed_record = _classification_taxonomy_record(record)
+        if parsed_record is None:
             continue
-        dimension_name = classification_key(record.get("dimension_name"))
-        dimension_value = classification_key(record.get("dimension_value"))
-        if not dimension_name or not dimension_value:
-            continue
+        dimension_name, dimension_value = parsed_record
         labels_by_dimension.setdefault(dimension_name, {})[dimension_value] = dimension_value
     return ClassificationTaxonomy(
         labels_by_dimension=labels_by_dimension,
         taxonomy_version=normalized_optional_str(payload.get("taxonomy_version")),
     )
+
+
+def _classification_taxonomy_records(payload: dict[str, Any]) -> list[Any]:
+    records = payload.get("records")
+    if not isinstance(records, list):
+        return []
+    return records
+
+
+def _classification_taxonomy_record(record: Any) -> tuple[str, str] | None:
+    if not isinstance(record, dict):
+        return None
+    dimension_name = classification_key(record.get("dimension_name"))
+    dimension_value = classification_key(record.get("dimension_value"))
+    if not dimension_name or not dimension_value:
+        return None
+    return dimension_name, dimension_value
 
 
 def resolve_taxonomy_label(
@@ -52,16 +64,47 @@ def resolve_taxonomy_label(
     raw_label = classification_key(raw_value)
     if not raw_label:
         return "UNKNOWN", "missing_upstream_label"
-    if taxonomy is None or not taxonomy.labels_by_dimension:
-        return raw_display_label if preserve_raw_when_ungoverned else raw_label, None
 
-    dimension_key = classification_key(dimension_name)
-    governed_labels = taxonomy.labels_by_dimension.get(dimension_key)
-    if not governed_labels:
+    if _taxonomy_is_unavailable(taxonomy):
+        return _ungoverned_label(raw_display_label, raw_label, preserve_raw_when_ungoverned), None
+
+    governed_labels = _governed_dimension_labels(taxonomy, dimension_name)
+    if governed_labels is None:
         return (
-            raw_display_label if preserve_raw_when_ungoverned else raw_label,
+            _ungoverned_label(raw_display_label, raw_label, preserve_raw_when_ungoverned),
             "local_fallback_no_governed_taxonomy_dimension",
         )
+
+    return _resolved_governed_label(raw_label, governed_labels)
+
+
+def _taxonomy_is_unavailable(taxonomy: ClassificationTaxonomy | None) -> bool:
+    return taxonomy is None or not taxonomy.labels_by_dimension
+
+
+def _ungoverned_label(
+    raw_display_label: str,
+    raw_label: str,
+    preserve_raw_when_ungoverned: bool,
+) -> str:
+    if preserve_raw_when_ungoverned:
+        return raw_display_label
+    return raw_label
+
+
+def _governed_dimension_labels(
+    taxonomy: ClassificationTaxonomy | None,
+    dimension_name: str,
+) -> dict[str, str] | None:
+    if taxonomy is None:
+        return None
+    governed_labels = taxonomy.labels_by_dimension.get(classification_key(dimension_name))
+    if not governed_labels:
+        return None
+    return governed_labels
+
+
+def _resolved_governed_label(raw_label: str, governed_labels: dict[str, str]) -> tuple[str, str]:
     governed_label = governed_labels.get(raw_label)
     if governed_label:
         return governed_label, "lotus_core_classification_taxonomy"
