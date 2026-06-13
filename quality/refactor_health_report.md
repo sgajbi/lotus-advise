@@ -29,6 +29,8 @@
   data-quality, trade-size, shorting, and cash-sufficiency evaluators.
 - Target-generation solver orchestration delegates sell-only redistribution, solver
   indexing, constraint assembly, and solved-weight application to focused helpers.
+- Workflow gate decision policy delegates reason bundling, ordered gate-outcome rules,
+  client-consent checks, and deterministic reason sorting to focused helpers.
 - Proposal memo source-readiness assembly is split into core, risk, and Advise
   source-owner section groups.
 - Proposal memo source-readiness owner groups are split into focused Lotus Core,
