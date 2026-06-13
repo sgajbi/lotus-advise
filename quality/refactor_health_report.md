@@ -260,6 +260,8 @@
 - Lotus Core stateful-context resolver and trade-draft hydration paths now read as
   orchestration over source fetch, validation, DTO assembly, and per-instrument
   hydration.
+- Lotus Core stateful-context route resolution delegates sanitized URL rendering,
+  query/control-plane host mapping, and port derivation to focused helpers.
 - Lotus Core liquidity-tier and simulation adapter logic delegates ordered policy
   rule evaluation, HTTP posting, problem-detail mapping, contract validation,
   and suitability classification normalization.

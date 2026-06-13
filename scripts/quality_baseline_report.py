@@ -979,6 +979,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Lotus Core stateful-context resolver and trade-draft hydration paths now read as",
         "  orchestration over source fetch, validation, DTO assembly, and per-instrument",
         "  hydration.",
+        "- Lotus Core stateful-context route resolution delegates sanitized URL rendering,",
+        "  query/control-plane host mapping, and port derivation to focused helpers.",
         "- Lotus Core liquidity-tier and simulation adapter logic delegates ordered policy",
         "  rule evaluation, HTTP posting, problem-detail mapping, contract validation,",
         "  and suitability classification normalization.",
@@ -1139,7 +1141,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-814` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-815` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1168,7 +1170,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "capability dependency diagnostics, observability request-id normalization, "
             "structured logging, target-generation solver index construction, "
             "target-generation solver fallback policy, runtime base URL safety, Lotus Core "
-            "classification boundaries, and CI warning/topology contracts.",
+            "route-resolution policy, classification boundaries, and CI warning/topology "
+            "contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (

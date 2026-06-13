@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-815
+
+- Scope: Lotus Core stateful-context route resolution
+- Pattern: Query-plane and control-plane route derivation should expose host, port, and sanitized
+  URL construction as named policy helpers instead of embedding them in one branch-heavy resolver.
+- Status: Hardened
+- Finding Class: Complexity, configuration safety, Lotus Core integration behavior preservation
+- Summary: `resolve_control_plane_base_url` previously combined explicit override selection,
+  query-service host mapping, Docker/local port mapping, credential/query/fragment stripping, and
+  final URL rendering in one B/9 helper. The route policy now delegates URL rendering, query-port
+  derivation, control-plane host derivation, and control-plane port derivation to focused helpers
+  while preserving the existing environment variable precedence and sanitized outbound base URL
+  behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_core_stateful_context.py tests/unit/advisory/api/test_lotus_core_stateful_context_routes.py -q`
+    passed with 36 tests.
+  - `python -m ruff check src/integrations/lotus_core/stateful_context_routes.py tests/unit/advisory/api/test_lotus_core_stateful_context.py`
+    passed.
+  - `python -m radon cc src/integrations/lotus_core/stateful_context_routes.py -s` reports
+    `resolve_control_plane_base_url` as A/4, down from B/9.
+- Consequence:
+  - Lotus Core stateful-context route resolution remains behavior-compatible while query/control
+    plane mapping and sensitive URL stripping are easier to review as configuration and SSRF-risk
+    control surfaces.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal Lotus Core integration hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing remaining B/9 hotspots in advisory-copilot idempotency persistence and
+    Lotus Risk issuer mapping before considering stricter B-ranked enforcement.
+
 ## LA-REV-814
 
 - Scope: Workspace draft action reducer boundary
