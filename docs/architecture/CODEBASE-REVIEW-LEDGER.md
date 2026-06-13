@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-786
+
+- Scope: Lotus Core stateful trade-draft shelf hydration
+- Pattern: Trade-draft shelf hydration should separate duplicate detection, taxonomy label
+  resolution, enrichment fallback, liquidity-tier policy, and shelf-attribute projection.
+- Status: Hardened
+- Finding Class: Lotus Core integration modularity and source-enrichment coverage
+- Summary: `append_shelf_entry_if_missing` mixed duplicate detection, asset/product taxonomy
+  resolution, issuer fallback, upstream liquidity selection, ultimate-parent fallback,
+  supportability metadata, and `ShelfEntry` projection in one B/10 helper. This path hydrates
+  missing shelf data for stateful proposal trade drafts from Lotus Core, so splitting the
+  responsibilities makes source enrichment behavior easier to audit without changing duplicate
+  handling, taxonomy metadata, enrichment fallback, liquidity-tier precedence, or shelf-entry
+  defaults.
+- Evidence:
+  - Extracted helpers for existing shelf-entry detection, governed shelf label resolution,
+    shelf-entry projection, source-or-enrichment text fallback, trade-draft liquidity-tier
+    selection, and shelf attributes.
+  - Added focused coverage proving enrichment fallback for issuer and ultimate-parent fields,
+    upstream liquidity tier preservation, governed taxonomy metadata, and existing `ShelfEntry`
+    defaults.
+  - Radon no longer reports `append_shelf_entry_if_missing` as B-ranked; the module remains bounded
+    to unrelated `B/8` and `B/6` helpers.
+  - Focused Lotus Core stateful-context tests passed with 35 tests, and `ruff`, `mypy`, format
+    check, and Radon checks passed.
+- Consequence:
+  - Stateful trade-draft shelf hydration remains behavior-compatible while source enrichment and
+    supportability metadata projection are smaller, named, and directly covered.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal Lotus
+    Core integration maintainability hardening for existing stateful trade-draft hydration behavior.
+- Follow-Up:
+  - Continue reducing B-ranked target-generation, decision-summary missing-evidence,
+    recoverable-operation, and remaining stateful-context hydration helpers with focused
+    behavior-preservation tests.
+
 ## LA-REV-785
 
 - Scope: Memo source-readiness product evidence evaluation
