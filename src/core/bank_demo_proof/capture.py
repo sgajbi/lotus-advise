@@ -26,7 +26,7 @@ from src.core.bank_demo_proof.material_review import MaterialFieldReview, review
 from src.core.bank_demo_proof.proof_assets import build_backend_proof_assets
 from src.core.bank_demo_proof.proof_pack import build_backend_proof_pack
 from src.core.bank_demo_proof.proof_pack_models import AdvisoryBankDemoProofPack
-from src.core.bank_demo_proof.runtime_posture import BackendRuntimePosture
+from src.core.bank_demo_proof.runtime_posture import BackendRuntimePosture, RuntimeEndpointEvidence
 from src.core.bank_demo_proof.runtime_summary import sanitize_live_runtime_summary
 from src.core.bank_demo_proof.scenario_contract import build_default_scenario_contract
 from src.core.bank_demo_proof.scenario_models import AdvisoryDemoScenarioContract
@@ -195,39 +195,62 @@ def build_backend_proof_capture(
 
 
 def _validate_runtime_capability_posture(runtime_posture: BackendRuntimePosture) -> None:
-    capability_endpoint = next(
-        (
-            endpoint
-            for endpoint in runtime_posture.endpoints
-            if endpoint.endpoint == "/platform/capabilities"
-        ),
-        None,
-    )
-    if capability_endpoint is None:
-        raise ValueError(
-            "RFC0028_RUNTIME_CAPABILITY_PROOF_MISSING: /platform/capabilities was not captured"
-        )
-    if capability_endpoint.posture == "NOT_PROBED":
+    capability_endpoint = _runtime_capability_endpoint(runtime_posture)
+    if _capability_endpoint_allows_unprobed_posture(capability_endpoint):
         return
+
+    _validate_capability_endpoint_ready(capability_endpoint)
+    _validate_required_summary_keys(
+        capability_endpoint.summary,
+        summary_key="feature_keys",
+        required_keys=_RFC28_REQUIRED_RUNTIME_FEATURE_KEYS,
+        missing_label="feature",
+    )
+    _validate_required_summary_keys(
+        capability_endpoint.summary,
+        summary_key="workflow_keys",
+        required_keys=_RFC28_REQUIRED_RUNTIME_WORKFLOW_KEYS,
+        missing_label="workflow",
+    )
+
+
+def _runtime_capability_endpoint(
+    runtime_posture: BackendRuntimePosture,
+) -> RuntimeEndpointEvidence:
+    for endpoint in runtime_posture.endpoints:
+        if endpoint.endpoint == "/platform/capabilities":
+            return endpoint
+    raise ValueError(
+        "RFC0028_RUNTIME_CAPABILITY_PROOF_MISSING: /platform/capabilities was not captured"
+    )
+
+
+def _capability_endpoint_allows_unprobed_posture(
+    capability_endpoint: RuntimeEndpointEvidence,
+) -> bool:
+    return bool(capability_endpoint.posture == "NOT_PROBED")
+
+
+def _validate_capability_endpoint_ready(capability_endpoint: RuntimeEndpointEvidence) -> None:
     if capability_endpoint.posture != "READY":
         raise ValueError(
             "RFC0028_RUNTIME_CAPABILITY_PROOF_UNREADY: /platform/capabilities was not ready"
         )
 
-    feature_keys = _summary_string_set(capability_endpoint.summary, "feature_keys")
-    missing_features = sorted(_RFC28_REQUIRED_RUNTIME_FEATURE_KEYS.difference(feature_keys))
-    if missing_features:
-        raise ValueError(
-            "RFC0028_RUNTIME_CAPABILITY_PROOF_MISSING: missing feature "
-            + ", ".join(missing_features)
-        )
 
-    workflow_keys = _summary_string_set(capability_endpoint.summary, "workflow_keys")
-    missing_workflows = sorted(_RFC28_REQUIRED_RUNTIME_WORKFLOW_KEYS.difference(workflow_keys))
-    if missing_workflows:
+def _validate_required_summary_keys(
+    summary: dict[str, Any],
+    *,
+    summary_key: str,
+    required_keys: frozenset[str],
+    missing_label: str,
+) -> None:
+    observed_keys = _summary_string_set(summary, summary_key)
+    missing_keys = sorted(required_keys.difference(observed_keys))
+    if missing_keys:
         raise ValueError(
-            "RFC0028_RUNTIME_CAPABILITY_PROOF_MISSING: missing workflow "
-            + ", ".join(missing_workflows)
+            f"RFC0028_RUNTIME_CAPABILITY_PROOF_MISSING: missing {missing_label} "
+            + ", ".join(missing_keys)
         )
 
 

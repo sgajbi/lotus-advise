@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-823
+
+- Scope: Bank-demo runtime proof evidence boundaries
+- Pattern: Runtime proof sanitization and capability validation should expose value-type
+  sanitization, bounded list handling, capability endpoint lookup, readiness validation, and
+  required summary-key validation as named helpers instead of embedding those policies in dense
+  branching functions.
+- Status: Hardened
+- Finding Class: Runtime proof security, operational evidence quality, behavior preservation
+- Summary: `src/core/bank_demo_proof/runtime_posture.py::_sanitize_summary_value` and
+  `src/core/bank_demo_proof/capture.py::_validate_runtime_capability_posture` previously carried
+  unrelated proof-evidence decisions in B/8 helpers. The runtime posture boundary now delegates list
+  sanitization and scalar allow-listing to focused helpers, while backend proof capture delegates
+  capability endpoint discovery, not-probed policy, readiness validation, and required
+  feature/workflow summary validation to named proof helpers.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py tests/unit/scripts/test_capture_rfc0028_backend_proof.py`
+    passed with 38 tests.
+  - `python -m ruff check src/core/bank_demo_proof/runtime_posture.py src/core/bank_demo_proof/capture.py tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py`
+    passed.
+  - `python -m mypy src/core/bank_demo_proof/runtime_posture.py src/core/bank_demo_proof/capture.py`
+    passed.
+  - `python -m radon cc -s src/core/bank_demo_proof/runtime_posture.py src/core/bank_demo_proof/capture.py`
+    reports `_sanitize_summary_value` as A/5, down from B/8, and
+    `_validate_runtime_capability_posture` as A/2, down from B/8.
+- Consequence:
+  - Bank-demo proof capture keeps the same sensitive-summary redaction, URL stripping,
+    `/platform/capabilities` readiness policy, not-probed allowance, and required promoted
+    feature/workflow checks while the evidence boundary is easier to audit.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal runtime proof evidence hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked bank-demo proof and advisory orchestration hotspots where named
+    policy helpers improve maintainability without widening client-ready or bank-certification
+    claims.
+
 ## LA-REV-822
 
 - Scope: Advisory copilot review persistence boundary

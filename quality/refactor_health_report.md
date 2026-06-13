@@ -306,6 +306,9 @@
 - Advisory copilot review persistence delegates idempotent replay,
   active-posture validation, review-record construction, and run-posture mutation
   to focused helpers.
+- Bank-demo runtime proof evidence delegates summary value sanitization,
+  capability endpoint lookup, readiness validation, and promoted feature/workflow
+  proof checks to focused helpers.
 - In-memory advisory copilot run persistence delegates idempotency replay,
   run-id replay, conflict policy, and new-run storage to focused helpers.
 - Enterprise readiness runtime policy delegates config issue collection,
