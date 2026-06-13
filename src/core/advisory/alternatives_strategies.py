@@ -43,9 +43,9 @@ __all__ = [
 ]
 
 
-def build_initial_strategy_registry() -> (
-    dict[AlternativeConstructionObjective, AlternativeConstructionStrategy]
-):
+def build_initial_strategy_registry() -> dict[
+    AlternativeConstructionObjective, AlternativeConstructionStrategy
+]:
     strategies: tuple[AlternativeConstructionStrategy, ...] = (
         ReduceConcentrationStrategy(),
         RaiseCashStrategy(),
