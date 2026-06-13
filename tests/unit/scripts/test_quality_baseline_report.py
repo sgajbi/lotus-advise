@@ -188,6 +188,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Policy evaluation persistence delegates replay hash comparison" in refactor_health
     assert "Advisory copilot review persistence delegates" in refactor_health
     assert "Advisory copilot source-projection persistence delegates" in refactor_health
+    assert "Advisory copilot section tuple validation delegates" in refactor_health
     assert "Bank-demo runtime proof evidence delegates" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate" in (

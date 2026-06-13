@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-827
+
+- Scope: Advisory copilot evidence section tuple validation boundary
+- Pattern: Advisory-copilot evidence section DTOs should delegate bounded tuple normalization,
+  literal allow-list validation, duplicate handling, and empty/limit checks to focused helpers
+  instead of embedding branch-heavy validation policy in the Pydantic model module.
+- Status: Hardened
+- Finding Class: Complexity, advisory copilot DTO validation, behavior preservation
+- Summary: `src/core/advisory_copilot/section_models.py::_normalize_summary_tuple` and
+  `src/core/advisory_copilot/section_models.py::_normalize_audience_tuple` previously carried
+  B/8 tuple validation logic directly in the section model module. The section model now delegates
+  summary-item normalization and unique audience literal validation to
+  `src/core/advisory_copilot/section_tuple_normalization.py`, preserving bounded summary text,
+  audience allow-list, duplicate audience collapse, and existing validation error codes.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py -q`
+    passed with 37 tests.
+  - `python -m ruff check src/core/advisory_copilot/section_models.py src/core/advisory_copilot/section_tuple_normalization.py tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py`
+    passed.
+  - `python -m mypy src/core/advisory_copilot/section_models.py src/core/advisory_copilot/section_tuple_normalization.py`
+    passed.
+  - `python -m radon cc -s src/core/advisory_copilot/section_models.py src/core/advisory_copilot/section_tuple_normalization.py`
+    reports `_normalize_summary_tuple` as A/1, down from B/8, and
+    `_normalize_audience_tuple` as A/1, down from B/8.
+- Consequence:
+  - Advisory-copilot evidence sections keep the same section text normalization, summary
+    item bounds, empty-summary policy, audience allow-list, duplicate audience collapse, and
+    client-ready-safe evidence validation while the DTO module no longer owns branch-heavy tuple
+    policy.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory-copilot DTO validation hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory-copilot and workflow validation hotspots where focused
+    model-policy helpers improve reviewability without widening AI, client-ready, or compliance
+    approval claims.
+
 ## LA-REV-826
 
 - Scope: Advisory copilot source-projection persistence boundary

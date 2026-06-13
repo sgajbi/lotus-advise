@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, cast, get_args
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -8,6 +8,10 @@ from src.core.advisory_copilot.business_text import (
     normalize_required_copilot_business_text,
 )
 from src.core.advisory_copilot.reference_models import CopilotSourceRef
+from src.core.advisory_copilot.section_tuple_normalization import (
+    normalize_summary_items,
+    normalize_unique_literal_items,
+)
 from src.core.advisory_copilot.type_models import CopilotAudience, CopilotEvidenceAccessClass
 
 _COPILOT_SECTION_KEY_MAX_LENGTH = 96
@@ -16,6 +20,7 @@ _COPILOT_SUMMARY_ITEM_LIMIT = 8
 _COPILOT_SUMMARY_ITEM_MAX_LENGTH = 1000
 _COPILOT_SOURCE_REF_LIMIT = 8
 COPILOT_AUDIENCE_LIMIT = 5
+_COPILOT_ALLOWED_AUDIENCES = set(get_args(CopilotAudience))
 
 
 class CopilotEvidencePacketSection(BaseModel):
@@ -50,9 +55,12 @@ class CopilotEvidencePacketSection(BaseModel):
     @field_validator("section_key", "title")
     @classmethod
     def _normalize_required_section_text(cls, value: str) -> str:
-        return normalize_required_copilot_business_text(
-            value,
-            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        return cast(
+            str,
+            normalize_required_copilot_business_text(
+                value,
+                error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+            ),
         )
 
     @field_validator("summary_items", mode="before")
@@ -99,9 +107,12 @@ class CopilotEvidenceSectionInput(BaseModel):
     @field_validator("section_key", "title")
     @classmethod
     def _normalize_required_section_text(cls, value: str) -> str:
-        return normalize_required_copilot_business_text(
-            value,
-            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        return cast(
+            str,
+            normalize_required_copilot_business_text(
+                value,
+                error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+            ),
         )
 
     @field_validator("summary_items", mode="before")
@@ -116,51 +127,23 @@ class CopilotEvidenceSectionInput(BaseModel):
 
 
 def _normalize_summary_tuple(value: Any, *, allow_empty: bool) -> tuple[str, ...]:
-    if not isinstance(value, (list, tuple)):
-        raise ValueError("COPILOT_EVIDENCE_SUMMARY_INVALID")
-
-    normalized: list[str] = []
-    for item in value:
-        if len(normalized) >= _COPILOT_SUMMARY_ITEM_LIMIT:
-            raise ValueError("COPILOT_EVIDENCE_SUMMARY_TOO_LARGE")
-        if not isinstance(item, str):
-            raise ValueError("COPILOT_EVIDENCE_SUMMARY_INVALID")
-        summary = normalize_required_copilot_business_text(
-            item,
-            error_code="COPILOT_EVIDENCE_SUMMARY_REQUIRED",
-        )
-        if len(summary) > _COPILOT_SUMMARY_ITEM_MAX_LENGTH:
-            raise ValueError("COPILOT_EVIDENCE_SUMMARY_TOO_LARGE")
-        normalized.append(summary)
-
-    if not normalized and not allow_empty:
-        raise ValueError("COPILOT_EVIDENCE_SUMMARY_REQUIRED")
-    return tuple(normalized)
+    return normalize_summary_items(
+        value,
+        allow_empty=allow_empty,
+        item_limit=_COPILOT_SUMMARY_ITEM_LIMIT,
+        item_max_length=_COPILOT_SUMMARY_ITEM_MAX_LENGTH,
+    )
 
 
 def _normalize_audience_tuple(value: Any) -> tuple[CopilotAudience, ...]:
-    if not isinstance(value, (list, tuple)):
-        raise ValueError("COPILOT_AUDIENCE_INVALID")
-
-    allowed = {
-        "ADVISOR",
-        "DESK_HEAD",
-        "COMPLIANCE_REVIEWER",
-        "OPERATIONS_SUPPORT",
-        "MODEL_RISK_OPERATOR",
-    }
-    normalized: list[CopilotAudience] = []
-    for item in value:
-        if len(normalized) >= COPILOT_AUDIENCE_LIMIT:
-            raise ValueError("COPILOT_AUDIENCE_TOO_LARGE")
-        if not isinstance(item, str):
-            raise ValueError("COPILOT_AUDIENCE_INVALID")
-        audience = item.strip()
-        if audience not in allowed:
-            raise ValueError("COPILOT_AUDIENCE_INVALID")
-        if audience not in normalized:
-            normalized.append(cast(CopilotAudience, audience))
-
-    if not normalized:
-        raise ValueError("COPILOT_AUDIENCE_REQUIRED")
-    return tuple(normalized)
+    return cast(
+        tuple[CopilotAudience, ...],
+        normalize_unique_literal_items(
+            value,
+            allowed=_COPILOT_ALLOWED_AUDIENCES,
+            limit=COPILOT_AUDIENCE_LIMIT,
+            invalid_error_code="COPILOT_AUDIENCE_INVALID",
+            empty_error_code="COPILOT_AUDIENCE_REQUIRED",
+            too_large_error_code="COPILOT_AUDIENCE_TOO_LARGE",
+        ),
+    )
