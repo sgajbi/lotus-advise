@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
+    ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalMemoIdempotencyRecord,
     ProposalMemoRecord,
@@ -38,6 +39,31 @@ def _proposal(proposal_id: str, created_by: str, state: str = "DRAFT") -> Propos
         current_state=state,
         current_version_no=1,
         title="repo test",
+    )
+
+
+def _async_operation(
+    operation_id: str,
+    *,
+    status: str = "PENDING",
+    created_at: datetime | None = None,
+    lease_expires_at: datetime | None = None,
+    finished_at: datetime | None = None,
+) -> ProposalAsyncOperationRecord:
+    return ProposalAsyncOperationRecord(
+        operation_id=operation_id,
+        operation_type="CREATE_PROPOSAL",
+        status=status,
+        correlation_id=f"corr_{operation_id}",
+        idempotency_key=f"idem_{operation_id}",
+        proposal_id=None,
+        created_by="advisor_repo",
+        created_at=created_at or _now(),
+        payload_json={"created_by": "advisor_repo"},
+        attempt_count=0,
+        max_attempts=3,
+        lease_expires_at=lease_expires_at,
+        finished_at=finished_at,
     )
 
 
@@ -377,3 +403,46 @@ def test_repository_list_proposals_ignores_unknown_cursor() -> None:
 
     assert [row.proposal_id for row in rows] == ["pp_repo_cursor_b"]
     assert next_cursor == "pp_repo_cursor_b"
+
+
+def test_repository_recoverable_operations_preserve_retry_policy_edges() -> None:
+    repo = InMemoryProposalRepository()
+    as_of = _now()
+    repo.create_operation(
+        _async_operation(
+            "pop_repo_pending",
+            created_at=as_of - timedelta(minutes=4),
+        )
+    )
+    repo.create_operation(
+        _async_operation(
+            "pop_repo_running_expired",
+            status="RUNNING",
+            created_at=as_of - timedelta(minutes=3),
+            lease_expires_at=as_of - timedelta(seconds=1),
+        )
+    )
+    repo.create_operation(
+        _async_operation(
+            "pop_repo_running_active",
+            status="RUNNING",
+            created_at=as_of - timedelta(minutes=2),
+            lease_expires_at=as_of + timedelta(seconds=30),
+        )
+    )
+    repo.create_operation(
+        _async_operation(
+            "pop_repo_running_finished",
+            status="RUNNING",
+            created_at=as_of - timedelta(minutes=1),
+            lease_expires_at=as_of - timedelta(seconds=1),
+            finished_at=as_of - timedelta(seconds=30),
+        )
+    )
+
+    recoverable = repo.list_recoverable_operations(as_of=as_of)
+
+    assert [operation.operation_id for operation in recoverable] == [
+        "pop_repo_pending",
+        "pop_repo_running_expired",
+    ]
