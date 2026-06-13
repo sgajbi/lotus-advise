@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from numbers import Number
 from typing import Any, Literal
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import SplitResult, urlsplit, urlunsplit
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -141,19 +141,41 @@ def _sanitize_summary_dict(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def normalize_runtime_base_url(value: str) -> str:
+    parsed = _parse_runtime_base_url(_bounded_runtime_base_url(value))
+    _reject_runtime_base_url_sensitive_parts(parsed)
+    return _render_runtime_base_url(parsed)
+
+
+def _bounded_runtime_base_url(value: str) -> str:
     normalized = value.strip()
     if not normalized or len(normalized) > _MAX_BASE_URL_LENGTH:
         raise ValueError("runtime base_url must be present and bounded")
-    parsed = urlsplit(normalized)
+    return normalized
+
+
+def _parse_runtime_base_url(value: str) -> SplitResult:
+    parsed = urlsplit(value)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
         raise ValueError("runtime base_url must be an http(s) URL with a host")
+    return parsed
+
+
+def _reject_runtime_base_url_sensitive_parts(parsed: SplitResult) -> None:
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError("runtime base_url cannot include credentials, query, or fragment")
+
+
+def _render_runtime_base_url(parsed: SplitResult) -> str:
+    return urlunsplit(
+        (parsed.scheme, _runtime_base_url_netloc(parsed), parsed.path.rstrip("/"), "", "")
+    )
+
+
+def _runtime_base_url_netloc(parsed: SplitResult) -> str:
     netloc = parsed.hostname
     if parsed.port is not None:
-        netloc = f"{netloc}:{parsed.port}"
-    path = parsed.path.rstrip("/")
-    return urlunsplit((parsed.scheme, netloc, path, "", ""))
+        return f"{netloc}:{parsed.port}"
+    return str(netloc)
 
 
 def _sanitize_summary_value(value: Any) -> Any:
