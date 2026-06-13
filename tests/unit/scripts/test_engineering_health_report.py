@@ -45,6 +45,9 @@ def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -
     assert report.router_hotspots[0].route_decorator_count == 1
     assert any(gate.make_target == "lint" for gate in report.gate_inventory)
     assert any(gate.make_target == "quality-baseline" for gate in report.gate_inventory)
+    assert "- Branch:" not in markdown
+    assert "- Head:" not in markdown
+    assert "Git Identity: omitted from committed Markdown" in markdown
     assert "Largest Functions" in markdown
     assert "`demo_route`" in markdown
 

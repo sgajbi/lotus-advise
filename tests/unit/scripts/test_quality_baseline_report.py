@@ -2,6 +2,7 @@ from pathlib import Path
 
 from scripts.quality_baseline_report import (
     build_quality_context,
+    check_quality_reports,
     main,
     render_baseline_report,
     render_quality_scorecard,
@@ -77,7 +78,14 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Interrogate docstring inventory" in baseline
     assert "Observability Gaps" in baseline
     assert "make observability-diagnostics" in baseline
+    assert "- Branch:" not in baseline
+    assert "- Head:" not in baseline
+    assert "Branch Commits Over Main" not in baseline
+    assert "Git Identity: omitted from committed Markdown" in baseline
     assert "Progressive Gate Phase" in scorecard
+    assert "- Branch:" not in scorecard
+    assert "- Head:" not in scorecard
+    assert "Git Identity: omitted from committed Markdown" in scorecard
     assert "No-C/D/E/F gate plus Radon inventory" in scorecard
     assert "Executable Vulture inventory" in scorecard
     assert "Enforced plus deptry inventory" in scorecard
@@ -87,7 +95,12 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Gap tracked plus Interrogate inventory" in scorecard
     assert "Diagnostics target added" in scorecard
     assert "Before/After Evidence" in scorecard
+    assert "make quality-baseline-check" in scorecard
     assert "does not claim bank" in scorecard
+    assert "- Branch:" not in refactor_health
+    assert "- Head:" not in refactor_health
+    assert "Branch Commits Over Main" not in refactor_health
+    assert "Git Identity: omitted from committed Markdown" in refactor_health
     assert "Proposal input models are split" in refactor_health
     assert "Advisory-copilot proposal-version lineage extraction delegates" in refactor_health
     assert "Advisory simulation orchestration is split" in refactor_health
@@ -190,3 +203,36 @@ def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) ->
     assert (output_dir / "baseline_report.md").exists()
     assert (output_dir / "refactor_health_report.md").exists()
     assert (output_dir / "quality_scorecard.md").exists()
+
+
+def test_quality_baseline_check_ignores_timestamp_and_detects_report_drift(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "__init__.py").write_text("", encoding="utf-8")
+    output_dir = tmp_path / "quality"
+
+    assert main(["--repo-root", str(tmp_path), "--output-dir", str(output_dir)]) == 0
+    baseline_path = output_dir / "baseline_report.md"
+    baseline_path.write_text(
+        baseline_path.read_text(encoding="utf-8").replace(
+            "- Generated At: `", "- Generated At: `2099-01-01T00:00:00+00:00"
+        ),
+        encoding="utf-8",
+    )
+
+    ok, drifted = check_quality_reports(tmp_path, output_dir)
+
+    assert ok is True
+    assert drifted == ()
+
+    baseline_path.write_text(
+        baseline_path.read_text(encoding="utf-8") + "\nUntracked drift\n",
+        encoding="utf-8",
+    )
+
+    ok, drifted = check_quality_reports(tmp_path, output_dir)
+
+    assert ok is False
+    assert drifted == ("baseline_report.md",)
+    assert main(["--repo-root", str(tmp_path), "--output-dir", str(output_dir), "--check"]) == 1

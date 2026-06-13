@@ -40,6 +40,14 @@ REQUESTED_DOCS = (
     "docs/supported-features.md",
 )
 
+REPORT_FILENAMES = (
+    "baseline_report.md",
+    "refactor_health_report.md",
+    "quality_scorecard.md",
+)
+
+GENERATED_AT_PATTERN = re.compile(r"^- Generated At: `[^`]+`$", re.MULTILINE)
+
 
 @dataclass(frozen=True)
 class QualityContext:
@@ -574,9 +582,8 @@ def render_baseline_report(context: QualityContext) -> str:
         "# Lotus Advise Quality Baseline Report",
         "",
         f"- Generated At: `{report.generated_at}`",
-        f"- Branch: `{report.git_branch}`",
-        f"- Head: `{report.git_head}`",
-        f"- Branch Commits Over Main: `{context.branch_commit_count}`",
+        "- Git Identity: omitted from committed Markdown; use Git history and GitHub Actions",
+        "  run metadata for exact branch/head evidence.",
         "- CI Phase: `baseline/report-only`",
         "",
         "## Code Size",
@@ -709,13 +716,11 @@ def render_baseline_report(context: QualityContext) -> str:
 
 
 def render_refactor_health_report(context: QualityContext) -> str:
-    report = context.report
     lines = [
         "# Lotus Advise Refactor Health Report",
         "",
-        f"- Branch: `{report.git_branch}`",
-        f"- Head: `{report.git_head}`",
-        f"- Branch Commits Over Main: `{context.branch_commit_count}`",
+        "- Git Identity: omitted from committed Markdown; use Git history and GitHub Actions",
+        "  run metadata for exact branch/head evidence.",
         "- Current Phase: `feature-branch modularity and quality-baseline hardening`",
         "",
         "## Current Progress Signals",
@@ -1078,8 +1083,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
     lines = [
         "# Lotus Advise Quality Scorecard",
         "",
-        f"- Branch: `{context.report.git_branch}`",
-        f"- Head: `{context.report.git_head}`",
+        "- Git Identity: omitted from committed Markdown; use Git history and GitHub Actions",
+        "  run metadata for exact branch/head evidence.",
         "- Progressive Gate Phase: `1 - baseline/report-only`",
         "",
         "| Area | Status | Evidence |",
@@ -1100,7 +1105,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-792` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-793` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1171,7 +1176,9 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "",
             "- Before baseline: `origin/main` report head",
             "  `f6a82186ed52e3eb3568ae0de2bbb2919f18f90d`.",
-            "- After baseline: this branch report head shown above.",
+            "- After baseline: current generated report content is enforced by",
+            "  `make quality-baseline-check`; exact head evidence belongs to Git history",
+            "  and GitHub Actions run metadata.",
             "",
             "| Area | Before | After | Improvement Evidence |",
             "| --- | --- | --- | --- |",
@@ -1196,30 +1203,66 @@ def render_quality_scorecard(context: QualityContext) -> str:
     return "\n".join(lines)
 
 
-def write_quality_reports(repo_root: Path, output_dir: Path) -> None:
+def render_quality_reports(repo_root: Path) -> dict[str, str]:
     context = build_quality_context(repo_root)
+    return {
+        "baseline_report.md": render_baseline_report(context),
+        "refactor_health_report.md": render_refactor_health_report(context),
+        "quality_scorecard.md": render_quality_scorecard(context),
+    }
+
+
+def write_quality_reports(repo_root: Path, output_dir: Path) -> None:
+    reports = render_quality_reports(repo_root)
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "baseline_report.md").write_text(
-        render_baseline_report(context), encoding="utf-8", newline="\n"
-    )
-    (output_dir / "refactor_health_report.md").write_text(
-        render_refactor_health_report(context), encoding="utf-8", newline="\n"
-    )
-    (output_dir / "quality_scorecard.md").write_text(
-        render_quality_scorecard(context), encoding="utf-8", newline="\n"
-    )
+    for filename, content in reports.items():
+        (output_dir / filename).write_text(content, encoding="utf-8", newline="\n")
+
+
+def _normalize_report_for_check(content: str) -> str:
+    return GENERATED_AT_PATTERN.sub("- Generated At: `<normalized>`", content).rstrip() + "\n"
+
+
+def check_quality_reports(repo_root: Path, output_dir: Path) -> tuple[bool, tuple[str, ...]]:
+    expected_reports = render_quality_reports(repo_root)
+    drifted: list[str] = []
+    for filename in REPORT_FILENAMES:
+        report_path = output_dir / filename
+        expected = _normalize_report_for_check(expected_reports[filename])
+        if not report_path.exists():
+            drifted.append(filename)
+            continue
+        actual = _normalize_report_for_check(report_path.read_text(encoding="utf-8"))
+        if actual != expected:
+            drifted.append(filename)
+    return not drifted, tuple(drifted)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate Lotus Advise quality baseline reports.")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--output-dir", type=Path, default=Path("quality"))
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Fail when committed quality reports drift, ignoring the generated timestamp.",
+    )
     args = parser.parse_args(argv)
 
     repo_root = args.repo_root.resolve()
     output_dir = args.output_dir
     if not output_dir.is_absolute():
         output_dir = repo_root / output_dir
+    if args.check:
+        ok, drifted = check_quality_reports(repo_root, output_dir)
+        if not ok:
+            print(
+                "Quality baseline reports are stale. Regenerate with "
+                "`make quality-baseline`. Drifted files: " + ", ".join(drifted),
+                file=sys.stderr,
+            )
+            return 1
+        return 0
     write_quality_reports(repo_root, output_dir)
     return 0
 

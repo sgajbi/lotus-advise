@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-793
+
+- Scope: Quality report freshness and non-volatile evidence metadata
+- Pattern: Committed quality reports should not embed branch/head metadata that becomes stale as
+  soon as another commit is added, and CI should fail when generated quality evidence drifts.
+- Status: Hardened
+- Finding Class: CI measurement, reporting truthfulness, and evidence freshness
+- Summary: The committed baseline, scorecard, refactor-health, and engineering-health reports
+  still carried branch/head metadata from the prior feature branch after PR #259 merged. That made
+  mainline report truth look stale even though Git history and GitHub Actions are the authoritative
+  sources for exact commit evidence. The reports now omit volatile Git identity from committed
+  Markdown, and `make check` includes a quality-baseline drift check that ignores only the
+  generated timestamp.
+- Evidence:
+  - Added `scripts/quality_baseline_report.py --check` to compare generated quality report content
+    against committed reports while normalizing the `Generated At` timestamp.
+  - Added `make quality-baseline-check` and wired it into `make check` so stale quality reports are
+    blocked by the repo-native gate.
+  - Updated generated quality and engineering-health Markdown to avoid self-invalidating
+    branch/head fields and to point exact commit evidence to Git history and GitHub Actions.
+  - Added focused tests proving quality reports omit volatile branch/head metadata, timestamp-only
+    changes do not fail the freshness check, real content drift does fail, and engineering-health
+    Markdown uses the same non-volatile identity posture.
+- Consequence:
+  - Quality evidence remains implementation-backed and CI-enforced without requiring impossible
+    self-referential commit hashes in committed Markdown.
+- Documentation:
+  - Review ledger and generated quality/engineering-health reports updated. No README/wiki source
+    change is required because this is internal CI measurement and evidence-freshness hardening.
+- Follow-Up:
+  - Continue converting report-only inventories into fail-on-new-regression gates after each
+    inventory class is reviewed.
+
 ## LA-REV-792
 
 - Scope: CI warning cleanup and independent job parallelization

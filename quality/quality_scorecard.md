@@ -1,7 +1,7 @@
 # Lotus Advise Quality Scorecard
 
-- Branch: `harden/runtime-base-url-normalization`
-- Head: `81854b5b31506d9cd80e7db083f39a77de47f9ed`
+- Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
+  run metadata for exact branch/head evidence.
 - Progressive Gate Phase: `1 - baseline/report-only`
 
 | Area | Status | Evidence |
@@ -24,12 +24,14 @@
 
 - Before baseline: `origin/main` report head
   `f6a82186ed52e3eb3568ae0de2bbb2919f18f90d`.
-- After baseline: this branch report head shown above.
+- After baseline: current generated report content is enforced by
+  `make quality-baseline-check`; exact head evidence belongs to Git history
+  and GitHub Actions run metadata.
 
 | Area | Before | After | Improvement Evidence |
 | --- | --- | --- | --- |
 | Complexity | Radon and Xenon tracked as pending report-only tools. | Radon config executable; inventory `A=3396, B=186`; worst block `B/10`; no C/D/E/F gate enforced through `make lint`. | Complexity is now measured repeatably and regression-blocked for C-ranked and worse blocks. |
-| Maintainability | Review ledger existed but recent proposal, policy-pack, OpenAPI, proof-material, dependency-linking, and observability slices were absent. | Review ledger includes `LA-REV-611` through `LA-REV-792` with scoped findings, evidence, and follow-up. | Modularization and hotspot reductions are traceable by owner boundary and test evidence. |
+| Maintainability | Review ledger existed but recent proposal, policy-pack, OpenAPI, proof-material, dependency-linking, and observability slices were absent. | Review ledger includes `LA-REV-611` through `LA-REV-793` with scoped findings, evidence, and follow-up. | Modularization and hotspot reductions are traceable by owner boundary and test evidence. |
 | OpenAPI quality | Spectral rules were present but report-only until Node/Spectral execution was added to CI. | Spectral config executable; OpenAPI path inventory `84`; current Spectral issue inventory `0`; enforced through `make openapi-gate`. | OpenAPI quality moved from report-only posture to enforced zero-finding gate. |
 | Architecture boundaries | Import-linter contracts were present but report-only pending installation and baseline. | Import-linter inventory `total=3, kept=3, broken=0`; architecture contracts run inside `make lint`. | Layering contracts are now executable and locally enforced. |
 | Tests | Unit suite existed; new focused refactor regressions were absent. | Repo-native test gates are enforced through `make check`; focused regression tests cover OpenAPI enrichment, proof refs, source refs, dependency linking, capability dependency diagnostics, observability request-id normalization, structured logging, target-generation solver index construction, target-generation solver fallback policy, runtime base URL safety, and CI warning/topology contracts. | Refactors are covered by behavior-preserving regression tests. |
