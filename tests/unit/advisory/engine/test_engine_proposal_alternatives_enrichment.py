@@ -1,4 +1,5 @@
 from copy import deepcopy
+from decimal import Decimal
 
 import pytest
 
@@ -104,6 +105,7 @@ def _proposal_result(
     status: str = "READY",
     simulation_authority: str = "lotus_core",
     risk_authority: str = "lotus_risk",
+    decision_status: str = "READY_FOR_CLIENT_REVIEW",
 ) -> ProposalResult:
     result = run_proposal_simulation(
         portfolio=request.portfolio_snapshot,
@@ -130,7 +132,7 @@ def _proposal_result(
     explanation["risk_lens"] = {"source_service": "lotus-risk"}
     result.explanation = explanation
     result.proposal_decision_summary = ProposalDecisionSummary(
-        decision_status="READY_FOR_CLIENT_REVIEW",
+        decision_status=decision_status,
         top_level_status=status,
         primary_reason_code="READY_FOR_ADVISOR_REVIEW",
         primary_summary="Alternative is ready for advisor review.",
@@ -162,6 +164,33 @@ def test_build_alternative_simulate_request_replaces_baseline_intents():
     assert alternative_request.proposed_cash_flows == []
     assert [trade.instrument_id for trade in request.proposed_trades] == ["EQ_OLD"]
     assert len(request.proposed_cash_flows) == 1
+
+
+def test_build_alternative_simulate_request_splits_candidate_cash_and_trade_intents():
+    request = _base_request()
+    candidate = _candidate(
+        "alt_cash_and_trade",
+        generated_intents=[
+            {"intent_type": "CASH_FLOW", "currency": "USD", "amount": "125.50"},
+            {
+                "intent_type": "SECURITY_TRADE",
+                "side": "SELL",
+                "instrument_id": "EQ_OLD",
+                "quantity": "2",
+            },
+        ],
+    )
+
+    alternative_request = build_alternative_simulate_request(
+        base_request=request,
+        candidate=candidate,
+    )
+
+    assert [cash_flow.amount for cash_flow in alternative_request.proposed_cash_flows] == [
+        Decimal("125.50")
+    ]
+    assert [trade.instrument_id for trade in alternative_request.proposed_trades] == ["EQ_OLD"]
+    assert alternative_request.alternatives_request is None
 
 
 def test_evaluate_alternative_candidates_batch_deduplicates_identical_payloads():
@@ -199,6 +228,29 @@ def test_evaluate_alternative_candidates_batch_deduplicates_identical_payloads()
         item.proposal_decision_summary["primary_reason_code"] == "READY_FOR_ADVISOR_REVIEW"
         for item in evaluation.alternatives
     )
+
+
+def test_evaluate_alternative_candidates_batch_marks_policy_blocked_decision():
+    request = _base_request()
+    normalized = _normalized_request()
+
+    def _fake_evaluate(**kwargs):
+        return _proposal_result(
+            kwargs["request"],
+            decision_status="BLOCKED_REMEDIATION_REQUIRED",
+        )
+
+    evaluation = evaluate_alternative_candidates_batch(
+        base_request=request,
+        normalized_request=normalized,
+        candidates=[_candidate("alt_policy_blocked")],
+        correlation_id="corr-policy-blocked",
+        evaluator=_fake_evaluate,
+    )
+
+    assert evaluation.rejected_candidates == []
+    assert len(evaluation.alternatives) == 1
+    assert evaluation.alternatives[0].status == "REJECTED_POLICY_BLOCKED"
 
 
 @pytest.mark.parametrize(

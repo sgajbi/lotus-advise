@@ -720,12 +720,43 @@ def test_alternatives_helper_functions_cover_money_and_trade_edge_cases():
         notional_amount=Decimal("100.00"),
         notional_currency="USD",
     )
-    assert first_adjustable_trade((notional_trade,)) == notional_trade
+    small_trade = StrategyTradeIntent(side="SELL", instrument_id="AAPL", quantity=Decimal("1"))
+    assert first_adjustable_trade((small_trade, notional_trade)) == notional_trade
     assert reduced_trade_payload(notional_trade) == {
         "intent_type": "SECURITY_TRADE",
         "side": "BUY",
         "instrument_id": "NVDA",
         "notional": {"amount": "50", "currency": "USD"},
+    }
+    assert (
+        reduced_trade_payload(
+            StrategyTradeIntent(
+                side="BUY",
+                instrument_id="NVDA",
+                notional_amount=Decimal("100.00"),
+            )
+        )
+        is None
+    )
+    quantity_trade = StrategyTradeIntent(side="SELL", instrument_id="AAPL", quantity=Decimal("9"))
+    assert reduced_trade_payload(quantity_trade) == {
+        "intent_type": "SECURITY_TRADE",
+        "side": "SELL",
+        "instrument_id": "AAPL",
+        "quantity": "4",
+    }
+    dual_trade = StrategyTradeIntent(
+        side="SELL",
+        instrument_id="SAP",
+        quantity=Decimal("8"),
+        notional_amount=Decimal("100.00"),
+        notional_currency="EUR",
+    )
+    assert reduced_trade_payload(dual_trade) == {
+        "intent_type": "SECURITY_TRADE",
+        "side": "SELL",
+        "instrument_id": "SAP",
+        "quantity": "4",
     }
 
     no_candidate_inputs = _inputs()

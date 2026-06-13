@@ -1,5 +1,68 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-797
+
+- Scope: Proposal alternatives enrichment helper classification
+- Pattern: Candidate simulation request shaping and enrichment classification should keep
+  intent-splitting, authority rejection, and status derivation as named rules instead of one
+  branching enrichment helper.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and source-authority evidence clarity
+- Summary: `alternatives_enrichment.py` had B-ranked helpers for candidate simulation request
+  construction, batch evaluation, and candidate result classification. The module now delegates
+  generated-intent splitting, unsupported-intent rejection, Lotus Core/Lotus Risk authority
+  rejection, evidence-ref construction, and policy-blocked status derivation to focused helpers.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_alternatives_enrichment.py -q`
+    passed with 9 tests.
+  - `python -m ruff check src/core/advisory/alternatives_enrichment.py tests/unit/advisory/engine/test_engine_proposal_alternatives_enrichment.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/alternatives_enrichment.py tests/unit/advisory/engine/test_engine_proposal_alternatives_enrichment.py`
+    passed.
+  - `python -m radon cc src/core/advisory/alternatives_enrichment.py -s --min B`
+    now reports only `evaluate_alternative_candidates_batch` at `B/6`; `_classify_candidate_result`
+    and `build_alternative_simulate_request` no longer appear as B-ranked helpers.
+- Consequence:
+  - Alternatives enrichment remains behavior-compatible while making source-authority rejection and
+    policy-blocked status derivation easier to audit against Lotus Core/Lotus Risk ownership
+    boundaries.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory alternatives maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing the remaining B-ranked alternatives enrichment batch orchestration function
+    only when a clean orchestration abstraction can preserve caching and replay evidence.
+
+## LA-REV-796
+
+- Scope: Proposal alternatives baseline-trade reduction helpers
+- Pattern: Trade-reduction strategy support should separate adjustability checks from payload
+  construction, and quantity/notional payload shaping should be independently named and tested.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and behavior-preserving advisory trade reduction
+- Summary: `first_adjustable_trade` and `reduced_trade_payload` were the remaining B-ranked blocks
+  in `alternatives_strategy_support.py`. The logic now delegates adjustable-trade detection to
+  focused predicates and delegates reduced quantity and notional payload construction to focused
+  helpers while preserving the existing quantity-before-notional behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_alternatives.py -q`
+    passed with 31 tests.
+  - `python -m ruff check src/core/advisory/alternatives_strategy_support.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/alternatives_strategy_support.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m radon cc src/core/advisory/alternatives_strategy_support.py -s --min B`
+    reports no B-ranked blocks.
+- Consequence:
+  - Lower-turnover alternative trade reduction is easier to audit, test, and extend without
+    changing advisory strategy behavior or public API contracts.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory strategy maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory helper modules and keep B-ranked threshold tightening
+    evidence-led rather than cosmetic.
+
 ## LA-REV-795
 
 - Scope: Repository engineering context for quality evidence freshness
