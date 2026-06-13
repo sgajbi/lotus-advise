@@ -340,6 +340,97 @@ def test_decision_summary_projects_insufficient_evidence_for_complex_product_con
     assert summary.missing_evidence[0].reason_code == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
 
 
+def test_decision_summary_preserves_combined_missing_evidence_order_and_blocking() -> None:
+    result = _base_result()
+    result.status = "BLOCKED"
+    result.diagnostics.data_quality["price_missing"].append("EQ_1")
+    result.diagnostics.data_quality["fx_missing"].append("EUR/USD")
+    result.explanation["authority_resolution"] = {
+        "simulation_authority": "lotus_core",
+        "risk_authority": "unavailable",
+        "degraded": True,
+        "degraded_reasons": ["LOTUS_RISK_ENRICHMENT_UNAVAILABLE"],
+    }
+    result.suitability = SuitabilityResult.model_validate(
+        {
+            "summary": {
+                "new_count": 2,
+                "resolved_count": 0,
+                "persistent_count": 0,
+                "highest_severity_new": "HIGH",
+            },
+            "issues": [
+                {
+                    "issue_id": "MISSING_SUITABILITY_MARKET_PRICE",
+                    "issue_key": "DATA_QUALITY|EQ_1",
+                    "dimension": "DATA_QUALITY",
+                    "severity": "HIGH",
+                    "status_change": "NEW",
+                    "classification": "NEW",
+                    "summary": "Market price evidence is incomplete.",
+                    "remediation": "Attach required market price evidence.",
+                    "approval_implication": "DATA_REMEDIATION",
+                    "details": {"instrument_id": "EQ_1"},
+                    "evidence": {
+                        "as_of": "md_test",
+                        "snapshot_ids": {
+                            "portfolio_snapshot_id": "pf_decision_001",
+                            "market_data_snapshot_id": "md_test",
+                        },
+                    },
+                    "policy_pack_id": "global-private-banking-baseline",
+                    "policy_version": "enterprise-suitability-policy.2026-04",
+                },
+                {
+                    "issue_id": "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE",
+                    "issue_key": "PRODUCT_COMPLEXITY|STRUCT_NOTE_1",
+                    "dimension": "PRODUCT",
+                    "severity": "MEDIUM",
+                    "status_change": "NEW",
+                    "classification": "UNKNOWN_DUE_TO_MISSING_EVIDENCE",
+                    "summary": "Complex product evidence is incomplete.",
+                    "remediation": "Capture client product-complexity evidence.",
+                    "approval_implication": "CLIENT_CONTEXT_REQUIRED",
+                    "details": {"instrument_id": "STRUCT_NOTE_1"},
+                    "evidence": {
+                        "as_of": "md_test",
+                        "snapshot_ids": {
+                            "portfolio_snapshot_id": "pf_decision_001",
+                            "market_data_snapshot_id": "md_test",
+                        },
+                    },
+                    "policy_pack_id": "global-private-banking-baseline",
+                    "policy_version": "enterprise-suitability-policy.2026-04",
+                },
+            ],
+            "policy_pack_id": "global-private-banking-baseline",
+            "policy_version": "enterprise-suitability-policy.2026-04",
+            "recommended_gate": "COMPLIANCE_REVIEW",
+        }
+    )
+
+    summary = build_proposal_decision_summary(result)
+
+    assert [item.reason_code for item in summary.missing_evidence] == [
+        "MISSING_REQUIRED_MARKET_PRICE",
+        "MISSING_REQUIRED_FX_DATA",
+        "MISSING_RISK_LENS",
+        "MISSING_SUITABILITY_MARKET_PRICE",
+        "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE",
+    ]
+    assert [item.blocking for item in summary.missing_evidence] == [
+        True,
+        True,
+        True,
+        True,
+        True,
+    ]
+    assert summary.missing_evidence[-2].evidence_refs == [
+        "proposal.suitability.issues.DATA_QUALITY|EQ_1"
+    ]
+    assert summary.missing_evidence[-1].evidence_type == "SUITABILITY_CONTEXT"
+
+
 def test_decision_summary_projects_available_client_and_mandate_posture() -> None:
     result = _base_result()
     result.explanation["advisory_policy_context"] = {

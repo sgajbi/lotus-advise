@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-787
+
+- Scope: Proposal decision-summary missing-evidence projection
+- Pattern: Decision-summary missing-evidence projection should separate market-data gaps, risk
+  authority gaps, suitability data-quality issues, and suitability context gaps.
+- Status: Hardened
+- Finding Class: Advisory decision evidence modularity and behavior-preservation coverage
+- Summary: `_build_missing_evidence` mixed diagnostics market-data checks, risk-authority
+  degradation, suitability data-quality projection, suitability missing-context projection, and
+  blocking policy in one B/10 helper. This path drives advisor-facing decision status,
+  recommended next action, approval requirements, and evidence references, so splitting the source
+  families makes the policy easier to audit without changing ordering, reason codes, blocking
+  semantics, summaries, or evidence references.
+- Evidence:
+  - Extracted focused helpers for market-data missing evidence, risk-lens missing evidence,
+    suitability missing evidence traversal, and single suitability-issue projection.
+  - Added focused coverage proving combined price, FX, risk, suitability data-quality, and
+    suitability context gaps preserve existing ordering, blocking posture, evidence type, and
+    evidence references.
+  - Radon no longer reports `_build_missing_evidence` as B-ranked; the module remains bounded to
+    unrelated `_build_evidence_refs` at `B/6`.
+  - Focused decision-summary tests passed with 16 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Decision-summary evidence projection remains behavior-compatible while the source-family
+    policies are smaller, named, and directly covered.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    advisory decision-summary maintainability hardening for existing proposal evidence behavior.
+- Follow-Up:
+  - Continue reducing B-ranked target-generation solver helpers, recoverable-operation query
+    helpers, runtime base-url normalization, and remaining alternatives strategy helpers with
+    focused behavior-preservation tests.
+
 ## LA-REV-786
 
 - Scope: Lotus Core stateful trade-draft shelf hydration
