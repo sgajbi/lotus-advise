@@ -8,22 +8,34 @@ from src.core.proposal_result_models import ProposalResult
 def resolve_objective_tags(
     *, request: ProposalSimulateRequest, result: ProposalResult
 ) -> list[str]:
+    tags = _resolved_objective_tags(request=request, result=result)
+    if tags:
+        return tags
+    return ["PORTFOLIO_MAINTENANCE"]
+
+
+def _resolved_objective_tags(
+    *, request: ProposalSimulateRequest, result: ProposalResult
+) -> list[str]:
     tags = []
-    has_cash_flow = bool(request.proposed_cash_flows)
-    has_trade = any(intent.intent_type == "SECURITY_TRADE" for intent in result.intents)
-    if has_trade:
+    if _has_security_trade(result):
         tags.append("RISK_ALIGNMENT")
-    if has_cash_flow:
+    if request.proposed_cash_flows:
         tags.append("CASH_DEPLOYMENT")
-    if result.drift_analysis is not None:
-        if (
-            result.drift_analysis.asset_class.drift_total_after
-            < result.drift_analysis.asset_class.drift_total_before
-        ):
-            tags.append("DRIFT_REDUCTION")
-    if not tags:
-        tags.append("PORTFOLIO_MAINTENANCE")
+    if _reduces_asset_class_drift(result):
+        tags.append("DRIFT_REDUCTION")
     return tags
+
+
+def _has_security_trade(result: ProposalResult) -> bool:
+    return any(intent.intent_type == "SECURITY_TRADE" for intent in result.intents)
+
+
+def _reduces_asset_class_drift(result: ProposalResult) -> bool:
+    if result.drift_analysis is None:
+        return False
+    asset_class_drift = result.drift_analysis.asset_class
+    return bool(asset_class_drift.drift_total_after < asset_class_drift.drift_total_before)
 
 
 def resolve_next_step(result: ProposalResult) -> str:
@@ -78,46 +90,82 @@ def _next_step_from_suitability(result: ProposalResult) -> str | None:
 def build_takeaways(
     *, request: ProposalSimulateRequest, result: ProposalResult
 ) -> list[ProposalArtifactTakeaway]:
-    security_trade_count = sum(1 for item in result.intents if item.intent_type == "SECURITY_TRADE")
-    fx_intent_count = sum(1 for item in result.intents if item.intent_type == "FX_SPOT")
     takeaways = [
-        ProposalArtifactTakeaway(
-            code="STATUS",
-            value=f"Proposal status is {result.status}.",
-        ),
-        ProposalArtifactTakeaway(
-            code="INTENTS",
-            value=(
-                f"Generated {security_trade_count} security trades and "
-                f"{fx_intent_count} FX intents."
-            ),
-        ),
-        ProposalArtifactTakeaway(
-            code="CASH",
-            value=(
-                f"Cash weight changed from {quantized_weight_str(cash_weight(result.before))} "
-                f"to {quantized_weight_str(cash_weight(result.after_simulated))}."
-            ),
-        ),
+        _status_takeaway(result),
+        _intent_count_takeaway(result),
+        _cash_weight_takeaway(result),
     ]
-    if result.drift_analysis is not None:
-        drift_before = quantized_weight_str(result.drift_analysis.asset_class.drift_total_before)
-        drift_after = quantized_weight_str(result.drift_analysis.asset_class.drift_total_after)
-        takeaways.append(
-            ProposalArtifactTakeaway(
-                code="DRIFT",
-                value=f"Asset-class drift changed from {drift_before} to {drift_after}.",
-            )
-        )
-    if request.options.enable_suitability_scanner and result.suitability is not None:
-        takeaways.append(
-            ProposalArtifactTakeaway(
-                code="SUITABILITY",
-                value=(
-                    f"Suitability issues: new={result.suitability.summary.new_count}, "
-                    f"resolved={result.suitability.summary.resolved_count}, "
-                    f"persistent={result.suitability.summary.persistent_count}."
-                ),
-            )
-        )
+    takeaways.extend(_optional_takeaways(request=request, result=result))
     return takeaways
+
+
+def _status_takeaway(result: ProposalResult) -> ProposalArtifactTakeaway:
+    return ProposalArtifactTakeaway(
+        code="STATUS",
+        value=f"Proposal status is {result.status}.",
+    )
+
+
+def _intent_count_takeaway(result: ProposalResult) -> ProposalArtifactTakeaway:
+    security_trade_count = _intent_count(result, "SECURITY_TRADE")
+    fx_intent_count = _intent_count(result, "FX_SPOT")
+    return ProposalArtifactTakeaway(
+        code="INTENTS",
+        value=(
+            f"Generated {security_trade_count} security trades and {fx_intent_count} FX intents."
+        ),
+    )
+
+
+def _intent_count(result: ProposalResult, intent_type: str) -> int:
+    return sum(1 for item in result.intents if item.intent_type == intent_type)
+
+
+def _cash_weight_takeaway(result: ProposalResult) -> ProposalArtifactTakeaway:
+    return ProposalArtifactTakeaway(
+        code="CASH",
+        value=(
+            f"Cash weight changed from {quantized_weight_str(cash_weight(result.before))} "
+            f"to {quantized_weight_str(cash_weight(result.after_simulated))}."
+        ),
+    )
+
+
+def _optional_takeaways(
+    *, request: ProposalSimulateRequest, result: ProposalResult
+) -> list[ProposalArtifactTakeaway]:
+    takeaways = []
+    drift_takeaway = _drift_takeaway(result)
+    if drift_takeaway is not None:
+        takeaways.append(drift_takeaway)
+    suitability_takeaway = _suitability_takeaway(request=request, result=result)
+    if suitability_takeaway is not None:
+        takeaways.append(suitability_takeaway)
+    return takeaways
+
+
+def _drift_takeaway(result: ProposalResult) -> ProposalArtifactTakeaway | None:
+    if result.drift_analysis is None:
+        return None
+    drift_before = quantized_weight_str(result.drift_analysis.asset_class.drift_total_before)
+    drift_after = quantized_weight_str(result.drift_analysis.asset_class.drift_total_after)
+    return ProposalArtifactTakeaway(
+        code="DRIFT",
+        value=f"Asset-class drift changed from {drift_before} to {drift_after}.",
+    )
+
+
+def _suitability_takeaway(
+    *, request: ProposalSimulateRequest, result: ProposalResult
+) -> ProposalArtifactTakeaway | None:
+    if not request.options.enable_suitability_scanner or result.suitability is None:
+        return None
+    summary = result.suitability.summary
+    return ProposalArtifactTakeaway(
+        code="SUITABILITY",
+        value=(
+            f"Suitability issues: new={summary.new_count}, "
+            f"resolved={summary.resolved_count}, "
+            f"persistent={summary.persistent_count}."
+        ),
+    )

@@ -123,6 +123,16 @@ def test_artifact_helpers_cover_objective_tags_next_steps_and_cash_fallback():
     tags = resolve_objective_tags(request=request, result=result)
     assert "DRIFT_REDUCTION" in tags
 
+    maintenance_request = request.model_copy(update={"proposed_cash_flows": []})
+    maintenance_result = SimpleNamespace(
+        intents=[],
+        proposed_cash_flows=[],
+        drift_analysis=None,
+    )
+    assert resolve_objective_tags(request=maintenance_request, result=maintenance_result) == [
+        "PORTFOLIO_MAINTENANCE"
+    ]
+
     ready_result = SimpleNamespace(gate_decision=None, suitability=None, status="READY")
     pending_result = SimpleNamespace(gate_decision=None, suitability=None, status="PENDING_REVIEW")
     compliance_gate = SimpleNamespace(gate="COMPLIANCE_REVIEW_REQUIRED", reasons=[])
@@ -169,6 +179,21 @@ def test_artifact_takeaways_include_drift_when_available():
     )
     takeaways = build_takeaways(request=request, result=result)
     assert any(t.code == "DRIFT" for t in takeaways)
+    assert any(t.code == "SUITABILITY" for t in takeaways)
+
+
+def test_artifact_takeaways_omit_suitability_when_scanner_disabled():
+    request = _build_request(
+        options=EngineOptions(
+            enable_proposal_simulation=True,
+            enable_suitability_scanner=False,
+        )
+    )
+    result = _simulate(request, "sha256:artifact-suitability-disabled-takeaway")
+
+    takeaways = build_takeaways(request=request, result=result)
+
+    assert "SUITABILITY" not in {takeaway.code for takeaway in takeaways}
 
 
 def test_proposal_artifact_builder_delegates_projection_helpers():

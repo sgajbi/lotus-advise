@@ -767,6 +767,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Proposal artifact assembly delegates gate fallback, decision-summary fallback,",
         "  alternatives copying, summary, portfolio-impact, assumptions, disclosures,",
         "  evidence-bundle, and hash finalization to focused artifact helpers.",
+        "- Proposal artifact summary projection delegates objective tags, intent counts,",
+        "  cash, drift, and suitability takeaways to focused summary helpers.",
         "- Advisory auto-funding planning delegates FX source selection and missing-rate",
         "  diagnostics to a focused funding-selection module.",
         "- Policy source-readiness assembly is split into Lotus Core, product-policy,",
@@ -1112,7 +1114,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-802` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-803` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
