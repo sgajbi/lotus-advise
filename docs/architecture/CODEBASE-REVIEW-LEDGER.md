@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-788
+
+- Scope: Target-generation solver index and group-constraint exposure
+- Pattern: Target-generation solver construction should separate eligibility classification,
+  locked-weight aggregation, shelf-attribute indexing, and group-exposure projection.
+- Status: Hardened
+- Finding Class: Advisory target-generation modularity and behavior-preservation coverage
+- Summary: `_build_target_solver_index` compressed tradeable target selection, locked-weight
+  aggregation, shelf attribute indexing, known-attribute discovery, and solver index construction
+  into one B/10 helper, while `_append_group_constraints` duplicated group-exposure classification
+  inside the cvxpy constraint loop. These paths feed advisory target generation and infeasibility
+  diagnostics, so the refactor keeps solver inputs and warnings stable while making each
+  classification step smaller and directly testable.
+- Evidence:
+  - Extracted focused helpers for tradeable target ordering, locked-weight aggregation,
+    shelf-attribute indexing, known attribute discovery, and solver group-constraint exposure.
+  - Added focused coverage proving tradeable target order, locked weight, indexed tradeable
+    positions, known shelf attributes, and tradeable-versus-locked group exposure are preserved.
+  - Radon no longer reports `_build_target_solver_index` as B-ranked, and
+    `_append_group_constraints` reduced from `B/10` to `B/6`; the target-generation module remains
+    bounded by unrelated `_solve_with_fallbacks` at `B/10`.
+  - Focused target-generation tests passed with 7 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Advisory target generation remains behavior-compatible while solver index construction and
+    group exposure policy are smaller, named, and directly covered.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    advisory target-generation maintainability hardening for existing solver behavior.
+- Follow-Up:
+  - Continue reducing remaining B/10 target-generation solver fallback behavior and in-memory
+    recoverable-operation query helpers with focused behavior-preservation tests.
+
 ## LA-REV-787
 
 - Scope: Proposal decision-summary missing-evidence projection
