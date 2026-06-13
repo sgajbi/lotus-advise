@@ -311,6 +311,8 @@
 - Advisory copilot review persistence delegates idempotent replay,
   active-posture validation, review-record construction, and run-posture mutation
   to focused helpers.
+- Advisory copilot source-projection persistence delegates shared refresh policy,
+  proposal-version run filtering, and run page projection to focused helpers.
 - Bank-demo runtime proof evidence delegates summary value sanitization,
   capability endpoint lookup, readiness validation, and promoted feature/workflow
   proof checks to focused helpers.

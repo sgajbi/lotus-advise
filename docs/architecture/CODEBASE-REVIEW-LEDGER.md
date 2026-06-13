@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-826
+
+- Scope: Advisory copilot source-projection persistence boundary
+- Pattern: Source-projection evidence packet refresh policy should live in a core advisory-copilot
+  rule module and repository adapters should delegate pagination filtering/page projection to named
+  helpers instead of carrying duplicate or branch-heavy storage-local decisions.
+- Status: Hardened
+- Finding Class: Complexity, advisory copilot persistence maintainability, behavior preservation
+- Summary: `src/infrastructure/advisory_copilot/postgres_records.py::can_refresh_source_projection_packet`
+  and `src/infrastructure/advisory_copilot/in_memory.py::_can_refresh_source_projection_packet`
+  duplicated the same source-projection refresh rule, while
+  `InMemoryAdvisoryCopilotRepository.list_runs_for_proposal_version` concentrated proposal-version
+  filtering, cursor filtering, sorting, page slicing, and cursor projection in one B/8 method. The
+  refresh rule now lives in `src/core/advisory_copilot/source_projection_packets.py`, both
+  repositories import the same policy, and in-memory run listing delegates filtering and page
+  projection to focused helpers.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_advisory_copilot_persistence.py -q`
+    passed with 41 tests.
+  - `python -m ruff check src/core/advisory_copilot/source_projection_packets.py src/infrastructure/advisory_copilot/in_memory.py src/infrastructure/advisory_copilot/postgres.py src/infrastructure/advisory_copilot/postgres_records.py tests/unit/advisory/engine/test_advisory_copilot_persistence.py`
+    passed.
+  - `python -m radon cc -s src/core/advisory_copilot/source_projection_packets.py src/infrastructure/advisory_copilot/in_memory.py src/infrastructure/advisory_copilot/postgres_records.py`
+    reports the shared refresh policy as A/3, the extracted packet-identity helper as A/4, and
+    `InMemoryAdvisoryCopilotRepository.list_runs_for_proposal_version` as A/1, down from B/8.
+- Consequence:
+  - In-memory and Postgres advisory-copilot repositories keep the same evidence-packet hash
+    conflict behavior, proposal-version source refresh allowance, run ordering, keyset cursor, and
+    pagination behavior while sharing one source-projection refresh policy.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory-copilot persistence hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory-copilot and proposal workflow persistence helpers where a
+    named policy or query helper removes duplicated storage decisions without widening client-ready
+    or AI-authoritative claims.
+
 ## LA-REV-825
 
 - Scope: Proposal narrative alternatives text helper boundary

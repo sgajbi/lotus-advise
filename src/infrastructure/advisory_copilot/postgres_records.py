@@ -134,26 +134,3 @@ def json_load(value: Any) -> Any:
 
 def optional_datetime(value: Any) -> datetime | None:
     return datetime.fromisoformat(value) if isinstance(value, str) and value else None
-
-
-def can_refresh_source_projection_packet(
-    *,
-    existing: AdvisoryCopilotEvidencePacketRecord,
-    incoming: AdvisoryCopilotEvidencePacketRecord,
-) -> bool:
-    same_projection = (
-        existing.reason_json.get("source_projection") == "PROPOSAL_VERSION"
-        and incoming.reason_json.get("source_projection") == "PROPOSAL_VERSION"
-    )
-    same_source = existing.reason_json.get("proposal_id") == incoming.reason_json.get(
-        "proposal_id"
-    ) and existing.reason_json.get("proposal_version_no") == incoming.reason_json.get(
-        "proposal_version_no"
-    )
-    same_packet_identity = (
-        existing.action_family == incoming.action_family
-        and existing.audience == incoming.audience
-        and existing.portfolio_id == incoming.portfolio_id
-        and existing.proposal_id == incoming.proposal_id
-    )
-    return bool(same_projection and same_source and same_packet_identity)

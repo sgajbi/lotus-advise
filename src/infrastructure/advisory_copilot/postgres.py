@@ -13,8 +13,10 @@ from src.core.advisory_copilot.pagination import (
 )
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
-from src.infrastructure.advisory_copilot.postgres_records import (
+from src.core.advisory_copilot.source_projection_packets import (
     can_refresh_source_projection_packet,
+)
+from src.infrastructure.advisory_copilot.postgres_records import (
     evidence_packet_from_row,
     json_dump,
     review_from_row,
