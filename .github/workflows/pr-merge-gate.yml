@@ -63,7 +63,6 @@ jobs:
 
   test-suites:
     name: PR Merge Gate / Tests (${{ matrix.suite }})
-    needs: [lint-typecheck-governance]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -120,7 +119,6 @@ jobs:
 
   postgres-migration-smoke:
     name: PR Merge Gate / Postgres Migration Smoke
-    needs: [lint-typecheck-governance]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -152,7 +150,6 @@ jobs:
 
   production-profile-smoke:
     name: PR Merge Gate / Production Profile Startup Smoke
-    needs: [lint-typecheck-governance]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -185,7 +182,6 @@ jobs:
 
   production-profile-guardrail-negatives:
     name: PR Merge Gate / Production Profile Guardrail Negatives
-    needs: [lint-typecheck-governance]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

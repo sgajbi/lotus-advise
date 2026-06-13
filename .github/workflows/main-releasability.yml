@@ -63,7 +63,6 @@ jobs:
 
   test-suites:
     name: Main Releasability / Tests (${{ matrix.suite }})
-    needs: [lint-typecheck-governance]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -120,7 +119,6 @@ jobs:
 
   postgres-migration-smoke:
     name: Main Releasability / Postgres Migration Smoke
-    needs: [lint-typecheck-governance]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -152,7 +150,6 @@ jobs:
 
   production-profile-smoke:
     name: Main Releasability / Production Profile Startup Smoke
-    needs: [lint-typecheck-governance]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -185,7 +182,6 @@ jobs:
 
   production-profile-guardrail-negatives:
     name: Main Releasability / Production Profile Guardrail Negatives
-    needs: [lint-typecheck-governance]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
