@@ -114,6 +114,8 @@
   evaluation logic.
 - Policy evaluation product evidence helpers are split from specialized
   rule evaluation logic.
+- Policy evaluation product helper complexity classification and proposed-shelf
+  projection delegate source extraction and product flags to focused helpers.
 - Policy evaluation Singapore product rule implementations are split
   into a focused rule-family module.
 - Policy evaluation cost and conflict review rules are split into a

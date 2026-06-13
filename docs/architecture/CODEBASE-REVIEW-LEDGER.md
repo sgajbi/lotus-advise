@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-810
+
+- Scope: Policy-pack product helper complexity
+- Pattern: Product-policy helpers should separate proposed-shelf projection, complexity
+  classification sources, and private/structured product flags into named helpers instead of
+  concentrating all evidence parsing and product posture checks in branching public helpers.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, policy evidence behavior preservation
+- Summary: `is_complex_or_private_product` carried direct and nested complexity fields plus
+  direct and nested structured/private product flags in one B/9 helper, while
+  `proposed_shelf_rows` carried shelf indexing and proposed-trade filtering in one B/8 helper.
+  Product helper logic now delegates shelf-row indexing, proposed instrument extraction,
+  complexity classification, and boolean product-flag checks to focused helpers while preserving
+  the existing product eligibility and complex-product disclosure behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_policy_pack_evaluation_product_helpers.py -q`
+    passed with 3 tests.
+  - `python -m ruff check src/core/policy_packs/evaluation_product_helpers.py tests/unit/advisory/engine/test_engine_policy_pack_evaluation_product_helpers.py`
+    passed.
+  - `python -m ruff format --check src/core/policy_packs/evaluation_product_helpers.py tests/unit/advisory/engine/test_engine_policy_pack_evaluation_product_helpers.py`
+    passed.
+  - `python -m mypy src/core/policy_packs/evaluation_product_helpers.py` passed.
+  - `python -m radon cc src/core/policy_packs/evaluation_product_helpers.py -s --min B --no-assert`
+    reports no B-ranked blocks.
+- Consequence:
+  - Policy evaluation product evidence remains behavior-compatible while private/complex product
+    detection is easier to audit against direct and nested source fields.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy evidence helper hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked policy-pack rule helpers where Singapore eligibility,
+    complex-product disclosure, and source evidence predicates can be made explicit and directly
+    tested.
+
 ## LA-REV-809
 
 - Scope: Workspace rationale Lotus AI workflow-pack run mapping

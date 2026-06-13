@@ -16,6 +16,7 @@ def test_policy_evaluation_product_helpers_project_proposed_shelf_rows() -> None
             "proposed_trades": [
                 {"instrument_id": "FUND_A"},
                 {"instrument_id": "MISSING_C"},
+                {"not_instrument_id": "IGNORED"},
             ],
         }
     }
@@ -42,5 +43,8 @@ def test_policy_evaluation_product_helpers_read_direct_and_nested_product_policy
 
 def test_policy_evaluation_product_helpers_detect_complex_and_private_products() -> None:
     assert is_complex_or_private_product({"complexity": "STRUCTURED"}) is True
+    assert is_complex_or_private_product({"product_complexity": "private_asset"}) is True
+    assert is_complex_or_private_product({"structured_product": True}) is True
     assert is_complex_or_private_product({"attributes": {"private_asset": True}}) is True
+    assert is_complex_or_private_product({"attributes": {"product_complexity": "COMPLEX"}}) is True
     assert is_complex_or_private_product({"attributes": {"complexity": "PLAIN_VANILLA"}}) is False
