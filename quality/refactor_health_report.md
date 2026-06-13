@@ -48,6 +48,8 @@
 - Proposal artifact assembly delegates gate fallback, decision-summary fallback,
   alternatives copying, summary, portfolio-impact, assumptions, disclosures,
   evidence-bundle, and hash finalization to focused artifact helpers.
+- Proposal artifact summary projection delegates objective tags, intent counts,
+  cash, drift, and suitability takeaways to focused summary helpers.
 - Advisory auto-funding planning delegates FX source selection and missing-rate
   diagnostics to a focused funding-selection module.
 - Policy source-readiness assembly is split into Lotus Core, product-policy,

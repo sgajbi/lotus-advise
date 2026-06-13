@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-803
+
+- Scope: Proposal artifact summary projection
+- Pattern: Objective-tag classification and key-takeaway assembly should delegate trade,
+  drift, cash, and suitability evidence checks to focused helpers instead of one branching
+  summary module entrypoint.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and proposal artifact behavior preservation
+- Summary: `resolve_objective_tags` and `build_takeaways` each carried multiple artifact-summary
+  decisions in B-ranked helpers. The summary module now keeps the public entrypoints stable while
+  delegating security-trade detection, asset-class drift reduction, intent counting, cash-weight
+  takeaway construction, drift takeaway construction, and suitability takeaway gating to private
+  helpers.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_artifact.py -q` passed with
+    10 tests.
+  - `python -m ruff check src/core/advisory/artifact_summary.py tests/unit/advisory/engine/test_engine_proposal_artifact.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/artifact_summary.py tests/unit/advisory/engine/test_engine_proposal_artifact.py`
+    passed.
+  - `python -m mypy src/core/advisory/artifact_summary.py` passed.
+  - `python -m radon cc src/core/advisory/artifact_summary.py -s --min B --no-assert` reports no
+    B-ranked blocks.
+- Consequence:
+  - Proposal artifact summaries preserve objective-tag fallback and suitability takeaway semantics
+    while making advisor-use summary evidence easier to audit by source signal.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal artifact maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing adjacent advisory evidence helpers where extraction preserves artifact hash
+    stability and advisor-use evidence semantics.
+
 ## LA-REV-802
 
 - Scope: Proposal artifact assembly orchestration
