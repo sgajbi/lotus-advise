@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-822
+
+- Scope: Advisory copilot review persistence boundary
+- Pattern: Review recording should expose idempotent replay, active-posture validation, review
+  record construction, and run-posture mutation as named helpers instead of embedding the full
+  persistence policy in one orchestration function.
+- Status: Hardened
+- Finding Class: Complexity, advisory copilot auditability, behavior preservation
+- Summary: `src/core/advisory_copilot/review_persistence.py::record_advisory_copilot_review`
+  previously combined request hashing, idempotency replay, conflict detection, orphan detection,
+  terminal-posture blocking, review event construction, and run update behavior in a B/8 function.
+  The review persistence boundary now delegates those decisions to focused helpers while
+  preserving review idempotency, audit record contents, terminal-run blocking, and run posture
+  updates.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_advisory_copilot_persistence.py -q`
+    passed with 39 tests.
+  - `python -m ruff check src/core/advisory_copilot/review_persistence.py tests/unit/advisory/engine/test_advisory_copilot_persistence.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/core/advisory_copilot/review_persistence.py`
+    passed.
+  - `python -m radon cc -s src/core/advisory_copilot/review_persistence.py` reports
+    `record_advisory_copilot_review` as A/4, down from B/8.
+- Consequence:
+  - Advisor-review copilot runs retain deterministic idempotent replay and terminal-posture
+    guardrails while the persistence boundary is easier to audit for safe AI lineage and review
+    governance.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory copilot persistence hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B/8 advisory orchestration hotspots where helper extraction improves
+    supportability and auditability without widening AI or client-ready claims.
+
 ## LA-REV-821
 
 - Scope: Proposal narrative product-type evidence policy boundary

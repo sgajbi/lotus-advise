@@ -1022,6 +1022,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Advisory copilot run persistence delegates payload safety validation,",
         "  idempotency replay lookup, run-record construction, retryable refresh, and",
         "  idempotency-record construction to focused helpers.",
+        "- Advisory copilot review persistence delegates idempotent replay,",
+        "  active-posture validation, review-record construction, and run-posture mutation",
+        "  to focused helpers.",
         "- In-memory advisory copilot run persistence delegates idempotency replay,",
         "  run-id replay, conflict policy, and new-run storage to focused helpers.",
         "- Enterprise readiness runtime policy delegates config issue collection,",
@@ -1155,7 +1158,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-821` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-822` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1187,7 +1190,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "route-resolution policy, advisory copilot idempotency replay, classification "
             "boundaries, Lotus Risk issuer mapping, Lotus Report request mapping, Lotus Core "
             "held-position selection, Lotus Core dated-row selection, proposal narrative "
-            "product-type policy, and CI warning/topology contracts.",
+            "product-type policy, advisory copilot review persistence, and CI "
+            "warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (
