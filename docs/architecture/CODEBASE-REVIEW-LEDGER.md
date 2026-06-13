@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-828
+
+- Scope: Suitability issue projection policy
+- Pattern: Suitability issue classification and advisory gate recommendation should delegate
+  transition selection, issue sorting, and highest-new-severity policy to named helpers instead of
+  embedding repeated branch-heavy checks in the public projection helpers.
+- Status: Hardened
+- Finding Class: Complexity, suitability governance projection, behavior preservation
+- Summary: `src/core/common/suitability_projection.py::classify_issues`,
+  `src/core/common/suitability_projection.py::recommended_gate`, and
+  `src/core/common/suitability_projection.py::highest_new_issue_severity` previously carried
+  B/7 transition and severity policy. The projection module now delegates issue status selection,
+  candidate selection, deterministic sort-key construction, and new-issue severity precedence to
+  focused helpers while preserving NEW/PERSISTENT/RESOLVED ordering, missing-evidence
+  classification, policy-pack projection, and advisory gate behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_suitability_projection.py tests/unit/advisory/engine/test_engine_suitability_scanner.py tests/unit/advisory/engine/test_engine_suitability_governance_issues.py -q`
+    passed with 15 tests.
+  - `python -m ruff check src/core/common/suitability_projection.py tests/unit/advisory/engine/test_engine_suitability_projection.py`
+    passed.
+  - `python -m mypy src/core/common/suitability_projection.py`
+    passed.
+  - `python -m radon cc -s src/core/common/suitability_projection.py` reports
+    `classify_issues` as A/3, `recommended_gate` as A/4, and
+    `highest_new_issue_severity` as A/4, down from B/7 for all three helpers.
+- Consequence:
+  - Advisory suitability results keep the same issue transition classes, deterministic ordering,
+    highest-new-severity summary, and review-gate recommendation while the projection module has
+    smaller named policy boundaries.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal suitability projection hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked common workflow and advisory orchestration helpers where focused
+    policy extraction improves supportability without changing advisory approval or client-ready
+    boundaries.
+
 ## LA-REV-827
 
 - Scope: Advisory copilot evidence section tuple validation boundary
