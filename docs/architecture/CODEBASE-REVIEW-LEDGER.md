@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-824
+
+- Scope: Proposal narrative deterministic section rendering boundary
+- Pattern: Deterministic advisor-review narrative rendering should expose each section renderer and
+  supporting text policy as named helpers instead of embedding all section construction in one
+  branch-heavy list assembly.
+- Status: Hardened
+- Finding Class: Complexity, proposal narrative maintainability, behavior preservation
+- Summary: `src/core/advisory/narrative_sections.py::render_sections` previously combined all
+  eight deterministic proposal narrative sections, source-reference projection, limitation
+  projection, fallback text, and section-specific evidence wording in one B/8 function. The
+  rendering boundary now delegates executive summary, recommendation rationale, risk,
+  suitability, material changes, alternatives, approvals, and limitations/disclosures construction
+  to focused helpers while preserving deterministic advisor-review narrative content.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_narrative_sections.py tests/unit/advisory/engine/test_engine_proposal_narrative_modules.py tests/unit/advisory/engine/test_engine_proposal_narrative_policy.py -q`
+    passed with 5 tests.
+  - `python -m ruff check src/core/advisory/narrative_sections.py tests/unit/advisory/engine/test_engine_proposal_narrative_sections.py`
+    passed.
+  - `python -m mypy src/core/advisory/narrative_sections.py` passed.
+  - `python -m radon cc -s src/core/advisory/narrative_sections.py` reports `render_sections` as
+    A/1, down from B/8.
+- Consequence:
+  - Advisor-review proposal narratives keep the same section ordering, source refs, limitation
+    refs, unavailable-risk wording, suitability evidence wording, material-change fallback, and
+    not-requested alternatives wording while each section boundary is easier to review.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal deterministic narrative rendering hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked narrative text helpers and advisory orchestration hotspots where
+    helper extraction improves readability without widening client-ready narrative claims.
+
 ## LA-REV-823
 
 - Scope: Bank-demo runtime proof evidence boundaries
