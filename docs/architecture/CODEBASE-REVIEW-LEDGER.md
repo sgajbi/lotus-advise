@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-812
+
+- Scope: Lotus Core simulation suitability classification adapter
+- Pattern: Upstream suitability issue classification normalization should use named extraction and
+  resolution helpers rather than mutating response payloads through a branch-heavy loop.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, Lotus Core contract-boundary behavior preservation
+- Summary: `_normalize_suitability_issue_classification` mixed response-shape checks, issue
+  filtering, canonical classification detection, `status_change` fallback, and unknown fallback in
+  one B/9 helper. The Lotus Core simulation adapter now delegates issue-record extraction,
+  canonical classification resolution, and allowed-value detection to focused helpers while
+  preserving the existing response-normalization contract.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_core_simulation_client.py -q` passed with
+    13 tests.
+  - `python -m ruff check src/integrations/lotus_core/simulation.py tests/unit/advisory/api/test_lotus_core_simulation_client.py`
+    passed.
+  - `python -m ruff format --check src/integrations/lotus_core/simulation.py tests/unit/advisory/api/test_lotus_core_simulation_client.py`
+    passed.
+  - `python -m radon cc src/integrations/lotus_core/simulation.py -s --min B` no longer reports
+    `_normalize_suitability_issue_classification`; the remaining B-ranked block in the module is
+    `_problem_detail_from_status_error`.
+- Consequence:
+  - Lotus Core simulation response handling remains behavior-compatible while canonical
+    classification precedence and `status_change` fallback are easier to audit at the integration
+    boundary.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal Lotus Core adapter hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining B/9 hotspots in replay, workspace draft, risk concentration request
+    mapping, policy catalog activation, and the separate Lotus Core problem-detail mapper before
+    considering stricter B-ranked enforcement.
+
 ## LA-REV-811
 
 - Scope: Policy-pack rule dispatch and Singapore product-rule complexity
