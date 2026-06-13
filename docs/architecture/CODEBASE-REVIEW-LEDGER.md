@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-819
+
+- Scope: Lotus Core stateful-context held-position selection boundary
+- Pattern: Stateful-context source orchestration should expose non-cash security-id selection as
+  named filtering and normalization helpers instead of embedding row-shape, cash exclusion,
+  duplicate removal, and sorting policy in one dense comprehension.
+- Status: Hardened
+- Finding Class: Complexity, upstream integration payload reliability, behavior preservation
+- Summary: `src/integrations/lotus_core/stateful_context.py::_held_position_instrument_ids`
+  previously combined malformed-row filtering, cash-position exclusion, blank-security rejection,
+  normalization, uniqueness, and deterministic ordering in a B/8 comprehension. The integration
+  boundary now delegates cash detection and security-id normalization to focused helpers while
+  preserving the same sorted unique non-cash security-id payload for Lotus Core enrichment.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_core_stateful_context.py -q`
+    passed with 36 tests.
+  - `python -m pytest tests/unit/advisory/api/test_lotus_core_stateful_context_selection.py -q`
+    passed with 1 test.
+  - `python -m ruff check src/integrations/lotus_core/stateful_context.py tests/unit/advisory/api/test_lotus_core_stateful_context_selection.py`
+    passed.
+  - `python -m radon cc -s src/integrations/lotus_core/stateful_context.py` reports
+    `_held_position_instrument_ids` as A/4, down from B/8.
+- Consequence:
+  - Lotus Core enrichment reads still receive deterministic held security identifiers, while the
+    adapter's private-banking portfolio-context filtering rules are easier to audit and extend.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal Lotus Core integration boundary hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B/8 integration and orchestration hotspots where payload safety, diagnostics,
+    or policy ownership clarity improves.
+
 ## LA-REV-818
 
 - Scope: Lotus Report request mapping safety boundary

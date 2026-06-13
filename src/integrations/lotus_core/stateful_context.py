@@ -271,15 +271,26 @@ def _fetch_stateful_context_source_payloads(
 
 
 def _held_position_instrument_ids(positions_payload: dict[str, Any]) -> list[str]:
-    return sorted(
-        {
-            str(raw_position.get("security_id") or "").strip()
-            for raw_position in positions_payload.get("positions", [])
-            if isinstance(raw_position, dict)
-            and str(raw_position.get("asset_class") or "").strip().lower() != "cash"
-            and str(raw_position.get("security_id") or "").strip()
-        }
-    )
+    instrument_ids: set[str] = set()
+    for raw_position in positions_payload.get("positions", []):
+        if not isinstance(raw_position, dict):
+            continue
+        instrument_id = _held_position_security_id(raw_position)
+        if instrument_id is not None:
+            instrument_ids.add(instrument_id)
+    return sorted(instrument_ids)
+
+
+def _held_position_security_id(raw_position: dict[str, Any]) -> str | None:
+    if _is_cash_position(raw_position):
+        return None
+    instrument_id = str(raw_position.get("security_id") or "").strip()
+    return instrument_id or None
+
+
+def _is_cash_position(raw_position: dict[str, Any]) -> bool:
+    asset_class = str(raw_position.get("asset_class") or "").strip().lower()
+    return asset_class == "cash"
 
 
 def _resolved_portfolio_identity(
