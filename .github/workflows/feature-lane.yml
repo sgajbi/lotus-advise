@@ -59,7 +59,6 @@ jobs:
 
   unit-tests:
     name: Feature Lane / Tests (unit)
-    needs: [lint-dependency-governance]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

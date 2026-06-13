@@ -1,5 +1,108 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-792
+
+- Scope: CI warning cleanup and independent job parallelization
+- Pattern: CI should avoid redundant configuration warnings and should not serialize independent
+  checks behind unrelated gate jobs when required check names and real prerequisites can stay
+  stable.
+- Status: Hardened
+- Finding Class: CI efficiency, warning remediation, and workflow contract clarity
+- Summary: Local pytest runs emitted an avoidable warning because `pytest.ini` and
+  `pyproject.toml` both declared pytest configuration, with `pytest.ini` taking precedence. Mypy
+  also reported unused test/script override sections because the repo typecheck scope is `src`.
+  The GitHub Feature Lane, PR Merge Gate, and Main Releasability workflows also serialized
+  independent unit/runtime test jobs behind static governance jobs even though coverage and Docker
+  jobs already carry the real downstream prerequisites. The slice keeps check display names stable
+  while allowing independent work to start earlier.
+- Evidence:
+  - Removed redundant `[tool.pytest.ini_options]` from `pyproject.toml`, leaving `pytest.ini` as
+    the single pytest configuration source.
+  - Removed stale `[mypy-tests.*]` and `[mypy-scripts.*]` override sections from `mypy.ini`,
+    eliminating the unused-configuration warning while preserving the `src` typecheck scope.
+  - Removed unnecessary `needs` edges from Feature Lane unit tests and from PR/Main test and
+    runtime-smoke jobs, while preserving coverage and Docker dependency requirements.
+  - Added workflow contract tests proving pytest has one authoritative config, mypy has no stale
+    override sections, Feature Lane unit tests run independently of static governance, PR/Main test
+    and runtime jobs are not serialized behind static governance, and required check display names
+    remain stable.
+  - Focused CI workflow contract tests passed with 5 tests, a focused pytest run for the Radon gate
+    reported only pass output and no ignored-pyproject warning, and mypy completed with no unused
+    config warning.
+- Consequence:
+  - CI retains the same required check names and gates while reducing unnecessary waiting and
+    removing recurring pytest and mypy warnings from local and CI output.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal CI
+    quality and workflow-topology hardening.
+- Follow-Up:
+  - Continue looking for warning remediation and safe parallelization opportunities as CI evidence
+    surfaces them, without weakening required gates.
+
+## LA-REV-791
+
+- Scope: Radon no-C/D/E/F complexity regression gate
+- Pattern: Remediated complexity classes should become enforced CI posture once current evidence
+  proves the repository has no remaining blocks at that rank or worse.
+- Status: Hardened
+- Finding Class: CI measurement and regression prevention
+- Summary: The refactoring campaign has eliminated the previous C-ranked source hotspots, but the
+  repo-native complexity gate still only failed on E-ranked and worse blocks. That left remediated
+  C/D-ranked complexity as a report-only achievement rather than an enforced regression boundary.
+  The gate now fails on any C, D, E, or F Radon block while leaving B-ranked helpers as the next
+  measured refactoring backlog.
+- Evidence:
+  - Promoted `make complexity-regression-gate` from `--fail-rank E` to `--fail-rank C`.
+  - Added focused unit coverage proving the Radon gate fails when configured with `--fail-rank C`
+    and Radon reports a C-ranked block.
+  - Updated generated quality and engineering-health report wording so the scorecard states the
+    current no-C/D/E/F enforcement truth and preserves B-ranked calibration as the remaining
+    complexity follow-up.
+  - Current strict gate passed with `blocks=3582`, inventory `A=3396, B=186`, worst `B/10`, and
+    `fail_rank=C`.
+- Consequence:
+  - Future changes cannot reintroduce C/D/E/F-ranked source complexity through the normal lint and
+    `make check` lanes without failing CI.
+- Documentation:
+  - Review ledger, quality reports, and engineering-health baseline updated. No README/wiki source
+    change is required because this is CI quality-gate enforcement for already-remediated
+    complexity posture.
+- Follow-Up:
+  - Continue reducing and classifying B-ranked hotspots before considering stricter B-ranked
+    enforcement or a fail-on-new-B policy.
+
+## LA-REV-790
+
+- Scope: Bank-demo runtime base URL normalization
+- Pattern: Runtime proof URL normalization should separate bounded input validation, http(s)
+  parsing, sensitive component rejection, and canonical URL rendering.
+- Status: Hardened
+- Finding Class: Runtime proof security and maintainability hardening
+- Summary: `normalize_runtime_base_url` mixed presence/length validation, URL parsing, scheme and
+  host policy, credential/query/fragment rejection, port handling, and canonical rendering in one
+  B/10 helper. This path guards backend proof runtime posture, so the refactor keeps safe URL
+  canonicalization and sensitive-material rejection stable while making each security policy
+  smaller and directly testable.
+- Evidence:
+  - Extracted focused helpers for bounded runtime URL text, http(s) parsing, sensitive URL part
+    rejection, canonical rendering, and host/port netloc projection.
+  - Added direct coverage proving safe host/path/port canonicalization is preserved and blank,
+    non-http, hostless, credential-bearing, query-bearing, and fragment-bearing runtime base URLs
+    are rejected with bounded validation messages.
+  - Radon no longer reports `normalize_runtime_base_url` as B-ranked; `runtime_posture.py` is now
+    bounded by unrelated `_sanitize_summary_value` at `B/8`.
+  - Focused bank-demo proof model tests passed with 18 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Bank-demo runtime proof keeps behavior-compatible URL safety while the credential/query/
+    fragment rejection boundary is easier to audit.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    runtime proof security and maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining B/10 in-memory recoverable-operation query helpers and
+    alternatives currency objective helpers with focused behavior-preservation tests.
+
 ## LA-REV-789
 
 - Scope: Target-generation solver fallback attempts

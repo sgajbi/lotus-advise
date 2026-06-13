@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-13T02:18:44.237457+00:00`
-- Branch: `harden/target-solver-fallbacks`
-- Head: `a15731ab06330dafabbf39e6355e63db5e6e9ff7`
-- Branch Commits Over Main: `1`
+- Generated At: `2026-06-13T04:47:14.149551+00:00`
+- Branch: `harden/runtime-base-url-normalization`
+- Head: `81854b5b31506d9cd80e7db083f39a77de47f9ed`
+- Branch Commits Over Main: `5`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `145604`
+- Total Python lines: `145747`
 
 ## Largest Files
 
@@ -25,7 +25,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1226 |
+| 9 | `scripts/quality_baseline_report.py` | 1228 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1197 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -48,13 +48,13 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3577`
-- Radon complexity rank inventory: `A=3390, B=187`
+- Radon analyzed block inventory: `3582`
+- Radon complexity rank inventory: `A=3396, B=186`
 - Radon worst complexity: `rank=B, complexity=10`
-- Radon E/F-ranked block enforcement is repo-native through
+- Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
-- Xenon and stricter Radon thresholds remain report-only until current
-  D-ranked helpers are classified.
+- Xenon and stricter B-ranked Radon thresholds remain report-only until current
+  B-ranked helpers are classified.
 
 ## Lint And Type Issues
 
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3961, missing=3926, covered=35, coverage=0.9%`
+- Interrogate docstring inventory: `total=3966, missing=3931, covered=35, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

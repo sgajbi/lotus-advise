@@ -70,6 +70,29 @@ def test_main_fails_when_radon_reports_f_rank(monkeypatch, tmp_path: Path, capsy
     assert "src/example.py:too_complex: rank=F, complexity=45" in captured.err
 
 
+def test_main_fails_at_configured_c_rank_threshold(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    monkeypatch.setattr(
+        radon_complexity_gate,
+        "run_radon",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=_payload({"name": "remediated_hotspot", "rank": "C", "complexity": 12}),
+            stderr="",
+        ),
+    )
+
+    exit_code = radon_complexity_gate.main(["--repo-root", str(tmp_path), "--fail-rank", "C"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "fail_rank=C" in captured.out
+    assert "src/example.py:remediated_hotspot: rank=C, complexity=12" in captured.err
+
+
 def test_main_fails_when_radon_output_is_not_json(
     monkeypatch,
     tmp_path: Path,

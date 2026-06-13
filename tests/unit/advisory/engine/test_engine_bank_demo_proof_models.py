@@ -21,6 +21,7 @@ from src.core.bank_demo_proof import (
     RuntimeEndpointEvidence,
     SupportedClaim,
     SupportedClaimProofRequirement,
+    normalize_runtime_base_url,
 )
 from src.core.common.canonical import hash_canonical_payload
 
@@ -642,6 +643,33 @@ def test_runtime_posture_blocks_secret_urls_and_sanitizes_probe_summaries() -> N
 
     with pytest.raises(ValidationError, match="path without query or fragment"):
         RuntimeEndpointEvidence(endpoint="/health?token=abc", posture="READY", summary={})
+
+
+def test_runtime_base_url_normalization_preserves_safe_runtime_location() -> None:
+    assert (
+        normalize_runtime_base_url(" https://ADVISE.dev.lotus:8443/runtime/ ")
+        == "https://advise.dev.lotus:8443/runtime"
+    )
+    assert normalize_runtime_base_url("http://localhost:8080/") == "http://localhost:8080"
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        (" ", "present and bounded"),
+        ("ftp://advise.dev.lotus", "http\\(s\\) URL with a host"),
+        ("https:///runtime", "http\\(s\\) URL with a host"),
+        ("https://user:secret@advise.dev.lotus", "credentials, query, or fragment"),
+        ("https://advise.dev.lotus?token=abc", "credentials, query, or fragment"),
+        ("https://advise.dev.lotus#token=abc", "credentials, query, or fragment"),
+    ],
+)
+def test_runtime_base_url_normalization_rejects_unsafe_or_malformed_values(
+    value: str,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        normalize_runtime_base_url(value)
 
 
 def test_runtime_posture_redacts_sensitive_values_in_neutral_summary_fields() -> None:

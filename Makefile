@@ -107,7 +107,7 @@ architecture-boundaries:
 	python -c "from importlinter.cli import lint_imports_command; lint_imports_command(args=['--config','.importlinter'], standalone_mode=True)"
 
 complexity-regression-gate:
-	python scripts/radon_complexity_gate.py --fail-rank E
+	python scripts/radon_complexity_gate.py --fail-rank C
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q

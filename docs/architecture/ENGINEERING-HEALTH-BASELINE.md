@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-06-05T00:10:28.404438+00:00`
-- Branch: `harden/quality-gate-calibration`
-- Head: `110cc35dc02ca5a527c3166b4169bcc0a66fc0c2`
-- Python Files: `918`
+- Generated At: `2026-06-13T04:35:27.580126+00:00`
+- Branch: `harden/runtime-base-url-normalization`
+- Head: `abbd79dbd9ce73bf0448121c2da65afe71c9a6c6`
+- Python Files: `933`
 - Packages: `38`
-- Modules: `880`
-- Total Python Lines: `138842`
+- Modules: `895`
+- Total Python Lines: `145680`
 
 ## Largest Files
 
@@ -16,22 +16,22 @@
 | 2 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 3861 |
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2566 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2538 |
-| 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1870 |
+| 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1935 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1181 |
-| 10 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
-| 11 | `scripts/quality_baseline_report.py` | 1017 |
-| 12 | `tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py` | 975 |
-| 13 | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 862 |
-| 14 | `tests/unit/advisory/api/test_api_advisory_copilot.py` | 830 |
-| 15 | `tests/unit/advisory/engine/test_advisory_copilot_application.py` | 817 |
-| 16 | `tests/unit/advisory/api/test_api_integration_capabilities.py` | 812 |
-| 17 | `tests/unit/advisory/engine/test_engine_proposal_alternatives.py` | 787 |
-| 18 | `tests/unit/advisory/api/test_api_internal_guards.py` | 752 |
-| 19 | `tests/unit/advisory/contracts/test_contract_workspace_models.py` | 750 |
-| 20 | `tests/unit/shared/contracts/test_contract_models.py` | 721 |
+| 9 | `scripts/quality_baseline_report.py` | 1227 |
+| 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1197 |
+| 11 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
+| 12 | `src/api/openapi_enrichment.py` | 983 |
+| 13 | `tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py` | 975 |
+| 14 | `tests/unit/advisory/engine/test_engine_advisor_cockpit_service.py` | 872 |
+| 15 | `tests/unit/advisory/api/test_api_integration_capabilities.py` | 867 |
+| 16 | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 862 |
+| 17 | `tests/unit/advisory/engine/test_engine_proposal_alternatives.py` | 831 |
+| 18 | `tests/unit/advisory/api/test_api_advisory_copilot.py` | 830 |
+| 19 | `tests/unit/advisory/engine/test_advisory_copilot_application.py` | 817 |
+| 20 | `tests/unit/advisory/api/test_api_internal_guards.py` | 752 |
 
 ## Largest Functions
 
@@ -39,24 +39,24 @@
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
 | 2 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 3 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
-| 4 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
-| 5 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
-| 6 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 7 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
-| 8 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
-| 9 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 635 | 225 |
-| 10 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 221 |
-| 11 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 211 |
-| 12 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 370 | 200 |
+| 3 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 711 | 306 |
+| 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
+| 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
+| 6 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
+| 7 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
+| 8 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
+| 9 | `_assert_live_proposal_memo_flow` | `scripts/validate_cross_service_parity_live.py` | 2261 | 228 |
+| 10 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 700 | 225 |
+| 11 | `render_baseline_report` | `scripts/quality_baseline_report.py` | 488 | 221 |
+| 12 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 381 | 216 |
 | 13 | `_live_runtime_payload` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` | 23 | 187 |
 | 14 | `test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples` | `tests/unit/advisory/api/test_openapi_enrichment.py` | 6 | 179 |
 | 15 | `test_lifecycle_endpoints_use_separate_request_and_response_objects` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 396 | 178 |
-| 16 | `_assert_live_proposal_narrative_flow` | `scripts/validate_cross_service_parity_live.py` | 2053 | 174 |
-| 17 | `_assert_workspace_flow` | `scripts/validate_cross_service_parity_live.py` | 3052 | 173 |
-| 18 | `_assert_mixed_approval_routes_remain_version_scoped` | `scripts/validate_cross_service_parity_live.py` | 1616 | 170 |
-| 19 | `test_live_postgres_proposal_repository_parity_contract` | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 38 | 169 |
-| 20 | `test_copilot_evidence_packet_model_normalizes_and_bounds_audit_fields` | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 823 | 168 |
+| 16 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1019 | 177 |
+| 17 | `_assert_live_proposal_narrative_flow` | `scripts/validate_cross_service_parity_live.py` | 2053 | 174 |
+| 18 | `_assert_workspace_flow` | `scripts/validate_cross_service_parity_live.py` | 3052 | 173 |
+| 19 | `_assert_mixed_approval_routes_remain_version_scoped` | `scripts/validate_cross_service_parity_live.py` | 1616 | 170 |
+| 20 | `test_live_postgres_proposal_repository_parity_contract` | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 38 | 169 |
 
 ## Router Hotspots
 
@@ -120,5 +120,5 @@
   to render structural metric deltas in later refactoring phases.
 - External scanner inventories should move from measurement to repo-native gates in
   calibrated slices; coverage, import-linter, Spectral, Bandit high severity,
-  and Radon E/F-ranked complexity now have enforced paths while vulture, deptry,
+  and Radon C/D/E/F-ranked complexity now have enforced paths while vulture, deptry,
   interrogate, and stricter complexity thresholds remain measured backlog.
