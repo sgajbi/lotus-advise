@@ -4,7 +4,7 @@ FILE: src/core/valuation.py
 
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 from src.core.engine_options_models import EngineOptions, ValuationMode
 from src.core.portfolio_models import (
@@ -28,17 +28,27 @@ def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> 
     if from_ccy == to_ccy:
         return Decimal("1.0")
 
-    pair = f"{from_ccy}/{to_ccy}"
-    direct = next((r.rate for r in market_data.fx_rates if r.pair == pair), None)
-    if direct:
-        return Decimal(str(direct))
+    direct_rate = _fx_rate_for_pair(market_data, _fx_pair(from_ccy, to_ccy))
+    if direct_rate:
+        return _decimal_fx_rate(direct_rate)
 
-    pair_inv = f"{to_ccy}/{from_ccy}"
-    inverse = next((r.rate for r in market_data.fx_rates if r.pair == pair_inv), None)
-    if inverse:
-        return Decimal("1.0") / Decimal(str(inverse))
+    inverse_rate = _fx_rate_for_pair(market_data, _fx_pair(to_ccy, from_ccy))
+    if inverse_rate:
+        return Decimal("1.0") / _decimal_fx_rate(inverse_rate)
 
     return None
+
+
+def _fx_pair(from_ccy: str, to_ccy: str) -> str:
+    return f"{from_ccy}/{to_ccy}"
+
+
+def _fx_rate_for_pair(market_data: MarketDataSnapshot, pair: str) -> Optional[Decimal]:
+    return next((rate.rate for rate in market_data.fx_rates if rate.pair == pair), None)
+
+
+def _decimal_fx_rate(rate: Decimal) -> Decimal:
+    return Decimal(str(rate))
 
 
 @dataclass(frozen=True)
@@ -317,12 +327,13 @@ def _cash_value_in_base(
     base_ccy: str,
     dq_log: Dict[str, List[str]],
 ) -> Decimal:
+    amount = cast(Decimal, cash.amount)
     if cash.currency == base_ccy:
-        return cash.amount
+        return amount
 
     rate = get_fx_rate(market_data, cash.currency, base_ccy)
     if rate:
-        return cash.amount * rate
+        return amount * rate
 
     dq_log.setdefault("fx_missing", []).append(f"{cash.currency}/{base_ccy}")
     return Decimal("0")
