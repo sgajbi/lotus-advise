@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-802
+
+- Scope: Proposal artifact assembly orchestration
+- Pattern: Proposal artifact construction should keep gate fallback, decision-summary fallback,
+  alternatives copying, summary, portfolio-impact, assumptions, disclosures, evidence, and hash
+  finalization as named projection helpers instead of one broad artifact builder.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and proposal artifact behavior preservation
+- Summary: `build_proposal_artifact` carried artifact-wide orchestration and several section
+  projection branches in one B-ranked helper. The public builder now delegates gate-decision
+  fallback, persisted decision-summary selection, deep-copying proposal alternatives, timestamp
+  projection, summary, portfolio impact, assumptions, disclosures, and traded-instrument
+  extraction to focused helpers while preserving the existing artifact model and hash finalization
+  behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_artifact.py -q` passed with
+    9 tests.
+  - `python -m ruff check src/core/advisory/artifact.py tests/unit/advisory/engine/test_engine_proposal_artifact.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/artifact.py tests/unit/advisory/engine/test_engine_proposal_artifact.py`
+    passed.
+  - `python -m mypy src/core/advisory/artifact.py` passed.
+  - `python -m radon cc src/core/advisory/artifact.py -s --min B --no-assert` reports no B-ranked
+    blocks.
+- Consequence:
+  - Proposal artifact assembly remains behavior-compatible while making the advisor-use evidence
+    artifact easier to review by section and safer to extend without changing hashing or persisted
+    proposal-alternative semantics.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal proposal artifact maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing adjacent artifact summary and advisory evidence helpers where extraction
+    preserves artifact hash stability and advisor-use evidence semantics.
+
 ## LA-REV-801
 
 - Scope: Target-generation trace projection

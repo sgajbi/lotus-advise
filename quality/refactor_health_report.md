@@ -45,8 +45,9 @@
   path, traversal, and sensitive-detail checks to focused helpers.
 - Bank-demo journey integration proof DTOs and validators are split into a focused
   model owner while preserving the proof summary builder and public import path.
-- Proposal artifact assembly delegates portfolio, summary, trade/funding, review,
-  evidence-bundle, and hash finalization to focused artifact modules.
+- Proposal artifact assembly delegates gate fallback, decision-summary fallback,
+  alternatives copying, summary, portfolio-impact, assumptions, disclosures,
+  evidence-bundle, and hash finalization to focused artifact helpers.
 - Advisory auto-funding planning delegates FX source selection and missing-rate
   diagnostics to a focused funding-selection module.
 - Policy source-readiness assembly is split into Lotus Core, product-policy,
