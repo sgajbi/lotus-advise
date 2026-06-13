@@ -21,6 +21,14 @@ def test_pytest_configuration_has_single_authoritative_file() -> None:
     assert "addopts = --strict-markers" in pytest_ini
 
 
+def test_mypy_configuration_has_no_unused_override_sections() -> None:
+    mypy_config = Path("mypy.ini").read_text(encoding="utf-8")
+
+    assert "warn_unused_configs = True" in mypy_config
+    assert "[mypy-tests.*]" not in mypy_config
+    assert "[mypy-scripts.*]" not in mypy_config
+
+
 def test_feature_lane_unit_tests_run_in_parallel_with_static_governance() -> None:
     workflow = Path(".github/workflows/feature-lane.yml").read_text(encoding="utf-8")
 
