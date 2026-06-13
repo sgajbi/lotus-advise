@@ -13,7 +13,61 @@ from src.core.portfolio_models import (
     Price,
     ShelfEntry,
 )
-from src.core.valuation import ValuationService, build_simulated_state
+from src.core.valuation import ValuationService, build_simulated_state, get_fx_rate
+
+
+def test_get_fx_rate_returns_one_for_matching_currencies() -> None:
+    rate = get_fx_rate(MarketDataSnapshot(prices=[], fx_rates=[]), "USD", "USD")
+
+    assert rate == Decimal("1.0")
+
+
+def test_get_fx_rate_uses_direct_market_pair() -> None:
+    rate = get_fx_rate(
+        MarketDataSnapshot(
+            prices=[],
+            fx_rates=[FxRate(pair="EUR/USD", rate="1.25")],
+        ),
+        "EUR",
+        "USD",
+    )
+
+    assert rate == Decimal("1.25")
+
+
+def test_get_fx_rate_uses_inverse_market_pair() -> None:
+    rate = get_fx_rate(
+        MarketDataSnapshot(
+            prices=[],
+            fx_rates=[FxRate(pair="USD/EUR", rate="0.8")],
+        ),
+        "EUR",
+        "USD",
+    )
+
+    assert rate == Decimal("1.25")
+
+
+def test_get_fx_rate_returns_none_when_pair_is_missing() -> None:
+    rate = get_fx_rate(MarketDataSnapshot(prices=[], fx_rates=[]), "EUR", "USD")
+
+    assert rate is None
+
+
+def test_get_fx_rate_treats_zero_rate_as_unavailable() -> None:
+    rate = get_fx_rate(
+        MarketDataSnapshot(
+            prices=[],
+            fx_rates=[
+                FxRate(pair="EUR/USD", rate="0"),
+                FxRate(pair="USD/EUR", rate="0.8"),
+            ],
+        ),
+        "EUR",
+        "USD",
+    )
+
+    assert rate == Decimal("1.25")
 
 
 def test_value_position_uses_mark_to_market_fx_conversion() -> None:

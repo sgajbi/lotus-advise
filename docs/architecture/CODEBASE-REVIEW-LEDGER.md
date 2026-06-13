@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-804
+
+- Scope: Shared valuation FX lookup
+- Pattern: Currency-pair construction, market-rate lookup, decimal conversion, and inverse-rate
+  calculation should be named valuation helpers instead of branching inline inside the public
+  FX-rate entrypoint.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, typed contract, and valuation behavior preservation
+- Summary: `get_fx_rate` carried same-currency, direct-pair, inverse-pair, and missing-rate
+  decisions in one B-ranked helper. The public helper now delegates pair formatting, pair lookup,
+  and decimal conversion to focused private helpers while preserving direct, inverse, missing, and
+  zero-rate fallback semantics. Cash valuation also casts the Pydantic amount field at the boundary
+  so the helper satisfies its `Decimal` return contract under mypy.
+- Evidence:
+  - `python -m pytest tests/unit/shared/test_valuation.py -q` passed with 9 tests.
+  - `python -m ruff check src/core/valuation.py tests/unit/shared/test_valuation.py` passed.
+  - `python -m ruff format --check src/core/valuation.py tests/unit/shared/test_valuation.py`
+    passed.
+  - `python -m mypy src/core/valuation.py` passed.
+  - `python -m radon cc src/core/valuation.py -s --min B --no-assert` reports no B-ranked
+    blocks.
+- Consequence:
+  - Shared portfolio valuation keeps existing FX conversion semantics while making rate lookup
+    easier to audit and extending typed evidence around cash conversion.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal valuation maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining B-ranked shared valuation and advisory helpers where extraction can
+    preserve proposal and simulation evidence semantics.
+
 ## LA-REV-803
 
 - Scope: Proposal artifact summary projection
