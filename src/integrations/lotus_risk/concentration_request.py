@@ -171,23 +171,29 @@ def _security_trade_changes(result: ProposalResult) -> list[dict[str, Any]]:
     return changes
 
 
-def _issuer_mappings(
-    request: ProposalSimulateRequest,
-    proposal_result: ProposalResult,
-) -> list[dict[str, Any]]:
-    changed_instruments = {
+def _changed_security_ids(proposal_result: ProposalResult) -> set[str]:
+    return {
         intent.instrument_id
         for intent in proposal_result.intents
         if isinstance(intent, SecurityTradeIntent)
     }
-    if not changed_instruments:
-        return []
 
-    mappings: list[dict[str, Any]] = []
-    for shelf_entry in request.shelf_entries:
-        if shelf_entry.instrument_id not in changed_instruments or shelf_entry.issuer_id is None:
-            continue
-        mapping = {
+
+def _has_changed_security_issuer(
+    shelf_entry: ShelfEntry,
+    *,
+    changed_security_ids: set[str],
+) -> bool:
+    return shelf_entry.instrument_id in changed_security_ids and shelf_entry.issuer_id is not None
+
+
+def _compact_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in payload.items() if value is not None}
+
+
+def _issuer_mapping(shelf_entry: ShelfEntry) -> dict[str, Any]:
+    return _compact_payload(
+        {
             "security_id": shelf_entry.instrument_id,
             "issuer_id": shelf_entry.issuer_id,
             "issuer_name": shelf_entry.attributes.get("issuer_name"),
@@ -196,8 +202,24 @@ def _issuer_mappings(
                 "ultimate_parent_issuer_name"
             ),
         }
-        mappings.append({key: value for key, value in mapping.items() if value is not None})
-    return mappings
+    )
+
+
+def _issuer_mappings(
+    request: ProposalSimulateRequest,
+    proposal_result: ProposalResult,
+) -> list[dict[str, Any]]:
+    changed_security_ids = _changed_security_ids(proposal_result)
+    if not changed_security_ids:
+        return []
+    return [
+        _issuer_mapping(shelf_entry)
+        for shelf_entry in request.shelf_entries
+        if _has_changed_security_issuer(
+            shelf_entry,
+            changed_security_ids=changed_security_ids,
+        )
+    ]
 
 
 def _build_simulation_concentration_request(
