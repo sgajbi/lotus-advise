@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-801
+
+- Scope: Target-generation trace projection
+- Pattern: Target trace construction should keep model-target projection, implicit holding
+  projection, tag classification, and value projection as named helpers instead of one branching
+  trace builder.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and target-generation behavior preservation
+- Summary: `build_target_trace` carried the model-target loop, implicit holding loop, capped/
+  redistributed tag policy, locked-position/sell-to-zero tag policy, and `Money` value projection
+  in one B-ranked helper. The trace builder now delegates those responsibilities to focused
+  helpers while preserving trace ordering, tag names, final weights, and final value calculation.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_target_generation_dependencies.py -q`
+    passed with 12 tests.
+  - `python -m ruff check src/core/target_generation.py tests/unit/advisory/engine/test_engine_target_generation_dependencies.py`
+    passed.
+  - `python -m ruff format --check src/core/target_generation.py tests/unit/advisory/engine/test_engine_target_generation_dependencies.py`
+    passed.
+  - `python -m mypy src/core/target_generation.py` passed.
+  - `python -m radon cc src/core/target_generation.py -s --min B --no-assert` no longer reports
+    `build_target_trace`; the file's remaining B-ranked helpers are unrelated sell-only
+    redistribution and group-constraint append helpers.
+- Consequence:
+  - Target-generation trace projection remains behavior-compatible while making advisory tags and
+    implicit holding treatment easier to review independently from solver orchestration.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal target-generation maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining target-generation B-ranked helpers where extraction preserves
+    solver status, group-constraint, and sell-only redistribution semantics.
+
 ## LA-REV-800
 
 - Scope: Proposal alternatives currency-alignment strategy

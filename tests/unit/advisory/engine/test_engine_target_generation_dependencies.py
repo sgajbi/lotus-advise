@@ -255,3 +255,41 @@ def test_solver_group_constraint_exposure_splits_tradeable_and_locked_weight() -
 
     assert exposure.tradeable_ids == ["BUY_EQ_A"]
     assert exposure.locked_weight == Decimal("0.20")
+
+
+def test_build_target_trace_projects_model_and_implicit_holding_tags() -> None:
+    model = SimpleNamespace(
+        targets=[
+            SimpleNamespace(instrument_id="CAPPED_FUND", weight=Decimal("0.50")),
+            SimpleNamespace(instrument_id="RECIPIENT_FUND", weight=Decimal("0.10")),
+            SimpleNamespace(instrument_id="UNCHANGED_FUND", weight=Decimal("0.20")),
+        ]
+    )
+
+    trace = target_generation.build_target_trace(
+        model=model,
+        eligible_targets={
+            "CAPPED_FUND": Decimal("0.30"),
+            "RECIPIENT_FUND": Decimal("0.25"),
+            "UNCHANGED_FUND": Decimal("0.20"),
+            "LOCKED_BOND": Decimal("0.25"),
+            "SELL_TO_ZERO": Decimal("0.00"),
+        },
+        buy_list=["RECIPIENT_FUND", "SELL_TO_ZERO"],
+        total_val=Decimal("1000"),
+        base_ccy="USD",
+    )
+
+    assert [target.instrument_id for target in trace] == [
+        "CAPPED_FUND",
+        "RECIPIENT_FUND",
+        "UNCHANGED_FUND",
+        "LOCKED_BOND",
+        "SELL_TO_ZERO",
+    ]
+    assert trace[0].tags == ["CAPPED_BY_MAX_WEIGHT"]
+    assert trace[0].final_value.amount == Decimal("300.00")
+    assert trace[1].tags == ["REDISTRIBUTED_RECIPIENT"]
+    assert trace[2].tags == []
+    assert trace[3].tags == ["LOCKED_POSITION"]
+    assert trace[4].tags == ["IMPLICIT_SELL_TO_ZERO"]
