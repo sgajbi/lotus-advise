@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-799
+
+- Scope: In-memory proposal list filter criteria
+- Pattern: Proposal list filters should express portfolio, workflow state, creator, and creation
+  date criteria as named predicates instead of one compound helper.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and repository query readability
+- Summary: `_proposal_matches_filters` in `in_memory_query.py` remained B-ranked after the recovery
+  query refactor. The proposal list filter now delegates portfolio, workflow-state, creator, and
+  created-at lower/upper bound checks to focused predicates while preserving the existing
+  repository pagination, cursor, and deep-copy behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_repository_in_memory.py -q`
+    passed with 10 tests.
+  - `python -m ruff check src/infrastructure/proposals/in_memory_query.py tests/unit/advisory/engine/test_engine_proposal_repository_in_memory.py`
+    passed.
+  - `python -m mypy src/infrastructure/proposals/in_memory_query.py` passed.
+  - `python -m radon cc src/infrastructure/proposals/in_memory_query.py -s --min B`
+    no longer reports `_proposal_matches_filters`; remaining B-ranked helpers in the file are the
+    unrelated batch event and approval ordering helpers.
+- Consequence:
+  - Proposal listing remains behavior-compatible while making each query criterion independently
+    named and easier to align with Postgres list-query parity.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal repository-query maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing batch ordering helper complexity where the extraction keeps ordering
+    semantics explicit for proposal activity read models.
+
 ## LA-REV-798
 
 - Scope: In-memory proposal async recovery query policy

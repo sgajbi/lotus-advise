@@ -67,13 +67,39 @@ def _proposal_matches_filters(
 ) -> bool:
     return all(
         (
-            portfolio_id is None or row.portfolio_id == portfolio_id,
-            state is None or row.current_state == state,
-            created_by is None or row.created_by == created_by,
-            created_from is None or row.created_at >= created_from,
-            created_to is None or row.created_at <= created_to,
+            proposal_matches_portfolio(row, portfolio_id),
+            proposal_matches_state(row, state),
+            proposal_matches_creator(row, created_by),
+            proposal_created_on_or_after(row, created_from),
+            proposal_created_on_or_before(row, created_to),
         )
     )
+
+
+def proposal_matches_portfolio(row: ProposalRecord, portfolio_id: Optional[str]) -> bool:
+    return portfolio_id is None or row.portfolio_id == portfolio_id
+
+
+def proposal_matches_state(row: ProposalRecord, state: Optional[str]) -> bool:
+    return state is None or row.current_state == state
+
+
+def proposal_matches_creator(row: ProposalRecord, created_by: Optional[str]) -> bool:
+    return created_by is None or row.created_by == created_by
+
+
+def proposal_created_on_or_after(
+    row: ProposalRecord,
+    created_from: Optional[datetime],
+) -> bool:
+    return created_from is None or row.created_at >= created_from
+
+
+def proposal_created_on_or_before(
+    row: ProposalRecord,
+    created_to: Optional[datetime],
+) -> bool:
+    return created_to is None or row.created_at <= created_to
 
 
 def _apply_proposal_cursor(
@@ -286,6 +312,11 @@ __all__ = [
     "non_positive_limit",
     "operation_is_pending",
     "operation_is_recoverable",
+    "proposal_created_on_or_after",
+    "proposal_created_on_or_before",
+    "proposal_matches_creator",
+    "proposal_matches_portfolio",
+    "proposal_matches_state",
     "recoverable_operations",
     "recoverable_operation_rows",
     "running_operation_lease_has_expired",
