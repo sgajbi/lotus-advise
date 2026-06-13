@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-789
+
+- Scope: Target-generation solver fallback attempts
+- Pattern: Solver fallback execution should separate installed-solver discovery, availability
+  filtering, compatibility-attempt execution, runtime exception policy, and status classification.
+- Status: Hardened
+- Finding Class: Advisory target-generation solver fallback modularity and regression coverage
+- Summary: `_solve_with_fallbacks` mixed cvxpy installed-solver discovery, OSQP/SCS availability
+  checks, kwargs compatibility fallback, solver exception handling, and optimal-status detection in
+  one B/10 helper. This path controls whether advisory target generation accepts solved weights or
+  emits solver diagnostics, so the refactor keeps fallback ordering, exception handling, and latest
+  non-optimal status semantics stable while making each policy smaller and directly testable.
+- Evidence:
+  - Extracted focused helpers for installed solver discovery, solver availability checks,
+    per-solver attempt traversal, and single solve status projection.
+  - Added focused fake-solver coverage proving unavailable installed solvers are skipped, kwargs
+    compatibility fallback continues after `TypeError`, solver runtime failures continue to later
+    attempts, and the latest non-optimal status is preserved when no attempt solves optimally.
+  - Radon no longer reports `_solve_with_fallbacks` as B-ranked; `target_generation.py` is now
+    bounded by unrelated `build_target_trace` at `B/9`.
+  - Focused target-generation tests passed with 11 tests, and `ruff`, `mypy`, format check, Radon,
+    and monetary-float guard checks passed.
+- Consequence:
+  - Advisory target generation keeps behavior-compatible solver fallback semantics while the
+    compatibility and diagnostic policy is easier to audit and extend.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    advisory target-generation maintainability hardening for existing solver behavior.
+- Follow-Up:
+  - Continue reducing remaining B/10 runtime URL normalization, in-memory recoverable-operation
+    query helpers, and alternatives currency objective helpers with focused behavior-preservation
+    tests.
+
 ## LA-REV-788
 
 - Scope: Target-generation solver index and group-constraint exposure

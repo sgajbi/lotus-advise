@@ -1,9 +1,9 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-13T01:54:39.467350+00:00`
-- Branch: `harden/target-generation-solver-index`
-- Head: `1cc83af44f14351cdd833e81c06ff7ac2cf17c57`
-- Branch Commits Over Main: `3`
+- Generated At: `2026-06-13T02:18:44.237457+00:00`
+- Branch: `harden/target-solver-fallbacks`
+- Head: `a15731ab06330dafabbf39e6355e63db5e6e9ff7`
+- Branch Commits Over Main: `1`
 - CI Phase: `baseline/report-only`
 
 ## Code Size
@@ -11,7 +11,7 @@
 - Python files: `933`
 - Packages: `38`
 - Modules: `895`
-- Total Python lines: `145479`
+- Total Python lines: `145604`
 
 ## Largest Files
 
@@ -25,7 +25,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1591 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1225 |
+| 9 | `scripts/quality_baseline_report.py` | 1226 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1197 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -48,8 +48,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3573`
-- Radon complexity rank inventory: `A=3385, B=188`
+- Radon analyzed block inventory: `3577`
+- Radon complexity rank inventory: `A=3390, B=187`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=3957, missing=3922, covered=35, coverage=0.9%`
+- Interrogate docstring inventory: `total=3961, missing=3926, covered=35, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

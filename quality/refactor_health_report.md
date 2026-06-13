@@ -1,8 +1,8 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/target-generation-solver-index`
-- Head: `1cc83af44f14351cdd833e81c06ff7ac2cf17c57`
-- Branch Commits Over Main: `3`
+- Branch: `harden/target-solver-fallbacks`
+- Head: `a15731ab06330dafabbf39e6355e63db5e6e9ff7`
+- Branch Commits Over Main: `1`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
