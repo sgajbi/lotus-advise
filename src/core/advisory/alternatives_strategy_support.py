@@ -25,20 +25,49 @@ def largest_sellable_position(
     exclude_currencies: set[str] | None = None,
 ) -> StrategyPosition | None:
     blocked_ids = set(constraints.preserve_holdings) | set(constraints.do_not_sell)
-    candidates = [
-        position
-        for position in inputs.positions
-        if position.quantity > Decimal("0")
-        and position.instrument_id not in blocked_ids
-        and (preferred_currency is None or position.currency == preferred_currency)
-        and (exclude_currencies is None or position.currency not in exclude_currencies)
-    ]
-    if not candidates:
-        return None
-    return sorted(
-        candidates,
+    return min(
+        (
+            position
+            for position in inputs.positions
+            if sellable_position_matches_constraints(
+                position=position,
+                blocked_ids=blocked_ids,
+                preferred_currency=preferred_currency,
+                exclude_currencies=exclude_currencies,
+            )
+        ),
         key=lambda position: (-position_rank_value(position), position.instrument_id),
-    )[0]
+        default=None,
+    )
+
+
+def sellable_position_matches_constraints(
+    *,
+    position: StrategyPosition,
+    blocked_ids: set[str],
+    preferred_currency: str | None,
+    exclude_currencies: set[str] | None,
+) -> bool:
+    return (
+        position.quantity > Decimal("0")
+        and position.instrument_id not in blocked_ids
+        and position_matches_currency_filter(
+            position=position,
+            preferred_currency=preferred_currency,
+            exclude_currencies=exclude_currencies,
+        )
+    )
+
+
+def position_matches_currency_filter(
+    *,
+    position: StrategyPosition,
+    preferred_currency: str | None,
+    exclude_currencies: set[str] | None,
+) -> bool:
+    return (preferred_currency is None or position.currency == preferred_currency) and (
+        exclude_currencies is None or position.currency not in exclude_currencies
+    )
 
 
 def preferred_buy_instrument(

@@ -242,6 +242,8 @@ Use these commands as the primary local contract:
    `make run`
 7. repo-native domain product gate
    `make domain-data-products-gate`
+8. quality evidence freshness gate
+   `make quality-baseline-check`
 
 ## Validation And CI Expectations
 
@@ -256,7 +258,8 @@ Important validation expectations:
 1. dependency health, OpenAPI, vocabulary, and no-alias governance are active,
 2. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
 3. advisory workflow changes should be validated against canonical upstream posture,
-4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially.
+4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+5. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
 
 ## Standards And RFCs That Govern This Repository
 

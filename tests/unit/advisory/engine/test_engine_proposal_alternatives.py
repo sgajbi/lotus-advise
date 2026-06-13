@@ -736,6 +736,22 @@ def test_alternatives_helper_functions_cover_money_and_trade_edge_cases():
         )
         is None
     )
+    assert (
+        largest_sellable_position(
+            inputs=no_candidate_inputs,
+            constraints=ProposalAlternativesConstraints(),
+            preferred_currency="EUR",
+        )
+        == no_candidate_inputs.positions[1]
+    )
+    assert (
+        largest_sellable_position(
+            inputs=no_candidate_inputs,
+            constraints=ProposalAlternativesConstraints(),
+            exclude_currencies={"EUR"},
+        )
+        == no_candidate_inputs.positions[0]
+    )
     synthetic_buy = preferred_buy_instrument(
         inputs=AlternativeStrategyInputs(
             portfolio_id="pf_synthetic_buy",

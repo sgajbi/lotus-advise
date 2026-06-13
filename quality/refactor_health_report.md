@@ -1,8 +1,7 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/runtime-base-url-normalization`
-- Head: `81854b5b31506d9cd80e7db083f39a77de47f9ed`
-- Branch Commits Over Main: `5`
+- Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
+  run metadata for exact branch/head evidence.
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
 ## Current Progress Signals
@@ -75,6 +74,8 @@
   to focused strategy modules.
 - Alternatives objective strategies are split into portfolio/cash, baseline-trade,
   currency-alignment, and deferred restricted-product modules.
+- Alternative sellable-position selection delegates blocked-position eligibility and
+  currency filtering to focused predicates while preserving rank ordering.
 - Proposal alternatives models are split into vocabulary, request-validation,
   response/evidence, and compatibility facade modules.
 - Proposal alternatives projection delegates request-to-strategy input mapping

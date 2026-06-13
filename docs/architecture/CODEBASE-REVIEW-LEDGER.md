@@ -1,5 +1,97 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-795
+
+- Scope: Repository engineering context for quality evidence freshness
+- Pattern: When a repo-native CI guard becomes part of the standard local contract, future agents
+  should discover it from the repository context rather than reconstructing it from Makefile and
+  ledger history.
+- Status: Hardened
+- Finding Class: Agent context maintenance and CI measurement clarity
+- Summary: The quality report freshness gate added in this slice is now documented in
+  `REPOSITORY-ENGINEERING-CONTEXT.md` as a repo-native command and validation expectation. The
+  context also records that committed quality Markdown intentionally omits volatile branch/head
+  metadata, with exact Git identity preserved by Git history and GitHub Actions run metadata.
+- Evidence:
+  - `make quality-baseline-check` passed after the context update.
+  - Remote Feature Lane and Quality Baseline Report passed for the branch before the context note;
+    the final branch run will revalidate this documentation-only addition before merge.
+- Consequence:
+  - Future Lotus agents can apply the quality evidence contract without rediscovering the
+    freshness semantics or incorrectly reintroducing stale branch/head fields into committed
+    reports.
+- Documentation:
+  - Repository context and review ledger updated. No wiki source change is required because this is
+    repo-local engineering guidance for an internal CI evidence contract.
+- Follow-Up:
+  - Keep repository context updates similarly narrow: only promote patterns after they are proven by
+    implementation and validation evidence.
+
+## LA-REV-794
+
+- Scope: Proposal alternatives sellable-position selection helper
+- Pattern: Alternative strategy support helpers should keep eligibility predicates separate from
+  ranking and should avoid materializing sorted candidate lists when only the highest-ranked
+  candidate is needed.
+- Status: Hardened
+- Finding Class: Complexity, maintainability, and bounded selection efficiency
+- Summary: `largest_sellable_position` combined blocked-holding checks, preferred/excluded
+  currency filters, candidate materialization, and ranking in one B-ranked helper. The helper now
+  delegates sellable-position eligibility and currency filtering to focused predicates and uses a
+  bounded `min(..., default=None)` selection over the existing rank key.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_alternatives.py -q`
+    passed with 31 tests.
+  - `python -m ruff check src/core/advisory/alternatives_strategy_support.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/alternatives_strategy_support.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m radon cc src/core/advisory/alternatives_strategy_support.py -s --min B`
+    no longer reports `largest_sellable_position`; remaining B-ranked helpers in the file are
+    `first_adjustable_trade` and `reduced_trade_payload`, both `B/6`.
+- Consequence:
+  - Sellable-position selection is easier to test and change, preserves behavior for blocked,
+    preferred-currency, and excluded-currency cases, and avoids sorting the full candidate list.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory strategy maintainability hardening.
+- Follow-Up:
+  - Continue reducing B-ranked alternatives strategy helpers before considering stricter B-ranked
+    regression policy.
+
+## LA-REV-793
+
+- Scope: Quality report freshness and non-volatile evidence metadata
+- Pattern: Committed quality reports should not embed branch/head metadata that becomes stale as
+  soon as another commit is added, and CI should fail when generated quality evidence drifts.
+- Status: Hardened
+- Finding Class: CI measurement, reporting truthfulness, and evidence freshness
+- Summary: The committed baseline, scorecard, refactor-health, and engineering-health reports
+  still carried branch/head metadata from the prior feature branch after PR #259 merged. That made
+  mainline report truth look stale even though Git history and GitHub Actions are the authoritative
+  sources for exact commit evidence. The reports now omit volatile Git identity from committed
+  Markdown, and `make check` includes a quality-baseline drift check that ignores only the
+  generated timestamp.
+- Evidence:
+  - Added `scripts/quality_baseline_report.py --check` to compare generated quality report content
+    against committed reports while normalizing the `Generated At` timestamp.
+  - Added `make quality-baseline-check` and wired it into `make check` so stale quality reports are
+    blocked by the repo-native gate.
+  - Updated generated quality and engineering-health Markdown to avoid self-invalidating
+    branch/head fields and to point exact commit evidence to Git history and GitHub Actions.
+  - Added focused tests proving quality reports omit volatile branch/head metadata, timestamp-only
+    changes do not fail the freshness check, real content drift does fail, and engineering-health
+    Markdown uses the same non-volatile identity posture.
+- Consequence:
+  - Quality evidence remains implementation-backed and CI-enforced without requiring impossible
+    self-referential commit hashes in committed Markdown.
+- Documentation:
+  - Review ledger and generated quality/engineering-health reports updated. No README/wiki source
+    change is required because this is internal CI measurement and evidence-freshness hardening.
+- Follow-Up:
+  - Continue converting report-only inventories into fail-on-new-regression gates after each
+    inventory class is reviewed.
+
 ## LA-REV-792
 
 - Scope: CI warning cleanup and independent job parallelization
