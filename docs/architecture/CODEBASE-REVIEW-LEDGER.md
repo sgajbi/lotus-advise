@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-795
+
+- Scope: Repository engineering context for quality evidence freshness
+- Pattern: When a repo-native CI guard becomes part of the standard local contract, future agents
+  should discover it from the repository context rather than reconstructing it from Makefile and
+  ledger history.
+- Status: Hardened
+- Finding Class: Agent context maintenance and CI measurement clarity
+- Summary: The quality report freshness gate added in this slice is now documented in
+  `REPOSITORY-ENGINEERING-CONTEXT.md` as a repo-native command and validation expectation. The
+  context also records that committed quality Markdown intentionally omits volatile branch/head
+  metadata, with exact Git identity preserved by Git history and GitHub Actions run metadata.
+- Evidence:
+  - `make quality-baseline-check` passed after the context update.
+  - Remote Feature Lane and Quality Baseline Report passed for the branch before the context note;
+    the final branch run will revalidate this documentation-only addition before merge.
+- Consequence:
+  - Future Lotus agents can apply the quality evidence contract without rediscovering the
+    freshness semantics or incorrectly reintroducing stale branch/head fields into committed
+    reports.
+- Documentation:
+  - Repository context and review ledger updated. No wiki source change is required because this is
+    repo-local engineering guidance for an internal CI evidence contract.
+- Follow-Up:
+  - Keep repository context updates similarly narrow: only promote patterns after they are proven by
+    implementation and validation evidence.
+
 ## LA-REV-794
 
 - Scope: Proposal alternatives sellable-position selection helper
