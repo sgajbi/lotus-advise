@@ -618,10 +618,10 @@ def render_baseline_report(context: QualityContext) -> str:
             f"- Radon analyzed block inventory: `{radon_block_count}`",
             f"- Radon complexity rank inventory: `{radon_rank_inventory}`",
             f"- Radon worst complexity: `{radon_worst}`",
-            "- Radon E/F-ranked block enforcement is repo-native through",
+            "- Radon C/D/E/F-ranked block enforcement is repo-native through",
             "  `make complexity-regression-gate` and the `lint` lane.",
-            "- Xenon and stricter Radon thresholds remain report-only until current",
-            "  D-ranked helpers are classified.",
+            "- Xenon and stricter B-ranked Radon thresholds remain report-only until current",
+            "  B-ranked helpers are classified.",
             "",
             "## Lint And Type Issues",
             "",
@@ -1000,8 +1000,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  after classifying public API and module ownership thresholds.",
         "- Convert the Vulture dead-code inventory into a fail-on-new-regression gate after",
         "  classifying validator and compatibility-facade findings.",
-        "- Expand Radon complexity enforcement beyond E/F-ranked blocks after classifying",
-        "  current high-complexity blocks.",
+        "- Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate after",
+        "  classifying current B-ranked blocks.",
         "- Expand Bandit security enforcement beyond high severity after classifying current",
         "  SQL-construction findings and resolving true positives.",
         "- Convert the deptry dependency inventory into a fail-on-new-regression gate after",
@@ -1032,7 +1032,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
         ("Code size and hotspots", "Baseline active", "engineering-health + quality baseline"),
         (
             "Complexity",
-            "No-E/F gate plus Radon inventory",
+            "No-C/D/E/F gate plus Radon inventory",
             "complexity-regression-gate + radon rank and worst-complexity counts",
         ),
         ("Maintainability", "Improving", "modularity slices and review ledger"),
@@ -1092,14 +1092,15 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Complexity",
             "Radon and Xenon tracked as pending report-only tools.",
             f"Radon config executable; inventory `{radon_rank_inventory}`; "
-            f"worst block `{radon_worst}`; no E/F gate enforced through `make lint`.",
-            "Complexity is now measured repeatably and regression-blocked for E/F-ranked blocks.",
+            f"worst block `{radon_worst}`; no C/D/E/F gate enforced through `make lint`.",
+            "Complexity is now measured repeatably and regression-blocked for C-ranked "
+            "and worse blocks.",
         ),
         (
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-789` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-791` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1126,8 +1127,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Repo-native test gates are enforced through `make check`; focused regression "
             "tests cover OpenAPI enrichment, proof refs, source refs, dependency linking, "
             "capability dependency diagnostics, observability request-id normalization, "
-            "structured logging, target-generation solver index construction, and "
-            "target-generation solver fallback policy.",
+            "structured logging, target-generation solver index construction, "
+            "target-generation solver fallback policy, and runtime base URL safety.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (

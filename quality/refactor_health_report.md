@@ -1,7 +1,7 @@
 # Lotus Advise Refactor Health Report
 
-- Branch: `harden/target-solver-fallbacks`
-- Head: `a15731ab06330dafabbf39e6355e63db5e6e9ff7`
+- Branch: `harden/runtime-base-url-normalization`
+- Head: `abbd79dbd9ce73bf0448121c2da65afe71c9a6c6`
 - Branch Commits Over Main: `1`
 - Current Phase: `feature-branch modularity and quality-baseline hardening`
 
@@ -287,8 +287,8 @@
   after classifying public API and module ownership thresholds.
 - Convert the Vulture dead-code inventory into a fail-on-new-regression gate after
   classifying validator and compatibility-facade findings.
-- Expand Radon complexity enforcement beyond E/F-ranked blocks after classifying
-  current high-complexity blocks.
+- Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate after
+  classifying current B-ranked blocks.
 - Expand Bandit security enforcement beyond high severity after classifying current
   SQL-construction findings and resolving true positives.
 - Convert the deptry dependency inventory into a fail-on-new-regression gate after

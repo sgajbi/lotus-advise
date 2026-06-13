@@ -1,5 +1,69 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-791
+
+- Scope: Radon no-C/D/E/F complexity regression gate
+- Pattern: Remediated complexity classes should become enforced CI posture once current evidence
+  proves the repository has no remaining blocks at that rank or worse.
+- Status: Hardened
+- Finding Class: CI measurement and regression prevention
+- Summary: The refactoring campaign has eliminated the previous C-ranked source hotspots, but the
+  repo-native complexity gate still only failed on E-ranked and worse blocks. That left remediated
+  C/D-ranked complexity as a report-only achievement rather than an enforced regression boundary.
+  The gate now fails on any C, D, E, or F Radon block while leaving B-ranked helpers as the next
+  measured refactoring backlog.
+- Evidence:
+  - Promoted `make complexity-regression-gate` from `--fail-rank E` to `--fail-rank C`.
+  - Added focused unit coverage proving the Radon gate fails when configured with `--fail-rank C`
+    and Radon reports a C-ranked block.
+  - Updated generated quality and engineering-health report wording so the scorecard states the
+    current no-C/D/E/F enforcement truth and preserves B-ranked calibration as the remaining
+    complexity follow-up.
+  - Current strict gate passed with `blocks=3582`, inventory `A=3396, B=186`, worst `B/10`, and
+    `fail_rank=C`.
+- Consequence:
+  - Future changes cannot reintroduce C/D/E/F-ranked source complexity through the normal lint and
+    `make check` lanes without failing CI.
+- Documentation:
+  - Review ledger, quality reports, and engineering-health baseline updated. No README/wiki source
+    change is required because this is CI quality-gate enforcement for already-remediated
+    complexity posture.
+- Follow-Up:
+  - Continue reducing and classifying B-ranked hotspots before considering stricter B-ranked
+    enforcement or a fail-on-new-B policy.
+
+## LA-REV-790
+
+- Scope: Bank-demo runtime base URL normalization
+- Pattern: Runtime proof URL normalization should separate bounded input validation, http(s)
+  parsing, sensitive component rejection, and canonical URL rendering.
+- Status: Hardened
+- Finding Class: Runtime proof security and maintainability hardening
+- Summary: `normalize_runtime_base_url` mixed presence/length validation, URL parsing, scheme and
+  host policy, credential/query/fragment rejection, port handling, and canonical rendering in one
+  B/10 helper. This path guards backend proof runtime posture, so the refactor keeps safe URL
+  canonicalization and sensitive-material rejection stable while making each security policy
+  smaller and directly testable.
+- Evidence:
+  - Extracted focused helpers for bounded runtime URL text, http(s) parsing, sensitive URL part
+    rejection, canonical rendering, and host/port netloc projection.
+  - Added direct coverage proving safe host/path/port canonicalization is preserved and blank,
+    non-http, hostless, credential-bearing, query-bearing, and fragment-bearing runtime base URLs
+    are rejected with bounded validation messages.
+  - Radon no longer reports `normalize_runtime_base_url` as B-ranked; `runtime_posture.py` is now
+    bounded by unrelated `_sanitize_summary_value` at `B/8`.
+  - Focused bank-demo proof model tests passed with 18 tests, and `ruff`, `mypy`, format check, and
+    Radon checks passed.
+- Consequence:
+  - Bank-demo runtime proof keeps behavior-compatible URL safety while the credential/query/
+    fragment rejection boundary is easier to audit.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    runtime proof security and maintainability hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing remaining B/10 in-memory recoverable-operation query helpers and
+    alternatives currency objective helpers with focused behavior-preservation tests.
+
 ## LA-REV-789
 
 - Scope: Target-generation solver fallback attempts
