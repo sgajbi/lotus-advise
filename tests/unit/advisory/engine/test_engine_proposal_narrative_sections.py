@@ -118,3 +118,73 @@ def test_render_sections_preserves_grounded_section_contract() -> None:
     assert sections_by_key["LIMITATIONS_AND_DISCLOSURES"].limitation_refs == [
         "report_archive_lineage"
     ]
+
+
+def test_render_sections_formats_available_alternatives_without_changing_sentence_policy() -> None:
+    packet = ProposalNarrativeGroundingPacket(
+        packet_id="pgp_alternatives",
+        policy_version="proposal-narrative-deterministic.v1",
+        audience="ADVISOR_REVIEW",
+        source_refs=[
+            ProposalNarrativeSourceRef(
+                ref_type="alternatives",
+                ref_id="alt_1",
+                field_path="proposal_alternatives",
+            )
+        ],
+        facts={
+            "proposal_status": "READY_FOR_REVIEW",
+            "decision_status": "READY_FOR_REVIEW",
+            "primary_summary": "Proposal is ready for advisor review.",
+            "recommended_next_action": "REVIEW_WITH_ADVISOR",
+            "recommended_next_step": "Review with advisor",
+            "missing_decision_evidence_summaries": [],
+            "approval_requirement_summaries": [],
+            "objective_tags": ["REDUCE_CONCENTRATION"],
+            "trade_count": 1,
+            "fx_count": 0,
+            "primary_reason_code": "REDUCE_SINGLE_NAME_EXPOSURE",
+            "decision_confidence": "HIGH",
+            "risk_status": "AVAILABLE",
+            "risk_summary": "Concentration risk falls.",
+            "suitability_status": "AVAILABLE",
+            "suitability_new_issues": 0,
+            "suitability_resolved_issues": 1,
+            "suitability_persistent_issues": 0,
+            "material_change_count": 0,
+            "material_change_summaries": [],
+            "cash_takeaway": "Cash remains inside tolerance.",
+            "drift_takeaway": "Drift remains inside tolerance.",
+            "alternatives_status": "AVAILABLE",
+            "alternative_count": 2,
+            "rejected_alternative_count": 1,
+            "selected_alternative_label": "Conservative trim",
+            "selected_alternative_id": "alt_conservative",
+            "selected_alternative_objective": "REDUCE_CONCENTRATION",
+            "selected_alternative_status": "SELECTED",
+            "alternative_tradeoff_summaries": ["Lower turnover", "Keeps mandate fit."],
+            "alternative_improvement_summaries": ["Single-name exposure falls"],
+            "alternative_deterioration_summaries": ["Expected cash drag increases."],
+            "rejected_alternative_summaries": ["Aggressive trim breached cash band"],
+            "gate": "ADVISOR_REVIEW",
+            "gate_recommended_next_step": "REVIEW_WITH_ADVISOR",
+            "approval_requirement_count": 0,
+            "blocking_approval_count": 0,
+            "risk_disclaimer": "Risk is source-dependent.",
+            "costs_and_fees_note": "Costs are indicative.",
+            "tax_note": "Tax is not advice.",
+            "execution_note": "Execution remains outside Advise.",
+        },
+        missing_evidence=[],
+    )
+
+    sections = render_sections(packet)
+    alternatives = {section.section_key: section for section in sections}["ALTERNATIVES_CONSIDERED"]
+
+    assert alternatives.source_refs[0].ref_id == "alt_1"
+    assert "2 feasible alternative(s) and 1 rejected candidate(s)" in alternatives.text
+    assert "Selected alternative is Conservative trim" in alternatives.text
+    assert "Tradeoff: Lower turnover. Keeps mandate fit." in alternatives.text
+    assert "Improvement evidence: Single-name exposure falls." in alternatives.text
+    assert "Deterioration evidence: Expected cash drag increases." in alternatives.text
+    assert "Rejected-candidate evidence: Aggressive trim breached cash band." in alternatives.text

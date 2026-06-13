@@ -43,10 +43,20 @@ def _section(
 
 
 def _sentence_list(items: list[str], fallback: str) -> str:
-    cleaned = [item.strip() for item in items if item and item.strip()]
+    cleaned = _clean_sentence_items(items)
     if not cleaned:
         return fallback
-    return " ".join(item if item.endswith(".") else f"{item}." for item in cleaned)
+    return " ".join(_sentence(item) for item in cleaned)
+
+
+def _clean_sentence_items(items: list[str]) -> list[str]:
+    return [item.strip() for item in items if item and item.strip()]
+
+
+def _sentence(item: str) -> str:
+    if item.endswith("."):
+        return item
+    return f"{item}."
 
 
 def _executive_summary_text(facts: dict[str, Any]) -> str:
@@ -97,33 +107,50 @@ def _ready_executive_summary_text(facts: dict[str, Any], *, decision_status: str
 def _alternatives_text(facts: dict[str, Any]) -> str:
     if facts["alternatives_status"] != "AVAILABLE":
         return "Proposal alternatives were not requested; no alternatives narrative is asserted."
-    selected = (
-        facts["selected_alternative_label"] or facts["selected_alternative_id"] or "not selected"
-    )
-    tradeoffs = _sentence_list(
-        facts["alternative_tradeoff_summaries"],
-        "No selected-alternative tradeoff summary was persisted.",
-    )
-    improvements = _sentence_list(
-        facts["alternative_improvement_summaries"],
-        "No improvement over the baseline proposal was persisted.",
-    )
-    deteriorations = _sentence_list(
-        facts["alternative_deterioration_summaries"],
-        "No deterioration against the baseline proposal was persisted.",
-    )
-    rejected = _sentence_list(
-        facts["rejected_alternative_summaries"],
-        "No rejected-candidate explanation was persisted.",
-    )
+    selected = _selected_alternative(facts)
+    evidence_text = _alternative_evidence_text(facts)
     return (
         f"Alternatives evidence includes {facts['alternative_count']} feasible alternative(s) "
         f"and {facts['rejected_alternative_count']} rejected candidate(s). Selected alternative "
         f"is {selected} for objective {facts['selected_alternative_objective'] or 'not available'} "
         f"with status {facts['selected_alternative_status'] or 'not available'}. "
-        f"Tradeoff: {tradeoffs} Improvement evidence: {improvements} "
-        f"Deterioration evidence: {deteriorations} Rejected-candidate evidence: {rejected}"
+        f"{evidence_text}"
     )
+
+
+def _selected_alternative(facts: dict[str, Any]) -> str:
+    return facts["selected_alternative_label"] or facts["selected_alternative_id"] or "not selected"
+
+
+def _alternative_evidence_text(facts: dict[str, Any]) -> str:
+    return " ".join(
+        (
+            _alternative_sentence_group(
+                "Tradeoff",
+                facts["alternative_tradeoff_summaries"],
+                "No selected-alternative tradeoff summary was persisted.",
+            ),
+            _alternative_sentence_group(
+                "Improvement evidence",
+                facts["alternative_improvement_summaries"],
+                "No improvement over the baseline proposal was persisted.",
+            ),
+            _alternative_sentence_group(
+                "Deterioration evidence",
+                facts["alternative_deterioration_summaries"],
+                "No deterioration against the baseline proposal was persisted.",
+            ),
+            _alternative_sentence_group(
+                "Rejected-candidate evidence",
+                facts["rejected_alternative_summaries"],
+                "No rejected-candidate explanation was persisted.",
+            ),
+        )
+    )
+
+
+def _alternative_sentence_group(label: str, items: list[str], fallback: str) -> str:
+    return f"{label}: {_sentence_list(items, fallback)}"
 
 
 def render_sections(packet: ProposalNarrativeGroundingPacket) -> list[ProposalNarrativeSection]:

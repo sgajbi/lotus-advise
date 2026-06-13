@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-825
+
+- Scope: Proposal narrative alternatives text helper boundary
+- Pattern: Narrative text helpers should expose sentence normalization, selected-alternative
+  selection, and alternative evidence grouping as named policies instead of concentrating fallback
+  and punctuation behavior in dense formatting helpers.
+- Status: Hardened
+- Finding Class: Complexity, proposal narrative maintainability, behavior preservation
+- Summary: `src/core/advisory/narrative_sections.py::_sentence_list` and
+  `src/core/advisory/narrative_sections.py::_alternatives_text` previously carried the remaining
+  B-ranked deterministic narrative text complexity in the section renderer. Sentence cleanup,
+  sentence punctuation, selected-alternative resolution, and labeled alternative evidence groups
+  now live in focused helpers while preserving advisor-review narrative wording and fallback
+  policy.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_narrative_sections.py tests/unit/advisory/engine/test_engine_proposal_narrative_modules.py -q`
+    passed with 3 tests.
+  - `python -m ruff check src/core/advisory/narrative_sections.py tests/unit/advisory/engine/test_engine_proposal_narrative_sections.py`
+    passed.
+  - `python -m mypy src/core/advisory/narrative_sections.py` passed.
+  - `python -m radon cc -s src/core/advisory/narrative_sections.py` reports `_sentence_list` as
+    A/3, down from B/7, and `_alternatives_text` as A/4, down from B/6.
+- Consequence:
+  - Available and not-requested alternatives narratives keep the same selected-alternative,
+    tradeoff, improvement, deterioration, rejected-candidate, fallback, and punctuation behavior
+    while the deterministic section module no longer contains B-ranked helpers.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal deterministic narrative rendering hardening for existing behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory orchestration and evidence-projection hotspots where named
+    policy helpers improve readability without widening client-ready narrative claims.
+
 ## LA-REV-824
 
 - Scope: Proposal narrative deterministic section rendering boundary
