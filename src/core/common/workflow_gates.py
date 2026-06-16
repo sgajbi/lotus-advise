@@ -5,7 +5,7 @@ from typing import Callable, Literal
 from src.core.diagnostics_models import DiagnosticsData, RuleResult
 from src.core.engine_options_models import EngineOptions
 from src.core.gate_models import GateDecision, GateDecisionSummary, GateReason
-from src.core.suitability_models import SuitabilityResult
+from src.core.suitability_models import SuitabilityIssue, SuitabilityResult
 
 _SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 GateOutcome = tuple[
@@ -33,6 +33,12 @@ class GateReasonBundle:
     reasons: list[GateReason]
     hard_fail_count: int
     soft_fail_count: int
+    new_high_suitability_count: int
+    new_medium_suitability_count: int
+
+
+@dataclass(frozen=True)
+class SuitabilityGateReasonCounts:
     new_high_suitability_count: int
     new_medium_suitability_count: int
 
@@ -156,33 +162,48 @@ def _suitability_reasons(
 ) -> tuple[list[GateReason], int, int]:
     if suitability is None:
         return [], 0, 0
-    reasons: list[GateReason] = []
-    new_high = 0
-    new_medium = 0
-    for issue in suitability.issues:
-        if issue.status_change != "NEW":
-            continue
-        if issue.severity == "HIGH":
-            new_high += 1
-            reasons.append(
-                GateReason(
-                    reason_code="NEW_HIGH_SUITABILITY_ISSUE",
-                    severity="HIGH",
-                    source="SUITABILITY",
-                    details={"issue_id": issue.issue_id, "issue_key": issue.issue_key},
-                )
-            )
-        elif issue.severity == "MEDIUM":
-            new_medium += 1
-            reasons.append(
-                GateReason(
-                    reason_code="NEW_MEDIUM_SUITABILITY_ISSUE",
-                    severity="MEDIUM",
-                    source="SUITABILITY",
-                    details={"issue_id": issue.issue_id, "issue_key": issue.issue_key},
-                )
-            )
-    return reasons, new_high, new_medium
+    reasons = [
+        reason
+        for issue in suitability.issues
+        if (reason := _new_suitability_gate_reason(issue)) is not None
+    ]
+    counts = _suitability_gate_reason_counts(reasons)
+    return (
+        reasons,
+        counts.new_high_suitability_count,
+        counts.new_medium_suitability_count,
+    )
+
+
+def _new_suitability_gate_reason(issue: SuitabilityIssue) -> GateReason | None:
+    if issue.status_change != "NEW":
+        return None
+    if issue.severity == "HIGH":
+        reason_code = "NEW_HIGH_SUITABILITY_ISSUE"
+    elif issue.severity == "MEDIUM":
+        reason_code = "NEW_MEDIUM_SUITABILITY_ISSUE"
+    else:
+        return None
+    return GateReason(
+        reason_code=reason_code,
+        severity=issue.severity,
+        source="SUITABILITY",
+        details={"issue_id": issue.issue_id, "issue_key": issue.issue_key},
+    )
+
+
+def _suitability_gate_reason_counts(
+    reasons: Iterable[GateReason],
+) -> SuitabilityGateReasonCounts:
+    reason_list = list(reasons)
+    return SuitabilityGateReasonCounts(
+        new_high_suitability_count=sum(
+            reason.reason_code == "NEW_HIGH_SUITABILITY_ISSUE" for reason in reason_list
+        ),
+        new_medium_suitability_count=sum(
+            reason.reason_code == "NEW_MEDIUM_SUITABILITY_ISSUE" for reason in reason_list
+        ),
+    )
 
 
 def evaluate_gate_decision(

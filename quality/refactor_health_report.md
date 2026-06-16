@@ -317,6 +317,8 @@
   and unique audience literal policy to focused helpers.
 - Suitability issue projection delegates transition selection, deterministic
   ordering, and highest-new-severity gate policy to focused helpers.
+- Proposal workflow gate suitability reasons delegate new-issue reason
+  construction and high/medium count projection to focused helpers.
 - Bank-demo runtime proof evidence delegates summary value sanitization,
   capability endpoint lookup, readiness validation, and promoted feature/workflow
   proof checks to focused helpers.

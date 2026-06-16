@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-829
+
+- Scope: Proposal workflow gate suitability reason policy
+- Pattern: Workflow gate suitability reason projection should delegate new-issue reason
+  construction and high/medium count projection to focused helpers instead of embedding
+  status-change and severity branching in one helper.
+- Status: Hardened
+- Finding Class: Complexity, advisory workflow gate maintainability, behavior preservation
+- Summary: `src/core/common/workflow_gates.py::_suitability_reasons` previously carried B/6
+  status-change filtering, high/medium severity routing, reason construction, and counter mutation
+  in one helper. The workflow gate module now delegates new suitability issue reason construction
+  and count projection to named helpers while preserving compliance-review precedence for new high
+  issues, risk-review counting for new medium issues, and non-review treatment for low, persistent,
+  and resolved suitability issues.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_workflow_gates.py`
+    passed with 8 tests.
+  - `python -m radon cc -s src/core/common/workflow_gates.py` reports
+    `_suitability_reasons` as A/4, down from B/6, with the extracted helpers also A-ranked.
+- Consequence:
+  - Advisory workflow gates keep the same compliance, risk, consent, and execution-ready routing
+    while the suitability reason policy is easier to review and extend without widening approval,
+    compliance sign-off, or client-ready claims.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal workflow gate hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory workflow and proposal orchestration helpers where focused
+    policy extraction improves maintainability without changing lifecycle semantics.
+
 ## LA-REV-828
 
 - Scope: Suitability issue projection policy
