@@ -1,5 +1,28 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-830
+
+- Scope: Direct dependency freshness governance
+- Pattern: CI-enforced direct dependency freshness should be remediated by aligning duplicated
+  runtime and development requirement pins rather than weakening the strict dependency gate.
+- Status: Hardened
+- Finding Class: CI measurement, dependency governance, security posture
+- Summary: PR Merge Gate dependency governance reported stale direct package pins for `anyio`,
+  `fastapi`, and `pytest`. `requirements.txt`, `requirements-prod.txt`, and
+  `requirements-dev.txt` now align those direct pins to the current versions observed by the gate,
+  preserving the existing strict freshness policy instead of bypassing it.
+- Evidence:
+  - `make verify-dependencies` passed with 0 outdated direct packages.
+  - `make check-deps-strict` passed with 0 known vulnerabilities and 0 outdated direct packages.
+- Consequence:
+  - The PR Merge Gate keeps enforcing dependency freshness, and duplicated runtime/dev requirement
+    pins no longer drift for the updated direct packages.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is dependency-governance evidence for existing CI behavior.
+- Follow-Up:
+  - Keep duplicated requirement files aligned when direct package pins are refreshed by strict CI.
+
 ## LA-REV-829
 
 - Scope: Proposal workflow gate suitability reason policy

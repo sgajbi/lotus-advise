@@ -1038,6 +1038,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  ordering, and highest-new-severity gate policy to focused helpers.",
         "- Proposal workflow gate suitability reasons delegate new-issue reason",
         "  construction and high/medium count projection to focused helpers.",
+        "- Direct dependency freshness governance aligns duplicated runtime and",
+        "  development pins while preserving the strict CI gate.",
         "- Bank-demo runtime proof evidence delegates summary value sanitization,",
         "  capability endpoint lookup, readiness validation, and promoted feature/workflow",
         "  proof checks to focused helpers.",
@@ -1174,7 +1176,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-829` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-830` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
