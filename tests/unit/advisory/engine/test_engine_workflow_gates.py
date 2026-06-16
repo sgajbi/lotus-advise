@@ -37,10 +37,15 @@ def _hard_rule(rule_id: str = "HARD_POLICY_CHECK") -> RuleResult:
     )
 
 
-def _suitability_issue(*, severity: str, status_change: str = "NEW") -> SuitabilityIssue:
+def _suitability_issue(
+    *,
+    severity: str,
+    status_change: str = "NEW",
+    issue_id: str = "SUIT_TEST",
+) -> SuitabilityIssue:
     return SuitabilityIssue(
-        issue_id="SUIT_TEST",
-        issue_key=f"ISSUE|{severity}|{status_change}",
+        issue_id=issue_id,
+        issue_key=f"ISSUE|{issue_id}|{severity}|{status_change}",
         dimension="CONCENTRATION",
         severity=severity,
         status_change=status_change,
@@ -120,6 +125,38 @@ def test_workflow_gate_new_high_suitability_issue_drives_compliance_review() -> 
     assert decision.gate == "COMPLIANCE_REVIEW_REQUIRED"
     assert decision.recommended_next_step == "COMPLIANCE_REVIEW"
     assert decision.summary.new_high_suitability_count == 1
+
+
+def test_workflow_gate_counts_only_new_high_and_medium_suitability_issues() -> None:
+    decision = evaluate_gate_decision(
+        status="READY",
+        rule_results=[],
+        suitability=_suitability_result(
+            _suitability_issue(severity="HIGH", issue_id="SUIT_NEW_HIGH"),
+            _suitability_issue(severity="MEDIUM", issue_id="SUIT_NEW_MEDIUM"),
+            _suitability_issue(severity="LOW", issue_id="SUIT_NEW_LOW"),
+            _suitability_issue(
+                severity="HIGH",
+                status_change="PERSISTENT",
+                issue_id="SUIT_PERSISTENT_HIGH",
+            ),
+            _suitability_issue(
+                severity="MEDIUM",
+                status_change="RESOLVED",
+                issue_id="SUIT_RESOLVED_MEDIUM",
+            ),
+        ),
+        diagnostics=_empty_diagnostics(),
+        options=EngineOptions(enable_proposal_simulation=True),
+        default_requires_client_consent=True,
+    )
+
+    assert decision.gate == "COMPLIANCE_REVIEW_REQUIRED"
+    assert decision.summary.new_high_suitability_count == 1
+    assert decision.summary.new_medium_suitability_count == 1
+    assert [
+        reason.details["issue_id"] for reason in decision.reasons if reason.source == "SUITABILITY"
+    ] == ["SUIT_NEW_HIGH", "SUIT_NEW_MEDIUM"]
 
 
 def test_workflow_gate_soft_review_precedes_client_consent_requirement() -> None:

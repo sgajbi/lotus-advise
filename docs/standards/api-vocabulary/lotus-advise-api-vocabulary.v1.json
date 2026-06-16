@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-06-13T18:29:15.315638+00:00",
+  "generatedAt": "2026-06-16T23:37:06.369291+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -534,9 +534,9 @@
       "example": [
         {
           "key": "example_key",
-          "weight": "example_weight",
+          "weight": "0.125",
           "value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         }
@@ -557,9 +557,9 @@
       "example": [
         {
           "key": "example_key",
-          "weight": "example_weight",
+          "weight": "0.125",
           "value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         }
@@ -581,9 +581,9 @@
         "sample_key": [
           {
             "key": "example_key",
-            "weight": "example_weight",
+            "weight": "0.125",
             "value": {
-              "amount": "example_amount",
+              "amount": "0.125",
               "currency": "USD"
             }
           }
@@ -605,9 +605,9 @@
       "example": [
         {
           "key": "example_key",
-          "weight": "example_weight",
+          "weight": "0.125",
           "value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         }
@@ -645,7 +645,7 @@
         {
           "dimension": "asset_class",
           "total_value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         }
@@ -693,7 +693,7 @@
       "canonicalTerm": "allowed_floor",
       "preferredName": "allowed_floor",
       "description": "Configured allowed floor for that currency/day.",
-      "example": "example_allowed_floor",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -723,7 +723,7 @@
       "canonicalTerm": "allowed_quantity",
       "preferredName": "allowed_quantity",
       "description": "Allowed sell quantity after budget constraint.",
-      "example": "example_allowed_quantity",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -780,7 +780,7 @@
       "canonicalTerm": "amount",
       "preferredName": "amount",
       "description": "Monetary amount as decimal string/number.",
-      "example": "example_amount",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -1394,7 +1394,7 @@
       "canonicalTerm": "available_before_fx",
       "preferredName": "available_before_fx",
       "description": "Available amount in target currency before generated FX.",
-      "example": "example_available_before_fx",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -1602,9 +1602,9 @@
       "example": [
         {
           "key": "example_key",
-          "weight": "example_weight",
+          "weight": "0.125",
           "value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           },
           "position_count": 10
@@ -1725,7 +1725,7 @@
       "example": [
         {
           "currency": "USD",
-          "amount": "example_amount"
+          "amount": "0.125"
         }
       ],
       "type": "array",
@@ -1741,7 +1741,7 @@
       "canonicalTerm": "cash_band_max_weight",
       "preferredName": "cash_band_max_weight",
       "description": "Upper soft bound for cash weight.",
-      "example": "example_cash_band_max_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -1755,7 +1755,7 @@
       "canonicalTerm": "cash_band_min_weight",
       "preferredName": "cash_band_min_weight",
       "description": "Lower soft bound for cash weight.",
-      "example": "example_cash_band_min_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -1819,7 +1819,7 @@
           "workspace_cash_flow_id": "WORKSPACE_CASH_FLOW_001",
           "cash_flow": {
             "currency": "USD",
-            "amount": "example_amount"
+            "amount": "0.125"
           }
         }
       ],
@@ -1840,7 +1840,7 @@
         {
           "date_offset": 10,
           "currency": "USD",
-          "projected_balance": "example_projected_balance"
+          "projected_balance": "0.125"
         }
       ],
       "type": "array",
@@ -1860,8 +1860,8 @@
         {
           "date_offset": 10,
           "currency": "USD",
-          "projected_balance": "example_projected_balance",
-          "allowed_floor": "example_allowed_floor",
+          "projected_balance": "0.125",
+          "allowed_floor": "0.125",
           "reason_code": "example_reason_code"
         }
       ],
@@ -2252,7 +2252,7 @@
       "canonicalTerm": "compare_target_methods_tolerance",
       "preferredName": "compare_target_methods_tolerance",
       "description": "Tolerance used when comparing method outputs.",
-      "example": "example_compare_target_methods_tolerance",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -2822,7 +2822,7 @@
       "canonicalTerm": "deficit",
       "preferredName": "deficit",
       "description": "Deficit amount in the funding currency.",
-      "example": "example_deficit",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -3333,29 +3333,29 @@
           "base_currency": "USD"
         },
         "asset_class": {
-          "drift_total_before": "example_drift_total_before",
-          "drift_total_after": "example_drift_total_after",
-          "drift_total_delta": "example_drift_total_delta"
+          "drift_total_before": "0.125",
+          "drift_total_after": "0.125",
+          "drift_total_delta": "0.125"
         },
         "highlights": {
           "largest_improvements": [
             {
               "bucket": "example_bucket",
-              "improvement": "example_improvement"
+              "improvement": "0.125"
             }
           ],
           "largest_deteriorations": [
             {
               "bucket": "example_bucket",
-              "improvement": "example_improvement"
+              "improvement": "0.125"
             }
           ],
           "unmodeled_exposures": [
             {
               "bucket": "example_bucket",
-              "portfolio_weight_before": "example_portfolio_weight_before",
-              "portfolio_weight_after": "example_portfolio_weight_after",
-              "max_portfolio_weight": "example_max_portfolio_weight"
+              "portfolio_weight_before": "0.125",
+              "portfolio_weight_after": "0.125",
+              "max_portfolio_weight": "0.125"
             }
           ]
         }
@@ -3387,7 +3387,7 @@
       "canonicalTerm": "drift_unmodeled_exposure_threshold",
       "preferredName": "drift_unmodeled_exposure_threshold",
       "description": "Minimum exposure threshold for unmodeled-exposure highlights.",
-      "example": "example_drift_unmodeled_exposure_threshold",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -3406,10 +3406,10 @@
           "instrument_id": "EQ_US_AAPL",
           "reason": "example_reason",
           "potential_notional": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           },
-          "score": "example_score"
+          "score": "0.125"
         }
       ],
       "type": "array",
@@ -3440,7 +3440,7 @@
       "preferredName": "dust_trade_threshold",
       "description": "Reserved field; currently not consumed by engine logic.",
       "example": {
-        "amount": "example_amount",
+        "amount": "0.125",
         "currency": "USD"
       },
       "type": "object",
@@ -3695,7 +3695,7 @@
       "preferredName": "estimated_notional",
       "description": "Estimated trade notional in instrument currency.",
       "example": {
-        "amount": "example_amount",
+        "amount": "0.125",
         "currency": "USD"
       },
       "type": "object",
@@ -3712,7 +3712,7 @@
       "preferredName": "estimated_notional_base",
       "description": "Estimated trade notional in portfolio base currency.",
       "example": {
-        "amount": "example_amount",
+        "amount": "0.125",
         "currency": "USD"
       },
       "type": "object",
@@ -4611,9 +4611,9 @@
       "example": [
         {
           "target_currency": "USD",
-          "required": "example_required",
-          "available_before_fx": "example_available_before_fx",
-          "fx_needed": "example_fx_needed"
+          "required": "0.125",
+          "available_before_fx": "0.125",
+          "fx_needed": "0.125"
         }
       ],
       "type": "array",
@@ -4643,7 +4643,7 @@
       "canonicalTerm": "fx_buffer_pct",
       "preferredName": "fx_buffer_pct",
       "description": "Buffer applied when generating FX funding intents.",
-      "example": "example_fx_buffer_pct",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -4706,7 +4706,7 @@
       "canonicalTerm": "fx_needed",
       "preferredName": "fx_needed",
       "description": "Generated FX buy amount needed in target currency.",
-      "example": "example_fx_needed",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -4875,9 +4875,9 @@
       "example": [
         {
           "constraint_key": "example_constraint_key",
-          "group_weight_before": "example_group_weight_before",
-          "max_weight": "example_max_weight",
-          "released_weight": "example_released_weight",
+          "group_weight_before": "0.125",
+          "max_weight": "0.125",
+          "released_weight": "0.125",
           "status": "CAPPED"
         }
       ],
@@ -4896,7 +4896,7 @@
       "description": "Group constraint map keyed by '<attribute_key>:<attribute_value>'.",
       "example": {
         "sample_key": {
-          "max_weight": "example_max_weight"
+          "max_weight": "0.125"
         }
       },
       "type": "object",
@@ -4912,7 +4912,7 @@
       "canonicalTerm": "group_weight_before",
       "preferredName": "group_weight_before",
       "description": "Group weight before capping.",
-      "example": "example_group_weight_before",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -5379,7 +5379,7 @@
       "example": [
         {
           "currency": "USD",
-          "deficit": "example_deficit"
+          "deficit": "0.125"
         }
       ],
       "type": "array",
@@ -5443,7 +5443,7 @@
         {
           "intent_id": "INTENT_001",
           "currency": "USD",
-          "amount": "example_amount"
+          "amount": "0.125"
         }
       ],
       "type": "array",
@@ -5487,7 +5487,7 @@
       "canonicalTerm": "issuer_max_weight",
       "preferredName": "issuer_max_weight",
       "description": "Maximum advisory suitability aggregate weight per issuer.",
-      "example": "example_issuer_max_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -5775,7 +5775,7 @@
         "status": "READY",
         "before": {
           "total_value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         },
@@ -5783,12 +5783,12 @@
           {
             "intent_id": "INTENT_001",
             "currency": "USD",
-            "amount": "example_amount"
+            "amount": "0.125"
           }
         ],
         "after_simulated": {
           "total_value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         },
@@ -6529,7 +6529,7 @@
       "preferredName": "max_overdraft_by_ccy",
       "description": "Optional overdraft allowance by currency for settlement ladder.",
       "example": {
-        "USD": "example_max_overdraft_by_ccy_value"
+        "USD": "0.125"
       },
       "type": "object",
       "locations": [
@@ -6544,7 +6544,7 @@
       "canonicalTerm": "max_realized_capital_gains",
       "preferredName": "max_realized_capital_gains",
       "description": "Optional run-level realized capital gains budget in base currency.",
-      "example": "example_max_realized_capital_gains",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -6558,7 +6558,7 @@
       "canonicalTerm": "max_turnover_pct",
       "preferredName": "max_turnover_pct",
       "description": "Optional turnover cap as percentage of portfolio value.",
-      "example": "example_max_turnover_pct",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -6572,7 +6572,7 @@
       "canonicalTerm": "max_weight",
       "preferredName": "max_weight",
       "description": "Configured maximum allowed group weight.",
-      "example": "example_max_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -6587,7 +6587,7 @@
       "preferredName": "max_weight_by_liquidity_tier",
       "description": "Maximum advisory suitability aggregate weight by liquidity tier, for example {'L4': '0.10', 'L5': '0.05'}.",
       "example": {
-        "sample_key": "example_max_weight_by_liquidity_tier_value"
+        "sample_key": "0.125"
       },
       "type": "object",
       "locations": [
@@ -6602,7 +6602,7 @@
       "canonicalTerm": "measured",
       "preferredName": "measured",
       "description": "Measured value used in evaluation.",
-      "example": "example_measured",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -6777,7 +6777,7 @@
       "canonicalTerm": "min_cash_buffer_pct",
       "preferredName": "min_cash_buffer_pct",
       "description": "Minimum cash buffer preserved during target generation.",
-      "example": "example_min_cash_buffer_pct",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -6806,7 +6806,7 @@
       "preferredName": "min_trade_notional",
       "description": "Request-level minimum trade notional threshold.",
       "example": {
-        "amount": "example_amount",
+        "amount": "0.125",
         "currency": "USD"
       },
       "type": "object",
@@ -7031,7 +7031,7 @@
       "preferredName": "notional",
       "description": "Trade notional in instrument currency. Required when `quantity` is not provided.",
       "example": {
-        "amount": "example_amount",
+        "amount": "0.125",
         "currency": "USD"
       },
       "type": "object",
@@ -7385,7 +7385,7 @@
       "canonicalTerm": "pending",
       "preferredName": "pending",
       "description": "Optional pending cash amount for informational reporting.",
-      "example": "example_pending",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -7641,17 +7641,17 @@
       "example": [
         {
           "instrument_id": "EQ_US_AAPL",
-          "quantity": "example_quantity",
+          "quantity": "0.125",
           "instrument_currency": "USD",
           "value_in_instrument_ccy": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           },
           "value_in_base_ccy": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           },
-          "weight": "example_weight"
+          "weight": "0.125"
         }
       ],
       "type": "array",
@@ -7733,7 +7733,7 @@
       "preferredName": "price",
       "description": "Price used in valuation.",
       "example": {
-        "amount": "example_amount",
+        "amount": "0.125",
         "currency": "USD"
       },
       "type": "object",
@@ -7901,7 +7901,7 @@
       "canonicalTerm": "projected_balance",
       "preferredName": "projected_balance",
       "description": "Projected cumulative balance on the day.",
-      "example": "example_projected_balance",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -8195,13 +8195,13 @@
         "status": "READY",
         "before": {
           "total_value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         },
         "after_simulated": {
           "total_value": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         },
@@ -8332,7 +8332,7 @@
       "canonicalTerm": "quantity",
       "preferredName": "quantity",
       "description": "Simulated quantity.",
-      "example": "example_quantity",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -8596,7 +8596,7 @@
       "preferredName": "recipients",
       "description": "Redistribution recipients and allocated weight shares.",
       "example": {
-        "sample_key": "example_recipients_value"
+        "sample_key": "0.125"
       },
       "type": "object",
       "locations": [
@@ -8627,19 +8627,19 @@
       "description": "Reconciliation output.",
       "example": {
         "before_total_value": {
-          "amount": "example_amount",
+          "amount": "0.125",
           "currency": "USD"
         },
         "after_total_value": {
-          "amount": "example_amount",
+          "amount": "0.125",
           "currency": "USD"
         },
         "delta": {
-          "amount": "example_amount",
+          "amount": "0.125",
           "currency": "USD"
         },
         "tolerance": {
-          "amount": "example_amount",
+          "amount": "0.125",
           "currency": "USD"
         },
         "status": "OK"
@@ -8820,7 +8820,7 @@
       "canonicalTerm": "released_weight",
       "preferredName": "released_weight",
       "description": "Weight released by cap operation.",
-      "example": "example_released_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -9335,7 +9335,7 @@
       "canonicalTerm": "requested_quantity",
       "preferredName": "requested_quantity",
       "description": "Requested sell quantity before budget limit.",
-      "example": "example_requested_quantity",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -9365,7 +9365,7 @@
       "canonicalTerm": "required",
       "preferredName": "required",
       "description": "Total required amount in target currency.",
-      "example": "example_required",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -9628,7 +9628,7 @@
             "status": "READY",
             "before": {
               "total_value": {
-                "amount": "example_amount",
+                "amount": "0.125",
                 "currency": "USD"
               }
             },
@@ -9636,12 +9636,12 @@
               {
                 "intent_id": "INTENT_001",
                 "currency": "USD",
-                "amount": "example_amount"
+                "amount": "0.125"
               }
             ],
             "after_simulated": {
               "total_value": {
-                "amount": "example_amount",
+                "amount": "0.125",
                 "currency": "USD"
               }
             },
@@ -9684,19 +9684,19 @@
             "portfolio_impact": {
               "before": {
                 "total_value": {
-                  "amount": "example_amount",
+                  "amount": "0.125",
                   "currency": "USD"
                 }
               },
               "after": {
                 "total_value": {
-                  "amount": "example_amount",
+                  "amount": "0.125",
                   "currency": "USD"
                 }
               },
               "delta": {
                 "total_value_delta": {
-                  "amount": "example_amount",
+                  "amount": "0.125",
                   "currency": "USD"
                 }
               }
@@ -10132,9 +10132,9 @@
           "rule_id": "RULE_001",
           "severity": "HARD",
           "status": "PASS",
-          "measured": "example_measured",
+          "measured": "0.125",
           "threshold": {
-            "sample_key": "example_threshold_value"
+            "sample_key": "0.125"
           },
           "reason_code": "example_reason_code"
         }
@@ -10386,10 +10386,10 @@
               ],
               "constraints": {
                 "cash_floor": {
-                  "amount": "example_amount",
+                  "amount": "0.125",
                   "currency": "USD"
                 },
-                "max_turnover_pct": "example_max_turnover_pct",
+                "max_turnover_pct": "0.125",
                 "max_trade_count": 10
               }
             },
@@ -10491,7 +10491,7 @@
       "canonicalTerm": "score",
       "preferredName": "score",
       "description": "Ranking score used in turnover selection.",
-      "example": "example_score",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"
@@ -10596,7 +10596,7 @@
       "canonicalTerm": "settled",
       "preferredName": "settled",
       "description": "Optional settled cash amount used by settlement-aware ladder.",
-      "example": "example_settled",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -10804,7 +10804,7 @@
       "canonicalTerm": "single_position_max_weight",
       "preferredName": "single_position_max_weight",
       "description": "Hard maximum weight allowed for a single position.",
-      "example": "example_single_position_max_weight",
+      "example": "0.125",
       "type": "object",
       "locations": [
         "body"
@@ -11752,11 +11752,11 @@
           "instrument_id": "EQ_US_AAPL",
           "reason": "example_reason",
           "intended_notional": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           },
           "threshold": {
-            "amount": "example_amount",
+            "amount": "0.125",
             "currency": "USD"
           }
         }
@@ -11879,8 +11879,8 @@
       "example": [
         {
           "instrument_id": "EQ_US_AAPL",
-          "requested_quantity": "example_requested_quantity",
-          "allowed_quantity": "example_allowed_quantity",
+          "requested_quantity": "0.125",
+          "allowed_quantity": "0.125",
           "reason_code": "example_reason_code"
         }
       ],
@@ -11941,7 +11941,7 @@
       "preferredName": "threshold",
       "description": "Threshold values applied by the rule.",
       "example": {
-        "sample_key": "example_threshold_value"
+        "sample_key": "0.125"
       },
       "type": "object",
       "locations": [
@@ -12541,7 +12541,7 @@
       "canonicalTerm": "weight",
       "preferredName": "weight",
       "description": "Portfolio weight in base currency terms.",
-      "example": "example_weight",
+      "example": "0.125",
       "type": "string",
       "locations": [
         "body"

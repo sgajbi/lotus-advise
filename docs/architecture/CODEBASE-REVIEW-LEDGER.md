@@ -1,5 +1,88 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-831
+
+- Scope: Prometheus route-template compatibility
+- Pattern: Observability middleware should tolerate framework route metadata changes without
+  dropping metrics exposure or failing API requests.
+- Status: Hardened
+- Finding Class: Observability, dependency compatibility, CI runtime resilience
+- Summary: `fastapi==0.137.1` with the current Starlette route model exposes pathless route
+  markers that `prometheus-fastapi-instrumentator==8.0.0` cannot template because it assumes every
+  matched route has `.path`. `src/api/observability.py` now installs an idempotent route-name
+  compatibility shim that skips pathless route markers while preserving normal templated route
+  names, `/metrics` exposure, and bounded request correlation headers.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_api_observability.py tests/unit/advisory/api/test_api_workspace.py tests/unit/advisory/api/test_tactical_house_view_api.py tests/unit/advisory/api/test_api_integration_capabilities.py tests/unit/scripts/test_quality_baseline_report.py`
+    passed with 87 tests under the refreshed dependency pins.
+  - `python -m ruff check src/api/observability.py tests/unit/advisory/api/test_api_observability.py`
+    passed.
+  - `python -m mypy src/api/observability.py` passed.
+  - `make check` passed with 2,051 tests under the refreshed dependency pins.
+- Consequence:
+  - Advisory API requests and runtime smoke checks retain Prometheus instrumentation under the
+    refreshed FastAPI/Starlette dependency set instead of disabling metrics or weakening dependency
+    freshness governance.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal observability compatibility hardening for existing metrics behavior.
+- Follow-Up:
+  - Revisit the shim when `prometheus-fastapi-instrumentator` ships native support for pathless
+    Starlette route markers.
+
+## LA-REV-830
+
+- Scope: Direct dependency freshness governance
+- Pattern: CI-enforced direct dependency freshness should be remediated by aligning duplicated
+  runtime and development requirement pins rather than weakening the strict dependency gate.
+- Status: Hardened
+- Finding Class: CI measurement, dependency governance, security posture
+- Summary: PR Merge Gate dependency governance reported stale direct package pins for `anyio`,
+  `fastapi`, and `pytest`. `requirements.txt`, `requirements-prod.txt`, and
+  `requirements-dev.txt` now align those direct pins to the current versions observed by the gate,
+  preserving the existing strict freshness policy instead of bypassing it.
+- Evidence:
+  - `make verify-dependencies` passed with 0 outdated direct packages.
+  - `make check-deps-strict` passed with 0 known vulnerabilities and 0 outdated direct packages.
+- Consequence:
+  - The PR Merge Gate keeps enforcing dependency freshness, and duplicated runtime/dev requirement
+    pins no longer drift for the updated direct packages.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is dependency-governance evidence for existing CI behavior.
+- Follow-Up:
+  - Keep duplicated requirement files aligned when direct package pins are refreshed by strict CI.
+
+## LA-REV-829
+
+- Scope: Proposal workflow gate suitability reason policy
+- Pattern: Workflow gate suitability reason projection should delegate new-issue reason
+  construction and high/medium count projection to focused helpers instead of embedding
+  status-change and severity branching in one helper.
+- Status: Hardened
+- Finding Class: Complexity, advisory workflow gate maintainability, behavior preservation
+- Summary: `src/core/common/workflow_gates.py::_suitability_reasons` previously carried B/6
+  status-change filtering, high/medium severity routing, reason construction, and counter mutation
+  in one helper. The workflow gate module now delegates new suitability issue reason construction
+  and count projection to named helpers while preserving compliance-review precedence for new high
+  issues, risk-review counting for new medium issues, and non-review treatment for low, persistent,
+  and resolved suitability issues.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_workflow_gates.py`
+    passed with 8 tests.
+  - `python -m radon cc -s src/core/common/workflow_gates.py` reports
+    `_suitability_reasons` as A/4, down from B/6, with the extracted helpers also A-ranked.
+- Consequence:
+  - Advisory workflow gates keep the same compliance, risk, consent, and execution-ready routing
+    while the suitability reason policy is easier to review and extend without widening approval,
+    compliance sign-off, or client-ready claims.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal workflow gate hardening for existing advisory behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory workflow and proposal orchestration helpers where focused
+    policy extraction improves maintainability without changing lifecycle semantics.
+
 ## LA-REV-828
 
 - Scope: Suitability issue projection policy

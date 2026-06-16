@@ -9,7 +9,8 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
 from prometheus_client import Counter
-from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_fastapi_instrumentator import Instrumentator, routing
+from starlette.routing import Match, Mount
 
 from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
 from src.core.proposals.correlation import (
@@ -101,6 +102,7 @@ def setup_observability(app: FastAPI) -> None:
     handler.setFormatter(JsonFormatter())
     root_logger.addHandler(handler)
 
+    _install_instrumentator_route_compatibility()
     Instrumentator().instrument(app).expose(app)
 
     @app.middleware("http")
@@ -162,3 +164,95 @@ def record_advisory_supportability(
         reason=reason,
         freshness_bucket=freshness_bucket,
     ).inc()
+
+
+def _install_instrumentator_route_compatibility() -> None:
+    if getattr(routing, "_lotus_advise_pathless_route_compatible", False):
+        return
+    routing._get_route_name = _instrumentator_route_name  # type: ignore[attr-defined]
+    routing._lotus_advise_pathless_route_compatible = True
+
+
+def _instrumentator_route_name(
+    scope: dict[str, object],
+    routes: list[object],
+    route_name: str | None = None,
+) -> str | None:
+    for route in routes:
+        match_result = _match_route(route, scope)
+        if match_result is None:
+            continue
+        match, child_scope = match_result
+        path = _route_path(route)
+        if path is None:
+            nested_route_name = _pathless_nested_route_name(
+                route=route,
+                match=match,
+                scope=scope,
+                child_scope=child_scope,
+                route_name=route_name,
+            )
+            if nested_route_name is not None:
+                return nested_route_name
+            continue
+        if match == Match.FULL:
+            return _full_route_name(
+                route=route,
+                path=path,
+                scope=scope,
+                child_scope=child_scope,
+            )
+        if match == Match.PARTIAL and route_name is None:
+            route_name = path
+    return route_name
+
+
+def _match_route(
+    route: object,
+    scope: dict[str, object],
+) -> tuple[Match, dict[str, object]] | None:
+    matches = getattr(route, "matches", None)
+    if not callable(matches):
+        return None
+    match, child_scope = matches(scope)
+    return match, child_scope
+
+
+def _route_path(route: object) -> str | None:
+    path = getattr(route, "path", None)
+    return path if isinstance(path, str) else None
+
+
+def _pathless_nested_route_name(
+    *,
+    route: object,
+    match: Match,
+    scope: dict[str, object],
+    child_scope: dict[str, object],
+    route_name: str | None,
+) -> str | None:
+    nested_routes = getattr(route, "routes", None)
+    if match != Match.FULL or not isinstance(nested_routes, list):
+        return None
+    return _instrumentator_route_name(
+        {**scope, **child_scope},
+        nested_routes,
+        route_name,
+    )
+
+
+def _full_route_name(
+    *,
+    route: object,
+    path: str,
+    scope: dict[str, object],
+    child_scope: dict[str, object],
+) -> str | None:
+    if not isinstance(route, Mount) or not route.routes:
+        return path
+    child_route_name = _instrumentator_route_name(
+        {**scope, **child_scope},
+        route.routes,
+        path,
+    )
+    return None if child_route_name is None else path + child_route_name

@@ -190,6 +190,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Advisory copilot source-projection persistence delegates" in refactor_health
     assert "Advisory copilot section tuple validation delegates" in refactor_health
     assert "Suitability issue projection delegates" in refactor_health
+    assert "Proposal workflow gate suitability reasons delegate" in refactor_health
+    assert "Direct dependency freshness governance aligns" in refactor_health
+    assert "API observability instrumentation tolerates" in refactor_health
     assert "Bank-demo runtime proof evidence delegates" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate" in (
