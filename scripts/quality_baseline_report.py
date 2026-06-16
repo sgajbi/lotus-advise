@@ -1040,6 +1040,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  construction and high/medium count projection to focused helpers.",
         "- Direct dependency freshness governance aligns duplicated runtime and",
         "  development pins while preserving the strict CI gate.",
+        "- API observability instrumentation tolerates pathless Starlette route",
+        "  markers while preserving Prometheus metrics exposure.",
         "- Bank-demo runtime proof evidence delegates summary value sanitization,",
         "  capability endpoint lookup, readiness validation, and promoted feature/workflow",
         "  proof checks to focused helpers.",
@@ -1176,7 +1178,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-830` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-831` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

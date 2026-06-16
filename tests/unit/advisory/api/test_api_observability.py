@@ -5,9 +5,11 @@ import re
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.routing import Match
 
 from src.api.observability import (
     JsonFormatter,
+    _instrumentator_route_name,
     _normalize_request_id,
     correlation_id_var,
     request_id_var,
@@ -29,6 +31,28 @@ def _observed_app() -> FastAPI:
         }
 
     return app
+
+
+class _PathlessRouteMarker:
+    def matches(self, scope: dict[str, object]) -> tuple[Match, dict[str, object]]:
+        return Match.FULL, {}
+
+
+class _ObservedRoute:
+    path = "/observed"
+
+    def matches(self, scope: dict[str, object]) -> tuple[Match, dict[str, object]]:
+        return Match.FULL, {}
+
+
+def test_instrumentator_route_name_skips_pathless_route_markers() -> None:
+    assert (
+        _instrumentator_route_name(
+            {"path": "/observed"},
+            [_PathlessRouteMarker(), _ObservedRoute()],
+        )
+        == "/observed"
+    )
 
 
 def test_observability_middleware_propagates_correlation_request_and_trace_headers() -> None:

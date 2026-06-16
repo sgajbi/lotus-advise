@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-831
+
+- Scope: Prometheus route-template compatibility
+- Pattern: Observability middleware should tolerate framework route metadata changes without
+  dropping metrics exposure or failing API requests.
+- Status: Hardened
+- Finding Class: Observability, dependency compatibility, CI runtime resilience
+- Summary: `fastapi==0.137.1` with the current Starlette route model exposes pathless route
+  markers that `prometheus-fastapi-instrumentator==8.0.0` cannot template because it assumes every
+  matched route has `.path`. `src/api/observability.py` now installs an idempotent route-name
+  compatibility shim that skips pathless route markers while preserving normal templated route
+  names, `/metrics` exposure, and bounded request correlation headers.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_api_observability.py tests/unit/advisory/api/test_api_workspace.py tests/unit/advisory/api/test_tactical_house_view_api.py tests/unit/advisory/api/test_api_integration_capabilities.py tests/unit/scripts/test_quality_baseline_report.py`
+    passed with 87 tests under the refreshed dependency pins.
+  - `python -m ruff check src/api/observability.py tests/unit/advisory/api/test_api_observability.py`
+    passed.
+  - `python -m mypy src/api/observability.py` passed.
+  - `make check` passed with 2,051 tests under the refreshed dependency pins.
+- Consequence:
+  - Advisory API requests and runtime smoke checks retain Prometheus instrumentation under the
+    refreshed FastAPI/Starlette dependency set instead of disabling metrics or weakening dependency
+    freshness governance.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal observability compatibility hardening for existing metrics behavior.
+- Follow-Up:
+  - Revisit the shim when `prometheus-fastapi-instrumentator` ships native support for pathless
+    Starlette route markers.
+
 ## LA-REV-830
 
 - Scope: Direct dependency freshness governance
