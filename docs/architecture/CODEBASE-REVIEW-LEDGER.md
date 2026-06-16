@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-832
+
+- Scope: Prometheus route-name compatibility maintainability
+- Pattern: Observability compatibility shims should keep framework-specific route matching
+  decisions in small, named helpers so dependency compatibility remains reviewable.
+- Status: Hardened
+- Finding Class: Observability maintainability, complexity, dependency compatibility
+- Summary: The FastAPI/Starlette route-name compatibility shim in `src/api/observability.py`
+  preserved Prometheus metrics exposure for pathless route markers, but the instrumentator callback
+  still carried the full route matching, pathless recursion, full-match, and partial-match
+  branching in one B-ranked helper. The route-name callback now delegates per-route resolution to
+  focused helpers with an explicit `_RouteNameResolution`, preserving the pathless route-marker
+  behavior while making the compatibility boundary easier to audit when dependencies change.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_api_observability.py` passed with 10 tests.
+  - `python -m ruff check src/api/observability.py tests/unit/advisory/api/test_api_observability.py`
+    passed.
+  - `python -m radon cc -s src/api/observability.py` reports
+    `_instrumentator_route_name` as A/4, down from B/8, with all helpers in the touched module
+    A-ranked.
+- Consequence:
+  - Advisory API observability keeps the same bounded correlation headers and Prometheus route
+    templating behavior while reducing ownership risk around framework compatibility code.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal observability maintainability hardening for existing metrics behavior.
+- Follow-Up:
+  - Continue ratcheting B-ranked observability and API-boundary helpers only when tests can prove
+    behavior preservation.
+
 ## LA-REV-831
 
 - Scope: Prometheus route-template compatibility

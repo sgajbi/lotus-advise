@@ -323,6 +323,9 @@
   development pins while preserving the strict CI gate.
 - API observability instrumentation tolerates pathless Starlette route
   markers while preserving Prometheus metrics exposure.
+- API observability route-name compatibility delegates pathless, full-match,
+  and partial-match decisions to focused helpers while preserving Prometheus
+  route templating behavior.
 - Bank-demo runtime proof evidence delegates summary value sanitization,
   capability endpoint lookup, readiness validation, and promoted feature/workflow
   proof checks to focused helpers.
