@@ -87,6 +87,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "- Head:" not in scorecard
     assert "Git Identity: omitted from committed Markdown" in scorecard
     assert "No-C/D/E/F gate plus Radon inventory" in scorecard
+    assert "Quality baseline freshness" in scorecard
+    assert "make check, make ci, make ci-local" in scorecard
+    assert "Feature Lane, PR Merge Gate, and Main Releasability" in scorecard
     assert "Executable Vulture inventory" in scorecard
     assert "Enforced plus deptry inventory" in scorecard
     assert "High-severity enforced plus Bandit inventory" in scorecard
@@ -203,6 +206,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "API observability instrumentation tolerates" in refactor_health
     assert "API observability route-name compatibility delegates" in refactor_health
     assert "Bank-demo runtime proof evidence delegates" in refactor_health
+    assert "Development requirements pin the report-only quality tools" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate" in (
         refactor_health
@@ -217,7 +221,10 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "advisory security-trade intent planning" in scorecard
     assert "advisory simulation review" in scorecard
     assert "advisory proposal authority orchestration" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-840`" in scorecard
+    assert "CI warning/topology/freshness contracts" in scorecard
+    assert "workflow contract tests protect local CI target freshness" in scorecard
+    assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-842`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

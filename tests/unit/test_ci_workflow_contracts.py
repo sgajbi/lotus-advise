@@ -1,5 +1,11 @@
 from pathlib import Path
 
+WORKFLOW_ROOT = Path(".github/workflows")
+
+
+def _workflow_text(name: str) -> str:
+    return (WORKFLOW_ROOT / name).read_text(encoding="utf-8")
+
 
 def _workflow_job_section(workflow: str, job_id: str) -> str:
     start = workflow.index(f"  {job_id}:")
@@ -9,6 +15,35 @@ def _workflow_job_section(workflow: str, job_id: str) -> str:
     if next_job == -1:
         return workflow[start:]
     return workflow[start:next_job]
+
+
+def _assert_default_ci_guardrails(workflow: str) -> None:
+    assert "concurrency:" in workflow
+    assert "group: ${{ github.workflow }}-${{ github.ref }}" in workflow
+    assert "cancel-in-progress: true" in workflow
+    assert "permissions:\n  contents: read" in workflow
+
+
+def _assert_governance_job_runs_baseline_freshness(workflow: str, job_id: str) -> None:
+    governance_section = _workflow_job_section(workflow, job_id)
+
+    assert "Quality Baseline Freshness" in governance_section
+    assert "run: make quality-baseline-check" in governance_section
+
+
+def _makefile_target_dependencies(makefile: str, target: str) -> set[str]:
+    prefix = f"{target}: "
+    for line in makefile.splitlines():
+        if line.startswith(prefix):
+            return set(line.removeprefix(prefix).split())
+    raise AssertionError(f"Missing Makefile target: {target}")
+
+
+def test_local_ci_targets_enforce_quality_baseline_freshness() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    for target in ("check", "ci", "ci-local"):
+        assert "quality-baseline-check" in _makefile_target_dependencies(makefile, target)
 
 
 def test_pytest_configuration_has_single_authoritative_file() -> None:
@@ -30,22 +65,26 @@ def test_mypy_configuration_has_no_unused_override_sections() -> None:
 
 
 def test_feature_lane_unit_tests_run_in_parallel_with_static_governance() -> None:
-    workflow = Path(".github/workflows/feature-lane.yml").read_text(encoding="utf-8")
+    workflow = _workflow_text("feature-lane.yml")
 
     unit_section = _workflow_job_section(workflow, "unit-tests")
 
+    _assert_default_ci_guardrails(workflow)
+    _assert_governance_job_runs_baseline_freshness(workflow, "lint-dependency-governance")
     assert "Feature Lane / Tests (unit)" in unit_section
     assert "needs:" not in unit_section
     assert "Feature Lane / Lint Dependency Governance" in workflow
 
 
 def test_pr_and_main_runtime_jobs_are_parallelized_without_renaming_required_checks() -> None:
-    for workflow_path, lane_name in (
-        (Path(".github/workflows/pr-merge-gate.yml"), "PR Merge Gate"),
-        (Path(".github/workflows/main-releasability.yml"), "Main Releasability"),
+    for workflow_name, lane_name, coverage_artifact_prefix in (
+        ("pr-merge-gate.yml", "PR Merge Gate", "coverage-data-"),
+        ("main-releasability.yml", "Main Releasability", "main-releasability-coverage-data-"),
     ):
-        workflow = workflow_path.read_text(encoding="utf-8")
+        workflow = _workflow_text(workflow_name)
 
+        _assert_default_ci_guardrails(workflow)
+        _assert_governance_job_runs_baseline_freshness(workflow, "lint-typecheck-governance")
         assert f"{lane_name} / Lint Typecheck Governance" in workflow
         assert f"{lane_name} / Tests (${{{{ matrix.suite }}}})" in workflow
         assert f"{lane_name} / Coverage Gate (Combined)" in workflow
@@ -66,10 +105,35 @@ def test_pr_and_main_runtime_jobs_are_parallelized_without_renaming_required_che
             "production-profile-guardrail-negatives]"
         ) in docker_section
 
+        coverage_section = _workflow_job_section(workflow, "coverage-gate")
+        assert "needs: [test-suites]" in coverage_section
+        assert f"pattern: {coverage_artifact_prefix}*" in coverage_section
+
+        test_section = _workflow_job_section(workflow, "test-suites")
+        assert f"name: {coverage_artifact_prefix}${{{{ matrix.suite }}}}" in test_section
+        assert "include-hidden-files: true" in test_section
+        assert "if-no-files-found: error" in test_section
+
 
 def test_nightly_postgres_demo_pack_declares_controlled_ci_fallback() -> None:
-    workflow = Path(".github/workflows/nightly-postgres-full.yml").read_text(encoding="utf-8")
+    workflow = _workflow_text("nightly-postgres-full.yml")
 
+    _assert_default_ci_guardrails(workflow)
     assert "ENVIRONMENT: ci" in workflow
     assert 'LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK: "true"' in workflow
     assert "python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8010" in workflow
+
+
+def test_pull_request_target_auto_merge_is_guarded_to_internal_labeled_prs() -> None:
+    workflow = _workflow_text("pr-auto-merge.yml")
+    auto_merge_section = _workflow_job_section(workflow, "queue-auto-merge")
+
+    assert "pull_request_target:" in workflow
+    assert "permissions:\n  contents: write\n  pull-requests: write" in workflow
+    assert "github.event.pull_request.base.ref == 'main'" in auto_merge_section
+    assert "github.event.pull_request.head.repo.fork == false" in auto_merge_section
+    assert "contains(github.event.pull_request.labels.*.name, 'automerge')" in auto_merge_section
+    assert 'gh api "repos/$GITHUB_REPOSITORY/branches/main/protection"' in auto_merge_section
+    assert 'gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --merge' in (
+        auto_merge_section
+    )

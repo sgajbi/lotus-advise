@@ -1,5 +1,71 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-842
+
+- Scope: Local CI quality-baseline parity
+- Pattern: Repo-native PR-grade local targets should enforce the same committed-evidence freshness
+  checks that GitHub PR and release lanes enforce, so developers catch stale quality reports before
+  pushing.
+- Status: Hardened
+- Finding Class: CI measurement, local/remote parity, release evidence
+- Summary: The GitHub Feature Lane, Pull Request Merge Gate, and Main Releasability lanes now run
+  `make quality-baseline-check`, but `make ci` and `make ci-local` still omitted that target. The
+  Makefile now runs quality-baseline freshness in both local PR-grade targets, the workflow
+  contract tests pin the local target dependency, and the local branch-protection and operations
+  docs describe the freshness check explicitly.
+- Evidence:
+  - `python -m pytest tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_quality_baseline_report.py -q`
+    passed.
+  - `python -m ruff check scripts/quality_baseline_report.py tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_quality_baseline_report.py`
+    passed.
+  - `python -m ruff format --check scripts/quality_baseline_report.py tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_quality_baseline_report.py`
+    passed.
+  - `make quality-baseline-check` passed after regenerating quality evidence.
+- Consequence:
+  - Local PR-grade validation now fails on stale committed quality reports before the same issue
+    reaches GitHub, tightening the bank-buyable evidence chain without changing service behavior.
+- Documentation:
+  - Review ledger, branch-protection workflow docs, operations runbook, and generated quality
+    reports updated. No wiki source change is required because this is repo-local CI target
+    documentation for existing validation commands.
+- Follow-Up:
+  - Continue converting report-only quality inventories into governed regression gates only after
+    current findings and thresholds are evidence-backed.
+
+## LA-REV-841
+
+- Scope: CI quality-baseline freshness enforcement
+- Pattern: Quality evidence that is already enforced locally should also be enforced in the
+  GitHub lanes that decide merge and release posture, with workflow contract tests protecting
+  least-privilege permissions, concurrency, artifact handling, and parallel job topology.
+- Status: Hardened
+- Finding Class: CI measurement, release evidence, workflow governance
+- Summary: `make quality-baseline-check` was part of local `make check`, but the Feature Lane,
+  Pull Request Merge Gate, and Main Releasability static governance jobs did not run the same
+  freshness check directly. The workflows now run a named `Quality Baseline Freshness` step in
+  their static governance jobs, and the CI workflow contract tests pin the gate alongside
+  concurrency, least-privilege permissions, test/runtime parallelism, coverage artifact handling,
+  and guarded `pull_request_target` auto-merge behavior. `requirements-dev.txt` also pins the
+  report-only measurement tools used by committed quality reports so GitHub and local developer
+  environments evaluate the same baseline surface.
+- Evidence:
+  - `python -m pytest tests/unit/test_ci_workflow_contracts.py -q` passed with 6 tests.
+  - `python -m ruff check tests/unit/test_ci_workflow_contracts.py` passed.
+  - `python -m ruff format --check tests/unit/test_ci_workflow_contracts.py` passed.
+  - GitHub Feature Lane initially exposed missing report-only tool installation in the new
+    freshness step; the branch was fixed forward by pinning `xenon`, `vulture`, `deptry`, and
+    `interrogate` in `requirements-dev.txt`.
+- Consequence:
+  - Generated quality evidence freshness is now enforced before merge and after merge in GitHub,
+    reducing the chance of stale scorecards or baseline reports being merged after refactoring
+    work changes repository truth.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is CI measurement and evidence freshness hardening for existing repo gates.
+- Follow-Up:
+  - Continue converting currently report-only quality inventories into fail-on-new-regression
+    gates only after current findings are classified and thresholds are evidence-backed.
+
 ## LA-REV-840
 
 - Scope: Advisory proposal authority orchestration

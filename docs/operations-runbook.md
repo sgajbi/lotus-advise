@@ -4,7 +4,8 @@
 
 - `make check`: local Feature Lane parity for lint, typecheck, OpenAPI, vocabulary, data-product,
   and unit-test gates.
-- `make ci-local`: local PR Merge Gate subset without Docker.
+- `make ci-local`: local PR Merge Gate subset without Docker, including quality-baseline
+  freshness.
 - `make quality-baseline`: regenerate report-only quality artifacts in `quality/`.
 - `make engineering-health`: regenerate the structural engineering-health baseline.
 
