@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-840
+
+- Scope: Advisory proposal authority orchestration
+- Pattern: Advisory proposal orchestration should keep simulation authority resolution, risk
+  enrichment authority, authority explanation projection, and proposal output attachment in named
+  helpers so downstream dependency posture stays auditable.
+- Status: Hardened
+- Finding Class: Advisory orchestration maintainability, complexity, behavior preservation
+- Summary: `src/core/advisory/orchestration.py` mixed Lotus Core simulation fallback policy,
+  Lotus Risk enrichment degradation, authority-resolution explanation mutation, decision-summary
+  projection, and alternatives projection in one B-ranked function. The module now delegates those
+  responsibilities to focused helpers while preserving normalized idempotency keys, controlled
+  local fallback gating, fallback allocation-lens source marking, configured-risk degraded reason
+  behavior, policy-context echoing, decision-summary projection, and alternatives projection.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_advisory_orchestration.py`
+    passed with 2 tests.
+  - `python -m ruff check src/core/advisory/orchestration.py tests/unit/advisory/engine/test_engine_advisory_orchestration.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/orchestration.py tests/unit/advisory/engine/test_engine_advisory_orchestration.py`
+    passed.
+  - `python -m mypy src/core/advisory/orchestration.py tests/unit/advisory/engine/test_engine_advisory_orchestration.py`
+    passed.
+  - `python -m radon cc -s src/core/advisory/orchestration.py` reports
+    `evaluate_advisory_proposal` as A/1, down from B/8, with the touched module fully A-ranked.
+- Consequence:
+  - Proposal orchestration remains behaviorally stable while reducing ownership risk around
+    Lotus Core/Lotus Risk authority posture and source-backed advisory output attachment.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory orchestration maintainability hardening for existing proposal
+    behavior.
+- Follow-Up:
+  - Continue reducing B-ranked proposal alternatives and artifact helpers where focused tests can
+    pin private-banking decision, evidence, and downstream-boundary behavior.
+
 ## LA-REV-839
 
 - Scope: Advisory proposal simulation review

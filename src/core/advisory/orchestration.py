@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import cast
 
 from src.core.advisory.alternatives_projection import build_proposal_alternatives
@@ -20,6 +21,20 @@ from src.integrations.lotus_risk import (
 )
 
 
+@dataclass(frozen=True)
+class _SimulationResolution:
+    proposal_result: ProposalResult
+    authority: str
+    degraded_reasons: list[str]
+
+
+@dataclass(frozen=True)
+class _RiskResolution:
+    proposal_result: ProposalResult
+    authority: str
+    degraded_reasons: list[str]
+
+
 def evaluate_advisory_proposal(
     *,
     request: ProposalSimulateRequest,
@@ -31,45 +46,120 @@ def evaluate_advisory_proposal(
     policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    degraded_reasons: list[str] = []
+    simulation = _resolve_simulation(
+        request=request,
+        request_hash=request_hash,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+        policy_context=policy_context,
+    )
+    risk = _resolve_risk_enrichment(
+        request=request,
+        proposal_result=simulation.proposal_result,
+        correlation_id=correlation_id,
+        resolved_as_of=resolved_as_of,
+        input_mode=input_mode,
+        degraded_reasons=simulation.degraded_reasons,
+    )
+    _attach_authority_explanation(
+        proposal_result=risk.proposal_result,
+        simulation_authority=simulation.authority,
+        risk_authority=risk.authority,
+        degraded_reasons=risk.degraded_reasons,
+        policy_context=policy_context,
+    )
+    _attach_proposal_outputs(
+        request=request,
+        proposal_result=risk.proposal_result,
+        correlation_id=correlation_id,
+        resolved_as_of=resolved_as_of,
+        policy_context=policy_context,
+    )
+    return cast(ProposalResult, risk.proposal_result)
 
-    simulation_authority = "lotus_core"
+
+def _resolve_simulation(
+    *,
+    request: ProposalSimulateRequest,
+    request_hash: str,
+    idempotency_key: str | None,
+    correlation_id: str,
+    policy_context: dict[str, object] | None,
+) -> _SimulationResolution:
     try:
-        proposal_result = simulate_with_lotus_core(
+        return _SimulationResolution(
+            proposal_result=simulate_with_lotus_core(
+                request=request,
+                request_hash=request_hash,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+                policy_context=policy_context,
+            ),
+            authority="lotus_core",
+            degraded_reasons=[],
+        )
+    except LotusCoreSimulationUnavailableError as exc:
+        proposal_result = _run_local_fallback_simulation(
             request=request,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
             policy_context=policy_context,
+            original_error=exc,
         )
-    except LotusCoreSimulationUnavailableError as exc:
-        degraded_reasons.append("LOTUS_CORE_SIMULATION_UNAVAILABLE")
-        if lotus_core_local_fallback_requested() and not lotus_core_local_fallback_permitted():
-            raise LotusCoreSimulationUnavailableError(
-                "LOTUS_CORE_SIMULATION_REQUIRED_IN_THIS_ENVIRONMENT",
-                status_code=exc.status_code,
-            ) from exc
-        if not lotus_core_local_fallback_enabled():
-            raise exc
-        simulation_authority = "lotus_advise_local_fallback"
-        proposal_result = run_proposal_simulation(
-            portfolio=request.portfolio_snapshot,
-            market_data=request.market_data_snapshot,
-            shelf=request.shelf_entries,
-            options=request.options,
-            proposed_cash_flows=request.proposed_cash_flows,
-            proposed_trades=request.proposed_trades,
-            reference_model=request.reference_model,
-            request_hash=request_hash,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-            simulation_contract_version="advisory-simulation.v1",
-            policy_context=policy_context,
+        return _SimulationResolution(
+            proposal_result=proposal_result,
+            authority="lotus_advise_local_fallback",
+            degraded_reasons=["LOTUS_CORE_SIMULATION_UNAVAILABLE"],
         )
-        proposal_result.allocation_lens.source = "LOTUS_ADVISE_LOCAL_FALLBACK"
 
+
+def _run_local_fallback_simulation(
+    *,
+    request: ProposalSimulateRequest,
+    request_hash: str,
+    idempotency_key: str | None,
+    correlation_id: str,
+    policy_context: dict[str, object] | None,
+    original_error: LotusCoreSimulationUnavailableError,
+) -> ProposalResult:
+    if lotus_core_local_fallback_requested() and not lotus_core_local_fallback_permitted():
+        raise LotusCoreSimulationUnavailableError(
+            "LOTUS_CORE_SIMULATION_REQUIRED_IN_THIS_ENVIRONMENT",
+            status_code=original_error.status_code,
+        ) from original_error
+    if not lotus_core_local_fallback_enabled():
+        raise original_error
+
+    proposal_result = run_proposal_simulation(
+        portfolio=request.portfolio_snapshot,
+        market_data=request.market_data_snapshot,
+        shelf=request.shelf_entries,
+        options=request.options,
+        proposed_cash_flows=request.proposed_cash_flows,
+        proposed_trades=request.proposed_trades,
+        reference_model=request.reference_model,
+        request_hash=request_hash,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+        simulation_contract_version="advisory-simulation.v1",
+        policy_context=policy_context,
+    )
+    proposal_result.allocation_lens.source = "LOTUS_ADVISE_LOCAL_FALLBACK"
+    return proposal_result
+
+
+def _resolve_risk_enrichment(
+    *,
+    request: ProposalSimulateRequest,
+    proposal_result: ProposalResult,
+    correlation_id: str,
+    resolved_as_of: str | None,
+    input_mode: str | None,
+    degraded_reasons: list[str],
+) -> _RiskResolution:
+    combined_degraded_reasons = list(degraded_reasons)
     lotus_risk_state = build_lotus_risk_dependency_state()
-    risk_authority = "unavailable"
     try:
         proposal_result = enrich_with_lotus_risk(
             request=request,
@@ -78,11 +168,21 @@ def evaluate_advisory_proposal(
             resolved_as_of=resolved_as_of,
             input_mode=input_mode,
         )
-        risk_authority = "lotus_risk"
+        return _RiskResolution(proposal_result, "lotus_risk", combined_degraded_reasons)
     except LotusRiskEnrichmentUnavailableError:
         if lotus_risk_state.configured:
-            degraded_reasons.append("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+            combined_degraded_reasons.append("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+        return _RiskResolution(proposal_result, "unavailable", combined_degraded_reasons)
 
+
+def _attach_authority_explanation(
+    *,
+    proposal_result: ProposalResult,
+    simulation_authority: str,
+    risk_authority: str,
+    degraded_reasons: list[str],
+    policy_context: dict[str, object] | None,
+) -> None:
     explanation = dict(proposal_result.explanation)
     explanation["authority_resolution"] = {
         "simulation_authority": simulation_authority,
@@ -94,6 +194,16 @@ def evaluate_advisory_proposal(
         explanation["advisory_policy_context"] = dict(policy_context)
 
     proposal_result.explanation = explanation
+
+
+def _attach_proposal_outputs(
+    *,
+    request: ProposalSimulateRequest,
+    proposal_result: ProposalResult,
+    correlation_id: str,
+    resolved_as_of: str | None,
+    policy_context: dict[str, object] | None,
+) -> None:
     proposal_result.proposal_decision_summary = build_proposal_decision_summary(proposal_result)
     proposal_result.proposal_alternatives = build_proposal_alternatives(
         request=request,
@@ -102,4 +212,3 @@ def evaluate_advisory_proposal(
         resolved_as_of=resolved_as_of,
         policy_context=policy_context,
     )
-    return cast(ProposalResult, proposal_result)
