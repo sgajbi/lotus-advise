@@ -788,6 +788,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Lotus Report request mapping delegates report-date source selection, lineage",
         "  fallback, safe status-path validation, and bounded identity checks to focused",
         "  helpers.",
+        "- Lotus Report request mapping delegates output-format normalization and",
+        "  reporting-currency extraction while preserving PDF/JSON and USD fallback",
+        "  behavior.",
         "- Lotus Core stateful-context held-position selection delegates cash exclusion",
         "  and security-id normalization to focused helpers.",
         "- Lotus Core stateful-context dated-row selection delegates malformed-row",
@@ -1184,7 +1187,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-832` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-833` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

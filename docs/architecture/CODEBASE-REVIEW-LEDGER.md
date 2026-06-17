@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-833
+
+- Scope: Lotus Report request mapping output and currency projection
+- Pattern: Downstream report request mappers should keep format normalization and reporting
+  currency extraction in small helpers so advisor-use report package behavior remains auditable.
+- Status: Hardened
+- Finding Class: Integration boundary maintainability, complexity, behavior preservation
+- Summary: `src/integrations/lotus_report/request_mapping.py` normalized requested output formats
+  and extracted reporting currency through B-ranked helpers. The mapper now delegates supported
+  output-format selection and source total-value currency extraction to focused helpers while
+  preserving the existing PDF fallback, JSON support, and USD fallback behavior for advisor-use
+  memo, policy sign-off, and portfolio-review report packages.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_lotus_report_request_mapping.py tests/unit/advisory/api/test_lotus_report_adapter.py tests/unit/advisory/api/test_lotus_report_response_projection.py`
+    passed with 27 tests.
+  - `python -m ruff check src/integrations/lotus_report/request_mapping.py tests/unit/advisory/api/test_lotus_report_request_mapping.py`
+    passed.
+  - `python -m radon cc -s src/integrations/lotus_report/request_mapping.py` reports
+    `normalized_output_formats` as A/2, down from B/6, and `extract_reporting_currency` as A/2,
+    down from B/6; the touched module has no B-ranked blocks.
+- Consequence:
+  - Advise-to-Report request construction remains fail-closed and source-backed while reducing
+    ownership risk around report output-format and currency projection rules.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal integration mapper maintainability hardening for existing report
+    request behavior.
+- Follow-Up:
+  - Continue reducing B-ranked integration-boundary helpers where focused tests already pin
+    downstream request semantics.
+
 ## LA-REV-832
 
 - Scope: Prometheus route-name compatibility maintainability

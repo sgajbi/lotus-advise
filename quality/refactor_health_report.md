@@ -69,6 +69,9 @@
 - Lotus Report request mapping delegates report-date source selection, lineage
   fallback, safe status-path validation, and bounded identity checks to focused
   helpers.
+- Lotus Report request mapping delegates output-format normalization and
+  reporting-currency extraction while preserving PDF/JSON and USD fallback
+  behavior.
 - Lotus Core stateful-context held-position selection delegates cash exclusion
   and security-id normalization to focused helpers.
 - Lotus Core stateful-context dated-row selection delegates malformed-row

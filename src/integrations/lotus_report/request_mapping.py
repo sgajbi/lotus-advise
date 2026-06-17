@@ -8,6 +8,7 @@ from src.core.proposals.correlation import MAX_CORRELATION_ID_LENGTH
 
 _SNAPSHOT_DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
 _REPORT_DATE_KEYS = {"as_of_date", "report_end_date", "valuation_date"}
+_SUPPORTED_OUTPUT_FORMATS = {"pdf", "json"}
 _DEFAULT_ACTOR_ID = "lotus-advise"
 _DEFAULT_TENANT_ID = "tenant-sg-001"
 
@@ -110,12 +111,22 @@ def build_policy_sign_off_package_job_request(request: dict[str, Any]) -> dict[s
 
 
 def normalized_output_formats(value: Any) -> list[str]:
-    if not isinstance(value, list) or not value:
-        return ["pdf"]
-    normalized = [
-        str(item).strip().lower() for item in value if str(item).strip().lower() in {"pdf", "json"}
+    return _requested_output_formats(value) or ["pdf"]
+
+
+def _requested_output_formats(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [
+        output_format
+        for item in value
+        if (output_format := _normalized_output_format(item)) is not None
     ]
-    return normalized or ["pdf"]
+
+
+def _normalized_output_format(value: Any) -> str | None:
+    normalized = str(value).strip().lower()
+    return normalized if normalized in _SUPPORTED_OUTPUT_FORMATS else None
 
 
 def extract_report_as_of_date(request: dict[str, Any]) -> str:
@@ -153,16 +164,13 @@ def _first_snapshot_date_in_mapping(lineage: dict[str, Any]) -> str | None:
 
 
 def extract_reporting_currency(request: dict[str, Any]) -> str | None:
-    proposal_version = cast(dict[str, Any], request.get("proposal_version") or {})
-    proposal_result = cast(dict[str, Any], proposal_version.get("proposal_result") or {})
-    before = proposal_result.get("before")
-    if isinstance(before, dict):
-        total_value = before.get("total_value")
-        if isinstance(total_value, dict):
-            currency = optional_string(total_value.get("currency"))
-            if currency:
-                return currency
-    return "USD"
+    return _before_total_value_currency(_proposal_result_payload(request)) or "USD"
+
+
+def _before_total_value_currency(proposal_result: dict[str, Any]) -> str | None:
+    before = as_mapping(proposal_result.get("before"))
+    total_value = as_mapping(before.get("total_value"))
+    return optional_string(total_value.get("currency"))
 
 
 def find_first_key_value(payload: Any, *, keys: set[str]) -> str | None:
