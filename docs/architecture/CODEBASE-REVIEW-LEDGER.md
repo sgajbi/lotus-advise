@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-834
+
+- Scope: Proposed trade request sizing validation
+- Pattern: Request DTO validators should delegate mutually exclusive business rules to named
+  helpers so API contract failures remain product-safe and easy to audit.
+- Status: Hardened
+- Finding Class: API contract maintainability, validation clarity, behavior preservation
+- Summary: `src/core/proposal_request_models.py` kept quantity/notional exclusivity, missing
+  trade-size, and non-positive notional checks in one B-ranked Pydantic model validator. The
+  validator now delegates the trade-size decision to focused helpers while preserving the existing
+  `PROPOSAL_INVALID_TRADE_INPUT` messages for missing quantity/notional, quantity plus notional,
+  and non-positive notional amount.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/contracts/test_contract_advisory_models.py tests/unit/shared/contracts/test_contract_models.py`
+    passed with 54 tests.
+  - `python -m ruff check src/core/proposal_request_models.py tests/unit/advisory/contracts/test_contract_advisory_models.py`
+    passed.
+  - `python -m mypy src/core/proposal_request_models.py` passed.
+  - `python -m radon cc -s src/core/proposal_request_models.py` reports
+    `ProposedTrade.validate_quantity_or_notional` as A/2, down from B/7, with all touched
+    helpers A-ranked.
+- Consequence:
+  - Manual advisory trade request validation remains fail-closed and domain-explicit while reducing
+    ownership risk around the mutually exclusive quantity/notional contract.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal request-model validation hardening for existing API behavior.
+- Follow-Up:
+  - Continue reducing B-ranked request and workflow validators where tests can pin exact
+    product-safe error messages.
+
 ## LA-REV-833
 
 - Scope: Lotus Report request mapping output and currency projection

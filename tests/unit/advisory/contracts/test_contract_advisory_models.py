@@ -49,17 +49,47 @@ def test_advisory_engine_options_defaults():
 
 
 def test_advisory_proposed_trade_requires_quantity_or_notional():
-    with pytest.raises(ValidationError):
+    with pytest.raises(
+        ValidationError,
+        match="PROPOSAL_INVALID_TRADE_INPUT: quantity or notional is required",
+    ):
         ProposedTrade(side="BUY", instrument_id="EQ_1")
 
 
 def test_advisory_proposed_trade_rejects_quantity_and_notional_together():
-    with pytest.raises(ValidationError):
+    with pytest.raises(
+        ValidationError,
+        match="PROPOSAL_INVALID_TRADE_INPUT: provide either quantity or notional, not both",
+    ):
         ProposedTrade(
             side="BUY",
             instrument_id="EQ_1",
             quantity=Decimal("1"),
             notional={"amount": "100", "currency": "USD"},
+        )
+
+
+def test_advisory_proposed_trade_accepts_positive_notional_without_quantity():
+    trade = ProposedTrade(
+        side="BUY",
+        instrument_id="EQ_1",
+        notional={"amount": "100", "currency": "USD"},
+    )
+
+    assert trade.quantity is None
+    assert trade.notional is not None
+    assert trade.notional.amount == Decimal("100")
+
+
+def test_advisory_proposed_trade_rejects_non_positive_notional():
+    with pytest.raises(
+        ValidationError,
+        match="PROPOSAL_INVALID_TRADE_INPUT: notional.amount must be greater than 0",
+    ):
+        ProposedTrade(
+            side="BUY",
+            instrument_id="EQ_1",
+            notional={"amount": "0", "currency": "USD"},
         )
 
 
