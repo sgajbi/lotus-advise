@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-850
+
+- Scope: Proposal execution update command
+- Pattern: Downstream execution-update ingestion should expose handoff lookup, handoff identity
+  validation, replay detection, terminal-state validation, timestamp validation, and persistence as
+  named command concerns rather than one branch-heavy orchestration block.
+- Status: Hardened
+- Finding Class: Complexity, proposal execution lifecycle maintainability, behavior preservation
+- Summary: `src/core/proposals/execution_update_command.py` carried B-ranked branching in
+  `record_proposal_execution_update`, mixing activity loading, missing-handoff errors, downstream
+  handoff identity checks, idempotent replay detection, terminal-state rejection, timestamp
+  ordering, event construction, and persistence. The command now delegates those responsibilities
+  to focused helpers while preserving existing error-code mapping, replay response behavior, and
+  advisory/downstream execution ownership boundaries.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_execution_update.py tests/unit/advisory/engine/test_engine_proposal_workflow_service.py -q`
+    passed with 97 tests.
+  - `python -m ruff check src/core/proposals/execution_update_command.py tests/unit/advisory/engine/test_engine_proposal_execution_update.py`
+    passed.
+  - `python -m radon cc -s src/core/proposals/execution_update_command.py` reports
+    `record_proposal_execution_update` improved from B/8 to A/3; all helper blocks are A-ranked.
+- Consequence:
+  - Advisory execution-update ingestion remains behavior-preserving while the command boundary is
+    easier to audit for idempotency, timestamp ordering, and execution system-of-record separation.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal proposal execution command maintainability refactor.
+- Follow-Up:
+  - Continue reducing remaining B-ranked proposal and integration command hotspots with focused
+    behavior-preserving tests.
+
 ## LA-REV-849
 
 - Scope: Proposal memo conflict and disclosure enrichment

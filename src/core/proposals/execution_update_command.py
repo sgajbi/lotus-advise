@@ -28,6 +28,8 @@ from src.core.proposals.identifiers import new_workflow_event_id
 from src.core.proposals.models import (
     ProposalExecutionStatusResponse,
     ProposalExecutionUpdateRequest,
+    ProposalRecord,
+    ProposalWorkflowEventRecord,
 )
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.transition_persistence import persist_proposal_transition
@@ -50,47 +52,30 @@ def record_proposal_execution_update(
         raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
     proposal = activity.proposal
     events = activity.events
-    latest_execution_requested = latest_execution_requested_event(events)
-    if latest_execution_requested is None:
-        raise ProposalValidationError("EXECUTION_HANDOFF_NOT_FOUND")
-
-    try:
-        validate_execution_update_handoff_identity(
-            handoff_event=latest_execution_requested,
-            payload=payload,
-        )
-    except ProposalExecutionUpdateIdentityError as exc:
-        raise ProposalStateConflictError(str(exc)) from exc
+    latest_execution_requested = _required_execution_requested_event(events)
+    _validate_execution_update_handoff(
+        handoff_event=latest_execution_requested,
+        payload=payload,
+    )
 
     request_hash = build_execution_update_request_hash(payload=payload)
-    try:
-        replay_event = find_replayed_execution_update_event(
-            events=events,
-            payload=payload,
-            request_hash=request_hash,
-        )
-    except ProposalReplayHashConflictError as exc:
-        raise ProposalIdempotencyConflictError(str(exc)) from exc
-    if replay_event is not None:
+    if _is_replayed_execution_update(
+        events=events,
+        payload=payload,
+        request_hash=request_hash,
+    ):
         return build_execution_status_response(proposal=proposal, events=events)
 
     event_type, to_state = resolve_execution_update_event(payload.update_status)
-    try:
-        validate_execution_update_state(proposal=proposal, terminal_states=terminal_states)
-    except ProposalExecutionUpdateTerminalStateError as exc:
-        raise ProposalStateConflictError(str(exc)) from exc
-
-    occurred_at = resolve_execution_update_occurred_at(
+    _validate_execution_update_state(
+        proposal=proposal,
+        terminal_states=terminal_states,
+    )
+    occurred_at = _resolve_valid_execution_update_timestamp(
         payload=payload,
         default_occurred_at=default_occurred_at,
+        handoff_event=latest_execution_requested,
     )
-    try:
-        validate_execution_update_occurred_after_handoff(
-            occurred_at=occurred_at,
-            handoff_event=latest_execution_requested,
-        )
-    except ProposalExecutionUpdateTimestampError as exc:
-        raise ProposalValidationError(str(exc)) from exc
     event = build_execution_update_event_and_apply_state(
         event_id=new_workflow_event_id(),
         proposal=proposal,
@@ -107,3 +92,74 @@ def record_proposal_execution_update(
         event=event,
     )
     return None
+
+
+def _required_execution_requested_event(
+    events: list[ProposalWorkflowEventRecord],
+) -> ProposalWorkflowEventRecord:
+    latest_execution_requested = latest_execution_requested_event(events)
+    if latest_execution_requested is None:
+        raise ProposalValidationError("EXECUTION_HANDOFF_NOT_FOUND")
+    return latest_execution_requested
+
+
+def _validate_execution_update_handoff(
+    *,
+    handoff_event: ProposalWorkflowEventRecord,
+    payload: ProposalExecutionUpdateRequest,
+) -> None:
+    try:
+        validate_execution_update_handoff_identity(
+            handoff_event=handoff_event,
+            payload=payload,
+        )
+    except ProposalExecutionUpdateIdentityError as exc:
+        raise ProposalStateConflictError(str(exc)) from exc
+
+
+def _is_replayed_execution_update(
+    *,
+    events: list[ProposalWorkflowEventRecord],
+    payload: ProposalExecutionUpdateRequest,
+    request_hash: str,
+) -> bool:
+    try:
+        replay_event = find_replayed_execution_update_event(
+            events=events,
+            payload=payload,
+            request_hash=request_hash,
+        )
+    except ProposalReplayHashConflictError as exc:
+        raise ProposalIdempotencyConflictError(str(exc)) from exc
+    return replay_event is not None
+
+
+def _validate_execution_update_state(
+    *,
+    proposal: ProposalRecord,
+    terminal_states: set[str],
+) -> None:
+    try:
+        validate_execution_update_state(proposal=proposal, terminal_states=terminal_states)
+    except ProposalExecutionUpdateTerminalStateError as exc:
+        raise ProposalStateConflictError(str(exc)) from exc
+
+
+def _resolve_valid_execution_update_timestamp(
+    *,
+    payload: ProposalExecutionUpdateRequest,
+    default_occurred_at: datetime,
+    handoff_event: ProposalWorkflowEventRecord,
+) -> datetime:
+    occurred_at = resolve_execution_update_occurred_at(
+        payload=payload,
+        default_occurred_at=default_occurred_at,
+    )
+    try:
+        validate_execution_update_occurred_after_handoff(
+            occurred_at=occurred_at,
+            handoff_event=handoff_event,
+        )
+    except ProposalExecutionUpdateTimestampError as exc:
+        raise ProposalValidationError(str(exc)) from exc
+    return occurred_at

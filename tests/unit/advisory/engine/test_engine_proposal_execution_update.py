@@ -16,12 +16,14 @@ from src.core.proposals.execution_update import (
     validate_execution_update_occurred_after_handoff,
     validate_execution_update_state,
 )
+from src.core.proposals.execution_update_command import record_proposal_execution_update
 from src.core.proposals.idempotency import ProposalReplayHashConflictError
 from src.core.proposals.models import (
     ProposalExecutionUpdateRequest,
     ProposalRecord,
     ProposalWorkflowEventRecord,
 )
+from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 
 def _payload(**overrides) -> ProposalExecutionUpdateRequest:
@@ -426,3 +428,48 @@ def test_build_execution_update_event_and_apply_state_returns_event_and_updates_
     assert event.related_version_no == 3
     assert proposal.current_state == "EXECUTED"
     assert proposal.last_event_at == occurred_at
+
+
+def test_record_proposal_execution_update_persists_state_and_handoff_lineage():
+    repository = InMemoryProposalRepository()
+    proposal = _proposal()
+    handoff_at = datetime(2026, 5, 21, 9, 55, tzinfo=timezone.utc)
+    update_at = datetime(2026, 5, 21, 10, 5, tzinfo=timezone.utc)
+    repository.create_proposal(proposal)
+    repository.append_event(
+        ProposalWorkflowEventRecord(
+            event_id="pwe_execution_requested",
+            proposal_id=proposal.proposal_id,
+            event_type="EXECUTION_REQUESTED",
+            from_state="EXECUTION_READY",
+            to_state="EXECUTION_READY",
+            actor_id="advisor_execution_update",
+            occurred_at=handoff_at,
+            reason_json={
+                "execution_request_id": "pex_execution_update",
+                "execution_provider": "lotus-manage",
+            },
+            related_version_no=3,
+        )
+    )
+
+    response = record_proposal_execution_update(
+        repository=repository,
+        proposal_id=proposal.proposal_id,
+        payload=_payload(update_status="EXECUTED", occurred_at=update_at.isoformat()),
+        terminal_states={"EXECUTED", "CANCELLED"},
+        default_occurred_at=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
+    )
+
+    persisted_proposal = repository.get_proposal(proposal_id=proposal.proposal_id)
+    events = repository.list_events(proposal_id=proposal.proposal_id)
+    execution_update = events[-1]
+
+    assert response is None
+    assert persisted_proposal is not None
+    assert persisted_proposal.current_state == "EXECUTED"
+    assert persisted_proposal.last_event_at == update_at
+    assert execution_update.event_type == "EXECUTED"
+    assert execution_update.related_version_no == 3
+    assert execution_update.reason_json["idempotency_key"] == "execution-update:exec_update_001"
+    assert execution_update.reason_json["idempotency_request_hash"].startswith("sha256:")
