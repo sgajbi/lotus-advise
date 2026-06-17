@@ -223,6 +223,8 @@
   and idempotency lookup facade methods live in a focused read mixin.
 - Advisory workspace routes are split into session/version, assistant-rationale,
   and lifecycle-handoff route modules behind the public aggregate router.
+- Policy evaluation sign-off validation delegates requirement blocker
+  construction to data-driven approval, disclosure, and consent families.
 - Workspace session input-mode validation delegates stateless/stateful payload
   requirements to one shared create/session policy helper.
 - Workspace draft action request validation delegates action-specific payload

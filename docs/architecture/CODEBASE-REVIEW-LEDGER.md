@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-845
+
+- Scope: Policy evaluation sign-off decision validation
+- Pattern: Policy sign-off validation should express repeated approval, disclosure, and consent
+  requirement differences as data-driven requirement families rather than separate branch chains.
+- Status: Hardened
+- Finding Class: Complexity, policy workflow maintainability, behavior preservation
+- Summary: `src/core/policy_packs/workflow_decision.py` carried B-ranked branching in policy
+  sign-off validation and requirement blocker construction. The module now centralizes the approval
+  decision constant, conflict-resolution outcome, requirement blocker families, and helper
+  predicates while preserving the existing maker-checker and requirements-open error codes.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_policy_pack_workflow.py -q` passed
+    with 7 tests.
+  - `python -m ruff check src/core/policy_packs/workflow_decision.py tests/unit/advisory/engine/test_engine_policy_pack_workflow.py`
+    passed.
+  - `python -m ruff format --check src/core/policy_packs/workflow_decision.py tests/unit/advisory/engine/test_engine_policy_pack_workflow.py`
+    passed.
+  - `python -m radon cc -s src/core/policy_packs/workflow_decision.py` now reports the touched
+    module as fully A-ranked; `validate_policy_sign_off_decision` is A/4 and `approval_blockers`
+    is A/2.
+- Consequence:
+  - Future policy workflow requirement families can be reviewed in one explicit table, reducing
+    branch drift while keeping policy sign-off behavior protected by existing workflow tests.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal policy workflow maintainability refactor.
+- Follow-Up:
+  - Continue reducing B/8 proposal and policy-pack hotspots where shared validation policy can
+    preserve API behavior while lowering branch complexity.
+
 ## LA-REV-844
 
 - Scope: Workspace session input-mode validation
