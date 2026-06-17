@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-836
+
+- Scope: Advisory proposal security-trade intent construction
+- Pattern: Proposal trade-intent construction should keep price lookup, quantity/notional
+  resolution, FX projection, and diagnostic recording in named helpers so manual advisory trades
+  remain auditable and easy to test.
+- Status: Hardened
+- Finding Class: Advisory simulation maintainability, complexity, behavior preservation
+- Summary: `src/core/advisory/intents.py` built manual security-trade intents in one B-ranked
+  branch-heavy helper. The module now delegates trade price lookup, quantity/notional resolution,
+  and base-currency notional projection to focused helpers while preserving missing-price data
+  quality diagnostics, invalid notional-currency rejection, missing-FX diagnostics, and intent
+  construction semantics.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_advisory_intents.py tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py`
+    passed with 33 tests.
+  - `python -m ruff check src/core/advisory/intents.py tests/unit/advisory/engine/test_engine_advisory_intents.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/intents.py tests/unit/advisory/engine/test_engine_advisory_intents.py`
+    passed.
+  - `python -m mypy src/core/advisory/intents.py` passed.
+  - `python -m radon cc -s src/core/advisory/intents.py` reports
+    `build_proposal_security_trade_intent` as A/3, down from B/7, with all touched helpers
+    A-ranked.
+- Consequence:
+  - Manual advisory trade intent sizing keeps existing proposal simulation behavior while reducing
+    ownership risk around price, notional, and FX diagnostic branches.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory simulation maintainability hardening for existing proposal
+    behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory simulation helpers where focused tests can pin
+    deterministic intent planning and diagnostic behavior.
+
 ## LA-REV-835
 
 - Scope: Advisory auto-funding source selection
