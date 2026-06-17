@@ -32,34 +32,8 @@ def evaluate_simulation_review(
 ) -> SimulationReview:
     rule_results = RuleEngine.evaluate(after, options, diagnostics)
 
-    if intent_plan.hard_failures:
-        measured = Decimal(len(intent_plan.hard_failures))
-        rule_results.append(
-            RuleResult(
-                rule_id="PROPOSAL_INPUT_GUARDS",
-                severity="HARD",
-                status="FAIL",
-                measured=measured,
-                threshold={"max": Decimal("0")},
-                reason_code=intent_plan.hard_failures[0],
-                remediation_hint=(
-                    "Adjust proposal cash flows, funding inputs, or shelf eligibility."
-                ),
-            )
-        )
-
-    if intent_plan.force_pending_review:
-        rule_results.append(
-            RuleResult(
-                rule_id="PROPOSAL_FUNDING_DQ",
-                severity="SOFT",
-                status="FAIL",
-                measured=Decimal(len(diagnostics.missing_fx_pairs)),
-                threshold={"max": Decimal("0")},
-                reason_code="MISSING_FX_FOR_FUNDING",
-                remediation_hint="Provide required FX rates for advisory auto-funding.",
-            )
-        )
+    _append_input_guard_failure_if_needed(rule_results, intent_plan)
+    _append_funding_data_quality_failure_if_needed(rule_results, diagnostics, intent_plan)
 
     final_status = derive_status_from_rules(rule_results)
     reconciliation, recon_diff, tolerance = _build_value_reconciliation(
@@ -71,28 +45,96 @@ def evaluate_simulation_review(
         diagnostics=diagnostics,
     )
 
-    if reconciliation.status == "MISMATCH":
-        final_status = "BLOCKED"
-        rule_results.append(
-            RuleResult(
-                rule_id="RECONCILIATION",
-                severity="HARD",
-                status="FAIL",
-                measured=recon_diff,
-                threshold={"max": tolerance},
-                reason_code="VALUE_MISMATCH",
-                remediation_hint="Check pricing/FX or proposal inputs.",
-            )
-        )
-
-    if intent_plan.force_pending_review and final_status == "READY":
-        final_status = "PENDING_REVIEW"
+    final_status = _final_status_after_reconciliation(
+        final_status=final_status,
+        rule_results=rule_results,
+        reconciliation=reconciliation,
+        recon_diff=recon_diff,
+        tolerance=tolerance,
+    )
+    final_status = _final_status_after_pending_review(
+        final_status=final_status,
+        intent_plan=intent_plan,
+    )
 
     return SimulationReview(
         final_status=final_status,
         rule_results=rule_results,
         reconciliation=reconciliation,
     )
+
+
+def _append_input_guard_failure_if_needed(
+    rule_results: list[RuleResult],
+    intent_plan: SimulationIntentPlan,
+) -> None:
+    if not intent_plan.hard_failures:
+        return
+    rule_results.append(
+        RuleResult(
+            rule_id="PROPOSAL_INPUT_GUARDS",
+            severity="HARD",
+            status="FAIL",
+            measured=Decimal(len(intent_plan.hard_failures)),
+            threshold={"max": Decimal("0")},
+            reason_code=intent_plan.hard_failures[0],
+            remediation_hint=("Adjust proposal cash flows, funding inputs, or shelf eligibility."),
+        )
+    )
+
+
+def _append_funding_data_quality_failure_if_needed(
+    rule_results: list[RuleResult],
+    diagnostics: DiagnosticsData,
+    intent_plan: SimulationIntentPlan,
+) -> None:
+    if not intent_plan.force_pending_review:
+        return
+    rule_results.append(
+        RuleResult(
+            rule_id="PROPOSAL_FUNDING_DQ",
+            severity="SOFT",
+            status="FAIL",
+            measured=Decimal(len(diagnostics.missing_fx_pairs)),
+            threshold={"max": Decimal("0")},
+            reason_code="MISSING_FX_FOR_FUNDING",
+            remediation_hint="Provide required FX rates for advisory auto-funding.",
+        )
+    )
+
+
+def _final_status_after_reconciliation(
+    *,
+    final_status: Literal["READY", "BLOCKED", "PENDING_REVIEW"],
+    rule_results: list[RuleResult],
+    reconciliation: Reconciliation,
+    recon_diff: Decimal,
+    tolerance: Decimal,
+) -> Literal["READY", "BLOCKED", "PENDING_REVIEW"]:
+    if reconciliation.status != "MISMATCH":
+        return final_status
+    rule_results.append(
+        RuleResult(
+            rule_id="RECONCILIATION",
+            severity="HARD",
+            status="FAIL",
+            measured=recon_diff,
+            threshold={"max": tolerance},
+            reason_code="VALUE_MISMATCH",
+            remediation_hint="Check pricing/FX or proposal inputs.",
+        )
+    )
+    return "BLOCKED"
+
+
+def _final_status_after_pending_review(
+    *,
+    final_status: Literal["READY", "BLOCKED", "PENDING_REVIEW"],
+    intent_plan: SimulationIntentPlan,
+) -> Literal["READY", "BLOCKED", "PENDING_REVIEW"]:
+    if intent_plan.force_pending_review and final_status == "READY":
+        return "PENDING_REVIEW"
+    return final_status
 
 
 def _build_value_reconciliation(

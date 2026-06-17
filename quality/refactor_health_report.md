@@ -314,6 +314,8 @@
 - Proposal simulation security-trade intent planning delegates shelf presence,
   shelf eligibility, unsupported-trade diagnostics, and intent construction to
   focused helpers.
+- Proposal simulation review delegates input-guard, funding data-quality,
+  reconciliation, and pending-review status projection to focused helpers.
 - Advisory copilot bounded tuple validation delegates sequence validation,
   bounded item normalization, duplicate handling, and non-empty enforcement to
   focused helpers.

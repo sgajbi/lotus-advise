@@ -1033,6 +1033,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Proposal simulation security-trade intent planning delegates shelf presence,",
         "  shelf eligibility, unsupported-trade diagnostics, and intent construction to",
         "  focused helpers.",
+        "- Proposal simulation review delegates input-guard, funding data-quality,",
+        "  reconciliation, and pending-review status projection to focused helpers.",
         "- Advisory copilot bounded tuple validation delegates sequence validation,",
         "  bounded item normalization, duplicate handling, and non-empty enforcement to",
         "  focused helpers.",
@@ -1198,7 +1200,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-838` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-839` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1235,6 +1237,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "proposed-trade request sizing validation, advisory funding selection, "
             "advisory trade-intent construction, advisory cash-flow intent planning, "
             "advisory security-trade intent planning, "
+            "advisory simulation review, "
             "and CI warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),

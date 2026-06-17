@@ -59,6 +59,38 @@ def test_simulation_review_forces_pending_review_for_funding_dq():
     assert any(rule.rule_id == "PROPOSAL_FUNDING_DQ" for rule in review.rule_results)
 
 
+def test_simulation_review_records_input_guard_hard_failure():
+    portfolio, market_data, diagnostics, before = _state("pf_simulation_review_input_guard")
+    intent_plan = SimulationIntentPlan(
+        after_portfolio=portfolio,
+        cash_flows=[],
+        trades=[],
+        intents=[],
+        hard_failures=["PROPOSAL_INVALID_TRADE_INPUT"],
+        force_pending_review=False,
+    )
+
+    review = evaluate_simulation_review(
+        portfolio=portfolio,
+        market_data=market_data,
+        options=EngineOptions(enable_proposal_simulation=True),
+        diagnostics=diagnostics,
+        before=before,
+        after=before,
+        intent_plan=intent_plan,
+    )
+
+    input_guard_rule = next(
+        rule for rule in review.rule_results if rule.rule_id == "PROPOSAL_INPUT_GUARDS"
+    )
+    assert review.final_status == "BLOCKED"
+    assert input_guard_rule.status == "FAIL"
+    assert input_guard_rule.severity == "HARD"
+    assert input_guard_rule.measured == 1
+    assert input_guard_rule.threshold == {"max": Decimal("0")}
+    assert input_guard_rule.reason_code == "PROPOSAL_INVALID_TRADE_INPUT"
+
+
 def test_simulation_review_blocks_reconciliation_mismatch():
     portfolio, market_data, diagnostics, before = _state("pf_simulation_review_recon")
     intent_plan = SimulationIntentPlan(
