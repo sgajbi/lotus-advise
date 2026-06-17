@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-839
+
+- Scope: Advisory proposal simulation review
+- Pattern: Proposal simulation review should keep rule projection and final-status override
+  decisions in named helpers so reconciliation, funding data quality, and input guard behavior stay
+  auditable.
+- Status: Hardened
+- Finding Class: Advisory simulation maintainability, complexity, behavior preservation
+- Summary: `src/core/advisory/simulation_review.py` mixed base rule evaluation, proposal input
+  guard projection, funding data-quality projection, reconciliation blocking, and pending-review
+  override behavior in one B-ranked function. The module now delegates input-guard rule creation,
+  funding data-quality rule creation, reconciliation blocking, and pending-review final status
+  selection to focused helpers while preserving rule IDs, severities, reason codes, measured
+  values, thresholds, and final status semantics.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_simulation_review.py`
+    passed with 3 tests.
+  - `python -m ruff check src/core/advisory/simulation_review.py tests/unit/advisory/engine/test_engine_simulation_review.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/simulation_review.py tests/unit/advisory/engine/test_engine_simulation_review.py`
+    passed.
+  - `python -m mypy src/core/advisory/simulation_review.py` passed.
+  - `python -m radon cc -s src/core/advisory/simulation_review.py` reports
+    `evaluate_simulation_review` as A/1, down from B/6, with the touched module fully A-ranked.
+- Consequence:
+  - Advisory simulation review remains behaviorally stable while reducing ownership risk around
+    fail-closed proposal input guards, funding data-quality review posture, and reconciliation
+    mismatch blocking.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory simulation maintainability hardening for existing proposal
+    behavior.
+- Follow-Up:
+  - Continue reducing B-ranked proposal decision and artifact helpers where focused tests can pin
+    private-banking decision, approval, and evidence semantics.
+
 ## LA-REV-838
 
 - Scope: Advisory proposal security-trade intent planning
