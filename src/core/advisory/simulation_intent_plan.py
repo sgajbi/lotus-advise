@@ -246,23 +246,49 @@ def _build_cash_flow_intents(
     cash_flow_intents: list[CashFlowIntent] = []
     for idx, cash_flow in enumerate(cash_flows):
         apply_proposal_cash_flow(after_portfolio, cash_flow)
-        cash_flow_intents.append(
-            CashFlowIntent(
-                intent_id=f"oi_cf_{idx + 1}",
-                currency=cash_flow.currency,
-                amount=cash_flow.amount,
-                description=cash_flow.description,
-            )
+        cash_flow_intents.append(_cash_flow_intent(cash_flow=cash_flow, index=idx))
+        _record_negative_cash_failure_if_needed(
+            after_portfolio=after_portfolio,
+            cash_flow=cash_flow,
+            options=options,
+            diagnostics=diagnostics,
+            hard_failures=hard_failures,
         )
-        if options.proposal_block_negative_cash:
-            cash_entry = next(
-                (x for x in after_portfolio.cash_balances if x.currency == cash_flow.currency),
-                None,
-            )
-            if cash_entry is not None and cash_entry.amount < Decimal("0"):
-                diagnostics.warnings.append("PROPOSAL_WITHDRAWAL_NEGATIVE_CASH")
-                hard_failures.append("PROPOSAL_WITHDRAWAL_NEGATIVE_CASH")
     return cash_flow_intents
+
+
+def _cash_flow_intent(*, cash_flow: ProposedCashFlow, index: int) -> CashFlowIntent:
+    return CashFlowIntent(
+        intent_id=f"oi_cf_{index + 1}",
+        currency=cash_flow.currency,
+        amount=cash_flow.amount,
+        description=cash_flow.description,
+    )
+
+
+def _record_negative_cash_failure_if_needed(
+    *,
+    after_portfolio: PortfolioSnapshot,
+    cash_flow: ProposedCashFlow,
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+    hard_failures: list[str],
+) -> None:
+    if not options.proposal_block_negative_cash:
+        return
+    if _cash_flow_creates_negative_balance(after_portfolio=after_portfolio, cash_flow=cash_flow):
+        diagnostics.warnings.append("PROPOSAL_WITHDRAWAL_NEGATIVE_CASH")
+        hard_failures.append("PROPOSAL_WITHDRAWAL_NEGATIVE_CASH")
+
+
+def _cash_flow_creates_negative_balance(
+    *, after_portfolio: PortfolioSnapshot, cash_flow: ProposedCashFlow
+) -> bool:
+    cash_entry = next(
+        (entry for entry in after_portfolio.cash_balances if entry.currency == cash_flow.currency),
+        None,
+    )
+    return cash_entry is not None and cash_entry.amount < Decimal("0")
 
 
 def _build_security_trade_intents(

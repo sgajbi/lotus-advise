@@ -57,6 +57,36 @@ def test_simulation_intent_plan_records_missing_shelf_without_execution_intent()
     assert diagnostics.data_quality["shelf_missing"] == ["EQ_MISSING"]
 
 
+def test_simulation_intent_plan_records_negative_cash_withdrawal_hard_failure():
+    diagnostics = make_diagnostics_data()
+
+    plan = build_simulation_intent_plan(
+        portfolio=portfolio_snapshot(
+            portfolio_id="pf_intent_plan_negative_cash",
+            base_currency="USD",
+            positions=[],
+            cash_balances=[cash("USD", "100")],
+        ),
+        market_data=market_data_snapshot(prices=[]),
+        shelf=[],
+        options=EngineOptions(
+            enable_proposal_simulation=True,
+            proposal_block_negative_cash=True,
+        ),
+        proposed_cash_flows=[
+            {"currency": "USD", "amount": "-150", "description": "Client withdrawal"},
+        ],
+        proposed_trades=[],
+        diagnostics=diagnostics,
+    )
+
+    assert [intent.intent_type for intent in plan.intents] == ["CASH_FLOW"]
+    assert plan.intents[0].intent_id == "oi_cf_1"
+    assert plan.hard_failures == ["PROPOSAL_WITHDRAWAL_NEGATIVE_CASH"]
+    assert diagnostics.warnings == ["PROPOSAL_WITHDRAWAL_NEGATIVE_CASH"]
+    assert plan.after_portfolio.cash_balances[0].amount == -50
+
+
 def test_simulation_intent_plan_orders_mixed_intents_and_applies_after_state():
     diagnostics = make_diagnostics_data()
 
