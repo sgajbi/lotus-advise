@@ -98,15 +98,12 @@ def activate_policy_pack_catalog_definition(
     idempotency_key: str,
     reason: dict[str, Any],
 ) -> PolicyPackActivationResponse:
-    request_hash = hash_canonical_payload(
-        {
-            "operation": "POLICY_PACK_ACTIVATED",
-            "policy_pack_id": policy_pack_id,
-            "policy_version": policy_version,
-            "activated_by": activated_by,
-            "source_content_hash": source_content_hash,
-            "reason": reason,
-        }
+    request_hash = _activation_request_hash(
+        policy_pack_id=policy_pack_id,
+        policy_version=policy_version,
+        activated_by=activated_by,
+        source_content_hash=source_content_hash,
+        reason=reason,
     )
     replayed = find_replayed_policy_pack_catalog_event(
         idempotency=idempotency,
@@ -114,28 +111,16 @@ def activate_policy_pack_catalog_definition(
         request_hash=request_hash,
     )
     if replayed is not None:
-        return PolicyPackActivationResponse(
-            policy_pack=summary_from_definition(definition),
-            activation_event=replayed,
-            replayed=True,
-        )
+        return _activation_response_from_event(definition=definition, event=replayed)
 
-    if source_content_hash != definition["content_hash"]:
-        raise ProposalValidationError("POLICY_PACK_CONTENT_HASH_MISMATCH")
-    if definition["activation_state"] == "ACTIVE":
-        raise ProposalValidationError("POLICY_PACK_VERSION_ALREADY_ACTIVE_IMMUTABLE")
-    diagnostics = validate_definition(definition)
-    if diagnostics:
-        raise ProposalValidationError(";".join(diagnostics))
-    validation_event = latest_policy_pack_validation_event(
+    validation_event = _validated_activation_event(
+        definition=definition,
         events=events,
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
+        activated_by=activated_by,
+        source_content_hash=source_content_hash,
     )
-    if validation_event is None:
-        raise ProposalValidationError("POLICY_PACK_VALIDATION_REQUIRED_BEFORE_ACTIVATION")
-    if definition["maker_checker_required"] and validation_event.actor_id == activated_by:
-        raise ProposalValidationError("POLICY_PACK_MAKER_CHECKER_REQUIRES_DIFFERENT_ACTOR")
 
     definition["activation_state"] = "ACTIVE"
     event = append_policy_pack_catalog_event(
@@ -148,17 +133,98 @@ def activate_policy_pack_catalog_definition(
         content_hash=str(definition["content_hash"]),
         idempotency_key=idempotency_key,
         request_hash=request_hash,
-        reason={
-            "activation_state": "ACTIVE",
-            "maker_checker_required": definition["maker_checker_required"],
-            "validated_by": validation_event.actor_id,
-            "validation_event_id": validation_event.event_id,
-            "reason": deepcopy(reason),
-            "reference_posture": REFERENCE_POSTURE,
-        },
+        reason=_activation_event_reason(
+            definition=definition,
+            validation_event=validation_event,
+            reason=reason,
+        ),
     )
     return PolicyPackActivationResponse(
         policy_pack=summary_from_definition(definition),
         activation_event=event,
         replayed=False,
     )
+
+
+def _activation_request_hash(
+    *,
+    policy_pack_id: str,
+    policy_version: str,
+    activated_by: str,
+    source_content_hash: str,
+    reason: dict[str, Any],
+) -> str:
+    return hash_canonical_payload(
+        {
+            "operation": "POLICY_PACK_ACTIVATED",
+            "policy_pack_id": policy_pack_id,
+            "policy_version": policy_version,
+            "activated_by": activated_by,
+            "source_content_hash": source_content_hash,
+            "reason": reason,
+        }
+    )
+
+
+def _activation_response_from_event(
+    *,
+    definition: dict[str, Any],
+    event: PolicyPackAuditEvent,
+) -> PolicyPackActivationResponse:
+    return PolicyPackActivationResponse(
+        policy_pack=summary_from_definition(definition),
+        activation_event=event,
+        replayed=True,
+    )
+
+
+def _validated_activation_event(
+    *,
+    definition: dict[str, Any],
+    events: dict[tuple[str, str], list[PolicyPackAuditEvent]],
+    policy_pack_id: str,
+    policy_version: str,
+    activated_by: str,
+    source_content_hash: str,
+) -> PolicyPackAuditEvent:
+    _validate_activation_definition(definition=definition, source_content_hash=source_content_hash)
+    validation_event = latest_policy_pack_validation_event(
+        events=events,
+        policy_pack_id=policy_pack_id,
+        policy_version=policy_version,
+    )
+    if validation_event is None:
+        raise ProposalValidationError("POLICY_PACK_VALIDATION_REQUIRED_BEFORE_ACTIVATION")
+    if definition["maker_checker_required"] and validation_event.actor_id == activated_by:
+        raise ProposalValidationError("POLICY_PACK_MAKER_CHECKER_REQUIRES_DIFFERENT_ACTOR")
+    return validation_event
+
+
+def _validate_activation_definition(
+    *,
+    definition: dict[str, Any],
+    source_content_hash: str,
+) -> None:
+    if source_content_hash != definition["content_hash"]:
+        raise ProposalValidationError("POLICY_PACK_CONTENT_HASH_MISMATCH")
+    if definition["activation_state"] == "ACTIVE":
+        raise ProposalValidationError("POLICY_PACK_VERSION_ALREADY_ACTIVE_IMMUTABLE")
+    diagnostics = validate_definition(definition)
+    if diagnostics:
+        raise ProposalValidationError(";".join(diagnostics))
+
+
+def _activation_event_reason(
+    *,
+    definition: dict[str, Any],
+    validation_event: PolicyPackAuditEvent,
+    reason: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "activation_state": "ACTIVE",
+        "maker_checker_required": definition["maker_checker_required"],
+        "validated_by": validation_event.actor_id,
+        "validation_event_id": validation_event.event_id,
+        "reason": deepcopy(reason),
+        "reference_posture": REFERENCE_POSTURE,
+    }
