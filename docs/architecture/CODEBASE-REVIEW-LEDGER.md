@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-846
+
+- Scope: Policy evaluation report-package request validation
+- Pattern: Policy report-package request validation should expose separate hash, client-ready,
+  output-format, and workflow-readiness checks rather than one branch-heavy validator.
+- Status: Hardened
+- Finding Class: Complexity, policy report-package maintainability, behavior preservation
+- Summary: `src/core/policy_packs/reporting.py` carried a B-ranked report-package request
+  validator mixing source-hash checks, blocked client-ready requests, output-format support, and
+  signed-off workflow readiness. The module now delegates each validation concern to a named helper
+  and centralizes supported output formats while preserving the existing API validation error codes.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_api_advisory_policy_evaluations.py -q` passed
+    with 10 tests.
+  - `python -m ruff check src/core/policy_packs/reporting.py tests/unit/advisory/api/test_api_advisory_policy_evaluations.py`
+    passed.
+  - `python -m ruff format --check src/core/policy_packs/reporting.py tests/unit/advisory/api/test_api_advisory_policy_evaluations.py`
+    passed.
+  - `python -m radon cc -s src/core/policy_packs/reporting.py` now reports
+    `_validate_report_request` as A/1; the touched validation helper set is fully A-ranked.
+- Consequence:
+  - Policy report-package request validation has clearer operator-facing failure boundaries and
+    future output-format changes can be reviewed at one explicit policy point.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal policy report-package maintainability refactor.
+- Follow-Up:
+  - Continue reducing B-ranked proposal and policy report projection hotspots where helper
+    extraction can preserve report/replay behavior.
+
 ## LA-REV-845
 
 - Scope: Policy evaluation sign-off decision validation

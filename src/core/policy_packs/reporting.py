@@ -30,6 +30,7 @@ from src.integrations.lotus_report import request_policy_sign_off_report_package
 
 _REPORTING_CONTRACT_VERSION = "rfc0025.policy-report-package-realization.v1"
 _CLIENT_READY_PUBLICATION = "BLOCKED"
+_SUPPORTED_OUTPUT_FORMATS = frozenset({"pdf", "json"})
 
 
 def request_policy_evaluation_report_package(
@@ -112,18 +113,44 @@ def request_policy_evaluation_report_package(
 def _validate_report_request(
     *, record: PolicyEvaluationRecord, payload: PolicyEvaluationReportPackageRequest
 ) -> None:
-    if payload.source_evaluation_hash != record.evaluation_hash:
-        raise ProposalValidationError("POLICY_REPORT_PACKAGE_HASH_MISMATCH")
-    if payload.client_ready_document_requested:
-        raise ProposalValidationError("POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED")
-    if not [
-        item
-        for item in payload.requested_output_formats
-        if str(item).strip().lower() in {"pdf", "json"}
-    ]:
-        raise ProposalValidationError("POLICY_REPORT_PACKAGE_OUTPUT_FORMAT_REQUIRED")
+    _validate_report_request_hash(record=record, payload=payload)
+    _validate_report_client_ready_boundary(payload=payload)
+    _validate_report_output_formats(payload=payload)
 
     workflow = get_policy_evaluation_workflow(evaluation_id=record.evaluation_id)
+    _validate_report_workflow_ready(workflow=workflow)
+
+
+def _validate_report_request_hash(
+    *, record: PolicyEvaluationRecord, payload: PolicyEvaluationReportPackageRequest
+) -> None:
+    if payload.source_evaluation_hash != record.evaluation_hash:
+        raise ProposalValidationError("POLICY_REPORT_PACKAGE_HASH_MISMATCH")
+
+
+def _validate_report_client_ready_boundary(
+    *, payload: PolicyEvaluationReportPackageRequest
+) -> None:
+    if payload.client_ready_document_requested:
+        raise ProposalValidationError("POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED")
+
+
+def _validate_report_output_formats(*, payload: PolicyEvaluationReportPackageRequest) -> None:
+    if not _requested_supported_output_formats(payload=payload):
+        raise ProposalValidationError("POLICY_REPORT_PACKAGE_OUTPUT_FORMAT_REQUIRED")
+
+
+def _requested_supported_output_formats(
+    *, payload: PolicyEvaluationReportPackageRequest
+) -> list[str]:
+    return [
+        normalized
+        for item in payload.requested_output_formats
+        if (normalized := str(item).strip().lower()) in _SUPPORTED_OUTPUT_FORMATS
+    ]
+
+
+def _validate_report_workflow_ready(*, workflow: Any) -> None:
     if workflow.sign_off_status != "SIGNED_OFF":
         raise ProposalValidationError("POLICY_REPORT_PACKAGE_REQUIRES_SIGN_OFF")
     if workflow.sign_off_blockers:
