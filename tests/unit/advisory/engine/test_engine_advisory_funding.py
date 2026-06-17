@@ -24,6 +24,22 @@ def test_funding_priority_base_only_prefers_base_when_different_target_currency(
     assert result == ["USD"]
 
 
+def test_funding_priority_any_cash_uses_base_then_sorted_other_cash():
+    result = funding_priority_currencies(
+        options=_Options("ANY_CASH"),
+        base_currency="SGD",
+        target_currency="USD",
+        cash_ledger={
+            "AUD": Decimal("1"),
+            "USD": Decimal("0"),
+            "CHF": Decimal("1"),
+            "SGD": Decimal("1"),
+        },
+    )
+
+    assert result == ["SGD", "AUD", "CHF"]
+
+
 def test_select_funding_source_prefers_first_sufficient_base_cash():
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_funding_select",
@@ -55,6 +71,47 @@ def test_select_funding_source_prefers_first_sufficient_base_cash():
     assert selected["funding_currency"] == "SGD"
     assert selected["sell_required"] == Decimal("1350.00")
     assert deficit is None
+    assert diagnostics.missing_fx_pairs == []
+
+
+def test_select_funding_source_reports_smallest_cash_deficit():
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_funding_deficit",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[
+            {"currency": "SGD", "amount": "100"},
+            {"currency": "AUD", "amount": "480"},
+            {"currency": "CHF", "amount": "300"},
+        ],
+    )
+    market_data = MarketDataSnapshot(
+        prices=[],
+        fx_rates=[
+            {"pair": "USD/SGD", "rate": "1.35"},
+            {"pair": "USD/AUD", "rate": "1.50"},
+            {"pair": "USD/CHF", "rate": "0.95"},
+        ],
+    )
+    diagnostics = SimpleNamespace(missing_fx_pairs=[], data_quality={"fx_missing": []})
+
+    selected, deficit = select_funding_source(
+        after_portfolio=portfolio,
+        market_data=market_data,
+        options=_Options("ANY_CASH"),
+        diagnostics=diagnostics,
+        target_currency="USD",
+        fx_needed=Decimal("1000"),
+        cash_ledger={
+            "SGD": Decimal("100"),
+            "USD": Decimal("0"),
+            "AUD": Decimal("480"),
+            "CHF": Decimal("300"),
+        },
+    )
+
+    assert selected is None
+    assert deficit == {"currency": "CHF", "deficit": Decimal("650.00")}
     assert diagnostics.missing_fx_pairs == []
 
 
