@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-848
+
+- Scope: Policy evaluation record listing
+- Pattern: Policy evaluation record listing should expose filtering, deterministic ordering, and
+  copy projection as separate read-model concerns rather than one branch-heavy store method.
+- Status: Hardened
+- Finding Class: Complexity, policy evaluation persistence maintainability, behavior preservation
+- Summary: `src/core/policy_packs/persistence_store.py` carried B-ranked branching in
+  `PolicyEvaluationRecordStore.list_policy_evaluation_records`, mixing status filtering,
+  portfolio filtering, generated-time ordering, and defensive copy projection. The method now
+  delegates those concerns to named helpers while preserving the public persistence facade and
+  review-queue behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_policy_pack_persistence.py -q`
+    passed with 10 tests.
+  - `python -m ruff check src/core/policy_packs/persistence_store.py tests/unit/advisory/engine/test_engine_policy_pack_persistence.py`
+    passed.
+  - `python -m ruff format --check src/core/policy_packs/persistence_store.py tests/unit/advisory/engine/test_engine_policy_pack_persistence.py`
+    passed.
+  - `python -m radon cc -s src/core/policy_packs/persistence_store.py` now reports
+    `PolicyEvaluationRecordStore.list_policy_evaluation_records` as A/1; the touched module is
+    fully A-ranked.
+- Consequence:
+  - Policy evaluation review queues and source loaders keep the same listing behavior while the
+    read path is easier to extend for future filters without branch drift.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal persistence read-model maintainability refactor.
+- Follow-Up:
+  - Continue reducing remaining B/8 proposal and async command hotspots where helper extraction can
+    preserve behavior and improve auditability.
+
 ## LA-REV-847
 
 - Scope: Policy-pack catalog activation command validation
