@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-838
+
+- Scope: Advisory proposal security-trade intent planning
+- Pattern: Proposal security-trade planning should keep per-trade shelf validation and intent
+  construction in a named helper so the loop only coordinates deterministic intent accumulation.
+- Status: Hardened
+- Finding Class: Advisory simulation maintainability, complexity, behavior preservation
+- Summary: `src/core/advisory/simulation_intent_plan.py` still kept security-trade intent
+  planning as a B-ranked loop that mixed shelf presence checks, shelf support policy, intent ID
+  assignment, and supported-intent construction. The module now delegates the per-trade decision to
+  `_security_trade_intent_for_trade` while preserving missing-shelf diagnostics, unsupported-shelf
+  hard failures, `oi_*` identifiers, invalid trade-input hard failures, and executable intent
+  accumulation behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_simulation_intent_plan.py`
+    passed with 5 tests.
+  - `python -m ruff check src/core/advisory/simulation_intent_plan.py tests/unit/advisory/engine/test_engine_simulation_intent_plan.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/simulation_intent_plan.py tests/unit/advisory/engine/test_engine_simulation_intent_plan.py`
+    passed.
+  - `python -m mypy src/core/advisory/simulation_intent_plan.py` passed.
+  - `python -m radon cc -s src/core/advisory/simulation_intent_plan.py` reports
+    `_build_security_trade_intents` as A/4, down from B/6, with the touched module fully
+    A-ranked.
+- Consequence:
+  - Advisory trade planning remains behaviorally stable while reducing ownership risk in the
+    source-backed simulation intent path.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory simulation maintainability hardening for existing proposal
+    behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory proposal-review helpers where focused tests can pin
+    decision, diagnostics, and downstream-boundary behavior.
+
 ## LA-REV-837
 
 - Scope: Advisory proposal cash-flow intent planning

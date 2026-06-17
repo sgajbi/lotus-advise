@@ -57,6 +57,35 @@ def test_simulation_intent_plan_records_missing_shelf_without_execution_intent()
     assert diagnostics.data_quality["shelf_missing"] == ["EQ_MISSING"]
 
 
+def test_simulation_intent_plan_records_invalid_trade_notional_hard_failure():
+    diagnostics = make_diagnostics_data()
+
+    plan = build_simulation_intent_plan(
+        portfolio=portfolio_snapshot(
+            portfolio_id="pf_intent_plan_invalid_notional",
+            base_currency="USD",
+            positions=[],
+            cash_balances=[cash("USD", "1000")],
+        ),
+        market_data=market_data_snapshot(prices=[price("EQ_EUR", "100", "EUR")]),
+        shelf=[shelf_entry("EQ_EUR")],
+        options=EngineOptions(enable_proposal_simulation=True),
+        proposed_cash_flows=[],
+        proposed_trades=[
+            {
+                "side": "BUY",
+                "instrument_id": "EQ_EUR",
+                "notional": {"amount": "100", "currency": "USD"},
+            }
+        ],
+        diagnostics=diagnostics,
+    )
+
+    assert plan.intents == []
+    assert plan.hard_failures == ["PROPOSAL_INVALID_TRADE_INPUT"]
+    assert diagnostics.warnings == ["PROPOSAL_INVALID_TRADE_INPUT"]
+
+
 def test_simulation_intent_plan_records_negative_cash_withdrawal_hard_failure():
     diagnostics = make_diagnostics_data()
 
