@@ -70,8 +70,8 @@ Quick command guide:
 |---|---|---|
 | `make check` | Fast iteration while coding | `lint` + `typecheck` + unit tests |
 | `make check-all` | Broad local gate before opening PR | `lint` + `typecheck` + full suite with coverage gate |
-| `make ci` | Full local PR-grade gate | Dependency health + lint + mypy + governance gates + combined coverage(97%) + Docker build + Postgres and production-profile runtime checks |
-| `make ci-local` | CI-shape validation on host machine | Dependency health + lint + mypy + governance gates + combined coverage(97%) |
+| `make ci` | Full local PR-grade gate | Dependency health + lint + mypy + governance gates + quality-baseline freshness + combined coverage(97%) + Docker build + Postgres and production-profile runtime checks |
+| `make ci-local` | CI-shape validation on host machine | Dependency health + lint + mypy + governance gates + quality-baseline freshness + combined coverage(97%) |
 | `make ci-local-docker` | Most stable local CI parity | Same as `ci-local` in Linux Python 3.11 container with Postgres service |
 
 ## Anti-Conflict Protocol (Required)

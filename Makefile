@@ -13,7 +13,7 @@ pre-commit:
 
 check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check test
 
-ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate migration-smoke security-audit coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
+ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check migration-smoke security-audit coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
 
 test:
 	$(MAKE) test-unit
@@ -47,7 +47,7 @@ test-all-parallel:
 	python -c "import importlib.util, subprocess, sys; args=[sys.executable,'-m','pytest','--cov=src','--cov-report=','--cov-fail-under=97']; args += (['-n','auto','--dist','loadscope'] if importlib.util.find_spec('xdist') else []); raise SystemExit(subprocess.call(args))"
 
 # Local execution flow aligned with the Pull Request Merge Gate
-ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate migration-smoke security-audit coverage-combined
+ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check migration-smoke security-audit coverage-combined
 
 ci-local-docker:
 	docker compose -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local

@@ -372,6 +372,10 @@
   missing-evidence detection, not-applicable result construction, and selector
   construction to focused helpers.
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
+- CI workflow quality contracts now enforce committed quality-baseline freshness in
+  Feature Lane, PR Merge Gate, and Main Releasability static governance jobs.
+- Development requirements pin the report-only quality tools used by committed baseline
+  evidence so GitHub CI and local developer runs measure the same quality surface.
 
 ## Remaining Enterprise-Readiness Work
 

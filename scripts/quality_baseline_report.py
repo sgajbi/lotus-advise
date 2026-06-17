@@ -1091,6 +1091,10 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  missing-evidence detection, not-applicable result construction, and selector",
         "  construction to focused helpers.",
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
+        "- CI workflow quality contracts now enforce committed quality-baseline freshness in",
+        "  Feature Lane, PR Merge Gate, and Main Releasability static governance jobs.",
+        "- Development requirements pin the report-only quality tools used by committed baseline",
+        "  evidence so GitHub CI and local developer runs measure the same quality surface.",
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
@@ -1142,6 +1146,12 @@ def render_quality_scorecard(context: QualityContext) -> str:
         ("Lint", "Enforced", "make lint"),
         ("Type safety", "Enforced", "make typecheck"),
         ("Coverage", "Enforced", "make coverage-combined fail-under 97"),
+        (
+            "Quality baseline freshness",
+            "Enforced in local and GitHub gates",
+            "make quality-baseline-check in make check, make ci, make ci-local, "
+            "Feature Lane, PR Merge Gate, and Main Releasability",
+        ),
         (
             "Dead code",
             "Executable Vulture inventory",
@@ -1203,7 +1213,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-840` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-842` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1242,8 +1252,21 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "advisory security-trade intent planning, "
             "advisory simulation review, "
             "advisory proposal authority orchestration, "
-            "and CI warning/topology contracts.",
+            "and CI warning/topology/freshness contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
+        ),
+        (
+            "CI measurement",
+            "Quality-baseline freshness was enforced locally, with GitHub CI carrying the "
+            "report-only quality artifact lane.",
+            "`make quality-baseline-check` now runs in `make check`, `make ci`, "
+            "`make ci-local`, Feature Lane, PR Merge Gate, and Main Releasability "
+            "static governance jobs; workflow contract tests protect local CI target "
+            "freshness, parallel runtime jobs, least-privilege permissions, concurrency, "
+            "coverage artifact handling, pull-request-target auto-merge guards, and the "
+            "baseline freshness step.",
+            "Quality evidence freshness is now enforced before merge and after merge, not only "
+            "during local `make check`.",
         ),
         (
             "Security",
