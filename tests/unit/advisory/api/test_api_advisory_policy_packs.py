@@ -63,6 +63,18 @@ def test_policy_pack_catalog_routes_list_detail_validate_activate_and_preserve_b
         assert validation_body["validation_status"] == "READY"
         assert validation_body["validation_event"]["content_hash"] == content_hash
 
+        hash_mismatch = client.post(
+            "/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05/activate",
+            json={
+                "activated_by": "policy_checker_1",
+                "source_content_hash": "sha256:wrong-policy-pack-content",
+                "reason": {"purpose": "activate with stale hash"},
+            },
+            headers={"Idempotency-Key": "api-activate-hash-mismatch"},
+        )
+        assert hash_mismatch.status_code == 422
+        assert hash_mismatch.json()["detail"] == "POLICY_PACK_CONTENT_HASH_MISMATCH"
+
         maker_checker_block = client.post(
             "/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05/activate",
             json={
@@ -91,6 +103,23 @@ def test_policy_pack_catalog_routes_list_detail_validate_activate_and_preserve_b
         assert activation_body["policy_pack"]["activation_state"] == "ACTIVE"
         assert activation_body["activation_event"]["content_hash"] == content_hash
         assert activation_body["activation_event"]["reason"]["validated_by"] == "policy_steward_1"
+
+        activation_replay = client.post(
+            "/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05/activate",
+            json={
+                "activated_by": "policy_checker_1",
+                "source_content_hash": content_hash,
+                "reason": {"purpose": "activate reference pack"},
+            },
+            headers={"Idempotency-Key": "api-activate-sg-reference"},
+        )
+        assert activation_replay.status_code == 200
+        activation_replay_body = activation_replay.json()
+        assert activation_replay_body["replayed"] is True
+        assert (
+            activation_replay_body["activation_event"]["event_id"]
+            == (activation_body["activation_event"]["event_id"])
+        )
 
         active_detail = client.get(
             "/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05"

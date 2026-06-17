@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-847
+
+- Scope: Policy-pack catalog activation command validation
+- Pattern: Policy-pack activation should expose replay, source-hash, immutability,
+  validation-required, maker-checker, and event-reason concerns as named activation steps instead
+  of one branch-heavy command handler.
+- Status: Hardened
+- Finding Class: Complexity, policy-pack activation maintainability, behavior preservation
+- Summary: `src/core/policy_packs/catalog_commands.py` carried B-ranked branching in
+  `activate_policy_pack_catalog_definition`, mixing idempotency replay, content-hash protection,
+  immutable active-pack protection, definition validation, maker-checker enforcement, state
+  mutation, and audit-event reason construction. The command now delegates request hashing,
+  replay response projection, activation precondition validation, and event-reason assembly to
+  focused helpers while preserving the public API behavior and existing policy-pack error codes.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_api_advisory_policy_packs.py -q` passed with
+    2 tests.
+  - `python -m ruff check src/core/policy_packs/catalog_commands.py tests/unit/advisory/api/test_api_advisory_policy_packs.py`
+    passed.
+  - `python -m ruff format --check src/core/policy_packs/catalog_commands.py tests/unit/advisory/api/test_api_advisory_policy_packs.py`
+    passed.
+  - `python -m radon cc -s src/core/policy_packs/catalog_commands.py` now reports
+    `activate_policy_pack_catalog_definition` as A/2; all functions in the module are A-ranked.
+- Consequence:
+  - Policy-pack activation review is easier to audit because replay, hash freshness,
+    validation-readiness, maker-checker, and audit reason policy each have an explicit owner helper.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal policy-pack activation maintainability refactor.
+- Follow-Up:
+  - Continue reducing B/8 policy and proposal command hotspots where explicit validation helpers
+    can preserve API behavior while improving auditability.
+
 ## LA-REV-846
 
 - Scope: Policy evaluation report-package request validation
