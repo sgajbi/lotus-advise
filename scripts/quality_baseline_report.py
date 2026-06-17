@@ -794,6 +794,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Proposed trade request sizing validation delegates quantity/notional",
         "  exclusivity and positive-notional checks to focused helpers while preserving",
         "  product-safe validation messages.",
+        "- Advisory funding selection delegates candidate ordering, FX lookup,",
+        "  sufficient-cash selection, and smallest-deficit tracking to focused helpers.",
         "- Lotus Core stateful-context held-position selection delegates cash exclusion",
         "  and security-id normalization to focused helpers.",
         "- Lotus Core stateful-context dated-row selection delegates malformed-row",
@@ -1190,7 +1192,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-834` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-835` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1224,7 +1226,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "held-position selection, Lotus Core dated-row selection, proposal narrative "
             "product-type policy, advisory copilot review/source-projection persistence, "
             "advisory copilot section tuple validation, suitability issue projection, "
-            "proposed-trade request sizing validation, and CI warning/topology contracts.",
+            "proposed-trade request sizing validation, advisory funding selection, "
+            "and CI warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),
         (

@@ -75,6 +75,8 @@
 - Proposed trade request sizing validation delegates quantity/notional
   exclusivity and positive-notional checks to focused helpers while preserving
   product-safe validation messages.
+- Advisory funding selection delegates candidate ordering, FX lookup,
+  sufficient-cash selection, and smallest-deficit tracking to focused helpers.
 - Lotus Core stateful-context held-position selection delegates cash exclusion
   and security-id normalization to focused helpers.
 - Lotus Core stateful-context dated-row selection delegates malformed-row

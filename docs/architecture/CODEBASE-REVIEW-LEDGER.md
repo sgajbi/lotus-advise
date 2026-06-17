@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-835
+
+- Scope: Advisory auto-funding source selection
+- Pattern: Advisory funding source selection should keep candidate ordering, FX-rate lookup,
+  sell-required calculation, and deficit comparison in named helpers so funding behavior stays
+  auditable.
+- Status: Hardened
+- Finding Class: Advisory funding maintainability, complexity, behavior preservation
+- Summary: `src/core/advisory/funding_selection.py` kept base-only/any-cash candidate ordering
+  and funding-currency selection in B-ranked helpers. The module now delegates base-only and
+  any-cash candidate ordering, per-candidate FX lookup, sufficient-cash selection, and
+  smallest-deficit tracking to focused helpers while preserving base-first selection,
+  deterministic sorted other-cash fallback, missing FX diagnostics, and insufficient-funding
+  deficit behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_advisory_funding.py tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py`
+    passed with 36 tests.
+  - `python -m ruff check src/core/advisory/funding_selection.py tests/unit/advisory/engine/test_engine_advisory_funding.py`
+    passed.
+  - `python -m mypy src/core/advisory/funding_selection.py` passed.
+  - `python -m radon cc -s src/core/advisory/funding_selection.py` reports
+    `funding_priority_currencies` as A/2, down from B/6, and `select_funding_source` as A/5,
+    down from B/6, with all touched helpers A-ranked.
+- Consequence:
+  - Advisory auto-funding keeps deterministic source selection and diagnostics while reducing
+    ownership risk around FX funding fallback and insufficient-cash evidence.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory funding maintainability hardening for existing proposal
+    simulation behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory workflow helpers where tests can pin deterministic
+    simulation and diagnostic behavior.
+
 ## LA-REV-834
 
 - Scope: Proposed trade request sizing validation
