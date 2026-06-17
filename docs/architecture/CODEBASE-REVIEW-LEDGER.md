@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-851
+
+- Scope: Proposal async operation runner
+- Pattern: Async operation execution should expose pre-attempt stop/exhaustion checks, attempt
+  execution outcomes, lifecycle failure persistence, and retry/terminal decisions as named
+  concerns rather than one branch-heavy polling loop.
+- Status: Hardened
+- Finding Class: Complexity, proposal lifecycle orchestration maintainability, behavior
+  preservation
+- Summary: `src/core/proposals/async_operation_runner.py` carried B-ranked branching in
+  `run_async_operation_until_terminal`, mixing operation lookup, skipped/exhausted run decisions,
+  lease acquisition, executor invocation, lifecycle failure mapping, transient exception retry
+  policy, success persistence, and terminal exit behavior. The runner now delegates those
+  responsibilities to focused helpers while preserving retry behavior and terminal persistence
+  semantics.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_async_operation_runner.py -q`
+    passed with 4 tests.
+  - `python -m ruff check src/core/proposals/async_operation_runner.py tests/unit/advisory/engine/test_engine_proposal_async_operation_runner.py`
+    passed.
+  - `python -m ruff format --check src/core/proposals/async_operation_runner.py tests/unit/advisory/engine/test_engine_proposal_async_operation_runner.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/core/proposals/async_operation_runner.py`
+    passed.
+  - `python -m radon cc -s src/core/proposals/async_operation_runner.py` reports
+    `run_async_operation_until_terminal` improved from B/8 to A/4; all helper blocks are
+    A-ranked.
+- Consequence:
+  - Proposal async execution is easier to audit for retry policy, exhausted operation handling,
+    and terminal lifecycle errors without changing advisory proposal behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal proposal lifecycle maintainability refactor.
+- Follow-Up:
+  - Continue reducing remaining B-ranked proposal and advisory orchestration hotspots with focused
+    behavior-preserving tests.
+
 ## LA-REV-850
 
 - Scope: Proposal execution update command
