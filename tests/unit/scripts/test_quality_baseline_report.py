@@ -191,6 +191,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Advisory copilot section tuple validation delegates" in refactor_health
     assert "Suitability issue projection delegates" in refactor_health
     assert "Proposal workflow gate suitability reasons delegate" in refactor_health
+    assert "Lotus Report request mapping delegates output-format normalization" in refactor_health
     assert "Direct dependency freshness governance aligns" in refactor_health
     assert "API observability instrumentation tolerates" in refactor_health
     assert "API observability route-name compatibility delegates" in refactor_health
@@ -204,7 +205,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Expand Bandit security enforcement beyond high severity" in refactor_health
     assert "Spectral OpenAPI enforcement" in refactor_health
     assert "deptry dependency inventory" in refactor_health
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-832`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-833`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
