@@ -79,6 +79,8 @@
   sufficient-cash selection, and smallest-deficit tracking to focused helpers.
 - Advisory trade-intent construction delegates price lookup, quantity/notional
   resolution, and base-currency notional projection to focused helpers.
+- Advisory cash-flow intent planning delegates intent DTO construction,
+  negative-cash guardrail checks, and failure recording to focused helpers.
 - Lotus Core stateful-context held-position selection delegates cash exclusion
   and security-id normalization to focused helpers.
 - Lotus Core stateful-context dated-row selection delegates malformed-row

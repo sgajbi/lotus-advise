@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-837
+
+- Scope: Advisory proposal cash-flow intent planning
+- Pattern: Proposal cash-flow intent planning should keep intent DTO construction and negative-cash
+  guardrail recording in named helpers so cash-flow simulation behavior stays auditable.
+- Status: Hardened
+- Finding Class: Advisory simulation maintainability, complexity, behavior preservation
+- Summary: `src/core/advisory/simulation_intent_plan.py` built cash-flow intents and recorded
+  optional negative-cash hard failures in one B-ranked helper. The module now delegates cash-flow
+  intent DTO construction, negative-cash guardrail checks, and failure recording to focused
+  helpers while preserving cash-flow application, `oi_cf_*` identifiers, warning codes, and
+  hard-failure behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_simulation_intent_plan.py tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py`
+    passed with 34 tests.
+  - `python -m ruff check src/core/advisory/simulation_intent_plan.py tests/unit/advisory/engine/test_engine_simulation_intent_plan.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/simulation_intent_plan.py tests/unit/advisory/engine/test_engine_simulation_intent_plan.py`
+    passed.
+  - `python -m mypy src/core/advisory/simulation_intent_plan.py` passed.
+  - `python -m radon cc -s src/core/advisory/simulation_intent_plan.py` reports
+    `_build_cash_flow_intents` as A/2, down from B/7, with all touched helpers A-ranked.
+- Consequence:
+  - Advisory cash-flow simulation keeps existing ordering, identifiers, after-state mutation, and
+    fail-closed negative-cash behavior while reducing ownership risk in proposal intent planning.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal advisory simulation maintainability hardening for existing proposal
+    behavior.
+- Follow-Up:
+  - Continue reducing B-ranked advisory simulation security-trade grouping where focused tests can
+    pin shelf, unsupported-trade, and diagnostic behavior.
+
 ## LA-REV-836
 
 - Scope: Advisory proposal security-trade intent construction
