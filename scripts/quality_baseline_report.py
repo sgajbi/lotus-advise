@@ -942,6 +942,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  and idempotency lookup facade methods live in a focused read mixin.",
         "- Advisory workspace routes are split into session/version, assistant-rationale,",
         "  and lifecycle-handoff route modules behind the public aggregate router.",
+        "- Workspace session input-mode validation delegates stateless/stateful payload",
+        "  requirements to one shared create/session policy helper.",
         "- Workspace draft action request validation delegates action-specific payload",
         "  requirements to a table-driven map and identifier-scope rules to focused helpers.",
         "- Workspace draft action reduction delegates trade, cash-flow, and options",
@@ -1213,7 +1215,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-843` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-844` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1252,6 +1254,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "advisory security-trade intent planning, "
             "advisory simulation review, "
             "advisory proposal authority orchestration, "
+            "workspace session input-mode validation, "
             "workspace draft action validation, "
             "and CI warning/topology/freshness contracts.",
             "Refactors are covered by behavior-preserving regression tests.",

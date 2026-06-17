@@ -22,6 +22,29 @@ from src.core.workspace.version_models import (
 
 WorkspaceLifecycleState = Literal["ACTIVE", "PAUSED", "ARCHIVED"]
 
+_INPUT_MODE_PAYLOAD_FIELDS = {
+    "stateless": ("stateless_input", "stateful_input"),
+    "stateful": ("stateful_input", "stateless_input"),
+}
+
+
+def _validate_workspace_input_mode_payloads(
+    *,
+    input_mode: WorkspaceInputMode,
+    stateless_input: WorkspaceStatelessInput | None,
+    stateful_input: WorkspaceStatefulInput | None,
+    subject: str,
+) -> None:
+    payloads = {
+        "stateless_input": stateless_input,
+        "stateful_input": stateful_input,
+    }
+    required_field, excluded_field = _INPUT_MODE_PAYLOAD_FIELDS[input_mode]
+    if payloads[required_field] is None or payloads[excluded_field] is not None:
+        raise ValueError(
+            f"{input_mode} {subject} require {required_field} and must not include {excluded_field}"
+        )
+
 
 class WorkspaceSessionCreateRequest(BaseModel):
     workspace_name: str = Field(
@@ -73,18 +96,12 @@ class WorkspaceSessionCreateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_input_mode_payloads(self) -> "WorkspaceSessionCreateRequest":
-        if self.input_mode == "stateless":
-            if self.stateless_input is None or self.stateful_input is not None:
-                raise ValueError(
-                    "stateless workspaces require stateless_input and must not include "
-                    "stateful_input"
-                )
-        if self.input_mode == "stateful":
-            if self.stateful_input is None or self.stateless_input is not None:
-                raise ValueError(
-                    "stateful workspaces require stateful_input and must not include "
-                    "stateless_input"
-                )
+        _validate_workspace_input_mode_payloads(
+            input_mode=self.input_mode,
+            stateless_input=self.stateless_input,
+            stateful_input=self.stateful_input,
+            subject="workspaces",
+        )
         return self
 
 
@@ -167,18 +184,12 @@ class WorkspaceSession(BaseModel):
 
     @model_validator(mode="after")
     def validate_session_mode_payloads(self) -> "WorkspaceSession":
-        if self.input_mode == "stateless":
-            if self.stateless_input is None or self.stateful_input is not None:
-                raise ValueError(
-                    "stateless workspace sessions require stateless_input and must not include "
-                    "stateful_input"
-                )
-        if self.input_mode == "stateful":
-            if self.stateful_input is None or self.stateless_input is not None:
-                raise ValueError(
-                    "stateful workspace sessions require stateful_input and must not include "
-                    "stateless_input"
-                )
+        _validate_workspace_input_mode_payloads(
+            input_mode=self.input_mode,
+            stateless_input=self.stateless_input,
+            stateful_input=self.stateful_input,
+            subject="workspace sessions",
+        )
         return self
 
 
