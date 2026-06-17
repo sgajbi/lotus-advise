@@ -1,5 +1,66 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-844
+
+- Scope: Workspace session input-mode validation
+- Pattern: Workspace create/session models should share stateless/stateful payload validation
+  rules so API contract behavior stays consistent across request and persisted session DTOs.
+- Status: Hardened
+- Finding Class: Complexity, workspace session contract maintainability, behavior preservation
+- Summary: `src/core/workspace/session_models.py` duplicated stateless/stateful input-mode payload
+  validation across workspace create requests and persisted workspace sessions. The module now
+  delegates the mode-specific required/excluded payload rule to one helper while preserving the
+  existing create-request and session-specific validation messages.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/contracts/test_contract_workspace_models.py -q` passed
+    with 37 tests.
+  - `python -m ruff check src/core/workspace/session_models.py tests/unit/advisory/contracts/test_contract_workspace_models.py`
+    passed.
+  - `python -m ruff format --check src/core/workspace/session_models.py tests/unit/advisory/contracts/test_contract_workspace_models.py`
+    passed.
+  - `python -m radon cc -s src/core/workspace/session_models.py` now reports the touched module as
+    fully A-ranked; `WorkspaceSessionCreateRequest` and `WorkspaceSession` are both A/2.
+- Consequence:
+  - Workspace input-mode behavior has one validation policy point across create and session DTOs,
+    reducing drift risk for future stateful/stateless workspace changes.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal model-validation maintainability refactor.
+- Follow-Up:
+  - Continue reducing B/8 policy and proposal workflow hotspots where shared validation policy can
+    preserve API behavior while lowering branch complexity.
+
+## LA-REV-843
+
+- Scope: Workspace draft action payload validation
+- Pattern: Workspace draft action request validation should express action-specific required
+  payload fields as data, not repeated trade/cash-flow branch chains.
+- Status: Hardened
+- Finding Class: Complexity, workspace API contract maintainability, behavior preservation
+- Summary: `src/core/workspace/action_models.py` carried separate B/8 validators for trade and
+  cash-flow draft action requirements. The request model now delegates required payload checks to
+  one table-driven action requirement map while preserving the existing trade, cash-flow, options,
+  and identifier-scope validation messages.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/contracts/test_contract_workspace_models.py tests/unit/advisory/api/test_workspace_draft_actions.py -q`
+    passed with 46 tests.
+  - `python -m ruff check src/core/workspace/action_models.py tests/unit/advisory/contracts/test_contract_workspace_models.py tests/unit/advisory/api/test_workspace_draft_actions.py`
+    passed.
+  - `python -m ruff format --check src/core/workspace/action_models.py tests/unit/advisory/contracts/test_contract_workspace_models.py tests/unit/advisory/api/test_workspace_draft_actions.py`
+    passed.
+  - `python -m radon cc -s src/core/workspace/action_models.py` now reports the touched module as
+    fully A-ranked; `_validate_required_action_payload` is A/3 and
+    `_validate_action_identifier_scope` is A/5.
+- Consequence:
+  - Adding or reviewing future workspace draft actions is less branch-heavy, and supported
+    validation behavior remains pinned by workspace contract and draft-action tests.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal model-validation maintainability refactor.
+- Follow-Up:
+  - Continue reducing B/8 workspace session and policy workflow hotspots where behavior-preserving
+    helper extraction improves API contract readability.
+
 ## LA-REV-842
 
 - Scope: Local CI quality-baseline parity

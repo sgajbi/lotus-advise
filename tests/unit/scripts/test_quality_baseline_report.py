@@ -167,7 +167,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )
     assert "Advisor cockpit service delegates repository-backed source loading" in refactor_health
+    assert "Workspace session input-mode validation delegates" in refactor_health
     assert "Workspace draft action request validation delegates" in refactor_health
+    assert "table-driven map and identifier-scope rules" in refactor_health
     assert "Workspace draft action reduction delegates" in refactor_health
     assert "Local valuation state assembly delegates" in refactor_health
     assert "Local position valuation delegates" in refactor_health
@@ -221,10 +223,12 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "advisory security-trade intent planning" in scorecard
     assert "advisory simulation review" in scorecard
     assert "advisory proposal authority orchestration" in scorecard
+    assert "workspace session input-mode validation" in scorecard
+    assert "workspace draft action validation" in scorecard
     assert "CI warning/topology/freshness contracts" in scorecard
     assert "workflow contract tests protect local CI target freshness" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-842`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-844`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
