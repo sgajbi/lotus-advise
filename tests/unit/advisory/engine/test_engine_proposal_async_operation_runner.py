@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from src.core.proposals.async_operation_runner import run_async_operation_until_terminal
+from src.core.proposals.exceptions import ProposalLifecycleError
 from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
     ProposalCreateResponse,
@@ -143,6 +144,37 @@ def test_async_operation_runner_fails_exhausted_operation_without_extra_attempt(
         "message": "PROPOSAL_ASYNC_ATTEMPTS_EXHAUSTED",
     }
     assert stored.finished_at == _now()
+
+
+def test_async_operation_runner_records_lifecycle_error_as_terminal_failure():
+    repository = InMemoryProposalRepository()
+    operation = _operation(operation_id="pop_lifecycle_failure", max_attempts=3)
+    repository.create_operation(operation)
+    executor_calls = 0
+
+    def executor() -> ProposalCreateResponse:
+        nonlocal executor_calls
+        executor_calls += 1
+        raise ProposalLifecycleError("PROPOSAL_CONTEXT_RESOLUTION_FAILED")
+
+    run_async_operation_until_terminal(
+        repository=repository,
+        operation_id="pop_lifecycle_failure",
+        executor=executor,
+        utc_now=_now,
+    )
+
+    stored = repository.get_operation(operation_id="pop_lifecycle_failure")
+    assert stored is not None
+    assert executor_calls == 1
+    assert stored.status == "FAILED"
+    assert stored.attempt_count == 1
+    assert stored.error_json == {
+        "code": "ProposalLifecycleError",
+        "message": "PROPOSAL_CONTEXT_RESOLUTION_FAILED",
+    }
+    assert stored.finished_at == _now()
+    assert stored.lease_expires_at is None
 
 
 def test_async_operation_runner_returns_without_executing_when_operation_is_missing():
