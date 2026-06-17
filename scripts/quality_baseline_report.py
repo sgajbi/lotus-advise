@@ -800,6 +800,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  resolution, and base-currency notional projection to focused helpers.",
         "- Advisory cash-flow intent planning delegates intent DTO construction,",
         "  negative-cash guardrail checks, and failure recording to focused helpers.",
+        "- Advisory security-trade intent planning delegates per-trade shelf validation,",
+        "  supported-intent construction, and failure recording to focused helpers.",
         "- Lotus Core stateful-context held-position selection delegates cash exclusion",
         "  and security-id normalization to focused helpers.",
         "- Lotus Core stateful-context dated-row selection delegates malformed-row",
@@ -1196,7 +1198,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-837` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-838` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1232,6 +1234,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "advisory copilot section tuple validation, suitability issue projection, "
             "proposed-trade request sizing validation, advisory funding selection, "
             "advisory trade-intent construction, advisory cash-flow intent planning, "
+            "advisory security-trade intent planning, "
             "and CI warning/topology contracts.",
             "Refactors are covered by behavior-preserving regression tests.",
         ),

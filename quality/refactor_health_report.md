@@ -81,6 +81,8 @@
   resolution, and base-currency notional projection to focused helpers.
 - Advisory cash-flow intent planning delegates intent DTO construction,
   negative-cash guardrail checks, and failure recording to focused helpers.
+- Advisory security-trade intent planning delegates per-trade shelf validation,
+  supported-intent construction, and failure recording to focused helpers.
 - Lotus Core stateful-context held-position selection delegates cash exclusion
   and security-id normalization to focused helpers.
 - Lotus Core stateful-context dated-row selection delegates malformed-row

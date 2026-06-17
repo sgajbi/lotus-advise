@@ -196,6 +196,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Advisory funding selection delegates" in refactor_health
     assert "Advisory trade-intent construction delegates" in refactor_health
     assert "Advisory cash-flow intent planning delegates" in refactor_health
+    assert "Advisory security-trade intent planning delegates" in refactor_health
     assert "Direct dependency freshness governance aligns" in refactor_health
     assert "API observability instrumentation tolerates" in refactor_health
     assert "API observability route-name compatibility delegates" in refactor_health
@@ -211,7 +212,8 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "deptry dependency inventory" in refactor_health
     assert "advisory trade-intent construction" in scorecard
     assert "advisory cash-flow intent planning" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-837`" in scorecard
+    assert "advisory security-trade intent planning" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-838`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

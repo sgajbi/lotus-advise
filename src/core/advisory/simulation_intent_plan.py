@@ -304,33 +304,56 @@ def _build_security_trade_intents(
     shelf_by_instrument = {entry.instrument_id: entry for entry in shelf}
     security_intents: list[SecurityTradeIntent] = []
     for idx, trade in enumerate(trades):
-        if not _trade_has_shelf_entry(
+        intent = _security_trade_intent_for_trade(
             trade=trade,
             shelf_by_instrument=shelf_by_instrument,
-            diagnostics=diagnostics,
-        ):
-            continue
-
-        if not _trade_is_supported_by_shelf(
-            trade=trade,
-            shelf_entry=shelf_by_instrument[trade.instrument_id],
-            options=options,
-            diagnostics=diagnostics,
-            hard_failures=hard_failures,
-        ):
-            continue
-
-        intent = _build_supported_security_trade_intent(
-            trade=trade,
             market_data=market_data,
             base_currency=portfolio.base_currency,
             intent_id=f"oi_{idx + 1}",
+            options=options,
             diagnostics=diagnostics,
             hard_failures=hard_failures,
         )
         if intent is not None:
             security_intents.append(intent)
     return security_intents
+
+
+def _security_trade_intent_for_trade(
+    *,
+    trade: ProposedTrade,
+    shelf_by_instrument: dict[str, ShelfEntry],
+    market_data: MarketDataSnapshot,
+    base_currency: str,
+    intent_id: str,
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+    hard_failures: list[str],
+) -> SecurityTradeIntent | None:
+    if not _trade_has_shelf_entry(
+        trade=trade,
+        shelf_by_instrument=shelf_by_instrument,
+        diagnostics=diagnostics,
+    ):
+        return None
+
+    if not _trade_is_supported_by_shelf(
+        trade=trade,
+        shelf_entry=shelf_by_instrument[trade.instrument_id],
+        options=options,
+        diagnostics=diagnostics,
+        hard_failures=hard_failures,
+    ):
+        return None
+
+    return _build_supported_security_trade_intent(
+        trade=trade,
+        market_data=market_data,
+        base_currency=base_currency,
+        intent_id=intent_id,
+        diagnostics=diagnostics,
+        hard_failures=hard_failures,
+    )
 
 
 def _trade_has_shelf_entry(
