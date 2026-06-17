@@ -1042,6 +1042,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  development pins while preserving the strict CI gate.",
         "- API observability instrumentation tolerates pathless Starlette route",
         "  markers while preserving Prometheus metrics exposure.",
+        "- API observability route-name compatibility delegates pathless, full-match,",
+        "  and partial-match decisions to focused helpers while preserving Prometheus",
+        "  route templating behavior.",
         "- Bank-demo runtime proof evidence delegates summary value sanitization,",
         "  capability endpoint lookup, readiness validation, and promoted feature/workflow",
         "  proof checks to focused helpers.",
@@ -1106,6 +1109,9 @@ def render_quality_scorecard(context: QualityContext) -> str:
         else "not run"
     )
     interrogate_coverage_percent = context.interrogate_coverage_percent or "not run"
+    deptry_issue_count = (
+        str(context.deptry_issue_count) if context.deptry_issue_count is not None else "not run"
+    )
     rows = [
         ("Code size and hotspots", "Baseline active", "engineering-health + quality baseline"),
         (
@@ -1178,7 +1184,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-831` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-832` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1227,8 +1233,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Dependency hygiene",
             "Dependency audit configured; deptry inventory absent from the scorecard.",
-            "Deptry config executable with current inventory `14`; dependency/security "
-            "tools inventory recorded.",
+            f"Deptry config executable with current inventory `{deptry_issue_count}`; "
+            "dependency/security tools inventory recorded.",
             "Dependency hygiene moved from broad audit posture to measurable inventory.",
         ),
         (

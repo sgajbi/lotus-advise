@@ -3,6 +3,7 @@ import logging
 import os
 import time
 from contextvars import ContextVar
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Awaitable, Callable
 from uuid import uuid4
@@ -27,6 +28,12 @@ ADVISORY_SUPPORTABILITY_TOTAL = Counter(
     "Count of advisory supportability posture evaluations.",
     ADVISORY_SUPPORTABILITY_METRIC_LABELS,
 )
+
+
+@dataclass(frozen=True)
+class _RouteNameResolution:
+    route_name: str | None
+    complete: bool
 
 
 def _meaningful_header(value: str | None) -> str | None:
@@ -178,33 +185,67 @@ def _instrumentator_route_name(
     routes: list[object],
     route_name: str | None = None,
 ) -> str | None:
+    candidate_route_name = route_name
     for route in routes:
-        match_result = _match_route(route, scope)
-        if match_result is None:
+        resolution = _route_name_resolution(scope, route, candidate_route_name)
+        if resolution is None:
             continue
-        match, child_scope = match_result
-        path = _route_path(route)
-        if path is None:
-            nested_route_name = _pathless_nested_route_name(
-                route=route,
-                match=match,
-                scope=scope,
-                child_scope=child_scope,
-                route_name=route_name,
-            )
-            if nested_route_name is not None:
-                return nested_route_name
-            continue
-        if match == Match.FULL:
-            return _full_route_name(
+        candidate_route_name = resolution.route_name
+        if resolution.complete:
+            return candidate_route_name
+    return candidate_route_name
+
+
+def _route_name_resolution(
+    scope: dict[str, object],
+    route: object,
+    route_name: str | None,
+) -> _RouteNameResolution | None:
+    match_result = _match_route(route, scope)
+    if match_result is None:
+        return None
+    match, child_scope = match_result
+    path = _route_path(route)
+    if path is None:
+        return _pathless_route_name_resolution(
+            route=route,
+            match=match,
+            scope=scope,
+            child_scope=child_scope,
+            route_name=route_name,
+        )
+    return _path_route_name_resolution(
+        route=route,
+        match=match,
+        path=path,
+        scope=scope,
+        child_scope=child_scope,
+        route_name=route_name,
+    )
+
+
+def _path_route_name_resolution(
+    *,
+    route: object,
+    match: Match,
+    path: str,
+    scope: dict[str, object],
+    child_scope: dict[str, object],
+    route_name: str | None,
+) -> _RouteNameResolution | None:
+    if match == Match.FULL:
+        return _RouteNameResolution(
+            _full_route_name(
                 route=route,
                 path=path,
                 scope=scope,
                 child_scope=child_scope,
-            )
-        if match == Match.PARTIAL and route_name is None:
-            route_name = path
-    return route_name
+            ),
+            complete=True,
+        )
+    if match == Match.PARTIAL and route_name is None:
+        return _RouteNameResolution(path, complete=False)
+    return None
 
 
 def _match_route(
@@ -223,22 +264,25 @@ def _route_path(route: object) -> str | None:
     return path if isinstance(path, str) else None
 
 
-def _pathless_nested_route_name(
+def _pathless_route_name_resolution(
     *,
     route: object,
     match: Match,
     scope: dict[str, object],
     child_scope: dict[str, object],
     route_name: str | None,
-) -> str | None:
+) -> _RouteNameResolution | None:
     nested_routes = getattr(route, "routes", None)
     if match != Match.FULL or not isinstance(nested_routes, list):
         return None
-    return _instrumentator_route_name(
+    nested_route_name = _instrumentator_route_name(
         {**scope, **child_scope},
         nested_routes,
         route_name,
     )
+    if nested_route_name is None:
+        return None
+    return _RouteNameResolution(nested_route_name, complete=True)
 
 
 def _full_route_name(
