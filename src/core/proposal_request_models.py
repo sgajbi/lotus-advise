@@ -24,6 +24,29 @@ def _is_python_float(candidate: object) -> bool:
     return False
 
 
+def _trade_size_validation_error(
+    quantity: Decimal | None,
+    notional: Money | None,
+) -> str | None:
+    if quantity is not None:
+        return _quantity_trade_validation_error(notional)
+    return _notional_trade_validation_error(notional)
+
+
+def _quantity_trade_validation_error(notional: Money | None) -> str | None:
+    if notional is None:
+        return None
+    return "PROPOSAL_INVALID_TRADE_INPUT: provide either quantity or notional, not both"
+
+
+def _notional_trade_validation_error(notional: Money | None) -> str | None:
+    if notional is None:
+        return "PROPOSAL_INVALID_TRADE_INPUT: quantity or notional is required"
+    if notional.amount <= Decimal("0"):
+        return "PROPOSAL_INVALID_TRADE_INPUT: notional.amount must be greater than 0"
+    return None
+
+
 class ProposedCashFlow(BaseModel):
     intent_type: Literal["CASH_FLOW"] = Field(
         default="CASH_FLOW",
@@ -92,14 +115,8 @@ class ProposedTrade(BaseModel):
 
     @model_validator(mode="after")
     def validate_quantity_or_notional(self) -> "ProposedTrade":
-        if self.quantity is None and self.notional is None:
-            raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: quantity or notional is required")
-        if self.quantity is not None and self.notional is not None:
-            raise ValueError(
-                "PROPOSAL_INVALID_TRADE_INPUT: provide either quantity or notional, not both"
-            )
-        if self.notional is not None and self.notional.amount <= Decimal("0"):
-            raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: notional.amount must be greater than 0")
+        if error := _trade_size_validation_error(self.quantity, self.notional):
+            raise ValueError(error)
         return self
 
 

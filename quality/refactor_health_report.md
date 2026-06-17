@@ -72,6 +72,9 @@
 - Lotus Report request mapping delegates output-format normalization and
   reporting-currency extraction while preserving PDF/JSON and USD fallback
   behavior.
+- Proposed trade request sizing validation delegates quantity/notional
+  exclusivity and positive-notional checks to focused helpers while preserving
+  product-safe validation messages.
 - Lotus Core stateful-context held-position selection delegates cash exclusion
   and security-id normalization to focused helpers.
 - Lotus Core stateful-context dated-row selection delegates malformed-row
