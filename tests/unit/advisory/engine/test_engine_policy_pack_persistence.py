@@ -11,6 +11,7 @@ from src.core.policy_packs import (
     finalize_policy_evaluation_record,
     get_policy_evaluation_record,
     get_policy_pack_version,
+    list_policy_evaluation_records,
     replay_policy_evaluation_record,
     reset_policy_evaluation_store_for_tests,
     reset_policy_pack_catalog_for_tests,
@@ -377,3 +378,71 @@ def test_policy_evaluation_persists_disclosure_consent_and_approval_dependencies
         persisted.record.disclosure_requirements
     )
     assert "client_consent:SG_STRUCTURED_NOTE" in persisted.record.consent_requirements
+
+
+def test_policy_evaluation_record_listing_filters_orders_and_returns_copies() -> None:
+    first = finalize_policy_evaluation_record(
+        evidence_bundle=_base_evidence_bundle(),
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_list_first",
+        proposal_version_id="ppv_policy_list_first",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-list-first",
+        reason={"purpose": "record listing first"},
+    )
+    other_portfolio_evidence = _base_evidence_bundle()
+    other_portfolio_evidence["inputs"]["portfolio_snapshot"]["portfolio_id"] = "PB_SG_ALT_BAL_002"
+    second = finalize_policy_evaluation_record(
+        evidence_bundle=other_portfolio_evidence,
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_list_second",
+        proposal_version_id="ppv_policy_list_second",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-list-second",
+        reason={"purpose": "record listing second"},
+    )
+    _activate_sg_policy_pack()
+    pending_evidence = _base_evidence_bundle()
+    pending_evidence["inputs"]["shelf_entries"][0]["instrument_id"] = "SG_STRUCTURED_NOTE"
+    pending_evidence["inputs"]["shelf_entries"][0]["complexity"] = "COMPLEX"
+    pending_evidence["inputs"]["shelf_entries"][0]["structured_product"] = True
+    pending_evidence["inputs"]["proposed_trades"][0]["instrument_id"] = "SG_STRUCTURED_NOTE"
+    pending_evidence["artifact"]["disclosures"]["product_docs"] = [
+        {"instrument_id": "SG_STRUCTURED_NOTE", "doc_ref": "Term sheet"}
+    ]
+    pending = finalize_policy_evaluation_record(
+        evidence_bundle=pending_evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_list_pending",
+        proposal_version_id="ppv_policy_list_pending",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-list-pending",
+        reason={"purpose": "record listing pending"},
+    )
+
+    all_records = list_policy_evaluation_records()
+    filtered_records = list_policy_evaluation_records(
+        evaluation_status="PENDING_REVIEW",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+    )
+    portfolio_records = list_policy_evaluation_records(portfolio_id="PB_SG_GLOBAL_BAL_001")
+    all_records[0].portfolio_id = "MUTATED_RETURNED_COPY"
+    reloaded_first = get_policy_evaluation_record(evaluation_id=first.record.evaluation_id)
+
+    assert [record.evaluation_id for record in all_records] == [
+        first.record.evaluation_id,
+        second.record.evaluation_id,
+        pending.record.evaluation_id,
+    ]
+    assert [record.evaluation_id for record in filtered_records] == [
+        first.record.evaluation_id,
+        pending.record.evaluation_id,
+    ]
+    assert [record.evaluation_id for record in portfolio_records] == [
+        first.record.evaluation_id,
+        pending.record.evaluation_id,
+    ]
+    assert reloaded_first.portfolio_id == "PB_SG_GLOBAL_BAL_001"

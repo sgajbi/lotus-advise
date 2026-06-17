@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
@@ -159,14 +160,15 @@ class PolicyEvaluationRecordStore:
     def list_policy_evaluation_records(
         self, *, evaluation_status: str | None, portfolio_id: str | None
     ) -> list[PolicyEvaluationRecord]:
-        records = list(self._records.values())
-        if evaluation_status:
-            records = [
-                record for record in records if record.evaluation_status == evaluation_status
-            ]
-        if portfolio_id:
-            records = [record for record in records if record.portfolio_id == portfolio_id]
-        return [deepcopy(record) for record in sorted(records, key=lambda item: item.generated_at)]
+        return _copied_policy_evaluation_records(
+            _ordered_policy_evaluation_records(
+                _filtered_policy_evaluation_records(
+                    self._records.values(),
+                    evaluation_status=evaluation_status,
+                    portfolio_id=portfolio_id,
+                )
+            )
+        )
 
     def list_policy_evaluation_events(
         self, *, evaluation_id: str
@@ -306,6 +308,44 @@ class PolicyEvaluationRecordStore:
         record = self._load_record(evaluation_id)
         event = next(event for event in self._events[evaluation_id] if event.event_id == event_id)
         return event, record
+
+
+def _filtered_policy_evaluation_records(
+    records: Iterable[PolicyEvaluationRecord],
+    *,
+    evaluation_status: str | None,
+    portfolio_id: str | None,
+) -> list[PolicyEvaluationRecord]:
+    filters = _policy_evaluation_record_filters(
+        evaluation_status=evaluation_status,
+        portfolio_id=portfolio_id,
+    )
+    return [record for record in records if all(matches(record) for matches in filters)]
+
+
+def _policy_evaluation_record_filters(
+    *,
+    evaluation_status: str | None,
+    portfolio_id: str | None,
+) -> tuple[Callable[[PolicyEvaluationRecord], bool], ...]:
+    filters: list[Callable[[PolicyEvaluationRecord], bool]] = []
+    if evaluation_status:
+        filters.append(lambda record: record.evaluation_status == evaluation_status)
+    if portfolio_id:
+        filters.append(lambda record: record.portfolio_id == portfolio_id)
+    return tuple(filters)
+
+
+def _ordered_policy_evaluation_records(
+    records: list[PolicyEvaluationRecord],
+) -> list[PolicyEvaluationRecord]:
+    return sorted(records, key=lambda item: item.generated_at)
+
+
+def _copied_policy_evaluation_records(
+    records: list[PolicyEvaluationRecord],
+) -> list[PolicyEvaluationRecord]:
+    return [deepcopy(record) for record in records]
 
 
 __all__ = ["PolicyEvaluationRecordStore"]
