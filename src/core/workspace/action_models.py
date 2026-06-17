@@ -19,6 +19,25 @@ WorkspaceDraftActionType = Literal[
 TRADE_DRAFT_ACTIONS = {"ADD_TRADE", "UPDATE_TRADE", "REMOVE_TRADE"}
 CASH_FLOW_DRAFT_ACTIONS = {"ADD_CASH_FLOW", "UPDATE_CASH_FLOW", "REMOVE_CASH_FLOW"}
 
+_ACTION_PAYLOAD_REQUIREMENTS: dict[str, tuple[tuple[str, ...], str]] = {
+    "ADD_TRADE": (("trade",), "ADD_TRADE requires trade"),
+    "UPDATE_TRADE": (
+        ("workspace_trade_id", "trade"),
+        "UPDATE_TRADE requires workspace_trade_id and trade",
+    ),
+    "REMOVE_TRADE": (("workspace_trade_id",), "REMOVE_TRADE requires workspace_trade_id"),
+    "ADD_CASH_FLOW": (("cash_flow",), "ADD_CASH_FLOW requires cash_flow"),
+    "UPDATE_CASH_FLOW": (
+        ("workspace_cash_flow_id", "cash_flow"),
+        "UPDATE_CASH_FLOW requires workspace_cash_flow_id and cash_flow",
+    ),
+    "REMOVE_CASH_FLOW": (
+        ("workspace_cash_flow_id",),
+        "REMOVE_CASH_FLOW requires workspace_cash_flow_id",
+    ),
+    "REPLACE_OPTIONS": (("options",), "REPLACE_OPTIONS requires options"),
+}
+
 
 class WorkspaceDraftActionRequest(BaseModel):
     actor_id: str = Field(
@@ -54,36 +73,15 @@ class WorkspaceDraftActionRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_action_payload(self) -> "WorkspaceDraftActionRequest":
-        _validate_required_trade_payload(self)
-        _validate_required_cash_flow_payload(self)
-        _validate_required_options_payload(self)
+        _validate_required_action_payload(self)
         _validate_action_identifier_scope(self)
         return self
 
 
-def _validate_required_trade_payload(request: WorkspaceDraftActionRequest) -> None:
-    if request.action_type == "ADD_TRADE" and request.trade is None:
-        raise ValueError("ADD_TRADE requires trade")
-    if request.action_type == "UPDATE_TRADE":
-        if request.trade is None or request.workspace_trade_id is None:
-            raise ValueError("UPDATE_TRADE requires workspace_trade_id and trade")
-    if request.action_type == "REMOVE_TRADE" and request.workspace_trade_id is None:
-        raise ValueError("REMOVE_TRADE requires workspace_trade_id")
-
-
-def _validate_required_cash_flow_payload(request: WorkspaceDraftActionRequest) -> None:
-    if request.action_type == "ADD_CASH_FLOW" and request.cash_flow is None:
-        raise ValueError("ADD_CASH_FLOW requires cash_flow")
-    if request.action_type == "UPDATE_CASH_FLOW":
-        if request.cash_flow is None or request.workspace_cash_flow_id is None:
-            raise ValueError("UPDATE_CASH_FLOW requires workspace_cash_flow_id and cash_flow")
-    if request.action_type == "REMOVE_CASH_FLOW" and request.workspace_cash_flow_id is None:
-        raise ValueError("REMOVE_CASH_FLOW requires workspace_cash_flow_id")
-
-
-def _validate_required_options_payload(request: WorkspaceDraftActionRequest) -> None:
-    if request.action_type == "REPLACE_OPTIONS" and request.options is None:
-        raise ValueError("REPLACE_OPTIONS requires options")
+def _validate_required_action_payload(request: WorkspaceDraftActionRequest) -> None:
+    required_fields, message = _ACTION_PAYLOAD_REQUIREMENTS[request.action_type]
+    if any(getattr(request, field_name) is None for field_name in required_fields):
+        raise ValueError(message)
 
 
 def _validate_action_identifier_scope(request: WorkspaceDraftActionRequest) -> None:

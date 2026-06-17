@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-843
+
+- Scope: Workspace draft action payload validation
+- Pattern: Workspace draft action request validation should express action-specific required
+  payload fields as data, not repeated trade/cash-flow branch chains.
+- Status: Hardened
+- Finding Class: Complexity, workspace API contract maintainability, behavior preservation
+- Summary: `src/core/workspace/action_models.py` carried separate B/8 validators for trade and
+  cash-flow draft action requirements. The request model now delegates required payload checks to
+  one table-driven action requirement map while preserving the existing trade, cash-flow, options,
+  and identifier-scope validation messages.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/contracts/test_contract_workspace_models.py tests/unit/advisory/api/test_workspace_draft_actions.py -q`
+    passed with 46 tests.
+  - `python -m ruff check src/core/workspace/action_models.py tests/unit/advisory/contracts/test_contract_workspace_models.py tests/unit/advisory/api/test_workspace_draft_actions.py`
+    passed.
+  - `python -m ruff format --check src/core/workspace/action_models.py tests/unit/advisory/contracts/test_contract_workspace_models.py tests/unit/advisory/api/test_workspace_draft_actions.py`
+    passed.
+  - `python -m radon cc -s src/core/workspace/action_models.py` now reports the touched module as
+    fully A-ranked; `_validate_required_action_payload` is A/3 and
+    `_validate_action_identifier_scope` is A/5.
+- Consequence:
+  - Adding or reviewing future workspace draft actions is less branch-heavy, and supported
+    validation behavior remains pinned by workspace contract and draft-action tests.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal model-validation maintainability refactor.
+- Follow-Up:
+  - Continue reducing B/8 workspace session and policy workflow hotspots where behavior-preserving
+    helper extraction improves API contract readability.
+
 ## LA-REV-842
 
 - Scope: Local CI quality-baseline parity
