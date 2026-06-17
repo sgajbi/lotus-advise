@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-849
+
+- Scope: Proposal memo conflict and disclosure enrichment
+- Pattern: Conflict and disclosure memo enrichment should expose product-document matching,
+  missing-evidence policy, reason-code policy, claim projection, and summary construction as named
+  helpers rather than one branch-heavy section builder.
+- Status: Hardened
+- Finding Class: Complexity, proposal memo policy maintainability, behavior preservation
+- Summary: `src/core/proposals/memo_policy_enrichment.py` carried B-ranked branching in
+  `build_conflict_disclosure_enrichment`, mixing proposed-instrument document matching,
+  product-document gap detection, conflict review missing evidence, disclosure claims, and summary
+  construction. The function now delegates those concerns to focused helpers while preserving the
+  existing pending-review posture, reason codes, and claim text behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_memo_builder.py -q` passed
+    with 9 tests.
+  - `python -m ruff check src/core/proposals/memo_policy_enrichment.py tests/unit/advisory/engine/test_engine_proposal_memo_builder.py`
+    passed.
+  - `python -m ruff format --check src/core/proposals/memo_policy_enrichment.py tests/unit/advisory/engine/test_engine_proposal_memo_builder.py`
+    passed.
+  - `python -m radon cc -s src/core/proposals/memo_policy_enrichment.py` now reports
+    `build_conflict_disclosure_enrichment` as A/1.
+- Consequence:
+  - Conflict/disclosure memo behavior is easier to review and extend without changing the
+    bank-facing evidence posture or accidentally implying client-ready publication.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal proposal memo maintainability refactor.
+- Follow-Up:
+  - Continue reducing adjacent memo policy enrichment hotspots for product evidence and
+    eligibility/complexity checks.
+
 ## LA-REV-848
 
 - Scope: Policy evaluation record listing

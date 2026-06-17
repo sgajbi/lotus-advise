@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.core.proposals.memo_builder import build_advisory_proposal_memo_evidence_pack
 from src.core.proposals.memo_models import ProposalMemoMaterialClaim, ProposalMemoSectionKey
+from src.core.proposals.memo_policy_enrichment import build_conflict_disclosure_enrichment
 from src.core.proposals.memo_section_factory import build_memo_section
 from src.core.proposals.memo_source_readiness import build_memo_source_readiness
 
@@ -291,6 +292,37 @@ def test_memo_builder_blocks_missing_product_policy_evidence() -> None:
     assert conflicts.status == "BLOCKED"
     assert "product_document_evidence" in conflicts.missing_evidence
     assert "PRODUCT_DOCUMENTATION_INCOMPLETE_FOR_PROPOSED_TRADES" in conflicts.reason_codes
+
+
+def test_conflict_disclosure_enrichment_preserves_missing_doc_and_claim_policy() -> None:
+    evidence = deepcopy(_evidence_bundle())
+    evidence["inputs"]["proposed_trades"] = [
+        {"instrument_id": "US_EQ_ETF", "side": "BUY"},
+        {"instrument_id": "SG_STRUCTURED_NOTE", "side": "BUY"},
+    ]
+    artifact = deepcopy(_artifact())
+    artifact["disclosures"]["product_docs"] = [
+        {"instrument_id": "US_EQ_ETF", "doc_ref": "Factsheet"}
+    ]
+
+    enrichment = build_conflict_disclosure_enrichment(
+        artifact=artifact,
+        evidence_bundle=evidence,
+    )
+
+    assert enrichment.forced_status == "PENDING_REVIEW"
+    assert enrichment.forced_missing == ["conflict_evidence", "product_document_evidence"]
+    assert enrichment.forced_reasons == [
+        "MEMO_CONFLICT_POLICY_EVIDENCE_REVIEW_REQUIRED",
+        "PRODUCT_DOCUMENTATION_INCOMPLETE_FOR_PROPOSED_TRADES",
+    ]
+    assert [claim.claim_id for claim in enrichment.claims] == [
+        "conflicts_and_disclosures.claim.1",
+        "conflicts_and_disclosures.claim.2",
+    ]
+    assert "Risk disclosure captured" in enrichment.claims[0].text
+    assert "US_EQ_ETF" in enrichment.claims[1].text
+    assert "SG_STRUCTURED_NOTE" not in enrichment.claims[1].text
 
 
 def test_foundational_memo_sections_use_focused_section_builders() -> None:

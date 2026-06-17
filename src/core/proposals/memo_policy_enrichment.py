@@ -115,55 +115,106 @@ def build_conflict_disclosure_enrichment(
     disclosures = _dict_at(artifact, "disclosures")
     product_docs = _list_at(disclosures, "product_docs")
     proposed_instruments = _proposed_instruments(evidence_bundle)
-    documented_instruments = {
+    documented_instruments = _documented_product_doc_instruments(product_docs)
+    missing_docs = _missing_product_doc_instruments(
+        proposed_instruments=proposed_instruments,
+        documented_instruments=documented_instruments,
+    )
+
+    return MemoSectionEnrichment(
+        summary=_conflict_disclosure_summary(),
+        claims=_conflict_disclosure_claims(
+            disclosures=disclosures,
+            documented_instruments=documented_instruments,
+        ),
+        forced_status="PENDING_REVIEW",
+        forced_missing=_conflict_disclosure_missing(missing_docs),
+        forced_reasons=_conflict_disclosure_reasons(missing_docs),
+    )
+
+
+def _documented_product_doc_instruments(product_docs: list[Any]) -> set[str]:
+    return {
         str(item.get("instrument_id"))
         for item in product_docs
         if isinstance(item, dict) and item.get("instrument_id")
     }
-    missing_docs = sorted(set(proposed_instruments) - documented_instruments)
+
+
+def _missing_product_doc_instruments(
+    *,
+    proposed_instruments: list[str],
+    documented_instruments: set[str],
+) -> list[str]:
+    return sorted(set(proposed_instruments) - documented_instruments)
+
+
+def _conflict_disclosure_missing(missing_docs: list[str]) -> list[str]:
     missing = ["conflict_evidence"]
-    reasons = ["MEMO_CONFLICT_POLICY_EVIDENCE_REVIEW_REQUIRED"]
     if missing_docs:
         missing.append("product_document_evidence")
+    return _unique(missing)
+
+
+def _conflict_disclosure_reasons(missing_docs: list[str]) -> list[str]:
+    reasons = ["MEMO_CONFLICT_POLICY_EVIDENCE_REVIEW_REQUIRED"]
+    if missing_docs:
         reasons.append("PRODUCT_DOCUMENTATION_INCOMPLETE_FOR_PROPOSED_TRADES")
+    return _unique(reasons)
 
+
+def _conflict_disclosure_claims(
+    *,
+    disclosures: dict[str, Any],
+    documented_instruments: set[str],
+) -> list[ProposalMemoMaterialClaim]:
+    claims: list[ProposalMemoMaterialClaim] = []
+    risk_claim = _risk_disclosure_claim(disclosures)
+    if risk_claim is not None:
+        claims.append(risk_claim)
+    product_doc_claim = _product_document_refs_claim(documented_instruments)
+    if product_doc_claim is not None:
+        claims.append(product_doc_claim)
+    return claims
+
+
+def _risk_disclosure_claim(
+    disclosures: dict[str, Any],
+) -> ProposalMemoMaterialClaim | None:
     risk_disclaimer = str(disclosures.get("risk_disclaimer") or "").strip()
-    claims = []
-    if risk_disclaimer:
-        claims.append(
-            _claim(
-                claim_id="conflicts_and_disclosures.claim.1",
-                text=f"Risk disclosure captured: {risk_disclaimer}",
-                evidence_refs=["artifact.disclosures.risk_disclaimer"],
-                source_refs=["lotus-advise:proposal_artifact_disclosures"],
-                reason_codes=["RISK_DISCLOSURE_CAPTURED"],
-            )
-        )
-    if documented_instruments:
-        claims.append(
-            _claim(
-                claim_id="conflicts_and_disclosures.claim.2",
-                text=(
-                    "Product-document references are available for proposed instrument(s): "
-                    f"{', '.join(sorted(documented_instruments))}."
-                ),
-                evidence_refs=["artifact.disclosures.product_docs"],
-                source_refs=["lotus-advise:proposal_artifact_disclosures"],
-                reason_codes=["PRODUCT_DOCUMENT_REFERENCES_CAPTURED"],
-            )
-        )
+    if not risk_disclaimer:
+        return None
+    return _claim(
+        claim_id="conflicts_and_disclosures.claim.1",
+        text=f"Risk disclosure captured: {risk_disclaimer}",
+        evidence_refs=["artifact.disclosures.risk_disclaimer"],
+        source_refs=["lotus-advise:proposal_artifact_disclosures"],
+        reason_codes=["RISK_DISCLOSURE_CAPTURED"],
+    )
 
-    summary = (
+
+def _product_document_refs_claim(
+    documented_instruments: set[str],
+) -> ProposalMemoMaterialClaim | None:
+    if not documented_instruments:
+        return None
+    return _claim(
+        claim_id="conflicts_and_disclosures.claim.2",
+        text=(
+            "Product-document references are available for proposed instrument(s): "
+            f"{', '.join(sorted(documented_instruments))}."
+        ),
+        evidence_refs=["artifact.disclosures.product_docs"],
+        source_refs=["lotus-advise:proposal_artifact_disclosures"],
+        reason_codes=["PRODUCT_DOCUMENT_REFERENCES_CAPTURED"],
+    )
+
+
+def _conflict_disclosure_summary() -> str:
+    return (
         "Disclosure evidence is captured from the proposal artifact; conflict-of-interest "
         "evidence remains review-required until active policy evaluation and review evidence "
         "clears the conflict posture."
-    )
-    return MemoSectionEnrichment(
-        summary=summary,
-        claims=claims,
-        forced_status="PENDING_REVIEW",
-        forced_missing=_unique(missing),
-        forced_reasons=_unique(reasons),
     )
 
 

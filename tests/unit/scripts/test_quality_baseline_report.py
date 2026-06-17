@@ -225,6 +225,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "advisory security-trade intent planning" in scorecard
     assert "advisory simulation review" in scorecard
     assert "advisory proposal authority orchestration" in scorecard
+    assert "proposal memo conflict-disclosure enrichment" in scorecard
     assert "policy evaluation record listing" in scorecard
     assert "policy-pack activation validation" in scorecard
     assert "policy evaluation report-package validation" in scorecard
@@ -234,7 +235,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "CI warning/topology/freshness contracts" in scorecard
     assert "workflow contract tests protect local CI target freshness" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-848`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-849`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
