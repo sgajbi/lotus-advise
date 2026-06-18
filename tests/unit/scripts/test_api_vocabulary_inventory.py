@@ -9,10 +9,12 @@ from scripts.api_vocabulary_inventory import (
 
 def test_fallback_example_uses_governed_non_placeholder_values() -> None:
     assert _fallback_example("status", {"enum": ["READY", "BLOCKED"]}) == "READY"
+    assert _fallback_example("status", {"enum": [None, "READY"]}) is None
     assert _fallback_example("as_of", {"format": "date"}) == "2026-02-20"
     assert _fallback_example("created_at", {"format": "date-time"}) == "2026-02-20T00:00:00Z"
     assert _fallback_example("proposal_id", {"type": "string"}) == "ENTITY_001"
     assert _fallback_example("review_required", {"type": "boolean"}) is True
+    assert _fallback_example("review_required", {"type": ["boolean", "null"]}) is True
     assert _fallback_example("cash_weight", {"type": "number"}) == 0.1
     assert _fallback_example("unsupported", {"type": "string"}) == "STANDARD_TEXT"
 

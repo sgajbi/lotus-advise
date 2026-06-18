@@ -46,6 +46,7 @@ TYPE_FALLBACK_EXAMPLES: dict[str, Any] = {
     "array": ["STANDARD_ITEM"],
     "object": {"key": "sample_text"},
 }
+_NO_ENUM_EXAMPLE = object()
 
 
 def _to_snake_case(value: str) -> str:
@@ -85,7 +86,7 @@ def _fallback_description(name: str) -> str:
 def _fallback_example(name: str, schema: dict[str, Any]) -> Any:
     canonical = _canonical_term(name)
     enum_example = _first_enum_example(schema)
-    if enum_example is not None:
+    if enum_example is not _NO_ENUM_EXAMPLE:
         return enum_example
     format_example = FORMAT_FALLBACK_EXAMPLES.get(str(schema.get("format", "")))
     if format_example is not None:
@@ -93,14 +94,25 @@ def _fallback_example(name: str, schema: dict[str, Any]) -> Any:
     name_example = _name_based_fallback_example(canonical)
     if name_example is not None:
         return name_example
-    return TYPE_FALLBACK_EXAMPLES.get(schema.get("type"), "STANDARD_TEXT")
+    return TYPE_FALLBACK_EXAMPLES.get(_fallback_type(schema), "STANDARD_TEXT")
 
 
-def _first_enum_example(schema: dict[str, Any]) -> Any | None:
+def _first_enum_example(schema: dict[str, Any]) -> Any:
     enum_values = schema.get("enum")
     if isinstance(enum_values, list) and enum_values:
         return enum_values[0]
-    return None
+    return _NO_ENUM_EXAMPLE
+
+
+def _fallback_type(schema: dict[str, Any]) -> str:
+    schema_type = schema.get("type")
+    if isinstance(schema_type, str):
+        return schema_type
+    if isinstance(schema_type, list):
+        return next(
+            (value for value in schema_type if isinstance(value, str) and value != "null"), ""
+        )
+    return ""
 
 
 def _name_based_fallback_example(canonical: str) -> Any | None:

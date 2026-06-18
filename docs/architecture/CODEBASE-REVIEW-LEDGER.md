@@ -12,18 +12,27 @@
   `repos/$GITHUB_REPOSITORY/branches/main/protection` from `pull_request_target` using
   `GITHUB_TOKEN`, which GitHub rejected with `403 Resource not accessible by integration` after
   the `automerge` label was applied. The queue now verifies the public branch metadata reports
-  `main.protected == true` before enabling merge-commit auto-merge, preserving the internal,
-  labeled, non-fork guard without requiring unavailable administration-scope access.
+  `main.protected == true` and includes required status-check contexts before enabling
+  merge-commit auto-merge, preserving the internal, labeled, non-fork guard without requiring
+  unavailable administration-scope access.
 - Evidence:
   - GitHub PR auto-merge run `27775910442` reproduced the old workflow failure with
     `403 Resource not accessible by integration` before this workflow fix could be active on
     `main`.
+  - Codex review follow-up fixed nullable OpenAPI 3.1 schema fallback behavior for union `type`
+    lists and leading-null enum examples before merge.
+  - Codex review follow-up retained required-status-check validation through the
+    workflow-token-readable branch metadata endpoint before merge.
+  - `python -m pytest tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/test_ci_workflow_contracts.py -q` passed with 11 tests.
+  - `python -m ruff check scripts/api_vocabulary_inventory.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/test_ci_workflow_contracts.py` passed.
+  - `python -m ruff format --check scripts/api_vocabulary_inventory.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/test_ci_workflow_contracts.py` passed.
+  - `python scripts/api_vocabulary_inventory.py --validate-only` passed with no inventory drift.
   - `python -m pytest tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/scripts/test_quality_baseline_report.py -q` passed with 14 tests.
   - `python -m ruff check tests/unit/test_ci_workflow_contracts.py` passed.
   - `python -m ruff format --check tests/unit/test_ci_workflow_contracts.py` passed.
 - Consequence:
   - The PR auto-merge queue can run under least-privilege workflow permissions while still refusing
-    to queue auto-merge unless `main` is protected.
+    to queue auto-merge unless `main` is protected and required status checks are configured.
 - Documentation:
   - Review ledger and generated quality reports updated. No README/wiki source change is required
     because this is internal CI workflow hardening.
