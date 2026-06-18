@@ -389,6 +389,8 @@
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 - CI workflow quality contracts now enforce committed quality-baseline freshness in
   Feature Lane, PR Merge Gate, and Main Releasability static governance jobs.
+- PR auto-merge queue verification now checks protected main-branch metadata through
+  a workflow-token-readable endpoint before enabling merge-commit auto-merge.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
 

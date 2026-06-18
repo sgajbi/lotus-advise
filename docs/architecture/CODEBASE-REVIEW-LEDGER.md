@@ -1,5 +1,33 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-860
+
+- Scope: PR auto-merge queue branch-protection verification
+- Pattern: CI automation should verify merge-safety prerequisites with permissions available to
+  the workflow token, and workflow contract tests should pin that behavior so warning/failure loops
+  do not block otherwise green PRs.
+- Status: Hardened
+- Finding Class: CI reliability, workflow security, merge hygiene
+- Summary: `.github/workflows/pr-auto-merge.yml` attempted to read
+  `repos/$GITHUB_REPOSITORY/branches/main/protection` from `pull_request_target` using
+  `GITHUB_TOKEN`, which GitHub rejected with `403 Resource not accessible by integration` after
+  the `automerge` label was applied. The queue now verifies the public branch metadata reports
+  `main.protected == true` before enabling merge-commit auto-merge, preserving the internal,
+  labeled, non-fork guard without requiring unavailable administration-scope access.
+- Evidence:
+  - `python -m pytest tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/scripts/test_quality_baseline_report.py -q` passed with 14 tests.
+  - `python -m ruff check tests/unit/test_ci_workflow_contracts.py` passed.
+  - `python -m ruff format --check tests/unit/test_ci_workflow_contracts.py` passed.
+- Consequence:
+  - The PR auto-merge queue can run under least-privilege workflow permissions while still refusing
+    to queue auto-merge unless `main` is protected.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal CI workflow hardening.
+- Follow-Up:
+  - Continue remediating CI warnings and required-check friction when evidence shows workflow
+    behavior is blocking healthy branches.
+
 ## LA-REV-859
 
 - Scope: API vocabulary inventory complexity and behavior coverage

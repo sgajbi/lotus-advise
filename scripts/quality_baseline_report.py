@@ -1111,6 +1111,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Engineering-health and quality-baseline reporting now provide repeatable evidence.",
         "- CI workflow quality contracts now enforce committed quality-baseline freshness in",
         "  Feature Lane, PR Merge Gate, and Main Releasability static governance jobs.",
+        "- PR auto-merge queue verification now checks protected main-branch metadata through",
+        "  a workflow-token-readable endpoint before enabling merge-commit auto-merge.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
         "",
@@ -1236,7 +1238,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-859` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-860` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1299,7 +1301,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "static governance jobs; workflow contract tests protect local CI target "
             "freshness, demo-assurance checks, parallel runtime jobs, least-privilege "
             "permissions, concurrency, coverage artifact handling, pull-request-target "
-            "auto-merge guards, and the baseline freshness step.",
+            "auto-merge guards, protected-main verification, and the baseline freshness step.",
             "Quality evidence freshness is now enforced before merge and after merge, not only "
             "during local `make check`.",
         ),
