@@ -2,7 +2,10 @@ from pathlib import Path
 
 from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory.decision_summary_models import ProposalDecisionMissingEvidence
-from src.core.advisory.decision_summary_status_rules import recommended_decision_next_action
+from src.core.advisory.decision_summary_status_rules import (
+    derive_decision_status,
+    recommended_decision_next_action,
+)
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import (
     EngineOptions,
@@ -36,12 +39,14 @@ def test_decision_summary_delegates_status_rules_to_focused_module() -> None:
     assert "def decision_confidence(" in status_rules_source
 
 
-def _missing_evidence(reason_code: str) -> ProposalDecisionMissingEvidence:
+def _missing_evidence(
+    reason_code: str, *, blocking: bool = True
+) -> ProposalDecisionMissingEvidence:
     return ProposalDecisionMissingEvidence(
         evidence_type="TEST_EVIDENCE",
         reason_code=reason_code,
         summary=f"{reason_code} is unavailable.",
-        blocking=True,
+        blocking=blocking,
     )
 
 
@@ -73,6 +78,79 @@ def test_decision_next_action_revises_when_insufficient_evidence_has_no_context_
         )
         == "REVISE_PROPOSAL"
     )
+
+
+def test_decision_status_blocks_before_missing_evidence_or_gate_review() -> None:
+    result = _base_result()
+    result.status = "BLOCKED"
+    result.gate_decision = GateDecision(
+        gate="COMPLIANCE_REVIEW_REQUIRED",
+        recommended_next_step="COMPLIANCE_REVIEW",
+        reasons=[],
+        summary=GateDecisionSummary(
+            hard_fail_count=1,
+            soft_fail_count=0,
+            new_high_suitability_count=0,
+            new_medium_suitability_count=0,
+        ),
+    )
+
+    status = derive_decision_status(result, [_missing_evidence("MISSING_RISK_LENS")])
+
+    assert status == "BLOCKED_REMEDIATION_REQUIRED"
+
+
+def test_decision_status_requires_evidence_before_gate_review() -> None:
+    result = _base_result()
+    result.status = "PENDING_REVIEW"
+    result.gate_decision = GateDecision(
+        gate="COMPLIANCE_REVIEW_REQUIRED",
+        recommended_next_step="COMPLIANCE_REVIEW",
+        reasons=[],
+        summary=GateDecisionSummary(
+            hard_fail_count=0,
+            soft_fail_count=1,
+            new_high_suitability_count=1,
+            new_medium_suitability_count=0,
+        ),
+    )
+
+    status = derive_decision_status(result, [_missing_evidence("MISSING_RISK_LENS")])
+
+    assert status == "INSUFFICIENT_EVIDENCE"
+
+
+def test_decision_status_uses_gate_review_when_evidence_is_non_blocking() -> None:
+    result = _base_result()
+    result.status = "PENDING_REVIEW"
+    result.gate_decision = GateDecision(
+        gate="RISK_REVIEW_REQUIRED",
+        recommended_next_step="RISK_REVIEW",
+        reasons=[],
+        summary=GateDecisionSummary(
+            hard_fail_count=0,
+            soft_fail_count=1,
+            new_high_suitability_count=0,
+            new_medium_suitability_count=1,
+        ),
+    )
+
+    status = derive_decision_status(
+        result,
+        [_missing_evidence("MISSING_OPTIONAL_RISK_DETAIL", blocking=False)],
+    )
+
+    assert status == "REQUIRES_RISK_REVIEW"
+
+
+def test_decision_status_recommends_revision_for_pending_review_without_gate() -> None:
+    result = _base_result()
+    result.status = "PENDING_REVIEW"
+    result.gate_decision = None
+
+    status = derive_decision_status(result, [])
+
+    assert status == "REVISION_RECOMMENDED"
 
 
 def _base_result() -> ProposalResult:

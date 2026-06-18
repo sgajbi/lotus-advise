@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-854
+
+- Scope: Advisory proposal decision status derivation
+- Pattern: Proposal decision status precedence should expose blocked, missing-evidence,
+  gate-review, and proposal-result fallback rules as named concerns rather than carrying all
+  precedence branching inside the public status derivation function.
+- Status: Hardened
+- Finding Class: Complexity, advisory decision-summary maintainability, behavior preservation
+- Summary: `src/core/advisory/decision_summary_status_rules.py` carried B-ranked branching in
+  `derive_decision_status`, mixing blocked remediation, blocking missing evidence, gate decision
+  mapping, and pending-review fallback rules inline. The derivation now delegates those checks to
+  focused helpers while preserving the existing precedence contract.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_decision_summary.py -q`
+    passed with 20 tests.
+  - `python -m radon cc -s src/core/advisory/decision_summary_status_rules.py` reports
+    `derive_decision_status` improved from B/7 to A/4; all new status-rule helpers are A-ranked.
+- Consequence:
+  - Advisory decision-summary status precedence is easier to audit and directly covered for
+    blocked-over-evidence, evidence-over-gate, gate-review, and pending-review fallback behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal advisory decision-summary maintainability refactor.
+- Follow-Up:
+  - Continue reducing B-ranked advisory decision, proposal projection, and integration hotspots
+    with focused behavior-preserving tests.
+
 ## LA-REV-853
 
 - Scope: Shared simulation status derivation
