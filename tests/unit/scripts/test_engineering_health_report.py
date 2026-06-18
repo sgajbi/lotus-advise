@@ -7,6 +7,8 @@ from scripts.engineering_health_report import build_report, main, render_markdow
 def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -> None:
     src = tmp_path / "src" / "api"
     src.mkdir(parents=True)
+    platform = tmp_path / "lotus-platform"
+    platform.mkdir()
     (src / "__init__.py").write_text("", encoding="utf-8")
     (src / "routes_demo.py").write_text(
         "\n".join(
@@ -21,6 +23,7 @@ def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -
         ),
         encoding="utf-8",
     )
+    (platform / "platform_module.py").write_text("def ignored():\n    return 1\n", encoding="utf-8")
     (tmp_path / "Makefile").write_text(
         "\n".join(
             [

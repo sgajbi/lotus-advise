@@ -17,6 +17,7 @@ DEFAULT_EXCLUDED_DIRS = {
     ".ruff_cache",
     "__pycache__",
     "htmlcov",
+    "lotus-platform",
     "node_modules",
     "output",
 }
