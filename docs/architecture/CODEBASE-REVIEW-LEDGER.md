@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-852
+
+- Scope: Reduce-concentration proposal alternatives strategy
+- Pattern: Concentration-reduction strategy construction should expose candidate/replacement/
+  quantity planning, rejection diagnostics, and generated trade payload construction as named
+  concerns rather than one branch-heavy strategy method.
+- Status: Hardened
+- Finding Class: Complexity, advisory alternatives maintainability, behavior preservation
+- Summary: `src/core/advisory/alternatives_strategy_portfolio_objectives.py` carried B-ranked
+  branching in `ReduceConcentrationStrategy`, mixing largest sellable holding selection, approved
+  replacement selection, too-small position handling, sell/buy intent construction, notional
+  fallback behavior, and metadata projection. The strategy now delegates planning and payload
+  construction to focused helpers while preserving existing sell, buy-notional, buy-quantity
+  fallback, and rejection behavior.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_alternatives.py -q` passed
+    with 32 tests.
+  - `python -m ruff check src/core/advisory/alternatives_strategy_portfolio_objectives.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m ruff format --check src/core/advisory/alternatives_strategy_portfolio_objectives.py tests/unit/advisory/engine/test_engine_proposal_alternatives.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/core/advisory/alternatives_strategy_portfolio_objectives.py`
+    passed.
+  - `python -m radon cc -s src/core/advisory/alternatives_strategy_portfolio_objectives.py`
+    reports `ReduceConcentrationStrategy` improved from B/8 to A/3 and `build_result` from B/7
+    to A/2; all reduce-concentration helper blocks are A-ranked.
+- Consequence:
+  - Advisory proposal-alternative construction is easier to audit for concentration-reduction
+    constraint handling, replacement selection, and generated trade payload safety.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal advisory alternatives maintainability refactor.
+- Follow-Up:
+  - Continue reducing remaining B-ranked advisory/proposal orchestration hotspots with focused
+    behavior-preserving tests.
+
 ## LA-REV-851
 
 - Scope: Proposal async operation runner

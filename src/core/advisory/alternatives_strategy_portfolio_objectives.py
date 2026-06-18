@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 from src.core.advisory.alternatives_models import ProposalAlternativesConstraints
 from src.core.advisory.alternatives_normalizer import NormalizedProposalAlternativesRequest
@@ -26,6 +26,19 @@ class RaiseCashRejection(NamedTuple):
     failed_constraints: list[str] | None = None
 
 
+class ReduceConcentrationRejection(NamedTuple):
+    reason_code: str
+    summary: str
+    pivot: str
+    failed_constraints: list[str] | None = None
+
+
+class ReduceConcentrationPlan(NamedTuple):
+    candidate: StrategyPosition
+    replacement: StrategyPosition
+    sell_quantity: Decimal
+
+
 class ReduceConcentrationStrategy(BaseAlternativeStrategy):
     strategy_id = "reduce_concentration_v1"
     objective = "REDUCE_CONCENTRATION"
@@ -38,108 +51,144 @@ class ReduceConcentrationStrategy(BaseAlternativeStrategy):
         request: NormalizedProposalAlternativesRequest,
         inputs: AlternativeStrategyInputs,
     ) -> AlternativeStrategyBuildResult:
-        candidate = largest_sellable_position(inputs=inputs, constraints=request.constraints)
-        if candidate is None:
-            return AlternativeStrategyBuildResult(
-                rejected_candidates=(
-                    self._reject(
-                        inputs=inputs,
-                        reason_code="ALTERNATIVE_NO_SELLABLE_HOLDING",
-                        summary="No sellable holding is available for concentration reduction.",
-                        pivot=inputs.base_currency,
-                        status="REJECTED_CONSTRAINT_VIOLATION",
-                        failed_constraints=["preserve_holdings", "do_not_sell"],
-                    ),
-                )
-            )
-
-        replacement = preferred_buy_instrument(
+        plan, rejection = reduce_concentration_plan_or_rejection(
+            request=request,
             inputs=inputs,
-            constraints=request.constraints,
-            excluded_ids={candidate.instrument_id},
-            preferred_currency=inputs.base_currency,
         )
-        if replacement is None:
-            return AlternativeStrategyBuildResult(
-                rejected_candidates=(
-                    self._reject(
-                        inputs=inputs,
-                        reason_code="ALTERNATIVE_NO_APPROVED_REPLACEMENT",
-                        summary=(
-                            "No approved replacement instrument is available for "
-                            "concentration reduction."
-                        ),
-                        pivot=candidate.instrument_id,
-                        status="REJECTED_CONSTRAINT_VIOLATION",
-                        failed_constraints=["restricted_instruments", "do_not_buy"],
-                    ),
-                )
-            )
+        if rejection is not None:
+            return self._rejected_result(inputs=inputs, rejection=rejection)
+        plan = cast(ReduceConcentrationPlan, plan)
 
-        sell_quantity = half_quantity(candidate.quantity)
-        if sell_quantity is None:
-            return AlternativeStrategyBuildResult(
-                rejected_candidates=(
-                    self._reject(
-                        inputs=inputs,
-                        reason_code="ALTERNATIVE_POSITION_TOO_SMALL",
-                        summary=(
-                            "Largest holding is too small to produce a meaningful "
-                            "concentration trade."
-                        ),
-                        pivot=candidate.instrument_id,
-                        status="REJECTED_CONSTRAINT_VIOLATION",
-                    ),
-                )
-            )
-
-        proceeds = estimated_notional(candidate.price, sell_quantity)
-        generated_intents: list[dict[str, object]] = [
-            {
-                "intent_type": "SECURITY_TRADE",
-                "side": "SELL",
-                "instrument_id": candidate.instrument_id,
-                "quantity": decimal_string(sell_quantity),
-            }
-        ]
-        if proceeds is not None:
-            generated_intents.append(
-                {
-                    "intent_type": "SECURITY_TRADE",
-                    "side": "BUY",
-                    "instrument_id": replacement.instrument_id,
-                    "notional": {
-                        "amount": decimal_string(proceeds),
-                        "currency": replacement.currency or inputs.base_currency,
-                    },
-                }
-            )
-        else:
-            generated_intents.append(
-                {
-                    "intent_type": "SECURITY_TRADE",
-                    "side": "BUY",
-                    "instrument_id": replacement.instrument_id,
-                    "quantity": decimal_string(sell_quantity),
-                }
-            )
+        generated_intents, metadata = reduce_concentration_seed_payload(
+            plan=plan,
+            base_currency=inputs.base_currency,
+        )
 
         return AlternativeStrategyBuildResult(
             seeds=(
                 self._seed(
                     request=request,
                     inputs=inputs,
-                    pivot=candidate.instrument_id,
+                    pivot=plan.candidate.instrument_id,
                     generated_intents=generated_intents,
-                    metadata={
-                        "replacement_instrument_id": replacement.instrument_id,
-                        "estimated_sell_notional": (
-                            decimal_string(proceeds) if proceeds is not None else None
-                        ),
-                    },
+                    metadata=metadata,
                 ),
             )
         )
+
+    def _rejected_result(
+        self,
+        *,
+        inputs: AlternativeStrategyInputs,
+        rejection: ReduceConcentrationRejection,
+    ) -> AlternativeStrategyBuildResult:
+        return AlternativeStrategyBuildResult(
+            rejected_candidates=(
+                self._reject(
+                    inputs=inputs,
+                    reason_code=rejection.reason_code,
+                    summary=rejection.summary,
+                    pivot=rejection.pivot,
+                    status="REJECTED_CONSTRAINT_VIOLATION",
+                    failed_constraints=rejection.failed_constraints,
+                ),
+            )
+        )
+
+
+def reduce_concentration_plan_or_rejection(
+    *,
+    request: NormalizedProposalAlternativesRequest,
+    inputs: AlternativeStrategyInputs,
+) -> tuple[ReduceConcentrationPlan | None, ReduceConcentrationRejection | None]:
+    candidate = largest_sellable_position(inputs=inputs, constraints=request.constraints)
+    if candidate is None:
+        return None, ReduceConcentrationRejection(
+            reason_code="ALTERNATIVE_NO_SELLABLE_HOLDING",
+            summary="No sellable holding is available for concentration reduction.",
+            pivot=inputs.base_currency,
+            failed_constraints=["preserve_holdings", "do_not_sell"],
+        )
+
+    replacement = preferred_buy_instrument(
+        inputs=inputs,
+        constraints=request.constraints,
+        excluded_ids={candidate.instrument_id},
+        preferred_currency=inputs.base_currency,
+    )
+    if replacement is None:
+        return None, ReduceConcentrationRejection(
+            reason_code="ALTERNATIVE_NO_APPROVED_REPLACEMENT",
+            summary=(
+                "No approved replacement instrument is available for concentration reduction."
+            ),
+            pivot=candidate.instrument_id,
+            failed_constraints=["restricted_instruments", "do_not_buy"],
+        )
+
+    sell_quantity = half_quantity(candidate.quantity)
+    if sell_quantity is None:
+        return None, ReduceConcentrationRejection(
+            reason_code="ALTERNATIVE_POSITION_TOO_SMALL",
+            summary=("Largest holding is too small to produce a meaningful concentration trade."),
+            pivot=candidate.instrument_id,
+        )
+    return ReduceConcentrationPlan(candidate, replacement, sell_quantity), None
+
+
+def reduce_concentration_seed_payload(
+    *,
+    plan: ReduceConcentrationPlan,
+    base_currency: str,
+) -> tuple[list[dict[str, object]], dict[str, object]]:
+    proceeds = estimated_notional(plan.candidate.price, plan.sell_quantity)
+    generated_intents = [
+        reduce_concentration_sell_intent(plan),
+        reduce_concentration_buy_intent(
+            plan=plan,
+            base_currency=base_currency,
+            proceeds=proceeds,
+        ),
+    ]
+    return generated_intents, {
+        "replacement_instrument_id": plan.replacement.instrument_id,
+        "estimated_sell_notional": decimal_string(proceeds) if proceeds is not None else None,
+    }
+
+
+def reduce_concentration_sell_intent(
+    plan: ReduceConcentrationPlan,
+) -> dict[str, object]:
+    return {
+        "intent_type": "SECURITY_TRADE",
+        "side": "SELL",
+        "instrument_id": plan.candidate.instrument_id,
+        "quantity": decimal_string(plan.sell_quantity),
+    }
+
+
+def reduce_concentration_buy_intent(
+    *,
+    plan: ReduceConcentrationPlan,
+    base_currency: str,
+    proceeds: Decimal | None,
+) -> dict[str, object]:
+    if proceeds is None:
+        return {
+            "intent_type": "SECURITY_TRADE",
+            "side": "BUY",
+            "instrument_id": plan.replacement.instrument_id,
+            "quantity": decimal_string(plan.sell_quantity),
+        }
+    return {
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
+        "instrument_id": plan.replacement.instrument_id,
+        "notional": {
+            "amount": decimal_string(proceeds),
+            "currency": plan.replacement.currency or base_currency,
+        },
+    }
 
 
 class RaiseCashStrategy(BaseAlternativeStrategy):
