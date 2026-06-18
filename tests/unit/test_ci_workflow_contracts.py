@@ -64,6 +64,9 @@ def _assert_governance_job_runs_demo_assurance_checks(workflow: str, job_id: str
 
     assert "run: make openapi-gate" in governance_section
     assert "run: make api-vocabulary-gate" in governance_section
+    assert governance_section.index("Quality Baseline Freshness") < governance_section.index(
+        "Checkout Lotus Platform Contracts"
+    )
     assert "Checkout Lotus Platform Contracts" in governance_section
     assert "repository: sgajbi/lotus-platform" in governance_section
     assert "path: lotus-platform" in governance_section

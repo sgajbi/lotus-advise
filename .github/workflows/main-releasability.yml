@@ -56,6 +56,8 @@ jobs:
         run: make no-alias-gate
       - name: API Vocabulary Gate
         run: make api-vocabulary-gate
+      - name: Quality Baseline Freshness
+        run: make quality-baseline-check
       - name: Checkout Lotus Platform Contracts
         uses: actions/checkout@v6
         with:
@@ -69,8 +71,6 @@ jobs:
         run: make observability-diagnostics
       - name: Advisory Domain Golden Regressions
         run: make advisory-domain-golden-regressions
-      - name: Quality Baseline Freshness
-        run: make quality-baseline-check
       - name: Migration Smoke
         run: make migration-smoke
       - name: Security Audit
