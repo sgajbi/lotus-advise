@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-857
+
+- Scope: OpenAPI quality gate complexity and behavior coverage
+- Pattern: Enforced API-governance scripts should expose independent checks as named helpers so
+  future OpenAPI rules can be reviewed without re-growing one high-complexity gate function.
+- Status: Hardened
+- Finding Class: API governance maintainability, CI measurement, behavior preservation
+- Summary: `scripts/openapi_quality_gate.py::evaluate_schema` mixed path/method iteration,
+  endpoint documentation checks, schema field metadata checks, and duplicate operation ID
+  detection in one E-ranked function. The gate now delegates operation iteration, endpoint
+  documentation validation, component-property iteration, schema-field metadata validation, and
+  duplicate operation ID detection to focused helpers while preserving current error text and
+  ref-only schema-property behavior.
+- Evidence:
+  - `python -m pytest tests/unit/scripts/test_openapi_quality_gate.py -q` passed with 3 tests.
+  - `python -m ruff check scripts/openapi_quality_gate.py tests/unit/scripts/test_openapi_quality_gate.py` passed.
+  - `python -m ruff format --check scripts/openapi_quality_gate.py tests/unit/scripts/test_openapi_quality_gate.py` passed.
+  - `python -m radon cc scripts/openapi_quality_gate.py -s` reports `evaluate_schema` as
+    B-ranked complexity `10`, down from E-ranked complexity `31`.
+- Consequence:
+  - The enforced OpenAPI quality gate is easier to extend and audit without changing the
+    generated API contract or current governance failure messages.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal CI/API-governance maintainability hardening.
+- Follow-Up:
+  - Continue reducing remaining high-complexity governance scripts, then consider stricter script
+    complexity enforcement once current D/E-ranked script hotspots are remediated.
+
 ## LA-REV-856
 
 - Scope: Client-demo assurance gates for API, domain-calculation, observability, and
