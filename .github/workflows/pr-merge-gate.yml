@@ -56,7 +56,14 @@ jobs:
         run: make no-alias-gate
       - name: API Vocabulary Gate
         run: make api-vocabulary-gate
+      - name: Checkout Lotus Platform Contracts
+        uses: actions/checkout@v6
+        with:
+          repository: sgajbi/lotus-platform
+          path: lotus-platform
       - name: Domain Data Products Gate
+        env:
+          LOTUS_PLATFORM_ROOT: ${{ github.workspace }}/lotus-platform
         run: make domain-data-products-gate
       - name: Observability Diagnostics
         run: make observability-diagnostics
