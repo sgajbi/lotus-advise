@@ -3,12 +3,13 @@ from decimal import Decimal
 from src.core.common.simulation_shared import (
     apply_fx_spot_to_portfolio,
     apply_security_trade_to_portfolio,
+    derive_status_from_rules,
 )
-from src.core.models import FxSpotIntent, Money, SecurityTradeIntent
+from src.core.models import FxSpotIntent, Money, RuleResult, SecurityTradeIntent
 from tests.shared.factories import cash, portfolio_snapshot, position
 
 
-def test_apply_security_trade_updates_position_and_cash_for_buy_and_sell():
+def test_apply_security_trade_updates_position_and_cash_for_buy_and_sell() -> None:
     portfolio = portfolio_snapshot(
         portfolio_id="pf_apply_trade",
         base_currency="USD",
@@ -43,7 +44,7 @@ def test_apply_security_trade_updates_position_and_cash_for_buy_and_sell():
     assert usd_cash.amount == Decimal("900")
 
 
-def test_apply_security_trade_ignores_incomplete_intent():
+def test_apply_security_trade_ignores_incomplete_intent() -> None:
     portfolio = portfolio_snapshot(
         portfolio_id="pf_incomplete_trade",
         base_currency="USD",
@@ -68,7 +69,7 @@ def test_apply_security_trade_ignores_incomplete_intent():
     assert usd_cash.amount == Decimal("1000")
 
 
-def test_apply_fx_spot_ignores_non_fx_intent_and_updates_only_for_fx_spot():
+def test_apply_fx_spot_ignores_non_fx_intent_and_updates_only_for_fx_spot() -> None:
     portfolio = portfolio_snapshot(
         portfolio_id="pf_fx_apply",
         base_currency="USD",
@@ -104,3 +105,50 @@ def test_apply_fx_spot_ignores_non_fx_intent_and_updates_only_for_fx_spot():
     sgd_cash = next(c for c in portfolio.cash_balances if c.currency == "SGD")
     assert usd_cash.amount == Decimal("900")
     assert sgd_cash.amount == Decimal("135")
+
+
+def _rule(*, severity: str, status: str) -> RuleResult:
+    return RuleResult(
+        rule_id=f"{severity}_{status}",
+        severity=severity,
+        status=status,
+        measured=Decimal("0"),
+        threshold={},
+        reason_code=f"{severity}_{status}",
+    )
+
+
+def test_derive_status_from_rules_blocks_when_any_hard_rule_fails() -> None:
+    status = derive_status_from_rules(
+        [
+            _rule(severity="SOFT", status="FAIL"),
+            _rule(severity="HARD", status="FAIL"),
+            _rule(severity="INFO", status="FAIL"),
+        ]
+    )
+
+    assert status == "BLOCKED"
+
+
+def test_derive_status_from_rules_requires_review_for_soft_fail_without_hard_fail() -> None:
+    status = derive_status_from_rules(
+        [
+            _rule(severity="HARD", status="PASS"),
+            _rule(severity="SOFT", status="FAIL"),
+            _rule(severity="INFO", status="FAIL"),
+        ]
+    )
+
+    assert status == "PENDING_REVIEW"
+
+
+def test_derive_status_from_rules_ready_when_no_hard_or_soft_rule_fails() -> None:
+    status = derive_status_from_rules(
+        [
+            _rule(severity="HARD", status="PASS"),
+            _rule(severity="SOFT", status="PASS"),
+            _rule(severity="INFO", status="FAIL"),
+        ]
+    )
+
+    assert status == "READY"

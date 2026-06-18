@@ -1219,7 +1219,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-852` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-853` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1257,6 +1257,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "advisory trade-intent construction, advisory cash-flow intent planning, "
             "advisory security-trade intent planning, "
             "advisory simulation review, "
+            "shared simulation status derivation, "
             "advisory proposal authority orchestration, "
             "advisory reduce-concentration strategy, "
             "proposal async operation runner, "

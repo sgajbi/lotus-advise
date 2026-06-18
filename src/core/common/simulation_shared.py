@@ -86,15 +86,18 @@ def sort_execution_intents(intents: list[ProposalOrderIntent]) -> list[ProposalO
 def derive_status_from_rules(
     rule_results: list[RuleResult],
 ) -> Literal["READY", "BLOCKED", "PENDING_REVIEW"]:
-    has_hard_fail = any(rule.severity == "HARD" and rule.status == "FAIL" for rule in rule_results)
-    if has_hard_fail:
+    if _has_failed_rule_with_severity(rule_results, "HARD"):
         return "BLOCKED"
-
-    has_soft_fail = any(rule.severity == "SOFT" and rule.status == "FAIL" for rule in rule_results)
-    if has_soft_fail:
+    if _has_failed_rule_with_severity(rule_results, "SOFT"):
         return "PENDING_REVIEW"
-
     return "READY"
+
+
+def _has_failed_rule_with_severity(
+    rule_results: list[RuleResult],
+    severity: Literal["HARD", "SOFT"],
+) -> bool:
+    return any(rule.severity == severity and rule.status == "FAIL" for rule in rule_results)
 
 
 def build_reconciliation(
