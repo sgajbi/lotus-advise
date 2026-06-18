@@ -312,6 +312,10 @@ def test_build_candidate_plan_rejects_when_only_preserved_holdings_remain_sellab
     assert result.seeds == ()
     assert len(result.rejected_candidates) == 1
     assert result.rejected_candidates[0].reason_code == "ALTERNATIVE_NO_SELLABLE_HOLDING"
+    assert result.rejected_candidates[0].failed_constraints == [
+        "preserve_holdings",
+        "do_not_sell",
+    ]
 
 
 def test_build_candidate_plan_rejects_currency_alignment_when_fx_not_allowed():
@@ -383,6 +387,10 @@ def test_build_candidate_plan_rejects_reduce_concentration_without_approved_repl
 
     assert result.seeds == ()
     assert result.rejected_candidates[0].reason_code == "ALTERNATIVE_NO_APPROVED_REPLACEMENT"
+    assert result.rejected_candidates[0].failed_constraints == [
+        "restricted_instruments",
+        "do_not_buy",
+    ]
 
 
 def test_build_candidate_plan_rejects_reduce_concentration_when_position_too_small():
