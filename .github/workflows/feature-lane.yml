@@ -54,6 +54,12 @@ jobs:
         run: make no-alias-gate
       - name: API Vocabulary Gate
         run: make api-vocabulary-gate
+      - name: Domain Data Products Gate
+        run: make domain-data-products-gate
+      - name: Observability Diagnostics
+        run: make observability-diagnostics
+      - name: Advisory Domain Golden Regressions
+        run: make advisory-domain-golden-regressions
       - name: Quality Baseline Freshness
         run: make quality-baseline-check
       - name: Migration Smoke

@@ -1,4 +1,4 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate observability-diagnostics format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate observability-diagnostics advisory-domain-golden-regressions demo-assurance-gate format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
 install: install-ci
 	python -m pre_commit install
@@ -114,6 +114,12 @@ complexity-regression-gate:
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q
+
+advisory-domain-golden-regressions:
+	python -m pytest tests/unit/advisory/golden -q
+
+demo-assurance-gate: openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate observability-diagnostics advisory-domain-golden-regressions
+	@echo "Demo assurance gate passed"
 
 format:
 	python -m ruff format .

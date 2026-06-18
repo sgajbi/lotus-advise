@@ -30,6 +30,9 @@ def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -
                 "\tpython -m mypy --config-file mypy.ini",
                 "quality-baseline:",
                 "\tpython scripts/quality_baseline_report.py --output-dir quality",
+                "demo-assurance-gate: openapi-gate domain-data-products-gate "
+                "observability-diagnostics advisory-domain-golden-regressions",
+                '\t@echo "Demo assurance gate passed"',
             ]
         ),
         encoding="utf-8",
@@ -45,6 +48,7 @@ def test_engineering_health_report_captures_structural_metrics(tmp_path: Path) -
     assert report.router_hotspots[0].route_decorator_count == 1
     assert any(gate.make_target == "lint" for gate in report.gate_inventory)
     assert any(gate.make_target == "quality-baseline" for gate in report.gate_inventory)
+    assert any(gate.make_target == "demo-assurance-gate" for gate in report.gate_inventory)
     assert "- Branch:" not in markdown
     assert "- Head:" not in markdown
     assert "Git Identity: omitted from committed Markdown" in markdown
