@@ -252,6 +252,9 @@
 - OpenAPI quality gate evaluation delegates operation iteration, endpoint
   documentation checks, schema-field metadata checks, and duplicate operation ID
   detection to focused helpers.
+- API vocabulary inventory generation delegates OpenAPI operation traversal,
+  schema-field extraction, fallback example policy, endpoint projection,
+  attribute observation merging, and validation rule families to focused helpers.
 - OpenAPI example repair delegates array, object-property, required-field,
   existing-field, and additional-property repair paths to focused helpers.
 - OpenAPI example repair now delegates `$ref` and composite schema resolution,
@@ -386,6 +389,8 @@
 - Engineering-health and quality-baseline reporting now provide repeatable evidence.
 - CI workflow quality contracts now enforce committed quality-baseline freshness in
   Feature Lane, PR Merge Gate, and Main Releasability static governance jobs.
+- PR auto-merge queue verification now checks protected main-branch metadata through
+  a workflow-token-readable endpoint before enabling merge-commit auto-merge.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
 

@@ -22,20 +22,24 @@ jobs:
       cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
-      - name: Verify branch protection exists
+      - name: Verify main branch is protected
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/branches/main/protection" > /tmp/branch-protection.json
+          gh api "repos/$GITHUB_REPOSITORY/branches/main" > /tmp/main-branch.json
           python - <<'PY'
           import json
           from pathlib import Path
-          payload = json.loads(Path("/tmp/branch-protection.json").read_text())
-          checks = payload.get("required_status_checks") or {}
-          contexts = checks.get("contexts") or []
-          if not contexts:
-              raise SystemExit("main branch must have required status checks before auto-merge can be queued")
-          print("Protected branch contexts:", ", ".join(contexts))
+          payload = json.loads(Path("/tmp/main-branch.json").read_text())
+          if payload.get("protected") is not True:
+              raise SystemExit("main branch must be protected before auto-merge can be queued")
+          protection = payload.get("protection") or {}
+          required_checks = (protection.get("required_status_checks") or {}).get("contexts") or []
+          if not required_checks:
+              raise SystemExit(
+                  "main branch must require status checks before auto-merge can be queued"
+              )
+          print(f"main branch protection requires {len(required_checks)} status checks")
           PY
       - name: Enable auto-merge queue (merge commit)
         env:

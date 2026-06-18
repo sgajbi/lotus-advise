@@ -1,5 +1,79 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-860
+
+- Scope: PR auto-merge queue branch-protection verification
+- Pattern: CI automation should verify merge-safety prerequisites with permissions available to
+  the workflow token, and workflow contract tests should pin that behavior so warning/failure loops
+  do not block otherwise green PRs.
+- Status: Hardened
+- Finding Class: CI reliability, workflow security, merge hygiene
+- Summary: `.github/workflows/pr-auto-merge.yml` attempted to read
+  `repos/$GITHUB_REPOSITORY/branches/main/protection` from `pull_request_target` using
+  `GITHUB_TOKEN`, which GitHub rejected with `403 Resource not accessible by integration` after
+  the `automerge` label was applied. The queue now verifies the public branch metadata reports
+  `main.protected == true` and includes required status-check contexts before enabling
+  merge-commit auto-merge, preserving the internal, labeled, non-fork guard without requiring
+  unavailable administration-scope access.
+- Evidence:
+  - GitHub PR auto-merge run `27775910442` reproduced the old workflow failure with
+    `403 Resource not accessible by integration` before this workflow fix could be active on
+    `main`.
+  - Codex review follow-up fixed nullable OpenAPI 3.1 schema fallback behavior for union `type`
+    lists and leading-null enum examples before merge.
+  - Codex review follow-up retained required-status-check validation through the
+    workflow-token-readable branch metadata endpoint before merge.
+  - `python -m pytest tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/test_ci_workflow_contracts.py -q` passed with 11 tests.
+  - `python -m ruff check scripts/api_vocabulary_inventory.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/test_ci_workflow_contracts.py` passed.
+  - `python -m ruff format --check scripts/api_vocabulary_inventory.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/test_ci_workflow_contracts.py` passed.
+  - `python scripts/api_vocabulary_inventory.py --validate-only` passed with no inventory drift.
+  - `python -m pytest tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/scripts/test_quality_baseline_report.py -q` passed with 14 tests.
+  - `python -m ruff check tests/unit/test_ci_workflow_contracts.py` passed.
+  - `python -m ruff format --check tests/unit/test_ci_workflow_contracts.py` passed.
+- Consequence:
+  - The PR auto-merge queue can run under least-privilege workflow permissions while still refusing
+    to queue auto-merge unless `main` is protected and required status checks are configured.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal CI workflow hardening.
+- Follow-Up:
+  - Continue remediating CI warnings and required-check friction when evidence shows workflow
+    behavior is blocking healthy branches.
+
+## LA-REV-859
+
+- Scope: API vocabulary inventory complexity and behavior coverage
+- Pattern: Enforced API vocabulary and data-mesh inventory scripts should separate OpenAPI
+  traversal, schema-field extraction, fallback example policy, attribute catalog aggregation, and
+  validation rules so contract drift checks remain auditable as API surface grows.
+- Status: Hardened
+- Finding Class: API governance maintainability, data-mesh vocabulary evidence, behavior
+  preservation
+- Summary: `scripts/api_vocabulary_inventory.py` carried four C-ranked blocks across inventory
+  assembly, inventory validation, fallback example selection, and recursive schema-field
+  extraction. The script now delegates fallback example selection, nested schema traversal,
+  endpoint projection, attribute observation merging, OpenAPI source metadata projection, and
+  validation rule families to focused helpers while preserving generated inventory shape and
+  validation error posture.
+- Evidence:
+  - `python -m pytest tests/unit/scripts/test_api_vocabulary_inventory.py -q` passed with 3 tests.
+  - `python -m ruff check scripts/api_vocabulary_inventory.py tests/unit/scripts/test_api_vocabulary_inventory.py` passed.
+  - `python -m ruff format --check scripts/api_vocabulary_inventory.py tests/unit/scripts/test_api_vocabulary_inventory.py` passed.
+  - `python scripts/api_vocabulary_inventory.py --validate-only` passed with no inventory drift.
+  - `python -m radon cc scripts/api_vocabulary_inventory.py -s` reports `build_inventory` as A-ranked
+    complexity `2`, `validate_inventory` as A-ranked complexity `1`, `_fallback_example` as
+    A-ranked complexity `4`, and `_extract_fields` as A-ranked complexity `4`, down from C-ranked
+    complexities `14`, `14`, `12`, and `11`.
+- Consequence:
+  - API vocabulary inventory generation remains behavior-preserving while the data-mesh/API
+    governance gate is easier to review, test, and extend without accidental metadata duplication.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API-governance maintainability hardening.
+- Follow-Up:
+  - Continue reducing remaining governance and live-validation script hotspots, prioritizing
+    checks that strengthen API, observability, domain-behavior, and data-product evidence.
+
 ## LA-REV-858
 
 - Scope: Live proposal alternatives snapshot extraction complexity

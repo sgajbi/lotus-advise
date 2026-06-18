@@ -165,7 +165,12 @@ def test_pull_request_target_auto_merge_is_guarded_to_internal_labeled_prs() -> 
     assert "github.event.pull_request.base.ref == 'main'" in auto_merge_section
     assert "github.event.pull_request.head.repo.fork == false" in auto_merge_section
     assert "contains(github.event.pull_request.labels.*.name, 'automerge')" in auto_merge_section
-    assert 'gh api "repos/$GITHUB_REPOSITORY/branches/main/protection"' in auto_merge_section
+    assert 'gh api "repos/$GITHUB_REPOSITORY/branches/main"' in auto_merge_section
+    assert 'payload.get("protected") is not True' in auto_merge_section
+    assert 'protection.get("required_status_checks")' in auto_merge_section
+    assert "main branch must require status checks before auto-merge can be queued" in (
+        auto_merge_section
+    )
     assert 'gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --merge' in (
         auto_merge_section
     )
