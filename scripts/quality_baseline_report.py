@@ -708,6 +708,9 @@ def render_baseline_report(context: QualityContext) -> str:
             "- Observability diagnostics target: `make observability-diagnostics`",
             "- Focused diagnostics currently verify correlation, request, trace,",
             "  and structured-log propagation.",
+            "- Demo assurance gate: `make demo-assurance-gate` ties API governance,",
+            "  domain golden regressions, observability diagnostics, and domain-data",
+            "  product validation into a repeatable local evidence command.",
             "- Dashboard, alert, SLO, and distributed-tracing evidence remain tracked gaps.",
             "",
         ]
@@ -1193,6 +1196,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Diagnostics target added",
             "make observability-diagnostics",
         ),
+        (
+            "Demo assurance",
+            "API/domain/observability/data-mesh gate added",
+            "make demo-assurance-gate + Feature Lane, PR Merge Gate, and Main Releasability checks",
+        ),
     ]
     lines = [
         "# Lotus Advise Quality Scorecard",
@@ -1280,9 +1288,9 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "`make quality-baseline-check` now runs in `make check`, `make ci`, "
             "`make ci-local`, Feature Lane, PR Merge Gate, and Main Releasability "
             "static governance jobs; workflow contract tests protect local CI target "
-            "freshness, parallel runtime jobs, least-privilege permissions, concurrency, "
-            "coverage artifact handling, pull-request-target auto-merge guards, and the "
-            "baseline freshness step.",
+            "freshness, demo-assurance checks, parallel runtime jobs, least-privilege "
+            "permissions, concurrency, coverage artifact handling, pull-request-target "
+            "auto-merge guards, and the baseline freshness step.",
             "Quality evidence freshness is now enforced before merge and after merge, not only "
             "during local `make check`.",
         ),

@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-856
+
+- Scope: Client-demo assurance gates for API, domain-calculation, observability, and
+  domain-data-product evidence
+- Pattern: Demo-critical backend evidence should be runnable through a named local gate and
+  enforced in Feature Lane, PR Merge Gate, and Main Releasability instead of being scattered
+  across separate operator commands.
+- Status: Hardened
+- Finding Class: CI measurement reliability, operational evidence, demo validation
+- Summary: Added `make advisory-domain-golden-regressions` for calculation/domain golden tests
+  and `make demo-assurance-gate` to compose OpenAPI governance, no-alias governance, API
+  vocabulary, domain-data-products validation, observability diagnostics, and advisory golden
+  regressions. The GitHub governance jobs now run domain-data-products validation,
+  observability diagnostics, and advisory golden regressions as explicit named evidence.
+- Evidence:
+  - `make demo-assurance-gate` passed, including OpenAPI/Spectral, no-alias, API vocabulary,
+    domain-data-products, observability diagnostics, and advisory golden regressions.
+  - Focused CI/reporting contract tests passed with 13 tests.
+  - `make quality-baseline-check` passed after regenerating quality reports.
+  - `make check` passed with 2,080 unit tests after lint, typecheck, OpenAPI, no-alias, API
+    vocabulary, domain-data-products, and quality-baseline gates.
+- Consequence:
+  - Client-demo preparation has a repeatable backend assurance command and CI-visible evidence
+    across APIs, domain behavior, observability, and data-mesh declarations without changing
+    advisory business behavior.
+- Documentation:
+  - Review ledger and generated quality baseline updated. No README/wiki source change is
+    required because this is CI/runtime evidence hardening, not new operator-facing product
+    truth.
+- Follow-Up:
+  - Keep live cross-service runtime evidence separate from local/unit assurance; do not claim
+    complete live demo readiness until the live runtime and platform QA gates pass for the demo
+    environment.
+
 ## LA-REV-855
 
 - Scope: Full-suite validation and production-profile guardrail smoke checks

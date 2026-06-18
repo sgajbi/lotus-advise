@@ -17,6 +17,7 @@ DEFAULT_EXCLUDED_DIRS = {
     ".ruff_cache",
     "__pycache__",
     "htmlcov",
+    "lotus-platform",
     "node_modules",
     "output",
 }
@@ -165,6 +166,9 @@ def _gate_inventory(repo_root: Path) -> list[GateInventory]:
         "no-alias-gate",
         "api-vocabulary-gate",
         "domain-data-products-gate",
+        "observability-diagnostics",
+        "advisory-domain-golden-regressions",
+        "demo-assurance-gate",
         "verify-dependencies",
         "security-audit",
         "coverage-combined",

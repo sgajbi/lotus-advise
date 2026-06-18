@@ -78,6 +78,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Interrogate docstring inventory" in baseline
     assert "Observability Gaps" in baseline
     assert "make observability-diagnostics" in baseline
+    assert "make demo-assurance-gate" in baseline
     assert "- Branch:" not in baseline
     assert "- Head:" not in baseline
     assert "Branch Commits Over Main" not in baseline
@@ -97,6 +98,8 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "make lint runs import-linter architecture contracts" in scorecard
     assert "Gap tracked plus Interrogate inventory" in scorecard
     assert "Diagnostics target added" in scorecard
+    assert "Demo assurance" in scorecard
+    assert "API/domain/observability/data-mesh gate added" in scorecard
     assert "Before/After Evidence" in scorecard
     assert "make quality-baseline-check" in scorecard
     assert "does not claim bank" in scorecard
@@ -237,6 +240,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "workspace draft action validation" in scorecard
     assert "CI warning/topology/freshness contracts" in scorecard
     assert "workflow contract tests protect local CI target freshness" in scorecard
+    assert "demo-assurance checks" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
     assert "Review ledger includes `LA-REV-611` through `LA-REV-855`" in scorecard
 

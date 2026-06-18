@@ -46,6 +46,36 @@ def test_local_ci_targets_enforce_quality_baseline_freshness() -> None:
         assert "quality-baseline-check" in _makefile_target_dependencies(makefile, target)
 
 
+def test_demo_assurance_gate_covers_demo_critical_evidence() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    assert _makefile_target_dependencies(makefile, "demo-assurance-gate") == {
+        "openapi-gate",
+        "no-alias-gate",
+        "api-vocabulary-gate",
+        "domain-data-products-gate",
+        "observability-diagnostics",
+        "advisory-domain-golden-regressions",
+    }
+
+
+def _assert_governance_job_runs_demo_assurance_checks(workflow: str, job_id: str) -> None:
+    governance_section = _workflow_job_section(workflow, job_id)
+
+    assert "run: make openapi-gate" in governance_section
+    assert "run: make api-vocabulary-gate" in governance_section
+    assert governance_section.index("Quality Baseline Freshness") < governance_section.index(
+        "Checkout Lotus Platform Contracts"
+    )
+    assert "Checkout Lotus Platform Contracts" in governance_section
+    assert "repository: sgajbi/lotus-platform" in governance_section
+    assert "path: lotus-platform" in governance_section
+    assert "LOTUS_PLATFORM_ROOT: ${{ github.workspace }}/lotus-platform" in governance_section
+    assert "run: make domain-data-products-gate" in governance_section
+    assert "run: make observability-diagnostics" in governance_section
+    assert "run: make advisory-domain-golden-regressions" in governance_section
+
+
 def test_pytest_configuration_has_single_authoritative_file() -> None:
     pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
     pytest_ini = Path("pytest.ini").read_text(encoding="utf-8")
@@ -71,6 +101,7 @@ def test_feature_lane_unit_tests_run_in_parallel_with_static_governance() -> Non
 
     _assert_default_ci_guardrails(workflow)
     _assert_governance_job_runs_baseline_freshness(workflow, "lint-dependency-governance")
+    _assert_governance_job_runs_demo_assurance_checks(workflow, "lint-dependency-governance")
     assert "Feature Lane / Tests (unit)" in unit_section
     assert "needs:" not in unit_section
     assert "Feature Lane / Lint Dependency Governance" in workflow
@@ -85,6 +116,7 @@ def test_pr_and_main_runtime_jobs_are_parallelized_without_renaming_required_che
 
         _assert_default_ci_guardrails(workflow)
         _assert_governance_job_runs_baseline_freshness(workflow, "lint-typecheck-governance")
+        _assert_governance_job_runs_demo_assurance_checks(workflow, "lint-typecheck-governance")
         assert f"{lane_name} / Lint Typecheck Governance" in workflow
         assert f"{lane_name} / Tests (${{{{ matrix.suite }}}})" in workflow
         assert f"{lane_name} / Coverage Gate (Combined)" in workflow

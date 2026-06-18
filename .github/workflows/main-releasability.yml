@@ -58,6 +58,19 @@ jobs:
         run: make api-vocabulary-gate
       - name: Quality Baseline Freshness
         run: make quality-baseline-check
+      - name: Checkout Lotus Platform Contracts
+        uses: actions/checkout@v6
+        with:
+          repository: sgajbi/lotus-platform
+          path: lotus-platform
+      - name: Domain Data Products Gate
+        env:
+          LOTUS_PLATFORM_ROOT: ${{ github.workspace }}/lotus-platform
+        run: make domain-data-products-gate
+      - name: Observability Diagnostics
+        run: make observability-diagnostics
+      - name: Advisory Domain Golden Regressions
+        run: make advisory-domain-golden-regressions
       - name: Migration Smoke
         run: make migration-smoke
       - name: Security Audit
