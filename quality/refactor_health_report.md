@@ -252,6 +252,9 @@
 - OpenAPI quality gate evaluation delegates operation iteration, endpoint
   documentation checks, schema-field metadata checks, and duplicate operation ID
   detection to focused helpers.
+- API vocabulary inventory generation delegates OpenAPI operation traversal,
+  schema-field extraction, fallback example policy, endpoint projection,
+  attribute observation merging, and validation rule families to focused helpers.
 - OpenAPI example repair delegates array, object-property, required-field,
   existing-field, and additional-property repair paths to focused helpers.
 - OpenAPI example repair now delegates `$ref` and composite schema resolution,

@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-859
+
+- Scope: API vocabulary inventory complexity and behavior coverage
+- Pattern: Enforced API vocabulary and data-mesh inventory scripts should separate OpenAPI
+  traversal, schema-field extraction, fallback example policy, attribute catalog aggregation, and
+  validation rules so contract drift checks remain auditable as API surface grows.
+- Status: Hardened
+- Finding Class: API governance maintainability, data-mesh vocabulary evidence, behavior
+  preservation
+- Summary: `scripts/api_vocabulary_inventory.py` carried four C-ranked blocks across inventory
+  assembly, inventory validation, fallback example selection, and recursive schema-field
+  extraction. The script now delegates fallback example selection, nested schema traversal,
+  endpoint projection, attribute observation merging, OpenAPI source metadata projection, and
+  validation rule families to focused helpers while preserving generated inventory shape and
+  validation error posture.
+- Evidence:
+  - `python -m pytest tests/unit/scripts/test_api_vocabulary_inventory.py -q` passed with 3 tests.
+  - `python -m ruff check scripts/api_vocabulary_inventory.py tests/unit/scripts/test_api_vocabulary_inventory.py` passed.
+  - `python -m ruff format --check scripts/api_vocabulary_inventory.py tests/unit/scripts/test_api_vocabulary_inventory.py` passed.
+  - `python scripts/api_vocabulary_inventory.py --validate-only` passed with no inventory drift.
+  - `python -m radon cc scripts/api_vocabulary_inventory.py -s` reports `build_inventory` as A-ranked
+    complexity `2`, `validate_inventory` as A-ranked complexity `1`, `_fallback_example` as
+    A-ranked complexity `4`, and `_extract_fields` as A-ranked complexity `4`, down from C-ranked
+    complexities `14`, `14`, `12`, and `11`.
+- Consequence:
+  - API vocabulary inventory generation remains behavior-preserving while the data-mesh/API
+    governance gate is easier to review, test, and extend without accidental metadata duplication.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal API-governance maintainability hardening.
+- Follow-Up:
+  - Continue reducing remaining governance and live-validation script hotspots, prioritizing
+    checks that strengthen API, observability, domain-behavior, and data-product evidence.
+
 ## LA-REV-858
 
 - Scope: Live proposal alternatives snapshot extraction complexity

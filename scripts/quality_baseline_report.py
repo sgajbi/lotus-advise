@@ -974,6 +974,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- OpenAPI quality gate evaluation delegates operation iteration, endpoint",
         "  documentation checks, schema-field metadata checks, and duplicate operation ID",
         "  detection to focused helpers.",
+        "- API vocabulary inventory generation delegates OpenAPI operation traversal,",
+        "  schema-field extraction, fallback example policy, endpoint projection,",
+        "  attribute observation merging, and validation rule families to focused helpers.",
         "- OpenAPI example repair delegates array, object-property, required-field,",
         "  existing-field, and additional-property repair paths to focused helpers.",
         "- OpenAPI example repair now delegates `$ref` and composite schema resolution,",
@@ -1233,7 +1236,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-858` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-859` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
