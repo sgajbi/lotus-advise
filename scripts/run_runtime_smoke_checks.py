@@ -100,11 +100,16 @@ def _wait_for_http_ready(*, port: int, paths: list[str], timeout_seconds: float 
 
 
 def _assert_guardrail_failure(
-    *, env: dict[str, str], port: int, expected_messages: tuple[str, ...]
+    *,
+    env: dict[str, str],
+    port: int,
+    expected_messages: tuple[str, ...],
+    timeout_seconds: float = 15.0,
 ) -> None:
     process = _start_uvicorn(env=env, port=port)
-    time.sleep(4)
-    if process.poll() is None:
+    try:
+        process.wait(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
         output = _stop_process(process)
         raise RuntimeError(
             "Expected production-profile guardrail startup failure, but API stayed alive.\n"

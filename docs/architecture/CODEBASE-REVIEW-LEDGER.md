@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-855
+
+- Scope: Full-suite validation and production-profile guardrail smoke checks
+- Pattern: Demo and release validation should be able to collect the full test suite in one
+  command and should wait for expected negative-startup processes to exit before classifying them
+  as still alive.
+- Status: Hardened
+- Finding Class: CI measurement reliability, runtime guardrail evidence, demo validation
+- Summary: `make test-all-parallel` could not collect the full suite because the unit and e2e
+  live runtime tests shared the same module basename. The e2e file now has a unique test module
+  name. The production-profile guardrail negative smoke also used a fixed sleep before checking
+  process state, which could misclassify a valid startup guardrail failure as a live service. The
+  smoke checker now waits for process termination with a timeout before validating the expected
+  guardrail message.
+- Evidence:
+  - `make test-all-parallel` passed with 2143 tests passed, 3 live-runtime tests skipped, and
+    98.05% coverage after the e2e test module rename.
+  - `python -m pytest tests/unit/scripts/test_run_runtime_smoke_checks.py -q` passed with 5 tests.
+  - `make production-profile-guardrail-negatives-local` passed after the guardrail wait fix.
+- Consequence:
+  - Local demo validation can run a combined full-suite gate, and production-profile negative
+    startup evidence is less race-prone on local Windows execution.
+- Documentation:
+  - Review ledger and generated quality baseline updated. No README/wiki source change is
+    required because this is CI/runtime-smoke measurement hardening.
+- Follow-Up:
+  - Run platform QA with live service bring-up before claiming live API, metrics, logs, tracing,
+    and cross-service data-mesh behavior for a client demo.
+
 ## LA-REV-854
 
 - Scope: Advisory proposal decision status derivation

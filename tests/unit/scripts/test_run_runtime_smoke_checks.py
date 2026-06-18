@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import io
+import subprocess
+
 import pytest
 
 from scripts import run_runtime_smoke_checks
@@ -74,3 +77,62 @@ def test_postgres_runtime_contracts_always_tears_down(monkeypatch: pytest.Monkey
         "postgres-migration-smoke",
         "down -v --remove-orphans",
     ]
+
+
+class _GuardrailProcess:
+    def __init__(self, output: str, *, exits: bool = True) -> None:
+        self.stdout = io.StringIO(output)
+        self._exits = exits
+        self.stopped = False
+
+    def wait(self, timeout: float | None = None) -> int:
+        if not self._exits and not self.stopped:
+            raise subprocess.TimeoutExpired(cmd="uvicorn", timeout=timeout)
+        return 1
+
+    def terminate(self) -> None:
+        self.stopped = True
+
+    def kill(self) -> None:
+        self.stopped = True
+
+
+def test_guardrail_failure_waits_for_startup_exit_before_reading_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    process = _GuardrailProcess("RuntimeError: PROPOSAL_STORE_BACKEND_UNSUPPORTED")
+    monkeypatch.setattr(
+        run_runtime_smoke_checks,
+        "_start_uvicorn",
+        lambda *, env, port: process,
+    )
+
+    run_runtime_smoke_checks._assert_guardrail_failure(
+        env={},
+        port=8004,
+        expected_messages=("PROPOSAL_STORE_BACKEND_UNSUPPORTED",),
+        timeout_seconds=0.1,
+    )
+
+    assert process.stopped is False
+
+
+def test_guardrail_failure_rejects_process_that_stays_alive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    process = _GuardrailProcess("", exits=False)
+    monkeypatch.setattr(
+        run_runtime_smoke_checks,
+        "_start_uvicorn",
+        lambda *, env, port: process,
+    )
+
+    with pytest.raises(RuntimeError, match="API stayed alive"):
+        run_runtime_smoke_checks._assert_guardrail_failure(
+            env={},
+            port=8004,
+            expected_messages=("PROPOSAL_STORE_BACKEND_UNSUPPORTED",),
+            timeout_seconds=0.1,
+        )
+
+    assert process.stopped is True
