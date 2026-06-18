@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-853
+
+- Scope: Shared simulation status derivation
+- Pattern: Simulation result status precedence should expose hard-fail and soft-fail rule
+  detection as a named concern rather than carrying severity/status predicate branching inside the
+  public status derivation function.
+- Status: Hardened
+- Finding Class: Complexity, shared simulation maintainability, behavior preservation
+- Summary: `src/core/common/simulation_shared.py` carried B-ranked branching in
+  `derive_status_from_rules`, mixing hard-fail blocking precedence and soft-fail review
+  precedence in inline generator predicates. The derivation now delegates severity-specific failed
+  rule detection to a focused helper while preserving the existing `BLOCKED`, `PENDING_REVIEW`,
+  and `READY` precedence.
+- Evidence:
+  - `python -m pytest tests/unit/shared/test_simulation_shared.py -q` passed with 6 tests.
+  - `python -m ruff check src/core/common/simulation_shared.py tests/unit/shared/test_simulation_shared.py`
+    passed.
+  - `python -m ruff format --check src/core/common/simulation_shared.py tests/unit/shared/test_simulation_shared.py`
+    passed.
+  - `python -m mypy --config-file mypy.ini src/core/common/simulation_shared.py tests/unit/shared/test_simulation_shared.py`
+    passed.
+  - `python -m radon cc -s src/core/common/simulation_shared.py` reports
+    `derive_status_from_rules` improved from B/7 to A/3; the new failed-rule helper is A-ranked.
+- Consequence:
+  - Shared advisory simulation status precedence is easier to audit and directly covered for hard
+    failure, soft failure, and informational-failure behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is an internal shared simulation maintainability refactor.
+- Follow-Up:
+  - Continue reducing B-ranked shared proposal and integration hotspots with focused
+    behavior-preserving tests.
+
 ## LA-REV-852
 
 - Scope: Reduce-concentration proposal alternatives strategy
