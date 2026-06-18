@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-18T15:56:03.643197+00:00`
+- Generated At: `2026-06-18T16:17:37.961650+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `944`
 - Packages: `38`
 - Modules: `906`
-- Total Python lines: `151042`
+- Total Python lines: `151165`
 
 ## Largest Files
 
@@ -24,7 +24,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1667 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1431 |
+| 9 | `scripts/quality_baseline_report.py` | 1434 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1250 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -32,7 +32,7 @@
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
-| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 721 | 412 |
+| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 721 | 415 |
 | 3 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
 | 4 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 5 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
@@ -40,7 +40,7 @@
 | 7 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
 | 8 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 13 | 233 |
 | 9 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
-| 10 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1135 | 229 |
+| 10 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1138 | 229 |
 
 ## Complexity
 
@@ -69,8 +69,8 @@
 ## Dead Code
 
 - Vulture config executable: `True`
-- Vulture current issue inventory: `142`
-- Vulture confidence inventory: `100%=135, 90%=7`
+- Vulture current issue inventory: `141`
+- Vulture confidence inventory: `100%=135, 90%=6`
 - Vulture remains report-only until validator false positives and compatibility
   facade imports are classified.
 - Current dead-code cleanup remains code-led through review-ledger slices.
@@ -119,7 +119,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4269, missing=4234, covered=35, coverage=0.8%`
+- Interrogate docstring inventory: `total=4277, missing=4242, covered=35, coverage=0.8%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

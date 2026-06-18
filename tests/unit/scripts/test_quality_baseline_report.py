@@ -242,7 +242,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "workflow contract tests protect local CI target freshness" in scorecard
     assert "demo-assurance checks" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-855`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-858`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
