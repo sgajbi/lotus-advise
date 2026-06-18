@@ -4,6 +4,7 @@ import json
 import re
 import sys
 from argparse import ArgumentParser
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,17 @@ PLACEHOLDER_EXAMPLES = {
 LEGACY_TERM_MAP: dict[str, str] = {
     "cif_id": "client_id",
     "booking_center": "booking_center_code",
+}
+FORMAT_FALLBACK_EXAMPLES: dict[str, Any] = {
+    "date": "2026-02-20",
+    "date-time": "2026-02-20T00:00:00Z",
+}
+TYPE_FALLBACK_EXAMPLES: dict[str, Any] = {
+    "boolean": True,
+    "integer": 1,
+    "number": 0.1,
+    "array": ["STANDARD_ITEM"],
+    "object": {"key": "sample_text"},
 }
 
 
@@ -72,30 +84,31 @@ def _fallback_description(name: str) -> str:
 
 def _fallback_example(name: str, schema: dict[str, Any]) -> Any:
     canonical = _canonical_term(name)
-    schema_type = schema.get("type")
-    schema_format = schema.get("format")
+    enum_example = _first_enum_example(schema)
+    if enum_example is not None:
+        return enum_example
+    format_example = FORMAT_FALLBACK_EXAMPLES.get(str(schema.get("format", "")))
+    if format_example is not None:
+        return format_example
+    name_example = _name_based_fallback_example(canonical)
+    if name_example is not None:
+        return name_example
+    return TYPE_FALLBACK_EXAMPLES.get(schema.get("type"), "STANDARD_TEXT")
+
+
+def _first_enum_example(schema: dict[str, Any]) -> Any | None:
     enum_values = schema.get("enum")
     if isinstance(enum_values, list) and enum_values:
         return enum_values[0]
-    if schema_format == "date":
-        return "2026-02-20"
-    if schema_format == "date-time":
-        return "2026-02-20T00:00:00Z"
+    return None
+
+
+def _name_based_fallback_example(canonical: str) -> Any | None:
     if canonical.endswith("_id"):
         return "ENTITY_001"
     if canonical.endswith("_date"):
         return "2026-02-20"
-    if schema_type == "boolean":
-        return True
-    if schema_type == "integer":
-        return 1
-    if schema_type == "number":
-        return 0.1
-    if schema_type == "array":
-        return ["STANDARD_ITEM"]
-    if schema_type == "object":
-        return {"key": "sample_text"}
-    return "STANDARD_TEXT"
+    return None
 
 
 def _extract_fields(
@@ -106,55 +119,79 @@ def _extract_fields(
     location: str = "body",
 ) -> list[dict[str, Any]]:
     resolved = _resolve_schema(schema, components)
-    properties = resolved.get("properties", {})
-    required = set(resolved.get("required", []))
-    if not isinstance(properties, dict):
-        return []
-
     fields: list[dict[str, Any]] = []
-    for prop_name, prop_schema in properties.items():
-        if not isinstance(prop_schema, dict):
-            continue
+    for prop_name, prop_schema, required in _iter_schema_properties(resolved):
         prop_resolved = _resolve_schema(prop_schema, components)
         field_name = f"{prefix}.{prop_name}" if prefix else prop_name
-        field = {
-            "name": field_name,
-            "location": location,
-            "required": prop_name in required,
-            "type": _schema_type(prop_schema),
-            "semanticId": _semantic_id(prop_name),
-            "attributeRef": f"#/attributeCatalog/{_semantic_id(prop_name)}",
-            "description": prop_resolved.get("description") or _fallback_description(field_name),
-            "example": (
-                prop_resolved.get("example")
-                if prop_resolved.get("example") is not None
-                else _fallback_example(field_name, prop_resolved)
-            ),
-        }
-        fields.append(field)
-
-        nested_type = prop_resolved.get("type")
-        if nested_type == "object" or "$ref" in prop_schema:
+        fields.append(
+            _field_metadata(prop_name, prop_schema, prop_resolved, field_name, location, required)
+        )
+        for nested_schema, nested_prefix in _iter_nested_field_schemas(
+            prop_schema, prop_resolved, field_name
+        ):
             fields.extend(
                 _extract_fields(
-                    prop_schema,
+                    nested_schema,
                     components=components,
-                    prefix=field_name,
+                    prefix=nested_prefix,
                     location=location,
                 )
             )
-        elif nested_type == "array":
-            item_schema = prop_resolved.get("items")
-            if isinstance(item_schema, dict):
-                fields.extend(
-                    _extract_fields(
-                        item_schema,
-                        components=components,
-                        prefix=f"{field_name}[]",
-                        location=location,
-                    )
-                )
     return fields
+
+
+def _iter_schema_properties(
+    resolved_schema: dict[str, Any],
+) -> Iterator[tuple[str, dict[str, Any], bool]]:
+    properties = resolved_schema.get("properties", {})
+    required = set(resolved_schema.get("required", []))
+    if not isinstance(properties, dict):
+        return
+    for prop_name, prop_schema in properties.items():
+        if isinstance(prop_schema, dict):
+            yield prop_name, prop_schema, prop_name in required
+
+
+def _field_metadata(
+    prop_name: str,
+    prop_schema: dict[str, Any],
+    prop_resolved: dict[str, Any],
+    field_name: str,
+    location: str,
+    required: bool,
+) -> dict[str, Any]:
+    semantic_id = _semantic_id(prop_name)
+    return {
+        "name": field_name,
+        "location": location,
+        "required": required,
+        "type": _schema_type(prop_schema),
+        "semanticId": semantic_id,
+        "attributeRef": f"#/attributeCatalog/{semantic_id}",
+        "description": prop_resolved.get("description") or _fallback_description(field_name),
+        "example": _field_example(field_name, prop_resolved),
+    }
+
+
+def _field_example(field_name: str, resolved_schema: dict[str, Any]) -> Any:
+    example = resolved_schema.get("example")
+    return example if example is not None else _fallback_example(field_name, resolved_schema)
+
+
+def _iter_nested_field_schemas(
+    prop_schema: dict[str, Any],
+    prop_resolved: dict[str, Any],
+    field_name: str,
+) -> Iterator[tuple[dict[str, Any], str]]:
+    nested_type = prop_resolved.get("type")
+    if nested_type == "object" or "$ref" in prop_schema:
+        yield prop_schema, field_name
+        return
+    if nested_type != "array":
+        return
+    item_schema = prop_resolved.get("items")
+    if isinstance(item_schema, dict):
+        yield item_schema, f"{field_name}[]"
 
 
 def _extract_request_fields(
@@ -245,91 +282,103 @@ def build_inventory() -> dict[str, Any]:
     endpoints: list[dict[str, Any]] = []
     controls_catalog: list[dict[str, Any]] = []
 
-    for path, methods in schema.get("paths", {}).items():
-        if not isinstance(methods, dict):
-            continue
-        for method, operation in methods.items():
-            if method.lower() not in ALLOWED_METHODS or not isinstance(operation, dict):
-                continue
-
-            request_fields, controls = _extract_request_fields(operation, components)
-            response_fields = _extract_response_fields(operation, components)
-            all_fields = request_fields + response_fields
-
-            for field in all_fields:
-                semantic_id = field["semanticId"]
-                canonical = _canonical_term(field["name"])
-                if semantic_id not in attribute_catalog_map:
-                    attribute_catalog_map[semantic_id] = {
-                        "semanticId": semantic_id,
-                        "canonicalTerm": canonical,
-                        "preferredName": canonical,
-                        "description": field.get("description")
-                        or _fallback_description(field["name"]),
-                        "example": field.get("example"),
-                        "type": field.get("type", "string"),
-                        "locations": [field.get("location", "body")],
-                        "observedTypes": [field.get("type", "string")],
-                    }
-                else:
-                    item = attribute_catalog_map[semantic_id]
-                    location = field.get("location", "body")
-                    observed_type = field.get("type", "string")
-                    if location not in item["locations"]:
-                        item["locations"].append(location)
-                    if observed_type not in item["observedTypes"]:
-                        item["observedTypes"].append(observed_type)
-
-            endpoint_request_fields = [
-                {
-                    "name": field["name"],
-                    "location": field["location"],
-                    "required": field["required"],
-                    "type": field["type"],
-                    "semanticId": field["semanticId"],
-                    "attributeRef": field["attributeRef"],
-                }
-                for field in request_fields
-            ]
-            endpoint_response_fields = [
-                {
-                    "name": field["name"],
-                    "location": field["location"],
-                    "required": field["required"],
-                    "type": field["type"],
-                    "semanticId": field["semanticId"],
-                    "attributeRef": field["attributeRef"],
-                }
-                for field in response_fields
-            ]
-
-            endpoints.append(
-                {
-                    "domain": _domain(path, operation.get("tags", [])),
-                    "method": method.upper(),
-                    "path": path,
-                    "operationId": operation.get("operationId"),
-                    "summary": operation.get("summary") or "",
-                    "request": {"fields": endpoint_request_fields},
-                    "response": {"fields": endpoint_response_fields},
-                }
-            )
-            controls_catalog.extend(controls)
+    for path, method, operation in _iter_openapi_operations(schema):
+        request_fields, controls = _extract_request_fields(operation, components)
+        response_fields = _extract_response_fields(operation, components)
+        _record_attribute_fields(attribute_catalog_map, [*request_fields, *response_fields])
+        endpoints.append(_endpoint_record(path, method, operation, request_fields, response_fields))
+        controls_catalog.extend(controls)
 
     return {
         "specVersion": "1.0.0",
         "application": "lotus-advise",
-        "sourceOpenApi": [
-            {
-                "service": "lotus-advise",
-                "version": schema.get("info", {}).get("version", "0.1.0"),
-                "openApiVersion": schema.get("openapi", "3.1.0"),
-            }
-        ],
+        "sourceOpenApi": [_source_openapi_metadata(schema)],
         "generatedAt": datetime.now(UTC).isoformat(),
         "attributeCatalog": sorted(attribute_catalog_map.values(), key=lambda x: x["semanticId"]),
         "controlsCatalog": controls_catalog,
         "endpoints": endpoints,
+    }
+
+
+def _iter_openapi_operations(schema: dict[str, Any]) -> Iterator[tuple[str, str, dict[str, Any]]]:
+    for path, methods in schema.get("paths", {}).items():
+        if not isinstance(methods, dict):
+            continue
+        for method, operation in methods.items():
+            if method.lower() in ALLOWED_METHODS and isinstance(operation, dict):
+                yield path, method, operation
+
+
+def _record_attribute_fields(
+    attribute_catalog_map: dict[str, dict[str, Any]],
+    fields: list[dict[str, Any]],
+) -> None:
+    for field in fields:
+        semantic_id = field["semanticId"]
+        if semantic_id not in attribute_catalog_map:
+            attribute_catalog_map[semantic_id] = _attribute_catalog_entry(field)
+        else:
+            _merge_attribute_observation(attribute_catalog_map[semantic_id], field)
+
+
+def _attribute_catalog_entry(field: dict[str, Any]) -> dict[str, Any]:
+    canonical = _canonical_term(field["name"])
+    field_type = field.get("type", "string")
+    return {
+        "semanticId": field["semanticId"],
+        "canonicalTerm": canonical,
+        "preferredName": canonical,
+        "description": field.get("description") or _fallback_description(field["name"]),
+        "example": field.get("example"),
+        "type": field_type,
+        "locations": [field.get("location", "body")],
+        "observedTypes": [field_type],
+    }
+
+
+def _merge_attribute_observation(item: dict[str, Any], field: dict[str, Any]) -> None:
+    location = field.get("location", "body")
+    observed_type = field.get("type", "string")
+    if location not in item["locations"]:
+        item["locations"].append(location)
+    if observed_type not in item["observedTypes"]:
+        item["observedTypes"].append(observed_type)
+
+
+def _endpoint_record(
+    path: str,
+    method: str,
+    operation: dict[str, Any],
+    request_fields: list[dict[str, Any]],
+    response_fields: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "domain": _domain(path, operation.get("tags", [])),
+        "method": method.upper(),
+        "path": path,
+        "operationId": operation.get("operationId"),
+        "summary": operation.get("summary") or "",
+        "request": {"fields": [_endpoint_field_ref(field) for field in request_fields]},
+        "response": {"fields": [_endpoint_field_ref(field) for field in response_fields]},
+    }
+
+
+def _endpoint_field_ref(field: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "name": field["name"],
+        "location": field["location"],
+        "required": field["required"],
+        "type": field["type"],
+        "semanticId": field["semanticId"],
+        "attributeRef": field["attributeRef"],
+    }
+
+
+def _source_openapi_metadata(schema: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "service": "lotus-advise",
+        "version": schema.get("info", {}).get("version", "0.1.0"),
+        "openApiVersion": schema.get("openapi", "3.1.0"),
     }
 
 
@@ -347,50 +396,82 @@ def _is_placeholder_example(value: Any) -> bool:
 
 def validate_inventory(inventory: dict[str, Any]) -> list[str]:
     errors: list[str] = []
+    errors.extend(_validate_attribute_catalog(inventory.get("attributeCatalog", [])))
+    errors.extend(_validate_endpoint_field_refs(inventory.get("endpoints", [])))
+    return errors
 
+
+def _validate_attribute_catalog(attribute_catalog: Any) -> list[str]:
+    errors: list[str] = []
     semantic_ids: set[str] = set()
-    for attr in inventory.get("attributeCatalog", []):
-        semantic_id = str(attr.get("semanticId", ""))
-        canonical = str(attr.get("canonicalTerm", ""))
-        preferred = str(attr.get("preferredName", ""))
-        if not semantic_id:
-            errors.append("attributeCatalog entry missing semanticId")
+    for attr in attribute_catalog:
+        if not isinstance(attr, dict):
+            errors.append("attributeCatalog entry must be an object")
             continue
-        if semantic_id in semantic_ids:
-            errors.append(f"duplicate semanticId: {semantic_id}")
-        semantic_ids.add(semantic_id)
-        if canonical != preferred:
-            errors.append(f"canonicalTerm/preferredName mismatch: {semantic_id}")
-        if not _is_snake_case(canonical):
-            errors.append(f"canonicalTerm must be snake_case: {semantic_id} -> {canonical}")
-        if canonical in LEGACY_TERM_MAP:
+        semantic_id = str(attr.get("semanticId", ""))
+        errors.extend(_validate_attribute_identity(attr, semantic_id, semantic_ids))
+        if semantic_id:
+            semantic_ids.add(semantic_id)
+    return errors
+
+
+def _validate_attribute_identity(
+    attr: dict[str, Any],
+    semantic_id: str,
+    semantic_ids: set[str],
+) -> list[str]:
+    if not semantic_id:
+        return ["attributeCatalog entry missing semanticId"]
+    errors: list[str] = []
+    canonical = str(attr.get("canonicalTerm", ""))
+    preferred = str(attr.get("preferredName", ""))
+    if semantic_id in semantic_ids:
+        errors.append(f"duplicate semanticId: {semantic_id}")
+    if canonical != preferred:
+        errors.append(f"canonicalTerm/preferredName mismatch: {semantic_id}")
+    if not _is_snake_case(canonical):
+        errors.append(f"canonicalTerm must be snake_case: {semantic_id} -> {canonical}")
+    if canonical in LEGACY_TERM_MAP:
+        errors.append(f"legacy term is not allowed: {canonical} (use {LEGACY_TERM_MAP[canonical]})")
+    if _is_placeholder_example(attr.get("example")):
+        errors.append(f"generic placeholder example is not allowed: {semantic_id}")
+    return errors
+
+
+def _validate_endpoint_field_refs(endpoints: Any) -> list[str]:
+    errors: list[str] = []
+    for endpoint in endpoints:
+        if not isinstance(endpoint, dict):
+            errors.append("endpoint entry must be an object")
+            continue
+        for field in _iter_endpoint_fields(endpoint):
+            errors.extend(_validate_endpoint_field_ref(endpoint, field))
+    return errors
+
+
+def _iter_endpoint_fields(endpoint: dict[str, Any]) -> Iterator[dict[str, Any]]:
+    request_fields = endpoint.get("request", {}).get("fields", [])
+    response_fields = endpoint.get("response", {}).get("fields", [])
+    for field in [*request_fields, *response_fields]:
+        if isinstance(field, dict):
+            yield field
+
+
+def _validate_endpoint_field_ref(
+    endpoint: dict[str, Any],
+    field: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    field_context = f"{endpoint.get('method')} {endpoint.get('path')}::{field.get('name')}"
+    for forbidden in ("description", "example", "canonicalTerm", "preferredName"):
+        if forbidden in field:
             errors.append(
-                f"legacy term is not allowed: {canonical} (use {LEGACY_TERM_MAP[canonical]})"
+                f"endpoint field duplicates attribute metadata ({forbidden}): {field_context}"
             )
-        if _is_placeholder_example(attr.get("example")):
-            errors.append(f"generic placeholder example is not allowed: {semantic_id}")
-
-    for endpoint in inventory.get("endpoints", []):
-        request_fields = endpoint.get("request", {}).get("fields", [])
-        response_fields = endpoint.get("response", {}).get("fields", [])
-        for field in [*request_fields, *response_fields]:
-            for forbidden in ("description", "example", "canonicalTerm", "preferredName"):
-                if forbidden in field:
-                    errors.append(
-                        f"endpoint field duplicates attribute metadata ({forbidden}): "
-                        f"{endpoint.get('method')} {endpoint.get('path')}::{field.get('name')}"
-                    )
-            if not field.get("semanticId"):
-                errors.append(
-                    f"endpoint field missing semanticId: "
-                    f"{endpoint.get('method')} {endpoint.get('path')}::{field.get('name')}"
-                )
-            if not field.get("attributeRef"):
-                errors.append(
-                    f"endpoint field missing attributeRef: "
-                    f"{endpoint.get('method')} {endpoint.get('path')}::{field.get('name')}"
-                )
-
+    if not field.get("semanticId"):
+        errors.append(f"endpoint field missing semanticId: {field_context}")
+    if not field.get("attributeRef"):
+        errors.append(f"endpoint field missing attributeRef: {field_context}")
     return errors
 
 
