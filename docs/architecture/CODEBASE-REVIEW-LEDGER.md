@@ -15,6 +15,9 @@
   `main.protected == true` before enabling merge-commit auto-merge, preserving the internal,
   labeled, non-fork guard without requiring unavailable administration-scope access.
 - Evidence:
+  - GitHub PR auto-merge run `27775910442` reproduced the old workflow failure with
+    `403 Resource not accessible by integration` before this workflow fix could be active on
+    `main`.
   - `python -m pytest tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/scripts/test_quality_baseline_report.py -q` passed with 14 tests.
   - `python -m ruff check tests/unit/test_ci_workflow_contracts.py` passed.
   - `python -m ruff format --check tests/unit/test_ci_workflow_contracts.py` passed.
