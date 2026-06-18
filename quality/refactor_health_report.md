@@ -246,6 +246,9 @@
   and page projection to focused helpers.
 - OpenAPI operation enrichment delegates operation eligibility, default
   summary/description, tag inference, error response, and idempotency header handling.
+- OpenAPI quality gate evaluation delegates operation iteration, endpoint
+  documentation checks, schema-field metadata checks, and duplicate operation ID
+  detection to focused helpers.
 - OpenAPI example repair delegates array, object-property, required-field,
   existing-field, and additional-property repair paths to focused helpers.
 - OpenAPI example repair now delegates `$ref` and composite schema resolution,
