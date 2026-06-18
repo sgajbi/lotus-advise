@@ -209,10 +209,60 @@ def test_extract_live_proposal_alternatives_snapshot_summarizes_ranked_and_rejec
     assert snapshot.latency_ms == 321.0
 
 
+def test_extract_live_proposal_alternatives_snapshot_uses_explicit_selected_fallback() -> None:
+    snapshot = extract_live_proposal_alternatives_snapshot(
+        {
+            "proposal_alternatives": {
+                "requested_objectives": ["RAISE_CASH"],
+                "selected_alternative_id": "alt_cash",
+                "alternatives": [
+                    {
+                        "alternative_id": "alt_cash",
+                        "objective": "RAISE_CASH",
+                        "status": "FEASIBLE",
+                        "rank": 1,
+                        "selected": False,
+                    },
+                    "ignored malformed alternative",
+                ],
+                "rejected_candidates": [
+                    {"reason_code": "UNSUPPORTED_OBJECTIVE"},
+                    {"reason_code": ""},
+                    "ignored malformed rejection",
+                ],
+            }
+        },
+        path_name="alternatives_path",
+        latency_ms=42.0,
+    )
+
+    assert snapshot.selected_alternative_id == "alt_cash"
+    assert snapshot.selected_rank is None
+    assert snapshot.top_ranked_alternative_id == "alt_cash"
+    assert snapshot.top_ranked_objective == "RAISE_CASH"
+    assert snapshot.top_ranked_reason_codes == ()
+    assert snapshot.rejected_reason_codes == ("UNSUPPORTED_OBJECTIVE",)
+
+
 def test_extract_live_proposal_alternatives_snapshot_requires_payload() -> None:
     with pytest.raises(ValueError, match="proposal_alternatives missing"):
         extract_live_proposal_alternatives_snapshot(
             {},
+            path_name="alternatives_path",
+            latency_ms=10.0,
+        )
+
+
+def test_extract_live_proposal_alternatives_snapshot_requires_nested_lists() -> None:
+    with pytest.raises(ValueError, match="alternatives missing from proposal_alternatives"):
+        extract_live_proposal_alternatives_snapshot(
+            {
+                "proposal_alternatives": {
+                    "requested_objectives": ["RAISE_CASH"],
+                    "alternatives": None,
+                    "rejected_candidates": [],
+                }
+            },
             path_name="alternatives_path",
             latency_ms=10.0,
         )
