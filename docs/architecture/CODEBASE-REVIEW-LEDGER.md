@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-858
+
+- Scope: Live proposal alternatives snapshot extraction complexity
+- Pattern: Demo-runtime evidence extractors should validate response structure, summarize ranked
+  alternatives, and collect diagnostics through focused helpers so API, domain-behavior, and
+  observability evidence remains auditable.
+- Status: Hardened
+- Finding Class: Runtime evidence maintainability, proposal-alternatives diagnostics, behavior
+  preservation
+- Summary: `scripts/live_runtime_proposal_alternatives.py::extract_live_proposal_alternatives_snapshot`
+  mixed proposal-alternatives payload validation, requested-objective projection, feasible/review
+  counting, selected-alternative fallback, top-ranked alternative projection, and rejected-reason
+  extraction in one D-ranked function. The extractor now delegates those responsibilities to
+  focused helpers while preserving existing error text, malformed-entry tolerance, selected
+  fallback behavior, reason-code filtering, and snapshot fields.
+- Evidence:
+  - `python -m pytest tests/unit/advisory/api/test_live_cross_service_parity.py -q` passed with 14 tests.
+  - `python -m ruff check scripts/live_runtime_proposal_alternatives.py tests/unit/advisory/api/test_live_cross_service_parity.py` passed.
+  - `python -m ruff format --check scripts/live_runtime_proposal_alternatives.py tests/unit/advisory/api/test_live_cross_service_parity.py` passed.
+  - `python -m radon cc scripts/live_runtime_proposal_alternatives.py -s` reports
+    `extract_live_proposal_alternatives_snapshot` as A-ranked complexity `2`, down from D-ranked
+    complexity `24`.
+- Consequence:
+  - Live proposal-alternatives evidence for API/demo validation is easier to inspect and extend
+    without changing the runtime response contract or domain snapshot semantics.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal runtime-evidence maintainability hardening.
+- Follow-Up:
+  - Continue reducing remaining C/D-ranked validation and quality-measurement script hotspots,
+    prioritizing checks that strengthen API, calculation/domain-behavior, observability, tracing,
+    and data-mesh evidence.
+
 ## LA-REV-857
 
 - Scope: OpenAPI quality gate complexity and behavior coverage

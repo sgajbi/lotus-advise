@@ -848,6 +848,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  currency, and tradeoff deltas to a focused projection module.",
         "- Proposal alternatives ranking delegates comparator, reason-code, rank,",
         "  and selected-alternative projection to a focused ranking module.",
+        "- Live proposal alternatives snapshot extraction delegates payload validation,",
+        "  ranked-alternative summarization, selected fallback, top-rank projection,",
+        "  and rejected-reason extraction to focused helpers.",
         "- Proposal memo request DTOs and memo vocabulary literals are split from",
         "  response, lineage, and replay evidence models.",
         "- Proposal memo persistence records are split into a focused owner module",
@@ -1230,7 +1233,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-855` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-858` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
