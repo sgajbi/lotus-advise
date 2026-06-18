@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-18T13:39:50.865735+00:00`
+- Generated At: `2026-06-18T14:00:41.579524+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `943`
 - Packages: `38`
 - Modules: `905`
-- Total Python lines: `150682`
+- Total Python lines: `150776`
 
 ## Largest Files
 
@@ -24,7 +24,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1667 |
 | 8 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
-| 9 | `scripts/quality_baseline_report.py` | 1419 |
+| 9 | `scripts/quality_baseline_report.py` | 1420 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1250 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3876`
-- Radon complexity rank inventory: `A=3779, B=97`
+- Radon analyzed block inventory: `3880`
+- Radon complexity rank inventory: `A=3784, B=96`
 - Radon worst complexity: `rank=B, complexity=7`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -119,7 +119,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4260, missing=4225, covered=35, coverage=0.8%`
+- Interrogate docstring inventory: `total=4264, missing=4229, covered=35, coverage=0.8%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

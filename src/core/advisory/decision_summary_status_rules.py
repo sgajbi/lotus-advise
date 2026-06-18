@@ -63,20 +63,35 @@ def derive_decision_status(
     result: ProposalResult,
     missing_evidence: list[ProposalDecisionMissingEvidence],
 ) -> ProposalDecisionStatus:
-    if result.status == "BLOCKED":
+    if _is_blocked_result(result):
         return "BLOCKED_REMEDIATION_REQUIRED"
-
-    blocking_missing_evidence = any(item.blocking for item in missing_evidence)
-    if blocking_missing_evidence:
+    if _has_blocking_missing_evidence(missing_evidence):
         return "INSUFFICIENT_EVIDENCE"
 
-    gate = result.gate_decision.gate if result.gate_decision is not None else None
-    if gate_status := _GATE_DECISION_STATUS.get(str(gate)):
+    if gate_status := _status_from_gate_decision(result):
         return gate_status
 
+    return _status_from_proposal_result(result)
+
+
+def _is_blocked_result(result: ProposalResult) -> bool:
+    return bool(result.status == "BLOCKED")
+
+
+def _has_blocking_missing_evidence(
+    missing_evidence: list[ProposalDecisionMissingEvidence],
+) -> bool:
+    return any(item.blocking for item in missing_evidence)
+
+
+def _status_from_gate_decision(result: ProposalResult) -> ProposalDecisionStatus | None:
+    gate = result.gate_decision.gate if result.gate_decision is not None else None
+    return _GATE_DECISION_STATUS.get(str(gate))
+
+
+def _status_from_proposal_result(result: ProposalResult) -> ProposalDecisionStatus:
     if result.status == "PENDING_REVIEW":
         return "REVISION_RECOMMENDED"
-
     return "READY_FOR_CLIENT_REVIEW"
 
 
