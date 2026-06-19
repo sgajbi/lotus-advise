@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-875
+
+- Scope: Proposal idempotency replay complexity ratchet
+- Pattern: Proposal workflow event and approval replay should share one idempotency hash-conflict
+  policy instead of duplicating reversed-record scans.
+- Status: Hardened
+- Finding Class: Maintainability, replay safety, CI complexity enforcement
+- Summary: `src/core/proposals/idempotency.py` carried two near-identical B-ranked replay scanners
+  for proposal workflow events and approvals. The duplicated loops made future idempotency changes
+  more error-prone because event and approval replay conflict behavior could drift separately.
+- Evidence:
+  - Added a shared typed replay-record matcher with a focused metadata conflict predicate.
+  - Preserved public `find_replayed_event`, `load_replayed_event`, `find_replayed_approval`, and
+    `load_replayed_approval` APIs.
+  - Focused idempotency tests still prove latest-record replay, empty-key handling, repository
+    loading, and hash-conflict failure behavior.
+  - Radon complexity improved the module from two B/6 replay scanners to all-A blocks, worst A/4.
+  - `make refactored-complexity-gate` now includes `src/core/proposals/idempotency.py`.
+- Consequence:
+  - Proposal lifecycle replay keeps the same idempotency semantics while the already-remediated
+    module is protected from future B-ranked complexity regression through the repo-native lint
+    lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal replay-policy hardening.
+- Follow-Up:
+  - Continue classifying remaining B-ranked proposal workflow helpers for similar low-noise
+    refactored-complexity ratchets once focused tests exist.
+
 ## LA-REV-874
 
 - Scope: Shared canonical payload hashing and key-stripping maintainability ratchet
