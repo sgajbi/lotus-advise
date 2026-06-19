@@ -1189,6 +1189,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  execution-status projection, Lotus Core stateful-context translation, and proposal",
         "  async/context command modules with A-only Radon gates inherited by Feature Lane, PR",
         "  Merge Gate, and Main Releasability through `make lint`.",
+        "- Lotus Core stateful-context market-data projection delegates price field extraction,",
+        "  FX pair validation, and decimal rate input handling to focused helpers while preserving",
+        "  malformed-row skipping and last-source-wins FX pair behavior.",
         "- CI workflow jobs now declare explicit timeouts so feature, PR, main releasability,",
         "  quality-baseline, and auto-merge automation fail closed instead of hanging",
         "  indefinitely.",
@@ -1317,7 +1320,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-869` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-871` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

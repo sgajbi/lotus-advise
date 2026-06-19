@@ -294,6 +294,8 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     )
     assert "Lotus Core stateful-context translation, and proposal" in refactor_health
     assert "async/context command modules with A-only Radon gates" in refactor_health
+    assert "Lotus Core stateful-context market-data projection delegates" in refactor_health
+    assert "last-source-wins FX pair behavior" in refactor_health
     assert "CI workflow jobs now declare explicit timeouts" in refactor_health
     assert "Development requirements pin the report-only quality tools" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
@@ -326,7 +328,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "demo-assurance checks" in scorecard
     assert "refactored-complexity enforcement" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-869`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-871`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

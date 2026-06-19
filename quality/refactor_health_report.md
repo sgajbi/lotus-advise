@@ -415,6 +415,9 @@
   execution-status projection, Lotus Core stateful-context translation, and proposal
   async/context command modules with A-only Radon gates inherited by Feature Lane, PR
   Merge Gate, and Main Releasability through `make lint`.
+- Lotus Core stateful-context market-data projection delegates price field extraction,
+  FX pair validation, and decimal rate input handling to focused helpers while preserving
+  malformed-row skipping and last-source-wins FX pair behavior.
 - CI workflow jobs now declare explicit timeouts so feature, PR, main releasability,
   quality-baseline, and auto-merge automation fail closed instead of hanging
   indefinitely.
