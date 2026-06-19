@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-874
+
+- Scope: Shared canonical payload hashing and key-stripping maintainability ratchet
+- Pattern: Canonical payload helpers should keep deterministic serialization, recursive key
+  exclusion, and hash construction independently reviewable because proposal, policy, workspace,
+  cockpit, and proof evidence all depend on stable canonical hashes.
+- Status: Hardened
+- Finding Class: Shared canonicalization maintainability, evidence-hash stability,
+  CI-enforced complexity ratchet
+- Summary: `src/core/common/canonical.py` owned the shared `strip_keys` recursion used before
+  canonical hashing, but mapping traversal, sequence traversal, recursive stripping, and leaf
+  copying lived in one B-ranked helper. The module now delegates mapping and sequence traversal to
+  focused helpers while preserving deterministic JSON serialization, stable hash construction, and
+  recursive key exclusion semantics.
+- Evidence:
+  - `python -m radon cc src/core/common/canonical.py -s` now reports the module as all A-ranked
+    blocks, with `strip_keys` reduced to `A/3` and module worst complexity `A/3`.
+  - Added focused canonical tests covering stable JSON key order, equivalent-payload hash stability,
+    and recursive key stripping without mutating the source payload.
+  - Added `src/core/common/canonical.py` to `make refactored-complexity-gate` with fail-on-B Radon
+    enforcement inherited by `make lint`.
+- Consequence:
+  - Shared evidence-hash preparation is easier to audit, and future edits that reintroduce
+    B-ranked complexity into this canonicalization boundary now fail CI before broader test lanes.
+- Documentation:
+  - Review ledger and generated quality/refactor-health evidence updated. No README/wiki source
+    change is required because this is internal shared-helper hardening with preserved public
+    behavior.
+- Follow-Up:
+  - Continue decomposing remaining B-ranked proposal context, memo, and advisory evidence helpers,
+    then add each all-A module to the refactored-complexity ratchet after behavior is pinned by
+    focused tests.
+
 ## LA-REV-873
 
 - Scope: Proposal async replay referent loading maintainability and CI ratchet
