@@ -55,6 +55,10 @@ def test_lint_enforces_refactored_complexity_gate_for_ci_lanes() -> None:
         "python scripts/radon_complexity_gate.py --source-path "
         "src/integrations/lotus_risk/enrichment.py --fail-rank B"
     ) in makefile
+    assert (
+        "python scripts/radon_complexity_gate.py --source-path "
+        "src/core/tactical_house_view.py --fail-rank B"
+    ) in makefile
 
     for workflow_name in ("feature-lane.yml", "pr-merge-gate.yml", "main-releasability.yml"):
         workflow = _workflow_text(workflow_name)

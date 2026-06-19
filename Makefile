@@ -115,6 +115,7 @@ complexity-regression-gate:
 
 refactored-complexity-gate:
 	python scripts/radon_complexity_gate.py --source-path src/integrations/lotus_risk/enrichment.py --fail-rank B
+	python scripts/radon_complexity_gate.py --source-path src/core/tactical_house_view.py --fail-rank B
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q
