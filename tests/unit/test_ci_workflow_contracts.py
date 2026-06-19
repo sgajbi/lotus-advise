@@ -24,6 +24,20 @@ def _assert_default_ci_guardrails(workflow: str) -> None:
     assert "permissions:\n  contents: read" in workflow
 
 
+def _workflow_job_ids(workflow: str) -> list[str]:
+    job_section = workflow.split("\njobs:\n", maxsplit=1)[1]
+    return [
+        line.strip()[:-1]
+        for line in job_section.splitlines()
+        if line.startswith("  ") and not line.startswith("    ") and line.rstrip().endswith(":")
+    ]
+
+
+def _assert_all_jobs_have_timeout(workflow: str) -> None:
+    for job_id in _workflow_job_ids(workflow):
+        assert "timeout-minutes:" in _workflow_job_section(workflow, job_id), job_id
+
+
 def _assert_governance_job_runs_baseline_freshness(workflow: str, job_id: str) -> None:
     governance_section = _workflow_job_section(workflow, job_id)
 
@@ -75,10 +89,31 @@ def test_lint_enforces_refactored_complexity_gate_for_ci_lanes() -> None:
         "python scripts/radon_complexity_gate.py --source-path "
         "src/integrations/lotus_core/stateful_context_translation.py --fail-rank B"
     ) in makefile
+    assert (
+        "python scripts/radon_complexity_gate.py --source-path "
+        "src/core/proposals/async_operations.py --fail-rank B"
+    ) in makefile
+    assert (
+        "python scripts/radon_complexity_gate.py --source-path "
+        "src/core/proposals/async_operation_runner.py --fail-rank B"
+    ) in makefile
+    assert (
+        "python scripts/radon_complexity_gate.py --source-path "
+        "src/core/proposals/async_payloads.py --fail-rank B"
+    ) in makefile
+    assert (
+        "python scripts/radon_complexity_gate.py --source-path "
+        "src/core/proposals/command_validation.py --fail-rank B"
+    ) in makefile
 
     for workflow_name in ("feature-lane.yml", "pr-merge-gate.yml", "main-releasability.yml"):
         workflow = _workflow_text(workflow_name)
         assert "run: make lint" in workflow
+
+
+def test_ci_workflow_jobs_are_bounded_by_timeouts() -> None:
+    for workflow_path in WORKFLOW_ROOT.glob("*.yml"):
+        _assert_all_jobs_have_timeout(workflow_path.read_text(encoding="utf-8"))
 
 
 def test_demo_assurance_gate_covers_demo_critical_evidence() -> None:

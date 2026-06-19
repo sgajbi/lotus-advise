@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-870
+
+- Scope: CI timeout and refactored-complexity enforcement ratchet
+- Pattern: Enterprise CI should bound job runtime and protect already-remediated modules from
+  complexity regression rather than only reporting broad quality posture.
+- Status: Hardened
+- Finding Class: CI governance and maintainability regression prevention
+- Summary: Feature, PR, main releasability, quality-baseline, and auto-merge workflows did not all
+  declare job-level timeouts, and the refactored-complexity gate protected only the earlier
+  remediated module set. Several already-refactored proposal async/context command modules were
+  A-only under Radon but were not yet fail-closed in CI.
+- Evidence:
+  - Added explicit `timeout-minutes` to the feature lane, PR merge gate, main releasability gate,
+    quality-baseline report, and PR auto-merge jobs.
+  - Extended `make refactored-complexity-gate` to enforce A-only Radon posture for
+    `src/core/proposals/async_operations.py`,
+    `src/core/proposals/async_operation_runner.py`,
+    `src/core/proposals/async_payloads.py`, and
+    `src/core/proposals/command_validation.py`.
+  - Added CI workflow contract coverage proving every workflow job declares a timeout and that the
+    added refactored modules remain in the Makefile ratchet inherited by `make lint`.
+  - Focused CI contract tests and refactored-complexity gate passed locally.
+- Consequence:
+  - CI now fails boundedly for hung jobs and prevents complexity regressions in four additional
+    proposal modules that already met the refactored A-only bar.
+- Documentation:
+  - Review ledger and generated quality baseline/refactor-health evidence updated. No README/wiki
+    source change is required because this is internal CI governance and maintainability evidence.
+- Follow-Up:
+  - Continue calibrating remaining B-ranked modules into the refactored-complexity ratchet after
+    each module is behavior-preservingly decomposed and tested.
+
 ## LA-REV-869
 
 - Scope: Lotus Core stateful-context position translation maintainability and CI ratchet
