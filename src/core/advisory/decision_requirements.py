@@ -7,6 +7,14 @@ from src.core.advisory.decision_summary_models import (
 from src.core.proposal_result_models import ProposalResult
 from src.core.suitability_models import SuitabilityIssue
 
+SUITABILITY_APPROVAL_TYPES_BY_IMPLICATION = {
+    "COMPLIANCE_REVIEW": "COMPLIANCE_REVIEW",
+    "RISK_REVIEW": "RISK_REVIEW",
+    "MANDATE_EXCEPTION_APPROVAL": "MANDATE_EXCEPTION_APPROVAL",
+    "CLIENT_CONTEXT_REQUIRED": "DATA_REMEDIATION",
+    "DATA_REMEDIATION": "DATA_REMEDIATION",
+}
+
 
 def build_approval_requirements(
     *,
@@ -157,17 +165,9 @@ def _requirement_from_suitability_issue(
 
 def _approval_type_from_issue(issue: SuitabilityIssue) -> str | None:
     implication = issue.approval_implication
-    if implication == "COMPLIANCE_REVIEW":
-        return "COMPLIANCE_REVIEW"
-    if implication == "RISK_REVIEW":
-        return "RISK_REVIEW"
-    if implication == "MANDATE_EXCEPTION_APPROVAL":
-        return "MANDATE_EXCEPTION_APPROVAL"
-    if implication == "CLIENT_CONTEXT_REQUIRED":
-        return "DATA_REMEDIATION"
-    if implication == "DATA_REMEDIATION":
-        return "DATA_REMEDIATION"
-    return None
+    if implication is None:
+        return None
+    return SUITABILITY_APPROVAL_TYPES_BY_IMPLICATION.get(implication)
 
 
 def _approval_type_for_missing_evidence(reason_code: str) -> str | None:

@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-885
+
+- Scope: Decision-summary approval requirement complexity ratchet
+- Pattern: Suitability approval implication mapping should be explicit data, not a conditional
+  chain, before the decision-requirements module is promoted into a blocking complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisory approval posture, CI complexity enforcement
+- Summary: `src/core/advisory/decision_requirements.py` still carried a B-ranked
+  `_approval_type_from_issue` helper that encoded suitability approval implication mapping as a
+  repeated conditional chain. That made future approval posture changes more likely to duplicate
+  vocabulary or miss the remediation aliases used by advisor decision summaries.
+- Evidence:
+  - Replaced the conditional chain with a named suitability approval implication mapping.
+  - Added focused decision-summary coverage proving compliance, risk, mandate-exception, client
+    context, and data-remediation implications still project the expected approval requirement and
+    blocking posture.
+  - Radon complexity improved `src/core/advisory/decision_requirements.py` from one B/6 helper to
+    all-A blocks, worst A/5.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory/decision_requirements.py`.
+- Consequence:
+  - Advisory decision-summary approval posture keeps behavior-preserving suitability implication
+    semantics while the remediated helper is protected from future B-ranked complexity regression
+    through the repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory decision-summary hardening.
+- Follow-Up:
+  - Continue promoting only measured, deterministic, behavior-covered source modules into the
+    blocking complexity ratchet as each hotspot is remediated.
+
 ## LA-REV-884
 
 - Scope: Proposal alternatives projection complexity ratchet

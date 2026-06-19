@@ -137,6 +137,7 @@ refactored-complexity-gate:
 	python scripts/radon_complexity_gate.py --source-path src/core/advisory/artifact_portfolio.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/advisory/artifact_trades.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/advisory/alternatives_projection.py --fail-rank B
+	python scripts/radon_complexity_gate.py --source-path src/core/advisory/decision_requirements.py --fail-rank B
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q

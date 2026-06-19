@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory.decision_summary_models import ProposalDecisionMissingEvidence
 from src.core.advisory.decision_summary_status_rules import (
@@ -50,6 +52,34 @@ def _missing_evidence(
     )
 
 
+def _suitability_issue_payload(
+    *,
+    implication: str,
+    issue_id: str = "SUITABILITY_APPROVAL_MAPPING",
+) -> dict[str, object]:
+    return {
+        "issue_id": issue_id,
+        "issue_key": f"APPROVAL_MAPPING|{implication}",
+        "dimension": "GOVERNANCE",
+        "severity": "HIGH",
+        "status_change": "NEW",
+        "classification": "NEW",
+        "summary": "Suitability issue requires approval mapping.",
+        "remediation": "Route the proposal through the required approval posture.",
+        "approval_implication": implication,
+        "details": {"approval_implication": implication},
+        "evidence": {
+            "as_of": "md_test",
+            "snapshot_ids": {
+                "portfolio_snapshot_id": "pf_decision_001",
+                "market_data_snapshot_id": "md_test",
+            },
+        },
+        "policy_pack_id": "global-private-banking-baseline",
+        "policy_version": "enterprise-suitability-policy.2026-04",
+    }
+
+
 def test_decision_next_action_requests_client_context_for_client_evidence_gap() -> None:
     assert (
         recommended_decision_next_action(
@@ -58,6 +88,49 @@ def test_decision_next_action_requests_client_context_for_client_evidence_gap() 
         )
         == "REQUEST_CLIENT_CONTEXT"
     )
+
+
+@pytest.mark.parametrize(
+    ("implication", "expected_approval_type", "expected_blocking"),
+    [
+        ("COMPLIANCE_REVIEW", "COMPLIANCE_REVIEW", False),
+        ("RISK_REVIEW", "RISK_REVIEW", False),
+        ("MANDATE_EXCEPTION_APPROVAL", "MANDATE_EXCEPTION_APPROVAL", True),
+        ("CLIENT_CONTEXT_REQUIRED", "DATA_REMEDIATION", True),
+        ("DATA_REMEDIATION", "DATA_REMEDIATION", True),
+    ],
+)
+def test_decision_summary_maps_suitability_implications_to_approval_requirements(
+    implication: str,
+    expected_approval_type: str,
+    expected_blocking: bool,
+) -> None:
+    result = _base_result()
+    result.gate_decision = None
+    result.suitability = SuitabilityResult.model_validate(
+        {
+            "summary": {
+                "new_count": 1,
+                "resolved_count": 0,
+                "persistent_count": 0,
+                "highest_severity_new": "HIGH",
+            },
+            "issues": [_suitability_issue_payload(implication=implication)],
+            "policy_pack_id": "global-private-banking-baseline",
+            "policy_version": "enterprise-suitability-policy.2026-04",
+            "recommended_gate": "COMPLIANCE_REVIEW",
+        }
+    )
+
+    summary = build_proposal_decision_summary(result)
+
+    assert len(summary.approval_requirements) == 1
+    requirement = summary.approval_requirements[0]
+    assert requirement.approval_type == expected_approval_type
+    assert requirement.blocking_until_approved is expected_blocking
+    assert requirement.evidence_refs == [
+        f"proposal.suitability.issues.APPROVAL_MAPPING|{implication}"
+    ]
 
 
 def test_decision_next_action_requests_mandate_context_for_mandate_evidence_gap() -> None:
