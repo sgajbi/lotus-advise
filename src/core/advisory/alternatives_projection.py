@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from src.core.advisory.alternatives_comparison_projection import (
     allocation_bucket_weight as _allocation_bucket_weight,  # noqa: F401
@@ -52,12 +52,7 @@ def build_proposal_alternatives(
 ) -> ProposalAlternatives | None:
     normalized_request = normalize_alternatives_request(
         request.alternatives_request,
-        selection_mode=(
-            "selection"
-            if request.alternatives_request is not None
-            and request.alternatives_request.selected_alternative_id is not None
-            else "generation"
-        ),
+        selection_mode=_alternatives_selection_mode(request),
     )
     if normalized_request is None:
         return None
@@ -79,9 +74,11 @@ def build_proposal_alternatives(
         candidate_seeds=candidate_plan.seeds,
         selected_alternative_id=normalized_request.selected_alternative_id,
     )
-    rejected_candidates = list(candidate_plan.rejected_candidates)
-    if normalized_request.include_rejected_candidates:
-        rejected_candidates.extend(evaluation.rejected_candidates)
+    rejected_candidates = _build_rejected_candidates(
+        base_rejections=list(candidate_plan.rejected_candidates),
+        evaluation_rejections=evaluation.rejected_candidates,
+        include_evaluation_rejections=normalized_request.include_rejected_candidates,
+    )
 
     return ProposalAlternatives(
         requested_objectives=list(normalized_request.requested_objectives),
@@ -92,6 +89,28 @@ def build_proposal_alternatives(
         rejected_candidates=rejected_candidates,
         evidence_refs=_build_envelope_refs(ranked_alternatives, rejected_candidates),
     )
+
+
+def _alternatives_selection_mode(
+    request: ProposalSimulateRequest,
+) -> Literal["generation", "selection"]:
+    alternatives_request = request.alternatives_request
+    if alternatives_request is None:
+        return "generation"
+    if alternatives_request.selected_alternative_id is None:
+        return "generation"
+    return "selection"
+
+
+def _build_rejected_candidates(
+    *,
+    base_rejections: list[Any],
+    evaluation_rejections: list[Any],
+    include_evaluation_rejections: bool,
+) -> list[Any]:
+    if include_evaluation_rejections:
+        return [*base_rejections, *evaluation_rejections]
+    return base_rejections
 
 
 def _build_envelope_refs(
