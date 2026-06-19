@@ -391,6 +391,8 @@
   Feature Lane, PR Merge Gate, and Main Releasability static governance jobs.
 - PR auto-merge queue verification now checks protected main-branch metadata through
   a workflow-token-readable endpoint before enabling merge-commit auto-merge.
+- Quality baseline report rendering delegates metric formatting and Markdown sections
+  to focused helpers while preserving the freshness-gated report contract.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
 

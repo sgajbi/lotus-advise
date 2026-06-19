@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-861
+
+- Scope: Quality baseline report rendering complexity
+- Pattern: CI measurement generators should separate metric formatting, report-section rendering,
+  and top-level orchestration so quality evidence can evolve without recreating D-ranked reporting
+  hotspots.
+- Status: Hardened
+- Finding Class: CI measurement maintainability, quality evidence generation
+- Summary: `scripts/quality_baseline_report.py::render_baseline_report` mixed metric fallback
+  formatting, Radon/Vulture/Spectral/Interrogate inventory projection, Markdown table rendering,
+  and section ordering in one D-ranked function. The renderer now delegates header, code-size,
+  hotspot, complexity, lint/type/coverage, dead-code, dependency/security, OpenAPI, architecture,
+  documentation, and observability sections to focused helpers while preserving the committed
+  report contract.
+- Evidence:
+  - `python -m radon cc scripts/quality_baseline_report.py -s` now reports
+    `render_baseline_report` as A-ranked complexity `1`, down from D-ranked complexity `30`.
+  - `python -m pytest tests/unit/scripts/test_quality_baseline_report.py -q` passed with 3 tests.
+  - `python -m ruff check scripts/quality_baseline_report.py tests/unit/scripts/test_quality_baseline_report.py` passed.
+  - `python -m ruff format --check scripts/quality_baseline_report.py tests/unit/scripts/test_quality_baseline_report.py` passed.
+- Consequence:
+  - Quality-baseline evidence is easier to review and extend without weakening the freshness gate
+    that protects committed scorecard truth.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal CI measurement hardening.
+- Follow-Up:
+  - Continue reducing the remaining C-ranked quality/governance script helpers before considering
+    stricter script-level complexity enforcement.
+
 ## LA-REV-860
 
 - Scope: PR auto-merge queue branch-protection verification
