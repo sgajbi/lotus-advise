@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 
 from src.core.advisory.artifact_evidence_models import (
     ProposalArtifactEngineOutputs,
@@ -17,21 +17,7 @@ def build_artifact_evidence_bundle(
     *, request: ProposalSimulateRequest, proposal_result: ProposalResult
 ) -> ProposalArtifactEvidenceBundle:
     return ProposalArtifactEvidenceBundle(
-        inputs=ProposalArtifactEvidenceInputs(
-            portfolio_snapshot=request.portfolio_snapshot.model_dump(mode="json"),
-            market_data_snapshot=request.market_data_snapshot.model_dump(mode="json"),
-            shelf_entries=[entry.model_dump(mode="json") for entry in request.shelf_entries],
-            options=request.options.model_dump(mode="json"),
-            proposed_cash_flows=[
-                item.model_dump(mode="json") for item in request.proposed_cash_flows
-            ],
-            proposed_trades=[item.model_dump(mode="json") for item in request.proposed_trades],
-            reference_model=(
-                request.reference_model.model_dump(mode="json")
-                if request.reference_model is not None
-                else None
-            ),
-        ),
+        inputs=_build_evidence_inputs(request),
         engine_outputs=ProposalArtifactEngineOutputs(
             proposal_result=proposal_result.model_dump(mode="json")
         ),
@@ -41,6 +27,28 @@ def build_artifact_evidence_bundle(
         ),
         engine_version=proposal_result.lineage.engine_version or "unknown",
     )
+
+
+def _build_evidence_inputs(request: ProposalSimulateRequest) -> ProposalArtifactEvidenceInputs:
+    return ProposalArtifactEvidenceInputs(
+        portfolio_snapshot=request.portfolio_snapshot.model_dump(mode="json"),
+        market_data_snapshot=request.market_data_snapshot.model_dump(mode="json"),
+        shelf_entries=_dump_model_list(request.shelf_entries),
+        options=request.options.model_dump(mode="json"),
+        proposed_cash_flows=_dump_model_list(request.proposed_cash_flows),
+        proposed_trades=_dump_model_list(request.proposed_trades),
+        reference_model=_dump_optional_model(request.reference_model),
+    )
+
+
+def _dump_model_list(items: list[Any]) -> list[dict[str, Any]]:
+    return [item.model_dump(mode="json") for item in items]
+
+
+def _dump_optional_model(item: Any | None) -> dict[str, Any] | None:
+    if item is None:
+        return None
+    return cast(dict[str, Any], item.model_dump(mode="json"))
 
 
 def finalize_artifact_evidence_hashes(

@@ -133,6 +133,7 @@ refactored-complexity-gate:
 	python scripts/radon_complexity_gate.py --source-path src/core/advisory_copilot/record_text.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/advisory_copilot/run_replay_policy.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/integrations/lotus_ai/runtime_config.py --fail-rank B
+	python scripts/radon_complexity_gate.py --source-path src/core/advisory/artifact_evidence.py --fail-rank B
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q
