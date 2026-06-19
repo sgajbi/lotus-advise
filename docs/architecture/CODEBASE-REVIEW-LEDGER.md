@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-882
+
+- Scope: Proposal artifact trades/funding complexity ratchet
+- Pattern: Proposal artifact trade and funding construction should keep FX-rate lookup, intent
+  dispatch, dependency-note detection, FX ordering, and response-model projection independently
+  reviewable before the helper is promoted into a blocking complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisory trade/funding evidence, CI complexity enforcement
+- Summary: `src/core/advisory/artifact_trades.py` still carried a B-ranked
+  `build_trades_and_funding` helper that combined market FX-rate indexing, security-trade
+  projection, FX projection, dependency-note detection, and final artifact response construction.
+  That made future proposal artifact trade/funding changes more likely to obscure ordering,
+  dependency, and missing-rate semantics.
+- Evidence:
+  - Extracted FX-rate indexing, security-trade projection, FX-intent projection, and dependency
+    detection into focused helpers while preserving `build_trades_and_funding`.
+  - Added targeted proposal artifact coverage proving security-trade projection, dependency-note
+    emission, deterministic FX ordering, resolved FX-rate formatting, and missing-rate fallback.
+  - Radon complexity improved `src/core/advisory/artifact_trades.py` from one B/6 helper to
+    all-A blocks, worst A/4.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory/artifact_trades.py`.
+- Consequence:
+  - Proposal artifact trade/funding evidence preserves behavior while the remediated helper is
+    protected from future B-ranked complexity regression through the repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory artifact hardening.
+- Follow-Up:
+  - Continue promoting only measured, deterministic, behavior-covered source modules into the
+    blocking complexity ratchet as each hotspot is remediated.
+
 ## LA-REV-881
 
 - Scope: Proposal artifact portfolio complexity ratchet

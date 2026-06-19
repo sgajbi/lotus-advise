@@ -10,6 +10,7 @@ from src.core.advisory.artifact_summary import (
     resolve_next_step,
     resolve_objective_tags,
 )
+from src.core.advisory.artifact_trades import build_trades_and_funding
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import EngineOptions, ProposalSimulateRequest
 
@@ -87,6 +88,56 @@ def test_proposal_artifact_contains_trade_dependencies_and_sorted_weight_changes
     assert artifact.trades_and_funding.trade_list[0].dependencies == ["oi_fx_1"]
     assert artifact.portfolio_impact.delta.largest_weight_changes
     assert artifact.portfolio_impact.delta.largest_weight_changes[0].bucket_id == "US_EQ"
+
+
+def test_trades_and_funding_projects_trades_fx_sorting_and_dependency_notes():
+    request = SimpleNamespace(
+        market_data_snapshot=SimpleNamespace(
+            fx_rates=[
+                SimpleNamespace(pair="USD/SGD", rate=Decimal("1.35")),
+            ]
+        )
+    )
+    result = SimpleNamespace(
+        intents=[
+            SimpleNamespace(
+                intent_type="FX_SPOT",
+                intent_id="fx_z",
+                pair="USD/SGD",
+                buy_amount=Decimal("100.00"),
+                sell_amount_estimated=Decimal("135.00"),
+            ),
+            SimpleNamespace(
+                intent_type="SECURITY_TRADE",
+                intent_id="trade_1",
+                instrument_id="US_EQ",
+                side="BUY",
+                quantity=Decimal("10"),
+                notional=None,
+                notional_base=None,
+                dependencies=["fx_z"],
+                rationale=None,
+            ),
+            SimpleNamespace(
+                intent_type="FX_SPOT",
+                intent_id="fx_a",
+                pair="EUR/SGD",
+                buy_amount=Decimal("50.00"),
+                sell_amount_estimated=Decimal("72.00"),
+            ),
+        ]
+    )
+
+    trades_and_funding = build_trades_and_funding(request=request, result=result)
+
+    assert [item.intent_id for item in trades_and_funding.trade_list] == ["trade_1"]
+    assert trades_and_funding.trade_list[0].dependencies == ["fx_z"]
+    assert trades_and_funding.trade_list[0].rationale.code == "MANUAL_PROPOSAL"
+    assert [(item.intent_id, item.pair, item.rate) for item in trades_and_funding.fx_list] == [
+        ("fx_a", "EUR/SGD", None),
+        ("fx_z", "USD/SGD", "1.3500"),
+    ]
+    assert [note.code for note in trades_and_funding.execution_notes] == ["DEPENDENCY"]
 
 
 def test_proposal_artifact_marks_suitability_not_available_when_disabled():

@@ -18,23 +18,43 @@ ZERO_AMOUNT = Decimal("0")
 def build_trades_and_funding(
     *, request: ProposalSimulateRequest, result: ProposalResult
 ) -> ProposalArtifactTradesAndFunding:
-    fx_rates = {row.pair: row.rate for row in request.market_data_snapshot.fx_rates}
-    trade_list: list[ProposalArtifactTrade] = []
-    fx_list: list[ProposalArtifactFx] = []
-    has_dependencies = False
-
-    for intent in result.intents:
-        if intent.intent_type == "SECURITY_TRADE":
-            has_dependencies = has_dependencies or bool(intent.dependencies)
-            trade_list.append(_proposal_artifact_trade(intent))
-        if intent.intent_type == "FX_SPOT":
-            fx_list.append(_proposal_artifact_fx(intent, fx_rates=fx_rates))
+    fx_rates = _fx_rates_by_pair(request)
+    trade_list = _proposal_artifact_trades(result.intents)
+    fx_list = _proposal_artifact_fx_list(result.intents, fx_rates=fx_rates)
 
     return ProposalArtifactTradesAndFunding(
         trade_list=trade_list,
         fx_list=sorted(fx_list, key=lambda item: (item.pair, item.intent_id)),
         ordering_policy="CASH_FLOW->SELL->FX->BUY",
-        execution_notes=_execution_notes(has_dependencies=has_dependencies),
+        execution_notes=_execution_notes(has_dependencies=_has_trade_dependencies(result.intents)),
+    )
+
+
+def _fx_rates_by_pair(request: ProposalSimulateRequest) -> dict[str, Decimal]:
+    return {row.pair: row.rate for row in request.market_data_snapshot.fx_rates}
+
+
+def _proposal_artifact_trades(intents: list[Any]) -> list[ProposalArtifactTrade]:
+    return [
+        _proposal_artifact_trade(intent)
+        for intent in intents
+        if intent.intent_type == "SECURITY_TRADE"
+    ]
+
+
+def _proposal_artifact_fx_list(
+    intents: list[Any], *, fx_rates: dict[str, Decimal]
+) -> list[ProposalArtifactFx]:
+    return [
+        _proposal_artifact_fx(intent, fx_rates=fx_rates)
+        for intent in intents
+        if intent.intent_type == "FX_SPOT"
+    ]
+
+
+def _has_trade_dependencies(intents: list[Any]) -> bool:
+    return any(
+        bool(intent.dependencies) for intent in intents if intent.intent_type == "SECURITY_TRADE"
     )
 
 
