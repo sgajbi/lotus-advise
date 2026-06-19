@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-872
+
+- Scope: Bank-demo proof artifact-reference normalization maintainability and CI ratchet
+- Pattern: Security-sensitive proof artifact references should keep URL-material, absolute-path,
+  traversal, and sensitive-fragment rejection rules independently reviewable and directly tested.
+- Status: Hardened
+- Finding Class: Security boundary maintainability, proof-artifact input hardening,
+  CI-enforced complexity ratchet
+- Summary: `src/core/bank_demo_proof/artifact_refs.py` enforced the correct local-artifact
+  reference boundary, but compound validation branches kept URL-location rejection, absolute-path
+  rejection, path-part extraction, parent traversal, and sensitive-fragment detection in B-ranked
+  helpers. The module now delegates each decision to focused helpers while preserving path
+  normalization, URL/query/fragment rejection, absolute-path rejection, parent-directory traversal
+  rejection, and sensitive-material rejection.
+- Evidence:
+  - `python -m radon cc src/core/bank_demo_proof/artifact_refs.py -s` now reports the module as
+    all A-ranked blocks, with the prior B-ranked helpers reduced to module worst complexity `A/4`.
+  - Added direct artifact-reference tests covering safe relative path normalization, output-prefix
+    normalization, optional-reference passthrough, URL/query rejection, POSIX absolute path
+    rejection, Windows-drive URL-material rejection, parent traversal rejection, sensitive path
+    fragments, embedded control characters, and blank references.
+  - Added `src/core/bank_demo_proof/artifact_refs.py` to `make refactored-complexity-gate` with
+    fail-on-B Radon enforcement inherited by `make lint`.
+- Consequence:
+  - Bank-demo proof artifact references are easier to audit as a security boundary and now fail CI
+    if future edits reintroduce B-ranked complexity in the normalized local-reference path.
+- Documentation:
+  - Review ledger and generated quality/refactor-health evidence updated. No README/wiki source
+    change is required because this is internal proof-artifact validation hardening with preserved
+    public API behavior.
+- Follow-Up:
+  - Continue decomposing remaining B-ranked bank-demo proof and proposal replay helpers, then add
+    each all-A module to the refactored-complexity ratchet after behavior is pinned by tests.
+
 ## LA-REV-871
 
 - Scope: Lotus Core stateful-context market-data projection maintainability and CI ratchet

@@ -15,6 +15,9 @@ from src.core.bank_demo_proof import (
     build_default_scenario_contract,
     build_journey_integration_proof_summary,
     default_capture_metadata,
+    normalize_local_artifact_ref,
+    normalize_optional_local_artifact_ref,
+    normalize_output_ref_prefix,
     review_material_fields,
     sanitize_live_runtime_summary,
 )
@@ -532,6 +535,45 @@ def test_backend_proof_capture_rejects_sensitive_artifact_reference_prefixes() -
             runtime_posture=_runtime_posture(),
             output_ref_prefix="../output/rfc0028/backend-proof",
         )
+
+
+def test_local_artifact_reference_normalization_preserves_safe_relative_paths() -> None:
+    assert (
+        normalize_local_artifact_ref(
+            " output\\rfc0028\\backend-proof\\result.json ",
+            field_name="proof_ref",
+        )
+        == "output/rfc0028/backend-proof/result.json"
+    )
+    assert (
+        normalize_output_ref_prefix(" output\\rfc0028\\backend-proof\\ ")
+        == "output/rfc0028/backend-proof"
+    )
+    assert normalize_optional_local_artifact_ref(None, field_name="proof_ref") is None
+
+
+@pytest.mark.parametrize(
+    ("value", "expected_error"),
+    [
+        (
+            "https://proof.example.local/output/result.json?token=secret",
+            "must not include URL",
+        ),
+        ("/output/rfc0028/backend-proof", "must be relative"),
+        ("C:/output/rfc0028/backend-proof", "must not include URL"),
+        ("output/../backend-proof", "cannot contain parent-directory traversal"),
+        ("output/rfc0028/provider-output", "cannot contain sensitive material"),
+        ("output/rfc0028/trace id", "cannot contain sensitive material"),
+        ("output/rfc0028/result\n.json", "cannot contain control characters"),
+        ("   ", "must be a relative local artifact path"),
+    ],
+)
+def test_local_artifact_reference_normalization_rejects_unsafe_paths(
+    value: str,
+    expected_error: str,
+) -> None:
+    with pytest.raises(ValueError, match=expected_error):
+        normalize_local_artifact_ref(value, field_name="proof_ref")
 
 
 def test_runtime_posture_bounds_endpoint_inventory_and_urls() -> None:
