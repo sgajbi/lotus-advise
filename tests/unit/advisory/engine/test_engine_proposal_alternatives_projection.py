@@ -3,8 +3,10 @@ from decimal import Decimal
 from src.core.advisory.alternatives_models import ProposalAlternative, RejectedAlternativeCandidate
 from src.core.advisory.alternatives_projection import (
     _allocation_bucket_weight,
+    _alternatives_selection_mode,
     _build_comparison_summary,
     _build_envelope_refs,
+    _build_rejected_candidates,
     _build_strategy_inputs,
     _cash_balance_amount,
     _comparator_inputs,
@@ -198,6 +200,43 @@ def test_build_proposal_alternatives_selection_mode_marks_only_ranked_selection(
     assert projection.selected_alternative_id == "alt_lower_turnover_pf_projection_nvda"
     assert projection.alternatives[0].selected is True
     assert all(item.selected is False for item in projection.alternatives[1:])
+
+
+def test_projection_request_mode_and_rejected_candidate_helpers_are_explicit() -> None:
+    request = _request()
+    assert _alternatives_selection_mode(request) == "generation"
+
+    request.alternatives_request.selected_alternative_id = "alt_lower_turnover_pf_projection_nvda"
+    assert _alternatives_selection_mode(request) == "selection"
+
+    request.alternatives_request = None
+    assert _alternatives_selection_mode(request) == "generation"
+
+    base_rejection = RejectedAlternativeCandidate(
+        candidate_id="base",
+        objective="LOWER_TURNOVER",
+        status="REJECTED_CONSTRAINT_VIOLATION",
+        reason_code="BASE_LIMIT",
+        summary="Base plan rejected by construction policy.",
+    )
+    evaluation_rejection = RejectedAlternativeCandidate(
+        candidate_id="evaluation",
+        objective="REDUCE_CONCENTRATION",
+        status="REJECTED_POLICY_BLOCKED",
+        reason_code="EVALUATION_LIMIT",
+        summary="Evaluation rejected by policy.",
+    )
+
+    assert _build_rejected_candidates(
+        base_rejections=[base_rejection],
+        evaluation_rejections=[evaluation_rejection],
+        include_evaluation_rejections=False,
+    ) == [base_rejection]
+    assert _build_rejected_candidates(
+        base_rejections=[base_rejection],
+        evaluation_rejections=[evaluation_rejection],
+        include_evaluation_rejections=True,
+    ) == [base_rejection, evaluation_rejection]
 
 
 def test_build_strategy_inputs_preserves_missing_prices_and_notional_trades() -> None:
