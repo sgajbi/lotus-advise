@@ -1,5 +1,43 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-868
+
+- Scope: Proposal execution-status projection maintainability and CI ratchet
+- Pattern: Advisory execution-status responses should keep request metadata, downstream status
+  updates, terminal execution timestamps, and external execution references in focused projection
+  helpers so the Advise/Manage ownership boundary remains reviewable.
+- Status: Hardened
+- Finding Class: Execution lifecycle maintainability, ownership-boundary hardening,
+  CI-enforced complexity ratchet
+- Summary: `src/core/proposals/execution_status.py::build_execution_status_response` mixed latest
+  handoff request selection, downstream execution status selection, request/provider projection,
+  related-version resolution, terminal timestamp projection, external execution-id selection, and
+  response explanation assembly in one B-ranked helper. The module now delegates those concerns to
+  focused helpers while preserving advisory request metadata precedence, downstream execution
+  status posture, terminal `executed_at` behavior, external-id precedence, and the explicit
+  downstream execution system-of-record boundary.
+- Evidence:
+  - `python -m radon cc src/core/proposals/execution_status.py -s` now reports the module as all
+    A-ranked blocks, with `build_execution_status_response` down from B-ranked complexity `7` to
+    A-ranked complexity `2`.
+  - `make refactored-complexity-gate` now enforces A-only Radon posture for
+    `src/core/proposals/execution_status.py` in addition to the previously remediated Lotus Risk
+    enrichment, tactical house-view, policy workflow projection, and narrative AI draft modules.
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_execution_status.py` passed
+    with 4 tests covering default no-handoff posture, latest handoff/execution projection,
+    advisory request identity precedence for non-terminal downstream updates, and status
+    derivation from downstream events without a request event.
+- Consequence:
+  - Execution lifecycle status projection is easier to review without weakening the explicit
+    boundary that `lotus-advise` records advisory handoff posture while downstream providers remain
+    execution systems of record.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal execution lifecycle maintainability and CI-ratchet hardening.
+- Follow-Up:
+  - Continue remediating B-ranked proposal lifecycle helpers where the split improves source
+    authority, idempotency, downstream ownership boundaries, or operational auditability.
+
 ## LA-REV-867
 
 - Scope: Proposal narrative AI draft maintainability and CI ratchet
