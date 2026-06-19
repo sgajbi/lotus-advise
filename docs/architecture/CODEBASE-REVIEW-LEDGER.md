@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-878
+
+- Scope: Advisory copilot run-replay complexity ratchet
+- Pattern: Idempotent advisory copilot run replay should keep missing-key, missing-record,
+  request-hash conflict, orphaned-idempotency, retryable refresh, and stable replay decisions
+  independently reviewable before the helper is promoted into a blocking complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, idempotency safety, CI complexity enforcement
+- Summary: `src/core/advisory_copilot/run_replay_policy.py` still carried a B-ranked replay
+  helper that mixed idempotency lookup, request-hash conflict detection, orphaned run detection,
+  retryable refresh policy, and replay-return behavior. That made future replay changes more
+  likely to blur failure modes that must stay deterministic for advisory copilot idempotency.
+- Evidence:
+  - Extracted request-hash matching, idempotent run loading, and retryable refresh checks into
+    focused helpers while preserving `resolve_advisory_copilot_run_replay`.
+  - Expanded focused advisory copilot persistence tests to cover orphaned idempotency in addition
+    to stable replay, request-hash conflict, and retryable refresh behavior.
+  - Radon complexity improved the module from one B/6 helper to all-A blocks, worst A/4.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory_copilot/run_replay_policy.py`.
+- Consequence:
+  - Advisory copilot idempotency replay keeps the same behavior while the remediated helper is
+    protected from future B-ranked complexity regression through the repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory copilot replay-policy hardening.
+- Follow-Up:
+  - Continue promoting only refactored, tested, low-noise source modules into the blocking
+    complexity ratchet as each hotspot is measurably remediated.
+
 ## LA-REV-877
 
 - Scope: Advisory copilot record-text complexity ratchet
