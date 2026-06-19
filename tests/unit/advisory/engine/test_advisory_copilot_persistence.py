@@ -218,6 +218,27 @@ def test_advisory_copilot_record_text_helpers_normalize_audit_text() -> None:
             max_item_length=20,
             error_code="COPILOT_RECORD_LIST_INVALID",
         )
+    with pytest.raises(ValueError, match="COPILOT_RECORD_LIST_INVALID"):
+        normalize_bounded_record_text_list(
+            {"not": "a list"},
+            max_items=2,
+            max_item_length=20,
+            error_code="COPILOT_RECORD_LIST_INVALID",
+        )
+    with pytest.raises(ValueError, match="COPILOT_RECORD_LIST_INVALID"):
+        normalize_bounded_record_text_list(
+            ["valid", 123],
+            max_items=2,
+            max_item_length=20,
+            error_code="COPILOT_RECORD_LIST_INVALID",
+        )
+    with pytest.raises(ValueError, match="COPILOT_RECORD_LIST_INVALID"):
+        normalize_bounded_record_text_list(
+            ["this item is too long"],
+            max_items=2,
+            max_item_length=8,
+            error_code="COPILOT_RECORD_LIST_INVALID",
+        )
 
 
 def test_advisory_copilot_records_preserve_run_record_import_contract() -> None:

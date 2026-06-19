@@ -248,6 +248,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Bank-demo proof artifact-reference normalization delegates" in refactor_health
     assert "Shared proposal intent dependency linking delegates" in refactor_health
     assert "Shared proposal intent dependency linking now keeps SELL selection" in (refactor_health)
+    assert "Advisory copilot record-text list normalization delegates" in refactor_health
     assert "API structured logging formatter delegates" in refactor_health
     assert "Proposal workflow delivery operations delegate execution handoff" in refactor_health
     assert "Proposal workflow narrative operations delegate narrative read" in refactor_health
@@ -338,7 +339,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-876`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-877`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
