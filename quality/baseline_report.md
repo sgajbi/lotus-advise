@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-19T12:12:31.303341+00:00`
+- Generated At: `2026-06-19T12:33:43.769690+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `949`
 - Packages: `38`
 - Modules: `911`
-- Total Python lines: `152829`
+- Total Python lines: `152846`
 
 ## Largest Files
 
@@ -23,7 +23,7 @@
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1935 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1703 |
-| 8 | `scripts/quality_baseline_report.py` | 1546 |
+| 8 | `scripts/quality_baseline_report.py` | 1550 |
 | 9 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1250 |
 
@@ -32,14 +32,14 @@
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
-| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 773 | 474 |
+| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 774 | 476 |
 | 3 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 70 | 282 |
+| 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 70 | 284 |
 | 5 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 6 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 7 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 8 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1249 | 230 |
+| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1252 | 231 |
 | 10 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 
 ## Complexity
@@ -91,7 +91,8 @@
 
 - `pip-audit` is present in development requirements.
 - `bandit` high-severity enforcement is repo-native through
-  `make bandit-high-severity-gate` and the `security-audit` lane.
+  `make bandit-high-severity-gate`, `make check`, Feature Lane, and the
+  `security-audit` lane.
 - Medium and low Bandit findings remain an inventoried classification backlog.
 - Sensitive-data handling remains governed by API error redaction and structured
   payload tests until the security report gate is calibrated.

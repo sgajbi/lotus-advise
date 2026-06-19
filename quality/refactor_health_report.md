@@ -447,6 +447,8 @@
   indefinitely.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
+- Bandit high-severity security scanning now fails earlier through `make check` and
+  Remote Feature Lane while medium/low findings remain inventory-only.
 
 ## Remaining Enterprise-Readiness Work
 

@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-883
+
+- Scope: Feature-lane Bandit high-severity enforcement
+- Pattern: Deterministic first-party security scanners should fail early in local and feature-lane
+  gates once the current baseline is measured, clean for the enforced severity, and protected by
+  workflow contract tests.
+- Status: Hardened
+- Finding Class: CI security enforcement and agent guardrails
+- Summary: `make bandit-high-severity-gate` was already measured at `high=0, medium=26, low=1` and
+  enforced through PR/main `security-audit`, but local `make check` and the Remote Feature Lane did
+  not fail early on new high-severity first-party Bandit findings. Agent-driven feature branches
+  could therefore defer deterministic security scanner failures until later merge-grade checks.
+- Evidence:
+  - Added `bandit-high-severity-gate` to the repo-native `make check` aggregate.
+  - Added a Remote Feature Lane step that runs `make bandit-high-severity-gate` without promoting
+    the broader dependency freshness/security-audit surface into the feature lane.
+  - Added workflow contract coverage proving local `make check` and Feature Lane enforce the
+    high-severity scanner while avoiding the noisier `Security Audit` target in Feature Lane.
+  - Regenerated quality baseline and scorecard evidence showing Bandit high-severity enforcement
+    now covers `make check`, Remote Feature Lane, and `security-audit`.
+- Consequence:
+  - Future agent-authored feature branches fail earlier on high-severity first-party security
+    findings while medium/low Bandit findings remain an inventoried classification backlog.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is repo-native CI guardrail placement, not an operator-facing runtime behavior
+    change.
+- Follow-Up:
+  - Classify current medium/low Bandit findings before promoting any broader Bandit threshold.
+
 ## LA-REV-882
 
 - Scope: Proposal artifact trades/funding complexity ratchet

@@ -60,6 +60,17 @@ def test_local_ci_targets_enforce_quality_baseline_freshness() -> None:
         assert "quality-baseline-check" in _makefile_target_dependencies(makefile, target)
 
 
+def test_local_check_and_feature_lane_enforce_high_severity_security_scan() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+    feature_lane = _workflow_text("feature-lane.yml")
+    governance_section = _workflow_job_section(feature_lane, "lint-dependency-governance")
+
+    assert "bandit-high-severity-gate" in _makefile_target_dependencies(makefile, "check")
+    assert "Security Audit" not in governance_section
+    assert "Bandit High Severity Gate" in governance_section
+    assert "run: make bandit-high-severity-gate" in governance_section
+
+
 def test_lint_enforces_refactored_complexity_gate_for_ci_lanes() -> None:
     makefile = Path("Makefile").read_text(encoding="utf-8")
 
