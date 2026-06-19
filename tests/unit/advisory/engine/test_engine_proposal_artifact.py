@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -166,6 +167,30 @@ def test_artifact_helpers_cover_objective_tags_next_steps_and_cash_fallback():
 
     state_without_cash = SimpleNamespace(allocation_by_asset_class=[])
     assert cash_weight(state_without_cash) == 0
+
+
+def test_largest_weight_changes_orders_by_absolute_delta_and_applies_limit():
+    before = SimpleNamespace(
+        allocation_by_instrument=[
+            SimpleNamespace(key="EQ_REMOVED", weight=Decimal("0.20")),
+            SimpleNamespace(key="EQ_TIE_B", weight=Decimal("0.10")),
+            SimpleNamespace(key="EQ_UNCHANGED", weight=Decimal("0.10")),
+        ]
+    )
+    after = SimpleNamespace(
+        allocation_by_instrument=[
+            SimpleNamespace(key="EQ_NEW", weight=Decimal("0.30")),
+            SimpleNamespace(key="EQ_TIE_A", weight=Decimal("0.20")),
+            SimpleNamespace(key="EQ_TIE_B", weight=Decimal("0.00")),
+            SimpleNamespace(key="EQ_UNCHANGED", weight=Decimal("0.10")),
+        ]
+    )
+
+    changes = largest_weight_changes(before, after, limit=3)
+
+    assert [change.bucket_id for change in changes] == ["EQ_NEW", "EQ_REMOVED", "EQ_TIE_A"]
+    assert [change.delta for change in changes] == ["0.3000", "-0.2000", "0.2000"]
+    assert "EQ_UNCHANGED" not in {change.bucket_id for change in changes}
 
 
 def test_artifact_takeaways_include_drift_when_available():

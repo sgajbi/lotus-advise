@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-881
+
+- Scope: Proposal artifact portfolio complexity ratchet
+- Pattern: Proposal artifact portfolio impact construction should keep allocation indexing,
+  changed-row derivation, zero-delta omission, ordering, limit handling, and response-model
+  projection independently reviewable before the helper is promoted into a blocking complexity
+  gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisory portfolio-impact evidence, CI complexity enforcement
+- Summary: `src/core/advisory/artifact_portfolio.py` still carried a B-ranked
+  `largest_weight_changes` helper that combined before/after allocation indexing, new/removed
+  instrument handling, zero-delta filtering, absolute-delta ordering, limit application, and
+  response-model construction in one block. That made future portfolio-impact artifact changes
+  more likely to obscure ordering and omission semantics.
+- Evidence:
+  - Extracted allocation weight indexing, changed-row construction, sorted-row derivation, and
+    response-model projection into focused helpers while preserving `largest_weight_changes`.
+  - Added targeted proposal artifact coverage proving absolute-delta ordering, instrument-id
+    tie-breaking, limit handling, new/removed instruments, and zero-delta omission.
+  - Radon complexity improved `src/core/advisory/artifact_portfolio.py` from one B/6 helper to
+    all-A blocks, worst A/3.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory/artifact_portfolio.py`.
+- Consequence:
+  - Proposal artifact portfolio-impact evidence keeps behavior-preserving ordering semantics while
+    the remediated helper is protected from future B-ranked complexity regression through the
+    repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory artifact hardening.
+- Follow-Up:
+  - Continue promoting only measured, deterministic, behavior-covered source modules into the
+    blocking complexity ratchet as each hotspot is remediated.
+
 ## LA-REV-880
 
 - Scope: Proposal artifact evidence complexity ratchet

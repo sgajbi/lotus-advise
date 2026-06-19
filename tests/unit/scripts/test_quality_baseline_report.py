@@ -254,6 +254,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Proposal artifact evidence assembly delegates model serialization" in refactor_health
+    assert "Proposal artifact portfolio impact delegates weight-change row construction" in (
+        refactor_health
+    )
     assert "API structured logging formatter delegates" in refactor_health
     assert "Proposal workflow delivery operations delegate execution handoff" in refactor_health
     assert "Proposal workflow narrative operations delegate narrative read" in refactor_health
@@ -344,7 +347,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-880`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-881`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
