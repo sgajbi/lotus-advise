@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-871
+
+- Scope: Lotus Core stateful-context market-data projection maintainability and CI ratchet
+- Pattern: Upstream market-data projection should isolate price-field extraction and FX-rate input
+  validation so malformed Lotus Core rows are skipped predictably and valid FX pairs remain
+  reviewable.
+- Status: Hardened
+- Finding Class: Upstream integration maintainability, market-data boundary hardening,
+  CI-enforced complexity ratchet
+- Summary: `src/integrations/lotus_core/stateful_context_market_data.py` mixed price projection,
+  cash/position FX derivation, currency-pair validation, decimal parsing, zero-denominator
+  handling, and FX-rate construction in helpers that still carried B-ranked Radon complexity. The
+  module now delegates price-field extraction, FX pair validation, and decimal rate input handling
+  to focused helpers while preserving duplicate price overwrite semantics, malformed-row skipping,
+  same-currency suppression, and last-source-wins FX pair behavior.
+- Evidence:
+  - `python -m radon cc src/integrations/lotus_core/stateful_context_market_data.py -s` now reports
+    the module as all A-ranked blocks, with `_capture_rate` reduced from B-ranked complexity `7` to
+    A-ranked complexity `2` and module worst complexity `A/5`.
+  - Added direct stateful-context market-data tests covering price deduplication, cash and
+    malformed price skipping, position/cash FX derivation, same-currency suppression, invalid
+    decimal suppression, zero-denominator suppression, and last-source-wins FX pair behavior.
+  - Added `src/integrations/lotus_core/stateful_context_market_data.py` to
+    `make refactored-complexity-gate` with fail-on-B Radon enforcement inherited by `make lint`.
+- Consequence:
+  - Lotus Core stateful market-data projection is easier to review at the advisory integration
+    boundary and is now protected from future B-ranked complexity regression in Feature Lane, PR
+    Merge Gate, and Main Releasability.
+- Documentation:
+  - Review ledger and generated quality/refactor-health evidence updated. No README/wiki source
+    change is required because this is internal integration-boundary maintainability hardening.
+- Follow-Up:
+  - Continue decomposing adjacent Lotus Core stateful-context helpers such as shelf-entry
+    projection and hydration paths, then add each A-only module to the ratchet after behavior is
+    pinned by tests.
+
 ## LA-REV-870
 
 - Scope: CI timeout and refactored-complexity enforcement ratchet

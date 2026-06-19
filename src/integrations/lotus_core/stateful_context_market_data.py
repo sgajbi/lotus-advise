@@ -24,6 +24,14 @@ def build_prices(positions_payload: dict[str, Any]) -> list[Price]:
 def _price_from_position(raw_position: dict[str, Any]) -> Price | None:
     if is_cash_asset_class(raw_position.get("asset_class")):
         return None
+    price_fields = _price_fields_from_position(raw_position)
+    if price_fields is None:
+        return None
+    instrument_id, price, currency = price_fields
+    return Price(instrument_id=instrument_id, price=price, currency=currency)
+
+
+def _price_fields_from_position(raw_position: dict[str, Any]) -> tuple[str, Decimal, str] | None:
     instrument_id = normalized_text(raw_position.get("security_id"))
     currency = normalized_text(raw_position.get("currency"))
     valuation = raw_position.get("valuation")
@@ -32,7 +40,7 @@ def _price_from_position(raw_position: dict[str, Any]) -> Price | None:
     price = decimal_or_none(valuation.get("market_price"))
     if price is None:
         return None
-    return Price(instrument_id=instrument_id, price=price, currency=currency)
+    return instrument_id, price, currency
 
 
 def derive_fx_rates(
@@ -98,18 +106,45 @@ def _capture_rate(
     numerator: Any,
     denominator: Any,
 ) -> None:
-    if not from_currency or not to_currency or from_currency == to_currency:
-        return
-    numerator_decimal = decimal_or_none(numerator)
-    denominator_decimal = decimal_or_none(denominator)
-    if (
-        numerator_decimal is None
-        or denominator_decimal is None
-        or denominator_decimal == Decimal("0")
-    ):
-        return
+    fx_rate = _fx_rate_from_values(
+        from_currency=from_currency,
+        to_currency=to_currency,
+        numerator=numerator,
+        denominator=denominator,
+    )
+    if fx_rate is not None:
+        fx_by_pair[fx_rate.pair] = fx_rate
+
+
+def _fx_rate_from_values(
+    *,
+    from_currency: str,
+    to_currency: str,
+    numerator: Any,
+    denominator: Any,
+) -> FxRate | None:
+    if not _has_distinct_currency_pair(from_currency, to_currency):
+        return None
+    decimal_inputs = _decimal_rate_inputs(numerator=numerator, denominator=denominator)
+    if decimal_inputs is None:
+        return None
+    numerator_decimal, denominator_decimal = decimal_inputs
     pair = f"{from_currency}/{to_currency}"
-    fx_by_pair[pair] = FxRate(
+    return FxRate(
         pair=pair,
         rate=numerator_decimal / denominator_decimal,
     )
+
+
+def _has_distinct_currency_pair(from_currency: str, to_currency: str) -> bool:
+    return bool(from_currency and to_currency and from_currency != to_currency)
+
+
+def _decimal_rate_inputs(*, numerator: Any, denominator: Any) -> tuple[Decimal, Decimal] | None:
+    numerator_decimal = decimal_or_none(numerator)
+    denominator_decimal = decimal_or_none(denominator)
+    if numerator_decimal is None or denominator_decimal is None:
+        return None
+    if denominator_decimal == Decimal("0"):
+        return None
+    return numerator_decimal, denominator_decimal
