@@ -362,52 +362,79 @@ def _interrogate_inventory(
 def _spectral_openapi_inventory(
     repo_root: Path,
 ) -> tuple[bool, int | None, dict[str, int], int | None]:
-    if (
-        not (repo_root / ".spectral.yaml").exists()
-        or not (repo_root / "scripts" / "openapi_spectral_report.py").exists()
-    ):
-        return False, None, {}, None
+    if not _spectral_inventory_available(repo_root):
+        return _empty_spectral_inventory()
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
         output_path = Path(handle.name)
     try:
-        completed = subprocess.run(
-            [
-                sys.executable,
-                "scripts/openapi_spectral_report.py",
-                "--output",
-                str(output_path),
-            ],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        completed = _run_spectral_inventory_report(repo_root, output_path)
         if not output_path.exists() or completed.returncode not in {0, 1}:
-            return False, None, {}, None
+            return _empty_spectral_inventory()
         try:
             payload = json.loads(output_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
-            return False, None, {}, None
-        if not isinstance(payload, dict) or payload.get("spectralExecutable") is not True:
-            return False, None, {}, None
-        issue_count = payload.get("issueCount")
-        path_count = payload.get("openapiPathCount")
-        severity_inventory = payload.get("severityInventory")
-        if not isinstance(issue_count, int) or not isinstance(severity_inventory, dict):
-            return False, None, {}, None
-        severity_counts = {
-            str(severity): int(count)
-            for severity, count in severity_inventory.items()
-            if isinstance(count, int)
-        }
-        return (
-            True,
-            issue_count,
-            severity_counts,
-            path_count if isinstance(path_count, int) else None,
-        )
+            return _empty_spectral_inventory()
+        return _spectral_inventory_from_payload(payload)
     finally:
         output_path.unlink(missing_ok=True)
+
+
+def _spectral_inventory_available(repo_root: Path) -> bool:
+    return (repo_root / ".spectral.yaml").exists() and (
+        repo_root / "scripts" / "openapi_spectral_report.py"
+    ).exists()
+
+
+def _run_spectral_inventory_report(
+    repo_root: Path,
+    output_path: Path,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "scripts/openapi_spectral_report.py",
+            "--output",
+            str(output_path),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _empty_spectral_inventory() -> tuple[bool, int | None, dict[str, int], int | None]:
+    return False, None, {}, None
+
+
+def _spectral_inventory_from_payload(
+    payload: object,
+) -> tuple[bool, int | None, dict[str, int], int | None]:
+    if not isinstance(payload, dict) or payload.get("spectralExecutable") is not True:
+        return _empty_spectral_inventory()
+    issue_count = payload.get("issueCount")
+    severity_inventory = payload.get("severityInventory")
+    if not isinstance(issue_count, int) or not isinstance(severity_inventory, dict):
+        return _empty_spectral_inventory()
+    return (
+        True,
+        issue_count,
+        _spectral_severity_counts(severity_inventory),
+        _spectral_path_count(payload),
+    )
+
+
+def _spectral_severity_counts(severity_inventory: dict[object, object]) -> dict[str, int]:
+    return {
+        str(severity): count
+        for severity, count in severity_inventory.items()
+        if isinstance(count, int)
+    }
+
+
+def _spectral_path_count(payload: dict[str, object]) -> int | None:
+    path_count = payload.get("openapiPathCount")
+    return path_count if isinstance(path_count, int) else None
 
 
 def build_quality_context(repo_root: Path) -> QualityContext:
@@ -1142,6 +1169,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  to focused helpers while preserving the freshness-gated report contract.",
         "- Quality baseline Radon inventory parsing delegates nested block traversal, rank",
         "  counting, and worst-complexity selection to tested helpers.",
+        "- Quality baseline Spectral inventory parsing delegates report availability, payload",
+        "  validation, severity counts, and path-count projection to focused helpers.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
         "",
@@ -1267,7 +1296,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-862` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-863` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

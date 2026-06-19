@@ -395,6 +395,8 @@
   to focused helpers while preserving the freshness-gated report contract.
 - Quality baseline Radon inventory parsing delegates nested block traversal, rank
   counting, and worst-complexity selection to tested helpers.
+- Quality baseline Spectral inventory parsing delegates report availability, payload
+  validation, severity counts, and path-count projection to focused helpers.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
 

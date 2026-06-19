@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-863
+
+- Scope: Quality baseline Spectral inventory parsing complexity
+- Pattern: OpenAPI quality evidence parsers should keep report execution, payload validation,
+  severity counting, and path-count projection separate so API-governance measurement remains easy
+  to review and test.
+- Status: Hardened
+- Finding Class: CI measurement maintainability, OpenAPI evidence reliability
+- Summary: `_spectral_openapi_inventory` mixed Spectral report availability checks, subprocess
+  execution, temporary output handling, JSON validation, issue-count validation, severity-count
+  projection, and OpenAPI path-count projection in one C-ranked helper. The script now delegates
+  availability, report execution, empty-result projection, payload parsing, severity counting, and
+  path-count extraction to focused helpers with direct payload parsing coverage.
+- Evidence:
+  - `python -m radon cc scripts/quality_baseline_report.py -s` now reports
+    `_spectral_openapi_inventory` as A-ranked complexity `5`, down from C-ranked complexity `13`,
+    with no C-ranked functions remaining in `scripts/quality_baseline_report.py`.
+  - `python -m pytest tests/unit/scripts/test_quality_baseline_report.py -q` passed with 5 tests.
+  - `python -m ruff check scripts/quality_baseline_report.py tests/unit/scripts/test_quality_baseline_report.py` passed.
+  - `python -m ruff format --check scripts/quality_baseline_report.py tests/unit/scripts/test_quality_baseline_report.py` passed.
+- Consequence:
+  - OpenAPI/Spectral scorecard evidence is easier to evolve without recreating complex parser
+    branches in the quality baseline generator.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal CI measurement hardening.
+- Follow-Up:
+  - Continue reducing B-ranked quality/governance script helpers where it improves reliability or
+    enables stricter script-level complexity enforcement.
+
 ## LA-REV-862
 
 - Scope: Quality baseline Radon inventory parsing complexity

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from scripts.quality_baseline_report import (
     _radon_inventory_from_payload,
+    _spectral_inventory_from_payload,
     build_quality_context,
     check_quality_reports,
     main,
@@ -41,6 +42,28 @@ def test_radon_inventory_counts_nested_blocks_and_worst_complexity() -> None:
         {"A": 2, "B": 1, "C": 1},
         "C",
         13,
+    )
+
+
+def test_spectral_inventory_parses_valid_executable_payload() -> None:
+    payload = {
+        "spectralExecutable": True,
+        "issueCount": 3,
+        "severityInventory": {"error": 1, "warn": 2, "ignored": "not-a-count"},
+        "openapiPathCount": 84,
+    }
+
+    assert _spectral_inventory_from_payload(payload) == (
+        True,
+        3,
+        {"error": 1, "warn": 2},
+        84,
+    )
+    assert _spectral_inventory_from_payload({"spectralExecutable": False}) == (
+        False,
+        None,
+        {},
+        None,
     )
 
 
@@ -255,6 +278,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Quality baseline Radon inventory parsing delegates nested block traversal" in (
         refactor_health
     )
+    assert "Quality baseline Spectral inventory parsing delegates report availability" in (
+        refactor_health
+    )
     assert "Development requirements pin the report-only quality tools" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate" in (
@@ -285,7 +311,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "protected-main verification" in scorecard
     assert "demo-assurance checks" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-862`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-863`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
