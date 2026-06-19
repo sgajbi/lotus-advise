@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-876
+
+- Scope: Shared proposal intent dependency complexity ratchet
+- Pattern: Same-currency SELL dependency indexing should keep intent-type, side, and notional
+  eligibility rules independently reviewable before the helper is promoted into a blocking
+  complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisory intent dependency safety, CI complexity enforcement
+- Summary: `src/core/common/intent_dependencies.py` still carried a B-ranked SELL-indexing helper
+  even after earlier dependency-linking modularization. The compound comprehension made it easier
+  for future changes to mix funding dependency behavior with same-currency SELL dependency
+  eligibility in one expression.
+- Evidence:
+  - Extracted SELL security-intent selection into a focused helper and kept notional narrowing
+    local to the currency-indexing loop.
+  - Preserved the public `link_buy_intent_dependencies` API and existing in-place dependency
+    behavior.
+  - Focused advisory simulation tests still prove FX dependency linking, same-currency SELL
+    dependency linking, and missing-notional BUY handling.
+  - Radon complexity improved the module from one B/6 helper to all-A blocks, worst A/5.
+  - `make refactored-complexity-gate` now includes `src/core/common/intent_dependencies.py`.
+- Consequence:
+  - Advisory proposal intent dependency linking keeps the same behavior while the remediated
+    shared helper is protected from future B-ranked complexity regression through the repo-native
+    lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory dependency-linking hardening.
+- Follow-Up:
+  - Continue promoting only refactored, tested, low-noise source modules into the blocking
+    complexity ratchet as each hotspot is measurably remediated.
+
 ## LA-REV-875
 
 - Scope: Proposal idempotency replay complexity ratchet

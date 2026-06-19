@@ -37,13 +37,24 @@ def _sell_intent_id_by_currency(
 ) -> dict[str, str]:
     if not include_same_currency_sell_dependency:
         return {}
-    return {
-        intent.notional.currency: intent.intent_id
+    sell_intent_id_by_currency: dict[str, str] = {}
+    for intent in _sell_security_intents_with_notional(intents):
+        notional = intent.notional
+        if notional is not None:
+            sell_intent_id_by_currency[notional.currency] = intent.intent_id
+    return sell_intent_id_by_currency
+
+
+def _sell_security_intents_with_notional(
+    intents: Sequence[ProposalIntent],
+) -> list[SecurityTradeIntent]:
+    return [
+        intent
         for intent in intents
         if intent.intent_type == "SECURITY_TRADE"
         and intent.side == "SELL"
         and intent.notional is not None
-    }
+    ]
 
 
 def _buy_security_intents_with_notional(
