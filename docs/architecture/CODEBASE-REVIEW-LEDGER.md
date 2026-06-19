@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-886
+
+- Scope: Decision-summary material-change complexity ratchet
+- Pattern: Material-change projection should keep risk-lens concentration and suitability issue
+  mapping as focused, explicit builders before the module is promoted into a blocking complexity
+  gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisory decision evidence, CI complexity enforcement
+- Summary: `src/core/advisory/decision_material_changes.py` still carried two B-ranked helpers:
+  concentration material-change projection mixed top-position and issuer-HHI detection, while
+  product/mandate projection used repeated issue-id branching. That made advisor decision-summary
+  material-change semantics harder to review and more likely to drift as new suitability issue
+  families are added.
+- Evidence:
+  - Extracted top-position and issuer-concentration material-change builders.
+  - Replaced repeated product/mandate issue branching with an explicit suitability issue mapping.
+  - Added focused decision-summary coverage proving product-complexity and mandate-alignment
+    suitability issues still project the expected material-change families, change ids,
+    classification deltas, and evidence refs.
+  - Radon complexity improved `src/core/advisory/decision_material_changes.py` from two B/6
+    helpers to all-A blocks, worst A/4.
+  - Repo-wide Radon inventory moved from `A=3893, B=68` to `A=3898, B=66`.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory/decision_material_changes.py`.
+- Consequence:
+  - Advisory decision-summary material-change evidence remains behavior-preserving and is now
+    protected from future B-ranked complexity regression through the repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory decision-summary hardening.
+- Follow-Up:
+  - Continue promoting only measured, deterministic, behavior-covered source modules into the
+    blocking complexity ratchet as each hotspot is remediated.
+
 ## LA-REV-885
 
 - Scope: Decision-summary approval requirement complexity ratchet
