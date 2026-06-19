@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-877
+
+- Scope: Advisory copilot record-text complexity ratchet
+- Pattern: Advisory copilot audit-text list normalization should keep collection capacity,
+  required text normalization, item type validation, and item-length bounds independently
+  reviewable before the helper is promoted into a blocking complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, audit text safety, CI complexity enforcement
+- Summary: `src/core/advisory_copilot/record_text.py` still carried a B-ranked bounded-list
+  normalizer that mixed collection validation, per-item type checks, required text normalization,
+  and max-length enforcement in one loop. That made future audit-text changes more likely to blur
+  list-level and item-level failure behavior.
+- Evidence:
+  - Extracted list-capacity enforcement and per-item bounded text normalization into focused
+    helpers.
+  - Preserved public `normalize_bounded_record_text_list`, `normalize_required_record_text`, and
+    `normalize_optional_record_text` APIs.
+  - Expanded focused advisory copilot persistence tests to cover non-list, non-string, and
+    item-length failures in addition to normalization, blank text, and max-item overflow.
+  - Radon complexity improved the module from one B/6 helper to all-A blocks, worst A/3.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory_copilot/record_text.py`.
+- Consequence:
+  - Advisory copilot record validation keeps the same bounded audit-text behavior while the
+    remediated helper is protected from future B-ranked complexity regression through the
+    repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory copilot record-validation hardening.
+- Follow-Up:
+  - Continue promoting only refactored, tested, low-noise source modules into the blocking
+    complexity ratchet as each hotspot is measurably remediated.
+
 ## LA-REV-876
 
 - Scope: Shared proposal intent dependency complexity ratchet
