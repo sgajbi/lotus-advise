@@ -405,9 +405,11 @@
   validation, severity counts, and path-count projection to focused helpers.
 - Proposal narrative AI draft handling delegates adapter invocation, grounded section
   projection, and deterministic fallback lineage to focused helpers.
+- Proposal execution-status projection delegates request metadata, downstream status
+  updates, execution timestamps, and external references to focused helpers.
 - Refactored complexity enforcement now protects the already-remediated Lotus Risk
-  enrichment, tactical house-view, policy workflow projection, and narrative AI
-  draft boundaries with A-only Radon gates inherited
+  enrichment, tactical house-view, policy workflow projection, narrative AI draft,
+  and execution-status projection boundaries with A-only Radon gates inherited
   by Feature Lane, PR Merge Gate, and Main Releasability through `make lint`.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.

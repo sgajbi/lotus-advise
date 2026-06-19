@@ -282,10 +282,11 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Proposal narrative AI draft handling delegates adapter invocation" in (refactor_health)
+    assert "Proposal execution-status projection delegates request metadata" in refactor_health
     assert "Tactical house-view affected-cohort construction delegates" in refactor_health
     assert "Refactored complexity enforcement now protects" in refactor_health
     assert "already-remediated Lotus Risk" in refactor_health
-    assert "enrichment, tactical house-view, policy workflow projection, and narrative AI" in (
+    assert "enrichment, tactical house-view, policy workflow projection, narrative AI draft" in (
         refactor_health
     )
     assert "Development requirements pin the report-only quality tools" in refactor_health
@@ -319,7 +320,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "demo-assurance checks" in scorecard
     assert "refactored-complexity enforcement" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-867`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-868`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

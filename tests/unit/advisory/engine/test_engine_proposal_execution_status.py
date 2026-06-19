@@ -115,6 +115,44 @@ def test_execution_status_projects_latest_handoff_and_execution_event():
     assert response.execution_ownership == execution_ownership_boundary()
 
 
+def test_execution_status_preserves_request_identity_for_non_terminal_updates():
+    requested = _event(
+        event_id="pwe_request_identity",
+        event_type="EXECUTION_REQUESTED",
+        to_state="EXECUTION_READY",
+        minute=10,
+        reason_json={
+            "execution_request_id": "pex_request_identity",
+            "execution_provider": "lotus-manage",
+        },
+    )
+    accepted = _event(
+        event_id="pwe_accepted_identity",
+        event_type="EXECUTION_ACCEPTED",
+        to_state="EXECUTION_READY",
+        minute=15,
+        reason_json={
+            "execution_request_id": "pex_downstream_echo",
+            "execution_provider": "external-oms",
+            "external_execution_id": "oms_acceptance_projection",
+            "execution_id": "oms_legacy_projection",
+        },
+    )
+
+    response = build_execution_status_response(
+        proposal=_proposal(),
+        events=[requested, accepted],
+    )
+
+    assert response.handoff_status == "ACCEPTED"
+    assert response.execution_request_id == "pex_request_identity"
+    assert response.execution_provider == "lotus-manage"
+    assert response.handoff_requested_at == "2026-05-20T09:10:00+00:00"
+    assert response.executed_at is None
+    assert response.external_execution_id == "oms_acceptance_projection"
+    assert response.explanation["state_correlation"] == "EXECUTION_REQUESTED_AND_ACCEPTED_EVENTS"
+
+
 def test_execution_status_can_be_derived_from_downstream_event_without_request_event():
     executed = _event(
         event_id="pwe_executed_only",
