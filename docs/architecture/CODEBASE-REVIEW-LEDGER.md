@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-879
+
+- Scope: Lotus AI tenant runtime configuration complexity ratchet
+- Pattern: Lotus AI caller tenancy resolution should keep configured-value loading, blank fallback,
+  length bounds, and control-character rejection independently reviewable before the helper is
+  promoted into a blocking complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, runtime configuration safety, CI complexity enforcement
+- Summary: `src/integrations/lotus_ai/runtime_config.py` still carried a B-ranked tenant resolver
+  that combined environment loading, blank fallback, length bounds, and control-character
+  rejection in one conditional. That made future Lotus AI caller-context changes more likely to
+  blur the safe defaulting rules for advisory workflow-pack requests.
+- Evidence:
+  - Extracted configured tenant loading, supported-tenant validation, and control-character
+    detection into focused helpers while preserving `resolve_lotus_ai_tenant_id`.
+  - Expanded focused Lotus AI runtime configuration tests to cover over-length tenant values in
+    addition to missing config, trimmed configured values, invalid base URLs, sanitized base URLs,
+    and control-character rejection.
+  - Radon complexity improved the module from one B/6 helper to all-A blocks, worst A/3.
+  - `make refactored-complexity-gate` now includes
+    `src/integrations/lotus_ai/runtime_config.py`.
+- Consequence:
+  - Lotus AI workflow-pack caller tenancy keeps the same safe defaulting behavior while the
+    remediated runtime configuration helper is protected from future B-ranked complexity
+    regression through the repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal runtime-configuration hardening.
+- Follow-Up:
+  - Continue promoting only refactored, tested, low-noise source modules into the blocking
+    complexity ratchet as each hotspot is measurably remediated.
+
 ## LA-REV-878
 
 - Scope: Advisory copilot run-replay complexity ratchet

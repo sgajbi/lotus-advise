@@ -21,11 +21,23 @@ def resolve_lotus_ai_base_url(
 
 
 def resolve_lotus_ai_tenant_id() -> str:
-    normalized = os.getenv("LOTUS_ADVISE_TENANT_ID", "").strip()
-    if (
-        not normalized
-        or len(normalized) > _MAX_LOTUS_AI_TENANT_ID_LENGTH
-        or any(ord(char) < 32 or ord(char) == 127 for char in normalized)
-    ):
-        return _DEFAULT_LOTUS_AI_TENANT_ID
-    return normalized
+    normalized = _configured_lotus_ai_tenant_id()
+    if _is_supported_lotus_ai_tenant_id(normalized):
+        return normalized
+    return _DEFAULT_LOTUS_AI_TENANT_ID
+
+
+def _configured_lotus_ai_tenant_id() -> str:
+    return os.getenv("LOTUS_ADVISE_TENANT_ID", "").strip()
+
+
+def _is_supported_lotus_ai_tenant_id(value: str) -> bool:
+    return (
+        bool(value)
+        and len(value) <= _MAX_LOTUS_AI_TENANT_ID_LENGTH
+        and not _has_control_text(value)
+    )
+
+
+def _has_control_text(value: str) -> bool:
+    return any(ord(char) < 32 or ord(char) == 127 for char in value)
