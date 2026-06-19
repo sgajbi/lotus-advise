@@ -1,5 +1,34 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-865
+
+- Scope: Architecture-boundary CI evidence truth
+- Pattern: Once an architecture-boundary contract is enforced by repo-native CI, generated quality
+  reports, workflow contract tests, and architecture-rule guidance should describe it as enforced
+  rather than report-only.
+- Status: Hardened
+- Finding Class: CI governance evidence drift, architecture-boundary enforcement documentation
+- Summary: `make lint` already carried `make architecture-boundaries` into Feature Lane, PR Merge
+  Gate, and Main Releasability, but `quality/baseline_report.md` and
+  `quality/architecture_rules.md` still described import-linter contracts as report-only or
+  pending installation. The quality baseline generator and architecture rules now state the
+  enforced import-linter posture, and workflow contract tests explicitly pin the Makefile lint
+  inheritance path.
+- Evidence:
+  - `python -m pytest tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_quality_baseline_report.py` passed.
+  - `make architecture-boundaries` passed.
+  - `make quality-baseline-check` passed after regenerating quality reports.
+- Consequence:
+  - Future CI edits are less likely to silently drop architecture-boundary enforcement, and the
+    before/after scorecard no longer underclaims a gate that is already active in governed lanes.
+- Documentation:
+  - Review ledger, `quality/architecture_rules.md`, and generated quality reports updated. No
+    README/wiki source change is required because this is internal CI evidence and quality
+    governance posture, not operator-facing runtime truth.
+- Follow-Up:
+  - Add new import-linter contracts only after source dependencies are clean enough for absolute
+    enforcement in local and GitHub gates.
+
 ## LA-REV-864
 
 - Scope: Lotus Risk enrichment retry and response parsing maintainability

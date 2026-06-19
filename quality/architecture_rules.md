@@ -2,8 +2,9 @@
 
 ## Enforcement Phase
 
-- Current phase: baseline/report-only.
-- Direction: move from report-only to fail-on-new-regression, then enforce agreed thresholds.
+- Current phase: enforced clean import-linter contracts.
+- Direction: expand architecture-boundary contracts only after each new boundary is proven clean
+  locally and in GitHub CI.
 
 ## Boundary Rules
 
@@ -18,13 +19,17 @@
 
 ## Current Evidence
 
-- `.importlinter` defines report-only contracts for API-to-infrastructure, core-to-FastAPI, and
+- `.importlinter` defines enforced contracts for API-to-infrastructure, core-to-FastAPI, and
   infrastructure-to-API dependency boundaries.
-- `quality/baseline_report.md` records architecture-boundary status as a current report-only gap
-  until import-linter is installed and calibrated.
+- `make architecture-boundaries` runs import-linter against `.importlinter`.
+- `make lint` carries `make architecture-boundaries` into Feature Lane, PR Merge Gate, and Main
+  Releasability.
+- `quality/baseline_report.md` records the import-linter contract inventory for before/after
+  scorecard evidence.
 
 ## Next Gate
 
-- Install and run import-linter in CI as report-only.
-- Baseline current violations, if any.
-- Move to fail-on-new-regression before enforcing absolute architecture thresholds.
+- Add new import-linter contracts only after source dependencies are clean enough for absolute
+  enforcement.
+- Keep workflow contract tests pinned to the `make lint` inheritance path so architecture
+  enforcement cannot drift out of CI silently.

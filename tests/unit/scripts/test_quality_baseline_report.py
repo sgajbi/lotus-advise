@@ -130,6 +130,8 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Architecture Violations" in baseline
     assert "Import-linter config executable" in baseline
     assert "Import-linter contract inventory" in baseline
+    assert "make architecture-boundaries" in baseline
+    assert "Feature Lane, PR Merge Gate, and Main" in baseline
     assert "Documentation Gaps" in baseline
     assert "Interrogate config executable" in baseline
     assert "Interrogate docstring inventory" in baseline
@@ -153,6 +155,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "High-severity enforced plus Bandit inventory" in scorecard
     assert "Enforced with Spectral" in scorecard
     assert "make lint runs import-linter architecture contracts" in scorecard
+    assert "architecture-boundary enforcement" in scorecard
     assert "Gap tracked plus Interrogate inventory" in scorecard
     assert "Diagnostics target added" in scorecard
     assert "Demo assurance" in scorecard
@@ -313,7 +316,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "demo-assurance checks" in scorecard
     assert "refactored-complexity enforcement" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-864`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-865`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

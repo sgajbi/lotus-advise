@@ -712,7 +712,9 @@ def _architecture_section(context: QualityContext) -> list[str]:
         f"`total={_optional_count(context.importlinter_contract_count)}, "
         f"kept={_optional_count(context.importlinter_kept_count)}, "
         f"broken={_optional_count(context.importlinter_broken_count)}`",
-        "- Contracts remain report-only until the kept inventory is wired into a CI gate.",
+        "- `make architecture-boundaries` enforces import-linter architecture contracts,",
+        "  which is carried by `make lint` into Feature Lane, PR Merge Gate, and Main",
+        "  Releasability.",
         "",
     ]
 
@@ -1302,7 +1304,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-864` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-865` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1365,8 +1367,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "static governance jobs; workflow contract tests protect local CI target "
             "freshness, demo-assurance checks, parallel runtime jobs, least-privilege "
             "permissions, concurrency, coverage artifact handling, refactored-complexity "
-            "enforcement, pull-request-target auto-merge guards, protected-main verification, "
-            "and the baseline freshness step.",
+            "enforcement, architecture-boundary enforcement, pull-request-target auto-merge "
+            "guards, protected-main verification, and the baseline freshness step.",
             "Quality evidence freshness is now enforced before merge and after merge, not only "
             "during local `make check`.",
         ),

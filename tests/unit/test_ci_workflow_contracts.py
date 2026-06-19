@@ -61,6 +61,18 @@ def test_lint_enforces_refactored_complexity_gate_for_ci_lanes() -> None:
         assert "run: make lint" in workflow
 
 
+def test_lint_enforces_architecture_boundaries_for_ci_lanes() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    assert "$(MAKE) architecture-boundaries" in makefile
+    assert "architecture-boundaries:" in makefile
+    assert "lint_imports_command(args=['--config','.importlinter']" in makefile
+
+    for workflow_name in ("feature-lane.yml", "pr-merge-gate.yml", "main-releasability.yml"):
+        workflow = _workflow_text(workflow_name)
+        assert "run: make lint" in workflow
+
+
 def test_demo_assurance_gate_covers_demo_critical_evidence() -> None:
     makefile = Path("Makefile").read_text(encoding="utf-8")
 
