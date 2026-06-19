@@ -1049,6 +1049,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  focused helper and is protected by the refactored complexity gate.",
         "- Advisory copilot record-text list normalization delegates list capacity and",
         "  bounded item validation to focused helpers protected by the refactored complexity gate.",
+        "- Advisory copilot run replay delegates idempotency hash matching, orphan detection,",
+        "  and retryable refresh policy before its A-only complexity gate.",
         "- API structured logging formatter delegates base payload, extra-field, audit-field,",
         "  and null-filtering behavior to focused helpers.",
         "- Policy-pack catalog state delegates validation/activation commands, audit-event",
@@ -1334,7 +1336,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-877` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-878` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

@@ -1152,6 +1152,21 @@ def test_copilot_run_replay_policy_separates_replay_from_retryable_refresh() -> 
             request_hash="sha256:different-request",
         )
 
+    repository._run_idempotency["copilot-action-idem-orphaned"] = (  # noqa: SLF001
+        AdvisoryCopilotRunIdempotencyRecord(
+            idempotency_key="copilot-action-idem-orphaned",
+            request_hash=first.request_hash,
+            run_id="copilot-run-missing",
+            created_at=datetime(2026, 5, 28, 9, 1, tzinfo=timezone.utc),
+        )
+    )
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED"):
+        resolve_advisory_copilot_run_replay(
+            repository=repository,
+            idempotency_key="copilot-action-idem-orphaned",
+            request_hash=first.request_hash,
+        )
+
     retryable_repository = InMemoryAdvisoryCopilotRepository()
     retryable = _persist_run(
         retryable_repository,
