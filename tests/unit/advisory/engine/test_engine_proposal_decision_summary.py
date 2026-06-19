@@ -56,18 +56,23 @@ def _suitability_issue_payload(
     *,
     implication: str,
     issue_id: str = "SUITABILITY_APPROVAL_MAPPING",
+    issue_key: str | None = None,
+    status_change: str = "NEW",
+    classification: str = "NEW",
+    details: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    issue_key_value = issue_key or f"APPROVAL_MAPPING|{implication}"
     return {
         "issue_id": issue_id,
-        "issue_key": f"APPROVAL_MAPPING|{implication}",
+        "issue_key": issue_key_value,
         "dimension": "GOVERNANCE",
         "severity": "HIGH",
-        "status_change": "NEW",
-        "classification": "NEW",
+        "status_change": status_change,
+        "classification": classification,
         "summary": "Suitability issue requires approval mapping.",
         "remediation": "Route the proposal through the required approval posture.",
         "approval_implication": implication,
-        "details": {"approval_implication": implication},
+        "details": details or {"approval_implication": implication},
         "evidence": {
             "as_of": "md_test",
             "snapshot_ids": {
@@ -131,6 +136,63 @@ def test_decision_summary_maps_suitability_implications_to_approval_requirements
     assert requirement.evidence_refs == [
         f"proposal.suitability.issues.APPROVAL_MAPPING|{implication}"
     ]
+
+
+@pytest.mark.parametrize(
+    ("issue_id", "issue_key", "expected_family", "expected_change_id"),
+    [
+        (
+            "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE",
+            "PRODUCT_COMPLEXITY|STRUCT_NOTE_1",
+            "PRODUCT_COMPLEXITY_CHANGE",
+            "product-complexity:PRODUCT_COMPLEXITY|STRUCT_NOTE_1",
+        ),
+        (
+            "MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE",
+            "MANDATE_CONTEXT|RESTRICTED_1",
+            "MANDATE_ALIGNMENT_CHANGE",
+            "mandate-alignment:MANDATE_CONTEXT|RESTRICTED_1",
+        ),
+    ],
+)
+def test_decision_summary_maps_suitability_issues_to_material_changes(
+    issue_id: str,
+    issue_key: str,
+    expected_family: str,
+    expected_change_id: str,
+) -> None:
+    result = _base_result()
+    result.suitability = SuitabilityResult.model_validate(
+        {
+            "summary": {
+                "new_count": 1,
+                "resolved_count": 0,
+                "persistent_count": 0,
+                "highest_severity_new": "HIGH",
+            },
+            "issues": [
+                _suitability_issue_payload(
+                    implication="CLIENT_CONTEXT_REQUIRED",
+                    issue_id=issue_id,
+                    issue_key=issue_key,
+                    classification="UNKNOWN_DUE_TO_MISSING_EVIDENCE",
+                    details={"instrument_id": "STRUCT_NOTE_1"},
+                )
+            ],
+            "policy_pack_id": "global-private-banking-baseline",
+            "policy_version": "enterprise-suitability-policy.2026-04",
+            "recommended_gate": "COMPLIANCE_REVIEW",
+        }
+    )
+
+    summary = build_proposal_decision_summary(result)
+
+    material_change = next(
+        change for change in summary.material_changes if change.family == expected_family
+    )
+    assert material_change.change_id == expected_change_id
+    assert material_change.delta == {"classification": "UNKNOWN_DUE_TO_MISSING_EVIDENCE"}
+    assert material_change.evidence_refs == [f"proposal.suitability.issues.{issue_key}"]
 
 
 def test_decision_next_action_requests_mandate_context_for_mandate_evidence_gap() -> None:

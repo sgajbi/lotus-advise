@@ -11,6 +11,7 @@ from src.core.advisory.decision_summary_models import (
 )
 from src.core.proposal_result_models import ProposalResult
 from src.core.simulation_state_models import AllocationMetric, SimulatedState
+from src.core.suitability_models import SuitabilityIssue
 
 _ZERO = Decimal("0")
 _ASSET_CLASS_DELTA_THRESHOLD = Decimal("0.05")
@@ -18,6 +19,17 @@ _CASH_DELTA_THRESHOLD = Decimal("0.03")
 _CURRENCY_DELTA_THRESHOLD = Decimal("0.05")
 _TOP_POSITION_DELTA_THRESHOLD = Decimal("0.05")
 _ISSUER_HHI_DELTA_THRESHOLD = Decimal("500")
+_MATERIAL_SUITABILITY_CHANGE_BY_ISSUE_ID = {
+    "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE": (
+        "product-complexity",
+        "PRODUCT_COMPLEXITY_CHANGE",
+    ),
+    "MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE": (
+        "mandate-alignment",
+        "MANDATE_ALIGNMENT_CHANGE",
+    ),
+}
+_MATERIAL_SUITABILITY_STATUSES = {"NEW", "PERSISTENT"}
 
 
 def build_material_changes(
@@ -138,48 +150,60 @@ def _build_concentration_changes(result: ProposalResult) -> list[ProposalDecisio
     risk_lens = result.explanation.get("risk_lens")
     if not isinstance(risk_lens, dict):
         return []
-    changes: list[ProposalDecisionMaterialChange] = []
-    single = risk_lens.get("single_position_concentration")
-    if isinstance(single, dict):
-        delta = _decimal(single.get("top_position_weight_delta"))
-        if abs(delta) >= _TOP_POSITION_DELTA_THRESHOLD:
-            changes.append(
-                ProposalDecisionMaterialChange(
-                    change_id="concentration:top-position",
-                    family="CONCENTRATION_CHANGE",
-                    severity=_delta_severity(
-                        delta, medium=_TOP_POSITION_DELTA_THRESHOLD, high=Decimal("0.10")
-                    ),
-                    before={"weight": str(single.get("top_position_weight_current"))},
-                    after={"weight": str(single.get("top_position_weight_proposed"))},
-                    delta={"weight": str(single.get("top_position_weight_delta"))},
-                    threshold={"material_delta": _weight_str(_TOP_POSITION_DELTA_THRESHOLD)},
-                    summary="Top position concentration changed materially in the risk lens.",
-                    evidence_refs=["proposal.explanation.risk_lens.single_position_concentration"],
-                )
-            )
-    issuer = risk_lens.get("issuer_concentration")
-    if isinstance(issuer, dict):
-        hhi_delta = _decimal(issuer.get("hhi_delta"))
-        if abs(hhi_delta) >= _ISSUER_HHI_DELTA_THRESHOLD:
-            changes.append(
-                ProposalDecisionMaterialChange(
-                    change_id="concentration:issuer-hhi",
-                    family="CONCENTRATION_CHANGE",
-                    severity=_delta_severity(
-                        hhi_delta,
-                        medium=_ISSUER_HHI_DELTA_THRESHOLD,
-                        high=Decimal("1000"),
-                    ),
-                    before={"hhi": str(issuer.get("hhi_current"))},
-                    after={"hhi": str(issuer.get("hhi_proposed"))},
-                    delta={"hhi": str(issuer.get("hhi_delta"))},
-                    threshold={"material_hhi_delta": str(_ISSUER_HHI_DELTA_THRESHOLD)},
-                    summary="Issuer concentration changed materially in the risk lens.",
-                    evidence_refs=["proposal.explanation.risk_lens.issuer_concentration"],
-                )
-            )
-    return changes
+    return [
+        change
+        for change in (
+            _top_position_concentration_change(risk_lens.get("single_position_concentration")),
+            _issuer_concentration_change(risk_lens.get("issuer_concentration")),
+        )
+        if change is not None
+    ]
+
+
+def _top_position_concentration_change(
+    single_position_concentration: object,
+) -> ProposalDecisionMaterialChange | None:
+    if not isinstance(single_position_concentration, dict):
+        return None
+    delta = _decimal(single_position_concentration.get("top_position_weight_delta"))
+    if abs(delta) < _TOP_POSITION_DELTA_THRESHOLD:
+        return None
+    return ProposalDecisionMaterialChange(
+        change_id="concentration:top-position",
+        family="CONCENTRATION_CHANGE",
+        severity=_delta_severity(delta, medium=_TOP_POSITION_DELTA_THRESHOLD, high=Decimal("0.10")),
+        before={"weight": str(single_position_concentration.get("top_position_weight_current"))},
+        after={"weight": str(single_position_concentration.get("top_position_weight_proposed"))},
+        delta={"weight": str(single_position_concentration.get("top_position_weight_delta"))},
+        threshold={"material_delta": _weight_str(_TOP_POSITION_DELTA_THRESHOLD)},
+        summary="Top position concentration changed materially in the risk lens.",
+        evidence_refs=["proposal.explanation.risk_lens.single_position_concentration"],
+    )
+
+
+def _issuer_concentration_change(
+    issuer_concentration: object,
+) -> ProposalDecisionMaterialChange | None:
+    if not isinstance(issuer_concentration, dict):
+        return None
+    hhi_delta = _decimal(issuer_concentration.get("hhi_delta"))
+    if abs(hhi_delta) < _ISSUER_HHI_DELTA_THRESHOLD:
+        return None
+    return ProposalDecisionMaterialChange(
+        change_id="concentration:issuer-hhi",
+        family="CONCENTRATION_CHANGE",
+        severity=_delta_severity(
+            hhi_delta,
+            medium=_ISSUER_HHI_DELTA_THRESHOLD,
+            high=Decimal("1000"),
+        ),
+        before={"hhi": str(issuer_concentration.get("hhi_current"))},
+        after={"hhi": str(issuer_concentration.get("hhi_proposed"))},
+        delta={"hhi": str(issuer_concentration.get("hhi_delta"))},
+        threshold={"material_hhi_delta": str(_ISSUER_HHI_DELTA_THRESHOLD)},
+        summary="Issuer concentration changed materially in the risk lens.",
+        evidence_refs=["proposal.explanation.risk_lens.issuer_concentration"],
+    )
 
 
 def _build_product_and_mandate_changes(
@@ -187,39 +211,33 @@ def _build_product_and_mandate_changes(
 ) -> list[ProposalDecisionMaterialChange]:
     if result.suitability is None:
         return []
-    changes: list[ProposalDecisionMaterialChange] = []
-    for issue in result.suitability.issues:
-        if issue.status_change not in {"NEW", "PERSISTENT"}:
-            continue
-        if issue.issue_id == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE":
-            changes.append(
-                ProposalDecisionMaterialChange(
-                    change_id=f"product-complexity:{issue.issue_key}",
-                    family="PRODUCT_COMPLEXITY_CHANGE",
-                    severity=issue.severity,
-                    before={},
-                    after=issue.details,
-                    delta={"classification": issue.classification},
-                    threshold={},
-                    summary=issue.summary,
-                    evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
-                )
-            )
-        if issue.issue_id == "MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE":
-            changes.append(
-                ProposalDecisionMaterialChange(
-                    change_id=f"mandate-alignment:{issue.issue_key}",
-                    family="MANDATE_ALIGNMENT_CHANGE",
-                    severity=issue.severity,
-                    before={},
-                    after=issue.details,
-                    delta={"classification": issue.classification},
-                    threshold={},
-                    summary=issue.summary,
-                    evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
-                )
-            )
-    return changes
+    return [
+        change
+        for issue in result.suitability.issues
+        if (change := _product_or_mandate_change(issue)) is not None
+    ]
+
+
+def _product_or_mandate_change(
+    issue: SuitabilityIssue,
+) -> ProposalDecisionMaterialChange | None:
+    if issue.status_change not in _MATERIAL_SUITABILITY_STATUSES:
+        return None
+    change_metadata = _MATERIAL_SUITABILITY_CHANGE_BY_ISSUE_ID.get(issue.issue_id)
+    if change_metadata is None:
+        return None
+    change_id_prefix, family = change_metadata
+    return ProposalDecisionMaterialChange(
+        change_id=f"{change_id_prefix}:{issue.issue_key}",
+        family=family,
+        severity=issue.severity,
+        before={},
+        after=issue.details,
+        delta={"classification": issue.classification},
+        threshold={},
+        summary=issue.summary,
+        evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
+    )
 
 
 def _build_data_quality_changes(
