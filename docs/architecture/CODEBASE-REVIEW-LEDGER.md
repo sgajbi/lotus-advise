@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-867
+
+- Scope: Proposal narrative AI draft maintainability and CI ratchet
+- Pattern: AI-assisted advisor-review narrative handling should keep adapter invocation,
+  deterministic fallback lineage, and grounded section projection separate so generated text can
+  replace only sections already backed by deterministic evidence.
+- Status: Hardened
+- Finding Class: AI-assisted narrative maintainability, evidence-boundary hardening,
+  CI-enforced complexity ratchet
+- Summary: `src/core/advisory/narrative_ai.py::apply_ai_draft_sections` mixed lotus-ai adapter
+  invocation, unavailable fallback handling, deterministic section indexing, unsupported draft
+  filtering, and grounded section reconstruction in one B-ranked helper. The module now delegates
+  those concerns to focused helpers while preserving fallback reason propagation, deterministic
+  source/limitation references, and AI-assisted generation mode behavior only when at least one AI
+  draft section maps to a deterministic section.
+- Evidence:
+  - `python -m radon cc src/core/advisory/narrative_ai.py -s` now reports the module as all
+    A-ranked blocks, with `apply_ai_draft_sections` down from B-ranked complexity `7` to A-ranked
+    complexity `4`.
+  - `make refactored-complexity-gate` now enforces A-only Radon posture for
+    `src/core/advisory/narrative_ai.py` in addition to the previously remediated Lotus Risk
+    enrichment, tactical house-view, and policy workflow projection modules.
+  - `python -m pytest tests/unit/advisory/engine/test_engine_proposal_narrative_ai.py` passed
+    with 3 tests covering deterministic grounding metadata preservation, adapter-reason fallback,
+    and fallback when no draft sections are grounded.
+- Consequence:
+  - The AI-assisted narrative boundary is easier to review for evidence preservation and fallback
+    behavior, and CI now prevents the remediated module from returning to B-ranked complexity.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal AI-assisted narrative maintainability and CI-ratchet hardening.
+- Follow-Up:
+  - Continue remediating B-ranked advisory helpers where the split improves source authority,
+    resilience, observability, or reviewer-auditable domain behavior.
+
 ## LA-REV-866
 
 - Scope: Policy evaluation workflow projection maintainability and CI ratchet
