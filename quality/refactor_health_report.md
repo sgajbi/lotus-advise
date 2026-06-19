@@ -347,6 +347,9 @@
 - Proposal narrative grounding facts delegate alternatives availability, selected
   alternative, count, rejected-summary, decision-scalar, approval, material-change,
   and missing-evidence projection to focused helpers.
+- Proposal narrative policy delegates asset-class normalization, disclosure rule
+  projection, and guardrail failure construction to focused helpers before its
+  A-only complexity gate.
 - Proposal simulation security-trade intent planning delegates shelf presence,
   shelf eligibility, unsupported-trade diagnostics, and intent construction to
   focused helpers.
@@ -433,9 +436,9 @@
   filtering semantics.
 - Refactored complexity enforcement now protects the already-remediated Lotus Risk
   enrichment, tactical house-view, policy workflow projection, narrative AI draft,
-  execution-status projection, Lotus Core stateful-context translation, and proposal
-  async/context command modules with A-only Radon gates inherited by Feature Lane, PR
-  Merge Gate, and Main Releasability through `make lint`.
+  execution-status projection, Lotus Core stateful-context translation, proposal
+  async/context command modules, and narrative policy helpers with A-only Radon gates
+  inherited by Feature Lane, PR Merge Gate, and Main Releasability through `make lint`.
 - Lotus Core stateful-context market-data projection delegates price field extraction,
   FX pair validation, and decimal rate input handling to focused helpers while preserving
   malformed-row skipping and last-source-wins FX pair behavior.

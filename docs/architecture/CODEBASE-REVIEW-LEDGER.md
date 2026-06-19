@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-887
+
+- Scope: Proposal narrative policy complexity ratchet
+- Pattern: Advisor-review narrative product-type, disclosure, and guardrail policy should use
+  explicit lookup and projection helpers before the module is promoted into a blocking complexity
+  gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisor-review narrative policy, CI complexity enforcement
+- Summary: `src/core/advisory/narrative_policy.py` still carried four B-ranked helpers:
+  asset-class product-type mapping, request/evidence product-type resolution, disclosure selection,
+  and guardrail failure construction. Those branches encode advisor-review disclosure policy and
+  unsupported-claim guardrails, so keeping them concentrated made future policy changes more likely
+  to drift or accidentally weaken client-ready blocking semantics.
+- Evidence:
+  - Replaced asset-class branching with explicit asset-class product-type and unspecified-token
+    mappings.
+  - Extracted usable policy-token normalization, disclosure rule matching/projection, unsupported
+    claim failure projection, and missing-source-ref failure projection.
+  - Added focused narrative-policy tests proving grounded pass posture, SG equity/concentration
+    disclosure selection, and unsupported-jurisdiction client-ready blockers.
+  - Radon complexity improved `src/core/advisory/narrative_policy.py` from four B/6 helpers to
+    all-A blocks, worst A/5.
+  - Repo-wide Radon inventory moved from `A=3898, B=66` to `A=3907, B=62`.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory/narrative_policy.py`.
+- Consequence:
+  - Advisor-review narrative disclosure and guardrail policy remains behavior-preserving and is now
+    protected from future B-ranked complexity regression through the repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisor-review narrative policy hardening.
+- Follow-Up:
+  - Continue promoting only measured, deterministic, behavior-covered source modules into the
+    blocking complexity ratchet as each hotspot is remediated.
+
 ## LA-REV-886
 
 - Scope: Decision-summary material-change complexity ratchet
