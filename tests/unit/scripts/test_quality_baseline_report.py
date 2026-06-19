@@ -331,8 +331,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "protected-main verification" in scorecard
     assert "demo-assurance checks" in scorecard
     assert "refactored-complexity enforcement" in scorecard
+    assert "Proposal async operation referent loading" in refactor_health
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-872`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-873`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

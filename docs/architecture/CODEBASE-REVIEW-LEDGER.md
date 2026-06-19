@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-873
+
+- Scope: Proposal async replay referent loading maintainability and CI ratchet
+- Pattern: Async proposal replay should keep missing-scope handling, proposal lookup, succeeded
+  version resolution, result-version lookup, and workflow-event loading independently reviewable.
+- Status: Hardened
+- Finding Class: Proposal replay maintainability, operator-evidence reconstruction,
+  CI-enforced complexity ratchet
+- Summary: `src/core/proposals/async_replay.py` preserved the correct replay referent behavior, but
+  `load_async_operation_replay_referents` combined proposal lookup, succeeded-operation version
+  selection, current-version fallback, and event loading in one B-ranked orchestration function. The
+  loader now delegates each decision to focused helpers while preserving empty referents for
+  unscoped or missing proposals, result-version preference for succeeded operations, current-version
+  fallback, and workflow-event loading for found proposals.
+- Evidence:
+  - `python -m radon cc src/core/proposals/async_replay.py -s` now reports the module as all
+    A-ranked blocks, with the prior B-ranked loader reduced to `A/2` and module worst complexity
+    `A/4`.
+  - Added direct replay referent tests covering succeeded result-version selection,
+    current-version fallback, unscoped operations, missing proposal records, and pending-operation
+    version omission.
+  - Added `src/core/proposals/async_replay.py` to `make refactored-complexity-gate` with fail-on-B
+    Radon enforcement inherited by `make lint`.
+- Consequence:
+  - Proposal async replay evidence is easier to audit as operator-facing reconstruction logic and now
+    fails CI if future edits reintroduce B-ranked complexity in this replay referent boundary.
+- Documentation:
+  - Review ledger and generated quality/refactor-health evidence updated. No README/wiki source
+    change is required because this is internal replay reconstruction hardening with preserved public
+    API behavior.
+- Follow-Up:
+  - Continue decomposing remaining B-ranked proposal context and memo helpers, then add each all-A
+    module to the refactored-complexity ratchet after behavior is pinned by tests.
+
 ## LA-REV-872
 
 - Scope: Bank-demo proof artifact-reference normalization maintainability and CI ratchet
