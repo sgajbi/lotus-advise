@@ -1155,6 +1155,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Lotus Risk enrichment delegates response contract validation and bounded retry",
         "  decisions to focused helpers while preserving safe unavailable-error mapping,",
         "  correlation propagation, and retry/backoff behavior.",
+        "- Tactical house-view affected-cohort construction delegates candidate classification,",
+        "  source-ref aggregation, cohort identity hashing, and listing filters to focused",
+        "  helpers while preserving source-backed inclusion/exclusion semantics.",
         "- API observability request-id normalization reuses the shared bounded",
         "  identifier policy while preserving generated request-id fallback behavior.",
         "- Proposal reporting service orchestration delegates related-version selection,",
@@ -1175,8 +1178,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Quality baseline Spectral inventory parsing delegates report availability, payload",
         "  validation, severity counts, and path-count projection to focused helpers.",
         "- Refactored complexity enforcement now protects the already-remediated Lotus Risk",
-        "  enrichment boundary with an A-only Radon gate inherited by Feature Lane, PR Merge",
-        "  Gate, and Main Releasability through `make lint`.",
+        "  enrichment and tactical house-view boundaries with A-only Radon gates inherited",
+        "  by Feature Lane, PR Merge Gate, and Main Releasability through `make lint`.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
         "",
@@ -1302,7 +1305,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-864` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-865` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

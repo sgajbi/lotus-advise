@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-865
+
+- Scope: Tactical house-view affected-cohort maintainability and CI ratchet
+- Pattern: Source-owned advisory data-product builders should keep candidate classification,
+  source-ref aggregation, identity hashing, and listing filters in focused helpers so data-product
+  semantics stay reviewable and can be protected by a module-specific complexity gate.
+- Status: Hardened
+- Finding Class: Domain data-product maintainability, CI-enforced complexity ratchet
+- Summary: `src/core/tactical_house_view.py::build_tactical_house_view_affected_cohort` mixed
+  eligible-type normalization, per-candidate inclusion/exclusion projection, supportability,
+  source-ref aggregation, deterministic identity hashing, and final model validation in one
+  B-ranked helper. The module now delegates those responsibilities to focused helpers while
+  preserving source-backed inclusion/exclusion semantics, supportability posture, source refs,
+  and deterministic cohort/content hashes.
+- Evidence:
+  - `python -m radon cc src/core/tactical_house_view.py -s` now reports
+    `build_tactical_house_view_affected_cohort` as A-ranked complexity `2`, down from B-ranked
+    complexity `7`, and `list_tactical_house_view_affected_cohorts` as A-ranked complexity `5`,
+    down from B-ranked complexity `6`.
+  - `make refactored-complexity-gate` now enforces A-only Radon posture for
+    `src/core/tactical_house_view.py` in addition to
+    `src/integrations/lotus_risk/enrichment.py`.
+  - `python -m pytest tests/unit/advisory/engine/test_tactical_house_view.py tests/unit/advisory/api/test_tactical_house_view_api.py` passed with 10 tests.
+  - `python -m ruff check src/core/tactical_house_view.py tests/unit/advisory/engine/test_tactical_house_view.py tests/unit/advisory/api/test_tactical_house_view_api.py` passed.
+- Consequence:
+  - The tactical house-view source product is easier to review and extend without weakening the
+    Advise/Manage boundary or source-backed candidate semantics, and the remediated module now has
+    a CI guard against returning to B-ranked complexity.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal domain maintainability and CI-ratchet hardening.
+- Follow-Up:
+  - Continue remediating B-ranked source helpers where the split improves source authority,
+    resilience, observability, or domain-boundary readability.
+
 ## LA-REV-864
 
 - Scope: Lotus Risk enrichment retry and response parsing maintainability
