@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-869
+
+- Scope: Lotus Core stateful-context position translation maintainability and CI ratchet
+- Pattern: Upstream Lotus Core position payload translation should separate row eligibility,
+  required identity/quantity extraction, and optional market-value projection so advisory
+  simulation input construction remains reviewable at the integration boundary.
+- Status: Hardened
+- Finding Class: Upstream integration maintainability, simulation-input boundary hardening,
+  CI-enforced complexity ratchet
+- Summary: `src/integrations/lotus_core/stateful_context_translation.py::build_positions` mixed
+  cash-row filtering, instrument identity normalization, quantity parsing, malformed-row skipping,
+  optional valuation parsing, and `Position` construction in one B-ranked helper. The module now
+  delegates row-to-position projection and market-value projection to focused helpers while
+  preserving malformed row skipping, cash row exclusion, missing quantity/identity exclusion,
+  and base-currency market-value mapping.
+- Evidence:
+  - `python -m radon cc src/integrations/lotus_core/stateful_context_translation.py -s` now reports
+    the module as all A-ranked blocks, with `build_positions` down from B-ranked complexity `7` to
+    A-ranked complexity `3`.
+  - `make refactored-complexity-gate` now enforces A-only Radon posture for
+    `src/integrations/lotus_core/stateful_context_translation.py` in addition to the previously
+    remediated Lotus Risk enrichment, tactical house-view, policy workflow projection, narrative AI
+    draft, and proposal execution-status projection modules.
+  - Focused tests passed for malformed-row skipping, valid valuation-to-base-currency mapping, and
+    the stateful-context translation facade boundary.
+- Consequence:
+  - Lotus Core stateful-context translation is easier to audit without changing advisory proposal
+    simulation input behavior or crossing the upstream domain-authority boundary.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal integration adapter maintainability and CI-ratchet hardening.
+- Follow-Up:
+  - Continue remediating B-ranked integration and proposal lifecycle helpers where the split
+    improves source-authority clarity, downstream error handling, or simulation input auditability.
+
 ## LA-REV-868
 
 - Scope: Proposal execution-status projection maintainability and CI ratchet

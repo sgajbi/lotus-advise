@@ -407,10 +407,14 @@
   projection, and deterministic fallback lineage to focused helpers.
 - Proposal execution-status projection delegates request metadata, downstream status
   updates, execution timestamps, and external references to focused helpers.
+- Lotus Core stateful-context position translation delegates row validation and
+  market-value projection to focused helpers while preserving upstream payload
+  filtering semantics.
 - Refactored complexity enforcement now protects the already-remediated Lotus Risk
   enrichment, tactical house-view, policy workflow projection, narrative AI draft,
-  and execution-status projection boundaries with A-only Radon gates inherited
-  by Feature Lane, PR Merge Gate, and Main Releasability through `make lint`.
+  execution-status projection, and Lotus Core stateful-context translation boundaries
+  with A-only Radon gates inherited by Feature Lane, PR Merge Gate, and Main
+  Releasability through `make lint`.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
 

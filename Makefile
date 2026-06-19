@@ -119,6 +119,7 @@ refactored-complexity-gate:
 	python scripts/radon_complexity_gate.py --source-path src/core/policy_packs/workflow_projection.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/advisory/narrative_ai.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/proposals/execution_status.py --fail-rank B
+	python scripts/radon_complexity_gate.py --source-path src/integrations/lotus_core/stateful_context_translation.py --fail-rank B
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q

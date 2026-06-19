@@ -47,26 +47,44 @@ def build_positions(
 ) -> list[Position]:
     positions: list[Position] = []
     for raw_position in mapping_rows(positions_payload, "positions"):
-        if is_cash_asset_class(raw_position.get("asset_class")):
-            continue
-        instrument_id = normalized_text(raw_position.get("security_id"))
-        quantity = decimal_or_none(raw_position.get("quantity"))
-        if not instrument_id or quantity is None:
-            continue
-        market_value: Money | None = None
-        valuation = raw_position.get("valuation")
-        if isinstance(valuation, dict):
-            market_value_amount = decimal_or_none(valuation.get("market_value"))
-            if market_value_amount is not None:
-                market_value = Money(
-                    amount=market_value_amount,
-                    currency=portfolio_base_currency,
-                )
-        positions.append(
-            Position(
-                instrument_id=instrument_id,
-                quantity=quantity,
-                market_value=market_value,
-            )
+        position = _position_from_payload(
+            raw_position,
+            portfolio_base_currency=portfolio_base_currency,
         )
+        if position is not None:
+            positions.append(position)
     return positions
+
+
+def _position_from_payload(
+    raw_position: dict[str, Any], *, portfolio_base_currency: str
+) -> Position | None:
+    if is_cash_asset_class(raw_position.get("asset_class")):
+        return None
+    instrument_id = normalized_text(raw_position.get("security_id"))
+    quantity = decimal_or_none(raw_position.get("quantity"))
+    if not instrument_id or quantity is None:
+        return None
+    return Position(
+        instrument_id=instrument_id,
+        quantity=quantity,
+        market_value=_market_value_from_payload(
+            raw_position,
+            portfolio_base_currency=portfolio_base_currency,
+        ),
+    )
+
+
+def _market_value_from_payload(
+    raw_position: dict[str, Any], *, portfolio_base_currency: str
+) -> Money | None:
+    valuation = raw_position.get("valuation")
+    if not isinstance(valuation, dict):
+        return None
+    market_value_amount = decimal_or_none(valuation.get("market_value"))
+    if market_value_amount is None:
+        return None
+    return Money(
+        amount=market_value_amount,
+        currency=portfolio_base_currency,
+    )
