@@ -279,6 +279,8 @@
   and retryable refresh policy before its A-only complexity gate.
 - Lotus AI tenant runtime configuration delegates configured-value loading, bounded
   tenant-id support, and control-character rejection before its A-only complexity gate.
+- Proposal artifact evidence assembly delegates model serialization to focused helpers
+  before its A-only complexity gate.
 - API structured logging formatter delegates base payload, extra-field, audit-field,
   and null-filtering behavior to focused helpers.
 - Policy-pack catalog state delegates validation/activation commands, audit-event

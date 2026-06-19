@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-880
+
+- Scope: Proposal artifact evidence complexity ratchet
+- Pattern: Proposal artifact evidence construction should keep request input serialization,
+  engine-output capture, lineage hash assignment, and artifact-hash finalization independently
+  reviewable before the evidence builder is promoted into a blocking complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisory evidence integrity, CI complexity enforcement
+- Summary: `src/core/advisory/artifact_evidence.py` still carried a B-ranked
+  `build_artifact_evidence_bundle` helper that serialized portfolio, market, shelf, option,
+  cash-flow, trade, and optional reference-model inputs inline. That made future evidence-bundle
+  changes more likely to mix serialization mechanics with lineage/hash construction.
+- Evidence:
+  - Extracted evidence-input assembly, repeated model-list serialization, and optional model
+    serialization into focused helpers while preserving the public artifact evidence API.
+  - Targeted proposal artifact tests passed: `python -m pytest
+    tests/unit/advisory/engine/test_engine_proposal_artifact.py -q`.
+  - Radon complexity improved `src/core/advisory/artifact_evidence.py` from one B/6 helper to
+    all-A blocks, worst A/2.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory/artifact_evidence.py`.
+- Consequence:
+  - Proposal artifact evidence serialization remains behavior-preserving while the remediated
+    evidence builder is protected from future B-ranked complexity regression through the
+    repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory evidence hardening.
+- Follow-Up:
+  - Continue promoting only measured, refactored, deterministic source modules into the blocking
+    complexity ratchet as each hotspot is remediated and covered by focused tests.
+
 ## LA-REV-879
 
 - Scope: Lotus AI tenant runtime configuration complexity ratchet
