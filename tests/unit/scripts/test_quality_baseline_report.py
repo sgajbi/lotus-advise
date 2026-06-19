@@ -339,6 +339,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "policy evaluation sign-off validation" in scorecard
     assert "workspace session input-mode validation" in scorecard
     assert "workspace draft action validation" in scorecard
+    assert "proposal alternatives projection helpers" in scorecard
     assert "CI warning/topology/freshness contracts" in scorecard
     assert "workflow contract tests protect local CI target freshness" in scorecard
     assert "protected-main verification" in scorecard
@@ -350,7 +351,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-883`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-884`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-884
+
+- Scope: Proposal alternatives projection complexity ratchet
+- Pattern: Proposal-alternatives orchestration should keep selection-mode resolution and rejected
+  candidate envelope assembly independently reviewable before the projection module is promoted
+  into a blocking complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisory alternatives evidence, CI complexity enforcement
+- Summary: `src/core/advisory/alternatives_projection.py` still carried a B-ranked
+  `build_proposal_alternatives` helper that combined request normalization mode selection,
+  candidate planning, batch evaluation, ranking, rejected-candidate envelope assembly, and response
+  projection. That made future proposal-alternatives changes more likely to obscure selection and
+  rejected-candidate semantics.
+- Evidence:
+  - Extracted selection-mode resolution and rejected-candidate envelope assembly into focused
+    helpers while preserving `build_proposal_alternatives`.
+  - Added targeted projection coverage proving generation/selection mode handling and
+    include/exclude behavior for evaluation rejected candidates.
+  - Radon complexity improved `src/core/advisory/alternatives_projection.py` from one B/6 helper to
+    all-A blocks, worst A/3.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory/alternatives_projection.py`.
+- Consequence:
+  - Proposal alternatives projection keeps behavior-preserving selection and rejected-candidate
+    semantics while the remediated helper is protected from future B-ranked complexity regression
+    through the repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory projection hardening.
+- Follow-Up:
+  - Continue promoting only measured, deterministic, behavior-covered source modules into the
+    blocking complexity ratchet as each hotspot is remediated.
+
 ## LA-REV-883
 
 - Scope: Feature-lane Bandit high-severity enforcement
