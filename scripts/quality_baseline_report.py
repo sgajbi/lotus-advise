@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -230,7 +231,7 @@ def _radon_complexity_inventory(
     repo_root: Path,
 ) -> tuple[bool, int | None, dict[str, int], str | None, int | None]:
     if not _tool_available("radon"):
-        return False, None, {}, None, None
+        return _empty_radon_inventory()
     completed = subprocess.run(
         [sys.executable, "-m", "radon", "cc", "src", "-s", "-j"],
         cwd=repo_root,
@@ -239,52 +240,63 @@ def _radon_complexity_inventory(
         check=False,
     )
     if completed.returncode != 0:
-        return False, None, {}, None, None
+        return _empty_radon_inventory()
     try:
         payload = json.loads(completed.stdout)
     except json.JSONDecodeError:
-        return False, None, {}, None, None
+        return _empty_radon_inventory()
+    return _radon_inventory_from_payload(payload)
+
+
+def _empty_radon_inventory() -> tuple[bool, int | None, dict[str, int], str | None, int | None]:
+    return False, None, {}, None, None
+
+
+def _radon_inventory_from_payload(
+    payload: object,
+) -> tuple[bool, int | None, dict[str, int], str | None, int | None]:
     if not isinstance(payload, dict):
-        return False, None, {}, None, None
-    blocks: list[dict[str, object]] = []
-
-    def _collect(block: object) -> None:
-        if not isinstance(block, dict):
-            return
-        blocks.append(block)
-        for child_key in ("methods", "closures"):
-            children = block.get(child_key)
-            if isinstance(children, list):
-                for child in children:
-                    _collect(child)
-
-    for file_blocks in payload.values():
-        if isinstance(file_blocks, list):
-            for block in file_blocks:
-                _collect(block)
-    rank_counts = Counter(
-        str(block.get("rank"))
-        for block in blocks
-        if isinstance(block.get("rank"), str) and block.get("rank")
-    )
-
-    def _complexity(block: dict[str, object]) -> int:
-        value = block.get("complexity")
-        return value if isinstance(value, int) else 0
-
-    worst_block = max(blocks, key=_complexity, default=None)
+        return _empty_radon_inventory()
+    blocks = list(_iter_radon_blocks(payload))
+    rank_counts = Counter(_radon_rank(block) for block in blocks if _radon_rank(block))
+    worst_block = max(blocks, key=_radon_complexity, default=None)
     if worst_block is None:
         return True, 0, {}, None, None
-    worst_complexity_value = worst_block.get("complexity")
-    worst_rank = worst_block.get("rank")
-    worst_complexity = worst_complexity_value if isinstance(worst_complexity_value, int) else None
     return (
         True,
         len(blocks),
         dict(sorted(rank_counts.items())),
-        str(worst_rank) if isinstance(worst_rank, str) else None,
-        worst_complexity,
+        _radon_rank(worst_block),
+        _radon_complexity(worst_block),
     )
+
+
+def _iter_radon_blocks(payload: dict[str, object]) -> Iterable[dict[str, object]]:
+    for file_blocks in payload.values():
+        if isinstance(file_blocks, list):
+            for block in file_blocks:
+                yield from _iter_radon_block_tree(block)
+
+
+def _iter_radon_block_tree(block: object) -> Iterable[dict[str, object]]:
+    if not isinstance(block, dict):
+        return
+    yield block
+    for child_key in ("methods", "closures"):
+        children = block.get(child_key)
+        if isinstance(children, list):
+            for child in children:
+                yield from _iter_radon_block_tree(child)
+
+
+def _radon_rank(block: dict[str, object]) -> str | None:
+    rank = block.get("rank")
+    return rank if isinstance(rank, str) and rank else None
+
+
+def _radon_complexity(block: dict[str, object]) -> int:
+    complexity = block.get("complexity")
+    return complexity if isinstance(complexity, int) else 0
 
 
 def _vulture_issue_inventory(repo_root: Path) -> tuple[bool, int | None, dict[str, int]]:
@@ -1128,6 +1140,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  a workflow-token-readable endpoint before enabling merge-commit auto-merge.",
         "- Quality baseline report rendering delegates metric formatting and Markdown sections",
         "  to focused helpers while preserving the freshness-gated report contract.",
+        "- Quality baseline Radon inventory parsing delegates nested block traversal, rank",
+        "  counting, and worst-complexity selection to tested helpers.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
         "",
@@ -1253,7 +1267,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-861` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-862` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

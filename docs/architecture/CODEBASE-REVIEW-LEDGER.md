@@ -1,5 +1,32 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-862
+
+- Scope: Quality baseline Radon inventory parsing complexity
+- Pattern: Quality evidence parsers should expose pure, testable payload parsing helpers so CI
+  measurement stays reliable as tool output grows nested class, method, and closure structures.
+- Status: Hardened
+- Finding Class: CI measurement maintainability, complexity evidence reliability
+- Summary: `_radon_complexity_inventory` mixed tool execution, JSON validation, nested Radon block
+  traversal, rank counting, and worst-complexity selection in one C-ranked helper. The script now
+  delegates empty inventory projection, payload parsing, nested block iteration, rank extraction,
+  and complexity extraction to focused helpers with direct nested-block regression coverage.
+- Evidence:
+  - `python -m radon cc scripts/quality_baseline_report.py -s` now reports
+    `_radon_complexity_inventory` as A-ranked complexity `4`, down from C-ranked complexity `14`.
+  - `python -m pytest tests/unit/scripts/test_quality_baseline_report.py -q` passed with 4 tests.
+  - `python -m ruff check scripts/quality_baseline_report.py tests/unit/scripts/test_quality_baseline_report.py` passed.
+  - `python -m ruff format --check scripts/quality_baseline_report.py tests/unit/scripts/test_quality_baseline_report.py` passed.
+  - `make quality-baseline-check` passed.
+- Consequence:
+  - The scorecard's Radon inventory logic is easier to review and now has direct proof for nested
+    block counting and worst-complexity selection.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal CI measurement hardening.
+- Follow-Up:
+  - Continue with the remaining C-ranked Spectral inventory helper in a focused slice.
+
 ## LA-REV-861
 
 - Scope: Quality baseline report rendering complexity

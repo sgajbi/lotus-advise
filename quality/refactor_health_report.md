@@ -393,6 +393,8 @@
   a workflow-token-readable endpoint before enabling merge-commit auto-merge.
 - Quality baseline report rendering delegates metric formatting and Markdown sections
   to focused helpers while preserving the freshness-gated report contract.
+- Quality baseline Radon inventory parsing delegates nested block traversal, rank
+  counting, and worst-complexity selection to tested helpers.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
 
