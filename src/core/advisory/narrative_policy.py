@@ -26,6 +26,15 @@ PROHIBITED_CLAIM_PATTERNS = (
     "tax advice",
     "approved for client distribution",
 )
+ASSET_CLASS_PRODUCT_TYPES = {
+    "EQUITY": "EQUITY",
+    "EQUITIES": "EQUITY",
+    "FX": "FX",
+    "FOREIGN_EXCHANGE": "FX",
+    "CASH": "CASH",
+    "CASH_EQUIVALENT": "CASH",
+}
+UNSPECIFIED_ASSET_CLASSES = frozenset({"UNSPECIFIED", "UNKNOWN"})
 
 
 @dataclass(frozen=True)
@@ -105,15 +114,9 @@ def is_disclosure_policy_available(jurisdiction: str | None) -> bool:
 
 def _product_type_from_asset_class(asset_class: str | None) -> str | None:
     normalized = normalize_policy_token(asset_class)
-    if normalized in {"EQUITY", "EQUITIES"}:
-        return "EQUITY"
-    if normalized in {"FX", "FOREIGN_EXCHANGE"}:
-        return "FX"
-    if normalized in {"CASH", "CASH_EQUIVALENT"}:
-        return "CASH"
-    if normalized == "UNSPECIFIED" or normalized == "UNKNOWN":
+    if normalized in UNSPECIFIED_ASSET_CLASSES:
         return None
-    return normalized
+    return ASSET_CLASS_PRODUCT_TYPES.get(normalized, normalized)
 
 
 def _iter_evidence_product_types(artifact: ProposalArtifact) -> Iterable[str]:
@@ -150,10 +153,18 @@ def _shelf_entry_asset_class_product_type(shelf_entry: dict[str, object]) -> str
 def resolve_narrative_product_types(
     *, artifact: ProposalArtifact, request: ProposalNarrativeRequest
 ) -> list[str]:
-    requested = [normalize_policy_token(item) for item in request.product_types]
-    evidence = [normalize_policy_token(item) for item in _iter_evidence_product_types(artifact)]
-    product_types = sorted({item for item in requested + evidence if item != "UNSPECIFIED"})
+    product_types = sorted(
+        _usable_policy_tokens((*request.product_types, *_iter_evidence_product_types(artifact)))
+    )
     return product_types or ["UNKNOWN"]
+
+
+def _usable_policy_tokens(items: Iterable[str]) -> set[str]:
+    return {
+        normalized
+        for item in items
+        if (normalized := normalize_policy_token(item)) != "UNSPECIFIED"
+    }
 
 
 def resolve_narrative_risk_posture(artifact: ProposalArtifact) -> ProposalNarrativeRiskPosture:
@@ -181,21 +192,35 @@ def _select_disclosures(
     if risk_posture == "CONCENTRATION_REVIEW":
         disclosure_keys.add("CONCENTRATION_REVIEW")
 
-    selected: list[ProposalNarrativeDisclosure] = []
-    for rule in _DISCLOSURE_RULES:
-        if rule.jurisdiction == jurisdiction and rule.product_type in disclosure_keys:
-            selected.append(
-                ProposalNarrativeDisclosure(
-                    disclosure_id=rule.disclosure_id,
-                    jurisdiction=rule.jurisdiction,
-                    product_type=rule.product_type,
-                    required_for=required_for,
-                    text=rule.text,
-                    source_authority="lotus-advise.rfc0023.slice6",
-                    policy_version=NARRATIVE_POLICY_VERSION,
-                )
-            )
-    return selected
+    return [
+        _disclosure_from_rule(rule, required_for=required_for)
+        for rule in _DISCLOSURE_RULES
+        if _rule_matches_disclosure_keys(
+            rule,
+            jurisdiction=jurisdiction,
+            disclosure_keys=disclosure_keys,
+        )
+    ]
+
+
+def _rule_matches_disclosure_keys(
+    rule: _DisclosureRule, *, jurisdiction: str, disclosure_keys: set[str]
+) -> bool:
+    return rule.jurisdiction == jurisdiction and rule.product_type in disclosure_keys
+
+
+def _disclosure_from_rule(
+    rule: _DisclosureRule, *, required_for: ProposalNarrativeClientAudience
+) -> ProposalNarrativeDisclosure:
+    return ProposalNarrativeDisclosure(
+        disclosure_id=rule.disclosure_id,
+        jurisdiction=rule.jurisdiction,
+        product_type=rule.product_type,
+        required_for=required_for,
+        text=rule.text,
+        source_authority="lotus-advise.rfc0023.slice6",
+        policy_version=NARRATIVE_POLICY_VERSION,
+    )
 
 
 def resolve_proposal_narrative_policy(
@@ -239,28 +264,7 @@ def resolve_proposal_narrative_policy(
 def evaluate_proposal_narrative_guardrails(
     sections: list[ProposalNarrativeSection],
 ) -> list[ProposalNarrativeGuardrailResult]:
-    results: list[ProposalNarrativeGuardrailResult] = []
-    for section in sections:
-        text = section.text.lower()
-        for pattern in PROHIBITED_CLAIM_PATTERNS:
-            if pattern in text:
-                results.append(
-                    ProposalNarrativeGuardrailResult(
-                        guardrail_id=f"GR_UNSUPPORTED_{pattern.upper().replace(' ', '_')}",
-                        status="FAIL",
-                        section_key=section.section_key,
-                        message=f"Unsupported narrative claim detected: {pattern}.",
-                    )
-                )
-        if not section.source_refs:
-            results.append(
-                ProposalNarrativeGuardrailResult(
-                    guardrail_id="GR_MISSING_SOURCE_REF",
-                    status="FAIL",
-                    section_key=section.section_key,
-                    message="Narrative section has no grounding source reference.",
-                )
-            )
+    results = [result for section in sections for result in _section_guardrail_failures(section)]
     if not results:
         return [
             ProposalNarrativeGuardrailResult(
@@ -270,3 +274,43 @@ def evaluate_proposal_narrative_guardrails(
             )
         ]
     return results
+
+
+def _section_guardrail_failures(
+    section: ProposalNarrativeSection,
+) -> list[ProposalNarrativeGuardrailResult]:
+    return [
+        *_unsupported_claim_failures(section),
+        *_missing_source_ref_failure(section),
+    ]
+
+
+def _unsupported_claim_failures(
+    section: ProposalNarrativeSection,
+) -> list[ProposalNarrativeGuardrailResult]:
+    text = section.text.lower()
+    return [
+        ProposalNarrativeGuardrailResult(
+            guardrail_id=f"GR_UNSUPPORTED_{pattern.upper().replace(' ', '_')}",
+            status="FAIL",
+            section_key=section.section_key,
+            message=f"Unsupported narrative claim detected: {pattern}.",
+        )
+        for pattern in PROHIBITED_CLAIM_PATTERNS
+        if pattern in text
+    ]
+
+
+def _missing_source_ref_failure(
+    section: ProposalNarrativeSection,
+) -> list[ProposalNarrativeGuardrailResult]:
+    if section.source_refs:
+        return []
+    return [
+        ProposalNarrativeGuardrailResult(
+            guardrail_id="GR_MISSING_SOURCE_REF",
+            status="FAIL",
+            section_key=section.section_key,
+            message="Narrative section has no grounding source reference.",
+        )
+    ]

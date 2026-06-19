@@ -304,8 +304,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "enrichment, tactical house-view, policy workflow projection, narrative AI draft" in (
         refactor_health
     )
-    assert "Lotus Core stateful-context translation, and proposal" in refactor_health
-    assert "async/context command modules with A-only Radon gates" in refactor_health
+    assert "Lotus Core stateful-context translation, proposal" in refactor_health
+    assert "async/context command modules, and narrative policy helpers" in refactor_health
+    assert "A-only Radon gates" in refactor_health
     assert "Lotus Core stateful-context market-data projection delegates" in refactor_health
     assert "last-source-wins FX pair behavior" in refactor_health
     assert "Bank-demo proof artifact-reference normalization delegates URL-material" in (
@@ -353,7 +354,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-886`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-887`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
