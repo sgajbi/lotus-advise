@@ -53,19 +53,39 @@ def _validate_local_artifact_ref_text(normalized: str, *, field_name: str) -> No
 def _validate_local_artifact_ref_location(
     normalized: str, parsed: SplitResult, *, field_name: str
 ) -> None:
-    if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment:
+    if _has_url_location_material(parsed):
         raise ValueError(f"{field_name} must not include URL scheme, authority, query, or fragment")
-    if normalized.startswith("/") or _WINDOWS_DRIVE_REF.match(normalized):
+    if _is_absolute_local_ref(normalized):
         raise ValueError(f"{field_name} must be relative, not absolute")
 
 
 def _local_artifact_ref_path_parts(normalized: str, *, field_name: str) -> list[str]:
-    path_parts = [part for part in normalized.split("/") if part]
-    if any(part == ".." for part in path_parts):
+    path_parts = _path_parts(normalized)
+    if _has_parent_directory_traversal(path_parts):
         raise ValueError(f"{field_name} cannot contain parent-directory traversal")
-    if any(_is_sensitive_fragment(part) for part in path_parts):
+    if _has_sensitive_path_part(path_parts):
         raise ValueError(f"{field_name} cannot contain sensitive material")
     return path_parts
+
+
+def _has_url_location_material(parsed: SplitResult) -> bool:
+    return bool(parsed.scheme or parsed.netloc or parsed.query or parsed.fragment)
+
+
+def _is_absolute_local_ref(normalized: str) -> bool:
+    return normalized.startswith("/") or bool(_WINDOWS_DRIVE_REF.match(normalized))
+
+
+def _path_parts(normalized: str) -> list[str]:
+    return [part for part in normalized.split("/") if part]
+
+
+def _has_parent_directory_traversal(path_parts: list[str]) -> bool:
+    return ".." in path_parts
+
+
+def _has_sensitive_path_part(path_parts: list[str]) -> bool:
+    return any(_is_sensitive_fragment(part) for part in path_parts)
 
 
 def _is_sensitive_fragment(value: str) -> bool:

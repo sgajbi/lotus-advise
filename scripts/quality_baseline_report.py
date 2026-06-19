@@ -1192,6 +1192,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Lotus Core stateful-context market-data projection delegates price field extraction,",
         "  FX pair validation, and decimal rate input handling to focused helpers while preserving",
         "  malformed-row skipping and last-source-wins FX pair behavior.",
+        "- Bank-demo proof artifact-reference normalization delegates URL-material,",
+        "  absolute-path, traversal, and sensitive-fragment rejection to focused helpers while",
+        "  preserving local proof-artifact path normalization.",
         "- CI workflow jobs now declare explicit timeouts so feature, PR, main releasability,",
         "  quality-baseline, and auto-merge automation fail closed instead of hanging",
         "  indefinitely.",
@@ -1320,7 +1323,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-871` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-872` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
