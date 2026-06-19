@@ -129,6 +129,7 @@ refactored-complexity-gate:
 	python scripts/radon_complexity_gate.py --source-path src/core/proposals/async_replay.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/common/canonical.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/proposals/idempotency.py --fail-rank B
+	python scripts/radon_complexity_gate.py --source-path src/core/common/intent_dependencies.py --fail-rank B
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q
