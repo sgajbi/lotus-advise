@@ -1178,7 +1178,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Quality baseline Spectral inventory parsing delegates report availability, payload",
         "  validation, severity counts, and path-count projection to focused helpers.",
         "- Refactored complexity enforcement now protects the already-remediated Lotus Risk",
-        "  enrichment and tactical house-view boundaries with A-only Radon gates inherited",
+        "  enrichment, tactical house-view, and policy workflow projection boundaries with",
+        "  A-only Radon gates inherited",
         "  by Feature Lane, PR Merge Gate, and Main Releasability through `make lint`.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
@@ -1305,7 +1306,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-865` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-866` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

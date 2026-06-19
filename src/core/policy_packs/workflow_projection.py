@@ -18,52 +18,37 @@ def build_policy_evaluation_workflow_projection(
     now: datetime,
     client_ready_publication: str,
 ) -> PolicyEvaluationWorkflowResponse:
-    sign_off_events = [
-        event for event in events if event.event_type == "POLICY_EVALUATION_SIGN_OFF_RECORDED"
-    ]
-    latest_sign_off = sign_off_events[-1] if sign_off_events else None
+    latest_sign_off = latest_sign_off_event(events)
     resolved = approved_sign_off_values(events, "resolved_approval_dependencies")
     disclosures = approved_sign_off_values(events, "satisfied_disclosure_requirements")
     consents = approved_sign_off_values(events, "satisfied_consent_requirements")
     conflict_posture = conflict_posture_for_workflow(record=record, events=events)
-    approval_dependencies = [
-        requirement_projection(
-            requirement_id=item,
-            requirement_type="approval",
-            owner_role=owner_role(item),
-            generated_at=record.generated_at,
-            now=now,
-            satisfied=item in resolved,
-        )
-        for item in record.approval_dependencies
-    ]
-    disclosure_requirements = [
-        requirement_projection(
-            requirement_id=item,
-            requirement_type="disclosure",
-            owner_role="INVESTMENT_COUNSELLOR",
-            generated_at=record.generated_at,
-            now=now,
-            satisfied=item in disclosures,
-        )
-        for item in record.disclosure_requirements
-    ]
-    consent_requirements = [
-        requirement_projection(
-            requirement_id=item,
-            requirement_type="consent",
-            owner_role="ADVISOR",
-            generated_at=record.generated_at,
-            now=now,
-            satisfied=item in consents,
-        )
-        for item in record.consent_requirements
-    ]
-    all_requirements = [
-        *approval_dependencies,
-        *disclosure_requirements,
-        *consent_requirements,
-    ]
+    approval_dependencies = approval_requirement_projections(
+        record=record,
+        now=now,
+        satisfied_values=resolved,
+    )
+    disclosure_requirements = fixed_owner_requirement_projections(
+        requirement_ids=record.disclosure_requirements,
+        requirement_type="disclosure",
+        owner_role="INVESTMENT_COUNSELLOR",
+        generated_at=record.generated_at,
+        now=now,
+        satisfied_values=disclosures,
+    )
+    consent_requirements = fixed_owner_requirement_projections(
+        requirement_ids=record.consent_requirements,
+        requirement_type="consent",
+        owner_role="ADVISOR",
+        generated_at=record.generated_at,
+        now=now,
+        satisfied_values=consents,
+    )
+    all_requirements = collect_requirements(
+        approval_dependencies,
+        disclosure_requirements,
+        consent_requirements,
+    )
     blockers = workflow_blockers(
         record=record,
         requirements=all_requirements,
@@ -91,17 +76,85 @@ def build_policy_evaluation_workflow_projection(
     )
 
 
+def latest_sign_off_event(
+    events: list[PolicyEvaluationAuditEvent],
+) -> PolicyEvaluationAuditEvent | None:
+    sign_off_events = [event for event in events if is_sign_off_recorded_event(event)]
+    return sign_off_events[-1] if sign_off_events else None
+
+
+def is_sign_off_recorded_event(event: PolicyEvaluationAuditEvent) -> bool:
+    return event.event_type == "POLICY_EVALUATION_SIGN_OFF_RECORDED"
+
+
 def approved_sign_off_values(events: list[PolicyEvaluationAuditEvent], key: str) -> set[str]:
     values: set[str] = set()
     for event in events:
-        if event.event_type != "POLICY_EVALUATION_SIGN_OFF_RECORDED":
+        if not is_approved_sign_off_event(event):
             continue
-        if event.reason_json.get("decision") != "APPROVE_FOR_POLICY_SIGN_OFF":
-            continue
-        raw = event.reason_json.get(key, [])
-        if isinstance(raw, list):
-            values.update(str(item) for item in raw)
+        values.update(sign_off_reason_values(event, key))
     return values
+
+
+def is_approved_sign_off_event(event: PolicyEvaluationAuditEvent) -> bool:
+    return (
+        is_sign_off_recorded_event(event)
+        and event.reason_json.get("decision") == "APPROVE_FOR_POLICY_SIGN_OFF"
+    )
+
+
+def sign_off_reason_values(event: PolicyEvaluationAuditEvent, key: str) -> set[str]:
+    raw = event.reason_json.get(key, [])
+    if not isinstance(raw, list):
+        return set()
+    return {str(item) for item in raw}
+
+
+def approval_requirement_projections(
+    *,
+    record: Any,
+    now: datetime,
+    satisfied_values: set[str],
+) -> list[PolicyEvaluationRequirementProjection]:
+    return [
+        requirement_projection(
+            requirement_id=item,
+            requirement_type="approval",
+            owner_role=owner_role(item),
+            generated_at=record.generated_at,
+            now=now,
+            satisfied=item in satisfied_values,
+        )
+        for item in record.approval_dependencies
+    ]
+
+
+def fixed_owner_requirement_projections(
+    *,
+    requirement_ids: list[str],
+    requirement_type: str,
+    owner_role: str,
+    generated_at: str,
+    now: datetime,
+    satisfied_values: set[str],
+) -> list[PolicyEvaluationRequirementProjection]:
+    return [
+        requirement_projection(
+            requirement_id=item,
+            requirement_type=requirement_type,
+            owner_role=owner_role,
+            generated_at=generated_at,
+            now=now,
+            satisfied=item in satisfied_values,
+        )
+        for item in requirement_ids
+    ]
+
+
+def collect_requirements(
+    *groups: list[PolicyEvaluationRequirementProjection],
+) -> list[PolicyEvaluationRequirementProjection]:
+    return [requirement for group in groups for requirement in group]
 
 
 def requirement_projection(
@@ -135,16 +188,35 @@ def workflow_blockers(
     requirements: list[PolicyEvaluationRequirementProjection],
     conflict_posture: dict[str, Any],
 ) -> list[str]:
-    blockers = [
+    return unique(
+        [
+            *open_requirement_blockers(requirements),
+            *conflict_posture_blockers(conflict_posture),
+            *evaluation_status_blockers(record.evaluation_status),
+        ]
+    )
+
+
+def open_requirement_blockers(
+    requirements: list[PolicyEvaluationRequirementProjection],
+) -> list[str]:
+    return [
         f"{requirement.requirement_type.upper()}_REQUIREMENT_OPEN:{requirement.requirement_id}"
         for requirement in requirements
         if requirement.status != "SATISFIED"
     ]
-    if conflict_posture["status"] == "BLOCKED":
-        blockers.extend(str(item) for item in conflict_posture["blockers"])
-    if record.evaluation_status == "BLOCKED":
-        blockers.append("BLOCKED_POLICY_EVALUATION_CANNOT_BE_SIGNED_OFF")
-    return unique(blockers)
+
+
+def conflict_posture_blockers(conflict_posture: dict[str, Any]) -> list[str]:
+    if conflict_posture["status"] != "BLOCKED":
+        return []
+    return [str(item) for item in conflict_posture["blockers"]]
+
+
+def evaluation_status_blockers(evaluation_status: str) -> list[str]:
+    if evaluation_status != "BLOCKED":
+        return []
+    return ["BLOCKED_POLICY_EVALUATION_CANNOT_BE_SIGNED_OFF"]
 
 
 def sign_off_status(
@@ -153,32 +225,52 @@ def sign_off_status(
     latest_sign_off: PolicyEvaluationAuditEvent | None,
     evaluation_status: str,
 ) -> str:
-    if latest_sign_off is not None and latest_sign_off.reason_json.get("decision") == (
-        "APPROVE_FOR_POLICY_SIGN_OFF"
-    ):
+    if latest_sign_off is not None and is_approved_sign_off_event(latest_sign_off):
         return "SIGNED_OFF"
-    if evaluation_status == "BLOCKED" or any("CONFLICT" in blocker for blocker in blockers):
+    if sign_off_has_blocking_conflict(blockers=blockers, evaluation_status=evaluation_status):
         return "BLOCKED"
     if blockers:
         return "PENDING_REVIEW"
     return "READY_FOR_SIGN_OFF"
 
 
+def sign_off_has_blocking_conflict(*, blockers: list[str], evaluation_status: str) -> bool:
+    return evaluation_status == "BLOCKED" or any("CONFLICT" in blocker for blocker in blockers)
+
+
 def sla_posture(
     *, requirements: list[PolicyEvaluationRequirementProjection], now: datetime
 ) -> dict[str, Any]:
-    open_requirements = [item for item in requirements if item.status != "SATISFIED"]
-    overdue = [
-        item.requirement_id
-        for item in open_requirements
-        if item.due_at is not None and parse_datetime(item.due_at) < now
-    ]
+    open_requirements = open_requirements_for_sla(requirements)
+    overdue = overdue_requirement_ids(open_requirements, now=now)
     return {
         "status": "OVERDUE" if overdue else "WITHIN_SLA",
         "open_requirement_count": len(open_requirements),
         "overdue_requirement_ids": overdue,
         "as_of": now.isoformat(),
     }
+
+
+def open_requirements_for_sla(
+    requirements: list[PolicyEvaluationRequirementProjection],
+) -> list[PolicyEvaluationRequirementProjection]:
+    return [item for item in requirements if item.status != "SATISFIED"]
+
+
+def overdue_requirement_ids(
+    requirements: list[PolicyEvaluationRequirementProjection],
+    *,
+    now: datetime,
+) -> list[str]:
+    return [item.requirement_id for item in requirements if requirement_is_overdue(item, now=now)]
+
+
+def requirement_is_overdue(
+    requirement: PolicyEvaluationRequirementProjection,
+    *,
+    now: datetime,
+) -> bool:
+    return requirement.due_at is not None and parse_datetime(requirement.due_at) < now
 
 
 def owner_role(requirement_id: str) -> str:

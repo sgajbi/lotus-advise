@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-866
+
+- Scope: Policy evaluation workflow projection maintainability and CI ratchet
+- Pattern: Policy workflow projection should keep sign-off event interpretation, requirement
+  projection, blocker construction, sign-off status selection, and SLA posture in focused helpers
+  so approval and review semantics stay auditable.
+- Status: Hardened
+- Finding Class: Policy workflow maintainability, CI-enforced complexity ratchet
+- Summary: `src/core/policy_packs/workflow_projection.py` mixed sign-off event filtering,
+  approved-value extraction, approval/disclosure/consent projection, conflict blockers,
+  sign-off status selection, and SLA posture in B-ranked helpers. The module now delegates those
+  concerns to focused helpers while preserving maker-checker, requirement satisfaction,
+  unresolved-conflict blocking, blocked-evaluation, and overdue-SLA behavior.
+- Evidence:
+  - `python -m radon cc src/core/policy_packs/workflow_projection.py -s` now reports the module
+    as all A-ranked blocks, with `build_policy_evaluation_workflow_projection` down from B-ranked
+    complexity `7` to A-ranked complexity `1`, `sign_off_status` down from B-ranked complexity
+    `7` to A-ranked complexity `5`, and `sla_posture` down from B-ranked complexity `7` to
+    A-ranked complexity `2`.
+  - `make refactored-complexity-gate` now enforces A-only Radon posture for
+    `src/core/policy_packs/workflow_projection.py` in addition to the previously remediated
+    Lotus Risk enrichment and tactical house-view modules.
+  - `python -m pytest tests/unit/advisory/engine/test_engine_policy_pack_workflow.py` passed with
+    7 tests.
+  - `python -m radon cc src/core/policy_packs/workflow_projection.py -s` passed with worst
+    complexity `A/5`.
+- Consequence:
+  - Policy sign-off and workflow SLA behavior is easier to review without weakening the
+    advisor/compliance workflow contract, and CI now prevents this module from returning to
+    B-ranked complexity.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal policy workflow maintainability and CI-ratchet hardening.
+- Follow-Up:
+  - Continue remediating B-ranked policy and proposal workflow helpers where the split improves
+    auditability, source authority, resilience, or sign-off behavior readability.
+
 ## LA-REV-865
 
 - Scope: Tactical house-view affected-cohort maintainability and CI ratchet
