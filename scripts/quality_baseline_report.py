@@ -673,7 +673,8 @@ def _dependency_security_sections(
         "",
         "- `pip-audit` is present in development requirements.",
         "- `bandit` high-severity enforcement is repo-native through",
-        "  `make bandit-high-severity-gate` and the `security-audit` lane.",
+        "  `make bandit-high-severity-gate`, `make check`, Feature Lane, and the",
+        "  `security-audit` lane.",
         "- Medium and low Bandit findings remain an inventoried classification backlog.",
         "- Sensitive-data handling remains governed by API error redaction and structured",
         "  payload tests until the security report gate is calibrated.",
@@ -1221,6 +1222,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  indefinitely.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
+        "- Bandit high-severity security scanning now fails earlier through `make check` and",
+        "  Remote Feature Lane while medium/low findings remain inventory-only.",
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
@@ -1291,7 +1294,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Security",
             "High-severity enforced plus Bandit inventory",
-            "security-audit + bandit-high-severity-gate + Bandit severity counts",
+            "make check + Feature Lane + security-audit + bandit-high-severity-gate + "
+            "Bandit severity counts",
         ),
         (
             "OpenAPI",
@@ -1344,7 +1348,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-882` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-883` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1417,8 +1421,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Bandit config was present for report-only rollout; sensitive-data handling "
             "remained test-governed.",
             "Bandit inventory executable with `high=0, medium=26, low=1`; high-severity "
-            "gate enforced through `make security-audit`; proof/source refs reject "
-            "unsafe and sensitive paths.",
+            "gate enforced through `make check`, Remote Feature Lane, and `make security-audit`; "
+            "proof/source refs reject unsafe and sensitive paths.",
             "Security posture is measured and high-severity findings are gated.",
         ),
         (

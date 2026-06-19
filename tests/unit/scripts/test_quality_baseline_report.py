@@ -151,6 +151,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Executable Vulture inventory" in scorecard
     assert "Enforced plus deptry inventory" in scorecard
     assert "High-severity enforced plus Bandit inventory" in scorecard
+    assert "make check + Feature Lane + security-audit" in scorecard
     assert "Enforced with Spectral" in scorecard
     assert "make lint runs import-linter architecture contracts" in scorecard
     assert "Gap tracked plus Interrogate inventory" in scorecard
@@ -313,6 +314,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "preserving local proof-artifact path normalization" in refactor_health
     assert "CI workflow jobs now declare explicit timeouts" in refactor_health
     assert "Development requirements pin the report-only quality tools" in refactor_health
+    assert "Bandit high-severity security scanning now fails earlier" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate" in (
         refactor_health
@@ -348,7 +350,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-882`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-883`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

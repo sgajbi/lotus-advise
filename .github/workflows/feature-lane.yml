@@ -73,6 +73,8 @@ jobs:
         run: make advisory-domain-golden-regressions
       - name: Migration Smoke
         run: make migration-smoke
+      - name: Bandit High Severity Gate
+        run: make bandit-high-severity-gate
 
   unit-tests:
     name: Feature Lane / Tests (unit)

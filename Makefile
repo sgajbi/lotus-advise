@@ -11,7 +11,7 @@ install-ci:
 pre-commit:
 	python -m pre_commit run --all-files
 
-check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check test
+check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check bandit-high-severity-gate test
 
 ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check migration-smoke security-audit coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
 
