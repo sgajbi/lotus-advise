@@ -292,7 +292,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "enrichment, tactical house-view, policy workflow projection, narrative AI draft" in (
         refactor_health
     )
-    assert "Lotus Core stateful-context translation boundaries" in refactor_health
+    assert "Lotus Core stateful-context translation, and proposal" in refactor_health
+    assert "async/context command modules with A-only Radon gates" in refactor_health
+    assert "CI workflow jobs now declare explicit timeouts" in refactor_health
     assert "Development requirements pin the report-only quality tools" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate" in (

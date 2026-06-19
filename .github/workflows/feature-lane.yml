@@ -21,6 +21,7 @@ jobs:
   workflow-lint:
     name: Feature Lane / Workflow Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: reviewdog/action-actionlint@v1
@@ -28,6 +29,7 @@ jobs:
   lint-dependency-governance:
     name: Feature Lane / Lint Dependency Governance
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -75,6 +77,7 @@ jobs:
   unit-tests:
     name: Feature Lane / Tests (unit)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
