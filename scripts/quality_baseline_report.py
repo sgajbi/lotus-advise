@@ -1212,8 +1212,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Refactored complexity enforcement now protects the already-remediated Lotus Risk",
         "  enrichment, tactical house-view, policy workflow projection, narrative AI draft,",
         "  execution-status projection, Lotus Core stateful-context translation, proposal",
-        "  async/context command modules, and narrative policy helpers with A-only Radon gates",
-        "  inherited by Feature Lane, PR Merge Gate, and Main Releasability through `make lint`.",
+        "  async/context command modules, narrative policy helpers, and decision-summary",
+        "  evidence-reference helpers with A-only Radon gates inherited by Feature Lane, PR",
+        "  Merge Gate, and Main Releasability through `make lint`.",
         "- Lotus Core stateful-context market-data projection delegates price field extraction,",
         "  FX pair validation, and decimal rate input handling to focused helpers while preserving",
         "  malformed-row skipping and last-source-wins FX pair behavior.",
@@ -1351,7 +1352,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-887` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-888` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

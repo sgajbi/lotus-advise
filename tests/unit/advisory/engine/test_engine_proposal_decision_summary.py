@@ -658,6 +658,82 @@ def test_decision_summary_projects_available_client_and_mandate_posture() -> Non
     assert "advisory_policy_context" in " ".join(summary.evidence_refs)
 
 
+def test_decision_summary_evidence_refs_are_sorted_unique_and_complete() -> None:
+    result = _base_result()
+    result.status = "BLOCKED"
+    result.diagnostics.data_quality["price_missing"].append("EQ_1")
+    result.explanation["advisory_policy_context"] = {
+        "client_context_status": "AVAILABLE",
+        "mandate_context_status": "AVAILABLE",
+    }
+    result.gate_decision = GateDecision(
+        gate="BLOCKED",
+        recommended_next_step="FIX_INPUT",
+        reasons=[
+            GateReason(
+                reason_code="DATA_QUALITY_MISSING_PRICE",
+                severity="HIGH",
+                source="DATA_QUALITY",
+                details={"instrument_id": "EQ_1"},
+            )
+        ],
+        summary=GateDecisionSummary(
+            hard_fail_count=1,
+            soft_fail_count=0,
+            new_high_suitability_count=0,
+            new_medium_suitability_count=0,
+        ),
+    )
+    result.suitability = SuitabilityResult.model_validate(
+        {
+            "summary": {
+                "new_count": 1,
+                "resolved_count": 0,
+                "persistent_count": 0,
+                "highest_severity_new": "HIGH",
+            },
+            "issues": [
+                {
+                    "issue_id": "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE",
+                    "issue_key": "PRODUCT_COMPLEXITY|ALT_1",
+                    "dimension": "PRODUCT",
+                    "severity": "HIGH",
+                    "status_change": "NEW",
+                    "classification": "UNKNOWN_DUE_TO_MISSING_EVIDENCE",
+                    "summary": "Complex product evidence is missing.",
+                    "remediation": "Capture client context for the complex product.",
+                    "approval_implication": "CLIENT_CONTEXT_REQUIRED",
+                    "details": {"product_type": "STRUCTURED_NOTE"},
+                    "evidence": {
+                        "as_of": "md_test",
+                        "snapshot_ids": {
+                            "portfolio_snapshot_id": "pf_decision_001",
+                            "market_data_snapshot_id": "md_test",
+                        },
+                    },
+                    "policy_pack_id": "global-private-banking-baseline",
+                    "policy_version": "enterprise-suitability-policy.2026-04",
+                }
+            ],
+            "policy_pack_id": "global-private-banking-baseline",
+            "policy_version": "enterprise-suitability-policy.2026-04",
+            "recommended_gate": "COMPLIANCE_REVIEW",
+        }
+    )
+
+    summary = build_proposal_decision_summary(result)
+
+    assert summary.evidence_refs == [
+        "proposal.diagnostics.data_quality.price_missing",
+        "proposal.explanation.advisory_policy_context",
+        "proposal.explanation.authority_resolution",
+        "proposal.gate_decision",
+        "proposal.status",
+        "proposal.suitability",
+        "proposal.suitability.issues.PRODUCT_COMPLEXITY|ALT_1",
+    ]
+
+
 def test_decision_summary_projects_currency_exposure_change_for_cross_currency_trade() -> None:
     result = run_proposal_simulation(
         portfolio=PortfolioSnapshot(

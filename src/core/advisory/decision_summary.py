@@ -22,6 +22,10 @@ from src.core.proposal_result_models import ProposalResult
 from src.core.suitability_models import SuitabilityIssue, SuitabilityResult
 
 _DECISION_POLICY_VERSION = "advisory-decision-policy.2026-04"
+_EXPLANATION_EVIDENCE_REF_PATHS = (
+    ("authority_resolution", "proposal.explanation.authority_resolution"),
+    ("advisory_policy_context", "proposal.explanation.advisory_policy_context"),
+)
 
 
 def build_proposal_decision_summary(result: ProposalResult) -> ProposalDecisionSummary:
@@ -231,18 +235,35 @@ def _build_evidence_refs(
     result: ProposalResult,
     missing_evidence: list[ProposalDecisionMissingEvidence],
 ) -> list[str]:
+    refs = [
+        *_proposal_state_evidence_refs(result),
+        *_explanation_evidence_refs(result),
+        *_missing_evidence_refs(missing_evidence),
+    ]
+    return sorted(set(refs))
+
+
+def _proposal_state_evidence_refs(result: ProposalResult) -> list[str]:
     refs = ["proposal.status"]
     if result.gate_decision is not None:
         refs.append("proposal.gate_decision")
     if result.suitability is not None:
         refs.append("proposal.suitability")
-    if result.explanation.get("authority_resolution") is not None:
-        refs.append("proposal.explanation.authority_resolution")
-    if result.explanation.get("advisory_policy_context") is not None:
-        refs.append("proposal.explanation.advisory_policy_context")
-    for item in missing_evidence:
-        refs.extend(item.evidence_refs)
-    return sorted(set(refs))
+    return refs
+
+
+def _explanation_evidence_refs(result: ProposalResult) -> list[str]:
+    return [
+        evidence_ref
+        for explanation_key, evidence_ref in _EXPLANATION_EVIDENCE_REF_PATHS
+        if result.explanation.get(explanation_key) is not None
+    ]
+
+
+def _missing_evidence_refs(
+    missing_evidence: list[ProposalDecisionMissingEvidence],
+) -> list[str]:
+    return [evidence_ref for item in missing_evidence for evidence_ref in item.evidence_refs]
 
 
 def _build_action_items(

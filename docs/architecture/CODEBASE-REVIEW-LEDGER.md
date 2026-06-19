@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-888
+
+- Scope: Decision-summary evidence-reference complexity ratchet
+- Pattern: Proposal decision-summary evidence references should be projected through focused
+  state, explanation, and missing-evidence helpers before the assembler is promoted into a blocking
+  complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, advisory decision evidence, CI complexity enforcement
+- Summary: `src/core/advisory/decision_summary.py::_build_evidence_refs` still carried B-ranked
+  branching for proposal state, explanation payload, and missing-evidence references. These evidence
+  references support advisor-facing decision summaries, so future changes need a small, explicit
+  projection surface and deterministic CI enforcement rather than another broad assembler branch.
+- Evidence:
+  - Extracted proposal-state, explanation, and missing-evidence reference projection helpers.
+  - Added focused decision-summary coverage proving summary evidence references remain complete,
+    sorted, and unique across gate, suitability, explanation, data-quality, and suitability-issue
+    evidence sources.
+  - Radon complexity improved `src/core/advisory/decision_summary.py` from one B/6 helper to
+    all-A blocks, worst A/5.
+  - Repo-wide Radon inventory moved from `A=3908, B=62` to `A=3912, B=61`.
+  - `make refactored-complexity-gate` now includes
+    `src/core/advisory/decision_summary.py`.
+- Consequence:
+  - Decision-summary evidence reference projection remains behavior-preserving and is now protected
+    from future B-ranked complexity regression through the repo-native lint lane.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is behavior-preserving internal advisory decision-summary hardening.
+- Follow-Up:
+  - Continue promoting only measured, deterministic, behavior-covered source modules into the
+    blocking complexity ratchet as each hotspot is remediated.
+
 ## LA-REV-887
 
 - Scope: Proposal narrative policy complexity ratchet
