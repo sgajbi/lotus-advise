@@ -15,11 +15,19 @@ def hash_canonical_payload(payload: Any) -> str:
 
 def strip_keys(payload: Any, *, exclude: set[str]) -> Any:
     if isinstance(payload, dict):
-        return {
-            key: strip_keys(value, exclude=exclude)
-            for key, value in payload.items()
-            if key not in exclude
-        }
+        return _strip_mapping_keys(payload, exclude=exclude)
     if isinstance(payload, list):
-        return [strip_keys(item, exclude=exclude) for item in payload]
+        return _strip_sequence_keys(payload, exclude=exclude)
     return deepcopy(payload)
+
+
+def _strip_mapping_keys(payload: dict[Any, Any], *, exclude: set[str]) -> dict[Any, Any]:
+    return {
+        key: strip_keys(value, exclude=exclude)
+        for key, value in payload.items()
+        if key not in exclude
+    }
+
+
+def _strip_sequence_keys(payload: list[Any], *, exclude: set[str]) -> list[Any]:
+    return [strip_keys(item, exclude=exclude) for item in payload]
