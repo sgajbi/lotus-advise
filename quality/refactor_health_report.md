@@ -378,6 +378,9 @@
 - Integration capability dependency diagnostics delegate readiness checks and
   public degraded-reason extraction to focused helpers while preserving
   fail-closed fallback behavior.
+- Lotus Risk enrichment delegates response contract validation and bounded retry
+  decisions to focused helpers while preserving safe unavailable-error mapping,
+  correlation propagation, and retry/backoff behavior.
 - API observability request-id normalization reuses the shared bounded
   identifier policy while preserving generated request-id fallback behavior.
 - Proposal reporting service orchestration delegates related-version selection,
@@ -397,6 +400,9 @@
   counting, and worst-complexity selection to tested helpers.
 - Quality baseline Spectral inventory parsing delegates report availability, payload
   validation, severity counts, and path-count projection to focused helpers.
+- Refactored complexity enforcement now protects the already-remediated Lotus Risk
+  enrichment boundary with an A-only Radon gate inherited by Feature Lane, PR Merge
+  Gate, and Main Releasability through `make lint`.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
 

@@ -46,6 +46,21 @@ def test_local_ci_targets_enforce_quality_baseline_freshness() -> None:
         assert "quality-baseline-check" in _makefile_target_dependencies(makefile, target)
 
 
+def test_lint_enforces_refactored_complexity_gate_for_ci_lanes() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    assert "$(MAKE) refactored-complexity-gate" in makefile
+    assert "refactored-complexity-gate" in makefile
+    assert (
+        "python scripts/radon_complexity_gate.py --source-path "
+        "src/integrations/lotus_risk/enrichment.py --fail-rank B"
+    ) in makefile
+
+    for workflow_name in ("feature-lane.yml", "pr-merge-gate.yml", "main-releasability.yml"):
+        workflow = _workflow_text(workflow_name)
+        assert "run: make lint" in workflow
+
+
 def test_demo_assurance_gate_covers_demo_critical_evidence() -> None:
     makefile = Path("Makefile").read_text(encoding="utf-8")
 

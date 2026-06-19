@@ -48,6 +48,29 @@ def _is_retryable_http_error(exc: httpx.HTTPError) -> bool:
     return True
 
 
+def _validated_concentration_response(
+    response: httpx.Response,
+) -> LotusRiskConcentrationResponse:
+    try:
+        response.raise_for_status()
+        body = cast(dict[str, Any], response.json())
+        return cast(
+            LotusRiskConcentrationResponse,
+            LotusRiskConcentrationResponse.model_validate(body),
+        )
+    except (ValidationError, ValueError) as exc:
+        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE") from exc
+
+
+def _should_retry_request(
+    *,
+    exc: httpx.HTTPError,
+    attempt: int,
+    attempts: int,
+) -> bool:
+    return attempt < attempts and _is_retryable_http_error(exc)
+
+
 def _request_concentration_response(
     *,
     payload: dict[str, Any],
@@ -65,34 +88,20 @@ def _request_concentration_response(
                     json=payload,
                     headers={"X-Correlation-Id": outbound_correlation_id},
                 )
-                response.raise_for_status()
-                body = cast(dict[str, Any], response.json())
-                concentration = cast(
-                    LotusRiskConcentrationResponse,
-                    LotusRiskConcentrationResponse.model_validate(body),
-                )
-                return concentration
-            except ValidationError as exc:
-                raise LotusRiskEnrichmentUnavailableError(
-                    "LOTUS_RISK_ENRICHMENT_UNAVAILABLE"
-                ) from exc
-            except ValueError as exc:
-                raise LotusRiskEnrichmentUnavailableError(
-                    "LOTUS_RISK_ENRICHMENT_UNAVAILABLE"
-                ) from exc
+                return _validated_concentration_response(response)
             except httpx.HTTPError as exc:
                 last_error = exc
-                if attempt >= attempts or not _is_retryable_http_error(exc):
+                if not _should_retry_request(exc=exc, attempt=attempt, attempts=attempts):
                     break
                 time.sleep(_retry_delay_seconds(attempt=attempt))
     raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE") from last_error
 
 
-def _resolve_retry_backoff_seconds() -> Any:
+def _resolve_retry_backoff_seconds() -> float:
     return min(env_positive_float("LOTUS_RISK_RETRY_BACKOFF_SECONDS", default=0.1), 2.0)
 
 
-def _retry_delay_seconds(*, attempt: int) -> Any:
+def _retry_delay_seconds(*, attempt: int) -> float:
     return min(_resolve_retry_backoff_seconds() * attempt, 2.0)
 
 
