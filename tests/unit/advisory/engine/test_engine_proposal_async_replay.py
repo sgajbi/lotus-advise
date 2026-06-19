@@ -126,6 +126,17 @@ def test_load_async_operation_replay_referents_without_proposal_scope_is_empty()
     assert referents.events is None
 
 
+def test_load_async_operation_replay_referents_without_proposal_record_is_empty():
+    referents = load_async_operation_replay_referents(
+        repository=InMemoryProposalRepository(),
+        operation=_operation(result_json={"version": {"version_no": 1}}),
+    )
+
+    assert referents.proposal is None
+    assert referents.version is None
+    assert referents.events is None
+
+
 def test_load_async_operation_replay_referents_pending_operation_omits_version():
     repository = InMemoryProposalRepository()
     repository.create_proposal(_proposal())

@@ -288,6 +288,9 @@
 - Async operation replay evidence delegates proposal-version-backed replay,
   operation-only diagnostics, subject continuity, and runtime evidence projection
   to focused helpers.
+- Proposal async operation referent loading delegates missing-scope handling,
+  succeeded-version resolution, result-version lookup, and proposal-event loading
+  to focused helpers.
 - Policy evaluation persistence delegates lineage/posture projection and audit-event
   attachment mapping to a focused projection module.
 - Policy evaluation persistence delegates replay hash comparison and replay response
