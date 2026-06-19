@@ -281,6 +281,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Quality baseline Spectral inventory parsing delegates report availability" in (
         refactor_health
     )
+    assert "Refactored complexity enforcement now protects" in refactor_health
     assert "Development requirements pin the report-only quality tools" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate" in (
@@ -310,8 +311,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "workflow contract tests protect local CI target freshness" in scorecard
     assert "protected-main verification" in scorecard
     assert "demo-assurance checks" in scorecard
+    assert "refactored-complexity enforcement" in scorecard
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-863`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-864`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

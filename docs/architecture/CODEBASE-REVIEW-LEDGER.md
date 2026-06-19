@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-864
+
+- Scope: Lotus Risk enrichment retry and response parsing maintainability
+- Pattern: Downstream enrichment clients should keep HTTP success projection, upstream contract
+  validation, retry eligibility, and backoff timing in focused helpers so resilience behavior stays
+  auditable without changing the source-owned advisory contract.
+- Status: Hardened
+- Finding Class: Downstream integration maintainability, resilience readability
+- Summary: `src/integrations/lotus_risk/enrichment.py::_request_concentration_response` mixed
+  HTTP posting, response status handling, JSON/body validation, Pydantic contract projection,
+  retry eligibility, and retry sleep orchestration in one B-ranked helper. The request loop now
+  delegates concentration response validation and bounded retry decisions to focused helpers while
+  preserving safe `LOTUS_RISK_ENRICHMENT_UNAVAILABLE` error mapping and outbound correlation ID
+  propagation.
+- Evidence:
+  - `python -m radon cc src/integrations/lotus_risk/enrichment.py -s` now reports
+    `_request_concentration_response` as A-ranked complexity `4`, down from B-ranked complexity
+    `7`.
+  - `make refactored-complexity-gate` enforces A-only Radon posture for
+    `src/integrations/lotus_risk/enrichment.py`, and `make lint` carries that target into Feature
+    Lane, PR Merge Gate, and Main Releasability CI.
+  - `python -m pytest tests/unit/advisory/api/test_lotus_risk_enrichment_client.py` passed with
+    15 tests.
+  - `python -m pytest tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_quality_baseline_report.py` passed with 13 tests.
+  - `python -m ruff check src/integrations/lotus_risk/enrichment.py tests/unit/advisory/api/test_lotus_risk_enrichment_client.py` passed.
+- Consequence:
+  - The Lotus Risk downstream enrichment boundary is easier to review and extend for resilience
+    behavior without weakening retry, timeout, contract validation, or safe-error semantics, and
+    the remediated boundary now has a CI guard against sliding back to B-ranked complexity.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README/wiki source change is required
+    because this is internal downstream integration maintainability hardening.
+- Follow-Up:
+  - Continue classifying remaining B-ranked source helpers where a focused split improves
+    resilience, observability, or domain-boundary readability.
+
 ## LA-REV-863
 
 - Scope: Quality baseline Spectral inventory parsing complexity

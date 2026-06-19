@@ -1,4 +1,4 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate observability-diagnostics advisory-domain-golden-regressions demo-assurance-gate format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate observability-diagnostics advisory-domain-golden-regressions demo-assurance-gate format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
 install: install-ci
 	python -m pre_commit install
@@ -102,6 +102,7 @@ lint:
 	$(MAKE) monetary-float-guard
 	$(MAKE) architecture-boundaries
 	$(MAKE) complexity-regression-gate
+	$(MAKE) refactored-complexity-gate
 
 monetary-float-guard:
 	python scripts/check_monetary_float_usage.py
@@ -111,6 +112,9 @@ architecture-boundaries:
 
 complexity-regression-gate:
 	python scripts/radon_complexity_gate.py --fail-rank C
+
+refactored-complexity-gate:
+	python scripts/radon_complexity_gate.py --source-path src/integrations/lotus_risk/enrichment.py --fail-rank B
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q

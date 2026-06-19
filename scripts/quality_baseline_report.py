@@ -1152,6 +1152,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- Integration capability dependency diagnostics delegate readiness checks and",
         "  public degraded-reason extraction to focused helpers while preserving",
         "  fail-closed fallback behavior.",
+        "- Lotus Risk enrichment delegates response contract validation and bounded retry",
+        "  decisions to focused helpers while preserving safe unavailable-error mapping,",
+        "  correlation propagation, and retry/backoff behavior.",
         "- API observability request-id normalization reuses the shared bounded",
         "  identifier policy while preserving generated request-id fallback behavior.",
         "- Proposal reporting service orchestration delegates related-version selection,",
@@ -1171,6 +1174,9 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  counting, and worst-complexity selection to tested helpers.",
         "- Quality baseline Spectral inventory parsing delegates report availability, payload",
         "  validation, severity counts, and path-count projection to focused helpers.",
+        "- Refactored complexity enforcement now protects the already-remediated Lotus Risk",
+        "  enrichment boundary with an A-only Radon gate inherited by Feature Lane, PR Merge",
+        "  Gate, and Main Releasability through `make lint`.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
         "",
@@ -1296,7 +1302,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-863` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-864` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
@@ -1358,8 +1364,9 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "`make ci-local`, Feature Lane, PR Merge Gate, and Main Releasability "
             "static governance jobs; workflow contract tests protect local CI target "
             "freshness, demo-assurance checks, parallel runtime jobs, least-privilege "
-            "permissions, concurrency, coverage artifact handling, pull-request-target "
-            "auto-merge guards, protected-main verification, and the baseline freshness step.",
+            "permissions, concurrency, coverage artifact handling, refactored-complexity "
+            "enforcement, pull-request-target auto-merge guards, protected-main verification, "
+            "and the baseline freshness step.",
             "Quality evidence freshness is now enforced before merge and after merge, not only "
             "during local `make check`.",
         ),
