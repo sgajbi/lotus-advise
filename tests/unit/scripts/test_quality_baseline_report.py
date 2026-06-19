@@ -250,6 +250,9 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Shared proposal intent dependency linking now keeps SELL selection" in (refactor_health)
     assert "Advisory copilot record-text list normalization delegates" in refactor_health
     assert "Advisory copilot run replay delegates idempotency hash matching" in refactor_health
+    assert "Lotus AI tenant runtime configuration delegates configured-value loading" in (
+        refactor_health
+    )
     assert "API structured logging formatter delegates" in refactor_health
     assert "Proposal workflow delivery operations delegate execution handoff" in refactor_health
     assert "Proposal workflow narrative operations delegate narrative read" in refactor_health
@@ -340,7 +343,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-878`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-879`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:

@@ -121,3 +121,9 @@ def test_lotus_ai_tenant_id_rejects_control_characters(monkeypatch) -> None:
     monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001\x7f")
 
     assert resolve_lotus_ai_tenant_id() == "tenant-sg-001"
+
+
+def test_lotus_ai_tenant_id_rejects_over_length_values(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "t" * 129)
+
+    assert resolve_lotus_ai_tenant_id() == "tenant-sg-001"
