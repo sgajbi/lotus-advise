@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -230,7 +231,7 @@ def _radon_complexity_inventory(
     repo_root: Path,
 ) -> tuple[bool, int | None, dict[str, int], str | None, int | None]:
     if not _tool_available("radon"):
-        return False, None, {}, None, None
+        return _empty_radon_inventory()
     completed = subprocess.run(
         [sys.executable, "-m", "radon", "cc", "src", "-s", "-j"],
         cwd=repo_root,
@@ -239,52 +240,63 @@ def _radon_complexity_inventory(
         check=False,
     )
     if completed.returncode != 0:
-        return False, None, {}, None, None
+        return _empty_radon_inventory()
     try:
         payload = json.loads(completed.stdout)
     except json.JSONDecodeError:
-        return False, None, {}, None, None
+        return _empty_radon_inventory()
+    return _radon_inventory_from_payload(payload)
+
+
+def _empty_radon_inventory() -> tuple[bool, int | None, dict[str, int], str | None, int | None]:
+    return False, None, {}, None, None
+
+
+def _radon_inventory_from_payload(
+    payload: object,
+) -> tuple[bool, int | None, dict[str, int], str | None, int | None]:
     if not isinstance(payload, dict):
-        return False, None, {}, None, None
-    blocks: list[dict[str, object]] = []
-
-    def _collect(block: object) -> None:
-        if not isinstance(block, dict):
-            return
-        blocks.append(block)
-        for child_key in ("methods", "closures"):
-            children = block.get(child_key)
-            if isinstance(children, list):
-                for child in children:
-                    _collect(child)
-
-    for file_blocks in payload.values():
-        if isinstance(file_blocks, list):
-            for block in file_blocks:
-                _collect(block)
-    rank_counts = Counter(
-        str(block.get("rank"))
-        for block in blocks
-        if isinstance(block.get("rank"), str) and block.get("rank")
-    )
-
-    def _complexity(block: dict[str, object]) -> int:
-        value = block.get("complexity")
-        return value if isinstance(value, int) else 0
-
-    worst_block = max(blocks, key=_complexity, default=None)
+        return _empty_radon_inventory()
+    blocks = list(_iter_radon_blocks(payload))
+    rank_counts = Counter(_radon_rank(block) for block in blocks if _radon_rank(block))
+    worst_block = max(blocks, key=_radon_complexity, default=None)
     if worst_block is None:
         return True, 0, {}, None, None
-    worst_complexity_value = worst_block.get("complexity")
-    worst_rank = worst_block.get("rank")
-    worst_complexity = worst_complexity_value if isinstance(worst_complexity_value, int) else None
     return (
         True,
         len(blocks),
         dict(sorted(rank_counts.items())),
-        str(worst_rank) if isinstance(worst_rank, str) else None,
-        worst_complexity,
+        _radon_rank(worst_block),
+        _radon_complexity(worst_block),
     )
+
+
+def _iter_radon_blocks(payload: dict[str, object]) -> Iterable[dict[str, object]]:
+    for file_blocks in payload.values():
+        if isinstance(file_blocks, list):
+            for block in file_blocks:
+                yield from _iter_radon_block_tree(block)
+
+
+def _iter_radon_block_tree(block: object) -> Iterable[dict[str, object]]:
+    if not isinstance(block, dict):
+        return
+    yield block
+    for child_key in ("methods", "closures"):
+        children = block.get(child_key)
+        if isinstance(children, list):
+            for child in children:
+                yield from _iter_radon_block_tree(child)
+
+
+def _radon_rank(block: dict[str, object]) -> str | None:
+    rank = block.get("rank")
+    return rank if isinstance(rank, str) and rank else None
+
+
+def _radon_complexity(block: dict[str, object]) -> int:
+    complexity = block.get("complexity")
+    return complexity if isinstance(complexity, int) else 0
 
 
 def _vulture_issue_inventory(repo_root: Path) -> tuple[bool, int | None, dict[str, int]]:
@@ -350,52 +362,79 @@ def _interrogate_inventory(
 def _spectral_openapi_inventory(
     repo_root: Path,
 ) -> tuple[bool, int | None, dict[str, int], int | None]:
-    if (
-        not (repo_root / ".spectral.yaml").exists()
-        or not (repo_root / "scripts" / "openapi_spectral_report.py").exists()
-    ):
-        return False, None, {}, None
+    if not _spectral_inventory_available(repo_root):
+        return _empty_spectral_inventory()
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
         output_path = Path(handle.name)
     try:
-        completed = subprocess.run(
-            [
-                sys.executable,
-                "scripts/openapi_spectral_report.py",
-                "--output",
-                str(output_path),
-            ],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        completed = _run_spectral_inventory_report(repo_root, output_path)
         if not output_path.exists() or completed.returncode not in {0, 1}:
-            return False, None, {}, None
+            return _empty_spectral_inventory()
         try:
             payload = json.loads(output_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
-            return False, None, {}, None
-        if not isinstance(payload, dict) or payload.get("spectralExecutable") is not True:
-            return False, None, {}, None
-        issue_count = payload.get("issueCount")
-        path_count = payload.get("openapiPathCount")
-        severity_inventory = payload.get("severityInventory")
-        if not isinstance(issue_count, int) or not isinstance(severity_inventory, dict):
-            return False, None, {}, None
-        severity_counts = {
-            str(severity): int(count)
-            for severity, count in severity_inventory.items()
-            if isinstance(count, int)
-        }
-        return (
-            True,
-            issue_count,
-            severity_counts,
-            path_count if isinstance(path_count, int) else None,
-        )
+            return _empty_spectral_inventory()
+        return _spectral_inventory_from_payload(payload)
     finally:
         output_path.unlink(missing_ok=True)
+
+
+def _spectral_inventory_available(repo_root: Path) -> bool:
+    return (repo_root / ".spectral.yaml").exists() and (
+        repo_root / "scripts" / "openapi_spectral_report.py"
+    ).exists()
+
+
+def _run_spectral_inventory_report(
+    repo_root: Path,
+    output_path: Path,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "scripts/openapi_spectral_report.py",
+            "--output",
+            str(output_path),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _empty_spectral_inventory() -> tuple[bool, int | None, dict[str, int], int | None]:
+    return False, None, {}, None
+
+
+def _spectral_inventory_from_payload(
+    payload: object,
+) -> tuple[bool, int | None, dict[str, int], int | None]:
+    if not isinstance(payload, dict) or payload.get("spectralExecutable") is not True:
+        return _empty_spectral_inventory()
+    issue_count = payload.get("issueCount")
+    severity_inventory = payload.get("severityInventory")
+    if not isinstance(issue_count, int) or not isinstance(severity_inventory, dict):
+        return _empty_spectral_inventory()
+    return (
+        True,
+        issue_count,
+        _spectral_severity_counts(severity_inventory),
+        _spectral_path_count(payload),
+    )
+
+
+def _spectral_severity_counts(severity_inventory: dict[object, object]) -> dict[str, int]:
+    return {
+        str(severity): count
+        for severity, count in severity_inventory.items()
+        if isinstance(count, int)
+    }
+
+
+def _spectral_path_count(payload: dict[str, object]) -> int | None:
+    path_count = payload.get("openapiPathCount")
+    return path_count if isinstance(path_count, int) else None
 
 
 def build_quality_context(repo_root: Path) -> QualityContext:
@@ -493,99 +532,35 @@ def _gate_commands(context: QualityContext) -> dict[str, list[str]]:
     return gates
 
 
-def render_baseline_report(context: QualityContext) -> str:
-    gates = _gate_commands(context)
-    report = context.report
-    deptry_issue_count = (
-        str(context.deptry_issue_count) if context.deptry_issue_count is not None else "not run"
-    )
-    bandit_issue_count = (
-        str(context.bandit_issue_count) if context.bandit_issue_count is not None else "not run"
-    )
-    bandit_high_count = (
-        str(context.bandit_high_count) if context.bandit_high_count is not None else "not run"
-    )
-    bandit_medium_count = (
-        str(context.bandit_medium_count) if context.bandit_medium_count is not None else "not run"
-    )
-    bandit_low_count = (
-        str(context.bandit_low_count) if context.bandit_low_count is not None else "not run"
-    )
-    importlinter_contract_count = (
-        str(context.importlinter_contract_count)
-        if context.importlinter_contract_count is not None
-        else "not run"
-    )
-    importlinter_kept_count = (
-        str(context.importlinter_kept_count)
-        if context.importlinter_kept_count is not None
-        else "not run"
-    )
-    importlinter_broken_count = (
-        str(context.importlinter_broken_count)
-        if context.importlinter_broken_count is not None
-        else "not run"
-    )
-    radon_block_count = (
-        str(context.radon_analyzed_block_count)
-        if context.radon_analyzed_block_count is not None
-        else "not run"
-    )
-    radon_rank_inventory = ", ".join(
-        f"{rank}={count}" for rank, count in context.radon_rank_counts.items()
-    )
-    if not radon_rank_inventory:
-        radon_rank_inventory = "not run"
-    radon_worst = (
-        f"rank={context.radon_worst_rank}, complexity={context.radon_worst_complexity}"
-        if context.radon_worst_rank is not None and context.radon_worst_complexity is not None
-        else "not run"
-    )
-    vulture_issue_count = (
-        str(context.vulture_issue_count) if context.vulture_issue_count is not None else "not run"
-    )
-    vulture_confidence_inventory = ", ".join(
-        f"{confidence}%={count}" for confidence, count in context.vulture_confidence_counts.items()
-    )
-    if not vulture_confidence_inventory:
-        vulture_confidence_inventory = "not run"
-    interrogate_total_count = (
-        str(context.interrogate_total_count)
-        if context.interrogate_total_count is not None
-        else "not run"
-    )
-    interrogate_missing_count = (
-        str(context.interrogate_missing_count)
-        if context.interrogate_missing_count is not None
-        else "not run"
-    )
-    interrogate_covered_count = (
-        str(context.interrogate_covered_count)
-        if context.interrogate_covered_count is not None
-        else "not run"
-    )
-    interrogate_coverage_percent = context.interrogate_coverage_percent or "not run"
-    spectral_issue_count = (
-        str(context.spectral_issue_count) if context.spectral_issue_count is not None else "not run"
-    )
-    spectral_path_count = (
-        str(context.spectral_openapi_path_count)
-        if context.spectral_openapi_path_count is not None
-        else "not run"
-    )
-    spectral_severity_inventory = ", ".join(
-        f"{severity}={count}" for severity, count in context.spectral_severity_counts.items()
-    )
-    if not spectral_severity_inventory:
-        spectral_severity_inventory = "none" if context.spectral_issue_count == 0 else "not run"
-    lines = [
+def _optional_count(value: int | None) -> str:
+    return str(value) if value is not None else "not run"
+
+
+def _counter_inventory(values: dict[str, int], *, empty: str = "not run", suffix: str = "") -> str:
+    inventory = ", ".join(f"{key}{suffix}={count}" for key, count in values.items())
+    return inventory or empty
+
+
+def _radon_worst_inventory(context: QualityContext) -> str:
+    if context.radon_worst_rank is None or context.radon_worst_complexity is None:
+        return "not run"
+    return f"rank={context.radon_worst_rank}, complexity={context.radon_worst_complexity}"
+
+
+def _baseline_header(context: QualityContext) -> list[str]:
+    return [
         "# Lotus Advise Quality Baseline Report",
         "",
-        f"- Generated At: `{report.generated_at}`",
+        f"- Generated At: `{context.report.generated_at}`",
         "- Git Identity: omitted from committed Markdown; use Git history and GitHub Actions",
         "  run metadata for exact branch/head evidence.",
         "- CI Phase: `baseline/report-only`",
         "",
+    ]
+
+
+def _code_size_section(report: EngineeringHealthReport) -> list[str]:
+    return [
         "## Code Size",
         "",
         f"- Python files: `{report.python_file_count}`",
@@ -593,6 +568,11 @@ def render_baseline_report(context: QualityContext) -> str:
         f"- Modules: `{report.module_count}`",
         f"- Total Python lines: `{report.total_python_lines}`",
         "",
+    ]
+
+
+def _largest_files_section(report: EngineeringHealthReport) -> list[str]:
+    lines = [
         "## Largest Files",
         "",
         "| Rank | File | Lines |",
@@ -600,121 +580,193 @@ def render_baseline_report(context: QualityContext) -> str:
     ]
     for index, file_metric in enumerate(report.largest_files[:10], start=1):
         lines.append(f"| {index} | `{file_metric.path}` | {file_metric.lines} |")
-    lines.extend(
-        [
-            "",
-            "## Largest Functions And Maintainability Hotspots",
-            "",
-            "| Rank | Function | File | Line | Lines |",
-            "| ---: | --- | --- | ---: | ---: |",
-        ]
-    )
+    lines.append("")
+    return lines
+
+
+def _largest_functions_section(report: EngineeringHealthReport) -> list[str]:
+    lines = [
+        "## Largest Functions And Maintainability Hotspots",
+        "",
+        "| Rank | Function | File | Line | Lines |",
+        "| ---: | --- | --- | ---: | ---: |",
+    ]
     for index, function_metric in enumerate(report.largest_functions[:10], start=1):
         lines.append(
             f"| {index} | `{function_metric.name}` | `{function_metric.path}` | "
             f"{function_metric.lineno} | {function_metric.lines} |"
         )
-    lines.extend(
-        [
-            "",
-            "## Complexity",
-            "",
-            "- Current baseline uses largest-function and router-hotspot evidence as deterministic",
-            "  complexity proxies.",
-            f"- Radon config executable: `{context.radon_config_valid}`",
-            f"- Radon analyzed block inventory: `{radon_block_count}`",
-            f"- Radon complexity rank inventory: `{radon_rank_inventory}`",
-            f"- Radon worst complexity: `{radon_worst}`",
-            "- Radon C/D/E/F-ranked block enforcement is repo-native through",
-            "  `make complexity-regression-gate` and the `lint` lane.",
-            "- Xenon and stricter B-ranked Radon thresholds remain report-only until current",
-            "  B-ranked helpers are classified.",
-            "",
-            "## Lint And Type Issues",
-            "",
-            f"- Ruff configured: `{'lint' in gates}`",
-            f"- Mypy configured: `{'typecheck' in gates}`",
-            "- Current enforcement remains repo-native through `make lint` and `make typecheck`.",
-            "",
-            "## Coverage",
-            "",
-            "- Unit/integration/E2E coverage gate is repo-native through `make coverage-combined`.",
-            "- Configured fail-under target: `97`.",
-            "",
-            "## Dead Code",
-            "",
-            f"- Vulture config executable: `{context.vulture_config_valid}`",
-            f"- Vulture current issue inventory: `{vulture_issue_count}`",
-            f"- Vulture confidence inventory: `{vulture_confidence_inventory}`",
-            "- Vulture remains report-only until validator false positives and compatibility",
-            "  facade imports are classified.",
-            "- Current dead-code cleanup remains code-led through review-ledger slices.",
-            "",
-            "## Dependencies",
-            "",
-            f"- Dependency verification configured: `{'verify-dependencies' in gates}`",
-            f"- Security audit configured: `{'security-audit' in gates}`",
-            f"- Available dependency/security tools: `{', '.join(context.available_tools)}`",
-            f"- Pending optional tools: `{', '.join(context.unavailable_tools)}`",
-            f"- Deptry config executable: `{context.deptry_config_valid}`",
-            f"- Deptry current issue inventory: `{deptry_issue_count}`",
-            f"- Bandit config executable: `{context.bandit_config_valid}`",
-            f"- Bandit current issue inventory: `{bandit_issue_count}`",
-            f"- Bandit severity inventory: `high={bandit_high_count}, "
-            f"medium={bandit_medium_count}, low={bandit_low_count}`",
-            "",
-            "## Security",
-            "",
-            "- `pip-audit` is present in development requirements.",
-            "- `bandit` high-severity enforcement is repo-native through",
-            "  `make bandit-high-severity-gate` and the `security-audit` lane.",
-            "- Medium and low Bandit findings remain an inventoried classification backlog.",
-            "- Sensitive-data handling remains governed by API error redaction and structured",
-            "  payload tests until the security report gate is calibrated.",
-            "",
-            "## OpenAPI Gaps",
-            "",
-            f"- Repo-native OpenAPI gate configured: `{'openapi-gate' in gates}`",
-            f"- Spectral rules present: `{context.spectral_present}`",
-            f"- Spectral config executable: `{context.spectral_config_valid}`",
-            f"- Spectral OpenAPI path inventory: `{spectral_path_count}`",
-            f"- Spectral current issue inventory: `{spectral_issue_count}`",
-            f"- Spectral severity inventory: `{spectral_severity_inventory}`",
-            "- Spectral is enforced through `make openapi-gate`; the inventory remains recorded",
-            "  for before/after scorecard evidence.",
-            "",
-            "## Architecture Violations",
-            "",
-            f"- Import-linter contracts present: `{context.importlinter_present}`",
-            f"- Import-linter config executable: `{context.importlinter_config_valid}`",
-            f"- Import-linter contract inventory: `total={importlinter_contract_count}, "
-            f"kept={importlinter_kept_count}, broken={importlinter_broken_count}`",
-            "- Contracts remain report-only until the kept inventory is wired into a CI gate.",
-            "",
-            "## Documentation Gaps",
-            "",
-            f"- Requested docs present: `{', '.join(context.requested_docs_present) or 'none'}`",
-            f"- Requested docs missing: `{', '.join(context.requested_docs_missing) or 'none'}`",
-            f"- Interrogate config executable: `{context.interrogate_config_valid}`",
-            f"- Interrogate docstring inventory: `total={interrogate_total_count}, "
-            f"missing={interrogate_missing_count}, covered={interrogate_covered_count}, "
-            f"coverage={interrogate_coverage_percent}`",
-            "- Interrogate remains report-only until public API and module ownership thresholds",
-            "  are classified.",
-            "",
-            "## Observability Gaps",
-            "",
-            "- Observability documentation is present.",
-            "- Observability diagnostics target: `make observability-diagnostics`",
-            "- Focused diagnostics currently verify correlation, request, trace,",
-            "  and structured-log propagation.",
-            "- Demo assurance gate: `make demo-assurance-gate` ties API governance,",
-            "  domain golden regressions, observability diagnostics, and domain-data",
-            "  product validation into a repeatable local evidence command.",
-            "- Dashboard, alert, SLO, and distributed-tracing evidence remain tracked gaps.",
-            "",
-        ]
+    lines.append("")
+    return lines
+
+
+def _complexity_section(context: QualityContext) -> list[str]:
+    return [
+        "## Complexity",
+        "",
+        "- Current baseline uses largest-function and router-hotspot evidence as deterministic",
+        "  complexity proxies.",
+        f"- Radon config executable: `{context.radon_config_valid}`",
+        "- Radon analyzed block inventory: "
+        f"`{_optional_count(context.radon_analyzed_block_count)}`",
+        f"- Radon complexity rank inventory: `{_counter_inventory(context.radon_rank_counts)}`",
+        f"- Radon worst complexity: `{_radon_worst_inventory(context)}`",
+        "- Radon C/D/E/F-ranked block enforcement is repo-native through",
+        "  `make complexity-regression-gate` and the `lint` lane.",
+        "- Xenon and stricter B-ranked Radon thresholds remain report-only until current",
+        "  B-ranked helpers are classified.",
+        "",
+    ]
+
+
+def _lint_type_coverage_sections(gates: dict[str, list[str]]) -> list[str]:
+    return [
+        "## Lint And Type Issues",
+        "",
+        f"- Ruff configured: `{'lint' in gates}`",
+        f"- Mypy configured: `{'typecheck' in gates}`",
+        "- Current enforcement remains repo-native through `make lint` and `make typecheck`.",
+        "",
+        "## Coverage",
+        "",
+        "- Unit/integration/E2E coverage gate is repo-native through `make coverage-combined`.",
+        "- Configured fail-under target: `97`.",
+        "",
+    ]
+
+
+def _dead_code_section(context: QualityContext) -> list[str]:
+    return [
+        "## Dead Code",
+        "",
+        f"- Vulture config executable: `{context.vulture_config_valid}`",
+        f"- Vulture current issue inventory: `{_optional_count(context.vulture_issue_count)}`",
+        "- Vulture confidence inventory: "
+        f"`{_counter_inventory(context.vulture_confidence_counts, suffix='%')}`",
+        "- Vulture remains report-only until validator false positives and compatibility",
+        "  facade imports are classified.",
+        "- Current dead-code cleanup remains code-led through review-ledger slices.",
+        "",
+    ]
+
+
+def _dependency_security_sections(
+    context: QualityContext, gates: dict[str, list[str]]
+) -> list[str]:
+    return [
+        "## Dependencies",
+        "",
+        f"- Dependency verification configured: `{'verify-dependencies' in gates}`",
+        f"- Security audit configured: `{'security-audit' in gates}`",
+        f"- Available dependency/security tools: `{', '.join(context.available_tools)}`",
+        f"- Pending optional tools: `{', '.join(context.unavailable_tools)}`",
+        f"- Deptry config executable: `{context.deptry_config_valid}`",
+        f"- Deptry current issue inventory: `{_optional_count(context.deptry_issue_count)}`",
+        f"- Bandit config executable: `{context.bandit_config_valid}`",
+        f"- Bandit current issue inventory: `{_optional_count(context.bandit_issue_count)}`",
+        "- Bandit severity inventory: "
+        f"`high={_optional_count(context.bandit_high_count)}, "
+        f"medium={_optional_count(context.bandit_medium_count)}, "
+        f"low={_optional_count(context.bandit_low_count)}`",
+        "",
+        "## Security",
+        "",
+        "- `pip-audit` is present in development requirements.",
+        "- `bandit` high-severity enforcement is repo-native through",
+        "  `make bandit-high-severity-gate` and the `security-audit` lane.",
+        "- Medium and low Bandit findings remain an inventoried classification backlog.",
+        "- Sensitive-data handling remains governed by API error redaction and structured",
+        "  payload tests until the security report gate is calibrated.",
+        "",
+    ]
+
+
+def _openapi_section(context: QualityContext, gates: dict[str, list[str]]) -> list[str]:
+    spectral_severity_inventory = _counter_inventory(
+        context.spectral_severity_counts,
+        empty="none" if context.spectral_issue_count == 0 else "not run",
     )
+    return [
+        "## OpenAPI Gaps",
+        "",
+        f"- Repo-native OpenAPI gate configured: `{'openapi-gate' in gates}`",
+        f"- Spectral rules present: `{context.spectral_present}`",
+        f"- Spectral config executable: `{context.spectral_config_valid}`",
+        "- Spectral OpenAPI path inventory: "
+        f"`{_optional_count(context.spectral_openapi_path_count)}`",
+        f"- Spectral current issue inventory: `{_optional_count(context.spectral_issue_count)}`",
+        f"- Spectral severity inventory: `{spectral_severity_inventory}`",
+        "- Spectral is enforced through `make openapi-gate`; the inventory remains recorded",
+        "  for before/after scorecard evidence.",
+        "",
+    ]
+
+
+def _architecture_section(context: QualityContext) -> list[str]:
+    return [
+        "## Architecture Violations",
+        "",
+        f"- Import-linter contracts present: `{context.importlinter_present}`",
+        f"- Import-linter config executable: `{context.importlinter_config_valid}`",
+        "- Import-linter contract inventory: "
+        f"`total={_optional_count(context.importlinter_contract_count)}, "
+        f"kept={_optional_count(context.importlinter_kept_count)}, "
+        f"broken={_optional_count(context.importlinter_broken_count)}`",
+        "- Contracts remain report-only until the kept inventory is wired into a CI gate.",
+        "",
+    ]
+
+
+def _documentation_section(context: QualityContext) -> list[str]:
+    return [
+        "## Documentation Gaps",
+        "",
+        f"- Requested docs present: `{', '.join(context.requested_docs_present) or 'none'}`",
+        f"- Requested docs missing: `{', '.join(context.requested_docs_missing) or 'none'}`",
+        f"- Interrogate config executable: `{context.interrogate_config_valid}`",
+        "- Interrogate docstring inventory: "
+        f"`total={_optional_count(context.interrogate_total_count)}, "
+        f"missing={_optional_count(context.interrogate_missing_count)}, "
+        f"covered={_optional_count(context.interrogate_covered_count)}, "
+        f"coverage={context.interrogate_coverage_percent or 'not run'}`",
+        "- Interrogate remains report-only until public API and module ownership thresholds",
+        "  are classified.",
+        "",
+    ]
+
+
+def _observability_section() -> list[str]:
+    return [
+        "## Observability Gaps",
+        "",
+        "- Observability documentation is present.",
+        "- Observability diagnostics target: `make observability-diagnostics`",
+        "- Focused diagnostics currently verify correlation, request, trace,",
+        "  and structured-log propagation.",
+        "- Demo assurance gate: `make demo-assurance-gate` ties API governance,",
+        "  domain golden regressions, observability diagnostics, and domain-data",
+        "  product validation into a repeatable local evidence command.",
+        "- Dashboard, alert, SLO, and distributed-tracing evidence remain tracked gaps.",
+        "",
+    ]
+
+
+def render_baseline_report(context: QualityContext) -> str:
+    gates = _gate_commands(context)
+    lines = [
+        *_baseline_header(context),
+        *_code_size_section(context.report),
+        *_largest_files_section(context.report),
+        *_largest_functions_section(context.report),
+        *_complexity_section(context),
+        *_lint_type_coverage_sections(gates),
+        *_dead_code_section(context),
+        *_dependency_security_sections(context, gates),
+        *_openapi_section(context, gates),
+        *_architecture_section(context),
+        *_documentation_section(context),
+        *_observability_section(),
+    ]
     return "\n".join(lines)
 
 
@@ -1113,6 +1165,12 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  Feature Lane, PR Merge Gate, and Main Releasability static governance jobs.",
         "- PR auto-merge queue verification now checks protected main-branch metadata through",
         "  a workflow-token-readable endpoint before enabling merge-commit auto-merge.",
+        "- Quality baseline report rendering delegates metric formatting and Markdown sections",
+        "  to focused helpers while preserving the freshness-gated report contract.",
+        "- Quality baseline Radon inventory parsing delegates nested block traversal, rank",
+        "  counting, and worst-complexity selection to tested helpers.",
+        "- Quality baseline Spectral inventory parsing delegates report availability, payload",
+        "  validation, severity counts, and path-count projection to focused helpers.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
         "",
@@ -1238,7 +1296,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-860` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-863` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
