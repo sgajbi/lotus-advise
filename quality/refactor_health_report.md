@@ -293,6 +293,8 @@
   to focused helpers.
 - Shared canonical payload helpers delegate recursive mapping and sequence key
   stripping to focused helpers while preserving stable evidence hashes.
+- Proposal idempotency replay delegates event and approval replay matching to
+  a shared hash-conflict policy while preserving latest-record replay semantics.
 - Policy evaluation persistence delegates lineage/posture projection and audit-event
   attachment mapping to a focused projection module.
 - Policy evaluation persistence delegates replay hash comparison and replay response
