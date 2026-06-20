@@ -8,6 +8,10 @@
   freshness.
 - `make quality-baseline`: regenerate report-only quality artifacts in `quality/`.
 - `make engineering-health`: regenerate the structural engineering-health baseline.
+- `make demo-certification-live`: run live app-level demo certification against
+  `LOTUS_ADVISE_DEMO_BASE_URL` or `http://127.0.0.1:8000`, writing machine-readable evidence to
+  `LOTUS_ADVISE_DEMO_EVIDENCE` or
+  `output/demo-certification/latest/lotus-advise-demo-certification.json`.
 
 ## Runtime Validation
 

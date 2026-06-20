@@ -1,5 +1,49 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-889
+
+- Scope: Live demo certification command and scheduled evidence pipeline
+- Pattern: App-level demo proof should be repeatable, machine-readable, route-inventory aware, and
+  wired to the correct runtime lane before agents claim `lotus-advise` demo readiness.
+- Status: Hardened
+- Finding Class: Demo readiness, API certification, CI evidence, agent guardrail
+- Summary: `scripts/run_demo_pack_live.py` previously validated the deterministic demo payloads
+  against a live service, but it did not write machine-readable evidence, verify required
+  `/platform/capabilities` feature/workflow truth, or inventory the full OpenAPI route surface for
+  safe route behavior. That made it too easy for future agents to treat a console-only demo-pack
+  pass as complete endpoint certification or to lose the exact proof from scheduled CI.
+- Evidence:
+  - Extended `scripts/run_demo_pack_live.py` to verify `/health/ready`, read live OpenAPI,
+    inventory all 87 declared operations across 84 paths, route-safety probe the declared API
+    surface for non-5xx/non-405 behavior, validate required capability features/workflows, run
+    deterministic synthetic scenarios, assert expected statuses and lifecycle states, and write
+    JSON evidence.
+  - Added `make demo-certification-live` as the repo-native command with configurable
+    `LOTUS_ADVISE_DEMO_BASE_URL` and `LOTUS_ADVISE_DEMO_EVIDENCE`.
+  - Updated the scheduled/manual Nightly Postgres Full Suite to publish
+    `lotus-advise-demo-certification` evidence artifacts without promoting the live runtime check
+    into PR-blocking static governance.
+  - Local live evidence at
+    `output/demo-certification/20260620-090030/lotus-advise-demo-certification.json` passed with
+    87 operations inventoried, 87 route probes, 16 deterministic scenario assertions, 15 required
+    features, and 13 required workflows.
+  - The evidence preserves current RFC-0082 truth that `lotus-performance` is readiness-only and
+    not an advisory input contract; overall supportability can report the optional performance
+    dependency as degraded without weakening required advisory feature/workflow assertions.
+- Consequence:
+  - Future agents have a single repo-native live certification command and a scheduled/manual CI
+    evidence lane for app-level demo proof, while deterministic PR gates remain focused on
+    OpenAPI, vocabulary, data-product, observability, golden-domain, security, and quality-baseline
+    checks.
+- Documentation:
+  - Updated demo docs, repo engineering context, wiki operations source, generated scorecard
+    wording, and workflow contract tests. Wiki publication is required after merge because
+    `wiki/Operations-Runbook.md` changed.
+- Follow-Up:
+  - Promote the live certification lane to a stricter blocking release gate only after false
+    positives, runtime dependencies, exception policy, and stack availability are stable enough for
+    low-noise enforcement.
+
 ## LA-REV-888
 
 - Scope: Decision-summary evidence-reference complexity ratchet

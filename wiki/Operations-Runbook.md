@@ -97,6 +97,18 @@ Operational interpretation:
    legal/regulatory advice, completed policy sign-off/approval, and OMS/order/fill/settlement stay
    blocked unless separately implemented and proven
 
+For `lotus-advise` app-level demo certification, run:
+
+```bash
+make demo-certification-live
+```
+
+The command validates the live service readiness, OpenAPI route-safety posture, deterministic
+synthetic advisory scenarios, required `/platform/capabilities` feature/workflow truth, and domain
+assertions, then writes evidence under `output/demo-certification/`. The scheduled/manual Postgres
+runtime workflow uploads the same evidence artifact. Treat any non-zero exit or unsafe route probe
+as a release-blocking defect for the demo scope.
+
 Use `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md` for sales, pre-sales, RFP, and
 demo-lead wording. It is the business-facing guide, but it remains constrained by the supported
 claim register and proof-pack evidence.
