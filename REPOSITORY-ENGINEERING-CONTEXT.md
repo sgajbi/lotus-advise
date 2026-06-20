@@ -244,6 +244,8 @@ Use these commands as the primary local contract:
    `make domain-data-products-gate`
 8. quality evidence freshness gate
    `make quality-baseline-check`
+9. live demo certification evidence
+   `make demo-certification-live`
 
 ## Validation And CI Expectations
 
@@ -259,7 +261,12 @@ Important validation expectations:
 2. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
 3. advisory workflow changes should be validated against canonical upstream posture,
 4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-5. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
+5. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+   machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
+   scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
+   domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
+   evidence rather than a PR-blocking static gate,
+6. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
 
 ## Standards And RFCs That Govern This Repository
 

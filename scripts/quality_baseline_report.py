@@ -747,6 +747,9 @@ def _observability_section() -> list[str]:
         "- Demo assurance gate: `make demo-assurance-gate` ties API governance,",
         "  domain golden regressions, observability diagnostics, and domain-data",
         "  product validation into a repeatable local evidence command.",
+        "- Live demo certification: `make demo-certification-live` writes",
+        "  machine-readable app-level evidence for live runtime route safety,",
+        "  deterministic synthetic scenarios, and capability truth.",
         "- Dashboard, alert, SLO, and distributed-tracing evidence remain tracked gaps.",
         "",
     ]
@@ -1323,8 +1326,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
         ),
         (
             "Demo assurance",
-            "API/domain/observability/data-mesh gate added",
-            "make demo-assurance-gate + Feature Lane, PR Merge Gate, and Main Releasability checks",
+            "API/domain/observability/data-mesh gate plus live certification command",
+            "make demo-assurance-gate + manual make demo-certification-live evidence",
         ),
     ]
     lines = [
@@ -1352,7 +1355,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-888` with scoped "
+            "Review ledger includes `LA-REV-611` through `LA-REV-889` with scoped "
             "findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",

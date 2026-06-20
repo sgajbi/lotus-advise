@@ -124,7 +124,17 @@ jobs:
 
       - name: Run Demo Pack Against Live Postgres Runtime
         run: |
-          python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8010
+          python scripts/run_demo_pack_live.py \
+            --base-url http://127.0.0.1:8010 \
+            --output output/demo-certification/nightly-postgres/lotus-advise-demo-certification.json
+
+      - name: Upload Demo Certification Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lotus-advise-demo-certification
+          path: output/demo-certification/nightly-postgres/lotus-advise-demo-certification.json
+          if-no-files-found: error
 
       - name: Dump API Logs On Failure
         if: failure()

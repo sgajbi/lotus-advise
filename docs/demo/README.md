@@ -5,6 +5,30 @@ This folder contains advisory-only demo payloads for the Lotus Advise service.
 Canonical local service identity:
 - `http://advise.dev.lotus`
 
+## Demo Certification Command
+
+Use the repo-native live certification command when validating `lotus-advise` before a demo:
+
+```bash
+make demo-certification-live
+```
+
+By default it calls `http://127.0.0.1:8000` and writes machine-readable evidence to
+`output/demo-certification/latest/lotus-advise-demo-certification.json`. Override those values with:
+
+```bash
+LOTUS_ADVISE_DEMO_BASE_URL=http://advise.dev.lotus \
+LOTUS_ADVISE_DEMO_EVIDENCE=output/demo-certification/manual/lotus-advise-demo-certification.json \
+make demo-certification-live
+```
+
+The command checks service readiness, reads the live OpenAPI document, probes the declared route
+inventory for safe non-5xx behavior, runs deterministic synthetic advisory scenarios, asserts
+expected domain statuses and lifecycle states, verifies required `/platform/capabilities` feature
+and workflow truth, writes evidence, and exits non-zero on weak proof. It records optional
+readiness degradation such as `lotus-performance` being unconfigured; current RFC-0082 posture says
+`lotus-performance` is readiness-only and not an advisory input contract.
+
 ## Running Scenarios
 
 For advisory proposal simulation demos, POST to `/advisory/proposals/simulate`:

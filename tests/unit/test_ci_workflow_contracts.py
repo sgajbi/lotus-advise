@@ -208,6 +208,17 @@ def test_demo_assurance_gate_covers_demo_critical_evidence() -> None:
     }
 
 
+def test_live_demo_certification_command_is_repo_native_and_report_only() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    assert "demo-certification-live:" in makefile
+    assert "scripts/run_demo_pack_live.py" in makefile
+    assert "LOTUS_ADVISE_DEMO_BASE_URL" in makefile
+    assert "LOTUS_ADVISE_DEMO_EVIDENCE" in makefile
+    assert "demo-certification-live" not in _makefile_target_dependencies(makefile, "check")
+    assert "demo-certification-live" not in _makefile_target_dependencies(makefile, "ci")
+
+
 def _assert_governance_job_runs_demo_assurance_checks(workflow: str, job_id: str) -> None:
     governance_section = _workflow_job_section(workflow, job_id)
 
@@ -302,7 +313,14 @@ def test_nightly_postgres_demo_pack_declares_controlled_ci_fallback() -> None:
     _assert_default_ci_guardrails(workflow)
     assert "ENVIRONMENT: ci" in workflow
     assert 'LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK: "true"' in workflow
-    assert "python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8010" in workflow
+    assert "python scripts/run_demo_pack_live.py \\" in workflow
+    assert "--base-url http://127.0.0.1:8010 \\" in workflow
+    assert (
+        "--output output/demo-certification/nightly-postgres/lotus-advise-demo-certification.json"
+    ) in workflow
+    assert "Upload Demo Certification Evidence" in workflow
+    assert "name: lotus-advise-demo-certification" in workflow
+    assert "if-no-files-found: error" in workflow
 
 
 def test_pull_request_target_auto_merge_is_guarded_to_internal_labeled_prs() -> None:
