@@ -153,7 +153,7 @@ def _route_safety_probe(client: httpx.Client, operation: dict[str, Any]) -> dict
     if method not in {"GET", "POST"}:
         record["reason"] = "method_not_used_by_lotus_advise"
         return record
-    if method == "POST" and not operation["requiresRequestBody"] and "{" not in operation["path"]:
+    if method == "POST" and not operation["requiresRequestBody"]:
         record["reason"] = "mutating_no_required_body_operation_not_probed"
         return record
 
@@ -183,34 +183,61 @@ def _assert_capability_truth(capabilities: dict[str, Any]) -> dict[str, Any]:
 
     missing_features = sorted(REQUIRED_FEATURE_KEYS - set(feature_records))
     missing_workflows = sorted(REQUIRED_WORKFLOW_KEYS - set(workflow_records))
+    disabled_features = sorted(
+        key
+        for key in REQUIRED_FEATURE_KEYS
+        if key in feature_records and not feature_records[key].get("enabled")
+    )
+    disabled_workflows = sorted(
+        key
+        for key in REQUIRED_WORKFLOW_KEYS
+        if key in workflow_records and not workflow_records[key].get("enabled")
+    )
     weak_features = sorted(
         key
         for key in REQUIRED_FEATURE_KEYS
-        if key in feature_records
-        and not (
-            feature_records[key].get("enabled") and feature_records[key].get("operational_ready")
-        )
+        if key in feature_records and not _is_ready_or_truthfully_degraded(feature_records[key])
     )
     weak_workflows = sorted(
         key
         for key in REQUIRED_WORKFLOW_KEYS
-        if key in workflow_records
-        and not (
-            workflow_records[key].get("enabled") and workflow_records[key].get("operational_ready")
-        )
+        if key in workflow_records and not _is_ready_or_truthfully_degraded(workflow_records[key])
     )
 
     _assert(not missing_features, f"Missing required capability features: {missing_features}")
     _assert(not missing_workflows, f"Missing required capability workflows: {missing_workflows}")
+    _assert(
+        not disabled_features, f"Required capability features are disabled: {disabled_features}"
+    )
+    _assert(
+        not disabled_workflows,
+        f"Required capability workflows are disabled: {disabled_workflows}",
+    )
     _assert(not weak_features, f"Required capability features are not ready: {weak_features}")
     _assert(not weak_workflows, f"Required capability workflows are not ready: {weak_workflows}")
 
     return {
         "requiredFeatureCount": len(REQUIRED_FEATURE_KEYS),
         "requiredWorkflowCount": len(REQUIRED_WORKFLOW_KEYS),
+        "degradedRequiredFeatures": sorted(
+            key
+            for key in REQUIRED_FEATURE_KEYS
+            if key in feature_records and not feature_records[key].get("operational_ready")
+        ),
+        "degradedRequiredWorkflows": sorted(
+            key
+            for key in REQUIRED_WORKFLOW_KEYS
+            if key in workflow_records and not workflow_records[key].get("operational_ready")
+        ),
         "supportability": capabilities.get("supportability", {}),
         "readiness": capabilities.get("readiness", {}),
     }
+
+
+def _is_ready_or_truthfully_degraded(record: dict[str, Any]) -> bool:
+    if record.get("operational_ready"):
+        return True
+    return bool(record.get("dependency_keys")) and bool(record.get("degraded_reason"))
 
 
 def _new_evidence(base_url: str) -> dict[str, Any]:
@@ -449,18 +476,23 @@ def _certify_lifecycle_scenarios(client: httpx.Client, evidence: dict[str, Any])
 
 def run_demo_pack(base_url: str, output: Path | None = None) -> dict[str, Any]:
     evidence = _new_evidence(base_url)
-    with httpx.Client(base_url=base_url, timeout=httpx.Timeout(30.0)) as client:
-        _certify_foundation(client, evidence)
-        _certify_simulation_scenarios(client, evidence)
-        _certify_artifact_scenario(client, evidence)
-        _certify_lifecycle_scenarios(client, evidence)
-    evidence["status"] = "passed"
-    if output:
-        _write_json(output, evidence)
-    print(f"Demo pack validation passed for {base_url}")
-    if output:
-        print(f"Wrote demo certification evidence: {output}")
-    return evidence
+    try:
+        with httpx.Client(base_url=base_url, timeout=httpx.Timeout(30.0)) as client:
+            _certify_foundation(client, evidence)
+            _certify_simulation_scenarios(client, evidence)
+            _certify_artifact_scenario(client, evidence)
+            _certify_lifecycle_scenarios(client, evidence)
+        evidence["status"] = "passed"
+        print(f"Demo pack validation passed for {base_url}")
+        return evidence
+    except Exception as exc:
+        evidence["status"] = "failed"
+        evidence["error"] = {"type": type(exc).__name__, "message": str(exc)}
+        raise
+    finally:
+        if output:
+            _write_json(output, evidence)
+            print(f"Wrote demo certification evidence: {output}")
 
 
 if __name__ == "__main__":
