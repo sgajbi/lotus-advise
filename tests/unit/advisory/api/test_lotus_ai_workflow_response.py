@@ -45,3 +45,10 @@ def test_optional_text_can_bound_copilot_lineage_without_leaking_long_provider_t
 
     assert bounded == "xxxxxxxxx..."
     assert len(bounded) == 12
+
+
+def test_optional_text_honors_tiny_provider_text_bounds() -> None:
+    bounded = optional_text("sensitive provider response detail", max_length=2)
+
+    assert bounded == ".."
+    assert len(bounded) == 2

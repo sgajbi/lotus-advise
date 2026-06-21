@@ -359,7 +359,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
-    assert "Review ledger includes `LA-REV-611` through `LA-REV-889`" in scorecard
+    assert "Review ledger includes `LA-REV-611` through `LA-REV-890`" in scorecard
 
 
 def test_quality_baseline_report_cli_writes_requested_reports(tmp_path: Path) -> None:
