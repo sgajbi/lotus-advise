@@ -15,10 +15,12 @@ from src.integrations.lotus_ai.rationale import (
     _MAX_FINDINGS,
     _MAX_REVIEW_SUMMARY_ITEMS,
     _MAX_REVIEW_SUMMARY_LENGTH,
+    _MAX_RUN_STATE_LENGTH,
     LotusAIRationaleUnavailableError,
     _build_source_refs,
     _build_workflow_pack_request,
     _extract_detail,
+    _map_allowed_review_actions,
     _map_workflow_pack_run,
     _normalize_input_mode,
     _resolve_base_url,
@@ -630,6 +632,25 @@ def test_map_workflow_pack_run_bounds_actions_findings_and_identifiers() -> None
     assert len(run.findings) == _MAX_FINDINGS
     assert run.findings[0].finding_id == "finding_1"
     assert all(len(finding.summary) <= _MAX_FINDING_SUMMARY_LENGTH for finding in run.findings)
+
+
+def test_map_allowed_review_actions_preserves_bounded_allowlisted_order() -> None:
+    assert _map_allowed_review_actions(
+        [
+            " REVISE ",
+            "APPROVE_ORDER",
+            "REVISE",
+            "ACCEPT",
+            "",
+            "SUPERSEDE",
+            "ABANDON",
+            "REJECT",
+            "x" * (_MAX_RUN_STATE_LENGTH + 1),
+            42,
+        ]
+    ) == ["REVISE", "ACCEPT", "SUPERSEDE", "ABANDON", "REJECT"]
+
+    assert _map_allowed_review_actions({"not": "a-list"}) == []
 
 
 def test_map_workflow_pack_run_requires_identity_and_list_findings() -> None:

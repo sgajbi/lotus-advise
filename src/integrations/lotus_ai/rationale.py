@@ -335,10 +335,17 @@ def _map_allowed_review_actions(value: Any) -> list[str]:
         return []
     actions: list[str] = []
     for item in value:
-        action = map_bounded_text(item, max_length=_MAX_RUN_STATE_LENGTH)
-        if action is not None and action in _ALLOWED_REVIEW_ACTIONS and action not in actions:
+        action = _mapped_allowed_review_action(item)
+        if action is not None and action not in actions:
             actions.append(action)
     return actions
+
+
+def _mapped_allowed_review_action(value: Any) -> str | None:
+    action = map_bounded_text(value, max_length=_MAX_RUN_STATE_LENGTH)
+    if action is None or action not in _ALLOWED_REVIEW_ACTIONS:
+        return None
+    return action
 
 
 def _build_summary_note(payload: dict[str, Any]) -> str:

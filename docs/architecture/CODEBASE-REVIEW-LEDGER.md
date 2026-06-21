@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-895
+
+- Scope: Lotus AI workspace rationale review-action mapping
+- Pattern: Provider-sourced workflow-pack review actions should be normalized, bounded,
+  allowlisted, and de-duplicated through focused helpers before they are exposed as advisory
+  workspace run posture.
+- Status: Hardened
+- Finding Class: Integration boundary safety, AI provider-response handling, complexity regression
+- Summary: `src/integrations/lotus_ai/rationale.py::_map_allowed_review_actions` combined
+  provider list-shape validation, bounded text normalization, allowed-action filtering, and
+  duplicate suppression in one B-ranked helper. The behavior was correct but harder to review as
+  the final B-ranked Lotus AI integration helper and therefore weakened the path toward stricter
+  A-only enforcement for the package.
+- Evidence:
+  - Extracted single-action normalization into `_mapped_allowed_review_action` while preserving
+    list-shape rejection, ordering, allowlist filtering, duplicate suppression, and oversized-value
+    rejection.
+  - Added direct regression coverage for trimmed allowed values, unsupported provider actions,
+    duplicates, oversized strings, non-string values, and non-list payloads.
+  - Radon complexity improved
+    `src/integrations/lotus_ai/rationale.py::_map_allowed_review_actions` from `B/6` to `A/5`;
+    `src/integrations/lotus_ai/rationale.py` is now all-A.
+- Consequence:
+  - Workspace rationale workflow-pack run posture remains bounded and provider-safe while the Lotus
+    AI rationale adapter is easier to review and closer to a stricter package-level complexity
+    ratchet.
+- Documentation:
+  - Review ledger and generated quality scorecard updated. No wiki source change is required
+    because this is internal AI adapter hardening with no operator-facing command or API contract
+    change.
+- Follow-Up:
+  - Recompute the full Lotus AI integration package inventory and consider adding
+    `src/integrations/lotus_ai/rationale.py` to strict A-only refactored-complexity enforcement if
+    the package remains stable across CI lanes.
+
 ## LA-REV-894
 
 - Scope: Lotus AI policy evidence summary response handling

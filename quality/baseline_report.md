@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-21T05:37:00.028717+00:00`
+- Generated At: `2026-06-21T05:58:08.850831+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `950`
 - Packages: `38`
 - Modules: `912`
-- Total Python lines: `154084`
+- Total Python lines: `154113`
 
 ## Largest Files
 
@@ -23,7 +23,7 @@
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1935 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1731 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1703 |
-| 8 | `scripts/quality_baseline_report.py` | 1561 |
+| 8 | `scripts/quality_baseline_report.py` | 1562 |
 | 9 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1250 |
 
@@ -39,7 +39,7 @@
 | 6 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 7 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 8 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1259 | 235 |
+| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1259 | 236 |
 | 10 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 
 ## Complexity
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `3988`
-- Radon complexity rank inventory: `A=3932, B=56`
+- Radon analyzed block inventory: `3989`
+- Radon complexity rank inventory: `A=3934, B=55`
 - Radon worst complexity: `rank=B, complexity=7`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4442, missing=4407, covered=35, coverage=0.8%`
+- Interrogate docstring inventory: `total=4443, missing=4408, covered=35, coverage=0.8%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
