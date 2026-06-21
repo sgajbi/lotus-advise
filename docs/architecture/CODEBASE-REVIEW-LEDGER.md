@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-894
+
+- Scope: Lotus AI policy evidence summary response handling
+- Pattern: Lotus AI workflow-pack adapters should isolate provider request/response handling,
+  success-envelope projection, and fail-closed error mapping before advisor/compliance AI evidence
+  drafts are surfaced.
+- Status: Hardened
+- Finding Class: Integration boundary safety, AI provider-response handling, complexity regression
+- Summary: `src/integrations/lotus_ai/policy_evidence.py::generate_policy_evidence_summary_with_lotus_ai`
+  mixed workflow-pack request construction, HTTP execution, provider payload parsing,
+  completion-state validation, structured output projection, lineage construction, and
+  non-success error mapping in one B-ranked function. It also assumed the provider JSON payload was
+  object-shaped, leaving non-object provider payloads outside the intended
+  `LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE` boundary.
+- Evidence:
+  - Extracted workflow-pack POST execution, successful policy evidence summary projection, and
+    non-success error raising into focused helpers.
+  - Added a regression test proving non-object Lotus AI provider payloads fail closed with
+    `LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE`.
+  - Radon complexity improved
+    `src/integrations/lotus_ai/policy_evidence.py::generate_policy_evidence_summary_with_lotus_ai`
+    from `B/6` to `A/2`; the module is now all-A.
+- Consequence:
+  - Policy evidence AI summary generation is easier to review and safer against malformed Lotus AI
+    workflow-pack envelopes while preserving bounded advisor/compliance output, client-error
+    detail mapping, lineage, and unavailable masking behavior.
+- Documentation:
+  - Review ledger and generated quality scorecard updated. No wiki source change is required
+    because this is internal AI adapter hardening with no operator-facing command or API contract
+    change.
+- Follow-Up:
+  - `_map_allowed_review_actions` remains the last B-ranked Lotus AI integration helper and should
+    be classified in a later focused slice before considering stricter B-rank ratchets for the
+    integration package.
+
 ## LA-REV-893
 
 - Scope: Lotus AI proposal memo commentary response handling
