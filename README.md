@@ -8,6 +8,31 @@ Repository-local engineering context:
 Upstream contract-family map:
 [docs/architecture/RFC-0082-upstream-contract-family-map.md](docs/architecture/RFC-0082-upstream-contract-family-map.md)
 
+## Start Here By Audience
+
+| Audience | First stop | What it gives you |
+| --- | --- | --- |
+| Business and demo reviewers | [wiki/Demo-Readiness-Guide.md](wiki/Demo-Readiness-Guide.md) | Current demo story, proof checklist, safe talk track, and blocked claims. |
+| Sales and pre-sales | [docs/commercial/RFC-0028-bank-demo-client-proof-materials.md](docs/commercial/RFC-0028-bank-demo-client-proof-materials.md) | Claim-controlled product, RFP, security, architecture, ROI, and demo wording. |
+| Operators | [wiki/Operations-Runbook.md](wiki/Operations-Runbook.md) | Readiness checks, proof-pack stop conditions, and runtime diagnostics. |
+| Engineers | [wiki/API-Surface.md](wiki/API-Surface.md) and [docs/rfcs/README.md](docs/rfcs/README.md) | Route families, contract notes, and implementation history. |
+| New agents | [REPOSITORY-ENGINEERING-CONTEXT.md](REPOSITORY-ENGINEERING-CONTEXT.md) | Repository role, boundaries, commands, and current implementation posture. |
+
+## Demo Readiness Fast Path
+
+For a demo, use the governed proof flow instead of ad hoc screenshots or slide language:
+
+1. validate the service and dependencies with the repo-native gates below,
+2. run or review `make demo-certification-live` evidence for the target runtime,
+3. validate the canonical front-office path for `PB_SG_GLOBAL_BAL_001` before screenshots,
+4. review [wiki/Demo-Readiness-Guide.md](wiki/Demo-Readiness-Guide.md) for audience-specific
+   preparation,
+5. use [docs/commercial/RFC-0028-bank-demo-client-proof-materials.md](docs/commercial/RFC-0028-bank-demo-client-proof-materials.md)
+   for claim-controlled demo and RFP wording,
+6. keep these blocked claims visible: client-ready publication, external client communication,
+   legal/regulatory advice, bank-specific certification, completed approval/sign-off authority, and
+   OMS/order/fill/settlement.
+
 ## Purpose And Scope
 
 `lotus-advise` owns advisory-only workflow behavior in the Lotus ecosystem.
@@ -352,6 +377,8 @@ generation, or downstream execution truth.
   [docs/architecture/RFC-0082-upstream-contract-family-map.md](docs/architecture/RFC-0082-upstream-contract-family-map.md)
 - demo scenarios:
   [docs/demo/README.md](docs/demo/README.md)
+- demo readiness guide:
+  [wiki/Demo-Readiness-Guide.md](wiki/Demo-Readiness-Guide.md)
 - RFC-0028 bank-demo commercial proof material:
   [docs/commercial/RFC-0028-bank-demo-client-proof-materials.md](docs/commercial/RFC-0028-bank-demo-client-proof-materials.md)
 - development workflow:

@@ -3,6 +3,7 @@ from pathlib import Path
 WIKI_HOME = Path("wiki/Home.md")
 WIKI_SIDEBAR = Path("wiki/_Sidebar.md")
 WIKI_SUPPORTED_FEATURES = Path("wiki/Supported-Features.md")
+WIKI_DEMO_READINESS = Path("wiki/Demo-Readiness-Guide.md")
 WIKI_DEMO_PROOF = Path("wiki/Demo-and-Commercial-Proof.md")
 WIKI_MESH_DATA_PRODUCTS = Path("wiki/Mesh-Data-Products.md")
 
@@ -18,6 +19,33 @@ def test_demo_commercial_proof_wiki_page_is_navigable():
     assert page_link in _read(WIKI_HOME)
     assert page_link in _read(WIKI_SIDEBAR)
     assert page_link in _read(WIKI_SUPPORTED_FEATURES)
+
+
+def test_demo_readiness_guide_is_navigable_and_claim_controlled():
+    page_link = "[Demo Readiness Guide](Demo-Readiness-Guide)"
+    text = _read(WIKI_DEMO_READINESS)
+
+    assert WIKI_DEMO_READINESS.exists()
+    assert page_link in _read(WIKI_HOME)
+    assert page_link in _read(WIKI_SIDEBAR)
+    assert page_link in _read(WIKI_SUPPORTED_FEATURES)
+    assert page_link in _read(WIKI_DEMO_PROOF)
+
+    required_terms = [
+        "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
+        "PB_SG_GLOBAL_BAL_001",
+        "BANK_DEMO_PROOF_PACK_CREATED",
+        "make demo-certification-live",
+        "material-field-review.json",
+        "commercial-material-pack.json",
+        "client-ready publication",
+        "external client communication",
+        "legal or regulatory advice",
+        "OMS order, fill, settlement",
+        "bank-specific security",
+    ]
+    for term in required_terms:
+        assert term in text
 
 
 def test_demo_commercial_proof_wiki_page_is_implementation_backed():

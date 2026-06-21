@@ -1,5 +1,38 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-896
+
+- Scope: README, demo docs, and wiki demo-readiness navigation
+- Pattern: Demo-facing documentation should give each audience a fast path to implementation-backed
+  proof, validation commands, and blocked claims without forcing readers through the full RFC
+  history.
+- Status: Hardened
+- Finding Class: Documentation usability, demo readiness, claim-control evidence
+- Summary: The repository had strong RFC-0028 commercial and supported-feature documentation, but
+  the README and wiki front door were hard to use quickly before a demo because the entry path was
+  long and RFC-heavy. Business, sales/pre-sales, operations, and engineering readers needed a
+  clearer route to current proof, validation evidence, and blocked claims.
+- Evidence:
+  - Added `wiki/Demo-Readiness-Guide.md` as an evergreen audience-oriented preparation guide.
+  - Linked the guide from README, wiki Home, sidebar, supported features, the demo/commercial proof
+    page, and `docs/demo/README.md`.
+  - Refreshed `docs/supported-features.md` with a concise capability-family matrix that routes to
+    the full wiki matrix and commercial guide.
+  - Added a focused wiki contract test proving the new guide remains navigable and preserves
+    canonical scenario, portfolio, proof marker, certification command, proof artifacts, and
+    blocked-claim language.
+- Consequence:
+  - Demo, RFP, operations, and engineering readers get a faster, more professional entry point
+    while current implementation boundaries remain evidence-backed and no new readiness claims are
+    introduced.
+- Documentation:
+  - README, docs, wiki source, review ledger, and generated quality scorecard updated. Wiki source
+    changed, so repo wiki check is required before merge and wiki publication is required after
+    merge.
+- Follow-Up:
+  - Keep future demo additions routed through the supported-claim register and this readiness guide
+    instead of adding one-off, date-specific demo notes.
+
 ## LA-REV-895
 
 - Scope: Lotus AI workspace rationale review-action mapping

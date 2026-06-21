@@ -7,6 +7,8 @@ pre-sales, demo leads, and engineers who need a shared source of truth without r
 The source of truth remains the implemented service, tests, supported-claim register, and proof
 pack. This page explains how to navigate that evidence and where the claim boundaries are.
 
+For a shorter preparation checklist by audience, start with [Demo Readiness Guide](Demo-Readiness-Guide).
+
 ## Current Supported Posture
 
 | Area | Current posture | Evidence to check | Boundary |

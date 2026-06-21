@@ -3,6 +3,9 @@
 This page separates implementation-backed `lotus-advise` capability from roadmap intent. It is
 written for business, engineering, operations, sales, pre-sales, and demo preparation.
 
+For demo preparation, start with [Demo Readiness Guide](Demo-Readiness-Guide), then use this page
+to confirm which capability claims are supported, bounded, or blocked.
+
 ## Current Functional Capability Matrix
 
 | Capability | Current support | Primary API or source | Boundary |

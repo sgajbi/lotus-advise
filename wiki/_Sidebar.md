@@ -9,6 +9,7 @@
 ### Product Surface
 - [API Surface](API-Surface)
 - [Supported Features](Supported-Features)
+- [Demo Readiness Guide](Demo-Readiness-Guide)
 - [Demo and Commercial Proof](Demo-and-Commercial-Proof)
 - [Proposal Lifecycle](Proposal-Lifecycle)
 - [Advisory Workspace](Advisory-Workspace)

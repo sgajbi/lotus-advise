@@ -5,6 +5,17 @@ This folder contains advisory-only demo payloads for the Lotus Advise service.
 Canonical local service identity:
 - `http://advise.dev.lotus`
 
+## Audience Guide
+
+Use these docs together:
+
+| Audience | Start with | Use it for |
+| --- | --- | --- |
+| Business reviewers | `wiki/Demo-Readiness-Guide.md` | Current demo story, supported proof, and blocked claims. |
+| Sales and pre-sales | `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md` | Claim-controlled product, RFP, security, architecture, ROI, and demo wording. |
+| Operations | `wiki/Operations-Runbook.md` | Health, readiness, proof-pack stop conditions, and runtime diagnostics. |
+| Engineers | `wiki/API-Surface.md` and `docs/rfcs/README.md` | Route families, contract notes, and implementation evidence. |
+
 ## Demo Certification Command
 
 Use the repo-native live certification command when validating `lotus-advise` before a demo:
