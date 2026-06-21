@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+_TRUNCATION_SUFFIX = "..."
+
 
 def safe_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
@@ -35,16 +37,25 @@ def extract_error_detail(
 
 
 def optional_text(value: Any, *, max_length: int | None = None) -> str | None:
+    normalized = _normalized_optional_text(value, collapse_whitespace=max_length is not None)
+    if normalized is None or max_length is None:
+        return normalized
+
+    return _bounded_text(normalized, max_length=max_length)
+
+
+def _normalized_optional_text(value: Any, *, collapse_whitespace: bool) -> str | None:
     if not isinstance(value, str):
         return None
-    if max_length is None:
-        normalized = value.strip()
-        return normalized or None
 
-    normalized = " ".join(value.split())
-    if not normalized:
-        return None
-    if len(normalized) <= max_length:
-        return normalized
-    suffix = "..."
-    return normalized[: max_length - len(suffix)].rstrip() + suffix
+    normalized = " ".join(value.split()) if collapse_whitespace else value.strip()
+    return normalized or None
+
+
+def _bounded_text(value: str, *, max_length: int) -> str:
+    if len(value) <= max_length:
+        return value
+    if max_length <= len(_TRUNCATION_SUFFIX):
+        return _TRUNCATION_SUFFIX[:max_length]
+
+    return value[: max_length - len(_TRUNCATION_SUFFIX)].rstrip() + _TRUNCATION_SUFFIX

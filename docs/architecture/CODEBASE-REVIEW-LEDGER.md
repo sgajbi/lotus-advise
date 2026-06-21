@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-890
+
+- Scope: Lotus AI workflow response text normalization
+- Pattern: Provider-sourced Lotus AI workflow response fields should be normalized and bounded
+  through small, deterministic helpers before advisory lineage, model-version, or error-detail
+  values are persisted or surfaced.
+- Status: Hardened
+- Finding Class: Integration boundary maintainability, provider-response safety, complexity
+  regression
+- Summary: `src/integrations/lotus_ai/workflow_response.py::optional_text` mixed provider type
+  validation, whitespace normalization, blank rejection, and truncation in one B-ranked branch. The
+  helper sits on the Lotus AI adapter boundary used by advisory copilot, proposal memo, proposal
+  narrative, policy evidence, and rationale flows, so future agents need a smaller and explicitly
+  tested normalization surface before changing provider-response handling.
+- Evidence:
+  - Extracted optional text normalization and bounded truncation helpers while preserving the
+    existing adapter API used by downstream Lotus AI integrations.
+  - Added focused unit coverage proving tiny caller-supplied provider text bounds do not expand
+    beyond the requested cap.
+  - Radon complexity improved `src/integrations/lotus_ai/workflow_response.py::optional_text` from
+    `B/6` to `A/3`; the module now has all-A blocks, worst `A/4`.
+- Consequence:
+  - Lotus AI workflow response lineage/error normalization is easier to review and less likely to
+    leak oversized provider text through future adapter changes.
+- Documentation:
+  - Review ledger and generated quality scorecard updated. No wiki source change is required
+    because this is internal integration-boundary hardening with no operator-facing workflow
+    change.
+- Follow-Up:
+  - Continue selecting small Lotus AI adapter hotspots only when the signal is measured,
+    deterministic, and backed by focused behavior tests.
+
 ## LA-REV-889
 
 - Scope: Live demo certification command and scheduled evidence pipeline
