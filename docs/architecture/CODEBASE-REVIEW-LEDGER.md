@@ -1,5 +1,36 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-891
+
+- Scope: Lotus Core advisory simulation problem-detail normalization
+- Pattern: Upstream Lotus Core simulation errors should be normalized through small, typed adapter
+  helpers before Advise surfaces a bounded `LotusCoreSimulationUnavailableError`.
+- Status: Hardened
+- Finding Class: Integration boundary safety, upstream error mapping, complexity regression
+- Summary: `src/integrations/lotus_core/simulation.py::_problem_detail_from_status_error` mixed
+  fallback detail construction, upstream JSON parsing, problem-detail extraction, and advisory
+  simulation contract-version mismatch handling in one B-ranked helper. The function also assumed
+  upstream error JSON was always an object, so a valid non-object JSON body could escape as an
+  internal attribute error rather than a product-safe unavailable detail.
+- Evidence:
+  - Extracted status fallback, problem-payload parsing, detail extraction, and contract mismatch
+    formatting into focused helpers.
+  - Added a regression test proving non-object upstream problem-detail JSON returns bounded
+    `LOTUS_CORE_SIMULATION_UNAVAILABLE: <status>` behavior.
+  - Radon complexity improved
+    `src/integrations/lotus_core/simulation.py::_problem_detail_from_status_error` from `B/6` to
+    `A/4`; the module now has all-A blocks, worst `A/5`.
+- Consequence:
+  - Proposal simulation remains safer when the upstream Lotus Core error envelope is malformed or
+    unexpected, while preserving explicit advisory simulation contract mismatch handling.
+- Documentation:
+  - Review ledger and generated quality scorecard updated. No wiki source change is required
+    because this is internal upstream adapter hardening with no operator-facing command or API
+    contract change.
+- Follow-Up:
+  - Continue classifying Lotus Core and Lotus Risk integration-boundary B-ranked helpers where
+    they affect safe degradation, contract truth, or supportability evidence.
+
 ## LA-REV-890
 
 - Scope: Lotus AI workflow response text normalization
