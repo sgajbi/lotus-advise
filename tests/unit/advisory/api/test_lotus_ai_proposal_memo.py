@@ -13,11 +13,11 @@ from src.integrations.lotus_ai.proposal_memo import (
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: dict[str, object]) -> None:
+    def __init__(self, status_code: int, payload: object) -> None:
         self.status_code = status_code
         self._payload = payload
 
-    def json(self) -> dict[str, object]:
+    def json(self) -> object:
         return self._payload
 
 
@@ -298,6 +298,36 @@ def test_generate_proposal_memo_commentary_rejects_non_completed_execution(
                 f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
                     200,
                     {"execution": {"status": "ACTION_REQUIRED", "result": {}}},
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIProposalMemoUnavailableError) as exc:
+        generate_proposal_memo_commentary_with_lotus_ai(
+            memo_evidence=_memo_evidence(),
+            requested_sections=["EXECUTIVE_SUMMARY"],
+            requested_by="advisor_123",
+            reason={"purpose": "advisor-review"},
+        )
+
+    assert str(exc.value) == "LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE"
+
+
+def test_generate_proposal_memo_commentary_masks_non_object_provider_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_memo.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    ["not", "a", "workflow-pack-envelope"],
                 )
             },
             **kwargs,

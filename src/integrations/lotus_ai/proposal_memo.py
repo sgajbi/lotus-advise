@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, NoReturn, cast
 
 import httpx
 
@@ -57,43 +57,68 @@ def generate_proposal_memo_commentary_with_lotus_ai(
     reason: dict[str, Any],
 ) -> ProposalMemoAiCommentaryDraft:
     base_url = _resolve_base_url()
+    response, payload = _post_workflow_pack_request(
+        base_url=base_url,
+        request_payload=_build_workflow_pack_request(
+            memo_evidence=memo_evidence,
+            requested_sections=requested_sections,
+            requested_by=requested_by,
+            reason=reason,
+        ),
+    )
+
+    if response.status_code == 200:
+        return _proposal_memo_commentary_from_success(payload)
+
+    _raise_proposal_memo_response_error(response.status_code, payload)
+
+
+def _post_workflow_pack_request(
+    *,
+    base_url: str,
+    request_payload: dict[str, object],
+) -> tuple[httpx.Response, dict[str, Any]]:
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
             response = client.post(
                 f"{base_url}/platform/workflow-packs/execute",
-                json=_build_workflow_pack_request(
-                    memo_evidence=memo_evidence,
-                    requested_sections=requested_sections,
-                    requested_by=requested_by,
-                    reason=reason,
-                ),
+                json=request_payload,
             )
-            payload = response.json()
+            payload = safe_dict(response.json())
     except (httpx.HTTPError, ValueError) as exc:
         raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE") from exc
+    return response, payload
 
-    if response.status_code == 200:
-        execution = safe_dict(payload.get("execution"))
-        if execution.get("status") != "COMPLETED":
-            raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
-        result = safe_dict(execution.get("result"))
-        structured_output = safe_dict(result.get("structured_output"))
-        return ProposalMemoAiCommentaryDraft(
-            status=str(structured_output.get("state") or "REVIEW_REQUIRED"),
-            sections=_map_sections(structured_output.get("sections")),
-            lineage={
-                "adapter_version": ADAPTER_VERSION,
-                "workflow_pack_id": WORKFLOW_PACK_ID,
-                "workflow_pack_version": WORKFLOW_PACK_VERSION,
-                "workflow_surface": WORKFLOW_SURFACE,
-                "workflow_run_id": extract_workflow_run_id(payload),
-                "model_version": extract_model_version(result),
-                "fallback_reason": None,
-            },
-            review_guidance=_map_string_list(structured_output.get("review_guidance")),
-        )
 
-    if response.status_code >= 500:
+def _proposal_memo_commentary_from_success(
+    payload: dict[str, Any],
+) -> ProposalMemoAiCommentaryDraft:
+    execution = safe_dict(payload.get("execution"))
+    if execution.get("status") != "COMPLETED":
+        raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
+    result = safe_dict(execution.get("result"))
+    structured_output = safe_dict(result.get("structured_output"))
+    return ProposalMemoAiCommentaryDraft(
+        status=str(structured_output.get("state") or "REVIEW_REQUIRED"),
+        sections=_map_sections(structured_output.get("sections")),
+        lineage={
+            "adapter_version": ADAPTER_VERSION,
+            "workflow_pack_id": WORKFLOW_PACK_ID,
+            "workflow_pack_version": WORKFLOW_PACK_VERSION,
+            "workflow_surface": WORKFLOW_SURFACE,
+            "workflow_run_id": extract_workflow_run_id(payload),
+            "model_version": extract_model_version(result),
+            "fallback_reason": None,
+        },
+        review_guidance=_map_string_list(structured_output.get("review_guidance")),
+    )
+
+
+def _raise_proposal_memo_response_error(
+    status_code: int,
+    payload: dict[str, Any],
+) -> NoReturn:
+    if status_code >= 500:
         raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
     raise LotusAIProposalMemoUnavailableError(
         extract_error_detail(payload, default="LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
