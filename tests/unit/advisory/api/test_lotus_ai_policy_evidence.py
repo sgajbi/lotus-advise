@@ -13,11 +13,11 @@ from src.integrations.lotus_ai.policy_evidence import (
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: dict[str, object]) -> None:
+    def __init__(self, status_code: int, payload: object) -> None:
         self.status_code = status_code
         self._payload = payload
 
-    def json(self) -> dict[str, object]:
+    def json(self) -> object:
         return self._payload
 
 
@@ -270,6 +270,36 @@ def test_generate_policy_evidence_masks_transport_failure(
         lambda *args, **kwargs: _FakeClient(
             *args,
             raised_error=httpx.ReadTimeout("timeout"),
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIPolicyEvidenceUnavailableError) as exc:
+        generate_policy_evidence_summary_with_lotus_ai(
+            policy_evidence=_policy_evidence(),
+            requested_actions=["SUMMARIZE_POLICY_POSTURE"],
+            requested_by="policy_checker_1",
+            reason={"purpose": "compliance explanation"},
+        )
+
+    assert str(exc.value) == "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
+
+
+def test_generate_policy_evidence_masks_non_object_provider_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.policy_evidence.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    ["not", "a", "workflow-pack-envelope"],
+                )
+            },
             **kwargs,
         ),
     )
