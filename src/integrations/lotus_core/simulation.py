@@ -146,15 +146,37 @@ def _post_simulation_request(
 
 
 def _problem_detail_from_status_error(exc: httpx.HTTPStatusError) -> str:
-    detail = f"LOTUS_CORE_SIMULATION_UNAVAILABLE: {exc.response.status_code}"
-    try:
-        problem_payload = cast(dict[str, Any], exc.response.json())
-    except ValueError:
+    detail = _status_error_default_detail(exc.response.status_code)
+    problem_payload = _problem_payload(exc.response)
+    if problem_payload is None:
         return detail
+
+    contract_mismatch_detail = _contract_version_mismatch_detail(problem_payload)
+    if contract_mismatch_detail is not None:
+        return contract_mismatch_detail
+
+    return _problem_payload_detail(problem_payload) or detail
+
+
+def _status_error_default_detail(status_code: int) -> str:
+    return f"LOTUS_CORE_SIMULATION_UNAVAILABLE: {status_code}"
+
+
+def _problem_payload(response: httpx.Response) -> dict[str, Any] | None:
+    try:
+        payload = response.json()
+    except ValueError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _problem_payload_detail(problem_payload: dict[str, Any]) -> str | None:
     problem_detail = problem_payload.get("detail")
+    return problem_detail if isinstance(problem_detail, str) and problem_detail else None
+
+
+def _contract_version_mismatch_detail(problem_payload: dict[str, Any]) -> str | None:
     contract_version = problem_payload.get("contract_version")
-    if isinstance(problem_detail, str) and problem_detail:
-        detail = problem_detail
     if (
         isinstance(contract_version, str)
         and contract_version != ADVISORY_SIMULATION_CONTRACT_VERSION
@@ -163,7 +185,7 @@ def _problem_detail_from_status_error(exc: httpx.HTTPStatusError) -> str:
             "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
             f"expected {ADVISORY_SIMULATION_CONTRACT_VERSION}, got {contract_version}"
         )
-    return detail
+    return None
 
 
 def _validate_response_contract_header(response: httpx.Response) -> None:

@@ -187,9 +187,7 @@ def _payload_with_suitability_issue(issue: dict[str, Any]) -> dict[str, Any]:
 
 
 class _FakeResponse:
-    def __init__(
-        self, *, status_code: int, payload: dict[str, Any], headers: dict[str, str]
-    ) -> None:
+    def __init__(self, *, status_code: int, payload: Any, headers: dict[str, str]) -> None:
         self.status_code = status_code
         self._payload = payload
         self.headers = headers
@@ -205,7 +203,7 @@ class _FakeResponse:
                 response=httpx.Response(status_code=self.status_code, json=self._payload),
             )
 
-    def json(self) -> dict[str, Any]:
+    def json(self) -> Any:
         return self._payload
 
 
@@ -418,6 +416,33 @@ def test_simulate_with_lotus_core_rejects_problem_details_contract_mismatch(monk
     with pytest.raises(
         LotusCoreSimulationUnavailableError,
         match="Unsupported canonical simulation contract version",
+    ):
+        simulate_with_lotus_core(
+            request=_request(),
+            request_hash="sha256:test-hash",
+            idempotency_key="idem-1",
+            correlation_id="corr-1",
+        )
+
+
+def test_simulate_with_lotus_core_bounds_non_object_problem_detail(monkeypatch):
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=503,
+            payload=["not", "a", "problem-details-object"],
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    with pytest.raises(
+        LotusCoreSimulationUnavailableError,
+        match="LOTUS_CORE_SIMULATION_UNAVAILABLE: 503",
     ):
         simulate_with_lotus_core(
             request=_request(),
