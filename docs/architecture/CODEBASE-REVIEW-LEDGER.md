@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-892
+
+- Scope: Lotus AI workspace rationale execution response handling
+- Pattern: Lotus AI workflow-pack execution adapters should isolate provider request/response
+  handling, success projection, and fail-closed error mapping before advisory workspace responses
+  are surfaced.
+- Status: Hardened
+- Finding Class: Integration boundary safety, AI provider-response handling, complexity regression
+- Summary: `src/integrations/lotus_ai/rationale.py::generate_workspace_rationale_with_lotus_ai`
+  mixed workflow-pack request execution, provider payload parsing, success-envelope validation,
+  bounded assistant-output extraction, response projection, and non-success error mapping in one
+  B-ranked branch. It also assumed the provider JSON payload was object-shaped, leaving non-object
+  provider payloads to fail outside the intended `LOTUS_AI_RATIONALE_UNAVAILABLE` boundary.
+- Evidence:
+  - Extracted workflow-pack POST execution, successful workspace-rationale response projection, and
+    non-success error raising into focused helpers.
+  - Added a regression test proving non-object Lotus AI provider payloads fail closed with
+    `LOTUS_AI_RATIONALE_UNAVAILABLE`.
+  - Radon complexity improved
+    `src/integrations/lotus_ai/rationale.py::generate_workspace_rationale_with_lotus_ai` from
+    `B/6` to `A/2`.
+- Consequence:
+  - Workspace rationale generation is easier to review and safer against malformed Lotus AI
+    workflow-pack envelopes while preserving bounded output and server-error masking behavior.
+- Documentation:
+  - Review ledger and generated quality scorecard updated. No wiki source change is required
+    because this is internal AI adapter hardening with no operator-facing command or API contract
+    change.
+- Follow-Up:
+  - `_map_allowed_review_actions` remains a B-ranked helper in the same module and should be
+    classified in a later focused slice before adding the module to the strict B-rank ratchet.
+
 ## LA-REV-891
 
 - Scope: Lotus Core advisory simulation problem-detail normalization

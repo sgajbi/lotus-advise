@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, NoReturn, cast
 
 import httpx
 
@@ -50,38 +50,61 @@ def generate_workspace_rationale_with_lotus_ai(
     evidence: WorkspaceAssistantEvidence,
 ) -> WorkspaceAssistantResponse:
     base_url = _resolve_base_url()
+    response, payload = _post_workflow_pack_request(
+        base_url=base_url,
+        request_payload=_build_workflow_pack_request(request=request, evidence=evidence),
+    )
+
+    if response.status_code == 200:
+        return _workspace_rationale_response_from_success(payload=payload, evidence=evidence)
+
+    _raise_rationale_response_error(response.status_code, payload)
+
+
+def _post_workflow_pack_request(
+    *,
+    base_url: str,
+    request_payload: dict[str, object],
+) -> tuple[httpx.Response, dict[str, Any]]:
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
             response = client.post(
                 f"{base_url}/platform/workflow-packs/execute",
-                json=_build_workflow_pack_request(request=request, evidence=evidence),
+                json=request_payload,
             )
-            payload = response.json()
+            payload = safe_dict(response.json())
     except (httpx.HTTPError, ValueError) as exc:
         raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE") from exc
+    return response, payload
 
-    if response.status_code == 200:
-        execution = safe_dict(payload.get("execution"))
-        result = safe_dict(execution.get("result"))
-        assistant_output = map_bounded_text(
-            result.get("message"),
-            max_length=_MAX_ASSISTANT_OUTPUT_LENGTH,
-        )
-        if execution.get("status") != "COMPLETED":
-            raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
-        if assistant_output is None:
-            raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
-        return WorkspaceAssistantResponse(
-            assistant_output=assistant_output,
-            generated_by="lotus-ai",
-            evidence=evidence.model_copy(deep=True),
-            workflow_pack_run=_map_workflow_pack_run(safe_dict(payload.get("workflow_pack_run"))),
-        )
 
-    detail = _extract_detail(payload)
-    if response.status_code >= 500:
+def _workspace_rationale_response_from_success(
+    *,
+    payload: dict[str, Any],
+    evidence: WorkspaceAssistantEvidence,
+) -> WorkspaceAssistantResponse:
+    execution = safe_dict(payload.get("execution"))
+    result = safe_dict(execution.get("result"))
+    assistant_output = map_bounded_text(
+        result.get("message"),
+        max_length=_MAX_ASSISTANT_OUTPUT_LENGTH,
+    )
+    if execution.get("status") != "COMPLETED":
         raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
-    raise LotusAIRationaleUnavailableError(detail)
+    if assistant_output is None:
+        raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
+    return WorkspaceAssistantResponse(
+        assistant_output=assistant_output,
+        generated_by="lotus-ai",
+        evidence=evidence.model_copy(deep=True),
+        workflow_pack_run=_map_workflow_pack_run(safe_dict(payload.get("workflow_pack_run"))),
+    )
+
+
+def _raise_rationale_response_error(status_code: int, payload: dict[str, Any]) -> NoReturn:
+    if status_code >= 500:
+        raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
+    raise LotusAIRationaleUnavailableError(_extract_detail(payload))
 
 
 def apply_workspace_rationale_review_action_with_lotus_ai(
