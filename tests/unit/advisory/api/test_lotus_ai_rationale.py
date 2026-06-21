@@ -29,11 +29,11 @@ from src.integrations.lotus_ai.rationale import (
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: dict[str, object]) -> None:
+    def __init__(self, status_code: int, payload: object) -> None:
         self.status_code = status_code
         self._payload = payload
 
-    def json(self) -> dict[str, object]:
+    def json(self) -> object:
         return self._payload
 
 
@@ -349,6 +349,34 @@ def test_generate_workspace_rationale_masks_server_and_transport_failures(
             evidence=_build_evidence(),
         )
     assert str(transport_exc.value) == "LOTUS_AI_RATIONALE_UNAVAILABLE"
+
+
+def test_generate_workspace_rationale_masks_non_object_provider_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.rationale.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    ["not", "a", "workflow-pack-envelope"],
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIRationaleUnavailableError) as exc:
+        generate_workspace_rationale_with_lotus_ai(
+            request=_build_request(),
+            evidence=_build_evidence(),
+        )
+
+    assert str(exc.value) == "LOTUS_AI_RATIONALE_UNAVAILABLE"
 
 
 def test_review_action_requires_returned_run_payload(monkeypatch: pytest.MonkeyPatch) -> None:
