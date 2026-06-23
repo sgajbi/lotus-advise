@@ -191,7 +191,7 @@ def _instrumentator_supports_include_context_routes() -> bool:
         installed_version = Version(version("prometheus-fastapi-instrumentator"))
     except (PackageNotFoundError, InvalidVersion):
         return False
-    return installed_version >= _INSTRUMENTATOR_INCLUDE_CONTEXT_ROUTE_VERSION
+    return bool(installed_version >= _INSTRUMENTATOR_INCLUDE_CONTEXT_ROUTE_VERSION)
 
 
 def _instrumentator_route_name(
