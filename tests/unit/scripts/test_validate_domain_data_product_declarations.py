@@ -38,7 +38,19 @@ def test_wave_one_advise_declaration_is_conservative_and_transitional() -> None:
         "portfolio_id",
         "correlation_id",
     ]
-    assert products["AdvisoryProposalLifecycleRecord"]["approved_consumers"] == ["lotus-gateway"]
+    assert products["AdvisoryProposalLifecycleRecord"]["approved_consumers"] == [
+        "lotus-gateway",
+        "lotus-idea",
+    ]
+    assert products["AdvisoryPolicyEvaluationRecord"]["approved_consumers"] == [
+        "lotus-gateway",
+        "lotus-report",
+        "lotus-render",
+        "lotus-archive",
+        "lotus-workbench",
+        "lotus-ai",
+        "lotus-idea",
+    ]
     tactical_cohort = products["TacticalHouseViewAffectedCohort"]
     assert tactical_cohort["approved_consumers"] == ["lotus-manage"]
     assert tactical_cohort["request_scope"] == {
@@ -83,7 +95,11 @@ def test_rfc0027_copilot_interaction_product_promotes_only_after_runtime_proof()
 
     interaction_record = products["AdvisoryCopilotInteractionRecord"]
     assert interaction_record["lifecycle_status"] == "active"
-    assert interaction_record["approved_consumers"] == ["lotus-gateway", "lotus-workbench"]
+    assert interaction_record["approved_consumers"] == [
+        "lotus-gateway",
+        "lotus-workbench",
+        "lotus-idea",
+    ]
     assert "/advisory/copilot/actions" in interaction_record["current_routes"]
     assert (
         "/advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs"
