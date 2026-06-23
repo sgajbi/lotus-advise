@@ -62,6 +62,20 @@ def test_latest_python_compatible_version_ignores_incompatible_latest_release() 
     assert latest == "2.4.6"
 
 
+def test_latest_python_compatible_version_ignores_all_yanked_latest_release() -> None:
+    releases = {
+        "1.9.1": [{"requires_python": ">=3.11"}],
+        "1.9.2": [{"requires_python": ">=3.11", "yanked": True}],
+    }
+
+    latest = _latest_python_compatible_version_from_releases(
+        releases,
+        python_version="3.11",
+    )
+
+    assert latest == "1.9.1"
+
+
 def test_venv_python_uses_expected_windows_layout() -> None:
     venv_path = Path("C:/tmp/lotus-advise-venv")
 
