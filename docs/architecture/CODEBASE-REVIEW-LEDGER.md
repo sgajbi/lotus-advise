@@ -2147,6 +2147,30 @@
   - Continue ratcheting B-ranked observability and API-boundary helpers only when tests can prove
     behavior preservation.
 
+## LA-REV-832
+
+- Scope: Direct dependency freshness governance
+- Pattern: CI-enforced direct dependency freshness should be remediated by moving duplicated pins
+  together, then proving the strict dependency gate locally.
+- Status: Hardened
+- Finding Class: CI measurement, dependency governance, security posture
+- Summary: PR Merge Gate dependency governance reported stale direct package pins for `coverage`,
+  `cvxpy`, `numpy`, and `prometheus-fastapi-instrumentator`. `requirements.txt`,
+  `requirements-prod.txt`, and `requirements-dev.txt` now align those direct pins to the latest
+  versions observed by the gate, preserving strict freshness enforcement instead of weakening the
+  CI lane.
+- Evidence:
+  - `make check-deps-strict` passed with 0 known vulnerabilities and 0 outdated direct packages.
+- Consequence:
+  - Advisory dependency governance remains fail-closed for stale direct pins while keeping runtime,
+    quality, and development requirement files aligned.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is dependency
+    hygiene for existing runtime behavior.
+- Follow-Up:
+  - Continue updating duplicated direct pins together when the strict dependency gate reports new
+    package freshness drift.
+
 ## LA-REV-831
 
 - Scope: Prometheus route-template compatibility
@@ -2155,7 +2179,7 @@
 - Status: Hardened
 - Finding Class: Observability, dependency compatibility, CI runtime resilience
 - Summary: `fastapi==0.137.1` with the current Starlette route model exposes pathless route
-  markers that `prometheus-fastapi-instrumentator==8.0.0` cannot template because it assumes every
+  markers that `prometheus-fastapi-instrumentator==8.0.1` cannot template because it assumes every
   matched route has `.path`. `src/api/observability.py` now installs an idempotent route-name
   compatibility shim that skips pathless route markers while preserving normal templated route
   names, `/metrics` exposure, and bounded request correlation headers.
