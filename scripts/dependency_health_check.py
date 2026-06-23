@@ -107,11 +107,9 @@ def _filter_outdated_to_requirements(
 def _release_supports_python(
     release_files: Iterable[dict[str, object]], python_version: Version
 ) -> bool:
-    saw_file = False
     for release_file in release_files:
         if release_file.get("yanked") is True:
             continue
-        saw_file = True
         requires_python = str(release_file.get("requires_python") or "").strip()
         if not requires_python:
             return True
@@ -120,7 +118,7 @@ def _release_supports_python(
                 return True
         except InvalidSpecifier:
             return True
-    return not saw_file
+    return False
 
 
 def _latest_python_compatible_version_from_releases(
