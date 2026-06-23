@@ -7,10 +7,15 @@ import re
 import shutil
 import subprocess
 import tempfile
+import urllib.parse
+import urllib.request
 import venv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
+
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.version import InvalidVersion, Version
 
 _WINDOWS_DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
 
@@ -99,6 +104,83 @@ def _filter_outdated_to_requirements(
     return filtered_rows
 
 
+def _release_supports_python(
+    release_files: Iterable[dict[str, object]], python_version: Version
+) -> bool:
+    saw_file = False
+    for release_file in release_files:
+        if release_file.get("yanked") is True:
+            continue
+        saw_file = True
+        requires_python = str(release_file.get("requires_python") or "").strip()
+        if not requires_python:
+            return True
+        try:
+            if SpecifierSet(requires_python).contains(python_version, prereleases=True):
+                return True
+        except InvalidSpecifier:
+            return True
+    return not saw_file
+
+
+def _latest_python_compatible_version_from_releases(
+    releases: dict[str, list[dict[str, object]]], python_version: str
+) -> str | None:
+    target_python = Version(python_version)
+    compatible_versions: list[Version] = []
+    for version_text, release_files in releases.items():
+        try:
+            parsed_version = Version(version_text)
+        except InvalidVersion:
+            continue
+        if parsed_version.is_prerelease:
+            continue
+        if _release_supports_python(release_files, target_python):
+            compatible_versions.append(parsed_version)
+    if not compatible_versions:
+        return None
+    return str(max(compatible_versions))
+
+
+def _fetch_latest_python_compatible_version(package_name: str, python_version: str) -> str | None:
+    url = f"https://pypi.org/pypi/{urllib.parse.quote(package_name)}/json"
+    with urllib.request.urlopen(url, timeout=20) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    releases = payload.get("releases")
+    if not isinstance(releases, dict):
+        return None
+    return _latest_python_compatible_version_from_releases(releases, python_version)
+
+
+def _filter_outdated_to_python_compatible_latest(
+    outdated_rows: Iterable[dict[str, str]],
+    *,
+    python_version: str,
+) -> list[dict[str, str]]:
+    filtered_rows: list[dict[str, str]] = []
+    for row in outdated_rows:
+        package_name = row.get("name")
+        installed_version = row.get("version")
+        if not package_name or not installed_version:
+            filtered_rows.append(row)
+            continue
+        try:
+            compatible_latest = _fetch_latest_python_compatible_version(
+                package_name, python_version
+            )
+            if compatible_latest is None:
+                filtered_rows.append(row)
+                continue
+            if Version(compatible_latest) <= Version(installed_version):
+                continue
+            filtered_row = dict(row)
+            filtered_row["latest_version"] = compatible_latest
+            filtered_rows.append(filtered_row)
+        except (InvalidVersion, OSError, TimeoutError, json.JSONDecodeError):
+            filtered_rows.append(row)
+    return filtered_rows
+
+
 def _install_requirement_files(
     *,
     python_bin: Path,
@@ -146,6 +228,14 @@ def main() -> int:
         "--fail-on-outdated",
         action="store_true",
         help="Fail when outdated packages are detected",
+    )
+    parser.add_argument(
+        "--target-python-version",
+        default=os.environ.get("PYTHON_VERSION", "3.11"),
+        help=(
+            "Supported runtime Python major.minor version used to filter incompatible latest "
+            "package releases"
+        ),
     )
     parser.add_argument(
         "--skip-audit",
@@ -226,6 +316,10 @@ def main() -> int:
         if args.outdated_scope == "direct":
             requirement_names = _parse_requirements_file(requirements_file, visited=set())
             outdated_rows = _filter_outdated_to_requirements(outdated_rows, requirement_names)
+        outdated_rows = _filter_outdated_to_python_compatible_latest(
+            outdated_rows,
+            python_version=args.target_python_version,
+        )
 
         _print_section(
             "Outdated Summary",

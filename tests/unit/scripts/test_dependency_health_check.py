@@ -2,6 +2,7 @@ from pathlib import Path
 
 from scripts.dependency_health_check import (
     _filter_outdated_to_requirements,
+    _latest_python_compatible_version_from_releases,
     _parse_requirements_file,
     _venv_python,
 )
@@ -44,6 +45,21 @@ def test_filter_outdated_to_requirements_uses_normalized_names() -> None:
         "ruff",
         "typing_extensions",
     ]
+
+
+def test_latest_python_compatible_version_ignores_incompatible_latest_release() -> None:
+    releases = {
+        "2.4.5": [{"requires_python": ">=3.11"}],
+        "2.4.6": [{"requires_python": ">=3.11"}],
+        "2.5.0": [{"requires_python": ">=3.12"}],
+    }
+
+    latest = _latest_python_compatible_version_from_releases(
+        releases,
+        python_version="3.11",
+    )
+
+    assert latest == "2.4.6"
 
 
 def test_venv_python_uses_expected_windows_layout() -> None:
