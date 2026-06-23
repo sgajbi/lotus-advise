@@ -2156,9 +2156,9 @@
 - Finding Class: CI measurement, dependency governance, security posture
 - Summary: PR Merge Gate dependency governance reported stale direct package pins for `coverage`,
   `cvxpy`, `numpy`, and `prometheus-fastapi-instrumentator`. `requirements.txt`,
-  `requirements-prod.txt`, and `requirements-dev.txt` now align those direct pins to the latest
-  versions observed by the gate, preserving strict freshness enforcement instead of weakening the
-  CI lane.
+  `requirements-prod.txt`, and `requirements-dev.txt` now align direct pins to the latest versions
+  compatible with the repository's supported Python 3.11 runtime, preserving strict freshness
+  enforcement instead of weakening the CI lane.
 - Evidence:
   - `make check-deps-strict` passed with 0 known vulnerabilities and 0 outdated direct packages.
 - Consequence:
@@ -2169,7 +2169,8 @@
     hygiene for existing runtime behavior.
 - Follow-Up:
   - Continue updating duplicated direct pins together when the strict dependency gate reports new
-    package freshness drift.
+    package freshness drift, and treat Python-incompatible latest releases as dependency-checker
+    inputs rather than installable runtime targets.
 
 ## LA-REV-831
 

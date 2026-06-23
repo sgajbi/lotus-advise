@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-06-23T04:43:35.084516+00:00`
+- Generated At: `2026-06-23T05:32:29.722375+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `950`
 - Packages: `38`
 - Modules: `912`
-- Total Python lines: `154157`
+- Total Python lines: `154267`
 
 ## Largest Files
 
@@ -82,7 +82,7 @@
 - Available dependency/security tools: `ruff, mypy, pytest, coverage.py, pip-audit, radon, xenon, vulture, deptry, bandit, interrogate`
 - Pending optional tools: ``
 - Deptry config executable: `True`
-- Deptry current issue inventory: `15`
+- Deptry current issue inventory: `14`
 - Bandit config executable: `True`
 - Bandit current issue inventory: `27`
 - Bandit severity inventory: `high=0, medium=26, low=1`
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4443, missing=4408, covered=35, coverage=0.8%`
+- Interrogate docstring inventory: `total=4447, missing=4412, covered=35, coverage=0.8%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
