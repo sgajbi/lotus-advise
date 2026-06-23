@@ -9,10 +9,12 @@ from starlette.routing import Match
 
 from src.api.observability import (
     JsonFormatter,
+    _install_instrumentator_route_compatibility,
     _instrumentator_route_name,
     _normalize_request_id,
     correlation_id_var,
     request_id_var,
+    routing,
     setup_observability,
     trace_id_var,
 )
@@ -53,6 +55,44 @@ def test_instrumentator_route_name_skips_pathless_route_markers() -> None:
         )
         == "/observed"
     )
+
+
+def test_route_compatibility_keeps_current_instrumentator_router_support(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def native_route_name() -> str:
+        return "native"
+
+    monkeypatch.setattr(
+        "src.api.observability._instrumentator_supports_include_context_routes",
+        lambda: True,
+    )
+    monkeypatch.setattr(routing, "_get_route_name", native_route_name)
+    monkeypatch.delattr(routing, "_lotus_advise_pathless_route_compatible", raising=False)
+
+    _install_instrumentator_route_compatibility()
+
+    assert routing._get_route_name is native_route_name
+    assert not hasattr(routing, "_lotus_advise_pathless_route_compatible")
+
+
+def test_route_compatibility_installs_legacy_pathless_route_shim(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def legacy_route_name() -> str:
+        return "legacy"
+
+    monkeypatch.setattr(
+        "src.api.observability._instrumentator_supports_include_context_routes",
+        lambda: False,
+    )
+    monkeypatch.setattr(routing, "_get_route_name", legacy_route_name)
+    monkeypatch.delattr(routing, "_lotus_advise_pathless_route_compatible", raising=False)
+
+    _install_instrumentator_route_compatibility()
+
+    assert routing._get_route_name is _instrumentator_route_name
+    assert routing._lotus_advise_pathless_route_compatible is True
 
 
 def test_observability_middleware_propagates_correlation_request_and_trace_headers() -> None:
