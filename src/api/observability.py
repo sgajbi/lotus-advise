@@ -5,10 +5,12 @@ import time
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from importlib.metadata import PackageNotFoundError, version
 from typing import Awaitable, Callable
 from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
+from packaging.version import InvalidVersion, Version
 from prometheus_client import Counter
 from prometheus_fastapi_instrumentator import Instrumentator, routing
 from starlette.routing import Match, Mount
@@ -28,6 +30,8 @@ ADVISORY_SUPPORTABILITY_TOTAL = Counter(
     "Count of advisory supportability posture evaluations.",
     ADVISORY_SUPPORTABILITY_METRIC_LABELS,
 )
+
+_INSTRUMENTATOR_INCLUDE_CONTEXT_ROUTE_VERSION = Version("8.0.1")
 
 
 @dataclass(frozen=True)
@@ -174,10 +178,20 @@ def record_advisory_supportability(
 
 
 def _install_instrumentator_route_compatibility() -> None:
+    if _instrumentator_supports_include_context_routes():
+        return
     if getattr(routing, "_lotus_advise_pathless_route_compatible", False):
         return
     routing._get_route_name = _instrumentator_route_name  # type: ignore[attr-defined]
     routing._lotus_advise_pathless_route_compatible = True
+
+
+def _instrumentator_supports_include_context_routes() -> bool:
+    try:
+        installed_version = Version(version("prometheus-fastapi-instrumentator"))
+    except (PackageNotFoundError, InvalidVersion):
+        return False
+    return installed_version >= _INSTRUMENTATOR_INCLUDE_CONTEXT_ROUTE_VERSION
 
 
 def _instrumentator_route_name(
