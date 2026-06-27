@@ -120,14 +120,18 @@ When `wiki/` changes:
 1. run the repo-local docs and workflow contract tests that cover the changed page,
 2. run the platform wiki check before merge:
 
+From a sibling `lotus-platform` checkout:
+
 ```powershell
-C:\Users\Sandeep\projects\lotus-platform\automation\Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise
+..\lotus-platform\automation\Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise
 ```
 
 3. publish after the merged commit is on `main`:
 
+From a sibling `lotus-platform` checkout:
+
 ```powershell
-C:\Users\Sandeep\projects\lotus-platform\automation\Sync-RepoWikis.ps1 -Publish -Repository lotus-advise
+..\lotus-platform\automation\Sync-RepoWikis.ps1 -Publish -Repository lotus-advise
 ```
 
 The repo-local `wiki/` directory is the authored source of truth. The GitHub wiki repository is only
