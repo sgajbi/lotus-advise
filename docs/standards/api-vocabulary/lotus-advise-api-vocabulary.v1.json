@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-06-27T06:51:26.285189+00:00",
+  "generatedAt": "2026-06-27T07:31:00.584342+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -344,6 +344,20 @@
       "observedTypes": [
         "object",
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.advisory_intake_intent",
+      "canonicalTerm": "advisory_intake_intent",
+      "preferredName": "advisory_intake_intent",
+      "description": "Requested advisory-side intake posture. This route acknowledges only the handoff foundation and does not create proposal lifecycle state or suitability evidence.",
+      "example": "REVIEW_FOR_ADVISORY_PROPOSAL",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -5477,6 +5491,20 @@
       ]
     },
     {
+      "semanticId": "lotus.intake_supportability_status",
+      "canonicalTerm": "intake_supportability_status",
+      "preferredName": "intake_supportability_status",
+      "description": "Certification posture for this route foundation.",
+      "example": "not_certified",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.intended_notional",
       "canonicalTerm": "intended_notional",
       "preferredName": "intended_notional",
@@ -5510,8 +5538,8 @@
       "semanticId": "lotus.intent_type",
       "canonicalTerm": "intent_type",
       "preferredName": "intent_type",
-      "description": "Requested advisory-side intake posture. This route acknowledges only the handoff foundation and does not create proposal lifecycle state or suitability evidence.",
-      "example": "REVIEW_FOR_ADVISORY_PROPOSAL",
+      "description": "Intent discriminator for advisory security trades.",
+      "example": "SECURITY_TRADE",
       "type": "string",
       "locations": [
         "body"
@@ -11840,8 +11868,8 @@
       "semanticId": "lotus.supportability_status",
       "canonicalTerm": "supportability_status",
       "preferredName": "supportability_status",
-      "description": "Certification posture for this route foundation.",
-      "example": "not_certified",
+      "description": "Current lotus-ai supportability posture for the workflow-pack run.",
+      "example": "ACTIVE",
       "type": "string",
       "locations": [
         "body"
@@ -45625,12 +45653,12 @@
             "attributeRef": "#/attributeCatalog/lotus.conversion_intent_id"
           },
           {
-            "name": "intent_type",
+            "name": "advisory_intake_intent",
             "location": "body",
             "required": true,
             "type": "string",
-            "semanticId": "lotus.intent_type",
-            "attributeRef": "#/attributeCatalog/lotus.intent_type"
+            "semanticId": "lotus.advisory_intake_intent",
+            "attributeRef": "#/attributeCatalog/lotus.advisory_intake_intent"
           },
           {
             "name": "source_refs",
@@ -45693,12 +45721,12 @@
             "attributeRef": "#/attributeCatalog/lotus.intake_status"
           },
           {
-            "name": "supportability_status",
+            "name": "intake_supportability_status",
             "location": "body",
             "required": true,
             "type": "string",
-            "semanticId": "lotus.supportability_status",
-            "attributeRef": "#/attributeCatalog/lotus.supportability_status"
+            "semanticId": "lotus.intake_supportability_status",
+            "attributeRef": "#/attributeCatalog/lotus.intake_supportability_status"
           },
           {
             "name": "source_authority",

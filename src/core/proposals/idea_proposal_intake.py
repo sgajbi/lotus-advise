@@ -25,7 +25,7 @@ IDEA_PROPOSAL_INTAKE_REQUEST_EXAMPLE: dict[str, Any] = {
     "source_product": "lotus-idea:IdeaCandidate:v1",
     "idea_candidate_id": "idea_candidate_001",
     "conversion_intent_id": "conversion_intent_001",
-    "intent_type": "REVIEW_FOR_ADVISORY_PROPOSAL",
+    "advisory_intake_intent": "REVIEW_FOR_ADVISORY_PROPOSAL",
     "source_refs": [
         {
             "source_system": "lotus-idea",
@@ -39,7 +39,7 @@ IDEA_PROPOSAL_INTAKE_REQUEST_EXAMPLE: dict[str, Any] = {
 IDEA_PROPOSAL_INTAKE_RESPONSE_EXAMPLE: dict[str, Any] = {
     "intake_id": "ipi_7a1d2b3c4d5e",
     "intake_status": "ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
-    "supportability_status": "not_certified",
+    "intake_supportability_status": "not_certified",
     "source_authority": "lotus-idea",
     "proposal_authority": "lotus-advise",
     "target_product": "lotus-advise:AdvisoryProposalLifecycleRecord:v1",
@@ -127,7 +127,7 @@ class IdeaProposalIntakeRequest(BaseModel):
         description="lotus-idea conversion-intent identifier used for deterministic intake proof.",
         examples=["conversion_intent_001"],
     )
-    intent_type: IdeaProposalIntentType = Field(
+    advisory_intake_intent: IdeaProposalIntentType = Field(
         description=(
             "Requested advisory-side intake posture. This route acknowledges only the handoff "
             "foundation and does not create proposal lifecycle state or suitability evidence."
@@ -160,7 +160,7 @@ class IdeaProposalIntakeResponse(BaseModel):
         description="Bounded route-foundation status; not an advisory proposal status.",
         examples=["ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED"],
     )
-    supportability_status: IdeaProposalIntakeSupportabilityStatus = Field(
+    intake_supportability_status: IdeaProposalIntakeSupportabilityStatus = Field(
         description="Certification posture for this route foundation.",
         examples=["not_certified"],
     )
@@ -223,12 +223,12 @@ def acknowledge_idea_proposal_intake(
     intake_id = _intake_id(
         idea_candidate_id=request.idea_candidate_id,
         conversion_intent_id=request.conversion_intent_id,
-        intent_type=request.intent_type,
+        intent_type=request.advisory_intake_intent,
     )
     return IdeaProposalIntakeResponse(
         intake_id=intake_id,
         intake_status="ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
-        supportability_status="not_certified",
+        intake_supportability_status="not_certified",
         source_authority="lotus-idea",
         proposal_authority="lotus-advise",
         target_product="lotus-advise:AdvisoryProposalLifecycleRecord:v1",
