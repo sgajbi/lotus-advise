@@ -340,8 +340,8 @@ def test_validation_wiki_documents_repo_native_ci_enforcement() -> None:
         "make advisory-domain-golden-regressions",
         "measured, deterministic, repo-native, and low-noise",
         "poll GitHub sparsely",
-        "Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise",
-        "Sync-RepoWikis.ps1 -Publish -Repository lotus-advise",
+        "..\\lotus-platform\\automation\\Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise",
+        "..\\lotus-platform\\automation\\Sync-RepoWikis.ps1 -Publish -Repository lotus-advise",
         "does not by itself",
         "bank certification",
     ]
