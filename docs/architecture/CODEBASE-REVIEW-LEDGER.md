@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-899
+
+- Scope: Proposal memo source-authority manifest complexity ratchet
+- Pattern: Proposal memo source-readiness projection should normalize malformed source rows through
+  focused helpers before the memo builder is promoted into the blocking refactored-complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, source-authority evidence, CI complexity enforcement
+- Summary: `src/core/proposals/memo_builder.py::_build_source_authority_manifest` still carried
+  B-ranked branching while extracting source-readiness section statuses from the memo evidence
+  bundle. The behavior was correct, but the source-authority manifest is part of the advisor-use
+  proposal memo evidence pack, so future edits should not reintroduce complex inline filtering or
+  ambiguous malformed-row handling.
+- Evidence:
+  - Extracted source-readiness section-status normalization into focused helpers while preserving
+    ignored malformed rows and string coercion for present section keys/statuses.
+  - Added a focused memo-builder regression test for malformed source-readiness section rows.
+  - Radon now reports `_build_source_authority_manifest` as `A/3`, down from `B/7`; the full
+    `src/core/proposals/memo_builder.py` module is all A-ranked.
+  - Added `src/core/proposals/memo_builder.py` to `make refactored-complexity-gate` with fail-on-B
+    Radon enforcement inherited by `make lint`, Feature Lane, PR Merge Gate, and Main
+    Releasability.
+  - Focused validation passed with `23 passed` for the memo-builder and CI workflow contract tests;
+    `make refactored-complexity-gate` passed locally.
+  - Generated quality reports record Radon inventory movement from `A=3942, B=54` to
+    `A=3945, B=53`.
+- Consequence:
+  - Proposal memo source-authority evidence remains deterministic and easier to audit, and CI now
+    blocks future B-ranked complexity regressions in the memo-builder boundary.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README, wiki, repo-context, or
+    operator-doc update is required because this is internal behavior-preserving memo evidence
+    hardening with no API, command, runtime, or supported-feature truth change.
+- Follow-Up:
+  - Continue reducing remaining B/7 proposal memo and persistence helpers where focused behavior
+    tests can pin evidence-pack, replay, or source-readiness semantics before promoting additional
+    A-only gates.
+
 ## LA-REV-898
 
 - Scope: Wiki validation and CI guidance
