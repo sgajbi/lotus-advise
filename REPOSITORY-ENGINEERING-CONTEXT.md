@@ -181,7 +181,12 @@ Current repository posture:
    response, and exposes a separate bounded review-action pass-through that retains Lotus AI
    lineage truth,
 16. execution handoff, status, and delivery projections carry explicit ownership-boundary evidence
-   so advisory posture cannot be confused with downstream execution system-of-record truth.
+   so advisory posture cannot be confused with downstream execution system-of-record truth,
+17. `POST /advisory/proposals/idea-intake` is implemented as a source-safe `lotus-idea`
+   conversion-intent route foundation. It is not certified as proposal realization, does not
+   persist proposal lifecycle records, does not run suitability, does not authorize client
+   publication, and must not be listed as a supported feature until the downstream realization
+   blockers are closed with runtime evidence.
 
 ## Architecture And Module Map
 
@@ -222,7 +227,10 @@ Boundary rules:
 7. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
    records advisory posture while downstream providers remain execution systems of record,
 8. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
-9. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions.
+9. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
+10. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
+   the handoff envelope and retains proposal, suitability, approval, publication, and execution
+   authority until a later certified realization slice implements those controls.
 
 ## Repo-Native Commands
 
