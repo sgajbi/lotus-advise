@@ -67,55 +67,116 @@ def create_or_replay_proposal_memo(
     lifecycle_status: str = "DRAFT",
     reason: dict[str, Any] | None = None,
 ) -> ProposalMemoPersistenceResult:
-    if lifecycle_status not in {"DRAFT", "FINALIZED"}:
-        raise ProposalMemoPersistenceError("MEMO_LIFECYCLE_STATUS_UNSUPPORTED")
-    memo_lifecycle_status = cast(ProposalMemoLifecycleStatus, lifecycle_status)
+    memo_lifecycle_status = _memo_lifecycle_status(lifecycle_status)
     request_hash = build_memo_persistence_request_hash(
         version=version,
         lifecycle_status=memo_lifecycle_status,
         reason=reason,
     )
-    if idempotency_key:
-        replayed = _find_replayed_memo(
-            repository=repository,
-            idempotency_key=idempotency_key,
-            request_hash=request_hash,
-        )
-        if replayed is not None:
-            return ProposalMemoPersistenceResult(
-                memo=replayed,
-                created=False,
-                replayed=True,
-                audit_event=None,
-            )
-
+    replay_result = _replay_memo_result(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    if replay_result is not None:
+        return replay_result
     existing = repository.get_memo_by_proposal_version(
         proposal_id=version.proposal_id,
         proposal_version_no=version.version_no,
     )
     if existing is not None:
-        _ensure_existing_source_is_identical(existing=existing, version=version)
-        if idempotency_key:
-            repository.save_memo_idempotency(
-                _idempotency_record(
-                    idempotency_key=idempotency_key,
-                    request_hash=request_hash,
-                    memo=existing,
-                    created_at=created_at,
-                )
-            )
-        return ProposalMemoPersistenceResult(
-            memo=existing,
-            created=False,
-            replayed=False,
-            audit_event=None,
+        return _existing_memo_result(
+            repository=repository,
+            existing=existing,
+            version=version,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            created_at=created_at,
         )
+    return _create_memo_result(
+        repository=repository,
+        version=version,
+        lifecycle_status=memo_lifecycle_status,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        created_by=created_by,
+        created_at=created_at,
+        event_id=event_id,
+        reason=reason,
+    )
 
+
+def _memo_lifecycle_status(lifecycle_status: str) -> ProposalMemoLifecycleStatus:
+    if lifecycle_status not in {"DRAFT", "FINALIZED"}:
+        raise ProposalMemoPersistenceError("MEMO_LIFECYCLE_STATUS_UNSUPPORTED")
+    return cast(ProposalMemoLifecycleStatus, lifecycle_status)
+
+
+def _replay_memo_result(
+    *,
+    repository: ProposalRepository,
+    idempotency_key: str | None,
+    request_hash: str,
+) -> ProposalMemoPersistenceResult | None:
+    if not idempotency_key:
+        return None
+    replayed = _find_replayed_memo(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    if replayed is None:
+        return None
+    return ProposalMemoPersistenceResult(
+        memo=replayed,
+        created=False,
+        replayed=True,
+        audit_event=None,
+    )
+
+
+def _existing_memo_result(
+    *,
+    repository: ProposalRepository,
+    existing: ProposalMemoRecord,
+    version: ProposalVersionRecord,
+    idempotency_key: str | None,
+    request_hash: str,
+    created_at: datetime,
+) -> ProposalMemoPersistenceResult:
+    _ensure_existing_source_is_identical(existing=existing, version=version)
+    _save_memo_idempotency(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        memo=existing,
+        created_at=created_at,
+    )
+    return ProposalMemoPersistenceResult(
+        memo=existing,
+        created=False,
+        replayed=False,
+        audit_event=None,
+    )
+
+
+def _create_memo_result(
+    *,
+    repository: ProposalRepository,
+    version: ProposalVersionRecord,
+    lifecycle_status: ProposalMemoLifecycleStatus,
+    idempotency_key: str | None,
+    request_hash: str,
+    created_by: str,
+    created_at: datetime,
+    event_id: str,
+    reason: dict[str, Any] | None,
+) -> ProposalMemoPersistenceResult:
     memo_record = _build_memo_record(
         version=version,
         created_by=created_by,
         created_at=created_at,
-        lifecycle_status=memo_lifecycle_status,
+        lifecycle_status=lifecycle_status,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
         reason=reason,
@@ -130,15 +191,13 @@ def create_or_replay_proposal_memo(
         reason=reason,
     )
     repository.create_memo(memo_record)
-    if idempotency_key:
-        repository.save_memo_idempotency(
-            _idempotency_record(
-                idempotency_key=idempotency_key,
-                request_hash=request_hash,
-                memo=memo_record,
-                created_at=created_at,
-            )
-        )
+    _save_memo_idempotency(
+        repository=repository,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        memo=memo_record,
+        created_at=created_at,
+    )
     repository.append_memo_event(event)
     return ProposalMemoPersistenceResult(
         memo=memo_record,
@@ -146,6 +205,25 @@ def create_or_replay_proposal_memo(
         replayed=False,
         audit_event=event,
     )
+
+
+def _save_memo_idempotency(
+    *,
+    repository: ProposalRepository,
+    idempotency_key: str | None,
+    request_hash: str,
+    memo: ProposalMemoRecord,
+    created_at: datetime,
+) -> None:
+    if idempotency_key:
+        repository.save_memo_idempotency(
+            _idempotency_record(
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                memo=memo,
+                created_at=created_at,
+            )
+        )
 
 
 def _find_replayed_memo(

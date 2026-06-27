@@ -180,6 +180,52 @@ def test_create_or_replay_proposal_memo_persists_draft_with_audit_and_replay_met
     assert len(repository.list_memo_events(memo_id=result.memo.memo_id)) == 1
 
 
+def test_existing_proposal_memo_binds_new_idempotency_key_without_new_audit_event() -> None:
+    repository = InMemoryProposalRepository()
+    version = _version()
+    created = create_or_replay_proposal_memo(
+        repository=repository,
+        version=version,
+        idempotency_key=None,
+        created_by="advisor_1",
+        created_at=_now(),
+        event_id="pme_existing_001",
+    )
+
+    existing = create_or_replay_proposal_memo(
+        repository=repository,
+        version=deepcopy(version),
+        idempotency_key="memo-idem-existing",
+        created_by="advisor_2",
+        created_at=_now(),
+        event_id="pme_existing_should_not_persist",
+    )
+
+    assert existing.created is False
+    assert existing.replayed is False
+    assert existing.audit_event is None
+    assert existing.memo.memo_id == created.memo.memo_id
+    assert len(repository.list_memo_events(memo_id=created.memo.memo_id)) == 1
+
+    bound_key = repository.get_memo_idempotency(idempotency_key="memo-idem-existing")
+    assert bound_key is not None
+    assert bound_key.memo_id == created.memo.memo_id
+
+    replayed = create_or_replay_proposal_memo(
+        repository=repository,
+        version=deepcopy(version),
+        idempotency_key="memo-idem-existing",
+        created_by="advisor_2",
+        created_at=_now(),
+        event_id="pme_existing_replay_should_not_persist",
+    )
+
+    assert replayed.created is False
+    assert replayed.replayed is True
+    assert replayed.memo.memo_id == created.memo.memo_id
+    assert len(repository.list_memo_events(memo_id=created.memo.memo_id)) == 1
+
+
 def test_memo_idempotency_rejects_payload_drift() -> None:
     repository = InMemoryProposalRepository()
     version = _version()
