@@ -178,6 +178,7 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Enforced with Spectral" in scorecard
     assert "make lint runs import-linter architecture contracts" in scorecard
     assert "Gap tracked plus Interrogate inventory" in scorecard
+    assert "wiki CI/operator guidance contract" in scorecard
     assert "Diagnostics target added" in scorecard
     assert "Demo assurance" in scorecard
     assert "API/domain/observability/data-mesh gate plus live certification command" in scorecard
@@ -381,6 +382,8 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         refactor_health
     )
     assert "Quality evidence freshness is now enforced before merge and after merge" in scorecard
+    assert "wiki validation guidance now maps local, Feature Lane, PR Merge Gate" in scorecard
+    assert "agent-facing CI guidance is pinned by a deterministic wiki contract test" in scorecard
     assert "Review ledger includes `LA-REV-611` through `LA-REV-896`" in scorecard
 
 

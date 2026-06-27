@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-898
+
+- Scope: Wiki validation and CI guidance
+- Pattern: Operator and agent-facing CI documentation should map to the actual repo-native gates,
+  lane names, report-only boundaries, and wiki publication workflow so future agents make good
+  default choices.
+- Status: Hardened
+- Finding Class: Documentation usability, CI governance, agent effectiveness
+- Summary: `wiki/Validation-and-CI.md` described the lane model at a high level, but it did not
+  reflect the full current gate surface that now protects Advise: quality-baseline freshness,
+  refactored complexity gates, high-severity Bandit, domain data product validation,
+  demo-assurance checks, live certification evidence, async CI polling, and wiki publication
+  requirements.
+- Evidence:
+  - Rewrote the wiki page into a repo-native gate map with local, Feature Lane, PR Merge Gate,
+    Main Releasability, report-only quality evidence, blocking gates, demo assurance, live
+    certification, async CI posture, and wiki publication sections.
+  - Added a deterministic docs contract test that pins the page to concrete commands, lane names,
+    report-only boundary language, sparse GitHub polling guidance, and wiki check/publish commands.
+  - Updated the quality scorecard documentation row to record the stronger wiki CI/operator
+    guidance contract.
+- Consequence:
+  - Future agents and operators get a concise, implementation-backed validation guide instead of a
+    generic CI checklist, reducing the chance of noisy gate promotion, missed wiki publication, or
+    overclaiming from green CI alone.
+- Documentation:
+  - Wiki source, review ledger, and quality scorecard updated. Wiki source changed, so repo wiki
+    check is required before merge and wiki publication is required after merge.
+- Follow-Up:
+  - Continue borrowing only measured, deterministic enforcement ideas from `lotus-idea` after the
+    corresponding Advise signals are stable, low-noise, and policy-backed.
+
 ## LA-REV-897
 
 - Scope: Proposal context policy-selector construction

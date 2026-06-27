@@ -323,6 +323,33 @@ def test_nightly_postgres_demo_pack_declares_controlled_ci_fallback() -> None:
     assert "if-no-files-found: error" in workflow
 
 
+def test_validation_wiki_documents_repo_native_ci_enforcement() -> None:
+    text = Path("wiki/Validation-and-CI.md").read_text(encoding="utf-8")
+
+    required_terms = [
+        "Local fast gate",
+        "Remote Feature Lane",
+        "PR Merge Gate",
+        "Main Releasability Gate",
+        "Report-only quality evidence",
+        "make quality-baseline-check",
+        "make demo-assurance-gate",
+        "make demo-certification-live",
+        "make bandit-high-severity-gate",
+        "make observability-diagnostics",
+        "make advisory-domain-golden-regressions",
+        "measured, deterministic, repo-native, and low-noise",
+        "poll GitHub sparsely",
+        "Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise",
+        "Sync-RepoWikis.ps1 -Publish -Repository lotus-advise",
+        "does not by itself",
+        "bank certification",
+    ]
+
+    for term in required_terms:
+        assert term in text
+
+
 def test_pull_request_target_auto_merge_is_guarded_to_internal_labeled_prs() -> None:
     workflow = _workflow_text("pr-auto-merge.yml")
     auto_merge_section = _workflow_job_section(workflow, "queue-auto-merge")

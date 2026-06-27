@@ -1342,7 +1342,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
         (
             "Docs",
             "Gap tracked plus Interrogate inventory",
-            "requested docs + docstring coverage inventory",
+            "requested docs + docstring coverage inventory + wiki CI/operator guidance contract",
         ),
         (
             "Observability",
@@ -1478,11 +1478,16 @@ def render_quality_scorecard(context: QualityContext) -> str:
         ),
         (
             "Documentation",
-            "Requested docs were present; docstring inventory was not calibrated.",
+            "Requested docs were present; docstring inventory was not calibrated; CI wiki "
+            "guidance was thinner than the actual repo-native gate surface.",
             "Requested docs remain present; Interrogate inventory executable at "
             f"`{interrogate_coverage_percent}`; "
-            "scorecard, baseline, and refactor-health reports are generated.",
-            "Documentation gaps are explicitly inventoried and tied to generated quality reports.",
+            "scorecard, baseline, and refactor-health reports are generated; wiki validation "
+            "guidance now maps local, Feature Lane, PR Merge Gate, Main Releasability, "
+            "report-only, demo-assurance, live-certification, async polling, and "
+            "wiki-publication controls.",
+            "Documentation gaps are explicitly inventoried and tied to generated quality reports, "
+            "and agent-facing CI guidance is pinned by a deterministic wiki contract test.",
         ),
     ]
     lines.extend(
