@@ -1,5 +1,47 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-900
+
+- Scope: Proposal memo persistence complexity ratchet
+- Pattern: Advisor-use proposal memo persistence should keep idempotent replay, existing-record
+  binding, new-record creation, and audit-event persistence in focused helpers before the
+  persistence boundary is promoted into the blocking refactored-complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, idempotency correctness, CI complexity enforcement
+- Summary: `src/core/proposals/memo_persistence.py::create_or_replay_proposal_memo` still carried
+  B-ranked orchestration across lifecycle validation, idempotency replay, existing memo lookup,
+  idempotency binding, memo creation, and audit event persistence. The behavior was correct, but
+  this RFC-0024 persistence path controls advisor-use memo replay and audit posture, so future
+  edits should not reintroduce a complex all-in-one branch structure.
+- Evidence:
+  - Extracted lifecycle-status validation, idempotent replay projection, existing memo handling,
+    memo creation, and idempotency record persistence into focused helpers while preserving the
+    public `create_or_replay_proposal_memo` contract.
+  - Added a focused regression proving that an already-persisted proposal memo can bind a new
+    idempotency key without creating a second memo or audit event, and that the newly bound key
+    replays to the same memo.
+  - Radon now reports `create_or_replay_proposal_memo` as `A/3`, down from `B/7`; the full
+    `src/core/proposals/memo_persistence.py` module is all A-ranked with worst block `A/4`.
+  - Added `src/core/proposals/memo_persistence.py` to `make refactored-complexity-gate` with
+    fail-on-B Radon enforcement inherited by `make lint`, Feature Lane, PR Merge Gate, and Main
+    Releasability.
+  - Focused validation passed with `17 passed` for memo-persistence and CI workflow contract
+    tests; focused Ruff passed for touched Python files; `make refactored-complexity-gate` passed
+    locally.
+  - Generated quality reports record Radon inventory movement from `A=3945, B=53` to
+    `A=3951, B=52`.
+- Consequence:
+  - Advisor-use memo persistence remains easier to audit and future agents get a deterministic
+    repo-native gate that blocks B-ranked regression in this persistence boundary.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README, wiki, repo-context, skill, or
+    operator-doc update is required because this is internal behavior-preserving memo persistence
+    hardening with no API, command, runtime, supported-feature, or platform-guidance truth change.
+- Follow-Up:
+  - Continue reducing remaining B/7 proposal memo helpers such as policy enrichment and response
+    projection where focused tests can pin source evidence, suitability, or memo projection
+    semantics before adding further A-only gates.
+
 ## LA-REV-899
 
 - Scope: Proposal memo source-authority manifest complexity ratchet

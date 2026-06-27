@@ -188,6 +188,10 @@ def test_lint_enforces_refactored_complexity_gate_for_ci_lanes() -> None:
         "python scripts/radon_complexity_gate.py --source-path "
         "src/core/proposals/memo_builder.py --fail-rank B"
     ) in makefile
+    assert (
+        "python scripts/radon_complexity_gate.py --source-path "
+        "src/core/proposals/memo_persistence.py --fail-rank B"
+    ) in makefile
 
     for workflow_name in ("feature-lane.yml", "pr-merge-gate.yml", "main-releasability.yml"):
         workflow = _workflow_text(workflow_name)
