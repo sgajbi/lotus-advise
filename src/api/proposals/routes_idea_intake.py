@@ -3,9 +3,11 @@ from __future__ import annotations
 from fastapi import Request, status
 
 import src.api.proposals.router as shared
+from src.api.observability import correlation_id_var
 from src.api.proposals.errors import reject_unexpected_query_params
 from src.api.proposals.idea_intake_parameters import IdeaProposalIntakeCorrelationIdHeader
 from src.api.proposals.idea_intake_responses import IDEA_PROPOSAL_INTAKE_RESPONSES
+from src.core.proposals.correlation import normalize_optional_correlation_id, resolve_correlation_id
 from src.core.proposals.idea_proposal_intake import (
     IDEA_PROPOSAL_INTAKE_REQUEST_EXAMPLE,
     IdeaProposalIntakeRequest,
@@ -44,5 +46,13 @@ def accept_idea_proposal_intake(
     reject_unexpected_query_params(request, allowed_params=set())
     return acknowledge_idea_proposal_intake(
         payload,
-        correlation_id=correlation_id or "corr-idea-proposal-intake",
+        correlation_id=_resolved_intake_correlation_id(correlation_id),
+    )
+
+
+def _resolved_intake_correlation_id(correlation_id: str | None) -> str:
+    return (
+        normalize_optional_correlation_id(correlation_id)
+        or correlation_id_var.get()
+        or resolve_correlation_id(None)
     )
