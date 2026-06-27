@@ -2,6 +2,7 @@ from pathlib import Path
 
 from scripts.quality_baseline_report import (
     _radon_inventory_from_payload,
+    _review_ledger_range,
     _spectral_inventory_from_payload,
     build_quality_context,
     check_quality_reports,
@@ -65,6 +66,27 @@ def test_spectral_inventory_parses_valid_executable_payload() -> None:
         {},
         None,
     )
+
+
+def test_review_ledger_range_reads_current_ledger_ids(tmp_path: Path) -> None:
+    ledger = tmp_path / "docs" / "architecture" / "CODEBASE-REVIEW-LEDGER.md"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text(
+        "\n".join(
+            [
+                "# Review Ledger",
+                "",
+                "## LA-REV-013",
+                "",
+                "## LA-REV-105",
+                "",
+                "## LA-REV-099",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert _review_ledger_range(tmp_path) == ("LA-REV-013", "LA-REV-105")
 
 
 def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Path) -> None:

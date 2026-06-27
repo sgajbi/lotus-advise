@@ -90,6 +90,8 @@ class QualityContext:
     interrogate_missing_count: int | None
     interrogate_covered_count: int | None
     interrogate_coverage_percent: str | None
+    review_ledger_first_id: str
+    review_ledger_latest_id: str
 
 
 def _run_git(repo_root: Path, args: list[str]) -> str:
@@ -359,6 +361,26 @@ def _interrogate_inventory(
     )
 
 
+def _review_ledger_range(repo_root: Path) -> tuple[str, str]:
+    ledger_path = repo_root / "docs" / "architecture" / "CODEBASE-REVIEW-LEDGER.md"
+    if not ledger_path.exists():
+        return "LA-REV-611", "LA-REV-896"
+    review_numbers = [
+        int(match)
+        for match in re.findall(
+            r"^## LA-REV-(\d+)\b",
+            ledger_path.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+    ]
+    if not review_numbers:
+        return "LA-REV-611", "LA-REV-896"
+    return (
+        f"LA-REV-{min(review_numbers):03d}",
+        f"LA-REV-{max(review_numbers):03d}",
+    )
+
+
 def _spectral_openapi_inventory(
     repo_root: Path,
 ) -> tuple[bool, int | None, dict[str, int], int | None]:
@@ -481,6 +503,7 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         interrogate_covered_count,
         interrogate_coverage_percent,
     ) = _interrogate_inventory(repo_root)
+    review_ledger_first_id, review_ledger_latest_id = _review_ledger_range(repo_root)
     return QualityContext(
         report=build_report(repo_root),
         branch_commit_count=_branch_commit_count(repo_root),
@@ -522,6 +545,8 @@ def build_quality_context(repo_root: Path) -> QualityContext:
         interrogate_missing_count=interrogate_missing_count,
         interrogate_covered_count=interrogate_covered_count,
         interrogate_coverage_percent=interrogate_coverage_percent,
+        review_ledger_first_id=review_ledger_first_id,
+        review_ledger_latest_id=review_ledger_latest_id,
     )
 
 
@@ -1355,8 +1380,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Maintainability",
             "Review ledger existed but recent proposal, policy-pack, OpenAPI, "
             "proof-material, dependency-linking, and observability slices were absent.",
-            "Review ledger includes `LA-REV-611` through `LA-REV-896` with scoped "
-            "findings, evidence, and follow-up.",
+            "Review ledger includes `LA-REV-611` through "
+            f"`{context.review_ledger_latest_id}` with scoped findings, evidence, and follow-up.",
             "Modularization and hotspot reductions are traceable by owner boundary "
             "and test evidence.",
         ),
