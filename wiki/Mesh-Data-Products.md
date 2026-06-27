@@ -13,6 +13,10 @@
 - Approved downstream consumers: `lotus-gateway`, `lotus-idea`
 - Lotus Idea boundary: consumes lifecycle posture as opportunity-intelligence input; advisory
   workflow state and proposal-event truth remain source-owned by `lotus-advise`.
+- Lotus Idea route foundation: `POST /advisory/proposals/idea-intake` accepts source-safe
+  conversion-intent handoff and proves route existence only. Supportability remains
+  `not_certified`; proposal persistence, suitability, client publication, and supported-feature
+  promotion remain blocked until certified runtime evidence exists.
 
 - Product ID: `lotus-advise:TacticalHouseViewAffectedCohort:v1`
 - Product role: source-owned affected-cohort evaluation for bank-authored tactical house-view instructions and caller-supplied source-backed candidate portfolios
@@ -92,3 +96,7 @@ Advisor cockpit product truth is active for source-owned advisor operating workf
 Cockpit acknowledgements do not clear blockers, approve policy findings, contact clients, create
 CRM system-of-record tasks, initiate OMS order lifecycle activity, or support full RFC-0028
 demo/RFP package claims.
+The `lotus-idea` proposal-intake foundation is not a data-product certification event. It preserves
+the `AdvisoryProposalLifecycleRecord:v1` source boundary while allowing `lotus-idea` to prove a
+future handoff path without cloning Advise suitability, proposal lifecycle, approval, or client
+publication logic.

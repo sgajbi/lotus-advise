@@ -16,6 +16,7 @@ These endpoints accept normalized advisory input contracts and require `Idempote
 ## Advisory Proposal Lifecycle
 
 - `POST /advisory/proposals`
+- `POST /advisory/proposals/idea-intake`
 - `GET /advisory/proposals`
 - `GET /advisory/proposals/{proposal_id}`
 - `GET /advisory/proposals/{proposal_id}/versions/{version_no}`
@@ -43,6 +44,11 @@ summary for rendered advisor-use portfolio-review artifacts with approved review
 hash lineage. `lotus-gateway` exposes product-facing reviewed-narrative posture from these
 canonical advisory routes, and `lotus-workbench` renders the Gateway-backed advisor-use proposal
 narrative posture. Client-ready publication remains gated.
+
+`POST /advisory/proposals/idea-intake` is a source-safe route foundation for `lotus-idea`
+conversion-intent handoff. It returns HTTP 202 with route-existence proof and explicit blockers.
+It does not create proposal lifecycle records, run suitability, grant advisory approval, create
+orders, authorize client publication, certify a data product, or promote a supported feature.
 
 ## Advisory Operations And Support
 
@@ -118,6 +124,10 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
 ## Contract Notes
 
 - OpenAPI is the governed external contract.
+- `contracts/idea-proposal-intake/lotus-advise-idea-proposal-intake.v1.json` is the current
+  source-safe `lotus-idea` proposal-intake contract. Its supportability status is
+  `not_certified`, and remaining blockers include Advise suitability authority and client
+  publication authority.
 - REST remains the current contract posture; this service does not justify gRPC today.
 - Lifecycle and support routes can be feature-gated by runtime flags.
 - Tactical house-view cohorts preserve source refs and supportability posture rather than
