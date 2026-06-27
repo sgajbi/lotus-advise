@@ -143,6 +143,7 @@ refactored-complexity-gate:
 	python scripts/radon_complexity_gate.py --source-path src/core/advisory/decision_summary.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/proposals/memo_builder.py --fail-rank B
 	python scripts/radon_complexity_gate.py --source-path src/core/proposals/memo_persistence.py --fail-rank B
+	python scripts/radon_complexity_gate.py --source-path src/core/proposals/memo_response_projection.py --fail-rank B
 
 observability-diagnostics:
 	python -m pytest tests/unit/advisory/api/test_api_observability.py -q

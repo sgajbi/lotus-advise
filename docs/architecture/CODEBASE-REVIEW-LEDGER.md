@@ -1,5 +1,46 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-901
+
+- Scope: Proposal memo response projection complexity ratchet
+- Pattern: Advisor-use memo section projection should normalize persisted memo section rows and
+  audience visibility through focused helpers before the response-projection boundary is promoted
+  into the blocking refactored-complexity gate.
+- Status: Hardened
+- Finding Class: Maintainability, memo projection correctness, CI complexity enforcement
+- Summary: `src/core/proposals/memo_response_projection.py::project_sections` still carried
+  B-ranked branching while filtering persisted memo JSON sections for advisor/client audiences. The
+  behavior was correct, but this projection path is part of the RFC-0024 memo read/projection API
+  and should remain easy to audit as the memo evidence pack evolves.
+- Evidence:
+  - Extracted persisted-section normalization and audience-visibility checks into focused helpers
+    while preserving non-dict section filtering and unfiltered `audience=None` projection behavior.
+  - Added focused regression coverage for malformed string `audience_visibility`, missing
+    `audience_visibility`, invalid section rows, and non-list `sections` payloads.
+  - Radon now reports `project_sections` as `A/4`, down from `B/7`; the full
+    `src/core/proposals/memo_response_projection.py` module is all A-ranked with worst block
+    `A/5`.
+  - Added `src/core/proposals/memo_response_projection.py` to `make refactored-complexity-gate`
+    with fail-on-B Radon enforcement inherited by `make lint`, Feature Lane, PR Merge Gate, and
+    Main Releasability.
+  - Focused validation passed with `15 passed` for memo-response-projection and CI workflow
+    contract tests; focused Ruff passed for touched Python files; `make refactored-complexity-gate`
+    passed locally.
+  - Generated quality reports record Radon inventory movement from `A=3951, B=52` to
+    `A=3954, B=51`.
+- Consequence:
+  - Persisted advisor-use memo section projection remains deterministic and future agents get a
+    repo-native gate that blocks B-ranked regression in this response-projection boundary.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README, wiki, repo-context, skill, or
+    operator-doc update is required because this is internal behavior-preserving memo response
+    projection hardening with no API shape, command, runtime, supported-feature, or
+    platform-guidance truth change.
+- Follow-Up:
+  - Continue reducing remaining B/7 proposal memo helpers such as policy enrichment where focused
+    tests can pin product evidence, eligibility, and complex-product disclosure semantics before
+    adding further A-only gates.
+
 ## LA-REV-900
 
 - Scope: Proposal memo persistence complexity ratchet

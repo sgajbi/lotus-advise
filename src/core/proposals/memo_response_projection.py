@@ -274,10 +274,22 @@ def project_sections(memo_json: dict[str, Any], *, audience: str | None) -> list
     sections = memo_json.get("sections")
     if not isinstance(sections, list):
         return []
-    projected = [section for section in sections if isinstance(section, dict)]
+    return [
+        section
+        for section in _memo_section_dicts(sections)
+        if _section_visible_to_audience(section=section, audience=audience)
+    ]
+
+
+def _memo_section_dicts(sections: list[Any]) -> list[dict[str, Any]]:
+    return [section for section in sections if isinstance(section, dict)]
+
+
+def _section_visible_to_audience(*, section: dict[str, Any], audience: str | None) -> bool:
     if audience is None:
-        return projected
-    return [section for section in projected if audience in section.get("audience_visibility", [])]
+        return True
+    visibility = section.get("audience_visibility")
+    return isinstance(visibility, list) and audience in visibility
 
 
 def memo_has_replay_metadata(memo: ProposalMemoRecord) -> bool:
