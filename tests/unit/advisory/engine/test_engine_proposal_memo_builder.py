@@ -197,6 +197,30 @@ def test_memo_builder_requires_source_refs_for_material_claims() -> None:
     assert "lotus-advise:proposal_decision_summary" in recommendation.source_authority_refs
 
 
+def test_memo_builder_ignores_malformed_source_readiness_sections() -> None:
+    evidence = _evidence_bundle()
+    evidence["memo_source_readiness"]["sections"].extend(
+        [
+            "not-a-section",
+            {"key": "missing_status"},
+            {"status": "READY"},
+            {"key": "numeric_status", "status": 7},
+        ]
+    )
+
+    pack = build_advisory_proposal_memo_evidence_pack(
+        proposal_id="pp_memo_malformed_source_readiness",
+        proposal_version_no=1,
+        artifact_json=_artifact(),
+        evidence_bundle=evidence,
+    )
+
+    manifest = pack.source_authority_manifest
+    assert "missing_status" not in manifest.section_statuses
+    assert "READY" not in manifest.section_statuses
+    assert manifest.section_statuses["numeric_status"] == "7"
+
+
 def test_memo_builder_blocks_report_archive_and_preserves_missing_source_evidence() -> None:
     evidence = _evidence_bundle()
     evidence["context_resolution"]["resolution_source"] = "DIRECT_REQUEST"

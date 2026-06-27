@@ -90,17 +90,30 @@ def _build_source_authority_manifest(
     evidence_bundle: dict[str, Any],
 ) -> ProposalMemoSourceAuthorityManifest:
     readiness = _dict_at(evidence_bundle, "memo_source_readiness")
-    section_statuses = {
-        str(section.get("key")): str(section.get("status"))
-        for section in _list_at(readiness, "sections")
-        if isinstance(section, dict) and section.get("key") and section.get("status")
-    }
     return ProposalMemoSourceAuthorityManifest(
         contract_version=str(readiness.get("contract_version") or "UNKNOWN"),
         overall_posture=str(readiness.get("overall_posture") or "PENDING_REVIEW"),
         source_authority=deepcopy(_dict_at(readiness, "source_authority")),
-        section_statuses=section_statuses,
+        section_statuses=_source_readiness_section_statuses(readiness),
     )
+
+
+def _source_readiness_section_statuses(readiness: dict[str, Any]) -> dict[str, str]:
+    return dict(
+        status
+        for section in _list_at(readiness, "sections")
+        if (status := _source_readiness_section_status(section)) is not None
+    )
+
+
+def _source_readiness_section_status(section: Any) -> tuple[str, str] | None:
+    if not isinstance(section, dict):
+        return None
+    key = section.get("key")
+    status = section.get("status")
+    if not key or not status:
+        return None
+    return str(key), str(status)
 
 
 def _build_sections(
