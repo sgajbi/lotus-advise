@@ -66,11 +66,27 @@ def test_memo_response_projection_helpers_project_archive_and_replay_metadata() 
             "sections": [
                 {"section_id": "advisor", "audience_visibility": ["ADVISOR"]},
                 {"section_id": "client", "audience_visibility": ["CLIENT"]},
+                {"section_id": "malformed_visibility", "audience_visibility": "ADVISOR"},
+                {"section_id": "missing_visibility"},
                 "invalid",
             ]
         },
         audience="ADVISOR",
     ) == [{"section_id": "advisor", "audience_visibility": ["ADVISOR"]}]
+    assert project_sections(
+        {
+            "sections": [
+                {"section_id": "advisor", "audience_visibility": ["ADVISOR"]},
+                {"section_id": "missing_visibility"},
+                "invalid",
+            ]
+        },
+        audience=None,
+    ) == [
+        {"section_id": "advisor", "audience_visibility": ["ADVISOR"]},
+        {"section_id": "missing_visibility"},
+    ]
+    assert project_sections({"sections": "not-a-list"}, audience="ADVISOR") == []
     assert archive_refs_from_report_posture(
         {
             "archive": {
