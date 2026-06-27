@@ -28,6 +28,7 @@ _ROUTE_MODULES = (
     "src.api.proposals.routes_policy_evaluations",
     "src.api.proposals.routes_advisor_cockpit",
     "src.api.proposals.routes_advisory_copilot",
+    "src.api.proposals.routes_idea_intake",
 )
 
 

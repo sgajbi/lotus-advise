@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import NoReturn, TypeVar, cast
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.sensitive_error_details import contains_sensitive_error_detail
@@ -61,6 +61,15 @@ def raise_proposal_http_exception(exc: Exception) -> NoReturn:
             ),
         ) from exc
     raise exc
+
+
+def reject_unexpected_query_params(request: Request, *, allowed_params: set[str]) -> None:
+    for param_name in request.query_params:
+        if param_name not in allowed_params:
+            raise HTTPException(
+                status_code=HTTP_422_UNPROCESSABLE,
+                detail=f"UNSUPPORTED_QUERY_PARAMETER: {param_name} not supported for this endpoint",
+            )
 
 
 def safe_proposal_error_detail(error_detail: str, *, redacted_detail: str) -> str:

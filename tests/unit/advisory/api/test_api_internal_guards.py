@@ -12,6 +12,7 @@ from src.api.proposals import (
 from src.api.proposals import (
     routes_async,
     routes_delivery,
+    routes_idea_intake,
     routes_lifecycle,
     routes_memo_commands,
     routes_memo_packages,
@@ -284,6 +285,18 @@ def test_lifecycle_routes_use_shared_parameter_contracts():
     assert "ProposalVersionCorrelationIdHeader" in source
     assert "ProposalListLimitQuery" in source
     assert "ProposalOptionalNarrativeReviewIdempotencyKeyHeader" in source
+
+
+def test_idea_intake_route_uses_shared_response_and_parameter_contracts():
+    source = inspect.getsource(routes_idea_intake)
+
+    assert "from fastapi import Request, status" in source
+    assert "responses=IDEA_PROPOSAL_INTAKE_RESPONSES" in source
+    assert "Header(" not in source
+    assert "Path(" not in source
+    assert "Query(" not in source
+    assert "IdeaProposalIntakeCorrelationIdHeader" in source
+    assert "reject_unexpected_query_params(" in source
 
 
 def test_workspace_routes_use_shared_response_metadata():
