@@ -51,6 +51,31 @@ def test_idea_proposal_intake_route_returns_source_safe_non_proposal_posture() -
     assert body["correlation_id"] == "corr-idea-proposal-001"
 
 
+def test_idea_proposal_intake_route_uses_generated_request_correlation_id() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals/idea-intake",
+            json=_payload(),
+        )
+
+    assert response.status_code == 202
+    assert response.json()["correlation_id"] == response.headers["X-Correlation-Id"]
+    assert response.json()["correlation_id"].startswith("corr_")
+
+
+def test_idea_proposal_intake_route_uses_generated_correlation_for_blank_header() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals/idea-intake",
+            json=_payload(),
+            headers={"X-Correlation-Id": "   "},
+        )
+
+    assert response.status_code == 202
+    assert response.json()["correlation_id"] == response.headers["X-Correlation-Id"]
+    assert response.json()["correlation_id"].startswith("corr_")
+
+
 def test_idea_proposal_intake_rejects_query_parameters() -> None:
     with TestClient(app) as client:
         response = client.post(
