@@ -14,7 +14,7 @@ def _payload() -> dict[str, object]:
         "source_product": "lotus-idea:IdeaCandidate:v1",
         "idea_candidate_id": "idea_candidate_001",
         "conversion_intent_id": "conversion_intent_001",
-        "intent_type": "REVIEW_FOR_ADVISORY_PROPOSAL",
+        "advisory_intake_intent": "REVIEW_FOR_ADVISORY_PROPOSAL",
         "source_refs": [
             {
                 "source_system": "lotus-idea",
@@ -38,7 +38,7 @@ def test_idea_proposal_intake_route_returns_source_safe_non_proposal_posture() -
     body = response.json()
     assert body["intake_id"].startswith("ipi_")
     assert body["intake_status"] == "ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED"
-    assert body["supportability_status"] == "not_certified"
+    assert body["intake_supportability_status"] == "not_certified"
     assert body["source_authority"] == "lotus-idea"
     assert body["proposal_authority"] == "lotus-advise"
     assert body["target_product"] == "lotus-advise:AdvisoryProposalLifecycleRecord:v1"
