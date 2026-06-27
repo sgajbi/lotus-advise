@@ -29,7 +29,8 @@ def _spectral_command(repo_root: Path) -> list[str]:
     local_executable = repo_root / "node_modules" / ".bin" / executable_name
     if local_executable.exists():
         return [str(local_executable)]
-    return ["npx", "--yes", "@stoplight/spectral-cli@6.16.0"]
+    npx_executable = "npx.cmd" if sys.platform.startswith("win") else "npx"
+    return [npx_executable, "--yes", "@stoplight/spectral-cli@6.16.0"]
 
 
 def _severity_label(value: object) -> str:

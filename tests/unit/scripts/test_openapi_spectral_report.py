@@ -5,6 +5,16 @@ from subprocess import CompletedProcess
 from scripts import openapi_spectral_report
 
 
+def test_spectral_command_uses_windows_npx_executable(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(openapi_spectral_report.sys, "platform", "win32")
+
+    assert openapi_spectral_report._spectral_command(tmp_path) == [
+        "npx.cmd",
+        "--yes",
+        "@stoplight/spectral-cli@6.16.0",
+    ]
+
+
 def test_spectral_report_normalizes_findings(monkeypatch, tmp_path: Path) -> None:
     (tmp_path / ".spectral.yaml").write_text("rules: {}\n", encoding="utf-8")
     monkeypatch.setattr(
