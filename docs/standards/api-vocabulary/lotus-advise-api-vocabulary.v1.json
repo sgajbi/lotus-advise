@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-06-17T02:32:11.297327+00:00",
+  "generatedAt": "2026-06-27T06:51:26.285189+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -1890,6 +1890,22 @@
       ]
     },
     {
+      "semanticId": "lotus.certification_blockers",
+      "canonicalTerm": "certification_blockers",
+      "preferredName": "certification_blockers",
+      "description": "Remaining blockers before this route can support certified realization.",
+      "example": [
+        "example_certification_blockers_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.claim_id",
       "canonicalTerm": "claim_id",
       "preferredName": "claim_id",
@@ -2004,6 +2020,20 @@
       "canonicalTerm": "client_consent_already_obtained",
       "preferredName": "client_consent_already_obtained",
       "description": "Signals that client consent has already been obtained, allowing gate progression to execution-ready when policy permits.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.client_publication_authorized",
+      "canonicalTerm": "client_publication_authorized",
+      "preferredName": "client_publication_authorized",
+      "description": "False; this route does not authorize client communication or publication.",
       "example": true,
       "type": "boolean",
       "locations": [
@@ -2464,6 +2494,20 @@
       "preferredName": "contract_version",
       "description": "Simulation contract version that governs the allocation lens.",
       "example": "v1",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.conversion_intent_id",
+      "canonicalTerm": "conversion_intent_id",
+      "preferredName": "conversion_intent_id",
+      "description": "lotus-idea conversion-intent identifier used for deterministic intake proof.",
+      "example": "CONVERSION_INTENT_001",
       "type": "string",
       "locations": [
         "body"
@@ -5178,6 +5222,20 @@
       ]
     },
     {
+      "semanticId": "lotus.idea_candidate_id",
+      "canonicalTerm": "idea_candidate_id",
+      "preferredName": "idea_candidate_id",
+      "description": "lotus-idea candidate identifier. Advise uses it only for source-safe lineage and does not infer advisory suitability from it.",
+      "example": "IDEA_CANDIDATE_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.idempotency_key",
       "canonicalTerm": "idempotency_key",
       "preferredName": "idempotency_key",
@@ -5391,6 +5449,34 @@
       ]
     },
     {
+      "semanticId": "lotus.intake_id",
+      "canonicalTerm": "intake_id",
+      "preferredName": "intake_id",
+      "description": "Deterministic source-safe intake identifier derived from handoff fields.",
+      "example": "INTAKE_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.intake_status",
+      "canonicalTerm": "intake_status",
+      "preferredName": "intake_status",
+      "description": "Bounded route-foundation status; not an advisory proposal status.",
+      "example": "ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.intended_notional",
       "canonicalTerm": "intended_notional",
       "preferredName": "intended_notional",
@@ -5424,8 +5510,8 @@
       "semanticId": "lotus.intent_type",
       "canonicalTerm": "intent_type",
       "preferredName": "intent_type",
-      "description": "Intent discriminator for advisory security trades.",
-      "example": "SECURITY_TRADE",
+      "description": "Requested advisory-side intake posture. This route acknowledges only the handoff foundation and does not create proposal lifecycle state or suitability evidence.",
+      "example": "REVIEW_FOR_ADVISORY_PROPOSAL",
       "type": "string",
       "locations": [
         "body"
@@ -7163,6 +7249,20 @@
       ]
     },
     {
+      "semanticId": "lotus.order_created",
+      "canonicalTerm": "order_created",
+      "preferredName": "order_created",
+      "description": "False; no order, OMS instruction, fill, or settlement evidence is created.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
       "semanticId": "lotus.ordering_policy",
       "canonicalTerm": "ordering_policy",
       "preferredName": "ordering_policy",
@@ -8085,6 +8185,20 @@
       ]
     },
     {
+      "semanticId": "lotus.proposal_authority",
+      "canonicalTerm": "proposal_authority",
+      "preferredName": "proposal_authority",
+      "description": "Advisory proposal and suitability authority retained by lotus-advise.",
+      "example": "lotus-advise",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.proposal_block_negative_cash",
       "canonicalTerm": "proposal_block_negative_cash",
       "preferredName": "proposal_block_negative_cash",
@@ -8168,6 +8282,20 @@
       "observedTypes": [
         "object",
         "ProposalNarrative"
+      ]
+    },
+    {
+      "semanticId": "lotus.proposal_record_created",
+      "canonicalTerm": "proposal_record_created",
+      "preferredName": "proposal_record_created",
+      "description": "False until a later certified advisory proposal realization persists one.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
       ]
     },
     {
@@ -8588,6 +8716,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.received_at",
+      "canonicalTerm": "received_at",
+      "preferredName": "received_at",
+      "description": "UTC timestamp when the handoff envelope was acknowledged.",
+      "example": "example_received_at",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -10093,6 +10235,20 @@
       ]
     },
     {
+      "semanticId": "lotus.route_existence_proven",
+      "canonicalTerm": "route_existence_proven",
+      "preferredName": "route_existence_proven",
+      "description": "True because this route exists and is covered by contract tests.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
       "semanticId": "lotus.rule_id",
       "canonicalTerm": "rule_id",
       "preferredName": "rule_id",
@@ -11087,6 +11243,20 @@
       ]
     },
     {
+      "semanticId": "lotus.source_product",
+      "canonicalTerm": "source_product",
+      "preferredName": "source_product",
+      "description": "Source data product represented by the handoff.",
+      "example": "lotus-idea:IdeaCandidate:v1",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.source_product_refs",
       "canonicalTerm": "source_product_refs",
       "preferredName": "source_product_refs",
@@ -11539,6 +11709,20 @@
       ]
     },
     {
+      "semanticId": "lotus.suitability_authority_granted",
+      "canonicalTerm": "suitability_authority_granted",
+      "preferredName": "suitability_authority_granted",
+      "description": "False; this route does not run suitability or approve advisory use.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
       "semanticId": "lotus.suitability_summary",
       "canonicalTerm": "suitability_summary",
       "preferredName": "suitability_summary",
@@ -11656,8 +11840,8 @@
       "semanticId": "lotus.supportability_status",
       "canonicalTerm": "supportability_status",
       "preferredName": "supportability_status",
-      "description": "Current lotus-ai supportability posture for the workflow-pack run.",
-      "example": "ACTIVE",
+      "description": "Certification posture for this route foundation.",
+      "example": "not_certified",
       "type": "string",
       "locations": [
         "body"
@@ -11853,6 +12037,20 @@
       ],
       "observedTypes": [
         "TargetMethod"
+      ]
+    },
+    {
+      "semanticId": "lotus.target_product",
+      "canonicalTerm": "target_product",
+      "preferredName": "target_product",
+      "description": "Advise-owned product that future certified realization may update.",
+      "example": "lotus-advise:AdvisoryProposalLifecycleRecord:v1",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -14603,6 +14801,18 @@
       "allowedValues": [],
       "semanticId": "lotus.cursor",
       "attributeRef": "#/attributeCatalog/lotus.cursor"
+    },
+    {
+      "name": "x_correlation_id",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "object",
+      "description": "Optional source-safe correlation id supplied by lotus-idea.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.x_correlation_id",
+      "attributeRef": "#/attributeCatalog/lotus.x_correlation_id"
     },
     {
       "name": "idempotency_key",
@@ -45362,6 +45572,229 @@
             "type": "object",
             "semanticId": "lotus.next_cursor",
             "attributeRef": "#/attributeCatalog/lotus.next_cursor"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_proposal_lifecycle",
+      "method": "POST",
+      "path": "/advisory/proposals/idea-intake",
+      "operationId": "accept_idea_proposal_intake_advisory_proposals_idea_intake_post",
+      "summary": "Accept lotus-idea Proposal Intake Foundation",
+      "request": {
+        "fields": [
+          {
+            "name": "X-Correlation-Id",
+            "location": "header",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.x_correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.x_correlation_id"
+          },
+          {
+            "name": "source_system",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_system",
+            "attributeRef": "#/attributeCatalog/lotus.source_system"
+          },
+          {
+            "name": "source_product",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_product",
+            "attributeRef": "#/attributeCatalog/lotus.source_product"
+          },
+          {
+            "name": "idea_candidate_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.idea_candidate_id",
+            "attributeRef": "#/attributeCatalog/lotus.idea_candidate_id"
+          },
+          {
+            "name": "conversion_intent_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.conversion_intent_id",
+            "attributeRef": "#/attributeCatalog/lotus.conversion_intent_id"
+          },
+          {
+            "name": "intent_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.intent_type",
+            "attributeRef": "#/attributeCatalog/lotus.intent_type"
+          },
+          {
+            "name": "source_refs",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.source_refs",
+            "attributeRef": "#/attributeCatalog/lotus.source_refs"
+          },
+          {
+            "name": "source_refs[].source_system",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_system",
+            "attributeRef": "#/attributeCatalog/lotus.source_system"
+          },
+          {
+            "name": "source_refs[].source_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_type",
+            "attributeRef": "#/attributeCatalog/lotus.source_type"
+          },
+          {
+            "name": "source_refs[].source_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_id"
+          },
+          {
+            "name": "source_refs[].content_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "intake_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.intake_id",
+            "attributeRef": "#/attributeCatalog/lotus.intake_id"
+          },
+          {
+            "name": "intake_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.intake_status",
+            "attributeRef": "#/attributeCatalog/lotus.intake_status"
+          },
+          {
+            "name": "supportability_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.supportability_status",
+            "attributeRef": "#/attributeCatalog/lotus.supportability_status"
+          },
+          {
+            "name": "source_authority",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_authority",
+            "attributeRef": "#/attributeCatalog/lotus.source_authority"
+          },
+          {
+            "name": "proposal_authority",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_authority",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_authority"
+          },
+          {
+            "name": "target_product",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.target_product",
+            "attributeRef": "#/attributeCatalog/lotus.target_product"
+          },
+          {
+            "name": "route_existence_proven",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.route_existence_proven",
+            "attributeRef": "#/attributeCatalog/lotus.route_existence_proven"
+          },
+          {
+            "name": "proposal_record_created",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.proposal_record_created",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_record_created"
+          },
+          {
+            "name": "suitability_authority_granted",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.suitability_authority_granted",
+            "attributeRef": "#/attributeCatalog/lotus.suitability_authority_granted"
+          },
+          {
+            "name": "order_created",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.order_created",
+            "attributeRef": "#/attributeCatalog/lotus.order_created"
+          },
+          {
+            "name": "client_publication_authorized",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.client_publication_authorized",
+            "attributeRef": "#/attributeCatalog/lotus.client_publication_authorized"
+          },
+          {
+            "name": "certification_blockers",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.certification_blockers",
+            "attributeRef": "#/attributeCatalog/lotus.certification_blockers"
+          },
+          {
+            "name": "evidence_refs",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.evidence_refs",
+            "attributeRef": "#/attributeCatalog/lotus.evidence_refs"
+          },
+          {
+            "name": "received_at",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.received_at",
+            "attributeRef": "#/attributeCatalog/lotus.received_at"
+          },
+          {
+            "name": "correlation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.correlation_id"
           }
         ]
       }

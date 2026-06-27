@@ -1,0 +1,51 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from src.core.proposals.idea_proposal_intake import (
+    IDEA_PROPOSAL_INTAKE_CERTIFICATION_BLOCKERS,
+)
+
+ROOT = Path(__file__).resolve().parents[4]
+CONTRACT_PATH = (
+    ROOT / "contracts" / "idea-proposal-intake" / "lotus-advise-idea-proposal-intake.v1.json"
+)
+
+
+def _contract() -> dict:
+    return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+
+def test_idea_proposal_intake_contract_preserves_advise_authority_boundary() -> None:
+    contract = _contract()
+
+    assert contract["schema_version"] == "lotus-advise.idea-proposal-intake.v1"
+    assert contract["repository"] == "lotus-advise"
+    assert contract["approved_producer_repository"] == "lotus-idea"
+    assert contract["approved_producer_product"] == "lotus-idea:IdeaCandidate:v1"
+    assert contract["owned_product"] == "lotus-advise:AdvisoryProposalLifecycleRecord:v1"
+    assert contract["source_authority"] == "lotus-advise"
+    assert contract["target_route"] == "POST /advisory/proposals/idea-intake"
+    assert contract["lifecycle_status"] == "implemented"
+    assert contract["supportability_status"] == "not_certified"
+    assert contract["route_existence_proven"] is True
+    assert contract["downstream_execution_proven"] is False
+    assert contract["supported_feature_promoted"] is False
+
+
+def test_idea_proposal_intake_contract_keeps_non_proof_boundaries_and_blockers() -> None:
+    contract = _contract()
+    boundaries = " ".join(contract["non_proof_boundaries"])
+
+    assert "Proves only a live route foundation" in boundaries
+    assert "Does not grant suitability" in boundaries
+    assert "Does not create orders" in boundaries
+    assert "Does not promote a supported feature" in boundaries
+    assert contract["certification_blockers"] == IDEA_PROPOSAL_INTAKE_CERTIFICATION_BLOCKERS
+    assert "advise_live_contract_proof_missing" not in contract["certification_blockers"]
+    assert {
+        "src/api/proposals/routes_idea_intake.py",
+        "src/core/proposals/idea_proposal_intake.py",
+        "tests/unit/advisory/api/test_idea_proposal_intake_api.py",
+    }.issubset(set(contract["evidence_refs"]))
