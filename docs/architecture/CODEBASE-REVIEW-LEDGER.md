@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-897
+
+- Scope: Proposal context policy-selector construction
+- Pattern: Proposal context resolution should keep policy-selector precedence explicit and
+  test-backed before stricter B-ranked complexity ratchets are promoted.
+- Status: Hardened
+- Finding Class: Maintainability, policy-context correctness, complexity regression
+- Summary: `src/core/proposals/context_resolution.py::_policy_selectors` still carried B-ranked
+  branching for household, mandate, jurisdiction, and benchmark selector assembly. The behavior was
+  correct, but the mandate precedence rule was embedded in a nested expression, making this
+  proposal-context boundary harder to audit as the repository moves toward stricter all-A module
+  enforcement.
+- Evidence:
+  - Extracted selector field resolution into named helpers, preserving the existing rule that an
+    explicit metadata mandate overrides the stateful input default while stateful household and
+    benchmark identifiers remain source-owned.
+  - Added focused tests for metadata mandate precedence and stateful mandate fallback.
+  - Radon now reports `_policy_selectors` as `A/1`, down from `B/7`; the full
+    `src/core/proposals/context_resolution.py` module is all A-ranked.
+  - Focused validation passed with `12 passed` for
+    `tests/unit/advisory/engine/test_engine_proposal_context.py`; focused Ruff check passed for
+    the touched source and test files.
+  - Generated quality reports now record Radon inventory movement from `A=3935, B=55` to
+    `A=3942, B=54`.
+- Consequence:
+  - Proposal policy-context selector behavior is easier to review and better protected by direct
+    tests, reducing the remaining B-ranked source inventory without changing API behavior.
+- Documentation:
+  - Review ledger and generated quality reports updated. No README, wiki, repo-context, or
+    operator-doc update is required because this is internal behavior-preserving maintainability
+    hardening with no route, command, runtime, or supported-feature truth change.
+- Follow-Up:
+  - Continue reducing remaining B/7 proposal and infrastructure helpers where focused behavior
+    tests can pin policy, persistence, or replay semantics before promoting stricter all-A gates.
+
 ## LA-REV-896
 
 - Scope: README, demo docs, and wiki demo-readiness navigation

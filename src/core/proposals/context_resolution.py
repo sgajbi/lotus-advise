@@ -283,15 +283,45 @@ def _policy_selectors(
     stateful_input: ProposalStatefulInput | None = None,
 ) -> ProposalPolicySelectors:
     return ProposalPolicySelectors(
-        household_id=stateful_input.household_id if stateful_input is not None else None,
-        mandate_id=(
-            metadata.mandate_id
-            if metadata is not None and metadata.mandate_id is not None
-            else (stateful_input.mandate_id if stateful_input is not None else None)
+        household_id=_stateful_household_id(stateful_input),
+        mandate_id=_resolved_policy_mandate_id(
+            metadata=metadata,
+            stateful_input=stateful_input,
         ),
-        jurisdiction=metadata.jurisdiction if metadata is not None else None,
-        benchmark_id=stateful_input.benchmark_id if stateful_input is not None else None,
+        jurisdiction=_metadata_jurisdiction(metadata),
+        benchmark_id=_stateful_benchmark_id(stateful_input),
     )
+
+
+def _stateful_household_id(stateful_input: ProposalStatefulInput | None) -> str | None:
+    return stateful_input.household_id if stateful_input is not None else None
+
+
+def _resolved_policy_mandate_id(
+    *,
+    metadata: ProposalCreateMetadata | None,
+    stateful_input: ProposalStatefulInput | None,
+) -> str | None:
+    metadata_mandate_id = _metadata_mandate_id(metadata)
+    if metadata_mandate_id is not None:
+        return metadata_mandate_id
+    return _stateful_mandate_id(stateful_input)
+
+
+def _metadata_mandate_id(metadata: ProposalCreateMetadata | None) -> str | None:
+    return metadata.mandate_id if metadata is not None else None
+
+
+def _stateful_mandate_id(stateful_input: ProposalStatefulInput | None) -> str | None:
+    return stateful_input.mandate_id if stateful_input is not None else None
+
+
+def _metadata_jurisdiction(metadata: ProposalCreateMetadata | None) -> str | None:
+    return metadata.jurisdiction if metadata is not None else None
+
+
+def _stateful_benchmark_id(stateful_input: ProposalStatefulInput | None) -> str | None:
+    return stateful_input.benchmark_id if stateful_input is not None else None
 
 
 __all__ = [

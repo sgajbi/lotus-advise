@@ -13,10 +13,15 @@ from src.core.proposals.context import (
 )
 from src.core.proposals.context_evidence import build_context_resolution_evidence
 from src.core.proposals.context_hashing import build_simulation_request_hash
-from src.core.proposals.context_resolution import ResolvedSimulationContext
+from src.core.proposals.context_resolution import (
+    ResolvedSimulationContext,
+    _policy_selectors,
+)
 from src.core.proposals.models import (
+    ProposalCreateMetadata,
     ProposalCreateRequest,
     ProposalSimulationRequest,
+    ProposalStatefulInput,
     ProposalVersionRequest,
 )
 
@@ -178,6 +183,41 @@ def test_context_resolution_uses_domain_errors_for_constructed_invalid_payloads(
 ):
     with pytest.raises(ProposalContextResolutionError, match=expected_message):
         resolver(payload)
+
+
+def test_policy_selectors_prefer_explicit_metadata_mandate_over_stateful_default():
+    selectors = _policy_selectors(
+        metadata=ProposalCreateMetadata(
+            mandate_id="mandate_metadata",
+            jurisdiction="SG",
+        ),
+        stateful_input=ProposalStatefulInput(
+            portfolio_id="pf_context_policy",
+            as_of="2026-06-15",
+            household_id="hh_context_policy",
+            mandate_id="mandate_stateful",
+            benchmark_id="benchmark_context_policy",
+        ),
+    )
+
+    assert selectors.household_id == "hh_context_policy"
+    assert selectors.mandate_id == "mandate_metadata"
+    assert selectors.jurisdiction == "SG"
+    assert selectors.benchmark_id == "benchmark_context_policy"
+
+
+def test_policy_selectors_fall_back_to_stateful_mandate_when_metadata_is_absent():
+    selectors = _policy_selectors(
+        metadata=ProposalCreateMetadata(jurisdiction="SG"),
+        stateful_input=ProposalStatefulInput(
+            portfolio_id="pf_context_policy",
+            as_of="2026-06-15",
+            mandate_id="mandate_stateful",
+        ),
+    )
+
+    assert selectors.mandate_id == "mandate_stateful"
+    assert selectors.jurisdiction == "SG"
 
 
 def test_proposal_context_facade_reexports_focused_owner_modules():
