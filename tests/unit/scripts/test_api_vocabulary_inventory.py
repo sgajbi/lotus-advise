@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from scripts.api_vocabulary_inventory import (
+    _attribute_catalog_entry,
     _extract_fields,
     _fallback_example,
+    _preserve_stable_generated_at,
     validate_inventory,
 )
 
@@ -63,6 +65,54 @@ def test_extract_fields_expands_nested_objects_refs_and_arrays() -> None:
     assert by_name["actions"]["required"] is True
     assert by_name["actions[].actionId"]["semanticId"] == "lotus.action_id"
     assert by_name["actions[].actionId"]["example"] == "ENTITY_001"
+
+
+def test_attribute_catalog_uses_canonical_description_for_reused_terms() -> None:
+    entry = _attribute_catalog_entry(
+        {
+            "name": "intent_type",
+            "location": "body",
+            "type": "string",
+            "semanticId": "lotus.intent_type",
+            "description": "Endpoint-specific intake posture.",
+            "example": "REVIEW_FOR_ADVISORY_PROPOSAL",
+        }
+    )
+
+    assert entry["description"] == (
+        "Canonical business intent discriminator used by lotus-advise APIs."
+    )
+    assert entry["example"] == "SECURITY_TRADE"
+
+
+def test_preserve_stable_generated_at_when_inventory_content_is_unchanged() -> None:
+    existing = {
+        "generatedAt": "2026-06-28T00:00:00+00:00",
+        "attributeCatalog": [{"semanticId": "lotus.client_id"}],
+    }
+    generated = {
+        "generatedAt": "2026-06-28T01:00:00+00:00",
+        "attributeCatalog": [{"semanticId": "lotus.client_id"}],
+    }
+
+    stable = _preserve_stable_generated_at(generated, existing)
+
+    assert stable["generatedAt"] == "2026-06-28T00:00:00+00:00"
+
+
+def test_preserve_stable_generated_at_keeps_new_timestamp_when_inventory_changed() -> None:
+    existing = {
+        "generatedAt": "2026-06-28T00:00:00+00:00",
+        "attributeCatalog": [{"semanticId": "lotus.client_id"}],
+    }
+    generated = {
+        "generatedAt": "2026-06-28T01:00:00+00:00",
+        "attributeCatalog": [{"semanticId": "lotus.client_id"}, {"semanticId": "lotus.risk_id"}],
+    }
+
+    stable = _preserve_stable_generated_at(generated, existing)
+
+    assert stable["generatedAt"] == "2026-06-28T01:00:00+00:00"
 
 
 def test_validate_inventory_rejects_placeholder_and_endpoint_metadata_duplication() -> None:

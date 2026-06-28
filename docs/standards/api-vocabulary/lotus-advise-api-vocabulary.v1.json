@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-06-27T07:31:00.584342+00:00",
+  "generatedAt": "2026-06-28T06:23:09.198132+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -344,20 +344,6 @@
       "observedTypes": [
         "object",
         "array"
-      ]
-    },
-    {
-      "semanticId": "lotus.advisory_intake_intent",
-      "canonicalTerm": "advisory_intake_intent",
-      "preferredName": "advisory_intake_intent",
-      "description": "Requested advisory-side intake posture. This route acknowledges only the handoff foundation and does not create proposal lifecycle state or suitability evidence.",
-      "example": "REVIEW_FOR_ADVISORY_PROPOSAL",
-      "type": "string",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "string"
       ]
     },
     {
@@ -5466,7 +5452,7 @@
       "semanticId": "lotus.intake_id",
       "canonicalTerm": "intake_id",
       "preferredName": "intake_id",
-      "description": "Deterministic source-safe intake identifier derived from handoff fields.",
+      "description": "Deterministic source-safe intake identifier derived from handoff identifiers, intent, and source evidence fingerprint.",
       "example": "INTAKE_001",
       "type": "string",
       "locations": [
@@ -5482,20 +5468,6 @@
       "preferredName": "intake_status",
       "description": "Bounded route-foundation status; not an advisory proposal status.",
       "example": "ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
-      "type": "string",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.intake_supportability_status",
-      "canonicalTerm": "intake_supportability_status",
-      "preferredName": "intake_supportability_status",
-      "description": "Certification posture for this route foundation.",
-      "example": "not_certified",
       "type": "string",
       "locations": [
         "body"
@@ -5538,7 +5510,7 @@
       "semanticId": "lotus.intent_type",
       "canonicalTerm": "intent_type",
       "preferredName": "intent_type",
-      "description": "Intent discriminator for advisory security trades.",
+      "description": "Canonical business intent discriminator used by lotus-advise APIs.",
       "example": "SECURITY_TRADE",
       "type": "string",
       "locations": [
@@ -11868,8 +11840,8 @@
       "semanticId": "lotus.supportability_status",
       "canonicalTerm": "supportability_status",
       "preferredName": "supportability_status",
-      "description": "Current lotus-ai supportability posture for the workflow-pack run.",
-      "example": "ACTIVE",
+      "description": "Canonical supportability posture for an API response, workflow, or proof artifact.",
+      "example": "not_certified",
       "type": "string",
       "locations": [
         "body"
@@ -45653,12 +45625,12 @@
             "attributeRef": "#/attributeCatalog/lotus.conversion_intent_id"
           },
           {
-            "name": "advisory_intake_intent",
+            "name": "intent_type",
             "location": "body",
             "required": true,
             "type": "string",
-            "semanticId": "lotus.advisory_intake_intent",
-            "attributeRef": "#/attributeCatalog/lotus.advisory_intake_intent"
+            "semanticId": "lotus.intent_type",
+            "attributeRef": "#/attributeCatalog/lotus.intent_type"
           },
           {
             "name": "source_refs",
@@ -45721,12 +45693,12 @@
             "attributeRef": "#/attributeCatalog/lotus.intake_status"
           },
           {
-            "name": "intake_supportability_status",
+            "name": "supportability_status",
             "location": "body",
             "required": true,
             "type": "string",
-            "semanticId": "lotus.intake_supportability_status",
-            "attributeRef": "#/attributeCatalog/lotus.intake_supportability_status"
+            "semanticId": "lotus.supportability_status",
+            "attributeRef": "#/attributeCatalog/lotus.supportability_status"
           },
           {
             "name": "source_authority",

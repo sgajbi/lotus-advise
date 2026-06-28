@@ -14,7 +14,7 @@ def _payload() -> dict[str, object]:
         "source_product": "lotus-idea:IdeaCandidate:v1",
         "idea_candidate_id": "idea_candidate_001",
         "conversion_intent_id": "conversion_intent_001",
-        "advisory_intake_intent": "REVIEW_FOR_ADVISORY_PROPOSAL",
+        "intent_type": "REVIEW_FOR_ADVISORY_PROPOSAL",
         "source_refs": [
             {
                 "source_system": "lotus-idea",
@@ -38,7 +38,7 @@ def test_idea_proposal_intake_route_returns_source_safe_non_proposal_posture() -
     body = response.json()
     assert body["intake_id"].startswith("ipi_")
     assert body["intake_status"] == "ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED"
-    assert body["intake_supportability_status"] == "not_certified"
+    assert body["supportability_status"] == "not_certified"
     assert body["source_authority"] == "lotus-idea"
     assert body["proposal_authority"] == "lotus-advise"
     assert body["target_product"] == "lotus-advise:AdvisoryProposalLifecycleRecord:v1"
@@ -100,6 +100,52 @@ def test_idea_proposal_intake_domain_acknowledgement_is_deterministic() -> None:
     assert first.suitability_authority_granted is False
     assert first.order_created is False
     assert first.client_publication_authorized is False
+
+
+def test_idea_proposal_intake_id_changes_when_source_evidence_changes() -> None:
+    original = IdeaProposalIntakeRequest.model_validate(_payload())
+    changed_payload = _payload()
+    changed_payload["source_refs"] = [
+        {
+            "source_system": "lotus-idea",
+            "source_type": "IdeaCandidate",
+            "source_id": "idea_candidate_001",
+            "content_hash": "sha256:changed",
+        }
+    ]
+    changed = IdeaProposalIntakeRequest.model_validate(changed_payload)
+
+    first = acknowledge_idea_proposal_intake(original, correlation_id="corr-a")
+    second = acknowledge_idea_proposal_intake(changed, correlation_id="corr-a")
+
+    assert first.intake_id != second.intake_id
+
+
+def test_idea_proposal_intake_id_is_stable_for_reordered_source_evidence() -> None:
+    first_payload = _payload()
+    first_payload["source_refs"] = [
+        {
+            "source_system": "lotus-idea",
+            "source_type": "IdeaCandidate",
+            "source_id": "idea_candidate_002",
+            "content_hash": "sha256:def456",
+        },
+        {
+            "source_system": "lotus-idea",
+            "source_type": "IdeaCandidate",
+            "source_id": "idea_candidate_001",
+            "content_hash": "sha256:abc123",
+        },
+    ]
+    second_payload = _payload()
+    second_payload["source_refs"] = list(reversed(first_payload["source_refs"]))
+    first_request = IdeaProposalIntakeRequest.model_validate(first_payload)
+    second_request = IdeaProposalIntakeRequest.model_validate(second_payload)
+
+    first = acknowledge_idea_proposal_intake(first_request, correlation_id="corr-a")
+    second = acknowledge_idea_proposal_intake(second_request, correlation_id="corr-a")
+
+    assert first.intake_id == second.intake_id
 
 
 def test_idea_proposal_intake_route_is_documented_in_openapi() -> None:
