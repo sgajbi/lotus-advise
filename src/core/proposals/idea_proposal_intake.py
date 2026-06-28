@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from hashlib import sha256
 from typing import Any, Literal
@@ -25,7 +26,7 @@ IDEA_PROPOSAL_INTAKE_REQUEST_EXAMPLE: dict[str, Any] = {
     "source_product": "lotus-idea:IdeaCandidate:v1",
     "idea_candidate_id": "idea_candidate_001",
     "conversion_intent_id": "conversion_intent_001",
-    "advisory_intake_intent": "REVIEW_FOR_ADVISORY_PROPOSAL",
+    "intent_type": "REVIEW_FOR_ADVISORY_PROPOSAL",
     "source_refs": [
         {
             "source_system": "lotus-idea",
@@ -39,7 +40,7 @@ IDEA_PROPOSAL_INTAKE_REQUEST_EXAMPLE: dict[str, Any] = {
 IDEA_PROPOSAL_INTAKE_RESPONSE_EXAMPLE: dict[str, Any] = {
     "intake_id": "ipi_7a1d2b3c4d5e",
     "intake_status": "ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
-    "intake_supportability_status": "not_certified",
+    "supportability_status": "not_certified",
     "source_authority": "lotus-idea",
     "proposal_authority": "lotus-advise",
     "target_product": "lotus-advise:AdvisoryProposalLifecycleRecord:v1",
@@ -127,7 +128,7 @@ class IdeaProposalIntakeRequest(BaseModel):
         description="lotus-idea conversion-intent identifier used for deterministic intake proof.",
         examples=["conversion_intent_001"],
     )
-    advisory_intake_intent: IdeaProposalIntentType = Field(
+    intent_type: IdeaProposalIntentType = Field(
         description=(
             "Requested advisory-side intake posture. This route acknowledges only the handoff "
             "foundation and does not create proposal lifecycle state or suitability evidence."
@@ -153,14 +154,17 @@ class IdeaProposalIntakeResponse(BaseModel):
     model_config = {"json_schema_extra": {"example": IDEA_PROPOSAL_INTAKE_RESPONSE_EXAMPLE}}
 
     intake_id: str = Field(
-        description="Deterministic source-safe intake identifier derived from handoff fields.",
+        description=(
+            "Deterministic source-safe intake identifier derived from handoff identifiers, "
+            "intent, and source evidence fingerprint."
+        ),
         examples=["ipi_7a1d2b3c4d5e"],
     )
     intake_status: IdeaProposalIntakeStatus = Field(
         description="Bounded route-foundation status; not an advisory proposal status.",
         examples=["ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED"],
     )
-    intake_supportability_status: IdeaProposalIntakeSupportabilityStatus = Field(
+    supportability_status: IdeaProposalIntakeSupportabilityStatus = Field(
         description="Certification posture for this route foundation.",
         examples=["not_certified"],
     )
@@ -223,12 +227,13 @@ def acknowledge_idea_proposal_intake(
     intake_id = _intake_id(
         idea_candidate_id=request.idea_candidate_id,
         conversion_intent_id=request.conversion_intent_id,
-        intent_type=request.advisory_intake_intent,
+        intent_type=request.intent_type,
+        source_refs_fingerprint=_source_refs_fingerprint(request.source_refs),
     )
     return IdeaProposalIntakeResponse(
         intake_id=intake_id,
         intake_status="ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
-        intake_supportability_status="not_certified",
+        supportability_status="not_certified",
         source_authority="lotus-idea",
         proposal_authority="lotus-advise",
         target_product="lotus-advise:AdvisoryProposalLifecycleRecord:v1",
@@ -248,8 +253,30 @@ def acknowledge_idea_proposal_intake(
     )
 
 
-def _intake_id(*, idea_candidate_id: str, conversion_intent_id: str, intent_type: str) -> str:
+def _source_refs_fingerprint(source_refs: list[IdeaProposalSourceRef]) -> str:
+    canonical_refs = sorted(
+        (source_ref.model_dump(mode="json", exclude_none=False) for source_ref in source_refs),
+        key=lambda item: (
+            item["source_system"],
+            item["source_type"],
+            item["source_id"],
+            item.get("content_hash") or "",
+        ),
+    )
+    canonical_payload = json.dumps(canonical_refs, sort_keys=True, separators=(",", ":"))
+    return sha256(canonical_payload.encode()).hexdigest()
+
+
+def _intake_id(
+    *,
+    idea_candidate_id: str,
+    conversion_intent_id: str,
+    intent_type: str,
+    source_refs_fingerprint: str,
+) -> str:
     digest = sha256(
-        f"{idea_candidate_id}|{conversion_intent_id}|{intent_type}".encode()
+        (
+            f"{idea_candidate_id}|{conversion_intent_id}|{intent_type}|{source_refs_fingerprint}"
+        ).encode()
     ).hexdigest()
     return f"ipi_{digest[:12]}"

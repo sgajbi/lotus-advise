@@ -46,6 +46,18 @@ TYPE_FALLBACK_EXAMPLES: dict[str, Any] = {
     "array": ["STANDARD_ITEM"],
     "object": {"key": "sample_text"},
 }
+ATTRIBUTE_CATALOG_OVERRIDES: dict[str, dict[str, Any]] = {
+    "lotus.intent_type": {
+        "description": "Canonical business intent discriminator used by lotus-advise APIs.",
+        "example": "SECURITY_TRADE",
+    },
+    "lotus.supportability_status": {
+        "description": (
+            "Canonical supportability posture for an API response, workflow, or proof artifact."
+        ),
+        "example": "not_certified",
+    },
+}
 _NO_ENUM_EXAMPLE = object()
 
 
@@ -336,7 +348,7 @@ def _record_attribute_fields(
 def _attribute_catalog_entry(field: dict[str, Any]) -> dict[str, Any]:
     canonical = _canonical_term(field["name"])
     field_type = field.get("type", "string")
-    return {
+    entry = {
         "semanticId": field["semanticId"],
         "canonicalTerm": canonical,
         "preferredName": canonical,
@@ -346,6 +358,8 @@ def _attribute_catalog_entry(field: dict[str, Any]) -> dict[str, Any]:
         "locations": [field.get("location", "body")],
         "observedTypes": [field_type],
     }
+    entry.update(ATTRIBUTE_CATALOG_OVERRIDES.get(field["semanticId"], {}))
+    return entry
 
 
 def _merge_attribute_observation(item: dict[str, Any], field: dict[str, Any]) -> None:
@@ -493,6 +507,19 @@ def _normalize_for_compare(payload: dict[str, Any]) -> dict[str, Any]:
     return clone
 
 
+def _preserve_stable_generated_at(
+    inventory: dict[str, Any],
+    existing_inventory: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if existing_inventory is None:
+        return inventory
+    if _normalize_for_compare(existing_inventory) != _normalize_for_compare(inventory):
+        return inventory
+    stable_inventory = dict(inventory)
+    stable_inventory["generatedAt"] = existing_inventory.get("generatedAt")
+    return stable_inventory
+
+
 def main() -> int:
     parser = ArgumentParser(
         description="Generate and validate lotus-advise API vocabulary inventory"
@@ -524,6 +551,10 @@ def main() -> int:
         print("API vocabulary inventory gate passed (no drift).")
         return 0
 
+    existing_inventory = (
+        json.loads(output_path.read_text(encoding="utf-8")) if output_path.exists() else None
+    )
+    inventory = _preserve_stable_generated_at(inventory, existing_inventory)
     output_path.write_text(json.dumps(inventory, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote inventory: {output_path}")
     return 0
