@@ -9,7 +9,9 @@ updates:
     schedule:
       interval: "monthly"
       day: "monday"
-    open-pull-requests-limit: 1
+    # Routine version-update PRs are paused during active Lotus RFC delivery.
+    # Security alerts/updates stay governed through GitHub Security posture.
+    open-pull-requests-limit: 0
 
   - package-ecosystem: "pip"
     directory: "/"
@@ -20,4 +22,6 @@ updates:
     schedule:
       interval: "monthly"
       day: "monday"
-    open-pull-requests-limit: 1
+    # Routine version-update PRs are paused during active Lotus RFC delivery.
+    # Security alerts/updates stay governed through GitHub Security posture.
+    open-pull-requests-limit: 0
