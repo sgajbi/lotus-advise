@@ -268,6 +268,9 @@ Important validation expectations:
 1. dependency health, OpenAPI, vocabulary, and no-alias governance are active,
    and direct dependency freshness is evaluated against the repository-supported Python 3.11
    runtime rather than an incompatible package release that only supports a newer Python line,
+   while routine Dependabot version-update PRs are paused with
+   `open-pull-requests-limit: 0` so dependency suggestions are handled through deliberate
+   repo-native refresh, security review, and PR validation instead of noisy bot branches,
 2. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
 3. advisory workflow changes should be validated against canonical upstream posture,
 4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
