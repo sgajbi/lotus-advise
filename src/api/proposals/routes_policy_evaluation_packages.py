@@ -23,6 +23,10 @@ from src.core.policy_packs import (
     request_policy_evaluation_report_package,
 )
 from src.core.proposals.identifiers import new_report_request_id
+from src.runtime.policy_evaluation_clients import (
+    get_policy_ai_evidence_client,
+    get_policy_report_package_client,
+)
 
 
 @shared.router.post(
@@ -52,6 +56,7 @@ def request_policy_report_package(
                     evaluation_id=evaluation_id,
                     payload=payload,
                     report_request_id=new_report_request_id(),
+                    report_client=get_policy_report_package_client(),
                     idempotency_key=idempotency_key,
                 )
             )
@@ -85,6 +90,7 @@ def request_policy_ai_evidence(
             lambda: request_policy_evaluation_ai_evidence(
                 evaluation_id=evaluation_id,
                 payload=payload,
+                ai_client=get_policy_ai_evidence_client(),
                 idempotency_key=idempotency_key,
             )
         ),

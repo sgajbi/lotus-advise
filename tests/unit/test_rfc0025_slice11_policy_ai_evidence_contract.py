@@ -68,7 +68,7 @@ def test_rfc0025_slice11_records_ai_lineage_without_product_surface_promotion() 
     assert "POLICY_EVALUATION_AI_EVIDENCE_RECORDED" in ai_source
     assert "POLICY_AI_EVIDENCE_FORBIDDEN_ACTION" in ai_source
     assert "raw_source_evidence_included" in ai_source
-    assert "policy_evidence_summary.pack" in adapter_source
+    assert "policy_evidence_summary.pack" in ai_models_source
     assert "EXPLANATION_ONLY" in adapter_source
     assert "/advisory/policy-evaluations/{evaluation_id}/ai-evidence" in declaration_source
     assert "RFC-0025-slice-11-ai-policy-evidence-boundary.md" in telemetry_source

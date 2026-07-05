@@ -15,6 +15,7 @@ from src.core.policy_packs.persistence_models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationRecord,
 )
+from src.core.policy_packs.ports import PolicyReportPackageClient
 from src.core.policy_packs.reporting_models import (
     PolicyEvaluationReportPackageRequest,
     PolicyEvaluationReportPackageResponse,
@@ -26,7 +27,6 @@ from src.core.proposals.exceptions import (
     ProposalValidationError,
 )
 from src.core.proposals.models import ProposalReportResponse
-from src.integrations.lotus_report import request_policy_sign_off_report_package_with_lotus_report
 
 _REPORTING_CONTRACT_VERSION = "rfc0025.policy-report-package-realization.v1"
 _CLIENT_READY_PUBLICATION = "BLOCKED"
@@ -38,6 +38,7 @@ def request_policy_evaluation_report_package(
     evaluation_id: str,
     payload: PolicyEvaluationReportPackageRequest,
     report_request_id: str,
+    report_client: PolicyReportPackageClient,
     idempotency_key: str | None = None,
 ) -> PolicyEvaluationReportPackageResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
@@ -60,7 +61,7 @@ def request_policy_evaluation_report_package(
             )
 
     sign_off_package = _build_policy_sign_off_package(record=record, payload=payload)
-    report = request_policy_sign_off_report_package_with_lotus_report(
+    report = report_client.request_policy_sign_off_report_package(
         request={
             "report_request_id": report_request_id,
             "proposal": _proposal_summary(record=record, payload=payload),

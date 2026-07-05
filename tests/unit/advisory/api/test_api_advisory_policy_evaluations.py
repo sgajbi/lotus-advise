@@ -4,8 +4,6 @@ from copy import deepcopy
 
 from fastapi.testclient import TestClient
 
-import src.api.main as api_main
-import src.core.policy_packs.ai as policy_ai
 from src.api.main import app
 from src.api.proposals.policy_evaluation_responses import (
     POLICY_AI_EVIDENCE_RESPONSES,
@@ -17,14 +15,37 @@ from src.core.policy_packs import (
     reset_policy_evaluation_store_for_tests,
     reset_policy_pack_catalog_for_tests,
 )
-from src.integrations.lotus_ai import LotusAIPolicyEvidenceUnavailableError
-from src.integrations.lotus_ai.policy_evidence import PolicyAiEvidenceDraft
+from src.core.policy_packs.ai_models import (
+    LotusAIPolicyEvidenceUnavailableError,
+    PolicyAiEvidenceDraft,
+)
+from src.core.proposals.response_models import ProposalReportResponse
 from src.integrations.lotus_report import LotusReportUnavailableError
+from src.runtime.policy_evaluation_clients import (
+    set_policy_ai_evidence_client_for_tests,
+    set_policy_report_package_client_for_tests,
+)
+
+
+class _FakePolicyReportPackageClient:
+    def __init__(self, handler):
+        self._handler = handler
+
+    def request_policy_sign_off_report_package(self, *, request: dict) -> ProposalReportResponse:
+        return ProposalReportResponse.model_validate(self._handler(request=request))
+
+
+class _FakePolicyAiEvidenceClient:
+    def __init__(self, handler):
+        self._handler = handler
+
+    def generate_policy_evidence_summary(self, **kwargs) -> PolicyAiEvidenceDraft:
+        return self._handler(**kwargs)
 
 
 def setup_function() -> None:
-    if hasattr(api_main, "request_policy_sign_off_report_package_with_lotus_report"):
-        delattr(api_main, "request_policy_sign_off_report_package_with_lotus_report")
+    set_policy_report_package_client_for_tests(None)
+    set_policy_ai_evidence_client_for_tests(None)
     reset_policy_pack_catalog_for_tests()
     reset_policy_evaluation_store_for_tests()
 
@@ -325,7 +346,7 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
             },
         }
 
-    api_main.request_policy_sign_off_report_package_with_lotus_report = _fake_report_package
+    set_policy_report_package_client_for_tests(_FakePolicyReportPackageClient(_fake_report_package))
 
     with TestClient(app) as client:
         _activate_sg_pack(client)
@@ -440,7 +461,9 @@ def test_policy_report_package_unavailable_response_is_safe() -> None:
     def _unavailable_report_package(*, request: dict) -> dict:
         raise LotusReportUnavailableError("provider response leaked bearer token detail")
 
-    api_main.request_policy_sign_off_report_package_with_lotus_report = _unavailable_report_package
+    set_policy_report_package_client_for_tests(
+        _FakePolicyReportPackageClient(_unavailable_report_package)
+    )
 
     with TestClient(app) as client:
         _activate_sg_pack(client)
@@ -509,9 +532,7 @@ def test_policy_report_package_blocks_client_ready_document_request() -> None:
         assert blocked.json()["detail"] == "POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
 
 
-def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy(
-    monkeypatch,
-) -> None:
+def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy() -> None:
     captured_requests: list[dict] = []
 
     def _fake_policy_ai_evidence(**kwargs) -> PolicyAiEvidenceDraft:
@@ -535,11 +556,7 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy(
             review_guidance=("Review against immutable policy evaluation hash.",),
         )
 
-    monkeypatch.setattr(
-        policy_ai,
-        "generate_policy_evidence_summary_with_lotus_ai",
-        _fake_policy_ai_evidence,
-    )
+    set_policy_ai_evidence_client_for_tests(_FakePolicyAiEvidenceClient(_fake_policy_ai_evidence))
 
     with TestClient(app) as client:
         _activate_sg_pack(client)
@@ -705,19 +722,13 @@ def test_policy_ai_evidence_records_deterministic_unavailable_posture() -> None:
         assert body["evaluation"]["evaluation_hash"] == record["evaluation_hash"]
 
 
-def test_policy_ai_evidence_sanitizes_provider_detail_before_lineage(
-    monkeypatch,
-) -> None:
+def test_policy_ai_evidence_sanitizes_provider_detail_before_lineage() -> None:
     provider_detail = "policy evidence packet rejected with internal/provider text"
 
     def _unsafe_policy_ai_evidence(**kwargs) -> PolicyAiEvidenceDraft:
         raise LotusAIPolicyEvidenceUnavailableError(provider_detail)
 
-    monkeypatch.setattr(
-        policy_ai,
-        "generate_policy_evidence_summary_with_lotus_ai",
-        _unsafe_policy_ai_evidence,
-    )
+    set_policy_ai_evidence_client_for_tests(_FakePolicyAiEvidenceClient(_unsafe_policy_ai_evidence))
 
     with TestClient(app) as client:
         created = client.post(

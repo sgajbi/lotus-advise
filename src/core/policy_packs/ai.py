@@ -6,8 +6,10 @@ from typing import Any
 from src.core.common.canonical import hash_canonical_payload
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.policy_packs.ai_models import (
+    LotusAIPolicyEvidenceUnavailableError,
     PolicyEvaluationAiEvidenceRequest,
     PolicyEvaluationAiEvidenceResponse,
+    build_policy_ai_unavailable_evidence,
 )
 from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
@@ -18,15 +20,11 @@ from src.core.policy_packs.persistence_models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationRecord,
 )
+from src.core.policy_packs.ports import PolicyAiEvidenceClient
 from src.core.policy_packs.workflow import get_policy_evaluation_workflow
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalValidationError,
-)
-from src.integrations.lotus_ai import (
-    LotusAIPolicyEvidenceUnavailableError,
-    build_policy_ai_unavailable_evidence,
-    generate_policy_evidence_summary_with_lotus_ai,
 )
 
 _AI_CONTRACT_VERSION = "rfc0025.policy-ai-evidence-boundary.v1"
@@ -63,6 +61,7 @@ def request_policy_evaluation_ai_evidence(
     *,
     evaluation_id: str,
     payload: PolicyEvaluationAiEvidenceRequest,
+    ai_client: PolicyAiEvidenceClient,
     idempotency_key: str | None = None,
 ) -> PolicyEvaluationAiEvidenceResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
@@ -93,7 +92,7 @@ def request_policy_evaluation_ai_evidence(
         requested_actions=requested_actions,
     )
     try:
-        draft = generate_policy_evidence_summary_with_lotus_ai(
+        draft = ai_client.generate_policy_evidence_summary(
             policy_evidence=evidence_packet,
             requested_actions=requested_actions,
             requested_by=payload.requested_by,
