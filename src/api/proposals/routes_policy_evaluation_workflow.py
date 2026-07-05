@@ -17,8 +17,6 @@ from src.core.policy_packs import (
     PolicyEvaluationSignOffDecisionRequest,
     PolicyEvaluationSignOffDecisionResponse,
     PolicyEvaluationWorkflowResponse,
-    get_policy_evaluation_workflow,
-    record_policy_evaluation_sign_off_decision,
 )
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 
@@ -41,7 +39,11 @@ def read_policy_evaluation_workflow(
 ) -> PolicyEvaluationWorkflowResponse:
     return cast(
         PolicyEvaluationWorkflowResponse,
-        run_proposal_operation(lambda: get_policy_evaluation_workflow(evaluation_id=evaluation_id)),
+        run_proposal_operation(
+            lambda: shared.get_policy_evidence_application_service().get_policy_evaluation_workflow(
+                evaluation_id=evaluation_id
+            )
+        ),
     )
 
 
@@ -81,8 +83,9 @@ def _record_policy_sign_off_decision_with_telemetry(
     payload: PolicyEvaluationSignOffDecisionRequest,
     idempotency_key: str,
 ) -> PolicyEvaluationSignOffDecisionResponse:
+    service = shared.get_policy_evidence_application_service()
     try:
-        response = record_policy_evaluation_sign_off_decision(
+        response = service.record_policy_evaluation_sign_off_decision(
             evaluation_id=evaluation_id,
             payload=payload,
             idempotency_key=idempotency_key,

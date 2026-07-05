@@ -6,7 +6,10 @@ from src.core.policy_packs.ai_models import (
 from src.core.policy_packs.catalog import (
     PolicyPackCatalogStore,
     activate_policy_pack_version,
+    configure_policy_pack_catalog_repository,
+    get_policy_pack_catalog_repository,
     get_policy_pack_version,
+    list_policy_pack_events,
     list_policy_pack_versions,
     reset_policy_pack_catalog_for_tests,
     validate_policy_pack_version,
@@ -22,6 +25,12 @@ from src.core.policy_packs.catalog_models import (
     PolicyPackValidationResponse,
 )
 from src.core.policy_packs.diagnostics import get_policy_evaluation_diagnostics
+from src.core.policy_packs.durable_repositories import (
+    DurablePolicyEvaluationRepository,
+    DurablePolicyPackCatalogRepository,
+    InMemoryPolicyEvaluationStateStore,
+    InMemoryPolicyPackCatalogStateStore,
+)
 from src.core.policy_packs.evaluation import evaluate_policy_pack_version
 from src.core.policy_packs.evaluation_models import (
     PolicyPackApplicabilityResult,
@@ -30,9 +39,11 @@ from src.core.policy_packs.evaluation_models import (
 )
 from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
+    configure_policy_evaluation_repository,
     finalize_policy_evaluation_record,
     get_policy_evaluation_lineage,
     get_policy_evaluation_record,
+    get_policy_evaluation_repository,
     get_policy_evaluation_review_queue,
     get_policy_evaluation_sign_off_package,
     list_policy_evaluation_events,
@@ -79,6 +90,10 @@ __all__ = [
     "PolicyPackAuditEvent",
     "PolicyPackCatalogStore",
     "PolicyPackDetailResponse",
+    "DurablePolicyEvaluationRepository",
+    "DurablePolicyPackCatalogRepository",
+    "InMemoryPolicyEvaluationStateStore",
+    "InMemoryPolicyPackCatalogStateStore",
     "PolicyEvaluationAiEvidenceRequest",
     "PolicyEvaluationAiEvidenceResponse",
     "PolicyEvaluationAuditEvent",
@@ -107,15 +122,20 @@ __all__ = [
     "PolicyPackValidationResponse",
     "activate_policy_pack_version",
     "append_policy_evaluation_event",
+    "configure_policy_evaluation_repository",
+    "configure_policy_pack_catalog_repository",
     "evaluate_policy_pack_version",
     "finalize_policy_evaluation_record",
+    "get_policy_evaluation_repository",
     "get_policy_evaluation_lineage",
     "get_policy_evaluation_diagnostics",
+    "get_policy_pack_catalog_repository",
     "get_policy_pack_version",
     "get_policy_evaluation_record",
     "get_policy_evaluation_review_queue",
     "get_policy_evaluation_sign_off_package",
     "get_policy_evaluation_workflow",
+    "list_policy_pack_events",
     "list_policy_pack_versions",
     "list_policy_evaluation_events",
     "list_policy_evaluation_records",

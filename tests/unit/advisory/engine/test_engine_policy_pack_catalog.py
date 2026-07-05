@@ -3,9 +3,13 @@ from pathlib import Path
 import pytest
 
 from src.core.policy_packs import (
+    DurablePolicyPackCatalogRepository,
+    InMemoryPolicyPackCatalogStateStore,
     PolicyPackCatalogStore,
     activate_policy_pack_version,
+    configure_policy_pack_catalog_repository,
     get_policy_pack_version,
+    list_policy_pack_events,
     reset_policy_pack_catalog_for_tests,
     validate_policy_pack_version,
 )
@@ -191,6 +195,60 @@ def test_policy_pack_activation_enforces_hash_maker_checker_and_immutability() -
             idempotency_key="activate-again",
             reason={"purpose": "second activation should fail"},
         )
+
+
+def test_policy_pack_catalog_repository_port_survives_reinstantiation() -> None:
+    state_store = InMemoryPolicyPackCatalogStateStore()
+    configure_policy_pack_catalog_repository(
+        DurablePolicyPackCatalogRepository(state_store=state_store)
+    )
+    detail = get_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+    validation = validate_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        requested_by="policy_steward_1",
+        idempotency_key="validate-restart-catalog",
+        reason={"purpose": "restart catalog proof"},
+    )
+    activation = activate_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        activated_by="policy_checker_1",
+        source_content_hash=detail.policy_pack.content_hash,
+        idempotency_key="activate-restart-catalog",
+        reason={"purpose": "restart catalog proof"},
+    )
+
+    configure_policy_pack_catalog_repository(
+        DurablePolicyPackCatalogRepository(state_store=state_store)
+    )
+    reloaded = get_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+    events = list_policy_pack_events(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+    replayed_activation = activate_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        activated_by="policy_checker_1",
+        source_content_hash=detail.policy_pack.content_hash,
+        idempotency_key="activate-restart-catalog",
+        reason={"purpose": "restart catalog proof"},
+    )
+
+    assert reloaded.policy_pack.activation_state == "ACTIVE"
+    assert [event.event_id for event in events] == [
+        validation.validation_event.event_id,
+        activation.activation_event.event_id,
+    ]
+    assert replayed_activation.replayed is True
+    assert replayed_activation.activation_event.event_id == activation.activation_event.event_id
 
 
 def test_invalid_policy_pack_definition_fails_fast_with_diagnostics() -> None:

@@ -21,8 +21,6 @@ from src.core.policy_packs import (
     PolicyEvaluationCreateRequest,
     PolicyEvaluationEventRequest,
     PolicyEvaluationPersistenceResult,
-    append_policy_evaluation_event,
-    finalize_policy_evaluation_record,
 )
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 
@@ -98,15 +96,17 @@ def _create_or_replay_policy_evaluation_with_telemetry(
     idempotency_key: str,
 ) -> PolicyEvaluationPersistenceResult:
     try:
-        response = finalize_policy_evaluation_record(
-            evidence_bundle=payload.evidence_bundle,
-            policy_pack_id=payload.policy_pack_id,
-            policy_version=payload.policy_version,
-            proposal_id=proposal_id,
-            proposal_version_id=proposal_version_id,
-            created_by=payload.created_by,
-            idempotency_key=idempotency_key,
-            reason=payload.reason,
+        response = (
+            shared.get_policy_evidence_application_service().finalize_policy_evaluation_record(
+                evidence_bundle=payload.evidence_bundle,
+                policy_pack_id=payload.policy_pack_id,
+                policy_version=payload.policy_version,
+                proposal_id=proposal_id,
+                proposal_version_id=proposal_version_id,
+                created_by=payload.created_by,
+                idempotency_key=idempotency_key,
+                reason=payload.reason,
+            )
         )
     except ProposalIdempotencyConflictError:
         _record_policy_command_operation("create", "conflict", "idempotency")
@@ -129,7 +129,7 @@ def _record_policy_evaluation_event_with_telemetry(
     idempotency_key: str,
 ) -> PolicyEvaluationAuditEvent:
     try:
-        response = append_policy_evaluation_event(
+        response = shared.get_policy_evidence_application_service().append_policy_evaluation_event(
             evaluation_id=evaluation_id,
             event_type=payload.event_type,
             actor_id=payload.actor_id,

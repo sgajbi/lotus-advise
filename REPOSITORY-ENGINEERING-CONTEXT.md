@@ -120,9 +120,11 @@ Current repository posture:
    Slice 16 promotes `AdvisoryPolicyEvaluationRecord:v1` as an active advisor/compliance policy
    evidence product with current trust telemetry, `/platform/capabilities` feature/workflow
    posture, platform SLO/access/evidence-policy support, and durable README/wiki/RFC/context/
-   domain-product/trust telemetry closure truth. Completed approval/waiver authority, completed
-   sign-off authority, client-ready policy publication, external client communication, and full
-   RFC-0028 bank-demo/RFP package claims remain gated,
+   domain-product/trust telemetry closure truth. Runtime policy catalog/evaluation state is now
+   composed through policy repository ports and backed by the `policy_packs` Postgres migration
+   namespace for records, audit events, activation state, and idempotency maps. Completed
+   approval/waiver authority, completed sign-off authority, client-ready policy publication,
+   external client communication, and full RFC-0028 bank-demo/RFP package claims remain gated,
 8. RFC-0026 advisor cockpit first-wave scope is implemented for source-owned Advise evidence and
    cross-repo product consumption: the dedicated `src/core/advisor_cockpit/` package owns action
    construction, source-read-model aggregation, SLA/acknowledgement rules, supportability, and API

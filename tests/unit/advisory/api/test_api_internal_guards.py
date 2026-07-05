@@ -489,6 +489,29 @@ def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
     assert combined_source.count("run_proposal_operation(") == 11
 
 
+def test_policy_evaluation_routes_use_application_service_boundary():
+    route_paths = (
+        Path("src/api/proposals/routes_policy_packs.py"),
+        Path("src/api/proposals/routes_policy_evaluation_commands.py"),
+        Path("src/api/proposals/routes_policy_evaluation_packages.py"),
+        Path("src/api/proposals/routes_policy_evaluation_reads.py"),
+        Path("src/api/proposals/routes_policy_evaluation_workflow.py"),
+    )
+    combined_source = "\n".join(path.read_text(encoding="utf-8") for path in route_paths)
+
+    assert "get_policy_evidence_application_service()" in combined_source
+    for direct_import in (
+        "activate_policy_pack_version,",
+        "append_policy_evaluation_event,",
+        "finalize_policy_evaluation_record,",
+        "get_policy_evaluation_workflow,",
+        "request_policy_evaluation_report_package,",
+        "record_policy_evaluation_sign_off_decision,",
+        "validate_policy_pack_version,",
+    ):
+        assert direct_import not in combined_source
+
+
 def test_policy_evaluation_routes_use_shared_parameter_contracts():
     command_source = Path("src/api/proposals/routes_policy_evaluation_commands.py").read_text(
         encoding="utf-8"

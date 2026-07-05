@@ -11,6 +11,12 @@ import pytest
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import CashBalance, EngineOptions, PortfolioSnapshot
+from src.core.policy_packs import (
+    DurablePolicyEvaluationRepository,
+    DurablePolicyPackCatalogRepository,
+    InMemoryPolicyEvaluationStateStore,
+    InMemoryPolicyPackCatalogStateStore,
+)
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 
@@ -59,9 +65,21 @@ def base_options() -> EngineOptions:
 def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
     monkeypatch.setenv("PROPOSAL_POSTGRES_DSN", "postgresql://test:test@localhost:5432/proposals")
+    monkeypatch.setenv("POLICY_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv("POLICY_POSTGRES_DSN", "postgresql://test:test@localhost:5432/policy")
     monkeypatch.setattr(
         "src.runtime.proposal_repositories.PostgresProposalRepository",
         lambda **_kwargs: InMemoryProposalRepository(),
+    )
+    policy_evaluation_state = InMemoryPolicyEvaluationStateStore()
+    policy_catalog_state = InMemoryPolicyPackCatalogStateStore()
+    monkeypatch.setattr(
+        "src.runtime.policy_repositories.PostgresPolicyEvaluationRepository",
+        lambda **_kwargs: DurablePolicyEvaluationRepository(state_store=policy_evaluation_state),
+    )
+    monkeypatch.setattr(
+        "src.runtime.policy_repositories.PostgresPolicyPackCatalogRepository",
+        lambda **_kwargs: DurablePolicyPackCatalogRepository(state_store=policy_catalog_state),
     )
 
 

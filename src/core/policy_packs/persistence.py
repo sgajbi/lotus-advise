@@ -16,6 +16,7 @@ from src.core.policy_packs.projection_models import (
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,
 )
+from src.core.policy_packs.repositories import PolicyEvaluationRepository
 from src.core.policy_packs.supportability import (
     POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION,
 )
@@ -36,7 +37,7 @@ def finalize_policy_evaluation_record(
     reason: dict[str, Any] | None = None,
 ) -> PolicyEvaluationPersistenceResult:
     idempotency_key = require_proposal_idempotency_key(idempotency_key)
-    return _STORE.finalize_policy_evaluation_record(
+    return _repository().finalize_policy_evaluation_record(
         evidence_bundle=evidence_bundle,
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
@@ -49,30 +50,30 @@ def finalize_policy_evaluation_record(
 
 
 def get_policy_evaluation_record(*, evaluation_id: str) -> PolicyEvaluationRecord:
-    return _STORE.get_policy_evaluation_record(evaluation_id=evaluation_id)
+    return _repository().get_policy_evaluation_record(evaluation_id=evaluation_id)
 
 
 def list_policy_evaluation_records(
     *, evaluation_status: str | None = None, portfolio_id: str | None = None
 ) -> list[PolicyEvaluationRecord]:
-    return _STORE.list_policy_evaluation_records(
+    return _repository().list_policy_evaluation_records(
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
     )
 
 
 def list_policy_evaluation_events(*, evaluation_id: str) -> list[PolicyEvaluationAuditEvent]:
-    return _STORE.list_policy_evaluation_events(evaluation_id=evaluation_id)
+    return _repository().list_policy_evaluation_events(evaluation_id=evaluation_id)
 
 
 def get_policy_evaluation_lineage(*, evaluation_id: str) -> PolicyEvaluationLineageResponse:
-    return _STORE.get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+    return _repository().get_policy_evaluation_lineage(evaluation_id=evaluation_id)
 
 
 def get_policy_evaluation_review_queue(
     *, evaluation_status: str | None = "PENDING_REVIEW", portfolio_id: str | None = None
 ) -> PolicyEvaluationReviewQueueResponse:
-    return _STORE.get_policy_evaluation_review_queue(
+    return _repository().get_policy_evaluation_review_queue(
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
     )
@@ -81,7 +82,7 @@ def get_policy_evaluation_review_queue(
 def get_policy_evaluation_sign_off_package(
     *, evaluation_id: str
 ) -> PolicyEvaluationSignOffPackageResponse:
-    return _STORE.get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
+    return _repository().get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
 
 
 def append_policy_evaluation_event(
@@ -93,7 +94,7 @@ def append_policy_evaluation_event(
     idempotency_key: str | None = None,
 ) -> PolicyEvaluationAuditEvent:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    return _STORE.append_policy_evaluation_event(
+    return _repository().append_policy_evaluation_event(
         evaluation_id=evaluation_id,
         event_type=event_type,
         actor_id=actor_id,
@@ -105,14 +106,27 @@ def append_policy_evaluation_event(
 def replay_policy_evaluation_record(
     *, evaluation_id: str, evidence_bundle: dict[str, Any] | None = None
 ) -> PolicyEvaluationReplayResponse:
-    return _STORE.replay_policy_evaluation_record(
+    return _repository().replay_policy_evaluation_record(
         evaluation_id=evaluation_id,
         evidence_bundle=evidence_bundle,
     )
 
 
+def configure_policy_evaluation_repository(repository: PolicyEvaluationRepository) -> None:
+    global _REPOSITORY
+    _REPOSITORY = repository
+
+
+def get_policy_evaluation_repository() -> PolicyEvaluationRepository:
+    return _repository()
+
+
 def reset_policy_evaluation_store_for_tests() -> None:
-    _STORE.reset()
+    configure_policy_evaluation_repository(PolicyEvaluationRecordStore())
 
 
-_STORE = PolicyEvaluationRecordStore()
+def _repository() -> PolicyEvaluationRepository:
+    return _REPOSITORY
+
+
+_REPOSITORY: PolicyEvaluationRepository = PolicyEvaluationRecordStore()

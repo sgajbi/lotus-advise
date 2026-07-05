@@ -21,12 +21,6 @@ from src.core.policy_packs import (
     PolicyEvaluationReplayResponse,
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,
-    get_policy_evaluation_diagnostics,
-    get_policy_evaluation_lineage,
-    get_policy_evaluation_record,
-    get_policy_evaluation_review_queue,
-    get_policy_evaluation_sign_off_package,
-    replay_policy_evaluation_record,
 )
 
 
@@ -47,7 +41,7 @@ def read_policy_review_queue(
     evaluation_status: PolicyEvaluationStatusQuery = "PENDING_REVIEW",
     portfolio_id: PolicyEvaluationPortfolioIdQuery = None,
 ) -> PolicyEvaluationReviewQueueResponse:
-    return get_policy_evaluation_review_queue(
+    return shared.get_policy_evidence_application_service().get_policy_evaluation_review_queue(
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
     )
@@ -71,7 +65,11 @@ def read_policy_evaluation(
 ) -> PolicyEvaluationRecord:
     return cast(
         PolicyEvaluationRecord,
-        run_proposal_operation(lambda: get_policy_evaluation_record(evaluation_id=evaluation_id)),
+        run_proposal_operation(
+            lambda: shared.get_policy_evidence_application_service().get_policy_evaluation_record(
+                evaluation_id=evaluation_id
+            )
+        ),
     )
 
 
@@ -92,10 +90,11 @@ def replay_policy_evaluation(
     evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationReplayRequest,
 ) -> PolicyEvaluationReplayResponse:
+    service = shared.get_policy_evidence_application_service()
     return cast(
         PolicyEvaluationReplayResponse,
         run_proposal_operation(
-            lambda: replay_policy_evaluation_record(
+            lambda: service.replay_policy_evaluation_record(
                 evaluation_id=evaluation_id,
                 evidence_bundle=payload.evidence_bundle,
             )
@@ -120,7 +119,11 @@ def read_policy_evaluation_lineage(
 ) -> PolicyEvaluationLineageResponse:
     return cast(
         PolicyEvaluationLineageResponse,
-        run_proposal_operation(lambda: get_policy_evaluation_lineage(evaluation_id=evaluation_id)),
+        run_proposal_operation(
+            lambda: shared.get_policy_evidence_application_service().get_policy_evaluation_lineage(
+                evaluation_id=evaluation_id
+            )
+        ),
     )
 
 
@@ -140,10 +143,11 @@ def read_policy_evaluation_lineage(
 def read_policy_evaluation_diagnostics(
     evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationDiagnosticsResponse:
+    service = shared.get_policy_evidence_application_service()
     return cast(
         PolicyEvaluationDiagnosticsResponse,
         run_proposal_operation(
-            lambda: get_policy_evaluation_diagnostics(evaluation_id=evaluation_id)
+            lambda: service.get_policy_evaluation_diagnostics(evaluation_id=evaluation_id)
         ),
     )
 
@@ -164,10 +168,11 @@ def read_policy_evaluation_diagnostics(
 def read_policy_sign_off_package(
     evaluation_id: PolicyEvaluationIdPath,
 ) -> PolicyEvaluationSignOffPackageResponse:
+    service = shared.get_policy_evidence_application_service()
     return cast(
         PolicyEvaluationSignOffPackageResponse,
         run_proposal_operation(
-            lambda: get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
+            lambda: service.get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
         ),
     )
 

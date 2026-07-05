@@ -6,11 +6,15 @@ from pathlib import Path
 import pytest
 
 from src.core.policy_packs import (
+    DurablePolicyEvaluationRepository,
+    InMemoryPolicyEvaluationStateStore,
     activate_policy_pack_version,
     append_policy_evaluation_event,
+    configure_policy_evaluation_repository,
     finalize_policy_evaluation_record,
     get_policy_evaluation_record,
     get_policy_pack_version,
+    list_policy_evaluation_events,
     list_policy_evaluation_records,
     replay_policy_evaluation_record,
     reset_policy_evaluation_store_for_tests,
@@ -239,6 +243,48 @@ def test_policy_evaluation_record_is_immutable_hash_backed_and_idempotent() -> N
     assert replayed.record.evaluation_id == created.record.evaluation_id
     assert duplicate_identity.created is False
     assert duplicate_identity.record.evaluation_id == created.record.evaluation_id
+
+
+def test_policy_evaluation_repository_port_survives_reinstantiation() -> None:
+    state_store = InMemoryPolicyEvaluationStateStore()
+    configure_policy_evaluation_repository(
+        DurablePolicyEvaluationRepository(state_store=state_store)
+    )
+    created = finalize_policy_evaluation_record(
+        evidence_bundle=_base_evidence_bundle(),
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_restart",
+        proposal_version_id="ppv_policy_restart",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-restart",
+        reason={"purpose": "restart proof"},
+    )
+    review = append_policy_evaluation_event(
+        evaluation_id=created.record.evaluation_id,
+        event_type="POLICY_EVALUATION_REVIEW_RECORDED",
+        actor_id="compliance_1",
+        idempotency_key="policy-eval-restart-review",
+        reason={"review_action": "REQUEST_MORE_EVIDENCE"},
+    )
+
+    configure_policy_evaluation_repository(
+        DurablePolicyEvaluationRepository(state_store=state_store)
+    )
+    reloaded = get_policy_evaluation_record(evaluation_id=created.record.evaluation_id)
+    events = list_policy_evaluation_events(evaluation_id=created.record.evaluation_id)
+    replayed_review = append_policy_evaluation_event(
+        evaluation_id=created.record.evaluation_id,
+        event_type="POLICY_EVALUATION_REVIEW_RECORDED",
+        actor_id="compliance_1",
+        idempotency_key="policy-eval-restart-review",
+        reason={"review_action": "REQUEST_MORE_EVIDENCE"},
+    )
+
+    assert reloaded.evaluation_id == created.record.evaluation_id
+    assert reloaded.evaluation_hash == created.record.evaluation_hash
+    assert [event.event_id for event in events] == ["peev_000001", review.event_id]
+    assert replayed_review.event_id == review.event_id
 
 
 def test_policy_evaluation_idempotency_rejects_payload_drift() -> None:
