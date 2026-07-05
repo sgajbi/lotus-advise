@@ -21,6 +21,7 @@ from src.core.policy_packs.catalog_models import (
     PolicyPackValidationRequest,
     PolicyPackValidationResponse,
 )
+from src.core.policy_packs.diagnostics import get_policy_evaluation_diagnostics
 from src.core.policy_packs.evaluation import evaluate_policy_pack_version
 from src.core.policy_packs.evaluation_models import (
     PolicyPackApplicabilityResult,
@@ -50,6 +51,7 @@ from src.core.policy_packs.persistence_models import (
     PolicyEvaluationReplayResponse,
 )
 from src.core.policy_packs.projection_models import (
+    PolicyEvaluationDiagnosticsResponse,
     PolicyEvaluationLineageResponse,
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,
@@ -81,6 +83,7 @@ __all__ = [
     "PolicyEvaluationAiEvidenceResponse",
     "PolicyEvaluationAuditEvent",
     "PolicyEvaluationCreateRequest",
+    "PolicyEvaluationDiagnosticsResponse",
     "PolicyEvaluationEventRequest",
     "PolicyEvaluationEventType",
     "PolicyEvaluationLineageResponse",
@@ -107,6 +110,7 @@ __all__ = [
     "evaluate_policy_pack_version",
     "finalize_policy_evaluation_record",
     "get_policy_evaluation_lineage",
+    "get_policy_evaluation_diagnostics",
     "get_policy_pack_version",
     "get_policy_evaluation_record",
     "get_policy_evaluation_review_queue",
