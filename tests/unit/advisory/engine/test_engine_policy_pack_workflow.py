@@ -239,6 +239,13 @@ def test_policy_workflow_projects_open_approval_disclosure_consent_and_sla_postu
     assert workflow.consent_requirements[0].status == "OPEN"
     assert workflow.sla_posture["open_requirement_count"] == 5
     assert workflow.conflict_posture["status"] == "SATISFIED"
+    assert workflow.metadata["product_id"] == ("lotus-advise:AdvisoryPolicyEvaluationRecord:v1")
+    assert workflow.metadata["generated_at"] == record.generated_at
+    assert workflow.metadata["content_hash"] == record.evaluation_hash
+    assert workflow.metadata["freshness_state"] == "current"
+    assert workflow.metadata["data_quality_status"] == "complete"
+    assert workflow.replay_metadata["source_evidence_hash"] == record.source_evidence_hash
+    assert workflow.replay_metadata["evaluation_hash"] == record.evaluation_hash
 
 
 def test_policy_sign_off_requires_maker_checker_and_all_requirements_resolved() -> None:

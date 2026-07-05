@@ -73,6 +73,11 @@ def build_policy_evaluation_workflow_projection(
         maker_checker_required=True,
         latest_sign_off_event=latest_sign_off,
         client_ready_publication=client_ready_publication,
+        metadata=workflow_lineage_metadata(
+            record=record,
+            client_ready_publication=client_ready_publication,
+        ),
+        replay_metadata=workflow_replay_metadata(record=record),
     )
 
 
@@ -305,6 +310,44 @@ def parse_datetime(value: str) -> datetime:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed
+
+
+def workflow_lineage_metadata(*, record: Any, client_ready_publication: str) -> dict[str, Any]:
+    return {
+        "product_id": "lotus-advise:AdvisoryPolicyEvaluationRecord:v1",
+        "product_version": "v1",
+        "source_system": "LOTUS_ADVISE",
+        "evaluation_id": record.evaluation_id,
+        "proposal_id": record.proposal_id,
+        "proposal_version_id": record.proposal_version_id,
+        "portfolio_id": record.portfolio_id,
+        "policy_pack_id": record.policy_pack_id,
+        "policy_version": record.policy_version,
+        "generated_at": record.generated_at,
+        "content_hash": record.evaluation_hash,
+        "evaluation_hash": record.evaluation_hash,
+        "source_evidence_hash": record.source_evidence_hash,
+        "policy_content_hash": record.policy_content_hash,
+        "freshness_state": "current",
+        "data_quality_status": "complete",
+        "client_ready_publication": client_ready_publication,
+    }
+
+
+def workflow_replay_metadata(*, record: Any) -> dict[str, Any]:
+    return {
+        "policy_pack_id": record.policy_pack_id,
+        "policy_version": record.policy_version,
+        "source_refs": list(record.source_refs),
+        "source_gaps": list(record.source_gaps),
+        "source_evidence_hash": record.source_evidence_hash,
+        "evaluation_hash": record.evaluation_hash,
+        "policy_content_hash": record.policy_content_hash,
+        "replay_policy": record.replay_metadata_json.get(
+            "replay_policy",
+            "EXACT_SOURCE_HASH_MATCH",
+        ),
+    }
 
 
 def unique(values: list[str]) -> list[str]:
