@@ -313,6 +313,7 @@ def parse_datetime(value: str) -> datetime:
 
 
 def workflow_lineage_metadata(*, record: Any, client_ready_publication: str) -> dict[str, Any]:
+    source_gaps = list(record.source_gaps)
     return {
         "product_id": "lotus-advise:AdvisoryPolicyEvaluationRecord:v1",
         "product_version": "v1",
@@ -329,7 +330,9 @@ def workflow_lineage_metadata(*, record: Any, client_ready_publication: str) -> 
         "source_evidence_hash": record.source_evidence_hash,
         "policy_content_hash": record.policy_content_hash,
         "freshness_state": "current",
-        "data_quality_status": "complete",
+        "data_quality_status": "incomplete" if source_gaps else "complete",
+        "source_gap_count": len(source_gaps),
+        "source_gaps": source_gaps,
         "client_ready_publication": client_ready_publication,
     }
 
