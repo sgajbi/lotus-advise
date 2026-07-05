@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
@@ -19,6 +20,7 @@ from src.core.policy_packs.ai_models import (
     LotusAIPolicyEvidenceUnavailableError,
     PolicyAiEvidenceDraft,
 )
+from src.core.policy_packs.workflow_projection import workflow_lineage_metadata
 from src.core.proposals.response_models import ProposalReportResponse
 from src.integrations.lotus_report import LotusReportUnavailableError
 from src.runtime.policy_evaluation_clients import (
@@ -275,7 +277,8 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
         assert workflow_body["metadata"]["generated_at"] == record["generated_at"]
         assert workflow_body["metadata"]["content_hash"] == record["evaluation_hash"]
         assert workflow_body["metadata"]["freshness_state"] == "current"
-        assert workflow_body["metadata"]["data_quality_status"] == "complete"
+        assert workflow_body["metadata"]["data_quality_status"] == "incomplete"
+        assert workflow_body["metadata"]["source_gap_count"] >= 1
         assert (
             workflow_body["replay_metadata"]["source_evidence_hash"]
             == (record["source_evidence_hash"])
@@ -330,6 +333,31 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
         )
         assert missing_key.status_code == 422
         assert missing_key.json()["detail"][0]["loc"] == ["header", "Idempotency-Key"]
+
+
+def test_policy_workflow_metadata_reports_incomplete_source_gaps() -> None:
+    record = SimpleNamespace(
+        evaluation_id="eval-gap",
+        proposal_id="proposal-gap",
+        proposal_version_id="version-gap",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        policy_pack_id="SG_ADVISORY_POLICY_PACK",
+        policy_version="2026.04",
+        generated_at="2026-04-10T00:00:00+00:00",
+        evaluation_hash="sha256:evaluation",
+        source_evidence_hash="sha256:source-evidence",
+        policy_content_hash="sha256:policy-content",
+        source_gaps=["MISSING_CLIENT_CONSENT"],
+    )
+
+    metadata = workflow_lineage_metadata(
+        record=record,
+        client_ready_publication="BLOCKED",
+    )
+
+    assert metadata["data_quality_status"] == "incomplete"
+    assert metadata["source_gap_count"] == 1
+    assert metadata["source_gaps"] == ["MISSING_CLIENT_CONSENT"]
 
 
 def test_policy_report_package_records_report_render_archive_refs_after_sign_off() -> None:
