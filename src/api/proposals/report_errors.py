@@ -13,10 +13,14 @@ _LotusReportOperationResult = TypeVar("_LotusReportOperationResult")
 
 def run_lotus_report_operation(
     operation: Callable[[], _LotusReportOperationResult],
+    *,
+    on_unavailable: Callable[[], None] | None = None,
 ) -> _LotusReportOperationResult:
     try:
         return operation()
     except LotusReportUnavailableError as exc:
+        if on_unavailable is not None:
+            on_unavailable()
         raise_lotus_report_unavailable_http_exception(exc)
 
 

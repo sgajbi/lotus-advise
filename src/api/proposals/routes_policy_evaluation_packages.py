@@ -3,6 +3,7 @@ from typing import cast
 from fastapi import status
 
 import src.api.proposals.router as shared
+from src.api.observability import record_policy_evaluation_operation
 from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.policy_evaluation_parameters import (
     PolicyEvaluationAiEvidenceIdempotencyKeyHeader,
@@ -22,6 +23,7 @@ from src.core.policy_packs import (
     request_policy_evaluation_ai_evidence,
     request_policy_evaluation_report_package,
 )
+from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 from src.core.proposals.identifiers import new_report_request_id
 from src.runtime.policy_evaluation_clients import (
     get_policy_ai_evidence_client,
@@ -52,14 +54,13 @@ def request_policy_report_package(
         PolicyEvaluationReportPackageResponse,
         run_lotus_report_operation(
             lambda: run_proposal_operation(
-                lambda: request_policy_evaluation_report_package(
+                lambda: _request_policy_report_package_with_telemetry(
                     evaluation_id=evaluation_id,
                     payload=payload,
-                    report_request_id=new_report_request_id(),
-                    report_client=get_policy_report_package_client(),
                     idempotency_key=idempotency_key,
                 )
-            )
+            ),
+            on_unavailable=_record_policy_report_unavailable,
         ),
     )
 
@@ -87,14 +88,107 @@ def request_policy_ai_evidence(
     return cast(
         PolicyEvaluationAiEvidenceResponse,
         run_proposal_operation(
-            lambda: request_policy_evaluation_ai_evidence(
+            lambda: _request_policy_ai_evidence_with_telemetry(
                 evaluation_id=evaluation_id,
                 payload=payload,
-                ai_client=get_policy_ai_evidence_client(),
                 idempotency_key=idempotency_key,
             )
         ),
     )
+
+
+def _request_policy_report_package_with_telemetry(
+    *,
+    evaluation_id: str,
+    payload: PolicyEvaluationReportPackageRequest,
+    idempotency_key: str,
+) -> PolicyEvaluationReportPackageResponse:
+    try:
+        response = request_policy_evaluation_report_package(
+            evaluation_id=evaluation_id,
+            payload=payload,
+            report_request_id=new_report_request_id(),
+            report_client=get_policy_report_package_client(),
+            idempotency_key=idempotency_key,
+        )
+    except ProposalIdempotencyConflictError:
+        _record_policy_package_operation("report_package_request", "conflict", "idempotency")
+        raise
+    except ProposalValidationError as exc:
+        _record_policy_package_operation(
+            "report_package_request",
+            "validation_blocked",
+            _policy_operation_reason(exc),
+        )
+        raise
+    _record_policy_package_operation(
+        "report_package_request",
+        "replay" if response.replayed else "success",
+        "replayed" if response.replayed else "recorded",
+        dependency="lotus_report",
+    )
+    return response
+
+
+def _record_policy_report_unavailable() -> None:
+    _record_policy_package_operation(
+        "report_package_request",
+        "dependency_unavailable",
+        "lotus_report_unavailable",
+        dependency="lotus_report",
+    )
+
+
+def _request_policy_ai_evidence_with_telemetry(
+    *,
+    evaluation_id: str,
+    payload: PolicyEvaluationAiEvidenceRequest,
+    idempotency_key: str,
+) -> PolicyEvaluationAiEvidenceResponse:
+    try:
+        response = request_policy_evaluation_ai_evidence(
+            evaluation_id=evaluation_id,
+            payload=payload,
+            ai_client=get_policy_ai_evidence_client(),
+            idempotency_key=idempotency_key,
+        )
+    except ProposalIdempotencyConflictError:
+        _record_policy_package_operation("ai_evidence_request", "conflict", "idempotency")
+        raise
+    except ProposalValidationError as exc:
+        _record_policy_package_operation(
+            "ai_evidence_request",
+            "validation_blocked",
+            _policy_operation_reason(exc),
+        )
+        raise
+    ai_status = str(response.policy_evidence.get("status") or "").lower()
+    _record_policy_package_operation(
+        "ai_evidence_request",
+        "replay" if response.replayed else ai_status or "success",
+        "replayed" if response.replayed else ai_status or "recorded",
+        dependency="lotus_ai",
+    )
+    return response
+
+
+def _record_policy_package_operation(
+    operation: str,
+    status: str,
+    reason: str,
+    *,
+    dependency: str = "none",
+) -> None:
+    record_policy_evaluation_operation(
+        operation=f"policy_evaluation.{operation}",
+        status=status,
+        reason=reason,
+        dependency=dependency,
+    )
+
+
+def _policy_operation_reason(exc: Exception) -> str:
+    return str(exc) or exc.__class__.__name__
 
 
 __all__ = [

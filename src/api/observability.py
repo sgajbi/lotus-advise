@@ -15,7 +15,10 @@ from prometheus_client import Counter
 from prometheus_fastapi_instrumentator import Instrumentator, routing
 from starlette.routing import Match, Mount
 
-from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
+from src.api.observability_contracts import (
+    ADVISORY_SUPPORTABILITY_METRIC_LABELS,
+    POLICY_EVALUATION_OPERATION_METRIC_LABELS,
+)
 from src.core.proposals.correlation import (
     normalize_optional_correlation_id,
     resolve_correlation_id,
@@ -29,6 +32,11 @@ ADVISORY_SUPPORTABILITY_TOTAL = Counter(
     "lotus_advise_advisory_supportability_total",
     "Count of advisory supportability posture evaluations.",
     ADVISORY_SUPPORTABILITY_METRIC_LABELS,
+)
+POLICY_EVALUATION_OPERATIONS_TOTAL = Counter(
+    "lotus_advise_policy_evaluation_operations_total",
+    "Count of policy-evaluation workflow operation outcomes.",
+    POLICY_EVALUATION_OPERATION_METRIC_LABELS,
 )
 
 _INSTRUMENTATOR_INCLUDE_CONTEXT_ROUTE_VERSION = Version("8.0.1")
@@ -175,6 +183,42 @@ def record_advisory_supportability(
         reason=reason,
         freshness_bucket=freshness_bucket,
     ).inc()
+
+
+def record_policy_evaluation_operation(
+    *,
+    operation: str,
+    status: str,
+    reason: str,
+    dependency: str = "none",
+) -> None:
+    safe_operation = _bounded_policy_operation_value(operation, default="unknown")
+    safe_status = _bounded_policy_operation_value(status, default="unknown")
+    safe_reason = _bounded_policy_operation_value(reason, default="unspecified")
+    safe_dependency = _bounded_policy_operation_value(dependency, default="none")
+    POLICY_EVALUATION_OPERATIONS_TOTAL.labels(
+        operation=safe_operation,
+        status=safe_status,
+        reason=safe_reason,
+        dependency=safe_dependency,
+    ).inc()
+    logging.getLogger("policy_evaluation.operations").info(
+        "policy_evaluation.operation",
+        extra={
+            "extra_fields": {
+                "operation": safe_operation,
+                "status": safe_status,
+                "reason": safe_reason,
+                "dependency": safe_dependency,
+            }
+        },
+    )
+
+
+def _bounded_policy_operation_value(value: str, *, default: str) -> str:
+    normalized = str(value or "").strip().lower().replace("-", "_").replace(".", "_")
+    normalized = "".join(char for char in normalized if char.isalnum() or char == "_")
+    return normalized[:80] or default
 
 
 def _install_instrumentator_route_compatibility() -> None:
