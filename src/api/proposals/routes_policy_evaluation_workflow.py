@@ -3,6 +3,7 @@ from typing import cast
 from fastapi import status
 
 import src.api.proposals.router as shared
+from src.api.observability import record_policy_evaluation_operation
 from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.policy_evaluation_parameters import (
     PolicyEvaluationIdPath,
@@ -19,6 +20,7 @@ from src.core.policy_packs import (
     get_policy_evaluation_workflow,
     record_policy_evaluation_sign_off_decision,
 )
+from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 
 
 @shared.router.get(
@@ -64,12 +66,47 @@ def record_policy_sign_off_decision(
     return cast(
         PolicyEvaluationSignOffDecisionResponse,
         run_proposal_operation(
-            lambda: record_policy_evaluation_sign_off_decision(
+            lambda: _record_policy_sign_off_decision_with_telemetry(
                 evaluation_id=evaluation_id,
                 payload=payload,
                 idempotency_key=idempotency_key,
             )
         ),
+    )
+
+
+def _record_policy_sign_off_decision_with_telemetry(
+    *,
+    evaluation_id: str,
+    payload: PolicyEvaluationSignOffDecisionRequest,
+    idempotency_key: str,
+) -> PolicyEvaluationSignOffDecisionResponse:
+    try:
+        response = record_policy_evaluation_sign_off_decision(
+            evaluation_id=evaluation_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+    except ProposalIdempotencyConflictError:
+        _record_policy_workflow_operation("sign_off_decision", "conflict", "idempotency")
+        raise
+    except ProposalValidationError as exc:
+        _record_policy_workflow_operation("sign_off_decision", "validation_blocked", str(exc))
+        raise
+    _record_policy_workflow_operation(
+        "sign_off_decision",
+        "success",
+        str(response.sign_off_event.reason_json.get("decision") or "recorded"),
+    )
+    return response
+
+
+def _record_policy_workflow_operation(operation: str, status: str, reason: str) -> None:
+    record_policy_evaluation_operation(
+        operation=f"policy_evaluation.{operation}",
+        status=status,
+        reason=reason,
+        dependency="none",
     )
 
 

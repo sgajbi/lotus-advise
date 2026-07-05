@@ -3,6 +3,7 @@ from typing import cast
 from fastapi import status
 
 import src.api.proposals.router as shared
+from src.api.observability import record_policy_evaluation_operation
 from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.policy_evaluation_parameters import (
     PolicyEvaluationEventIdempotencyKeyHeader,
@@ -23,6 +24,7 @@ from src.core.policy_packs import (
     append_policy_evaluation_event,
     finalize_policy_evaluation_record,
 )
+from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 
 
 @shared.router.post(
@@ -48,15 +50,11 @@ def create_or_replay_policy_evaluation(
     return cast(
         PolicyEvaluationPersistenceResult,
         run_proposal_operation(
-            lambda: finalize_policy_evaluation_record(
-                evidence_bundle=payload.evidence_bundle,
-                policy_pack_id=payload.policy_pack_id,
-                policy_version=payload.policy_version,
+            lambda: _create_or_replay_policy_evaluation_with_telemetry(
                 proposal_id=proposal_id,
                 proposal_version_id=proposal_version_id,
-                created_by=payload.created_by,
+                payload=payload,
                 idempotency_key=idempotency_key,
-                reason=payload.reason,
             )
         ),
     )
@@ -83,14 +81,77 @@ def record_policy_evaluation_event(
     return cast(
         PolicyEvaluationAuditEvent,
         run_proposal_operation(
-            lambda: append_policy_evaluation_event(
+            lambda: _record_policy_evaluation_event_with_telemetry(
                 evaluation_id=evaluation_id,
-                event_type=payload.event_type,
-                actor_id=payload.actor_id,
-                reason=payload.reason,
+                payload=payload,
                 idempotency_key=idempotency_key,
             )
         ),
+    )
+
+
+def _create_or_replay_policy_evaluation_with_telemetry(
+    *,
+    proposal_id: str,
+    proposal_version_id: str,
+    payload: PolicyEvaluationCreateRequest,
+    idempotency_key: str,
+) -> PolicyEvaluationPersistenceResult:
+    try:
+        response = finalize_policy_evaluation_record(
+            evidence_bundle=payload.evidence_bundle,
+            policy_pack_id=payload.policy_pack_id,
+            policy_version=payload.policy_version,
+            proposal_id=proposal_id,
+            proposal_version_id=proposal_version_id,
+            created_by=payload.created_by,
+            idempotency_key=idempotency_key,
+            reason=payload.reason,
+        )
+    except ProposalIdempotencyConflictError:
+        _record_policy_command_operation("create", "conflict", "idempotency")
+        raise
+    except ProposalValidationError as exc:
+        _record_policy_command_operation("create", "validation_blocked", str(exc))
+        raise
+    _record_policy_command_operation(
+        "create",
+        "replay" if response.replayed else "success",
+        "replayed" if response.replayed else "finalized",
+    )
+    return response
+
+
+def _record_policy_evaluation_event_with_telemetry(
+    *,
+    evaluation_id: str,
+    payload: PolicyEvaluationEventRequest,
+    idempotency_key: str,
+) -> PolicyEvaluationAuditEvent:
+    try:
+        response = append_policy_evaluation_event(
+            evaluation_id=evaluation_id,
+            event_type=payload.event_type,
+            actor_id=payload.actor_id,
+            reason=payload.reason,
+            idempotency_key=idempotency_key,
+        )
+    except ProposalIdempotencyConflictError:
+        _record_policy_command_operation("review_recorded", "conflict", "idempotency")
+        raise
+    except ProposalValidationError as exc:
+        _record_policy_command_operation("review_recorded", "validation_blocked", str(exc))
+        raise
+    _record_policy_command_operation("review_recorded", "success", "recorded")
+    return response
+
+
+def _record_policy_command_operation(operation: str, status: str, reason: str) -> None:
+    record_policy_evaluation_operation(
+        operation=f"policy_evaluation.{operation}",
+        status=status,
+        reason=reason,
+        dependency="none",
     )
 
 
