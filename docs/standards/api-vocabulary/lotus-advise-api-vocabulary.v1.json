@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-05T05:57:55.837058+00:00",
+  "generatedAt": "2026-07-05T10:35:07.236514+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -6884,6 +6884,7 @@
       ],
       "observedTypes": [
         "ProposalCreateMetadata",
+        "object",
         "BackendProofCaptureMetadata",
         "WorkspaceLifecycleHandoffMetadata"
       ]
@@ -39745,6 +39746,22 @@
             "type": "string",
             "semanticId": "lotus.client_ready_publication",
             "attributeRef": "#/attributeCatalog/lotus.client_ready_publication"
+          },
+          {
+            "name": "metadata",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.metadata",
+            "attributeRef": "#/attributeCatalog/lotus.metadata"
+          },
+          {
+            "name": "replay_metadata",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.replay_metadata",
+            "attributeRef": "#/attributeCatalog/lotus.replay_metadata"
           }
         ]
       }
@@ -40128,6 +40145,22 @@
             "type": "string",
             "semanticId": "lotus.client_ready_publication",
             "attributeRef": "#/attributeCatalog/lotus.client_ready_publication"
+          },
+          {
+            "name": "workflow.metadata",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.metadata",
+            "attributeRef": "#/attributeCatalog/lotus.metadata"
+          },
+          {
+            "name": "workflow.replay_metadata",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.replay_metadata",
+            "attributeRef": "#/attributeCatalog/lotus.replay_metadata"
           },
           {
             "name": "sign_off_event",
