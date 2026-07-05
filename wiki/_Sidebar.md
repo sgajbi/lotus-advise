@@ -1,4 +1,6 @@
-[Home](Home)
+# Lotus Advise Wiki Navigation
+
+- [Home](Home)
 
 ### Service
 - [Overview](Overview)
@@ -6,20 +8,23 @@
 - [Architecture](Architecture)
 - [Integrations](Integrations)
 
-### Product Surface
+### Product Surfaces
 - [API Surface](API-Surface)
 - [Supported Features](Supported-Features)
-- [Demo Readiness Guide](Demo-Readiness-Guide)
-- [Demo and Commercial Proof](Demo-and-Commercial-Proof)
 - [Proposal Lifecycle](Proposal-Lifecycle)
 - [Advisory Workspace](Advisory-Workspace)
 
-### Engineering
-- [Development Workflow](Development-Workflow)
-- [Validation and CI](Validation-and-CI)
-- [Operations Runbook](Operations-Runbook)
-- [Security and Governance](Security-and-Governance)
-- [Troubleshooting](Troubleshooting)
-- [RFC Index](RFC-Index)
+### Demo And Commercial Proof
+- [Demo Readiness Guide](Demo-Readiness-Guide)
+- [Demo and Commercial Proof](Demo-and-Commercial-Proof)
 
+### Operations And Support
+- [Operations Runbook](Operations-Runbook)
+- [Troubleshooting](Troubleshooting)
+- [Validation and CI](Validation-and-CI)
+
+### Engineering And Governance
+- [Development Workflow](Development-Workflow)
+- [Security and Governance](Security-and-Governance)
+- [RFC Index](RFC-Index)
 - [Mesh Data Products](Mesh-Data-Products)
