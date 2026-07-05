@@ -78,7 +78,7 @@ def create_or_replay_policy_evaluation(
 def record_policy_evaluation_event(
     evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationEventRequest,
-    idempotency_key: PolicyEvaluationEventIdempotencyKeyHeader = None,
+    idempotency_key: PolicyEvaluationEventIdempotencyKeyHeader,
 ) -> PolicyEvaluationAuditEvent:
     return cast(
         PolicyEvaluationAuditEvent,

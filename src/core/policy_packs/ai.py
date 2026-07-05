@@ -31,6 +31,14 @@ from src.integrations.lotus_ai import (
 
 _AI_CONTRACT_VERSION = "rfc0025.policy-ai-evidence-boundary.v1"
 _CLIENT_READY_PUBLICATION = "BLOCKED"
+_AI_FALLBACK_UNAVAILABLE = "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
+_AI_FALLBACK_REJECTED = "LOTUS_AI_POLICY_EVIDENCE_REJECTED"
+_SAFE_AI_FALLBACK_REASONS = frozenset(
+    {
+        _AI_FALLBACK_UNAVAILABLE,
+        _AI_FALLBACK_REJECTED,
+    }
+)
 _SUPPORTED_ACTIONS = {
     "SUMMARIZE_POLICY_POSTURE",
     "EXPLAIN_OPEN_REQUIREMENTS",
@@ -93,7 +101,7 @@ def request_policy_evaluation_ai_evidence(
         )
         ai_status = "REVIEW_REQUIRED"
     except LotusAIPolicyEvidenceUnavailableError as exc:
-        draft = build_policy_ai_unavailable_evidence(str(exc))
+        draft = build_policy_ai_unavailable_evidence(_safe_ai_fallback_reason(exc))
         ai_status = "UNAVAILABLE"
 
     reason = {
@@ -165,6 +173,13 @@ def _normalized_action_name(action: str) -> str:
 
 def _is_forbidden_ai_evidence_action(action: str) -> bool:
     return _is_unsupported_ai_evidence_action(action) or _contains_forbidden_action_fragment(action)
+
+
+def _safe_ai_fallback_reason(exc: LotusAIPolicyEvidenceUnavailableError) -> str:
+    reason = str(exc).strip()
+    if reason in _SAFE_AI_FALLBACK_REASONS:
+        return reason
+    return _AI_FALLBACK_UNAVAILABLE
 
 
 def _is_unsupported_ai_evidence_action(action: str) -> bool:
