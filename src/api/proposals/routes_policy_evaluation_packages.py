@@ -20,8 +20,6 @@ from src.core.policy_packs import (
     PolicyEvaluationAiEvidenceResponse,
     PolicyEvaluationReportPackageRequest,
     PolicyEvaluationReportPackageResponse,
-    request_policy_evaluation_ai_evidence,
-    request_policy_evaluation_report_package,
 )
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 from src.core.proposals.identifiers import new_report_request_id
@@ -103,8 +101,9 @@ def _request_policy_report_package_with_telemetry(
     payload: PolicyEvaluationReportPackageRequest,
     idempotency_key: str,
 ) -> PolicyEvaluationReportPackageResponse:
+    service = shared.get_policy_evidence_application_service()
     try:
-        response = request_policy_evaluation_report_package(
+        response = service.request_policy_evaluation_report_package(
             evaluation_id=evaluation_id,
             payload=payload,
             report_request_id=new_report_request_id(),
@@ -146,11 +145,13 @@ def _request_policy_ai_evidence_with_telemetry(
     idempotency_key: str,
 ) -> PolicyEvaluationAiEvidenceResponse:
     try:
-        response = request_policy_evaluation_ai_evidence(
-            evaluation_id=evaluation_id,
-            payload=payload,
-            ai_client=get_policy_ai_evidence_client(),
-            idempotency_key=idempotency_key,
+        response = (
+            shared.get_policy_evidence_application_service().request_policy_evaluation_ai_evidence(
+                evaluation_id=evaluation_id,
+                payload=payload,
+                ai_client=get_policy_ai_evidence_client(),
+                idempotency_key=idempotency_key,
+            )
         )
     except ProposalIdempotencyConflictError:
         _record_policy_package_operation("ai_evidence_request", "conflict", "idempotency")

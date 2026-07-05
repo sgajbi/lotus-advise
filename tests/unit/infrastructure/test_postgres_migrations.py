@@ -117,3 +117,28 @@ def test_apply_postgres_migrations_surfaces_unlock_failure_after_success(
         apply_postgres_migrations(connection=connection, namespace="proposals")
 
     assert connection.commits == 1
+
+
+def test_policy_pack_migration_namespace_declares_durable_state_tables() -> None:
+    migration_path = (
+        Path("src")
+        / "infrastructure"
+        / "postgres_migrations"
+        / "policy_packs"
+        / "0001_policy_pack_state.sql"
+    )
+    sql = migration_path.read_text(encoding="utf-8")
+
+    for table_name in (
+        "policy_evaluation_records",
+        "policy_evaluation_audit_events",
+        "policy_evaluation_idempotency",
+        "policy_pack_catalog_versions",
+        "policy_pack_catalog_audit_events",
+        "policy_pack_catalog_idempotency",
+    ):
+        assert f"CREATE TABLE IF NOT EXISTS {table_name}" in sql
+
+    assert "source_evidence_hash" in sql
+    assert "UNIQUE (" in sql
+    assert "ux_policy_pack_catalog_active_version" in sql

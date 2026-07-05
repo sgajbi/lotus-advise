@@ -23,10 +23,6 @@ from src.core.policy_packs import (
     PolicyPackListResponse,
     PolicyPackValidationRequest,
     PolicyPackValidationResponse,
-    activate_policy_pack_version,
-    get_policy_pack_version,
-    list_policy_pack_versions,
-    validate_policy_pack_version,
 )
 
 
@@ -45,7 +41,7 @@ from src.core.policy_packs import (
     responses=POLICY_PACK_LIST_RESPONSES,
 )
 def list_advisory_policy_packs() -> PolicyPackListResponse:
-    return list_policy_pack_versions()
+    return shared.get_policy_evidence_application_service().list_policy_pack_versions()
 
 
 @shared.router.get(
@@ -68,7 +64,7 @@ def get_advisory_policy_pack_version(
     return cast(
         PolicyPackDetailResponse,
         run_proposal_operation(
-            lambda: get_policy_pack_version(
+            lambda: shared.get_policy_evidence_application_service().get_policy_pack_version(
                 policy_pack_id=policy_pack_id,
                 policy_version=policy_version,
             )
@@ -98,7 +94,7 @@ def validate_advisory_policy_pack_version(
     return cast(
         PolicyPackValidationResponse,
         run_proposal_operation(
-            lambda: validate_policy_pack_version(
+            lambda: shared.get_policy_evidence_application_service().validate_policy_pack_version(
                 policy_pack_id=policy_pack_id,
                 policy_version=policy_version,
                 requested_by=payload.requested_by,
@@ -131,7 +127,7 @@ def activate_advisory_policy_pack_version(
     return cast(
         PolicyPackActivationResponse,
         run_proposal_operation(
-            lambda: activate_policy_pack_version(
+            lambda: shared.get_policy_evidence_application_service().activate_policy_pack_version(
                 policy_pack_id=policy_pack_id,
                 policy_version=policy_version,
                 activated_by=payload.activated_by,

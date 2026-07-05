@@ -135,7 +135,10 @@ That is the canonical local service identity for cross-app and demo-oriented flo
 
 ## Postgres Rollout Notes
 
-The active runtime direction is PostgreSQL-backed proposal lifecycle persistence.
+The active runtime direction is PostgreSQL-backed proposal lifecycle and policy evidence
+persistence. Proposal state uses the `proposals` migration namespace. Policy-pack catalog,
+policy-evaluation records, audit events, and idempotency maps use the `policy_packs` migration
+namespace and are composed through runtime repository ports.
 
 Operationally important commands from the rollout runbook:
 

@@ -43,11 +43,65 @@ class PolicyEvaluationRecordStore:
     def __init__(self) -> None:
         self.reset()
 
+    @classmethod
+    def from_snapshot(cls, snapshot: dict[str, Any]) -> PolicyEvaluationRecordStore:
+        store = cls()
+        store._records = {
+            evaluation_id: PolicyEvaluationRecord.model_validate(record)
+            for evaluation_id, record in snapshot.get("records", {}).items()
+        }
+        store._events = {
+            evaluation_id: [PolicyEvaluationAuditEvent.model_validate(event) for event in events]
+            for evaluation_id, events in snapshot.get("events", {}).items()
+        }
+        store._idempotency = {
+            str(item["idempotency_key"]): (
+                str(item["request_hash"]),
+                str(item["evaluation_id"]),
+                str(item["event_id"]),
+            )
+            for item in snapshot.get("idempotency", [])
+        }
+        store._identity_index = _identity_index_from_snapshot(snapshot.get("identity_index", []))
+        return store
+
     def reset(self) -> None:
         self._records: dict[str, PolicyEvaluationRecord] = {}
         self._events: dict[str, list[PolicyEvaluationAuditEvent]] = {}
         self._idempotency: dict[str, tuple[str, str, str]] = {}
         self._identity_index: dict[tuple[str, str, str, str, str], str] = {}
+
+    def snapshot(self) -> dict[str, Any]:
+        return {
+            "records": {
+                evaluation_id: record.model_dump(mode="json")
+                for evaluation_id, record in self._records.items()
+            },
+            "events": {
+                evaluation_id: [event.model_dump(mode="json") for event in events]
+                for evaluation_id, events in self._events.items()
+            },
+            "idempotency": [
+                {
+                    "idempotency_key": idempotency_key,
+                    "request_hash": request_hash,
+                    "evaluation_id": evaluation_id,
+                    "event_id": event_id,
+                }
+                for idempotency_key, (
+                    request_hash,
+                    evaluation_id,
+                    event_id,
+                ) in self._idempotency.items()
+            ],
+            "identity_index": [
+                {
+                    "identity": list(identity),
+                    "evaluation_id": evaluation_id,
+                }
+                for identity, evaluation_id in self._identity_index.items()
+            ],
+        }
 
     def finalize_policy_evaluation_record(
         self,
@@ -346,6 +400,26 @@ def _copied_policy_evaluation_records(
     records: list[PolicyEvaluationRecord],
 ) -> list[PolicyEvaluationRecord]:
     return [deepcopy(record) for record in records]
+
+
+def _identity_index_from_snapshot(
+    items: list[dict[str, Any]],
+) -> dict[tuple[str, str, str, str, str], str]:
+    index: dict[tuple[str, str, str, str, str], str] = {}
+    for item in items:
+        identity = [str(part) for part in item["identity"]]
+        if len(identity) != 5:
+            continue
+        index[
+            (
+                identity[0],
+                identity[1],
+                identity[2],
+                identity[3],
+                identity[4],
+            )
+        ] = str(item["evaluation_id"])
+    return index
 
 
 __all__ = ["PolicyEvaluationRecordStore"]

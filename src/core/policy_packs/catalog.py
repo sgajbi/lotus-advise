@@ -22,18 +22,19 @@ from src.core.policy_packs.catalog_models import (
 )
 from src.core.policy_packs.catalog_projection import build_policy_pack_detail_response
 from src.core.policy_packs.catalog_reference_packs import reference_policy_packs
+from src.core.policy_packs.repositories import PolicyPackCatalogRepository
 from src.core.proposals.exceptions import ProposalNotFoundError
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 
 
 def list_policy_pack_versions() -> PolicyPackListResponse:
-    return _STORE.list_policy_pack_versions()
+    return _repository().list_policy_pack_versions()
 
 
 def get_policy_pack_version(
     *, policy_pack_id: str, policy_version: str
 ) -> PolicyPackDetailResponse:
-    return _STORE.get_policy_pack_version(
+    return _repository().get_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
     )
@@ -48,7 +49,7 @@ def validate_policy_pack_version(
     reason: dict[str, Any],
 ) -> PolicyPackValidationResponse:
     idempotency_key = require_proposal_idempotency_key(idempotency_key)
-    return _STORE.validate_policy_pack_version(
+    return _repository().validate_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
         requested_by=requested_by,
@@ -67,7 +68,7 @@ def activate_policy_pack_version(
     reason: dict[str, Any],
 ) -> PolicyPackActivationResponse:
     idempotency_key = require_proposal_idempotency_key(idempotency_key)
-    return _STORE.activate_policy_pack_version(
+    return _repository().activate_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
         activated_by=activated_by,
@@ -77,14 +78,68 @@ def activate_policy_pack_version(
     )
 
 
+def list_policy_pack_events(
+    *, policy_pack_id: str, policy_version: str
+) -> list[PolicyPackAuditEvent]:
+    return _repository().list_policy_pack_events(
+        policy_pack_id=policy_pack_id,
+        policy_version=policy_version,
+    )
+
+
+def configure_policy_pack_catalog_repository(repository: PolicyPackCatalogRepository) -> None:
+    global _REPOSITORY
+    _REPOSITORY = repository
+
+
+def get_policy_pack_catalog_repository() -> PolicyPackCatalogRepository:
+    return _repository()
+
+
 def reset_policy_pack_catalog_for_tests() -> None:
-    _STORE.reset()
+    configure_policy_pack_catalog_repository(PolicyPackCatalogStore(reference_policy_packs()))
+
+
+def _repository() -> PolicyPackCatalogRepository:
+    return _REPOSITORY
 
 
 class PolicyPackCatalogStore:
     def __init__(self, definitions: list[dict[str, Any]]) -> None:
         self._source_definitions = deepcopy(definitions)
         self.reset()
+
+    @classmethod
+    def from_snapshot(cls, snapshot: dict[str, Any]) -> PolicyPackCatalogStore:
+        definitions = deepcopy(snapshot.get("definitions", [])) or reference_policy_packs()
+        store = cls(definitions)
+        store._events = {key: [] for key in store._definitions}
+        for item in snapshot.get("events", []):
+            event = PolicyPackAuditEvent.model_validate(item)
+            store._events.setdefault((event.policy_pack_id, event.policy_version), []).append(event)
+        event_index = {
+            (
+                event.policy_pack_id,
+                event.policy_version,
+                event.event_id,
+            ): event
+            for events in store._events.values()
+            for event in events
+        }
+        store._idempotency = {
+            str(item["idempotency_key"]): (
+                str(item["request_hash"]),
+                event_index[
+                    (
+                        str(item["policy_pack_id"]),
+                        str(item["policy_version"]),
+                        str(item["event_id"]),
+                    )
+                ],
+            )
+            for item in snapshot.get("idempotency", [])
+        }
+        return store
 
     def reset(self) -> None:
         self._definitions = {
@@ -95,6 +150,26 @@ class PolicyPackCatalogStore:
             key: [] for key in self._definitions
         }
         self._idempotency: dict[str, tuple[str, PolicyPackAuditEvent]] = {}
+
+    def snapshot(self) -> dict[str, Any]:
+        return {
+            "definitions": [deepcopy(definition) for definition in self._definitions.values()],
+            "events": [
+                event.model_dump(mode="json")
+                for events in self._events.values()
+                for event in events
+            ],
+            "idempotency": [
+                {
+                    "idempotency_key": idempotency_key,
+                    "request_hash": request_hash,
+                    "policy_pack_id": event.policy_pack_id,
+                    "policy_version": event.policy_version,
+                    "event_id": event.event_id,
+                }
+                for idempotency_key, (request_hash, event) in self._idempotency.items()
+            ],
+        }
 
     def list_policy_pack_versions(self) -> PolicyPackListResponse:
         return PolicyPackListResponse(
@@ -167,6 +242,12 @@ class PolicyPackCatalogStore:
             reason=reason,
         )
 
+    def list_policy_pack_events(
+        self, *, policy_pack_id: str, policy_version: str
+    ) -> list[PolicyPackAuditEvent]:
+        self._load_definition(policy_pack_id=policy_pack_id, policy_version=policy_version)
+        return [deepcopy(event) for event in self._events.get((policy_pack_id, policy_version), [])]
+
     def _load_definition(self, *, policy_pack_id: str, policy_version: str) -> dict[str, Any]:
         definition = self._definitions.get((policy_pack_id, policy_version))
         if definition is None:
@@ -177,4 +258,4 @@ class PolicyPackCatalogStore:
         return build_policy_pack_detail_response(definition=definition, events=self._events)
 
 
-_STORE = PolicyPackCatalogStore(reference_policy_packs())
+_REPOSITORY: PolicyPackCatalogRepository = PolicyPackCatalogStore(reference_policy_packs())

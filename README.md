@@ -101,8 +101,10 @@ Boundary rules that matter:
    discretionary portfolio-management workflows in `lotus-manage`, bounded to supplied eligible
    candidates and preserved lineage.
 6. `AdvisoryPolicyEvaluationRecord:v1` is an active advisor/compliance policy evidence product for
-   RFC-0025. Completed approval/waiver authority, completed sign-off authority, client-ready
-   policy publication, and external client communication remain gated.
+   RFC-0025. Runtime catalog, activation, audit, idempotency, and evaluation state is backed by
+   policy repository ports and the `policy_packs` Postgres migration namespace. Completed
+   approval/waiver authority, completed sign-off authority, client-ready policy publication, and
+   external client communication remain gated.
 7. `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active
    source-owned RFC-0026 advisor operating workflow products. They cover Advise action items,
    snapshot, supportability, acknowledgements, Gateway/Workbench consumption, and canonical

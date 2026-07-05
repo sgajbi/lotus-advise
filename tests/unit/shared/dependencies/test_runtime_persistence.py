@@ -22,6 +22,7 @@ def test_runtime_requires_advisory_postgres_backend(monkeypatch):
 def test_runtime_requires_advisory_postgres_dsn(monkeypatch):
     monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
     monkeypatch.delenv("PROPOSAL_POSTGRES_DSN", raising=False)
+    monkeypatch.delenv("POLICY_POSTGRES_DSN", raising=False)
 
     with pytest.raises(RuntimeError) as exc:
         validate_advisory_runtime_persistence()
@@ -33,6 +34,16 @@ def test_runtime_allows_postgres_backends(monkeypatch):
     monkeypatch.setenv("PROPOSAL_POSTGRES_DSN", "postgresql://u:p@localhost:5432/db")
 
     validate_advisory_runtime_persistence()
+
+
+def test_runtime_requires_policy_postgres_backend(monkeypatch):
+    monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv("PROPOSAL_POSTGRES_DSN", "postgresql://u:p@localhost:5432/db")
+    monkeypatch.setenv("POLICY_STORE_BACKEND", "IN_MEMORY")
+
+    with pytest.raises(RuntimeError) as exc:
+        validate_advisory_runtime_persistence()
+    assert str(exc.value) == "POLICY_STORE_BACKEND_UNSUPPORTED"
 
 
 def test_startup_fails_fast_for_advisory_backend(monkeypatch):

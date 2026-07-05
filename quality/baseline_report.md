@@ -1,16 +1,16 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-07-05T05:58:46.271579+00:00`
+- Generated At: `2026-07-05T06:36:18.913010+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `960`
-- Packages: `38`
-- Modules: `922`
-- Total Python lines: `156371`
+- Python files: `968`
+- Packages: `39`
+- Modules: `929`
+- Total Python lines: `157933`
 
 ## Largest Files
 
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `4055`
-- Radon complexity rank inventory: `A=4002, B=53`
+- Radon analyzed block inventory: `4255`
+- Radon complexity rank inventory: `A=4198, B=57`
 - Radon worst complexity: `rank=B, complexity=8`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -69,8 +69,8 @@
 ## Dead Code
 
 - Vulture config executable: `True`
-- Vulture current issue inventory: `143`
-- Vulture confidence inventory: `100%=137, 90%=6`
+- Vulture current issue inventory: `6`
+- Vulture confidence inventory: `90%=6`
 - Vulture remains report-only until validator false positives and compatibility
   facade imports are classified.
 - Current dead-code cleanup remains code-led through review-ledger slices.
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4516, missing=4481, covered=35, coverage=0.8%`
+- Interrogate docstring inventory: `total=4645, missing=4610, covered=35, coverage=0.8%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
