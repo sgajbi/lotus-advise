@@ -1,10 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, NoReturn, cast
 
 import httpx
 
+from src.core.policy_packs.ai_models import (
+    ADAPTER_VERSION,
+    WORKFLOW_PACK_ID,
+    WORKFLOW_PACK_VERSION,
+    WORKFLOW_SURFACE,
+    LotusAIPolicyEvidenceUnavailableError,
+    PolicyAiEvidenceDraft,
+    build_policy_ai_unavailable_evidence,
+)
 from src.integrations.lotus_ai.output_safety import (
     DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH,
     DEFAULT_AI_OUTPUT_SECTION_LIMIT,
@@ -24,10 +32,6 @@ from src.integrations.lotus_ai.workflow_response import (
 )
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
-ADAPTER_VERSION = "policy-evidence-lotus-ai-adapter.v1"
-WORKFLOW_PACK_ID = "policy_evidence_summary.pack"
-WORKFLOW_PACK_VERSION = "v1"
-WORKFLOW_SURFACE = "policy-evidence-summary"
 MAX_POLICY_AI_OUTPUT_SECTIONS = DEFAULT_AI_OUTPUT_SECTION_LIMIT
 MAX_POLICY_AI_SECTION_KEY_LENGTH = DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH
 MAX_POLICY_AI_SECTION_TITLE_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH
@@ -36,18 +40,12 @@ MAX_POLICY_AI_REVIEW_GUIDANCE_ITEMS = DEFAULT_AI_REVIEW_GUIDANCE_LIMIT
 MAX_POLICY_AI_REVIEW_GUIDANCE_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
 LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE = "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
 LOTUS_AI_POLICY_EVIDENCE_REJECTED = "LOTUS_AI_POLICY_EVIDENCE_REJECTED"
-
-
-class LotusAIPolicyEvidenceUnavailableError(Exception):
-    pass
-
-
-@dataclass(frozen=True)
-class PolicyAiEvidenceDraft:
-    status: str
-    sections: tuple[dict[str, Any], ...]
-    lineage: dict[str, Any]
-    review_guidance: tuple[str, ...]
+__all__ = [
+    "LotusAIPolicyEvidenceUnavailableError",
+    "PolicyAiEvidenceDraft",
+    "build_policy_ai_unavailable_evidence",
+    "generate_policy_evidence_summary_with_lotus_ai",
+]
 
 
 def generate_policy_evidence_summary_with_lotus_ai(
@@ -123,28 +121,6 @@ def _raise_policy_evidence_response_error(
     if status_code >= 500 or status_code in {408, 429}:
         raise LotusAIPolicyEvidenceUnavailableError(LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE)
     raise LotusAIPolicyEvidenceUnavailableError(LOTUS_AI_POLICY_EVIDENCE_REJECTED)
-
-
-def build_policy_ai_unavailable_evidence(reason: str) -> PolicyAiEvidenceDraft:
-    return PolicyAiEvidenceDraft(
-        status="UNAVAILABLE",
-        sections=(),
-        lineage={
-            "adapter_version": ADAPTER_VERSION,
-            "workflow_pack_id": WORKFLOW_PACK_ID,
-            "workflow_pack_version": WORKFLOW_PACK_VERSION,
-            "workflow_surface": WORKFLOW_SURFACE,
-            "workflow_run_id": None,
-            "model_version": None,
-            "fallback_reason": reason,
-        },
-        review_guidance=(
-            "AI policy evidence is unavailable; use persisted policy evaluation and sign-off "
-            "evidence only.",
-            "Do not infer missing approvals, disclosures, consents, waivers, suitability, "
-            "best-interest, or client-ready posture.",
-        ),
-    )
 
 
 def _build_workflow_pack_request(
