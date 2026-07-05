@@ -117,7 +117,7 @@ claim register and proof-pack evidence.
 
 Use:
 
-- `http://advise.dev.lotus`
+- [canonical local service identity](http://advise.dev.lotus)
 
 That is the canonical local service identity for cross-app and demo-oriented flows.
 

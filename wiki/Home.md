@@ -4,7 +4,36 @@
 
 It does not own canonical portfolio source data, risk methodology, performance methodology, or downstream execution. Those responsibilities stay with upstream or adjacent Lotus services and are consumed through governed integration boundaries.
 
-## Start Here
+## Current Scope And Evidence Posture
+
+The implemented surface is backend-owned advisory workflow and evidence production. Supported
+claims must trace to code, tests, RFCs, contracts, API routes, or generated proof artifacts in this
+repository. Client-ready publication, OMS execution, report rendering ownership, risk methodology,
+performance methodology, and canonical portfolio source authority remain outside `lotus-advise`
+unless a supported-feature page and implementation evidence say otherwise.
+
+## Reader Paths
+
+- Business and product readers: start with [Overview](Overview), [Supported Features](Supported-Features), and [Proposal Lifecycle](Proposal-Lifecycle).
+- Sales, pre-sales, and demo readers: use [Demo Readiness Guide](Demo-Readiness-Guide) and [Demo and Commercial Proof](Demo-and-Commercial-Proof).
+- Operations and support readers: use [Operations Runbook](Operations-Runbook), [Troubleshooting](Troubleshooting), and [Validation and CI](Validation-and-CI).
+- Engineering readers: use [Architecture](Architecture), [API Surface](API-Surface), [Integrations](Integrations), and [Development Workflow](Development-Workflow).
+- Agent and governance readers: use [Security and Governance](Security-and-Governance), [RFC Index](RFC-Index), and [Mesh Data Products](Mesh-Data-Products).
+
+## Common Commands
+
+- `make check`
+- `make demo-certification-live`
+- `python scripts/postgres_migrate.py --target all`
+- `python C:\Users\Sandeep\projects\lotus-platform\codex\skills\lotus-readme-wiki-governance\scripts\audit_wiki_quality.py --wiki-dir C:\Users\Sandeep\projects\lotus-advise\wiki`
+
+## Service Identity
+
+- Service: `lotus-advise`
+- API docs: `/docs`
+- Health probes: `/health`, `/health/live`, `/health/ready`
+
+## Navigation
 
 - [Overview](Overview)
 - [Getting Started](Getting-Started)
@@ -22,41 +51,14 @@ It does not own canonical portfolio source data, risk methodology, performance m
 - [Integrations](Integrations)
 - [Validation and CI](Validation-and-CI)
 - [RFC Index](RFC-Index)
-
-## Service Identity
-
-- Service: `lotus-advise`
-- API docs: `/docs`
-- Health probes:
-  - `/health`
-  - `/health/live`
-  - `/health/ready`
-
-## What This Service Owns
-
-- advisory proposal simulation orchestration
-- deterministic proposal artifact generation
-- persisted proposal lifecycle state and immutable versioning
-- approval and consent capture
-- delivery, reporting-request, and execution-handoff posture
-- workspace drafting, save/resume/compare, and lifecycle handoff
-- backend-owned proposal decision summary and proposal alternatives surfaces
-- source-owned tactical house-view affected cohorts for supplied source-backed candidates
-
-## What This Service Does Not Own
-
-- portfolio, holdings, cash, prices, FX, and instrument source authority
-- risk methodology and concentration analytics authority
-- performance analytics authority
-- report rendering ownership
-- execution ownership
-- discretionary portfolio-management campaigns or trade approval
+- [Mesh Data Products](Mesh-Data-Products)
 
 ## Grounding Sources
 
-- repo README
+- `README.md`
 - `docs/architecture/RFC-0082-upstream-contract-family-map.md`
 - `docs/demo/README.md`
 - `docs/operations/development-workflow-and-ci-strategy.md`
 - `docs/rfcs/README.md`
+- `contracts/domain-data-products/lotus-advise-products.v1.json`
 - FastAPI route families under `src/api/`
