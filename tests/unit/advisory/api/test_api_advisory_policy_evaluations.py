@@ -269,6 +269,18 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
         assert workflow_body["approval_dependencies"][0]["requirement_id"] == (
             "REVIEW_DISCLOSURE:SG_STRUCTURED_NOTE"
         )
+        assert workflow_body["metadata"]["product_id"] == (
+            "lotus-advise:AdvisoryPolicyEvaluationRecord:v1"
+        )
+        assert workflow_body["metadata"]["generated_at"] == record["generated_at"]
+        assert workflow_body["metadata"]["content_hash"] == record["evaluation_hash"]
+        assert workflow_body["metadata"]["freshness_state"] == "current"
+        assert workflow_body["metadata"]["data_quality_status"] == "complete"
+        assert (
+            workflow_body["replay_metadata"]["source_evidence_hash"]
+            == (record["source_evidence_hash"])
+        )
+        assert workflow_body["replay_metadata"]["evaluation_hash"] == record["evaluation_hash"]
 
         blocked = client.post(
             f"/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",

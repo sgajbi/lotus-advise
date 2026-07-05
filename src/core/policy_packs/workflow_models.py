@@ -111,6 +111,25 @@ class PolicyEvaluationWorkflowResponse(BaseModel):
         description="Client-ready publication boundary for this policy workflow.",
         examples=["BLOCKED"],
     )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Source-owned policy evaluation lineage metadata for downstream proof consumers."
+        ),
+        examples=[
+            {
+                "product_id": "lotus-advise:AdvisoryPolicyEvaluationRecord:v1",
+                "generated_at": "2026-05-26T01:00:00+00:00",
+                "content_hash": "sha256:policy-evaluation",
+                "freshness_state": "current",
+            }
+        ],
+    )
+    replay_metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Bounded replay metadata proving policy version, source refs, and hashes.",
+        examples=[{"replay_policy": "EXACT_SOURCE_HASH_MATCH"}],
+    )
 
 
 class PolicyEvaluationSignOffDecisionRequest(BaseModel):
