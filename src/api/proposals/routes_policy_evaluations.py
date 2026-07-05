@@ -9,6 +9,7 @@ Governance breadcrumbs for RFC evidence tests:
 - /advisory/policy-evaluations/review-queue
 - /advisory/policy-evaluations/{evaluation_id}
 - /advisory/policy-evaluations/{evaluation_id}/lineage
+- /advisory/policy-evaluations/{evaluation_id}/diagnostics
 - /advisory/policy-evaluations/{evaluation_id}/workflow
 - /advisory/policy-evaluations/{evaluation_id}/sign-off-package
 - /advisory/policy-evaluations/{evaluation_id}/sign-off-decisions

@@ -32,6 +32,18 @@ summary reports only bounded operational posture:
 metric exactly. Do not add portfolio, account, client, advisor, proposal, workspace, request,
 response, correlation, trace, transaction, security, or payload identifiers to this metric.
 
+## Policy Evaluation Diagnostics
+
+Use `GET /advisory/policy-evaluations/{evaluation_id}/diagnostics` when support needs one
+bounded view of policy-evaluation posture. The projection is derived from the finalized policy
+evaluation record and append-only audit events. It reports sign-off status, latest review,
+sign-off, report-package and AI evidence event summaries, report-package handoff posture, AI
+fallback posture, replay hashes, safe next action, and this runbook reference.
+
+Diagnostics must stay support-safe. Do not add raw source evidence, raw downstream report or AI
+payloads, prompt text, unrestricted exception details, credentials, trace identifiers, correlation
+identifiers, client secrets, or portfolio/account payloads to this endpoint.
+
 ## Advisor Cockpit Operations
 
 RFC-0026 cockpit supportability is exposed through `GET /advisory/cockpit/supportability` and

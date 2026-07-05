@@ -486,7 +486,7 @@ def test_policy_evaluation_routes_use_shared_proposal_error_boundary():
     assert "ProposalNotFoundError" not in combined_source
     assert "LotusReportUnavailableError" not in combined_source
     assert "run_lotus_report_operation" in package_source
-    assert combined_source.count("run_proposal_operation(") == 10
+    assert combined_source.count("run_proposal_operation(") == 11
 
 
 def test_policy_evaluation_routes_use_shared_parameter_contracts():

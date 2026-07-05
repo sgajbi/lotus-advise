@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-05T05:08:40.441440+00:00",
+  "generatedAt": "2026-07-05T05:57:55.837058+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -451,6 +451,22 @@
       "observedTypes": [
         "ProposalMemoAuditEvent",
         "PolicyEvaluationAuditEvent"
+      ]
+    },
+    {
+      "semanticId": "lotus.ai_evidence_posture",
+      "canonicalTerm": "ai_evidence_posture",
+      "preferredName": "ai_evidence_posture",
+      "description": "Safe AI evidence posture, fallback reason, and review guidance.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -3119,6 +3135,20 @@
       "observedTypes": [
         "DiagnosticsData",
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.diagnostics_contract_version",
+      "canonicalTerm": "diagnostics_contract_version",
+      "preferredName": "diagnostics_contract_version",
+      "description": "Diagnostics projection contract version.",
+      "example": "example_diagnostics_contract_version",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -5801,6 +5831,22 @@
         "to_state": "DRAFT",
         "actor_id": "ACTOR_001",
         "occurred_at": "example_occurred_at"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.latest_events",
+      "canonicalTerm": "latest_events",
+      "preferredName": "latest_events",
+      "description": "Safe latest review, sign-off, report, and AI event summaries.",
+      "example": {
+        "key": "sample_text"
       },
       "type": "object",
       "locations": [
@@ -9118,6 +9164,22 @@
       ]
     },
     {
+      "semanticId": "lotus.replay_posture",
+      "canonicalTerm": "replay_posture",
+      "preferredName": "replay_posture",
+      "description": "Hash and idempotency replay posture for support operators.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.replayed",
       "canonicalTerm": "replayed",
       "preferredName": "replayed",
@@ -10353,6 +10415,20 @@
       ]
     },
     {
+      "semanticId": "lotus.runbook_ref",
+      "canonicalTerm": "runbook_ref",
+      "preferredName": "runbook_ref",
+      "description": "Repository-authored runbook reference.",
+      "example": "example_runbook_ref",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.runtime_posture",
       "canonicalTerm": "runtime_posture",
       "preferredName": "runtime_posture",
@@ -10388,6 +10464,20 @@
       "preferredName": "runtime_state",
       "description": "Current lotus-ai runtime state for the workflow-pack run.",
       "example": "2026-03-02T10:30:00Z",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.safe_next_action",
+      "canonicalTerm": "safe_next_action",
+      "preferredName": "safe_next_action",
+      "description": "Bounded operator next action derived from current posture.",
+      "example": "example_safe_next_action",
       "type": "string",
       "locations": [
         "body"
@@ -10875,8 +10965,8 @@
       "semanticId": "lotus.sign_off_status",
       "canonicalTerm": "sign_off_status",
       "preferredName": "sign_off_status",
-      "description": "Current sign-off readiness after applying requirement and event evidence.",
-      "example": "READY_FOR_SIGN_OFF",
+      "description": "Current sign-off workflow posture.",
+      "example": "ACTIVE",
       "type": "string",
       "locations": [
         "body"
@@ -14111,6 +14201,18 @@
       "allowedValues": [],
       "semanticId": "lotus.portfolio_id",
       "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
+    },
+    {
+      "name": "evaluation_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Policy evaluation record identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.evaluation_id",
+      "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
     },
     {
       "name": "evaluation_id",
@@ -38814,6 +38916,117 @@
             "type": "object",
             "semanticId": "lotus.lineage_posture",
             "attributeRef": "#/attributeCatalog/lotus.lineage_posture"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_policy_evaluation",
+      "method": "GET",
+      "path": "/advisory/policy-evaluations/{evaluation_id}/diagnostics",
+      "operationId": "read_policy_evaluation_diagnostics_advisory_policy_evaluations__evaluation_id__diagnostics_get",
+      "summary": "Read Policy Evaluation Diagnostics",
+      "request": {
+        "fields": [
+          {
+            "name": "evaluation_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_id",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "evaluation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_id",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+          },
+          {
+            "name": "proposal_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "evaluation_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_status",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_status"
+          },
+          {
+            "name": "sign_off_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.sign_off_status",
+            "attributeRef": "#/attributeCatalog/lotus.sign_off_status"
+          },
+          {
+            "name": "latest_events",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.latest_events",
+            "attributeRef": "#/attributeCatalog/lotus.latest_events"
+          },
+          {
+            "name": "report_package_posture",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.report_package_posture",
+            "attributeRef": "#/attributeCatalog/lotus.report_package_posture"
+          },
+          {
+            "name": "ai_evidence_posture",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.ai_evidence_posture",
+            "attributeRef": "#/attributeCatalog/lotus.ai_evidence_posture"
+          },
+          {
+            "name": "replay_posture",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.replay_posture",
+            "attributeRef": "#/attributeCatalog/lotus.replay_posture"
+          },
+          {
+            "name": "safe_next_action",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.safe_next_action",
+            "attributeRef": "#/attributeCatalog/lotus.safe_next_action"
+          },
+          {
+            "name": "runbook_ref",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.runbook_ref",
+            "attributeRef": "#/attributeCatalog/lotus.runbook_ref"
+          },
+          {
+            "name": "diagnostics_contract_version",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.diagnostics_contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.diagnostics_contract_version"
           }
         ]
       }

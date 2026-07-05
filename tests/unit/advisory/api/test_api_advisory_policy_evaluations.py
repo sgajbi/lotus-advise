@@ -804,6 +804,86 @@ def test_policy_write_side_effect_routes_require_idempotency_key() -> None:
             assert response.json()["detail"][0]["loc"] == ["header", "Idempotency-Key"]
 
 
+def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
+    with TestClient(app) as client:
+        _activate_sg_pack(client)
+        created = client.post(
+            "/advisory/proposals/pp_policy_diag/versions/ppv_policy_diag/policy-evaluations",
+            json=_sg_pending_payload(),
+            headers={"Idempotency-Key": "api-policy-eval-diagnostics"},
+        )
+        assert created.status_code == 200
+        record = created.json()["record"]
+        evaluation_id = record["evaluation_id"]
+
+        no_report = client.get(f"/advisory/policy-evaluations/{evaluation_id}/diagnostics")
+        assert no_report.status_code == 200
+        no_report_body = no_report.json()
+        assert no_report_body["sign_off_status"] == "PENDING_REVIEW"
+        assert no_report_body["report_package_posture"]["status"] == "NO_REPORT_REQUEST"
+        assert no_report_body["ai_evidence_posture"]["status"] == "NO_AI_EVIDENCE_REQUEST"
+        assert no_report_body["safe_next_action"] == "RESOLVE_POLICY_SIGN_OFF_BLOCKERS"
+
+        report_event = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/events",
+            json={
+                "event_type": "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED",
+                "actor_id": "operations_1",
+                "reason": {
+                    "report_package_status": "RECORDED",
+                    "report_request_id": "rreq_diag_001",
+                    "report_package_id": "rjob_diag_001",
+                    "render": {"render_job_id": "rdr_diag_001"},
+                    "archive": {"document_id": "doc_diag_001"},
+                },
+            },
+            headers={"Idempotency-Key": "api-policy-diag-report"},
+        )
+        assert report_event.status_code == 200
+
+        ai_event = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/events",
+            json={
+                "event_type": "POLICY_EVALUATION_AI_EVIDENCE_RECORDED",
+                "actor_id": "policy_checker_1",
+                "reason": {
+                    "ai_status": "UNAVAILABLE",
+                    "lineage": {
+                        "fallback_reason": "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE",
+                    },
+                },
+            },
+            headers={"Idempotency-Key": "api-policy-diag-ai"},
+        )
+        assert ai_event.status_code == 200
+
+        diagnostics = client.get(f"/advisory/policy-evaluations/{evaluation_id}/diagnostics")
+        assert diagnostics.status_code == 200
+        body = diagnostics.json()
+        assert body["latest_events"]["report_package"]["event_type"] == (
+            "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED"
+        )
+        assert body["report_package_posture"]["report_request_id"] == "rreq_diag_001"
+        assert body["report_package_posture"]["render_present"] is True
+        assert body["report_package_posture"]["archive_present"] is True
+        assert body["ai_evidence_posture"]["status"] == "UNAVAILABLE"
+        assert body["ai_evidence_posture"]["fallback_reason"] == (
+            "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
+        )
+        assert body["runbook_ref"] == "wiki/Operations-Runbook.md#policy-evaluation-diagnostics"
+        serialized = str(body)
+        assert "provider response leaked" not in serialized
+        assert "prompt" not in serialized.lower()
+
+
+def test_policy_evaluation_diagnostics_returns_not_found_for_unknown_record() -> None:
+    with TestClient(app) as client:
+        response = client.get("/advisory/policy-evaluations/pev_missing/diagnostics")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "POLICY_EVALUATION_RECORD_NOT_FOUND"
+
+
 def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
     with TestClient(app) as client:
         _activate_sg_pack(client)

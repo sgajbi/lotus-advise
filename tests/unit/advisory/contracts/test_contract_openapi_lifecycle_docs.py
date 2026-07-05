@@ -824,8 +824,15 @@ def test_rfc0025_policy_report_package_route_is_canonical_and_error_documented()
 
     paths = openapi["paths"]
     policy_paths = sorted(path for path in paths if "/advisory/policy-evaluations" in path)
+    assert "/advisory/policy-evaluations/{evaluation_id}/diagnostics" in policy_paths
     assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in policy_paths
     assert "/advisory/policy-evaluations/{evaluation_id}/ai-evidence" in policy_paths
+
+    diagnostics = paths["/advisory/policy-evaluations/{evaluation_id}/diagnostics"]["get"]
+    assert diagnostics["summary"] == "Read Policy Evaluation Diagnostics"
+    assert "support-safe diagnostic projection" in diagnostics["description"]
+    assert "safe next-action" in diagnostics["description"]
+    assert diagnostics["tags"] == ["Advisory Policy Evaluation"]
 
     policy_report_package = paths["/advisory/policy-evaluations/{evaluation_id}/report-packages"][
         "post"

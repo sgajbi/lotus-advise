@@ -14,12 +14,14 @@ from src.api.proposals.policy_evaluation_responses import (
     POLICY_REVIEW_QUEUE_RESPONSES,
 )
 from src.core.policy_packs import (
+    PolicyEvaluationDiagnosticsResponse,
     PolicyEvaluationLineageResponse,
     PolicyEvaluationRecord,
     PolicyEvaluationReplayRequest,
     PolicyEvaluationReplayResponse,
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,
+    get_policy_evaluation_diagnostics,
     get_policy_evaluation_lineage,
     get_policy_evaluation_record,
     get_policy_evaluation_review_queue,
@@ -123,6 +125,30 @@ def read_policy_evaluation_lineage(
 
 
 @shared.router.get(
+    "/advisory/policy-evaluations/{evaluation_id}/diagnostics",
+    response_model=PolicyEvaluationDiagnosticsResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Policy Evaluation"],
+    summary="Read Policy Evaluation Diagnostics",
+    description=(
+        "Returns a support-safe diagnostic projection for one policy evaluation, including "
+        "sign-off, report-package, AI evidence, replay, safe next-action, and runbook posture "
+        "without exposing raw downstream payloads or source evidence."
+    ),
+    responses=POLICY_EVALUATION_READ_RESPONSES,
+)
+def read_policy_evaluation_diagnostics(
+    evaluation_id: PolicyEvaluationIdPath,
+) -> PolicyEvaluationDiagnosticsResponse:
+    return cast(
+        PolicyEvaluationDiagnosticsResponse,
+        run_proposal_operation(
+            lambda: get_policy_evaluation_diagnostics(evaluation_id=evaluation_id)
+        ),
+    )
+
+
+@shared.router.get(
     "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
     response_model=PolicyEvaluationSignOffPackageResponse,
     status_code=status.HTTP_200_OK,
@@ -147,6 +173,7 @@ def read_policy_sign_off_package(
 
 
 __all__ = [
+    "read_policy_evaluation_diagnostics",
     "read_policy_evaluation",
     "read_policy_evaluation_lineage",
     "read_policy_review_queue",

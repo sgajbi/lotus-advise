@@ -104,3 +104,33 @@ class PolicyEvaluationSignOffPackageResponse(BaseModel):
             }
         ],
     )
+
+
+class PolicyEvaluationDiagnosticsResponse(BaseModel):
+    evaluation_id: str = Field(description="Policy evaluation record identifier.")
+    proposal_id: str = Field(description="Proposal identifier.")
+    evaluation_status: str = Field(description="Current aggregate policy evaluation status.")
+    sign_off_status: str = Field(description="Current sign-off workflow posture.")
+    latest_events: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Safe latest review, sign-off, report, and AI event summaries.",
+    )
+    report_package_posture: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Safe report-package handoff posture and replay guidance.",
+    )
+    ai_evidence_posture: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Safe AI evidence posture, fallback reason, and review guidance.",
+    )
+    replay_posture: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Hash and idempotency replay posture for support operators.",
+    )
+    safe_next_action: str = Field(
+        description="Bounded operator next action derived from current posture."
+    )
+    runbook_ref: str = Field(description="Repository-authored runbook reference.")
+    diagnostics_contract_version: str = Field(
+        description="Diagnostics projection contract version."
+    )
