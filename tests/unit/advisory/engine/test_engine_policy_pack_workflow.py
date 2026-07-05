@@ -243,7 +243,9 @@ def test_policy_workflow_projects_open_approval_disclosure_consent_and_sla_postu
     assert workflow.metadata["generated_at"] == record.generated_at
     assert workflow.metadata["content_hash"] == record.evaluation_hash
     assert workflow.metadata["freshness_state"] == "current"
-    assert workflow.metadata["data_quality_status"] == "complete"
+    assert workflow.metadata["data_quality_status"] == "incomplete"
+    assert workflow.metadata["source_gap_count"] == len(record.source_gaps)
+    assert workflow.metadata["source_gaps"] == record.source_gaps
     assert workflow.replay_metadata["source_evidence_hash"] == record.source_evidence_hash
     assert workflow.replay_metadata["evaluation_hash"] == record.evaluation_hash
 
