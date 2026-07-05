@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-06-28T06:23:09.198132+00:00",
+  "generatedAt": "2026-07-05T05:08:40.441440+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -14032,9 +14032,9 @@
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "header",
-      "required": false,
-      "type": "object",
-      "description": "Optional idempotency key for replay-safe policy evaluation event capture. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
+      "required": true,
+      "type": "string",
+      "description": "Required idempotency key for replay-safe policy evaluation event capture. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
       "example": "STANDARD_TEXT",
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
@@ -14056,9 +14056,9 @@
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "header",
-      "required": false,
-      "type": "object",
-      "description": "Optional idempotency key for replay-safe policy report-package requests. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
+      "required": true,
+      "type": "string",
+      "description": "Required idempotency key for replay-safe policy report-package requests. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
       "example": "STANDARD_TEXT",
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
@@ -14080,9 +14080,9 @@
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "header",
-      "required": false,
-      "type": "object",
-      "description": "Optional idempotency key for replay-safe policy AI evidence requests. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
+      "required": true,
+      "type": "string",
+      "description": "Required idempotency key for replay-safe policy AI evidence requests. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
       "example": "STANDARD_TEXT",
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
@@ -14188,9 +14188,9 @@
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "header",
-      "required": false,
-      "type": "object",
-      "description": "Optional idempotency key for replay-safe policy sign-off decisions. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
+      "required": true,
+      "type": "string",
+      "description": "Required idempotency key for replay-safe policy sign-off decisions. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
       "example": "STANDARD_TEXT",
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
@@ -37060,8 +37060,8 @@
           {
             "name": "Idempotency-Key",
             "location": "header",
-            "required": false,
-            "type": "object",
+            "required": true,
+            "type": "string",
             "semanticId": "lotus.idempotency_key",
             "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
           },
@@ -37195,8 +37195,8 @@
           {
             "name": "Idempotency-Key",
             "location": "header",
-            "required": false,
-            "type": "object",
+            "required": true,
+            "type": "string",
             "semanticId": "lotus.idempotency_key",
             "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
           },
@@ -37738,8 +37738,8 @@
           {
             "name": "Idempotency-Key",
             "location": "header",
-            "required": false,
-            "type": "object",
+            "required": true,
+            "type": "string",
             "semanticId": "lotus.idempotency_key",
             "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
           },
@@ -39555,8 +39555,8 @@
           {
             "name": "Idempotency-Key",
             "location": "header",
-            "required": false,
-            "type": "object",
+            "required": true,
+            "type": "string",
             "semanticId": "lotus.idempotency_key",
             "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
           },

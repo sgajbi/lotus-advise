@@ -59,7 +59,7 @@ def read_policy_evaluation_workflow(
 def record_policy_sign_off_decision(
     evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationSignOffDecisionRequest,
-    idempotency_key: PolicyEvaluationSignOffDecisionIdempotencyKeyHeader = None,
+    idempotency_key: PolicyEvaluationSignOffDecisionIdempotencyKeyHeader,
 ) -> PolicyEvaluationSignOffDecisionResponse:
     return cast(
         PolicyEvaluationSignOffDecisionResponse,

@@ -18,7 +18,6 @@ from src.integrations.lotus_ai.output_safety import (
 from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
 from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
 from src.integrations.lotus_ai.workflow_response import (
-    extract_error_detail,
     extract_model_version,
     extract_workflow_run_id,
     safe_dict,
@@ -35,6 +34,8 @@ MAX_POLICY_AI_SECTION_TITLE_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH
 MAX_POLICY_AI_SECTION_TEXT_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH
 MAX_POLICY_AI_REVIEW_GUIDANCE_ITEMS = DEFAULT_AI_REVIEW_GUIDANCE_LIMIT
 MAX_POLICY_AI_REVIEW_GUIDANCE_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
+LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE = "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
+LOTUS_AI_POLICY_EVIDENCE_REJECTED = "LOTUS_AI_POLICY_EVIDENCE_REJECTED"
 
 
 class LotusAIPolicyEvidenceUnavailableError(Exception):
@@ -86,7 +87,7 @@ def _post_workflow_pack_request(
             )
             payload = safe_dict(response.json())
     except (httpx.HTTPError, ValueError) as exc:
-        raise LotusAIPolicyEvidenceUnavailableError("LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE") from exc
+        raise LotusAIPolicyEvidenceUnavailableError(LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE) from exc
     return response, payload
 
 
@@ -95,7 +96,7 @@ def _policy_evidence_summary_from_success(
 ) -> PolicyAiEvidenceDraft:
     execution = safe_dict(payload.get("execution"))
     if execution.get("status") != "COMPLETED":
-        raise LotusAIPolicyEvidenceUnavailableError("LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE")
+        raise LotusAIPolicyEvidenceUnavailableError(LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE)
     result = safe_dict(execution.get("result"))
     structured_output = safe_dict(result.get("structured_output"))
     return PolicyAiEvidenceDraft(
@@ -118,11 +119,10 @@ def _raise_policy_evidence_response_error(
     status_code: int,
     payload: dict[str, Any],
 ) -> NoReturn:
-    if status_code >= 500:
-        raise LotusAIPolicyEvidenceUnavailableError("LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE")
-    raise LotusAIPolicyEvidenceUnavailableError(
-        extract_error_detail(payload, default="LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE")
-    )
+    del payload
+    if status_code >= 500 or status_code in {408, 429}:
+        raise LotusAIPolicyEvidenceUnavailableError(LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE)
+    raise LotusAIPolicyEvidenceUnavailableError(LOTUS_AI_POLICY_EVIDENCE_REJECTED)
 
 
 def build_policy_ai_unavailable_evidence(reason: str) -> PolicyAiEvidenceDraft:
@@ -224,7 +224,7 @@ def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
         max_text_length=MAX_POLICY_AI_SECTION_TEXT_LENGTH,
     )
     if not sections:
-        raise LotusAIPolicyEvidenceUnavailableError("LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE")
+        raise LotusAIPolicyEvidenceUnavailableError(LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE)
     return sections
 
 

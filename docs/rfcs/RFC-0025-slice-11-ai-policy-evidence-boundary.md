@@ -68,6 +68,12 @@ Every AI evidence event records:
 8. authoritative-for-policy-status false,
 9. client-ready publication blocked.
 
+Fallback lineage uses Advise-owned bounded reason codes only. Transport failures, malformed
+responses, timeouts, rate limiting, and 5xx provider errors map to
+`LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE`; non-5xx workflow-pack rejection or validation failures map
+to `LOTUS_AI_POLICY_EVIDENCE_REJECTED`. Raw downstream `detail` text is not persisted in
+`lineage.fallback_reason` or returned through the public AI evidence response.
+
 AI output cannot change policy status, rule results, approvals, waivers, disclosures, consent
 posture, sign-off posture, report refs, or client-ready publication posture.
 

@@ -42,7 +42,7 @@ from src.core.proposals.identifiers import new_report_request_id
 def request_policy_report_package(
     evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationReportPackageRequest,
-    idempotency_key: PolicyEvaluationReportPackageIdempotencyKeyHeader = None,
+    idempotency_key: PolicyEvaluationReportPackageIdempotencyKeyHeader,
 ) -> PolicyEvaluationReportPackageResponse:
     return cast(
         PolicyEvaluationReportPackageResponse,
@@ -77,7 +77,7 @@ def request_policy_report_package(
 def request_policy_ai_evidence(
     evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationAiEvidenceRequest,
-    idempotency_key: PolicyEvaluationAiEvidenceIdempotencyKeyHeader = None,
+    idempotency_key: PolicyEvaluationAiEvidenceIdempotencyKeyHeader,
 ) -> PolicyEvaluationAiEvidenceResponse:
     return cast(
         PolicyEvaluationAiEvidenceResponse,

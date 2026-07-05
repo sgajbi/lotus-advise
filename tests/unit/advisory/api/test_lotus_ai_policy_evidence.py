@@ -352,13 +352,13 @@ def test_generate_policy_evidence_masks_non_object_provider_payload(
         ),
         (
             422,
-            {"detail": "policy evidence packet rejected"},
-            "policy evidence packet rejected",
+            {"detail": "policy evidence packet rejected with internal/provider text"},
+            "LOTUS_AI_POLICY_EVIDENCE_REJECTED",
         ),
         (
             400,
             {},
-            "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE",
+            "LOTUS_AI_POLICY_EVIDENCE_REJECTED",
         ),
     ],
 )
