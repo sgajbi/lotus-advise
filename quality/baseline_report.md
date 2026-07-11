@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-07-11T06:30:19.999069+00:00`
+- Generated At: `2026-07-11T06:41:29.735455+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `991`
 - Packages: `39`
 - Modules: `952`
-- Total Python lines: `164010`
+- Total Python lines: `164182`
 
 ## Largest Files
 
@@ -23,7 +23,7 @@
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 2434 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1703 |
-| 8 | `scripts/quality_baseline_report.py` | 1601 |
+| 8 | `scripts/quality_baseline_report.py` | 1605 |
 | 9 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1516 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1250 |
 
@@ -32,14 +32,14 @@
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
 | 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 58 | 489 |
-| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 803 | 482 |
+| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 805 | 484 |
 | 3 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
 | 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 92 | 297 |
 | 5 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 6 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 7 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 8 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1287 | 247 |
+| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1291 | 247 |
 | 10 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 
 ## Complexity
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `4438`
-- Radon complexity rank inventory: `A=4371, B=67`
+- Radon analyzed block inventory: `4441`
+- Radon complexity rank inventory: `A=4374, B=67`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -121,7 +121,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4874, missing=4835, covered=39, coverage=0.8%`
+- Interrogate docstring inventory: `total=4877, missing=4838, covered=39, coverage=0.8%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
@@ -131,6 +131,8 @@
 - Observability diagnostics target: `make observability-diagnostics`
 - Focused diagnostics currently verify correlation, request, trace,
   and structured-log propagation.
+- Request and audit telemetry use bounded route templates and operation names
+  instead of raw URL paths or resource identifiers.
 - Demo assurance gate: `make demo-assurance-gate` ties API governance,
   domain golden regressions, observability diagnostics, and domain-data
   product validation into a repeatable local evidence command.

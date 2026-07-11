@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-913
+
+- Scope: HTTP request and enterprise audit telemetry route labels
+- Pattern: Request logs, metric labels, dashboard dimensions, alert dimensions, and enterprise
+  audit action strings should use bounded route templates and stable operation names instead of
+  raw URL paths or business identifiers.
+- Status: Hardened
+- Finding Class: Observability, audit supportability, sensitive identifier control
+- Summary: GitHub issue #386 identified that request-completed logs and enterprise audit actions
+  emitted `request.url.path`. Parameterized routes can contain proposal ids, workspace ids, policy
+  evaluation ids, async operation ids, and other business identifiers, creating high-cardinality
+  and overexposed observability data.
+- Evidence:
+  - Added reusable `request_route_template()` and `http_operation_name()` helpers that resolve
+    bounded FastAPI route templates without falling back to raw paths for emitted telemetry.
+  - Request-completed logs now emit route-template `endpoint`, `route_template`,
+    `operation_name`, `http_status_code`, `http_status_class`, and latency.
+  - Enterprise audit middleware keeps raw request paths only for internal authorization rule
+    matching, while emitted action strings and metadata use bounded operation names/templates.
+  - Added observability tests covering proposal, workspace, and policy-evaluation parameterized
+    routes and proving raw identifiers are absent from emitted request log fields.
+  - Added enterprise audit tests proving parameterized write denials emit templated audit actions
+    and metadata without raw proposal identifiers.
+  - Updated observability docs and Operations wiki source with the allowed telemetry fields and
+    raw-path/resource-id prohibition for logs, metrics, dashboards, alerts, and audit actions.
+- Consequence:
+  - Operators can aggregate by stable operation names and status classes without leaking resource
+    identifiers or creating high-cardinality telemetry dimensions.
+- Documentation:
+  - Observability docs, Operations wiki source, generated quality reports, and review ledger
+    updated. Wiki source changed, so repo-wiki check is required before merge and publication is
+    required after merge.
+- Follow-Up:
+  - Continue the same lens for remaining dashboard, alert, SLO, and distributed-tracing evidence
+    issues. No cross-app ownership issue was raised because the raw path telemetry was owned by
+    `lotus-advise` HTTP and audit middleware.
+
 ## LA-REV-912
 
 - Scope: Advisor Cockpit acknowledgement hydration

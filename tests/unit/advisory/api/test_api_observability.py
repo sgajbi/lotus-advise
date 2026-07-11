@@ -32,6 +32,18 @@ def _observed_app() -> FastAPI:
             "trace_id": trace_id_var.get(),
         }
 
+    @app.get("/advisory/proposals/{proposal_id}")
+    def proposal_route(proposal_id: str) -> dict[str, str]:
+        return {"proposal_id": proposal_id}
+
+    @app.get("/advisory/workspaces/{workspace_id}")
+    def workspace_route(workspace_id: str) -> dict[str, str]:
+        return {"workspace_id": workspace_id}
+
+    @app.get("/advisory/policy-evaluations/{evaluation_id}/lineage")
+    def policy_lineage_route(evaluation_id: str) -> dict[str, str]:
+        return {"evaluation_id": evaluation_id}
+
     return app
 
 
@@ -45,6 +57,15 @@ class _ObservedRoute:
 
     def matches(self, scope: dict[str, object]) -> tuple[Match, dict[str, object]]:
         return Match.FULL, {}
+
+
+class _CaptureHandler(logging.Handler):
+    def __init__(self) -> None:
+        super().__init__()
+        self.records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
 
 
 def test_instrumentator_route_name_skips_pathless_route_markers() -> None:
@@ -137,6 +158,53 @@ def test_observability_middleware_rejects_unsafe_request_id_and_generates_safe_h
     assert re.fullmatch(r"[0-9a-f]{32}", response.headers["X-Trace-Id"])
 
 
+@pytest.mark.parametrize(
+    ("path", "route_template", "raw_identifier"),
+    [
+        (
+            "/advisory/proposals/proposal_sg_secret_001",
+            "/advisory/proposals/{proposal_id}",
+            "proposal_sg_secret_001",
+        ),
+        (
+            "/advisory/workspaces/workspace_secret_001",
+            "/advisory/workspaces/{workspace_id}",
+            "workspace_secret_001",
+        ),
+        (
+            "/advisory/policy-evaluations/policy_eval_secret_001/lineage",
+            "/advisory/policy-evaluations/{evaluation_id}/lineage",
+            "policy_eval_secret_001",
+        ),
+    ],
+)
+def test_request_completed_logs_use_route_templates_without_raw_identifiers(
+    path: str,
+    route_template: str,
+    raw_identifier: str,
+) -> None:
+    app = _observed_app()
+    capture = _CaptureHandler()
+    logger = logging.getLogger("http.access")
+    logger.addHandler(capture)
+
+    try:
+        with TestClient(app) as client:
+            response = client.get(path)
+    finally:
+        logger.removeHandler(capture)
+
+    assert response.status_code == 200
+    fields = _last_http_access_fields(capture.records)
+    assert fields["http_method"] == "GET"
+    assert fields["endpoint"] == route_template
+    assert fields["route_template"] == route_template
+    assert fields["operation_name"] == f"GET {route_template}"
+    assert fields["http_status_code"] == 200
+    assert fields["http_status_class"] == "2xx"
+    assert raw_identifier not in json.dumps(fields)
+
+
 def test_normalize_request_id_trims_meaningful_values() -> None:
     assert _normalize_request_id("  req-observability-trimmed  ") == "req-observability-trimmed"
 
@@ -174,3 +242,12 @@ def test_json_formatter_includes_context_and_structured_extra_fields() -> None:
     assert payload["trace_id"] == "trace-log"
     assert payload["endpoint"] == "/observed"
     assert payload["latency_ms"] == 12.34
+
+
+def _last_http_access_fields(records: list[logging.LogRecord]) -> dict[str, object]:
+    for record in reversed(records):
+        if record.name == "http.access" and record.getMessage() == "request.completed":
+            fields = getattr(record, "extra_fields", None)
+            if isinstance(fields, dict):
+                return fields
+    raise AssertionError("request.completed log was not emitted")
