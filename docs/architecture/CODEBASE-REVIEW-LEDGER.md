@@ -26273,3 +26273,31 @@
 - Follow-Up:
   - Continue hardening source OpenAPI examples under #383 where route-level display enrichment still
     needs to distinguish authored documentation from generated fallback text.
+
+## LA-REV-343
+
+- Scope: OpenAPI operation contract quality gate
+- Pattern: Display enrichment must not satisfy public-route contract-quality enforcement
+- Status: Hardened
+- Finding Class: API design governance, OpenAPI contract truth, and CI enforcement
+- Summary: The OpenAPI quality gate evaluated the already enriched schema, so a route missing
+  source-authored summary, description, tag, or error response could pass after enrichment generated
+  generic values such as `GET /path`, `GET operation for /path in lotus-advise.`, inferred tags, and
+  `Unexpected error response.`.
+- Evidence:
+  - `scripts/openapi_quality_gate.py` now treats enrichment-generated public operation summaries,
+    descriptions, inferred tags, and generic default error responses as missing contract metadata.
+  - Health and metrics endpoints remain explicitly exempt from artificial error-response
+    requirements to avoid infrastructure noise.
+  - Policy-pack list, advisory-copilot supportability, and bank-demo read routes now carry authored
+    response metadata instead of relying on generated defaults.
+  - Regression tests enrich an undocumented synthetic route and prove the quality gate still fails.
+- Consequence:
+  - Public route owners must author contract truth in source; Swagger readability helpers can no
+    longer hide missing API documentation or response semantics.
+- Documentation:
+  - Updated RFC-0067 baseline decisions, repository engineering context, API surface wiki, CI wiki,
+    and this ledger with the display-enrichment-versus-contract-quality rule.
+- Follow-Up:
+  - Continue scanning OpenAPI schema examples and route families for source-authored specificity as
+    new routes are added under RFC-0067.

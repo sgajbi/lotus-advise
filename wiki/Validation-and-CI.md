@@ -63,7 +63,10 @@ The current blocking posture is intentionally high-signal:
 2. `make typecheck`
    runs the repository mypy configuration.
 3. `make openapi-gate`
-   runs OpenAPI quality checks, lifecycle OpenAPI documentation tests, and the Spectral report.
+   runs OpenAPI quality checks, lifecycle OpenAPI documentation tests, and the Spectral report. The
+   quality gate distinguishes authored route contracts from Swagger display enrichment; generated
+   operation summaries, descriptions, inferred tags, and generic default errors do not satisfy the
+   public-route contract bar.
 4. `make no-alias-gate`
    blocks accidental compatibility aliases.
 5. `make api-vocabulary-gate`

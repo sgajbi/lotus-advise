@@ -65,3 +65,18 @@ Source of truth: `lotus-platform/rfcs/RFC-0067-centralized-api-vocabulary-invent
 - Consumer posture: public examples should use representative private-banking identifiers,
   source-system values, dates, hashes, money/rate values, enums, and object/list shapes without
   publishing real customer data.
+
+### OpenAPI Display Enrichment Versus Contract Quality
+
+- Date: 2026-07-11
+- Decision: Swagger/OpenAPI display enrichment may add readable defaults, but generated operation
+  summaries, generated operation descriptions, inferred tags, and generic default error responses
+  do not satisfy the OpenAPI quality gate for public routes.
+- Blocked patterns: summaries shaped as `GET /path`, descriptions shaped as
+  `GET operation for /path in lotus-advise.`, inferred public tags, and generic
+  `Unexpected error response.` defaults.
+- Guardrail: `scripts/openapi_quality_gate.py` treats those generated values as missing contract
+  documentation while allowing health/metrics infrastructure endpoints to avoid noisy artificial
+  error-response requirements.
+- Consumer posture: public routes must author meaningful summaries, descriptions, tags, and
+  response metadata in route source or response-metadata modules.

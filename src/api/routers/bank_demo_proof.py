@@ -13,6 +13,7 @@ from src.api.routers.bank_demo_proof_request import (
 )
 from src.api.routers.bank_demo_proof_responses import (
     BANK_DEMO_PROOF_PACK_RESPONSES,
+    BANK_DEMO_READ_RESPONSES,
 )
 from src.core.bank_demo_proof import (
     AdvisoryDemoScenarioContract,
@@ -37,6 +38,7 @@ router = APIRouter(prefix="/advisory/bank-demo-proof", tags=["Bank Demo Proof"])
         "and proof automation. The contract is source-owned by lotus-advise and does not imply "
         "client-ready publication or external client communication."
     ),
+    responses=BANK_DEMO_READ_RESPONSES,
 )
 def get_bank_demo_scenario_contract() -> AdvisoryDemoScenarioContract:
     return build_default_scenario_contract()
@@ -51,6 +53,7 @@ def get_bank_demo_scenario_contract() -> AdvisoryDemoScenarioContract:
         "Returns the source-owned RFC-0028 supported-claim register. Claim classifications and "
         "wording rules govern demo, wiki, screenshot, RFP, security, and one-pager usage."
     ),
+    responses=BANK_DEMO_READ_RESPONSES,
 )
 def get_bank_demo_supported_claim_register() -> AdvisorySupportedClaimRegister:
     return build_default_supported_claim_register()

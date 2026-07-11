@@ -6,6 +6,9 @@ from src.api.http_status import HTTP_422_UNPROCESSABLE
 
 POLICY_PACK_LIST_RESPONSES = {
     status.HTTP_200_OK: {"description": "Policy-pack catalog metadata returned."},
+    status.HTTP_500_INTERNAL_SERVER_ERROR: {
+        "description": "Policy-pack catalog could not be read from the Advise catalog service."
+    },
 }
 
 POLICY_PACK_NOT_FOUND_RESPONSE = {

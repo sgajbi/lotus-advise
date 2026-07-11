@@ -1,4 +1,5 @@
 from scripts.openapi_quality_gate import evaluate_schema
+from src.api.openapi_enrichment import enrich_openapi_schema
 
 
 def test_evaluate_schema_reports_missing_endpoint_and_schema_metadata() -> None:
@@ -94,3 +95,41 @@ def test_evaluate_schema_accepts_complete_operation_and_field_metadata() -> None
     }
 
     assert evaluate_schema(schema, service_name="lotus-advise") == []
+
+
+def test_evaluate_schema_rejects_enrichment_generated_operation_placeholders() -> None:
+    schema = {
+        "paths": {
+            "/advisory/demo": {
+                "get": {
+                    "operationId": "readDemo",
+                    "responses": {
+                        "200": {"description": "OK"},
+                    },
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "DemoResponse": {
+                    "properties": {
+                        "portfolio_id": {
+                            "type": "string",
+                            "description": "Portfolio identifier.",
+                            "example": "PB_SG_GLOBAL_BAL_001",
+                        },
+                    }
+                }
+            }
+        },
+    }
+
+    enriched = enrich_openapi_schema(schema, service_name="lotus-advise")
+
+    assert evaluate_schema(enriched, service_name="lotus-advise") == [
+        "OpenAPI quality gate (lotus-advise): missing endpoint documentation/response contract",
+        "  - GET /advisory/demo: missing summary",
+        "  - GET /advisory/demo: missing description",
+        "  - GET /advisory/demo: missing tags",
+        "  - GET /advisory/demo: missing error response (4xx/5xx/default)",
+    ]

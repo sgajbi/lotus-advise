@@ -11,6 +11,7 @@ from src.api.proposals.copilot_dependencies import (
 )
 from src.api.proposals.copilot_errors import (
     ADVISORY_COPILOT_RESPONSES,
+    ADVISORY_COPILOT_SUPPORTABILITY_RESPONSES,
     run_copilot_operation,
 )
 from src.api.proposals.copilot_parameters import (
@@ -222,6 +223,7 @@ def review_advisory_copilot_run(
         "Returns the current Advise-owned advisory copilot API supportability posture and "
         "explicit unsupported claim boundaries."
     ),
+    responses=ADVISORY_COPILOT_SUPPORTABILITY_RESPONSES,
 )
 def get_advisory_copilot_supportability() -> AdvisoryCopilotSupportabilityResponse:
     return build_advisory_copilot_supportability_response()
