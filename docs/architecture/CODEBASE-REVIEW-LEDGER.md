@@ -1,5 +1,48 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-918
+
+- Scope: PostgreSQL migration rollout and cutover evidence
+- Pattern: Migration SQL, runner targets, production cutover checks, and operator rollout evidence
+  must be governed by the same machine-readable contract so namespaces cannot silently fall out of
+  release validation.
+- Status: Hardened
+- Finding Class: Release rollout compatibility, persistence operability, and CI enforcement
+- Summary: GitHub issue #406 identified that the Postgres migration runbook lacked explicit
+  expand/migrate/contract evidence, lock/online behavior, backfill checkpoints, rollback limits,
+  and non-production rehearsal evidence. The implementation also found the `policy_packs` migration
+  namespace was present on disk and documented as durable policy state, but `--target all` and
+  production cutover validation covered only `proposals` and `advisory_copilot`.
+- Evidence:
+  - Added `docs/standards/postgres-migration-rollout-contract.v1.json` covering every checked-in
+    SQL migration across `proposals`, `advisory_copilot`, and `policy_packs`.
+  - Added `scripts/postgres_migration_rollout_contract.py` and
+    `make migration-rollout-contract-gate`; the gate validates SQL-file coverage, migration-runner
+    namespace coverage, rollout phase, old/new application compatibility, lock and online
+    behavior, backfill checkpoint/resume/quarantine posture, rollback limits, and rehearsal
+    metadata, then emits `output/postgres-migration-rollout-rehearsal.json`.
+  - Extended `scripts/postgres_migrate.py --target all` and per-namespace execution to include
+    `policy_packs` with `POLICY_POSTGRES_DSN` fallback behavior.
+  - Extended production cutover migration validation to check `policy_packs` using the policy DSN
+    when policy storage is separate.
+  - Added focused tests for current contract validity, missing migration metadata, missing rollback
+    metadata, unsafe index online-behavior documentation, missing runner namespace coverage,
+    rehearsal evidence emission, policy migration runner target coverage, and policy cutover DSN
+    selection.
+- Consequence:
+  - Future Postgres migration slices cannot add SQL or namespaces without explicit rollout and
+    rehearsal evidence, and policy-pack persistence can no longer be skipped by the shared migration
+    runner or production cutover check.
+- Documentation:
+  - Updated migration standard, rollout runbook, operations runbook, README, Operations wiki source,
+    Validation/CI wiki source, repository engineering context, generated quality reports, and this
+    ledger. Wiki source changed, so repo-wiki check is required before merge and publication is
+    required after merge.
+- Follow-Up:
+  - If a future large-table migration needs true online behavior, introduce
+    `CREATE INDEX CONCURRENTLY` support with transaction handling in the runner before documenting
+    the operation as concurrent.
+
 ## LA-REV-917
 
 - Scope: Advisory workflow SLO and capacity budgets

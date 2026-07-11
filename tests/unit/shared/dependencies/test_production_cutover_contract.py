@@ -39,9 +39,35 @@ def test_cutover_contract_checks_migrations_when_requested(monkeypatch):
 def test_cutover_contract_includes_copilot_persistence_migrations():
     assert "proposals" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
     assert "advisory_copilot" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
+    assert "policy_packs" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
     assert production_cutover_contract.expected_migration_versions(
         namespace="advisory_copilot"
     ) == ["0001", "0002", "0003"]
+    assert production_cutover_contract.expected_migration_versions(namespace="policy_packs") == [
+        "0001"
+    ]
+
+
+def test_cutover_contract_uses_policy_dsn_for_policy_namespace(monkeypatch):
+    monkeypatch.setattr(
+        production_cutover_contract,
+        "proposal_postgres_dsn",
+        lambda: "postgres://proposal",
+    )
+    monkeypatch.setattr(
+        production_cutover_contract,
+        "policy_postgres_dsn",
+        lambda: "postgres://policy",
+    )
+
+    assert (
+        production_cutover_contract.cutover_namespace_dsn(namespace="policy_packs")
+        == "postgres://policy"
+    )
+    assert (
+        production_cutover_contract.cutover_namespace_dsn(namespace="proposals")
+        == "postgres://proposal"
+    )
 
 
 def test_cutover_contract_propagates_runtime_failures(monkeypatch):

@@ -8,9 +8,11 @@ def test_postgres_migrate_all_includes_copilot_namespace() -> None:
         "all",
         proposals_dsn="postgres://proposal",
         advisory_copilot_dsn="postgres://copilot",
+        policy_packs_dsn="postgres://policy",
     ) == [
         ("proposals", "postgres://proposal"),
         ("advisory_copilot", "postgres://copilot"),
+        ("policy_packs", "postgres://policy"),
     ]
 
 
@@ -19,4 +21,14 @@ def test_postgres_migrate_can_apply_copilot_namespace_independently() -> None:
         "advisory_copilot",
         proposals_dsn="postgres://proposal",
         advisory_copilot_dsn="postgres://copilot",
+        policy_packs_dsn="postgres://policy",
     ) == [("advisory_copilot", "postgres://copilot")]
+
+
+def test_postgres_migrate_can_apply_policy_pack_namespace_independently() -> None:
+    assert _resolve_targets(
+        "policy_packs",
+        proposals_dsn="postgres://proposal",
+        advisory_copilot_dsn="postgres://copilot",
+        policy_packs_dsn="postgres://policy",
+    ) == [("policy_packs", "postgres://policy")]

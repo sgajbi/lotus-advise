@@ -296,8 +296,8 @@ Repo-native gate mapping:
   fast local quality gate
 - `make ci`
   PR-grade validation with dependency health, OpenAPI, vocabulary, no-alias governance, migration
-  smoke, release-image provenance, coverage, Docker build, Postgres runtime smoke, and
-  production-profile guardrail checks
+  rollout contract evidence, migration smoke, release-image provenance, coverage, Docker build,
+  Postgres runtime smoke, and production-profile guardrail checks
 - `make ci-local`
   local feature-lane proof
 - `make ci-local-docker`

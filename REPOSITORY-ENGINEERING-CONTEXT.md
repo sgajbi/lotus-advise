@@ -337,7 +337,13 @@ Important validation expectations:
 2. `make external-adapter-contracts` is the named consumer-contract lane for external adapters and
    is included in `make check`; it prevents fake-only adapter tests from drifting away from
    provider-compatible fixtures and adversarial failure-mode evidence,
-3. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
+3. migration rollout-contract validation, migration smoke, coverage, Docker build, Postgres
+   runtime smoke, and production-profile guardrail validation are part of the merge gate.
+   `make migration-rollout-contract-gate` must stay aligned with
+   `src/infrastructure/postgres_migrations`, `scripts/postgres_migrate.py --target all`, and
+   production cutover checks so `proposals`, `advisory_copilot`, and `policy_packs` remain covered
+   by rollout phase, compatibility-window, lock/online-behavior, backfill, rollback, and rehearsal
+   evidence,
 4. release-image provenance is part of the repo-native CI contract: `Dockerfile` must carry
    support-safe build args, OCI labels for commit/ref/repo/version/build/run metadata, and runtime
    `/version` parity; `make release-image-provenance-gate` blocks Dockerfile/Makefile drift; Main
