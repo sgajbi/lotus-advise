@@ -1,5 +1,6 @@
-import sys
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, TypeAlias
 
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.workspace.input_models import WorkspaceResolvedContext, WorkspaceStatefulInput
@@ -15,18 +16,42 @@ class LotusCoreResolvedAdvisoryContext:
     resolved_context: WorkspaceResolvedContext
 
 
+LotusCoreAdvisoryContextResolver: TypeAlias = Callable[
+    [WorkspaceStatefulInput],
+    LotusCoreResolvedAdvisoryContext | dict[str, Any],
+]
+
+_context_resolver: LotusCoreAdvisoryContextResolver | None = None
+
+
+def configure_lotus_core_advisory_context_resolver(
+    resolver: LotusCoreAdvisoryContextResolver | None,
+) -> None:
+    global _context_resolver
+    _context_resolver = resolver
+
+
+def get_lotus_core_advisory_context_resolver_for_tests() -> LotusCoreAdvisoryContextResolver | None:
+    return _context_resolver
+
+
+def reset_lotus_core_advisory_context_resolver_for_tests() -> None:
+    configure_lotus_core_advisory_context_resolver(None)
+
+
 def resolve_lotus_core_advisory_context(
     stateful_input: WorkspaceStatefulInput,
 ) -> LotusCoreResolvedAdvisoryContext:
-    main_module = sys.modules.get("src.api.main")
-    if main_module is None:
+    if _context_resolver is None:
         raise LotusCoreContextResolutionError("LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE")
 
-    override = getattr(main_module, "resolve_lotus_core_advisory_context", None)
-    if override is None:
-        raise LotusCoreContextResolutionError("LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE")
+    resolved_payload = _context_resolver(stateful_input)
+    return _coerce_resolved_advisory_context(resolved_payload)
 
-    resolved_payload = override(stateful_input)
+
+def _coerce_resolved_advisory_context(
+    resolved_payload: object,
+) -> LotusCoreResolvedAdvisoryContext:
     if isinstance(resolved_payload, LotusCoreResolvedAdvisoryContext):
         return resolved_payload
 

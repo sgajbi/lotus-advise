@@ -1,8 +1,7 @@
 import os
-import sys
 import time
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any, TypeAlias, cast
 
 import httpx
 
@@ -42,6 +41,52 @@ class LotusReportUnavailableError(Exception):
     pass
 
 
+LotusReportRequester: TypeAlias = Callable[..., ProposalReportResponse | dict[str, Any]]
+
+_proposal_report_requester: LotusReportRequester | None = None
+_memo_report_package_requester: LotusReportRequester | None = None
+_policy_sign_off_report_package_requester: LotusReportRequester | None = None
+
+
+def configure_proposal_report_requester_for_lotus_report(
+    requester: LotusReportRequester | None,
+) -> None:
+    global _proposal_report_requester
+    _proposal_report_requester = requester
+
+
+def configure_memo_report_package_requester_for_lotus_report(
+    requester: LotusReportRequester | None,
+) -> None:
+    global _memo_report_package_requester
+    _memo_report_package_requester = requester
+
+
+def configure_policy_sign_off_report_package_requester_for_lotus_report(
+    requester: LotusReportRequester | None,
+) -> None:
+    global _policy_sign_off_report_package_requester
+    _policy_sign_off_report_package_requester = requester
+
+
+def get_lotus_report_requesters_for_tests() -> tuple[
+    LotusReportRequester | None,
+    LotusReportRequester | None,
+    LotusReportRequester | None,
+]:
+    return (
+        _proposal_report_requester,
+        _memo_report_package_requester,
+        _policy_sign_off_report_package_requester,
+    )
+
+
+def reset_lotus_report_requesters_for_tests() -> None:
+    configure_proposal_report_requester_for_lotus_report(None)
+    configure_memo_report_package_requester_for_lotus_report(None)
+    configure_policy_sign_off_report_package_requester_for_lotus_report(None)
+
+
 def build_lotus_report_dependency_state() -> IntegrationDependencyState:
     return build_dependency_state(
         key="lotus_report",
@@ -52,12 +97,15 @@ def build_lotus_report_dependency_state() -> IntegrationDependencyState:
 
 
 def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> ProposalReportResponse:
-    main_module = sys.modules.get("src.api.main")
-    override = getattr(main_module, "request_proposal_report_with_lotus_report", None)
-    if override is not None:
-        response = override(request=request)
-        return cast(ProposalReportResponse, ProposalReportResponse.model_validate(response))
+    if _proposal_report_requester is not None:
+        return _coerce_report_response(_proposal_report_requester(request=request))
 
+    return request_proposal_report_with_lotus_report_http(request=request)
+
+
+def request_proposal_report_with_lotus_report_http(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
     base_url = _resolve_base_url()
     try:
         request_id = report_request_id(request)
@@ -96,12 +144,15 @@ def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> Pro
 def request_proposal_memo_report_package_with_lotus_report(
     *, request: dict[str, Any]
 ) -> ProposalReportResponse:
-    main_module = sys.modules.get("src.api.main")
-    override = getattr(main_module, "request_proposal_memo_report_package_with_lotus_report", None)
-    if override is not None:
-        response = override(request=request)
-        return cast(ProposalReportResponse, ProposalReportResponse.model_validate(response))
+    if _memo_report_package_requester is not None:
+        return _coerce_report_response(_memo_report_package_requester(request=request))
 
+    return request_proposal_memo_report_package_with_lotus_report_http(request=request)
+
+
+def request_proposal_memo_report_package_with_lotus_report_http(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
     base_url = _resolve_base_url()
     try:
         request_id = report_request_id(request)
@@ -145,14 +196,15 @@ def request_proposal_memo_report_package_with_lotus_report(
 def request_policy_sign_off_report_package_with_lotus_report(
     *, request: dict[str, Any]
 ) -> ProposalReportResponse:
-    main_module = sys.modules.get("src.api.main")
-    override = getattr(
-        main_module, "request_policy_sign_off_report_package_with_lotus_report", None
-    )
-    if override is not None:
-        response = override(request=request)
-        return cast(ProposalReportResponse, ProposalReportResponse.model_validate(response))
+    if _policy_sign_off_report_package_requester is not None:
+        return _coerce_report_response(_policy_sign_off_report_package_requester(request=request))
 
+    return request_policy_sign_off_report_package_with_lotus_report_http(request=request)
+
+
+def request_policy_sign_off_report_package_with_lotus_report_http(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
     base_url = _resolve_base_url()
     try:
         request_id = report_request_id(request)
@@ -289,7 +341,10 @@ def _resolve_status_poll_attempts() -> int:
 
 
 def _resolve_status_poll_backoff_seconds() -> float:
-    return env_positive_float("LOTUS_REPORT_STATUS_POLL_BACKOFF_SECONDS", default=0.0)
+    return cast(
+        float,
+        env_positive_float("LOTUS_REPORT_STATUS_POLL_BACKOFF_SECONDS", default=0.0),
+    )
 
 
 def _resolve_base_url() -> str:
@@ -311,3 +366,7 @@ def _project_response(
         return projector(**kwargs)
     except LotusReportRequestMappingError as exc:
         raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE") from exc
+
+
+def _coerce_report_response(response: object) -> ProposalReportResponse:
+    return cast(ProposalReportResponse, ProposalReportResponse.model_validate(response))

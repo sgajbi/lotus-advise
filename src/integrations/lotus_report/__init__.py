@@ -1,15 +1,31 @@
 from src.integrations.lotus_report.adapter import (
     LotusReportUnavailableError,
     build_lotus_report_dependency_state,
+    configure_memo_report_package_requester_for_lotus_report,
+    configure_policy_sign_off_report_package_requester_for_lotus_report,
+    configure_proposal_report_requester_for_lotus_report,
+    get_lotus_report_requesters_for_tests,
     request_policy_sign_off_report_package_with_lotus_report,
+    request_policy_sign_off_report_package_with_lotus_report_http,
     request_proposal_memo_report_package_with_lotus_report,
+    request_proposal_memo_report_package_with_lotus_report_http,
     request_proposal_report_with_lotus_report,
+    request_proposal_report_with_lotus_report_http,
+    reset_lotus_report_requesters_for_tests,
 )
 
 __all__ = [
     "LotusReportUnavailableError",
     "build_lotus_report_dependency_state",
+    "configure_memo_report_package_requester_for_lotus_report",
+    "configure_policy_sign_off_report_package_requester_for_lotus_report",
+    "configure_proposal_report_requester_for_lotus_report",
+    "get_lotus_report_requesters_for_tests",
     "request_policy_sign_off_report_package_with_lotus_report",
+    "request_policy_sign_off_report_package_with_lotus_report_http",
     "request_proposal_memo_report_package_with_lotus_report",
+    "request_proposal_memo_report_package_with_lotus_report_http",
     "request_proposal_report_with_lotus_report",
+    "request_proposal_report_with_lotus_report_http",
+    "reset_lotus_report_requesters_for_tests",
 ]

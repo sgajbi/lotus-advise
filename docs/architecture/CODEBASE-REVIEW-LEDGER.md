@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-905
+
+- Scope: Integration runtime composition for Lotus Core stateful context and Lotus Report requests
+- Pattern: Infrastructure integrations must consume explicit runtime ports instead of discovering
+  API-module globals or depending on FastAPI import order.
+- Status: Hardened
+- Finding Class: Runtime composition, architecture boundary, test determinism
+- Summary: GitHub issue #399 identified that `src/integrations/lotus_core/context_resolution.py`
+  read `sys.modules["src.api.main"]` to find the stateful context resolver. Same-pattern scanning
+  found `src/integrations/lotus_report/adapter.py` using the same hidden API-module lookup for
+  report request overrides. API, worker, and test startup behavior depended on whether the FastAPI
+  module had already been imported.
+- Evidence:
+  - `context_resolution.py` now exposes an explicit Lotus Core advisory context resolver port with
+    configure, reset, and getter helpers for runtime wiring and deterministic tests.
+  - `src/api/main.py` registers the production `resolve_stateful_context_with_lotus_core`
+    implementation through that port during API composition.
+  - `lotus_report/adapter.py` now exposes explicit requester ports plus HTTP implementations for
+    portfolio-review, memo report-package, and policy sign-off report-package requests. API startup
+    registers report request shims through those ports instead of relying on adapter-side API
+    discovery.
+  - Focused resolver tests prove unavailable, configured, invalid-payload, no integration
+    `sys.modules`/`src.api.main` usage, and API wiring behavior. Focused stateful proposal and
+    proposal lifecycle API tests prove compatibility with existing wrapper paths.
+- Consequence:
+  - Lotus Core stateful resolution and Lotus Report request behavior no longer have hidden API
+    import-order coupling. Application paths call integrations through stable ports, while tests
+    can override the behavior without mutating API module discovery state.
+- Documentation:
+  - Repository context, integration wiki, and review ledger updated. Wiki source changed, so repo
+    wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - Continue scanning runtime-composition issues for other infrastructure modules that reach back
+    into API modules or process-global import state instead of a configured port.
+
 ## LA-REV-904
 
 - Scope: Lotus Core stateful source completeness and dropped-row reconciliation
