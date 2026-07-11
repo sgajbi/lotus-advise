@@ -45,6 +45,13 @@ def _assert_governance_job_runs_baseline_freshness(workflow: str, job_id: str) -
     assert "run: make quality-baseline-check" in governance_section
 
 
+def _assert_governance_job_runs_trust_telemetry_freshness(workflow: str, job_id: str) -> None:
+    governance_section = _workflow_job_section(workflow, job_id)
+
+    assert "Trust Telemetry Freshness" in governance_section
+    assert "run: make trust-telemetry-freshness-gate" in governance_section
+
+
 def _makefile_target_dependencies(makefile: str, target: str) -> set[str]:
     prefix = f"{target}: "
     for line in makefile.splitlines():
@@ -58,6 +65,13 @@ def test_local_ci_targets_enforce_quality_baseline_freshness() -> None:
 
     for target in ("check", "ci", "ci-local"):
         assert "quality-baseline-check" in _makefile_target_dependencies(makefile, target)
+
+
+def test_local_ci_targets_enforce_trust_telemetry_freshness() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    for target in ("check", "ci", "ci-local"):
+        assert "trust-telemetry-freshness-gate" in _makefile_target_dependencies(makefile, target)
 
 
 def test_local_ci_targets_enforce_release_image_provenance_contract() -> None:
@@ -247,6 +261,9 @@ def _assert_governance_job_runs_demo_assurance_checks(workflow: str, job_id: str
     assert governance_section.index("Quality Baseline Freshness") < governance_section.index(
         "Checkout Lotus Platform Contracts"
     )
+    assert governance_section.index("Trust Telemetry Freshness") < governance_section.index(
+        "Checkout Lotus Platform Contracts"
+    )
     assert "Checkout Lotus Platform Contracts" in governance_section
     assert "repository: sgajbi/lotus-platform" in governance_section
     assert "path: lotus-platform" in governance_section
@@ -281,6 +298,7 @@ def test_feature_lane_unit_tests_run_in_parallel_with_static_governance() -> Non
 
     _assert_default_ci_guardrails(workflow)
     _assert_governance_job_runs_baseline_freshness(workflow, "lint-dependency-governance")
+    _assert_governance_job_runs_trust_telemetry_freshness(workflow, "lint-dependency-governance")
     _assert_governance_job_runs_demo_assurance_checks(workflow, "lint-dependency-governance")
     assert "Feature Lane / Tests (unit)" in unit_section
     assert "needs:" not in unit_section
@@ -296,6 +314,7 @@ def test_pr_and_main_runtime_jobs_are_parallelized_without_renaming_required_che
 
         _assert_default_ci_guardrails(workflow)
         _assert_governance_job_runs_baseline_freshness(workflow, "lint-typecheck-governance")
+        _assert_governance_job_runs_trust_telemetry_freshness(workflow, "lint-typecheck-governance")
         _assert_governance_job_runs_demo_assurance_checks(workflow, "lint-typecheck-governance")
         assert f"{lane_name} / Lint Typecheck Governance" in workflow
         assert f"{lane_name} / Tests (${{{{ matrix.suite }}}})" in workflow
@@ -385,6 +404,7 @@ def test_validation_wiki_documents_repo_native_ci_enforcement() -> None:
         "Main Releasability Gate",
         "Report-only quality evidence",
         "make quality-baseline-check",
+        "make trust-telemetry-freshness-gate",
         "make demo-assurance-gate",
         "make demo-certification-live",
         "make bandit-severity-regression-gate",

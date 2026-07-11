@@ -23,10 +23,27 @@ COPILOT_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-copilot-interaction-record.tel
 DECLARATION_PATH = (
     REPO_ROOT / "contracts" / "domain-data-products" / "lotus-advise-products.v1.json"
 )
+TRUST_TELEMETRY_REFERENCE_TIME_UTC = "2026-07-11T00:00:00Z"
+TRUST_TELEMETRY_BLOCK_REASON = "TRUST_TELEMETRY_STALE"
 
 
 def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _assert_stale_trust_telemetry_blocks_promotion(snapshot: dict[str, Any]) -> None:
+    freshness = snapshot["freshness"]
+
+    assert freshness["freshness_state"] == "stale"
+    assert freshness["evaluated_at_utc"] == TRUST_TELEMETRY_REFERENCE_TIME_UTC
+    assert freshness["age_seconds"] > freshness["max_allowed_age_seconds"]
+    assert snapshot["blocking"]["blocked"] is True
+    assert snapshot["blocking"]["blocked_reason"] == TRUST_TELEMETRY_BLOCK_REASON
+    assert (
+        snapshot["evidence"]["freshness_reference_time_utc"] == TRUST_TELEMETRY_REFERENCE_TIME_UTC
+    )
+    assert snapshot["evidence"]["repository_commit_sha"]
+    assert snapshot["evidence"]["validation_run_id"]
 
 
 def _load_platform_automation_module(module_name: str):
@@ -93,7 +110,7 @@ def test_advisory_proposal_lifecycle_trust_telemetry_is_tied_to_repo_declaration
         snapshot["lineage"]["evidence_access_class"]
         == (declared_product["lineage_policy"]["evidence_access_class_ref"])
     )
-    assert snapshot["blocking"]["blocked"] is False
+    _assert_stale_trust_telemetry_blocks_promotion(snapshot)
 
 
 def test_rfc0023_proposal_narrative_trust_telemetry_is_tied_to_repo_declaration() -> None:
@@ -121,7 +138,7 @@ def test_rfc0023_proposal_narrative_trust_telemetry_is_tied_to_repo_declaration(
         snapshot["lineage"]["evidence_access_class"]
         == (declared_product["lineage_policy"]["evidence_access_class_ref"])
     )
-    assert snapshot["blocking"]["blocked"] is False
+    _assert_stale_trust_telemetry_blocks_promotion(snapshot)
 
 
 def test_rfc0023_proposal_narrative_trust_telemetry_does_not_promote_client_ready() -> None:
@@ -166,7 +183,7 @@ def test_rfc0024_memo_trust_telemetry_is_tied_to_active_declaration() -> None:
         snapshot["lineage"]["evidence_access_class"]
         == declared_product["lineage_policy"]["evidence_access_class_ref"]
     )
-    assert snapshot["blocking"]["blocked"] is False
+    _assert_stale_trust_telemetry_blocks_promotion(snapshot)
 
 
 def test_rfc0024_memo_trust_telemetry_promotes_only_advisor_use_memo() -> None:
@@ -228,7 +245,7 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_active_and_tied_to_declara
         snapshot["freshness"]["freshness_class"]
         == declared_product["freshness_policy"]["freshness_class"]
     )
-    assert snapshot["freshness"]["freshness_state"] == "current"
+    _assert_stale_trust_telemetry_blocks_promotion(snapshot)
     assert snapshot["completeness_status"] == "complete"
     assert snapshot["data_quality_status"] == "quality_passed"
     assert set(snapshot["observed_trust_metadata"]) == set(
@@ -290,7 +307,6 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_active_and_tied_to_declara
         snapshot["lineage"]["evidence_access_class"]
         == declared_product["lineage_policy"]["evidence_access_class_ref"]
     )
-    assert snapshot["blocking"] == {"blocked": False}
     assert (
         "active advisor/compliance policy evidence data product"
         in (snapshot["evidence"]["claim_boundary"])
@@ -370,7 +386,7 @@ def test_rfc0026_cockpit_trust_telemetry_is_active_and_tied_to_declaration() -> 
             snapshot["freshness"]["freshness_class"]
             == declared_product["freshness_policy"]["freshness_class"]
         )
-        assert snapshot["freshness"]["freshness_state"] == "current"
+        _assert_stale_trust_telemetry_blocks_promotion(snapshot)
         assert snapshot["completeness_status"] == "complete"
         assert snapshot["data_quality_status"] == "quality_passed"
         assert set(snapshot["observed_trust_metadata"]) == set(
@@ -381,7 +397,6 @@ def test_rfc0026_cockpit_trust_telemetry_is_active_and_tied_to_declaration() -> 
             snapshot["lineage"]["evidence_access_class"]
             == declared_product["lineage_policy"]["evidence_access_class_ref"]
         )
-        assert snapshot["blocking"] == {"blocked": False}
         assert "canonical PB_SG_GLOBAL_BAL_001 live proof" in snapshot["evidence"]["claim_boundary"]
         assert "client-ready publication" in snapshot["evidence"]["claim_boundary"]
         assert "OMS order lifecycle" in snapshot["evidence"]["claim_boundary"]
@@ -416,7 +431,7 @@ def test_rfc0027_copilot_trust_telemetry_is_active_and_tied_to_declaration() -> 
         snapshot["freshness"]["freshness_class"]
         == declared_product["freshness_policy"]["freshness_class"]
     )
-    assert snapshot["freshness"]["freshness_state"] == "current"
+    _assert_stale_trust_telemetry_blocks_promotion(snapshot)
     assert snapshot["completeness_status"] == "complete"
     assert snapshot["data_quality_status"] == "quality_passed"
     assert set(snapshot["observed_trust_metadata"]) == set(
@@ -431,7 +446,6 @@ def test_rfc0027_copilot_trust_telemetry_is_active_and_tied_to_declaration() -> 
         "lotus-workbench://output/playwright/live-canonical/live-validation-summary.json#ADVISORY_COPILOT_CANONICAL_PROOF_CREATED"
         in snapshot["lineage"]["evidence_uris"]
     )
-    assert snapshot["blocking"] == {"blocked": False}
     assert (
         "reviewed internal advisor/reviewer copilot interaction product"
         in (snapshot["evidence"]["claim_boundary"])

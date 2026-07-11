@@ -77,5 +77,6 @@ def test_rfc0025_slice3_records_historical_proposed_blocked_posture() -> None:
         "/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
     ]
     assert product["completeness_policy"]["default_status"] == "complete"
-    assert telemetry["blocking"]["blocked"] is False
+    assert telemetry["blocking"]["blocked"] is True
+    assert telemetry["blocking"]["blocked_reason"] == "TRUST_TELEMETRY_STALE"
     assert telemetry["completeness_status"] == "complete"

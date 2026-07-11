@@ -20,7 +20,7 @@ For the fuller operator-facing matrix, use `wiki/Supported-Features.md`. For dem
 | Advisor cockpit | Supported for source-owned action items, operating snapshots, supportability, acknowledgements, Gateway/Workbench consumption, and canonical proof posture. | RFC-0026 tests and wiki supported-feature matrix. |
 | Advisory copilot | Supported for governed evidence packets, claim-level source grounding, guardrails, workflow-pack integration, run review, audit, retention, certified APIs, and product-realization proof. Unsupported or unverifiable AI claims remain not review-ready. | RFC-0027 tests and API contract evidence. |
 | Bank-demo proof | Supported for scenario contract, supported-claim register, sanitized proof-pack capture, commercial material pack, Gateway/Workbench proof surface, and blocked-claim governance. | RFC-0028 tests, `wiki/Demo-Readiness-Guide.md`, and `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md`. |
-| API governance | Enforced for OpenAPI quality, no-alias behavior, API vocabulary, domain data products, architecture boundaries, complexity regression, high-severity security findings, dependency-lock evidence, and license/IP release evidence. | `make check`, `make dependency-lock-gate`, `make license-ip-gate`, Feature Lane, PR Merge Gate, Main Releasability. |
+| API governance | Enforced for OpenAPI quality, no-alias behavior, API vocabulary, domain data products, trust telemetry freshness, architecture boundaries, complexity regression, high-severity security findings, dependency-lock evidence, and license/IP release evidence. | `make check`, `make trust-telemetry-freshness-gate`, `make dependency-lock-gate`, `make license-ip-gate`, Feature Lane, PR Merge Gate, Main Releasability. |
 
 ## Explicit Boundaries
 

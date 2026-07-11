@@ -72,7 +72,7 @@ Current repository posture:
    stateful source dependency path, advisor projection, advisor-use report/render/archive request
    posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and
    stale-hash/client-ready blocked paths. `AdvisoryProposalMemoEvidencePack:v1` is now an active
-   advisor-use data product with current repo-native trust telemetry, `/platform/capabilities`
+   advisor-use data product with freshness-gated repo-native trust telemetry, `/platform/capabilities`
    feature/workflow posture, and platform SLO/access/evidence-policy support. Final hardening adds
    canonical `PB_SG_GLOBAL_BAL_001` Workbench proof that the advisor journey and
    `proposal.memo_evidence_pack` panel are Gateway-backed. RFC-0024 is closed for advisor-use memo evidence with durable README/wiki/supported-features/RFC/context/domain-product/trust telemetry truth updated.
@@ -119,7 +119,7 @@ Current repository posture:
    Gateway/Workbench/report-handoff unsupported claims from code, OpenAPI/schema examples, and
    tests.
    Slice 16 promotes `AdvisoryPolicyEvaluationRecord:v1` as an active advisor/compliance policy
-   evidence product with current trust telemetry, `/platform/capabilities` feature/workflow
+   evidence product with freshness-gated trust telemetry, `/platform/capabilities` feature/workflow
    posture, platform SLO/access/evidence-policy support, and durable README/wiki/RFC/context/
    domain-product/trust telemetry closure truth. Runtime policy catalog/evaluation state is now
    composed through policy repository ports and backed by the `policy_packs` Postgres migration
@@ -335,9 +335,11 @@ Use these commands as the primary local contract:
    `make run`
 7. repo-native domain product gate
    `make domain-data-products-gate`
-8. quality evidence freshness gate
+8. trust telemetry freshness gate
+   `make trust-telemetry-freshness-gate`
+9. quality evidence freshness gate
    `make quality-baseline-check`
-9. live demo certification evidence
+10. live demo certification evidence
    `make demo-certification-live`
 
 ## Validation And CI Expectations
@@ -390,17 +392,21 @@ Important validation expectations:
 7. Dependency-lock posture is enforced through `make dependency-lock-gate`: `uv.lock` is the
    generated lock mirror for the current requirements install strategy and must match
    requirement-file hashes plus the license/IP dependency inventory hash,
-8. advisory workflow changes should be validated against canonical upstream posture,
-9. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-10. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+8. Trust telemetry freshness is enforced through `make trust-telemetry-freshness-gate`: committed
+   snapshots under `contracts/trust-telemetry/` must derive age, freshness state, and blocking
+   posture from observed implementation evidence instead of carrying static `current`/zero-age
+   promotion claims,
+9. advisory workflow changes should be validated against canonical upstream posture,
+10. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+11. `make demo-certification-live` is the repo-native app-level live certification command; it writes
    machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-11. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
+12. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
    trust, echo, or imply tenant-specific entitlement policy unless a future slice adds an explicit
    authoritative entitlement port and contract tests,
-10. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
+13. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
 
 ## Standards And RFCs That Govern This Repository
 

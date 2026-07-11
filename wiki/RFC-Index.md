@@ -418,7 +418,7 @@ client-ready publication remain gated.
 
 RFC-0025 Slice 16 is implemented as final closure. Evidence lives in
 `docs/rfcs/RFC-0025-slice-16-final-closure.md`. `AdvisoryPolicyEvaluationRecord:v1` is active for
-advisor/compliance policy evidence with current trust telemetry, `/platform/capabilities`, platform
+advisor/compliance policy evidence with freshness-gated trust telemetry, `/platform/capabilities`, platform
 SLO/access/evidence-policy posture, Gateway/Workbench visibility, and live-suite proof. Completed
 approval/waiver authority, completed sign-off authority, client-ready policy publication, external
 client communication remain gated; RFC-0028 governs bank-demo/RFP proof through supported claims.

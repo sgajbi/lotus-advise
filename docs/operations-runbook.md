@@ -3,7 +3,7 @@
 ## Local Validation
 
 - `make check`: local Feature Lane parity for lint, typecheck, OpenAPI, vocabulary, data-product,
-  and unit-test gates.
+  trust-telemetry freshness, and unit-test gates.
 - `make ci-local`: local PR Merge Gate subset without Docker, including quality-baseline
   freshness.
 - `make quality-baseline`: regenerate report-only quality artifacts in `quality/`.
@@ -30,6 +30,9 @@
   validation for release evidence.
 - `make bandit-severity-regression-gate`: Bandit security gate that blocks all high findings and
   fails on new, stale, expired, or worsened medium/low findings relative to the governed baseline.
+- `make trust-telemetry-freshness-gate`: derives committed trust-telemetry age and blocking posture
+  from observed implementation evidence so stale snapshots cannot claim current data-product
+  promotion evidence.
 
 ## Required Runtime Identity
 

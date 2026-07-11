@@ -38,7 +38,7 @@ mechanism where:
 
 RFC-0025 is implemented through Slice 17 for advisor/compliance policy evidence and
 post-completion communication.
-`AdvisoryPolicyEvaluationRecord:v1` is active with current trust telemetry, platform capability
+`AdvisoryPolicyEvaluationRecord:v1` is active with freshness-gated trust telemetry, platform capability
 posture, Gateway/Workbench consumption, live-suite proof, and SLO/access/evidence-policy support.
 Completed approval/waiver authority, completed policy sign-off authority, client-ready policy
 publication, and external client communication remain gated. RFC-0028 governs broader

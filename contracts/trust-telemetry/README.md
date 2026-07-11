@@ -54,6 +54,7 @@ Validate locally with:
 
 ```powershell
 python -m pytest tests\unit\test_trust_telemetry.py -q
+make trust-telemetry-freshness-gate
 ```
 
 When `../lotus-platform` is available, the test generates a current domain-product catalog from
@@ -61,3 +62,17 @@ repo-native declarations, validates the snapshots with the platform
 `automation/validate_trust_telemetry.py` contract validator, and checks that observed trust
 metadata matches the repo-native declaration in
 `contracts/domain-data-products/lotus-advise-products.v1.json`.
+
+`make trust-telemetry-freshness-gate` derives `freshness.age_seconds`,
+`freshness.freshness_state`, and blocking posture from each snapshot's `observed_at_utc` and the
+repo-owned reference time. A committed snapshot must not claim `current` with `age_seconds: 0`
+unless the observed evidence is actually current for that reference time. Stale committed evidence
+is intentionally blocked with `TRUST_TELEMETRY_STALE` until regenerated from implementation proof.
+
+Refresh committed snapshots only when implementation evidence has genuinely been reviewed:
+
+```powershell
+python scripts\trust_telemetry_freshness.py write `
+  --repository-commit-sha <reviewed-commit-sha> `
+  --validation-run-id <ci-run-or-local-evidence-id>
+```

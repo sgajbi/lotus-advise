@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-931
+
+- Scope: Trust telemetry freshness governance
+- Pattern: Data-product trust telemetry must derive freshness and blocking posture from observed
+  implementation evidence rather than preserving static `current` snapshots.
+- Status: Hardened
+- Finding Class: Data-product governance, freshness evidence, CI enforcement
+- Summary: GitHub issue #420 identified that committed trust telemetry snapshots could carry old
+  observed evidence while still claiming `freshness_state: current` and `age_seconds: 0`. The
+  #420 slice added a repo-native freshness gate that derives age, freshness state, and blocking
+  posture from `observed_at_utc` against the governed reference time.
+- Evidence:
+  - Added `scripts/trust_telemetry_freshness.py` for deterministic check/write handling across
+    `contracts/trust-telemetry/*.json`.
+  - Wired `make trust-telemetry-freshness-gate` into `make check`, `make ci`, `make ci-local`,
+    Remote Feature Lane, PR Merge Gate, and Main Releasability.
+  - Refreshed committed telemetry snapshots so stale evidence is explicitly blocked with
+    `TRUST_TELEMETRY_STALE` instead of silently presenting promotion-ready current posture.
+  - Added script regression tests for current, stale, stale-current contradiction, future-dated
+    evidence, missing freshness, missing evidence identity, and CLI write/check behavior.
+  - Updated trust-telemetry contract tests to assert stale committed evidence blocks promotion.
+- Consequence:
+  - Static telemetry fixtures can no longer mask stale implementation evidence with a current
+    freshness claim. A future promotion must regenerate snapshots from reviewed implementation
+    proof and carry commit/run identity.
+- Documentation:
+  - Updated trust-telemetry README, repository README, operations runbook, supported-features docs,
+    validation wiki, repository context, and this ledger. Wiki source changed, so repo-wiki check
+    is required before merge and publication is required after merge.
+- Modularity:
+  - Freshness derivation now lives in a focused script and named Make target rather than scattered
+    test expectations. Runtime product code and data-product declarations stay unchanged.
+- Follow-Up:
+  - Apply the same pattern to other Lotus apps that commit trust telemetry: snapshots should carry
+    observed evidence timestamps, derived freshness, commit/run identity, and explicit blocking
+    posture when evidence ages past policy.
+
 ## LA-REV-930
 
 - Scope: Governed proposal explanation and alternatives response sections

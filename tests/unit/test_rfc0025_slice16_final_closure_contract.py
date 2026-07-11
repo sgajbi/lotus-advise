@@ -83,10 +83,12 @@ def test_rfc0025_slice16_promotes_active_policy_data_product_truth() -> None:
         in (product["freshness_policy"]["max_allowed_age_description"])
     )
 
-    assert telemetry["freshness"]["freshness_state"] == "current"
+    assert telemetry["freshness"]["freshness_state"] == "stale"
     assert telemetry["completeness_status"] == "complete"
     assert telemetry["data_quality_status"] == "quality_passed"
-    assert telemetry["blocking"] == {"blocked": False}
+    assert telemetry["blocking"]["blocked"] is True
+    assert telemetry["blocking"]["blocked_reason"] == "TRUST_TELEMETRY_STALE"
+    assert telemetry["freshness"]["age_seconds"] > telemetry["freshness"]["max_allowed_age_seconds"]
     assert (
         "lotus-advise://docs/rfcs/RFC-0025-slice-16-final-closure.md"
         in telemetry["lineage"]["evidence_uris"]

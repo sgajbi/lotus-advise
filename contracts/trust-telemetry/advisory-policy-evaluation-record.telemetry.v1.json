@@ -5,7 +5,7 @@
     "RFC-0087",
     "RFC-0025"
   ],
-  "emitted_at_utc": "2026-05-26T00:00:00Z",
+  "emitted_at_utc": "2026-07-11T00:00:00Z",
   "product_id": "lotus-advise:AdvisoryPolicyEvaluationRecord:v1",
   "producer_repository": "lotus-advise",
   "product_name": "AdvisoryPolicyEvaluationRecord",
@@ -13,10 +13,10 @@
   "source_repository": "lotus-advise",
   "freshness": {
     "freshness_class": "event_driven",
-    "freshness_state": "current",
-    "evaluated_at_utc": "2026-05-26T00:00:00Z",
+    "freshness_state": "stale",
+    "evaluated_at_utc": "2026-07-11T00:00:00Z",
     "observed_at_utc": "2026-05-26T00:00:00Z",
-    "age_seconds": 0,
+    "age_seconds": 3974400,
     "max_allowed_age_seconds": 86400
   },
   "completeness_status": "complete",
@@ -49,7 +49,9 @@
     ]
   },
   "blocking": {
-    "blocked": false
+    "blocked": true,
+    "blocked_reason": "TRUST_TELEMETRY_STALE",
+    "blocked_summary": "Trust telemetry evidence is older than the declared maximum age and must be regenerated from current implementation evidence before promotion."
   },
   "observed_trust_metadata": {
     "product_name": "AdvisoryPolicyEvaluationRecord",
@@ -67,6 +69,9 @@
       "main-releasability"
     ],
     "source_event_id": "source-event:lotus-advise:advisory-policy-evaluation-record:active:2026-05-26",
-    "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
+    "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json",
+    "freshness_reference_time_utc": "2026-07-11T00:00:00Z",
+    "repository_commit_sha": "a054ea4ea4c794d9b9a276fce537b56534bbdd56",
+    "validation_run_id": "local-issue-420-freshness-review"
   }
 }

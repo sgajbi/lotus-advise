@@ -47,7 +47,7 @@ The following `lotus-advise` durable truth surfaces now carry closure posture:
 5. signed-off report-package lineage refs,
 6. bounded AI policy-evidence lineage,
 7. Gateway-routed APIs and Workbench visibility,
-8. current trust telemetry,
+8. freshness-gated trust telemetry,
 9. platform SLO/access/evidence-policy posture.
 
 This promotion does not grant legal approval, waiver authority, completed sign-off authority,
