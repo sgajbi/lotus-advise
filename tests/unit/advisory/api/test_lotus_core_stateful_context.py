@@ -562,6 +562,24 @@ def test_append_helpers_skip_duplicates_and_invalid_market_data(monkeypatch) -> 
     )
     assert request.market_data_snapshot.fx_rates == []
 
+    future_rate_client = _FakeClient(
+        {
+            (
+                "GET",
+                "http://core-query.dev.lotus/fx-rates/?from_currency=GBP&to_currency=USD",
+            ): _FakeResponse({"rates": [{"rate_date": "2026-03-28", "rate": "1.25"}]})
+        }
+    )
+    _append_fx_rate_if_missing(
+        client=future_rate_client,  # type: ignore[arg-type]
+        simulate_request=request,
+        instrument_currency="GBP",
+        portfolio_base_currency="USD",
+        base_url="http://core-query.dev.lotus",
+        as_of="2026-03-27",
+    )
+    assert request.market_data_snapshot.fx_rates == []
+
 
 def test_append_shelf_entry_if_missing_preserves_enrichment_and_taxonomy_metadata() -> None:
     request = ProposalSimulateRequest(
@@ -1074,6 +1092,58 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
     assert request.options.valuation_mode == ValuationMode.TRUST_SNAPSHOT
     assert request.proposed_cash_flows == []
     assert request.proposed_trades == []
+
+
+def test_resolve_stateful_context_rejects_invalid_source_derived_fx_rate(
+    monkeypatch, stateful_input
+) -> None:
+    base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "positions": [
+                    {
+                        "security_id": "SEC_CHF",
+                        "quantity": "10",
+                        "asset_class": "Equity",
+                        "currency": "CHF",
+                        "valuation": {
+                            "market_price": "10",
+                            "market_value": "-12",
+                            "market_value_local": "10",
+                        },
+                    }
+                ],
+            }
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "resolved_as_of_date": "2026-03-27",
+                "cash_accounts": [],
+            }
+        ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse({"records": [{"security_id": "SEC_CHF"}]}),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _FakeClient(responses),
+    )
+
+    with pytest.raises(LotusCoreStatefulContextUnavailableError) as exc_info:
+        resolve_stateful_context_with_lotus_core(stateful_input)
+
+    assert str(exc_info.value) == "LOTUS_CORE_STATEFUL_FX_INVALID"
 
 
 def test_resolve_stateful_context_with_lotus_core_propagates_as_of_to_positions_and_cash(

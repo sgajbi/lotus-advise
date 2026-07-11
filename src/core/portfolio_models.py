@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.source_provenance_models import SourceProvenanceRecord
 
@@ -25,6 +25,13 @@ class FxRate(BaseModel):
         examples=["USD/SGD"],
     )
     rate: Decimal = Field(description="FX conversion rate for the pair.", examples=["1.35"])
+
+    @field_validator("rate")
+    @classmethod
+    def validate_finite_positive_rate(cls, value: Decimal) -> Decimal:
+        if not value.is_finite() or value <= Decimal("0"):
+            raise ValueError("FX rate must be finite and strictly positive")
+        return value
 
 
 class TaxLot(BaseModel):

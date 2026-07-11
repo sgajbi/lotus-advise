@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-903
+
+- Scope: Lotus Core source-derived FX validation and valuation model invariants
+- Pattern: Currency conversion must consume only finite, strictly positive, as-of eligible FX rates;
+  invalid explicit source values should fail closed before valuation instead of being treated as a
+  numerically plausible conversion input.
+- Status: Hardened
+- Finding Class: Calculation correctness, source-boundary validation, methodology supportability
+- Summary: GitHub issue #402 identified that `FxRate.rate`, Lotus Core source-derived FX ratios,
+  trade-draft FX lookup rows, and valuation inverse-pair handling did not share one finite-positive
+  invariant. Zero, negative, NaN, infinite, non-numeric, or future-only FX evidence could either be
+  skipped inconsistently or reach valuation without a stable source-quality outcome.
+- Evidence:
+  - `FxRate` now rejects non-finite and non-positive rates at the domain model boundary, so direct
+    API/model construction cannot reach advisory valuation with invalid conversion data.
+  - Lotus Core stateful-context market-data derivation now distinguishes missing FX evidence from
+    explicit invalid FX values and raises `LOTUS_CORE_STATEFUL_FX_INVALID` for bad source ratios.
+  - Trade-draft FX hydration validates provider lookup rates through the same source-rate helper and
+    no longer selects future-only FX rows as a fallback.
+  - Valuation lookup now treats direct and inverse pairs through explicit missing-rate checks, with
+    inverse conversion covered by multi-currency position and cash tests.
+  - Focused valuation and Lotus Core stateful-context validation passed with 71 tests, covering
+    zero, negative, NaN, infinite, non-numeric, inverse-pair, invalid source-ratio, and future-only
+    FX cases.
+- Consequence:
+  - Invalid FX source data cannot produce a ready advisory valuation or downstream report input.
+    Missing eligible FX remains bounded data-quality evidence, while explicit invalid FX fails
+    closed with a stable support code and no raw source payload leakage.
+- Documentation:
+  - Repository context, integration wiki, and review ledger updated. Wiki source changed, so repo
+    wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - Coordinate the exact accepted FX methodology and any future plausibility bounds with Lotus Core
+    before adding stricter cross-service market-data constraints.
+
 ## LA-REV-902
 
 - Scope: Lotus Core source provenance and advisory result lineage

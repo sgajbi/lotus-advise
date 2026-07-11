@@ -48,6 +48,9 @@ from src.integrations.lotus_core.stateful_context_cache import (
 from src.integrations.lotus_core.stateful_context_cache import (
     reset_stateful_context_cache as _reset_stateful_context_cache,
 )
+from src.integrations.lotus_core.stateful_context_market_data import (
+    InvalidLotusCoreFxRateError,
+)
 from src.integrations.lotus_core.stateful_context_provenance import (
     LotusCoreSourceProvenanceError,
 )
@@ -178,14 +181,17 @@ def enrich_stateful_simulate_request_for_trade_drafts(
     simulate_request: ProposalSimulateRequest,
     as_of: str,
 ) -> ProposalSimulateRequest:
-    return _hydration.enrich_stateful_simulate_request_for_trade_drafts(
-        simulate_request=simulate_request,
-        as_of=as_of,
-        base_url=_resolve_query_base_url(),
-        control_plane_base_url=_resolve_control_plane_base_url(),
-        timeout=_resolve_timeout(),
-        client_factory=lambda timeout: httpx.Client(timeout=timeout),
-    )
+    try:
+        return _hydration.enrich_stateful_simulate_request_for_trade_drafts(
+            simulate_request=simulate_request,
+            as_of=as_of,
+            base_url=_resolve_query_base_url(),
+            control_plane_base_url=_resolve_control_plane_base_url(),
+            timeout=_resolve_timeout(),
+            client_factory=lambda timeout: httpx.Client(timeout=timeout),
+        )
+    except InvalidLotusCoreFxRateError as exc:
+        raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_FX_INVALID") from exc
 
 
 def resolve_stateful_context_with_lotus_core(
@@ -228,15 +234,19 @@ def resolve_stateful_context_with_lotus_core(
         ) from exc
     portfolio_snapshot_id = source_provenance.portfolio.source_id
     market_data_snapshot_id = source_provenance.market_data.source_id
-    resolved = LotusCoreResolvedAdvisoryContext(
-        simulate_request=_build_stateful_simulate_request(
+    try:
+        simulate_request = _build_stateful_simulate_request(
             source_payloads,
             portfolio_id=portfolio_id,
             base_currency=base_currency,
             portfolio_snapshot_id=portfolio_snapshot_id,
             market_data_snapshot_id=market_data_snapshot_id,
             source_provenance=source_provenance,
-        ),
+        )
+    except InvalidLotusCoreFxRateError as exc:
+        raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_FX_INVALID") from exc
+    resolved = LotusCoreResolvedAdvisoryContext(
+        simulate_request=simulate_request,
         resolved_context=WorkspaceResolvedContext(
             portfolio_id=portfolio_id,
             as_of=resolved_as_of,

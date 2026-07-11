@@ -24,6 +24,7 @@ from src.integrations.lotus_core.stateful_context_cache_identity import (
     instrument_lookup_cache_key,
     price_lookup_cache_key,
 )
+from src.integrations.lotus_core.stateful_context_market_data import fx_rate_from_source_value
 from src.integrations.lotus_core.stateful_context_routes import (
     FX_RATES_PATH,
     INSTRUMENTS_PATH,
@@ -131,7 +132,11 @@ def select_latest_fx_row(
     fx_rows = fx_payload.get("rates")
     if not isinstance(fx_rows, list):
         return None
-    return select_latest_dated_row(fx_rows, date_key="rate_date", as_of=as_of)
+    dated_rows = _dated_source_rows(fx_rows, date_key="rate_date")
+    eligible_rows = _eligible_source_rows(dated_rows, date_key="rate_date", as_of=as_of)
+    if not eligible_rows:
+        return None
+    return _latest_source_row(eligible_rows, date_key="rate_date")
 
 
 def append_price_if_missing(
@@ -362,12 +367,13 @@ def append_fx_rate_if_missing(
     if latest_fx_row is None:
         return
 
-    fx_rate = decimal_or_none(latest_fx_row.get("rate"))
+    fx_rate = fx_rate_from_source_value(
+        pair=f"{instrument_currency}/{portfolio_base_currency}",
+        rate=latest_fx_row.get("rate"),
+    )
     if fx_rate is None:
         return
-    simulate_request.market_data_snapshot.fx_rates.append(
-        FxRate(pair=f"{instrument_currency}/{portfolio_base_currency}", rate=fx_rate)
-    )
+    simulate_request.market_data_snapshot.fx_rates.append(fx_rate)
 
 
 def enrich_stateful_simulate_request_for_trade_drafts(
