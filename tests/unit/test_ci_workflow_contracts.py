@@ -374,6 +374,7 @@ def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts
     )
     assert 'expected_checksum="$(awk -v file="$archive"' in release_section
     assert 'test "$expected_checksum" = "$actual_checksum"' in release_section
+    assert 'mkdir -p "$HOME/.local/bin"' in release_section
     assert "trivy image" in release_section
     assert "--output output/release/trivy-image-scan.json" in release_section
     assert "sigstore/cosign-installer@v3.9.2" in release_section
