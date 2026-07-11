@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -28,6 +29,88 @@ class AlternativeTradeoff(BaseModel):
     summary: str = Field(description="Advisor-facing tradeoff summary.")
 
 
+class AlternativeApprovalDelta(BaseModel):
+    baseline_approval_count: int = Field(
+        ge=0,
+        description="Number of baseline approval requirements.",
+    )
+    alternative_approval_count: int = Field(
+        ge=0,
+        description="Number of alternative approval requirements.",
+    )
+    delta: int = Field(
+        description="Alternative approval count minus baseline approval count.",
+    )
+
+
+class AlternativeRiskDelta(BaseModel):
+    baseline_top_position_weight: Decimal | None = Field(
+        default=None,
+        description="Baseline top-position concentration weight, when available.",
+    )
+    alternative_top_position_weight: Decimal | None = Field(
+        default=None,
+        description="Alternative top-position concentration weight, when available.",
+    )
+    top_position_weight_delta_improvement: Decimal | None = Field(
+        default=None,
+        description=(
+            "Positive value means the alternative reduces top-position concentration versus "
+            "baseline; negative value means concentration deteriorates."
+        ),
+    )
+
+
+class AlternativeAllocationDelta(BaseModel):
+    baseline_total_value: Decimal = Field(
+        description="Baseline simulated total portfolio value.",
+    )
+    alternative_total_value: Decimal = Field(
+        description="Alternative simulated total portfolio value.",
+    )
+
+
+class AlternativeCashDelta(BaseModel):
+    currency: str = Field(description="Base currency for the cash delta.")
+    baseline_cash: Decimal = Field(description="Baseline base-currency cash amount.")
+    alternative_cash: Decimal = Field(description="Alternative base-currency cash amount.")
+    base_currency_cash_delta: Decimal = Field(
+        description="Alternative cash minus baseline cash in the base currency.",
+    )
+
+
+class AlternativeCurrencyDelta(BaseModel):
+    base_currency: str = Field(description="Base currency used for exposure comparison.")
+    baseline_weight: Decimal | None = Field(
+        default=None,
+        description="Baseline base-currency allocation weight, when available.",
+    )
+    alternative_weight: Decimal | None = Field(
+        default=None,
+        description="Alternative base-currency allocation weight, when available.",
+    )
+
+
+class AlternativeCostDelta(BaseModel):
+    status: Literal["NOT_AVAILABLE"] = Field(
+        default="NOT_AVAILABLE",
+        description="Cost-delta support status for this implementation slice.",
+    )
+
+
+class AlternativeComparatorInputs(BaseModel):
+    status_priority: int = Field(ge=0, description="Ranking priority derived from status.")
+    decision_status: str = Field(description="Decision status used for ranking diagnostics.")
+    approval_count: int = Field(ge=0, description="Approval requirement count.")
+    blocking_approval_count: int = Field(
+        ge=0,
+        description="Blocking approval requirement count.",
+    )
+    missing_evidence_count: int = Field(ge=0, description="Missing evidence count.")
+    turnover_trade_count: int = Field(ge=0, description="Generated trade count.")
+    objective_rank: int = Field(ge=0, description="Normalized objective rank.")
+
+
 class AlternativeComparisonSummary(BaseModel):
     headline: str = Field(description="Short summary headline for the alternative.")
     primary_tradeoff: str = Field(description="Primary tradeoff summary.")
@@ -37,28 +120,40 @@ class AlternativeComparisonSummary(BaseModel):
         default_factory=list,
         description="Material factors that remain unchanged.",
     )
-    approval_delta: dict[str, Any] = Field(
-        default_factory=dict,
+    approval_delta: AlternativeApprovalDelta = Field(
+        default_factory=lambda: AlternativeApprovalDelta(
+            baseline_approval_count=0,
+            alternative_approval_count=0,
+            delta=0,
+        ),
         description="Approval posture delta relative to the baseline proposal.",
     )
-    risk_delta: dict[str, Any] = Field(
-        default_factory=dict,
+    risk_delta: AlternativeRiskDelta = Field(
+        default_factory=lambda: AlternativeRiskDelta(),
         description="Risk lens delta relative to the baseline proposal.",
     )
-    allocation_delta: dict[str, Any] = Field(
-        default_factory=dict,
+    allocation_delta: AlternativeAllocationDelta = Field(
+        default_factory=lambda: AlternativeAllocationDelta(
+            baseline_total_value="0",
+            alternative_total_value="0",
+        ),
         description="Allocation-lens delta relative to the baseline proposal.",
     )
-    cash_delta: dict[str, Any] = Field(
-        default_factory=dict,
+    cash_delta: AlternativeCashDelta = Field(
+        default_factory=lambda: AlternativeCashDelta(
+            currency="",
+            baseline_cash="0",
+            alternative_cash="0",
+            base_currency_cash_delta="0",
+        ),
         description="Cash delta relative to the baseline proposal.",
     )
-    currency_delta: dict[str, Any] = Field(
-        default_factory=dict,
+    currency_delta: AlternativeCurrencyDelta = Field(
+        default_factory=lambda: AlternativeCurrencyDelta(base_currency=""),
         description="Currency exposure delta relative to the baseline proposal.",
     )
-    cost_delta: dict[str, Any] = Field(
-        default_factory=dict,
+    cost_delta: AlternativeCostDelta = Field(
+        default_factory=lambda: AlternativeCostDelta(),
         description="Cost and friction delta relative to the baseline proposal.",
     )
     evidence_refs: list[str] = Field(
@@ -130,8 +225,16 @@ class AlternativeRankingProjection(BaseModel):
         default_factory=list,
         description="Alternative ids directly compared during final ranking.",
     )
-    comparator_inputs: dict[str, Any] = Field(
-        default_factory=dict,
+    comparator_inputs: AlternativeComparatorInputs = Field(
+        default_factory=lambda: AlternativeComparatorInputs(
+            status_priority=2,
+            decision_status="UNKNOWN",
+            approval_count=0,
+            blocking_approval_count=0,
+            missing_evidence_count=0,
+            turnover_trade_count=0,
+            objective_rank=999,
+        ),
         description="Stable comparator inputs used for deterministic ordering.",
     )
 
@@ -227,10 +330,17 @@ class ProposalAlternatives(BaseModel):
 
 
 __all__ = [
+    "AlternativeAllocationDelta",
+    "AlternativeApprovalDelta",
     "AlternativeCandidateSeed",
+    "AlternativeCashDelta",
     "AlternativeComparisonSummary",
+    "AlternativeComparatorInputs",
     "AlternativeConstraintResult",
+    "AlternativeCostDelta",
+    "AlternativeCurrencyDelta",
     "AlternativeRankingProjection",
+    "AlternativeRiskDelta",
     "AlternativeTradeoff",
     "ProposalAlternative",
     "ProposalAlternatives",

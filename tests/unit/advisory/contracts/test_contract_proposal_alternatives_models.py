@@ -7,10 +7,17 @@ from src.core.advisory import (
     ProposalAlternativesRequest,
 )
 from src.core.advisory.alternatives_models import (
+    AlternativeAllocationDelta,
+    AlternativeApprovalDelta,
     AlternativeCandidateSeed,
+    AlternativeCashDelta,
+    AlternativeComparatorInputs,
     AlternativeComparisonSummary,
     AlternativeConstraintResult,
+    AlternativeCostDelta,
+    AlternativeCurrencyDelta,
     AlternativeRankingProjection,
+    AlternativeRiskDelta,
     AlternativeTradeoff,
     ProposalAlternatives,
     RejectedAlternativeCandidate,
@@ -109,16 +116,92 @@ def test_proposal_alternative_allows_canonical_summary_payload_shape():
     assert alternative.proposal_decision_summary["decision_status"] == "REQUIRES_RISK_REVIEW"
 
 
+def test_alternative_comparison_and_ranking_payloads_use_typed_contracts():
+    summary = AlternativeComparisonSummary(
+        headline="Reduce concentration",
+        primary_tradeoff="Alternative is feasible.",
+        approval_delta=AlternativeApprovalDelta(
+            baseline_approval_count=1,
+            alternative_approval_count=0,
+            delta=-1,
+        ),
+        risk_delta=AlternativeRiskDelta(
+            baseline_top_position_weight="0.30",
+            alternative_top_position_weight="0.10",
+            top_position_weight_delta_improvement="0.20",
+        ),
+        allocation_delta=AlternativeAllocationDelta(
+            baseline_total_value="1000.00",
+            alternative_total_value="1000.00",
+        ),
+        cash_delta=AlternativeCashDelta(
+            currency="USD",
+            baseline_cash="100.00",
+            alternative_cash="120.00",
+            base_currency_cash_delta="20.00",
+        ),
+        currency_delta=AlternativeCurrencyDelta(
+            base_currency="USD",
+            baseline_weight="1",
+            alternative_weight="1",
+        ),
+        cost_delta=AlternativeCostDelta(status="NOT_AVAILABLE"),
+    )
+    ranking = AlternativeRankingProjection(
+        ranking_reason_codes=["STATUS_FEASIBLE"],
+        comparator_inputs=AlternativeComparatorInputs(
+            status_priority=0,
+            decision_status="READY_FOR_CLIENT_REVIEW",
+            approval_count=0,
+            blocking_approval_count=0,
+            missing_evidence_count=0,
+            turnover_trade_count=1,
+            objective_rank=0,
+        ),
+    )
+
+    assert summary.approval_delta.delta == -1
+    assert str(summary.risk_delta.top_position_weight_delta_improvement) == "0.20"
+    assert ranking.comparator_inputs.status_priority == 0
+
+
+def test_alternative_typed_contracts_reject_invalid_delta_shapes():
+    with pytest.raises(ValidationError):
+        AlternativeApprovalDelta(
+            baseline_approval_count=-1,
+            alternative_approval_count=0,
+            delta=1,
+        )
+
+    with pytest.raises(ValidationError):
+        AlternativeComparatorInputs(
+            status_priority=-1,
+            decision_status="READY_FOR_CLIENT_REVIEW",
+            approval_count=0,
+            blocking_approval_count=0,
+            missing_evidence_count=0,
+            turnover_trade_count=1,
+            objective_rank=0,
+        )
+
+
 def test_alternatives_models_keep_request_and_response_boundaries_split():
     request_models = {
         ProposalAlternativesConstraints,
         ProposalAlternativesRequest,
     }
     response_models = {
+        AlternativeAllocationDelta,
+        AlternativeApprovalDelta,
         AlternativeCandidateSeed,
+        AlternativeCashDelta,
         AlternativeComparisonSummary,
+        AlternativeComparatorInputs,
         AlternativeConstraintResult,
+        AlternativeCostDelta,
+        AlternativeCurrencyDelta,
         AlternativeRankingProjection,
+        AlternativeRiskDelta,
         AlternativeTradeoff,
         ProposalAlternative,
         ProposalAlternatives,
