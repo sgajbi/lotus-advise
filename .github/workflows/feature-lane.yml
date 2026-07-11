@@ -75,6 +75,8 @@ jobs:
         run: make migration-smoke
       - name: Bandit Severity Regression Gate
         run: make bandit-severity-regression-gate
+      - name: License IP Gate
+        run: make license-ip-gate
 
   unit-tests:
     name: Feature Lane / Tests (unit)

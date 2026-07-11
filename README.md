@@ -295,6 +295,9 @@ startup/readiness instead of falling back silently.
 - `make release-image-provenance-gate`
   static release-image metadata contract check for Dockerfile labels, Docker build args, and
   support-safe build metadata names
+- `make license-ip-gate`
+  validates runtime/development dependency license inventory, approved exceptions, and NOTICE
+  posture
 - `make run`
   local runtime
 
@@ -312,8 +315,8 @@ Repo-native gate mapping:
   fast local quality gate
 - `make ci`
   PR-grade validation with dependency health, OpenAPI, vocabulary, no-alias governance, migration
-  rollout contract evidence, migration smoke, release-image provenance, coverage, Docker build,
-  Postgres runtime smoke, and production-profile guardrail checks
+  rollout contract evidence, migration smoke, license/IP evidence, release-image provenance,
+  coverage, Docker build, Postgres runtime smoke, and production-profile guardrail checks
 - `make ci-local`
   local feature-lane proof
 - `make ci-local-docker`

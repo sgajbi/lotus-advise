@@ -1,5 +1,46 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-928
+
+- Scope: License/IP release evidence gate
+- Pattern: Dependency license and generated-artifact IP posture must be policy-backed,
+  machine-readable, and enforced in the same release lane as SBOM, vulnerability scan, signing, and
+  provenance evidence.
+- Status: Hardened
+- Finding Class: License/IP compliance, release evidence, CI enforcement
+- Summary: GitHub issue #424 identified that the repository had dependency health and SBOM release
+  posture but no committed license/IP policy, NOTICE file, generated dependency license inventory, or
+  blocking gate for unclassified/prohibited license findings.
+- Evidence:
+  - Added `scripts/license_ip_evidence.py` with runtime/development requirement graph traversal,
+    transitive package inventory, license-term classification, expiring exception handling, and
+    stale-inventory detection.
+  - Added `docs/standards/license-ip-policy.v1.json`,
+    `docs/standards/license-ip-inventory.v1.json`, and `NOTICE.md`.
+  - Current inventory covers `90` packages: `35` direct and `55` transitive. It records `88`
+    allowed packages and `2` approved LGPL PostgreSQL adapter exceptions (`psycopg`,
+    `psycopg-binary`) expiring on `2027-12-31`.
+  - Wired `make license-ip-inventory` and `make license-ip-gate`; the gate now runs in
+    `make check`, `make ci`, `make ci-local`, Remote Feature Lane, PR Merge Gate, and Main
+    Releasability.
+  - Release image evidence now links the committed license/IP inventory beside SBOM,
+    vulnerability-scan, Bandit, dependency-audit, signature, and provenance artifacts.
+  - Added tests for transitive dependencies, missing metadata, approved unexpired exceptions,
+    expired exceptions, and release-manifest license/IP evidence.
+- Consequence:
+  - A release can no longer silently add unclassified or prohibited dependency license posture.
+    Review-required terms must have an owner and expiry before release evidence is considered green.
+- Documentation:
+  - Updated README, dependency hygiene standard, repository context, supported-features, validation
+    wiki, security/governance wiki, NOTICE, and this ledger. Wiki source changed, so repo-wiki check
+    is required before merge and publication is required after merge.
+- Modularity:
+  - This is release-governance design modularity inside the repository. No runtime split is
+    justified; license/IP posture belongs in repo-native CI and release evidence.
+- Follow-Up:
+  - No cross-app issue was raised. Other Lotus apps should add app-local license/IP gates rather
+    than copy this inventory because each app owns its dependency graph and exceptions.
+
 ## LA-REV-927
 
 - Scope: Advisory copilot claim-level source grounding

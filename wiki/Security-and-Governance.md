@@ -4,6 +4,19 @@
 
 `lotus-advise` is governed by Lotus platform CI, OpenAPI, vocabulary, and context standards.
 
+## Current Scope
+
+This page records security, release-governance, claim-control, and evidence hygiene rules that are
+currently enforced or required before `lotus-advise` capabilities are promoted.
+
+## Reader Map
+
+| Reader | Start here |
+| --- | --- |
+| Agent or developer | Hard Rules, Security Baseline Governance, License/IP Evidence Governance |
+| Release operator | Release Metadata Governance |
+| Demo or RFP reviewer | RFC-0028 Proof Artifact Governance |
+
 Locally relevant governance includes:
 
 - RFC-0066 advisory and manage split
@@ -40,6 +53,9 @@ The highest-risk documentation and implementation drift usually appears at these
 9. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
    current medium/low entries must match the governed baseline, and new, stale, expired, or
    worsened medium/low entries fail CI
+10. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
+    including transitive packages, must match the committed inventory and any review-required terms
+    must have owner-approved expiring exceptions
 
 ## Policy-Control Principal Governance
 
@@ -67,9 +83,9 @@ headers, or downstream base URLs.
 The release-image evidence path is intentionally split:
 
 1. PR/local builds validate Dockerfile build args, OCI labels, and label content without pushing.
-2. Main Releasability pushes the Git-SHA image, records the registry digest, generates SBOM and
-   vulnerability-scan artifacts, signs the digest, creates provenance attestation, and uploads the
-   release manifest.
+2. Main Releasability pushes the Git-SHA image, records the registry digest, generates SBOM,
+   license/IP inventory, and vulnerability-scan artifacts, signs the digest, creates provenance
+   attestation, and uploads the release manifest.
 3. Deployment must reference the digest from the retained manifest and promote the same immutable
    image across environments.
 
@@ -82,6 +98,17 @@ medium, and `0` low findings, with remediation tracked in issue #435.
 
 Use `make bandit-severity-regression-gate` for the direct gate. `make security-audit` runs the same
 gate after dependency health. `make bandit-high-severity-gate` remains only as a compatibility alias.
+
+## License/IP Evidence Governance
+
+`docs/standards/license-ip-policy.v1.json` classifies allowed, review-required, and prohibited
+dependency license terms. `docs/standards/license-ip-inventory.v1.json` records the current runtime
+and development dependency graphs, including transitive packages, policy classification, and
+approved exceptions. `NOTICE.md` records the third-party notice posture.
+
+Use `make license-ip-inventory` to regenerate the committed inventory after dependency changes, and
+`make license-ip-gate` to verify release posture. New unclassified, prohibited, missing-metadata, or
+expired-exception findings fail CI.
 
 ## RFC-0028 Proof Artifact Governance
 

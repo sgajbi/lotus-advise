@@ -114,6 +114,10 @@ def test_release_manifest_records_digest_artifacts_and_deploy_policy(tmp_path: P
     assert manifest["image"]["digest"] == "sha256:abc123"
     assert manifest["image"]["immutable_ref"] == "ghcr.io/sgajbi/lotus-advise:abc123@sha256:abc123"
     assert manifest["artifacts"]["sbom"] == "output/release/lotus-advise.spdx.json"
+    assert (
+        manifest["artifacts"]["license_ip_inventory"]
+        == "docs/standards/license-ip-inventory.v1.json"
+    )
     assert manifest["artifacts"]["vulnerability_scan"] == "output/release/trivy-image-scan.json"
     assert manifest["security_evidence"]["bandit_gate"] == "make bandit-severity-regression-gate"
     assert (
@@ -121,6 +125,11 @@ def test_release_manifest_records_digest_artifacts_and_deploy_policy(tmp_path: P
         == "quality/bandit_security_baseline.v1.json"
     )
     assert manifest["security_evidence"]["dependency_audit"] == "make security-audit"
+    assert manifest["security_evidence"]["license_ip_gate"] == "make license-ip-gate"
+    assert (
+        manifest["security_evidence"]["license_ip_inventory"]
+        == "docs/standards/license-ip-inventory.v1.json"
+    )
     assert manifest["security_evidence"]["sbom"] == "output/release/lotus-advise.spdx.json"
     assert (
         manifest["security_evidence"]["container_vulnerability_scan"]

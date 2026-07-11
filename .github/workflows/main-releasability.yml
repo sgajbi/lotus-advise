@@ -77,6 +77,8 @@ jobs:
         run: make migration-smoke
       - name: Security Audit
         run: make security-audit
+      - name: License IP Gate
+        run: make license-ip-gate
 
   test-suites:
     name: Main Releasability / Tests (${{ matrix.suite }})

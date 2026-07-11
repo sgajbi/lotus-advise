@@ -1,0 +1,1577 @@
+{
+  "generated_at_utc": "2026-07-11T11:54:40Z",
+  "git_commit_sha": "537bc0a0c65ad6584a8f0f1fe8c0cb01652711ab",
+  "image_digest": "unknown",
+  "notice_file": "NOTICE.md",
+  "packages": [
+    {
+      "declared_name": "annotated-doc",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "annotated-doc",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.0.4"
+    },
+    {
+      "declared_name": "annotated-types",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "annotated-types",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "0.7.0"
+    },
+    {
+      "declared_name": "anyio",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "anyio",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "4.14.1"
+    },
+    {
+      "declared_name": "attrs",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "attrs",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "25.4.0"
+    },
+    {
+      "declared_name": "bandit",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "bandit",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "1.9.4"
+    },
+    {
+      "declared_name": "boolean-py",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-2-Clause",
+      "metadata_available": true,
+      "name": "boolean-py",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "5.0"
+    },
+    {
+      "declared_name": "cachecontrol",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "cachecontrol",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.14.3"
+    },
+    {
+      "declared_name": "certifi",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MPL-2.0",
+      "metadata_available": true,
+      "name": "certifi",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "2026.6.17"
+    },
+    {
+      "declared_name": "cffi",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "cffi",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2.0.0"
+    },
+    {
+      "declared_name": "charset-normalizer",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "charset-normalizer",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.4.3"
+    },
+    {
+      "declared_name": "clarabel",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "clarabel",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.11.1"
+    },
+    {
+      "declared_name": "click",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "click",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "8.4.2"
+    },
+    {
+      "declared_name": "colorama",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "colorama",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "0.4.6"
+    },
+    {
+      "declared_name": "coverage",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "coverage",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "7.14.3"
+    },
+    {
+      "declared_name": "cvxpy",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "cvxpy",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "1.9.2"
+    },
+    {
+      "declared_name": "cyclonedx-python-lib",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "cyclonedx-python-lib",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "11.6.0"
+    },
+    {
+      "declared_name": "defusedxml",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "PSFL",
+      "metadata_available": true,
+      "name": "defusedxml",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.7.1"
+    },
+    {
+      "declared_name": "deptry",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "deptry",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "0.25.1"
+    },
+    {
+      "declared_name": "fastapi",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "fastapi",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "0.138.1"
+    },
+    {
+      "declared_name": "filelock",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "filelock",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.29.0"
+    },
+    {
+      "declared_name": "grimp",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD 2-Clause License",
+      "metadata_available": true,
+      "name": "grimp",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.14"
+    },
+    {
+      "declared_name": "h11",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "h11",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "0.16.0"
+    },
+    {
+      "declared_name": "highspy",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "highspy",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.14.0"
+    },
+    {
+      "declared_name": "httpcore",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "httpcore",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "1.0.9"
+    },
+    {
+      "declared_name": "httpx",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "httpx",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "0.28.1"
+    },
+    {
+      "declared_name": "idna",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "idna",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "3.18"
+    },
+    {
+      "declared_name": "import-linter",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD 2-Clause License",
+      "metadata_available": true,
+      "name": "import-linter",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "2.11"
+    },
+    {
+      "declared_name": "iniconfig",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "iniconfig",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "2.3.0"
+    },
+    {
+      "declared_name": "interrogate",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "interrogate",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "1.7.0"
+    },
+    {
+      "declared_name": "jinja2",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "jinja2",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.1.6"
+    },
+    {
+      "declared_name": "joblib",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD 3-Clause",
+      "metadata_available": true,
+      "name": "joblib",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.3.2"
+    },
+    {
+      "declared_name": "librt",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "librt",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.8.1"
+    },
+    {
+      "declared_name": "license-expression",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "license-expression",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "30.4.4"
+    },
+    {
+      "declared_name": "mando",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "mando",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.7.1"
+    },
+    {
+      "declared_name": "markdown-it-py",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "markdown-it-py",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "4.0.0"
+    },
+    {
+      "declared_name": "markupsafe",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "markupsafe",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.0.3"
+    },
+    {
+      "declared_name": "mdurl",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "mdurl",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.1.2"
+    },
+    {
+      "declared_name": "msgpack",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache 2.0",
+      "metadata_available": true,
+      "name": "msgpack",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.1.1"
+    },
+    {
+      "declared_name": "mypy",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "mypy",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "1.20.2"
+    },
+    {
+      "declared_name": "mypy-extensions",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "mypy-extensions",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.1.0"
+    },
+    {
+      "declared_name": "numpy",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+      "metadata_available": true,
+      "name": "numpy",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "2.4.6"
+    },
+    {
+      "declared_name": "osqp",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "osqp",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.1.1"
+    },
+    {
+      "declared_name": "packageurl-python",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "packageurl-python",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.17.6"
+    },
+    {
+      "declared_name": "packaging",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0 OR BSD-2-Clause",
+      "metadata_available": true,
+      "name": "packaging",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "26.2"
+    },
+    {
+      "declared_name": "pathspec",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MPL-2.0",
+      "metadata_available": true,
+      "name": "pathspec",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.0.4"
+    },
+    {
+      "declared_name": "pip",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pip",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "25.0.1"
+    },
+    {
+      "declared_name": "pip-api",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "pip-api",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.0.34"
+    },
+    {
+      "declared_name": "pip-audit",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "pip-audit",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "2.10.0"
+    },
+    {
+      "declared_name": "pip-requirements-parser",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pip-requirements-parser",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "32.0.1"
+    },
+    {
+      "declared_name": "platformdirs",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "platformdirs",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "4.4.0"
+    },
+    {
+      "declared_name": "pluggy",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pluggy",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "1.6.0"
+    },
+    {
+      "declared_name": "prometheus-client",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0 AND BSD-2-Clause",
+      "metadata_available": true,
+      "name": "prometheus-client",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "0.24.1"
+    },
+    {
+      "declared_name": "prometheus-fastapi-instrumentator",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "ISC",
+      "metadata_available": true,
+      "name": "prometheus-fastapi-instrumentator",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "8.0.2"
+    },
+    {
+      "declared_name": "psycopg",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": "2027-12-31",
+      "exception_id": "LA-LIC-001",
+      "exception_owner": "Lotus platform engineering",
+      "license_term": "LGPL-3.0-only",
+      "metadata_available": true,
+      "name": "psycopg",
+      "policy_classification": "APPROVED_EXCEPTION",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "3.3.4"
+    },
+    {
+      "declared_name": "psycopg-binary",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": "2027-12-31",
+      "exception_id": "LA-LIC-002",
+      "exception_owner": "Lotus platform engineering",
+      "license_term": "LGPL-3.0-only",
+      "metadata_available": true,
+      "name": "psycopg-binary",
+      "policy_classification": "APPROVED_EXCEPTION",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.3.4"
+    },
+    {
+      "declared_name": "py",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT license",
+      "metadata_available": true,
+      "name": "py",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.11.0"
+    },
+    {
+      "declared_name": "py-serializable",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "py-serializable",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2.1.0"
+    },
+    {
+      "declared_name": "pycparser",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "pycparser",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.0"
+    },
+    {
+      "declared_name": "pydantic",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pydantic",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "2.13.4"
+    },
+    {
+      "declared_name": "pydantic-core",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pydantic-core",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2.46.4"
+    },
+    {
+      "declared_name": "pygments",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-2-Clause",
+      "metadata_available": true,
+      "name": "pygments",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2.20.0"
+    },
+    {
+      "declared_name": "pyparsing",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pyparsing",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.3.2"
+    },
+    {
+      "declared_name": "pytest",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pytest",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "9.1.1"
+    },
+    {
+      "declared_name": "pytest-cov",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pytest-cov",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "7.1.0"
+    },
+    {
+      "declared_name": "pyyaml",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "pyyaml",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "6.0.3"
+    },
+    {
+      "declared_name": "qdldl",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache 2.0",
+      "metadata_available": true,
+      "name": "qdldl",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.1.9.post1"
+    },
+    {
+      "declared_name": "radon",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "radon",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "6.0.1"
+    },
+    {
+      "declared_name": "requests",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "requests",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2.33.1"
+    },
+    {
+      "declared_name": "requirements-parser",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "requirements-parser",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.13.0"
+    },
+    {
+      "declared_name": "rich",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "rich",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "14.3.3"
+    },
+    {
+      "declared_name": "ruff",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "ruff",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "0.15.20"
+    },
+    {
+      "declared_name": "scipy",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "scipy",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.16.1"
+    },
+    {
+      "declared_name": "scs",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "scs",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.2.11"
+    },
+    {
+      "declared_name": "setuptools",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "setuptools",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "82.0.0"
+    },
+    {
+      "declared_name": "six",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "six",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.17.0"
+    },
+    {
+      "declared_name": "sniffio",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT OR Apache-2.0",
+      "metadata_available": true,
+      "name": "sniffio",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "1.3.1"
+    },
+    {
+      "declared_name": "sortedcontainers",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache 2.0",
+      "metadata_available": true,
+      "name": "sortedcontainers",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2.4.0"
+    },
+    {
+      "declared_name": "sparsediffpy",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "sparsediffpy",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.3.0"
+    },
+    {
+      "declared_name": "starlette",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "starlette",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.3.1"
+    },
+    {
+      "declared_name": "stevedore",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "stevedore",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "5.8.0"
+    },
+    {
+      "declared_name": "tabulate",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "tabulate",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.10.0"
+    },
+    {
+      "declared_name": "tomli",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "tomli",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2.4.0"
+    },
+    {
+      "declared_name": "tomli-w",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "tomli-w",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "1.2.0"
+    },
+    {
+      "declared_name": "typing_extensions",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "PSF-2.0",
+      "metadata_available": true,
+      "name": "typing-extensions",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "4.15.0"
+    },
+    {
+      "declared_name": "typing-inspection",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "typing-inspection",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "0.4.2"
+    },
+    {
+      "declared_name": "tzdata",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "Apache-2.0",
+      "metadata_available": true,
+      "name": "tzdata",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2025.3"
+    },
+    {
+      "declared_name": "urllib3",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "urllib3",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "2.7.0"
+    },
+    {
+      "declared_name": "uvicorn",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "name": "uvicorn",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
+      "version": "0.49.0"
+    },
+    {
+      "declared_name": "vulture",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "vulture",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "2.16"
+    },
+    {
+      "declared_name": "xenon",
+      "dependency_groups": [
+        "development"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "license_term": "MIT",
+      "metadata_available": true,
+      "name": "xenon",
+      "policy_classification": "ALLOWED",
+      "relationship": "direct",
+      "source_files": [
+        "requirements-dev.txt"
+      ],
+      "version": "0.9.3"
+    }
+  ],
+  "policy": {
+    "path": "docs/standards/license-ip-policy.v1.json",
+    "schema_version": "lotus.license-ip-policy.v1"
+  },
+  "release_graphs": {
+    "development": "C:/Users/Sandeep/projects/lotus-advise/requirements-dev.txt",
+    "runtime": "C:/Users/Sandeep/projects/lotus-advise/requirements-prod.txt"
+  },
+  "repository_url": "https://github.com/sgajbi/lotus-advise",
+  "schema_version": "lotus.license-ip-inventory.v1",
+  "service_name": "lotus-advise",
+  "summary": {
+    "classifications": {
+      "ALLOWED": 88,
+      "APPROVED_EXCEPTION": 2
+    },
+    "direct_package_count": 35,
+    "package_count": 90,
+    "transitive_package_count": 55
+  }
+}
