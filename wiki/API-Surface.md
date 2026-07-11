@@ -124,6 +124,10 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
 ## Contract Notes
 
 - OpenAPI is the governed external contract.
+- Swagger display enrichment may improve readability, but generated summaries, descriptions,
+  inferred tags, and generic default errors do not satisfy the OpenAPI quality gate for public
+  routes. Route owners must author public summaries, descriptions, tags, and response metadata in
+  source.
 - Generated API vocabulary is a governed consumer artifact. It must not publish placeholder-shaped
   examples such as `sample_text`, `sample_key`, `STANDARD_TEXT`, `STANDARD_ITEM`, `ENTITY_001`, or
   `example_*`; examples must be source-authored or derived from the deterministic domain fallback

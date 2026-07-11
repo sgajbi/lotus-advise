@@ -291,7 +291,9 @@ Important validation expectations:
    vocabulary gate recursively rejects placeholder-shaped generated examples such as `sample_text`,
    `sample_key`, `STANDARD_TEXT`, `STANDARD_ITEM`, `ENTITY_001`, and `example_*`; generated
    inventory examples must come from source-authored metadata or the governed deterministic
-   fallback policy,
+   fallback policy. OpenAPI display enrichment remains available for Swagger readability, but the
+   OpenAPI quality gate treats generated operation summaries, descriptions, inferred tags, and
+   generic default error responses as missing public-route contract truth,
 2. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
 3. advisory workflow changes should be validated against canonical upstream posture,
 4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,

@@ -32,3 +32,9 @@ BANK_DEMO_PROOF_PACK_RESPONSES = {
         },
     },
 }
+
+BANK_DEMO_READ_RESPONSES = {
+    status.HTTP_500_INTERNAL_SERVER_ERROR: {
+        "description": "Bank-demo contract metadata could not be assembled."
+    },
+}

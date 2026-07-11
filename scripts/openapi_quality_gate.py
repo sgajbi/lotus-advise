@@ -13,6 +13,7 @@ if ROOT_PATH not in sys.path:
 from src.api.main import app  # noqa: E402
 
 ALLOWED_METHODS = {"get", "post", "put", "patch", "delete"}
+GENERATED_DEFAULT_ERROR_DESCRIPTION = "Unexpected error response."
 
 
 def _has_success_response(operation: dict[str, Any]) -> bool:
@@ -23,8 +24,18 @@ def _has_success_response(operation: dict[str, Any]) -> bool:
 def _has_error_response(operation: dict[str, Any]) -> bool:
     responses = operation.get("responses", {})
     return any(
-        str(code).startswith("4") or str(code).startswith("5") or str(code) == "default"
-        for code in responses
+        _is_authored_error_response(str(code), response) for code, response in responses.items()
+    )
+
+
+def _is_authored_error_response(code: str, response: Any) -> bool:
+    if code.startswith("4") or code.startswith("5"):
+        return True
+    if code != "default":
+        return False
+    return not (
+        isinstance(response, dict)
+        and response.get("description") == GENERATED_DEFAULT_ERROR_DESCRIPTION
     )
 
 
@@ -49,11 +60,15 @@ def _missing_operation_documentation(
     method: str,
     path: str,
     operation: dict[str, Any],
+    service_name: str,
 ) -> list[tuple[str, str, str]]:
     missing_docs: list[tuple[str, str, str]] = []
-    for field_name in ("summary", "description", "tags"):
-        if not operation.get(field_name):
-            missing_docs.append((method, path, field_name))
+    if not _has_authored_summary(method, path, operation):
+        missing_docs.append((method, path, "summary"))
+    if not _has_authored_description(method, path, operation, service_name):
+        missing_docs.append((method, path, "description"))
+    if not _has_authored_tags(path, operation):
+        missing_docs.append((method, path, "tags"))
 
     if not operation.get("responses"):
         missing_docs.append((method, path, "responses"))
@@ -61,9 +76,49 @@ def _missing_operation_documentation(
 
     if not _has_success_response(operation):
         missing_docs.append((method, path, "2xx response"))
-    if not _has_error_response(operation):
+    if not _is_infrastructure_path(path) and not _has_error_response(operation):
         missing_docs.append((method, path, "error response (4xx/5xx/default)"))
     return missing_docs
+
+
+def _has_authored_summary(method: str, path: str, operation: dict[str, Any]) -> bool:
+    summary = operation.get("summary")
+    if not summary:
+        return False
+    return _is_infrastructure_path(path) or summary != f"{method.upper()} {path}"
+
+
+def _has_authored_description(
+    method: str,
+    path: str,
+    operation: dict[str, Any],
+    service_name: str,
+) -> bool:
+    description = operation.get("description")
+    if not description:
+        return False
+    generated = f"{method.upper()} operation for {path} in {service_name}."
+    return _is_infrastructure_path(path) or description != generated
+
+
+def _has_authored_tags(path: str, operation: dict[str, Any]) -> bool:
+    tags = operation.get("tags")
+    if not tags:
+        return False
+    return _is_infrastructure_path(path) or tags != [_inferred_operation_tag(path)]
+
+
+def _inferred_operation_tag(path: str) -> str:
+    if path.startswith("/health/") or path == "/health":
+        return "Health"
+    if path == "/metrics":
+        return "Monitoring"
+    segment = path.strip("/").split("/", 1)[0] or "default"
+    return segment.replace("-", " ").title()
+
+
+def _is_infrastructure_path(path: str) -> bool:
+    return path == "/metrics" or path == "/health" or path.startswith("/health/")
 
 
 def _iter_component_properties(
@@ -119,6 +174,7 @@ def evaluate_schema(schema: dict[str, Any], *, service_name: str) -> list[str]:
                 method=method,
                 path=path,
                 operation=operation,
+                service_name=service_name,
             )
         )
 
