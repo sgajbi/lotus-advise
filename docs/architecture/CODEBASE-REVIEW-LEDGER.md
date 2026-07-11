@@ -1,5 +1,46 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-344
+
+- Scope: External service adapter consumer contracts
+- Pattern: Adapter tests should keep provider-compatible versioned fixtures and adversarial
+  failure-mode evidence for every external authority instead of relying on scattered fake-response
+  unit tests.
+- Status: Hardened
+- Finding Class: Testing quality, integration correctness, CI enforcement, supportability
+- Summary: `lotus-core`, `lotus-risk`, `lotus-report`, and `lotus-ai` adapter behavior had strong
+  focused tests, but there was no single contract lane proving that the same adversarial categories
+  were covered across all four external seams. This made it easy for fake-compatible tests to miss
+  provider schema drift, identity mismatch, idempotency echo mismatch, malformed provider payloads,
+  or raw provider material leakage.
+- Evidence:
+  - Added `tests/fixtures/external-adapter-contracts/lotus-advise-external-adapter-contracts.v1.json`
+    as the versioned consumer-contract fixture manifest for all four adapters.
+  - Added `tests/unit/advisory/contracts/test_external_adapter_contract_fixtures.py` to require
+    every adapter to cover valid provider responses, malformed JSON, missing fields,
+    portfolio/as-of mismatch, partial data, auth failure, timeout, retry or bounded non-retry
+    posture, duplicate/idempotency behavior, provider error mapping, and raw-payload/secret
+    non-leakage with references to real regression tests.
+  - Added `make external-adapter-contracts` and included it in `make check` so the manifest becomes
+    a repo-native CI contract lane.
+  - Hardened concrete runtime gaps found through the issue lens: Lotus Core stateful context now
+    rejects upstream portfolio/as-of mismatch, Lotus Risk rejects contradictory provider metadata,
+    and Lotus Report rejects mismatched provider idempotency echoes.
+  - Focused validation passed with `5 passed` for the new contract lane and `10 passed` for the
+    targeted Core/Risk/Report adapter regressions.
+- Consequence:
+  - Future external-adapter changes must update a versioned contract fixture and real regression
+    evidence together, reducing the chance that a fake response masks provider drift or unsafe
+    degraded behavior.
+- Documentation:
+  - Repository context, integration wiki, CI wiki, review ledger, and backend delivery skill
+    guidance updated. Wiki source changed, so wiki check is required before merge and publication
+    is required after merge.
+- Follow-Up:
+  - When upstream provider-owned schemas become available in their repositories, replace any local
+    fixture-only schema references with cross-repository contract artifacts while keeping this
+    lane as the Advise consumer proof.
+
 ## LA-REV-901
 
 - Scope: Proposal memo response projection complexity ratchet

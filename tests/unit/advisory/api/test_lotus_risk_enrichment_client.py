@@ -441,10 +441,55 @@ def test_enrich_with_lotus_risk_rejects_contract_mismatch(monkeypatch):
         )
 
 
+def test_enrich_with_lotus_risk_rejects_response_portfolio_identity_mismatch(monkeypatch):
+    request = _request()
+    payload = _risk_response_payload()
+    payload["metadata"]["portfolio_id"] = "OTHER_PORTFOLIO"
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=payload))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    with pytest.raises(LotusRiskEnrichmentUnavailableError):
+        enrich_with_lotus_risk(
+            request=request,
+            proposal_result=_proposal_result(request),
+            correlation_id="corr-risk-client",
+        )
+
+
+def test_enrich_with_lotus_risk_rejects_response_as_of_mismatch_for_stateful_input(monkeypatch):
+    request = _request()
+    request.reference_model = None
+    payload = _risk_response_payload()
+    payload["input_mode"] = "simulation"
+    payload["metadata"]["as_of_date"] = "2026-03-28"
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=payload))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    with pytest.raises(LotusRiskEnrichmentUnavailableError):
+        enrich_with_lotus_risk(
+            request=request,
+            proposal_result=_proposal_result(request),
+            correlation_id="corr-risk-client",
+            resolved_as_of="2026-03-27",
+            input_mode="stateful",
+        )
+
+
 def test_enrich_with_lotus_risk_prefers_simulation_mode_for_resolved_stateful_context(monkeypatch):
     request = _request()
     request.reference_model = None
-    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
+    payload = _risk_response_payload()
+    payload["input_mode"] = "simulation"
+    payload["metadata"]["as_of_date"] = "2026-03-27"
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=payload))
     monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
     monkeypatch.setattr(
         "src.integrations.lotus_risk.enrichment.httpx.Client",

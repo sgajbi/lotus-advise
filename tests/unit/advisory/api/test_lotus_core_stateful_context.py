@@ -697,6 +697,58 @@ def test_resolve_stateful_context_rejects_missing_resolved_as_of(
     assert str(exc_info.value) == "LOTUS_CORE_STATEFUL_CONTEXT_INVALID"
 
 
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda payloads: payloads["portfolio"].update({"portfolio_id": "OTHER_PORTFOLIO"}),
+        lambda payloads: payloads["positions"].update({"portfolio_id": "OTHER_PORTFOLIO"}),
+        lambda payloads: payloads["cash"].update({"portfolio_id": "OTHER_PORTFOLIO"}),
+        lambda payloads: payloads["cash"].update({"resolved_as_of_date": "2026-03-28"}),
+    ],
+)
+def test_resolve_stateful_context_rejects_upstream_identity_mismatch(
+    monkeypatch,
+    stateful_input,
+    mutator,
+) -> None:
+    base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
+    payloads = {
+        "portfolio": {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"},
+        "positions": {"portfolio_id": "DEMO_ADV_USD_001", "positions": []},
+        "cash": {
+            "portfolio_id": "DEMO_ADV_USD_001",
+            "resolved_as_of_date": "2026-03-27",
+            "cash_accounts": [],
+        },
+    }
+    mutator(payloads)
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(payloads["portfolio"]),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            payloads["positions"]
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
+            payloads["cash"]
+        ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/reference/classification-taxonomy",
+        ): _FakeResponse({"records": []}),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _FakeClient(responses),
+    )
+
+    with pytest.raises(LotusCoreStatefulContextUnavailableError) as exc_info:
+        resolve_stateful_context_with_lotus_core(stateful_input)
+
+    assert str(exc_info.value) == "LOTUS_CORE_STATEFUL_CONTEXT_INVALID"
+
+
 def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
     monkeypatch, stateful_input
 ):

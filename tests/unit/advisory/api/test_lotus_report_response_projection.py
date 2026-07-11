@@ -139,3 +139,21 @@ def test_projection_fails_closed_when_report_response_identity_is_missing() -> N
             response_payload={"status": "accepted"},
             status_payload={},
         )
+
+
+def test_projection_fails_closed_when_report_response_idempotency_key_mismatches() -> None:
+    with pytest.raises(
+        LotusReportRequestMappingError,
+        match="LOTUS_REPORT_REQUEST_UNAVAILABLE",
+    ):
+        build_memo_report_package_response(
+            request=_proposal_request(),
+            request_id="prr_memo_001",
+            report_job_request=_report_job_request(),
+            response_payload={
+                "report_job_id": "rjob_memo_001",
+                "status": "accepted",
+                "idempotency_key": "prr_other_request",
+            },
+            status_payload={},
+        )

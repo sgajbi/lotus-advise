@@ -97,6 +97,39 @@ def _request_concentration_response(
     raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE") from last_error
 
 
+def _metadata_text(metadata: dict[str, Any] | None, key: str) -> str | None:
+    if metadata is None:
+        return None
+    value = metadata.get(key)
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _validate_concentration_response_identity(
+    concentration: LotusRiskConcentrationResponse,
+    *,
+    request: ProposalSimulateRequest,
+    resolved_as_of: str | None,
+) -> None:
+    metadata = concentration.metadata
+    _reject_metadata_mismatch(
+        actual=_metadata_text(metadata, "portfolio_id"),
+        expected=request.portfolio_snapshot.portfolio_id,
+    )
+    if resolved_as_of is not None:
+        _reject_metadata_mismatch(
+            actual=_metadata_text(metadata, "as_of_date"),
+            expected=resolved_as_of,
+        )
+
+
+def _reject_metadata_mismatch(*, actual: str | None, expected: str) -> None:
+    if actual is not None and actual != expected:
+        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+
+
 def _resolve_retry_backoff_seconds() -> float:
     return min(env_positive_float("LOTUS_RISK_RETRY_BACKOFF_SECONDS", default=0.1), 2.0)
 
@@ -122,6 +155,11 @@ def enrich_with_lotus_risk(
     concentration = _request_concentration_response(
         payload=payload,
         correlation_id=correlation_id,
+    )
+    _validate_concentration_response_identity(
+        concentration,
+        request=request,
+        resolved_as_of=resolved_as_of if input_mode == "stateful" else None,
     )
     return apply_concentration_response(
         proposal_result=proposal_result,
