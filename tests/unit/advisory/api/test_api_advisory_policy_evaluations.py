@@ -259,6 +259,68 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         assert sign_off_body["package_posture"]["client_ready_publication"] == "BLOCKED"
 
 
+def test_generic_policy_evaluation_event_api_rejects_privileged_event_types() -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals/pp_policy_event_bypass/versions/"
+            "ppv_policy_event_bypass/policy-evaluations",
+            json=_create_payload(),
+            headers={"Idempotency-Key": "api-policy-eval-bypass"},
+        )
+        assert created.status_code == 200
+        evaluation_id = created.json()["record"]["evaluation_id"]
+
+        privileged_events = [
+            (
+                "POLICY_EVALUATION_FINALIZED",
+                {"evaluation_status": "PENDING_REVIEW"},
+            ),
+            (
+                "POLICY_EVALUATION_SIGN_OFF_RECORDED",
+                {
+                    "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
+                    "source_evaluation_hash": created.json()["record"]["evaluation_hash"],
+                },
+            ),
+            (
+                "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED",
+                {
+                    "report_package_status": "RECORDED",
+                    "report_request_id": "rreq_forged_001",
+                    "report_package_id": "rjob_forged_001",
+                },
+            ),
+            (
+                "POLICY_EVALUATION_AI_EVIDENCE_RECORDED",
+                {
+                    "ai_status": "REVIEW_REQUIRED",
+                    "lineage": {"provider": "forged"},
+                },
+            ),
+        ]
+        for event_type, reason in privileged_events:
+            response = client.post(
+                f"/advisory/policy-evaluations/{evaluation_id}/events",
+                json={
+                    "event_type": event_type,
+                    "actor_id": "spoofed_policy_actor",
+                    "reason": reason,
+                },
+                headers={"Idempotency-Key": f"api-policy-forged-{event_type.lower()}"},
+            )
+            assert response.status_code == 422
+
+        lineage = client.get(f"/advisory/policy-evaluations/{evaluation_id}/lineage")
+        assert lineage.status_code == 200
+        assert [event["event_type"] for event in lineage.json()["audit_events"]] == [
+            "POLICY_EVALUATION_FINALIZED"
+        ]
+
+        workflow = client.get(f"/advisory/policy-evaluations/{evaluation_id}/workflow")
+        assert workflow.status_code == 200
+        assert workflow.json()["sign_off_status"] != "SIGNED_OFF"
+
+
 def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requirements() -> None:
     with TestClient(app) as client:
         _activate_sg_pack(client)
@@ -888,7 +950,7 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
             },
             headers={"Idempotency-Key": "api-policy-diag-report"},
         )
-        assert report_event.status_code == 200
+        assert report_event.status_code == 422
 
         ai_event = client.post(
             f"/advisory/policy-evaluations/{evaluation_id}/events",
@@ -904,21 +966,14 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
             },
             headers={"Idempotency-Key": "api-policy-diag-ai"},
         )
-        assert ai_event.status_code == 200
+        assert ai_event.status_code == 422
 
         diagnostics = client.get(f"/advisory/policy-evaluations/{evaluation_id}/diagnostics")
         assert diagnostics.status_code == 200
         body = diagnostics.json()
-        assert body["latest_events"]["report_package"]["event_type"] == (
-            "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED"
-        )
-        assert body["report_package_posture"]["report_request_id"] == "rreq_diag_001"
-        assert body["report_package_posture"]["render_present"] is True
-        assert body["report_package_posture"]["archive_present"] is True
-        assert body["ai_evidence_posture"]["status"] == "UNAVAILABLE"
-        assert body["ai_evidence_posture"]["fallback_reason"] == (
-            "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
-        )
+        assert body["latest_events"]["report_package"] is None
+        assert body["report_package_posture"]["status"] == "NO_REPORT_REQUEST"
+        assert body["ai_evidence_posture"]["status"] == "NO_AI_EVIDENCE_REQUEST"
         assert body["runbook_ref"] == "wiki/Operations-Runbook.md#policy-evaluation-diagnostics"
         serialized = str(body)
         assert "provider response leaked" not in serialized

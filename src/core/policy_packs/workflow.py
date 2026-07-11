@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import UTC, datetime
 
 from src.core.common.idempotency import normalize_optional_idempotency_key
+from src.core.policy_packs.event_authority import POLICY_SIGN_OFF_EVENT_AUTHORITY
 from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
     get_policy_evaluation_record,
@@ -75,6 +76,9 @@ def record_policy_evaluation_sign_off_decision(
         event_type=event_type,
         actor_id=payload.actor_id,
         idempotency_key=idempotency_key,
+        authority=POLICY_SIGN_OFF_EVENT_AUTHORITY
+        if event_type == "POLICY_EVALUATION_SIGN_OFF_RECORDED"
+        else None,
         reason={
             "workflow_contract_version": _WORKFLOW_CONTRACT_VERSION,
             "decision": payload.decision,

@@ -25,7 +25,7 @@ from src.core.policy_packs import (
     validate_policy_pack_version,
 )
 from src.core.policy_packs.catalog_reference_packs import reference_policy_packs
-from src.core.proposals.exceptions import ProposalIdempotencyConflictError
+from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 
 SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
 
@@ -343,7 +343,7 @@ def test_policy_evaluation_idempotency_rejects_payload_drift() -> None:
         )
 
 
-def test_policy_evaluation_events_are_append_only_without_mutating_final_hash() -> None:
+def test_policy_evaluation_review_events_are_append_only_without_mutating_final_hash() -> None:
     persisted = finalize_policy_evaluation_record(
         evidence_bundle=_base_evidence_bundle(),
         policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
@@ -370,28 +370,87 @@ def test_policy_evaluation_events_are_append_only_without_mutating_final_hash() 
         idempotency_key="policy-eval-review-event",
         reason={"review_action": "REQUEST_MORE_EVIDENCE"},
     )
-    sign_off = append_policy_evaluation_event(
-        evaluation_id=persisted.record.evaluation_id,
-        event_type="POLICY_EVALUATION_SIGN_OFF_RECORDED",
-        actor_id="supervisor_1",
-        reason={"sign_off_status": "PENDING"},
-    )
-    report_ref = append_policy_evaluation_event(
-        evaluation_id=persisted.record.evaluation_id,
-        event_type="POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED",
-        actor_id="operations_1",
-        reason={"report_ref": "report-policy-appendix-001", "archive_ref": "arch-policy-001"},
-    )
     stored = get_policy_evaluation_record(evaluation_id=persisted.record.evaluation_id)
 
     assert review.event_id == "peev_000002"
     assert review_replay.event_id == review.event_id
-    assert sign_off.event_id == "peev_000003"
-    assert report_ref.event_id == "peev_000004"
     assert stored.evaluation_hash == immutable_hash
     assert len(stored.review_events_json) == 1
-    assert len(stored.sign_off_events_json) == 1
-    assert len(stored.report_archive_refs_json) == 1
+    assert stored.sign_off_events_json == []
+    assert stored.report_archive_refs_json == []
+
+
+def test_policy_evaluation_privileged_events_require_specialized_command_authority() -> None:
+    persisted = finalize_policy_evaluation_record(
+        evidence_bundle=_base_evidence_bundle(),
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_privileged_events",
+        proposal_version_id="ppv_policy_privileged_events",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-privileged-events",
+        reason={"purpose": "event authority test"},
+    )
+
+    privileged_events = [
+        (
+            "POLICY_EVALUATION_FINALIZED",
+            {"evaluation_status": "PENDING_REVIEW"},
+            "POLICY_EVALUATION_FINALIZED_EVENT_REQUIRES_FINALIZE_COMMAND",
+        ),
+        (
+            "POLICY_EVALUATION_SIGN_OFF_RECORDED",
+            {
+                "workflow_contract_version": "rfc0025.policy-workflow.v1",
+                "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
+                "source_evaluation_hash": persisted.record.evaluation_hash,
+                "client_ready_publication": "BLOCKED",
+            },
+            "POLICY_EVALUATION_PRIVILEGED_EVENT_REQUIRES_COMMAND",
+        ),
+        (
+            "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED",
+            {
+                "policy_report_package_contract_version": (
+                    "rfc0025.policy-report-package-realization.v1"
+                ),
+                "policy_report_package_request_hash": "sha256:request",
+                "report_package_status": "RECORDED",
+                "source_evaluation_hash": persisted.record.evaluation_hash,
+                "report_request_id": "rreq_001",
+                "policy_sign_off_package": {},
+                "client_ready_publication": "BLOCKED",
+            },
+            "POLICY_EVALUATION_PRIVILEGED_EVENT_REQUIRES_COMMAND",
+        ),
+        (
+            "POLICY_EVALUATION_AI_EVIDENCE_RECORDED",
+            {
+                "policy_ai_contract_version": "rfc0025.policy-ai-evidence-boundary.v1",
+                "policy_ai_request_hash": "sha256:request",
+                "ai_status": "REVIEW_REQUIRED",
+                "source_evaluation_hash": persisted.record.evaluation_hash,
+                "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
+                "human_review_required": True,
+                "authoritative_for_policy_status": False,
+                "client_ready_publication": "BLOCKED",
+                "lineage": {},
+            },
+            "POLICY_EVALUATION_PRIVILEGED_EVENT_REQUIRES_COMMAND",
+        ),
+    ]
+    for event_type, reason, expected_error in privileged_events:
+        with pytest.raises(ProposalValidationError, match=expected_error):
+            append_policy_evaluation_event(
+                evaluation_id=persisted.record.evaluation_id,
+                event_type=event_type,
+                actor_id="spoofed_actor",
+                reason=reason,
+                idempotency_key=f"policy-eval-forged-{event_type.lower()}",
+            )
+
+    events = list_policy_evaluation_events(evaluation_id=persisted.record.evaluation_id)
+    assert [event.event_type for event in events] == ["POLICY_EVALUATION_FINALIZED"]
 
 
 def test_policy_evaluation_replay_compares_policy_source_and_evaluation_hashes() -> None:

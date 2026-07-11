@@ -11,6 +11,7 @@ from src.core.policy_packs.ai_models import (
     PolicyEvaluationAiEvidenceResponse,
     build_policy_ai_unavailable_evidence,
 )
+from src.core.policy_packs.event_authority import POLICY_AI_EVIDENCE_EVENT_AUTHORITY
 from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
     get_policy_evaluation_record,
@@ -130,6 +131,7 @@ def request_policy_evaluation_ai_evidence(
         event_type="POLICY_EVALUATION_AI_EVIDENCE_RECORDED",
         actor_id=payload.requested_by,
         idempotency_key=idempotency_key,
+        authority=POLICY_AI_EVIDENCE_EVENT_AUTHORITY,
         reason=reason,
     )
     return PolicyEvaluationAiEvidenceResponse(

@@ -14,6 +14,8 @@ PolicyEvaluationEventType = Literal[
     "POLICY_EVALUATION_AI_EVIDENCE_RECORDED",
 ]
 
+PolicyEvaluationReviewEventType = Literal["POLICY_EVALUATION_REVIEW_RECORDED"]
+
 
 class PolicyEvaluationAuditEvent(BaseModel):
     event_id: str = Field(
@@ -222,12 +224,15 @@ class PolicyEvaluationCreateRequest(BaseModel):
 
 
 class PolicyEvaluationEventRequest(BaseModel):
-    event_type: PolicyEvaluationEventType = Field(
-        description="Append-only policy evaluation event type to record.",
+    event_type: PolicyEvaluationReviewEventType = Field(
+        description=(
+            "Append-only non-privileged policy review event type. Sign-off, report/archive, "
+            "AI-evidence, and finalized events are created only by their specialized commands."
+        ),
         examples=["POLICY_EVALUATION_REVIEW_RECORDED"],
     )
     actor_id: str = Field(
-        description="Actor recording the review, sign-off, or report/archive event.",
+        description="Actor recording the non-privileged policy review event.",
         examples=["compliance_1"],
     )
     reason: dict[str, Any] = Field(

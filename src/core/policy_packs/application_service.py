@@ -31,10 +31,10 @@ from src.core.policy_packs.persistence import (
 )
 from src.core.policy_packs.persistence_models import (
     PolicyEvaluationAuditEvent,
-    PolicyEvaluationEventType,
     PolicyEvaluationPersistenceResult,
     PolicyEvaluationRecord,
     PolicyEvaluationReplayResponse,
+    PolicyEvaluationReviewEventType,
 )
 from src.core.policy_packs.ports import PolicyAiEvidenceClient, PolicyReportPackageClient
 from src.core.policy_packs.projection_models import (
@@ -134,7 +134,7 @@ class PolicyEvidenceApplicationService:
         self,
         *,
         evaluation_id: str,
-        event_type: PolicyEvaluationEventType,
+        event_type: PolicyEvaluationReviewEventType,
         actor_id: str,
         reason: dict[str, Any],
         idempotency_key: str | None,

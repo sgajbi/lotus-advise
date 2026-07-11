@@ -9,6 +9,7 @@ from src.core.policy_packs.catalog_models import (
     PolicyPackListResponse,
     PolicyPackValidationResponse,
 )
+from src.core.policy_packs.event_authority import PolicyEvaluationEventAuthority
 from src.core.policy_packs.persistence_models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationEventType,
@@ -67,6 +68,7 @@ class PolicyEvaluationRepository(Protocol):
         actor_id: str,
         reason: dict[str, Any],
         idempotency_key: str | None,
+        authority: PolicyEvaluationEventAuthority | None = None,
     ) -> PolicyEvaluationAuditEvent: ...
 
     def replay_policy_evaluation_record(

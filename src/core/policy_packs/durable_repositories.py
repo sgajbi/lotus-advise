@@ -11,6 +11,7 @@ from src.core.policy_packs.catalog_models import (
     PolicyPackListResponse,
     PolicyPackValidationResponse,
 )
+from src.core.policy_packs.event_authority import PolicyEvaluationEventAuthority
 from src.core.policy_packs.persistence_models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationEventType,
@@ -134,6 +135,7 @@ class DurablePolicyEvaluationRepository:
         actor_id: str,
         reason: dict[str, Any],
         idempotency_key: str | None,
+        authority: PolicyEvaluationEventAuthority | None = None,
     ) -> PolicyEvaluationAuditEvent:
         store = self._load_store()
         event = store.append_policy_evaluation_event(
@@ -142,6 +144,7 @@ class DurablePolicyEvaluationRepository:
             actor_id=actor_id,
             reason=reason,
             idempotency_key=idempotency_key,
+            authority=authority,
         )
         self._save_store(store)
         return event

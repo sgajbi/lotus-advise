@@ -13,7 +13,7 @@ Implemented API scope:
 2. read a finalized evaluation record,
 3. replay and compare pinned policy/source/evaluation hashes,
 4. read a policy review queue projection,
-5. record append-only review, sign-off, and report/archive reference events,
+5. record append-only non-privileged review events,
 6. read policy lineage with finalization and later audit events,
 7. read the Advise source sign-off package for policy review.
 
@@ -41,7 +41,10 @@ Core support added in `src/core/policy_packs/persistence.py`:
 2. list audit events for a record,
 3. project lineage from immutable hashes and append-only events,
 4. project a review queue response without inventing workflow state,
-5. project an Advise source sign-off package without claiming report realization.
+5. project an Advise source sign-off package without claiming report realization,
+6. reject sign-off, report/archive, AI-evidence, and finalized events from the generic event
+   command; those events are owned by the specialized workflow, report-package, AI-evidence, and
+   finalize commands.
 
 OpenAPI support added:
 
@@ -84,7 +87,9 @@ Covered paths:
 6. review queue filters `PENDING_REVIEW` records,
 7. sign-off package returns the Advise source package while keeping report realization blocked,
 8. OpenAPI exposes the certified routes with the dedicated tag and idempotency header docs,
-9. data-product and trust telemetry posture remains proposed/blocked rather than promoted.
+9. forged sign-off, report/archive, AI-evidence, and finalized event posts are rejected and do not
+   mutate lineage, workflow, or diagnostics,
+10. data-product and trust telemetry posture remains proposed/blocked rather than promoted.
 
 ## Wiki And README Decision
 

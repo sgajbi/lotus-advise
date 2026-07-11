@@ -132,6 +132,10 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   examples such as `sample_text`, `sample_key`, `STANDARD_TEXT`, `STANDARD_ITEM`, `ENTITY_001`, or
   `example_*`; examples must be source-authored or derived from the deterministic domain fallback
   policy used by `make api-vocabulary-gate`.
+- `POST /advisory/policy-evaluations/{evaluation_id}/events` is a review-event command only.
+  Sign-off, report/archive, AI-evidence, and finalization events are owned by their specialized
+  workflow, report-package, AI-evidence, and finalize commands and must not be manufactured through
+  the generic event API.
 - `contracts/idea-proposal-intake/lotus-advise-idea-proposal-intake.v1.json` is the current
   source-safe `lotus-idea` proposal-intake contract. Its supportability status is
   `not_certified`, and remaining blockers include Advise suitability authority and client

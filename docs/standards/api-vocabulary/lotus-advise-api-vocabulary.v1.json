@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T08:29:36.182686+00:00",
+  "generatedAt": "2026-07-11T09:17:21.200385+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -36647,7 +36647,7 @@
       "method": "POST",
       "path": "/advisory/policy-evaluations/{evaluation_id}/events",
       "operationId": "record_policy_evaluation_event_advisory_policy_evaluations__evaluation_id__events_post",
-      "summary": "Record Policy Evaluation Event",
+      "summary": "Record Policy Evaluation Review Event",
       "request": {
         "fields": [
           {
