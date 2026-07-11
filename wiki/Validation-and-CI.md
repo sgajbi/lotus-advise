@@ -10,7 +10,7 @@ change reaches `main`.
 | --- | --- | --- |
 | Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, quality-baseline freshness, high-severity security, and unit behavior. |
 | Local PR-grade gate | `make ci` | Dependency health, static governance, migrations, security audit, release-image provenance, coverage, Docker build, Postgres runtime contracts, and production-profile guardrail negatives. |
-| Remote Feature Lane | GitHub `Remote Feature Lane` | Branch feedback for workflow lint, unit tests, dependency governance, high-severity Bandit, demo-assurance checks, and quality-baseline freshness. |
+| Remote Feature Lane | GitHub `Remote Feature Lane` | Branch feedback for workflow lint, unit tests, dependency governance, Bandit severity regression, demo-assurance checks, and quality-baseline freshness. |
 | PR Merge Gate | GitHub `Pull Request Merge Gate` | Merge readiness across lint/typecheck governance, unit/integration/e2e tests, coverage, Docker build, Postgres migration smoke, production startup smoke, and production guardrail negatives. |
 | Main Releasability Gate | GitHub `Main Releasability Gate` | Post-merge release evidence on `main`, including the same static, runtime, migration, coverage, Docker, security, observability, and advisory-domain signals. |
 | Report-only quality evidence | `Quality Baseline / Report Only` and `make quality-baseline` | Trend evidence for code health and refactoring scorecards. Report-only signals should not be promoted until deterministic, low-noise, locally runnable, and policy-backed. |
@@ -40,7 +40,7 @@ make quality-baseline-check
 make demo-assurance-gate
 make demo-certification-live
 make security-audit
-make bandit-high-severity-gate
+make bandit-severity-regression-gate
 make openapi-gate
 make no-alias-gate
 make api-vocabulary-gate
@@ -86,10 +86,12 @@ The current blocking posture is intentionally high-signal:
    evidence to reference real regression tests.
 8. `make quality-baseline-check`
    blocks stale committed quality report and scorecard truth.
-9. `make bandit-high-severity-gate`
-   blocks high-severity Bandit findings in the fast local and Feature Lane path.
+9. `make bandit-severity-regression-gate`
+   blocks high-severity Bandit findings and fails on any new, stale, expired, or worsened
+   medium/low finding relative to `quality/bandit_security_baseline.v1.json`.
 10. `make security-audit`
-   runs dependency health with audit posture and the high-severity Bandit gate in PR-grade paths.
+   runs dependency health with audit posture and the Bandit severity-regression gate in PR-grade
+   paths.
 11. `make release-image-provenance-gate`
     blocks drift in Dockerfile build metadata args, OCI labels, Docker build arguments, and
     support-safe metadata naming before the image is built or pushed.

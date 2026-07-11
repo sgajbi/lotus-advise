@@ -451,8 +451,8 @@
   indefinitely.
 - Development requirements pin the report-only quality tools used by committed baseline
   evidence so GitHub CI and local developer runs measure the same quality surface.
-- Bandit high-severity security scanning now fails earlier through `make check` and
-  Remote Feature Lane while medium/low findings remain inventory-only.
+- Bandit security scanning now fails earlier through `make check` and Remote Feature
+  Lane for high findings plus new, stale, expired, or worsened medium/low findings.
 
 ## Remaining Enterprise-Readiness Work
 
@@ -464,7 +464,7 @@
   classifying validator and compatibility-facade findings.
 - Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate after
   classifying current B-ranked blocks.
-- Expand Bandit security enforcement beyond high severity after classifying current
+- Reduce the governed Bandit medium/low baseline before expiry after classifying current
   SQL-construction findings and resolving true positives.
 - Convert the deptry dependency inventory into a fail-on-new-regression gate after
   classifying current dependency findings.

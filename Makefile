@@ -1,4 +1,4 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate docs-source-reference-gate observability-diagnostics advisory-domain-golden-regressions external-adapter-contracts demo-assurance-gate demo-certification-live release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate docs-source-reference-gate observability-diagnostics advisory-domain-golden-regressions external-adapter-contracts demo-assurance-gate demo-certification-live release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-severity-regression-gate bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
 SERVICE_VERSION ?= 0.1.0
 IMAGE_REPOSITORY ?= lotus-advise
@@ -21,7 +21,7 @@ install-ci:
 pre-commit:
 	python -m pre_commit run --all-files
 
-check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate external-adapter-contracts docs-source-reference-gate quality-baseline-check bandit-high-severity-gate release-image-provenance-gate test
+check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate external-adapter-contracts docs-source-reference-gate quality-baseline-check bandit-severity-regression-gate release-image-provenance-gate test
 
 ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate docs-source-reference-gate quality-baseline-check migration-smoke security-audit release-image-provenance-gate coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
 
@@ -193,10 +193,12 @@ check-deps-strict:
 
 security-audit:
 	python scripts/dependency_health_check.py --requirements requirements.txt --dev-requirements requirements-dev.txt --outdated-scope direct --target-python-version $${PYTHON_VERSION:-3.11}
-	$(MAKE) bandit-high-severity-gate
+	$(MAKE) bandit-severity-regression-gate
 
-bandit-high-severity-gate:
+bandit-severity-regression-gate:
 	python scripts/bandit_high_severity_gate.py
+
+bandit-high-severity-gate: bandit-severity-regression-gate
 
 coverage-combined:
 	COVERAGE_FILE=.coverage.unit python -m pytest tests/unit --cov=src --cov-report=

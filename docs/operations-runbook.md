@@ -22,6 +22,8 @@
 - `make docker-build`: Docker image build validation.
 - `make release-image-provenance-gate`: static Dockerfile, OCI label, release metadata, and
   support-safe build metadata contract validation.
+- `make bandit-severity-regression-gate`: Bandit security gate that blocks all high findings and
+  fails on new, stale, expired, or worsened medium/low findings relative to the governed baseline.
 
 ## Required Runtime Identity
 
@@ -49,6 +51,8 @@ Main Releasability image release evidence before promoting or diagnosing a conta
    environments instead of rebuilding,
 5. Docker build args, environment variables, OCI labels, release manifests, and runtime `/version`
    metadata must remain support-safe and must not carry secrets or DSNs.
+6. release evidence must link Bandit, dependency audit, SBOM, and container vulnerability-scan
+   artifacts so security posture is reviewable with the immutable image identity.
 
 ## Operational Posture
 

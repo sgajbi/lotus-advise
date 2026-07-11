@@ -73,6 +73,17 @@ def test_release_manifest_records_digest_artifacts_and_deploy_policy(tmp_path: P
     assert manifest["image"]["immutable_ref"] == "ghcr.io/sgajbi/lotus-advise:abc123@sha256:abc123"
     assert manifest["artifacts"]["sbom"] == "output/release/lotus-advise.spdx.json"
     assert manifest["artifacts"]["vulnerability_scan"] == "output/release/trivy-image-scan.json"
+    assert manifest["security_evidence"]["bandit_gate"] == "make bandit-severity-regression-gate"
+    assert (
+        manifest["security_evidence"]["bandit_baseline"]
+        == "quality/bandit_security_baseline.v1.json"
+    )
+    assert manifest["security_evidence"]["dependency_audit"] == "make security-audit"
+    assert manifest["security_evidence"]["sbom"] == "output/release/lotus-advise.spdx.json"
+    assert (
+        manifest["security_evidence"]["container_vulnerability_scan"]
+        == "output/release/trivy-image-scan.json"
+    )
     assert manifest["deployment"]["deploy_by_digest"] is True
     assert manifest["deployment"]["same_image_promoted_across_environments"] is True
     assert manifest["version_endpoint"]["path"] == "/version"

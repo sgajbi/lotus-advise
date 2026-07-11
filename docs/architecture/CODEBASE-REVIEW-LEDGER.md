@@ -1,5 +1,44 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-909
+
+- Scope: Bandit medium/low severity-regression baseline
+- Pattern: Security scanners should block new regressions across all governed severities while
+  allowing only owner-approved, expiring, remediation-linked exceptions for current findings.
+- Status: Hardened
+- Finding Class: Security CI enforcement, release evidence, baseline governance
+- Summary: GitHub issue #412 identified that `scripts/bandit_high_severity_gate.py` parsed all
+  Bandit severities but failed only on high findings. The repository already reported `0` high,
+  `26` medium, and `1` low finding, but medium/low findings could drift or grow without a
+  reviewable baseline decision.
+- Evidence:
+  - `scripts/bandit_high_severity_gate.py` now computes stable fingerprints from Bandit result
+    identity and normalized code, loads `quality/bandit_security_baseline.v1.json`, and fails on
+    high, new, stale/resolved, expired, duplicate, or severity-worsened findings.
+  - The committed Bandit baseline carries fingerprint, owner, rationale, expiry,
+    linked-remediation issue #435, and compensating control for every current medium/low finding.
+  - `make bandit-severity-regression-gate` is the primary gate in local `make check`, Feature Lane,
+    and `make security-audit`; `make bandit-high-severity-gate` remains only as a compatibility
+    alias.
+  - Release image evidence now links the Bandit gate/baseline, dependency audit, SBOM, and
+    container vulnerability scan so release reviewers can see the first-party and image-security
+    evidence together.
+  - Focused tests cover approved baseline matching, new finding, stale/resolved finding, severity
+    increase, expired exception, high finding rejection, malformed Bandit output, release-manifest
+    security evidence, and CI workflow target wiring.
+- Consequence:
+  - Agent or developer changes can no longer add medium/low Bandit findings silently. Existing
+    entries are non-certifying security debt with a forced expiry and remediation link, reducing
+    risk without hiding known posture behind a count-only report.
+- Documentation:
+  - Security docs, operations runbook, repository context, validation wiki, security/governance
+    wiki, generated quality reports, and review ledger updated. Wiki source changed, so
+    repo-wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - Issue #435 tracks reducing or retiring the current baseline entries before expiry. No cross-app
+    issue was raised because the findings are Advise-local PostgreSQL/query and CI scanner
+    posture; moving ownership to another app is not justified by this slice.
+
 ## LA-REV-908
 
 - Scope: Live documentation source-reference and advisory engine import guidance

@@ -67,15 +67,16 @@ def test_local_ci_targets_enforce_release_image_provenance_contract() -> None:
         assert "release-image-provenance-gate" in _makefile_target_dependencies(makefile, target)
 
 
-def test_local_check_and_feature_lane_enforce_high_severity_security_scan() -> None:
+def test_local_check_and_feature_lane_enforce_bandit_severity_regression_scan() -> None:
     makefile = Path("Makefile").read_text(encoding="utf-8")
     feature_lane = _workflow_text("feature-lane.yml")
     governance_section = _workflow_job_section(feature_lane, "lint-dependency-governance")
 
-    assert "bandit-high-severity-gate" in _makefile_target_dependencies(makefile, "check")
+    assert "bandit-severity-regression-gate" in _makefile_target_dependencies(makefile, "check")
+    assert "bandit-high-severity-gate: bandit-severity-regression-gate" in makefile
     assert "Security Audit" not in governance_section
-    assert "Bandit High Severity Gate" in governance_section
-    assert "run: make bandit-high-severity-gate" in governance_section
+    assert "Bandit Severity Regression Gate" in governance_section
+    assert "run: make bandit-severity-regression-gate" in governance_section
 
 
 def test_lint_enforces_refactored_complexity_gate_for_ci_lanes() -> None:
@@ -386,7 +387,7 @@ def test_validation_wiki_documents_repo_native_ci_enforcement() -> None:
         "make quality-baseline-check",
         "make demo-assurance-gate",
         "make demo-certification-live",
-        "make bandit-high-severity-gate",
+        "make bandit-severity-regression-gate",
         "make observability-diagnostics",
         "make advisory-domain-golden-regressions",
         "measured, deterministic, repo-native, and low-noise",

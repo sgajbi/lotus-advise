@@ -697,10 +697,11 @@ def _dependency_security_sections(
         "## Security",
         "",
         "- `pip-audit` is present in development requirements.",
-        "- `bandit` high-severity enforcement is repo-native through",
-        "  `make bandit-high-severity-gate`, `make check`, Feature Lane, and the",
+        "- `bandit` severity-regression enforcement is repo-native through",
+        "  `make bandit-severity-regression-gate`, `make check`, Feature Lane, and the",
         "  `security-audit` lane.",
-        "- Medium and low Bandit findings remain an inventoried classification backlog.",
+        "- Medium and low Bandit findings are governed by",
+        "  `quality/bandit_security_baseline.v1.json` with expiry and remediation links.",
         "- Sensitive-data handling remains governed by API error redaction and structured",
         "  payload tests until the security report gate is calibrated.",
         "",
@@ -1254,8 +1255,8 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  indefinitely.",
         "- Development requirements pin the report-only quality tools used by committed baseline",
         "  evidence so GitHub CI and local developer runs measure the same quality surface.",
-        "- Bandit high-severity security scanning now fails earlier through `make check` and",
-        "  Remote Feature Lane while medium/low findings remain inventory-only.",
+        "- Bandit security scanning now fails earlier through `make check` and Remote Feature",
+        "  Lane for high findings plus new, stale, expired, or worsened medium/low findings.",
         "",
         "## Remaining Enterprise-Readiness Work",
         "",
@@ -1267,7 +1268,7 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "  classifying validator and compatibility-facade findings.",
         "- Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate after",
         "  classifying current B-ranked blocks.",
-        "- Expand Bandit security enforcement beyond high severity after classifying current",
+        "- Reduce the governed Bandit medium/low baseline before expiry after classifying current",
         "  SQL-construction findings and resolving true positives.",
         "- Convert the deptry dependency inventory into a fail-on-new-regression gate after",
         "  classifying current dependency findings.",
@@ -1325,8 +1326,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
         ),
         (
             "Security",
-            "High-severity enforced plus Bandit inventory",
-            "make check + Feature Lane + security-audit + bandit-high-severity-gate + "
+            "Severity-regression enforced plus Bandit baseline",
+            "make check + Feature Lane + security-audit + bandit-severity-regression-gate + "
             "Bandit severity counts",
         ),
         (
@@ -1460,10 +1461,13 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Security",
             "Bandit config was present for report-only rollout; sensitive-data handling "
             "remained test-governed.",
-            "Bandit inventory executable with `high=0, medium=26, low=1`; high-severity "
-            "gate enforced through `make check`, Remote Feature Lane, and `make security-audit`; "
-            "proof/source refs reject unsafe and sensitive paths.",
-            "Security posture is measured and high-severity findings are gated.",
+            "Bandit inventory executable with `high=0, medium=26, low=1`; "
+            "severity-regression gate enforced through `make check`, Remote Feature Lane, "
+            "and `make security-audit`; medium/low findings are governed by "
+            "`quality/bandit_security_baseline.v1.json`; proof/source refs reject unsafe and "
+            "sensitive paths.",
+            "Security posture is measured; high findings plus new, stale, expired, or worsened "
+            "medium/low findings are gated.",
         ),
         (
             "Dependency hygiene",
@@ -1519,8 +1523,8 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "  certification, regulatory approval, client-ready publication, or production",
             "  deployment approval.",
             "- Xenon strict thresholds, Vulture fail-on-new-regression, Deptry",
-            "  fail-on-new-regression, medium/low Bandit classification, and public API",
-            "  docstring thresholds remain governed follow-up work.",
+            "  fail-on-new-regression, Bandit baseline reduction, and public API docstring",
+            "  thresholds remain governed follow-up work.",
             "",
         ]
     )
