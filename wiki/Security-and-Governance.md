@@ -61,6 +61,9 @@ The highest-risk documentation and implementation drift usually appears at these
     must have owner-approved expiring exceptions
 12. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
     requirements install strategy, requirement-file hashes, and dependency inventory hash
+13. HTTP boundary posture must fail closed for unsafe production-like host/origin configuration:
+    trusted hosts are service-owned, browser origins are deny-by-default, security headers are
+    applied to API responses, and write-payload limits remain enforced at the API boundary
 
 ## Policy-Control Principal Governance
 
@@ -108,6 +111,23 @@ The release-image evidence path is intentionally split:
    attestation, and uploads the release manifest.
 3. Deployment must reference the digest from the retained manifest and promote the same immutable
    image across environments.
+
+## HTTP Boundary Governance
+
+Advise owns the first service-local HTTP boundary after ingress. The FastAPI application enforces
+configured trusted hosts, deny-by-default CORS, approved security headers, enterprise write-payload
+limits, and enterprise audit/authorization denials without removing correlation, request, trace, or
+policy-version response headers.
+
+Production-like deployments must configure `HTTP_BOUNDARY_TRUSTED_HOSTS` and enable
+`ENTERPRISE_ENFORCE_RUNTIME_CONFIG=true` so unsafe defaults fail at startup. `HTTP_BOUNDARY_ALLOWED_ORIGINS`
+is optional and must list explicit browser origins when browser clients are approved. Wildcard
+trusted hosts and wildcard CORS origins are not accepted in production-like environments.
+
+Ingress, gateway, and platform security still own TLS termination, external WAF/rate limiting,
+edge DDoS protection, and bank identity-provider integration. Route-specific caller-context
+authorization, entitlement resolution, and business-object access checks remain implemented in the
+owning route/application slices rather than inferred from generic HTTP headers alone.
 
 ## Security Baseline Governance
 

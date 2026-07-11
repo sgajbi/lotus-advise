@@ -323,6 +323,13 @@ Boundary rules:
     application commands run; do not pass caller-supplied actor strings into review persistence
     unless they have been checked as compatibility echoes against the trusted principal and
     authorized proposal, portfolio, and tenant scope.
+24. HTTP boundary controls are centralized in `src/api/http_boundary.py`: trusted host validation,
+    deny-by-default CORS, approved security headers, write-payload caps, and enterprise
+    audit/authorization denial responses must remain API-layer behavior. Production-like profiles
+    must configure `HTTP_BOUNDARY_TRUSTED_HOSTS`; wildcard trusted hosts or wildcard allowed origins
+    are not acceptable production posture. TLS termination, WAF/rate limiting, and external identity
+    provider integration remain ingress/gateway responsibilities unless a later Advise issue
+    deliberately moves a specific control into the service.
 
 ## Repo-Native Commands
 
@@ -415,7 +422,10 @@ Important validation expectations:
 12. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
    trust, echo, or imply tenant-specific entitlement policy unless a future slice adds an explicit
    authoritative entitlement port and contract tests,
-13. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
+13. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness,
+14. HTTP boundary changes should run focused API tests covering host/origin policy, approved
+    security headers, validation-error responses, and enterprise denial responses before broader
+    merge-gate validation.
 
 ## Standards And RFCs That Govern This Repository
 
