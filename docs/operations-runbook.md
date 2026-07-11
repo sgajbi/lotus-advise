@@ -58,6 +58,21 @@ Guarded settings include:
 Readiness and startup errors expose only the setting name and validation rule, not the raw configured
 value.
 
+## Health And Workflow Readiness
+
+`GET /health/ready` is the local runtime readiness gate for traffic routing. It checks configured
+integration runtime settings, advisory runtime persistence, proposal repository boot posture, and
+async recovery readiness. It does not probe upstream dependency health.
+
+Use `GET /platform/capabilities` for upstream dependency and workflow readiness. Missing
+`lotus-core`, degraded `lotus-risk`, unavailable `lotus-report`, unavailable `lotus-ai`, or
+`lotus-performance` readiness-only posture must degrade the relevant capability/workflow there
+without forcing the Advise pod out of service.
+
+Deployment healthchecks and Kubernetes readiness probes should use `/health/ready`. Demo,
+release, RFP, and workflow certification must require both a ready `/health/ready` response and
+ready `/platform/capabilities` evidence for every claimed workflow.
+
 ## Release Image Evidence
 
 Runtime build identity is exposed at `GET /version`. Operators should compare it with the retained
@@ -87,7 +102,8 @@ environment with:
 - `LOTUS_ADVISE_TENANT_ID` from governed tenant configuration.
 
 Do not add `.dev.lotus`, `host-gateway`, plaintext DSNs, database passwords, local image builds, or
-mutable image tags to the production manifest. The manifest healthcheck uses `/health/ready`;
+mutable image tags to the production manifest. The manifest healthcheck uses `/health/ready` for
+local runtime readiness; workflow promotion evidence must also inspect `/platform/capabilities`.
 `/version` remains release metadata, not readiness.
 
 ## Operational Posture

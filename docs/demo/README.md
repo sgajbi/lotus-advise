@@ -33,12 +33,13 @@ LOTUS_ADVISE_DEMO_EVIDENCE=output/demo-certification/manual/lotus-advise-demo-ce
 make demo-certification-live
 ```
 
-The command checks service readiness, reads the live OpenAPI document, probes the declared route
-inventory for safe non-5xx behavior, runs deterministic synthetic advisory scenarios, asserts
-expected domain statuses and lifecycle states, verifies required `/platform/capabilities` feature
-and workflow truth, writes evidence, and exits non-zero on weak proof. It records optional
-readiness degradation such as `lotus-performance` being unconfigured; current RFC-0082 posture says
-`lotus-performance` is readiness-only and not an advisory input contract.
+The command checks local service readiness through `/health/ready`, reads the live OpenAPI
+document, probes the declared route inventory for safe non-5xx behavior, runs deterministic
+synthetic advisory scenarios, asserts expected domain statuses and lifecycle states, verifies
+required `/platform/capabilities` dependency, feature, and workflow truth, writes evidence, and
+exits non-zero on weak proof. It records optional readiness degradation such as
+`lotus-performance` being unconfigured; current RFC-0082 posture says `lotus-performance` is
+readiness-only and not an advisory input contract.
 
 ## Running Scenarios
 

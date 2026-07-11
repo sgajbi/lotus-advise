@@ -140,7 +140,13 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
 - Lifecycle and support routes can be feature-gated by runtime flags.
 - Tactical house-view cohorts preserve source refs and supportability posture rather than
   recalculating source-owned portfolio facts locally.
-- Readiness should fail closed when required upstream execution authority is not correctly configured.
+- `GET /health/ready` is the local runtime readiness gate for process traffic: configured
+  integration runtime settings, advisory persistence, proposal repository boot posture, and async
+  recovery readiness. It does not probe upstream dependency health.
+- Upstream dependency and workflow readiness live in `GET /platform/capabilities`; missing
+  `lotus-core`, degraded `lotus-risk`, unavailable `lotus-report`, unavailable `lotus-ai`, or
+  readiness-only `lotus-performance` posture must degrade the relevant dependency, feature, and
+  workflow evidence there before any demo, RFP, release, or workflow claim is made.
 - `GET /platform/capabilities` includes `advise.observability.advisory_supportability`,
   `advisory.proposals.reviewed_narrative_evidence`, and the
   `advisory_proposal_reviewed_narrative_evidence` workflow for advisor-review narrative evidence.

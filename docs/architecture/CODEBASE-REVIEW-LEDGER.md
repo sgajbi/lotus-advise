@@ -1,5 +1,37 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-916
+
+- Scope: Health readiness and dependency-aware workflow readiness
+- Pattern: Pod readiness should fail closed on local runtime, persistence, and boot posture, while
+  upstream dependency and workflow readiness should be reported through the platform capability
+  contract so optional or degraded dependencies do not unnecessarily remove a healthy Advise pod
+  from service.
+- Status: Hardened
+- Finding Class: Operational supportability, dependency governance, release/demo evidence
+- Summary: GitHub issue #387 identified conflicting documentation around `/health/ready` and
+  `/platform/capabilities`. The implementation used `/health/ready` for local runtime readiness,
+  while wiki guidance implied the endpoint should fail on required upstream execution authority.
+- Evidence:
+  - Preserved `/health/ready` as the local readiness gate for configured integration runtime
+    settings, advisory runtime persistence, proposal repository boot posture, and async recovery.
+  - Added a regression test proving missing `lotus-core`, degraded `lotus-risk`, and unavailable
+    `lotus-report` degrade `/platform/capabilities` without changing a locally ready
+    `/health/ready` response.
+  - Updated README, operations runbook, commercial/demo docs, and wiki source to require
+    `/platform/capabilities` evidence for dependency, workflow, demo, release, and RFP claims.
+- Consequence:
+  - Kubernetes readiness probes and container healthchecks can route on local Advise readiness,
+    while release/demo certification remains fail-closed on dependency-aware workflow evidence.
+- Documentation:
+  - README, operations runbook, demo/commercial docs, API Surface wiki source, Operations wiki
+    source, generated quality reports, and review ledger updated. Wiki source changed, so
+    repo-wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - No cross-app ownership issue was raised because the inconsistency was in `lotus-advise`
+    endpoint semantics and operator documentation. Continue raising separate issues when a future
+    slice finds domain or workflow authority that belongs in another Lotus app.
+
 ## LA-REV-915
 
 - Scope: Production container manifest and image healthcheck

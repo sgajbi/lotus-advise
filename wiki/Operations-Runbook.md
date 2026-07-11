@@ -48,6 +48,21 @@ database passwords, local image builds, or mutable image tags.
 Production container healthchecks use `/health/ready`. `/version` is release metadata for
 comparing runtime build identity with release evidence; it is not a readiness endpoint.
 
+## Health And Workflow Readiness
+
+`GET /health/ready` is the local runtime readiness gate for traffic routing. It checks configured
+integration runtime settings, advisory runtime persistence, proposal repository boot posture, and
+async recovery readiness. It does not probe upstream dependency health.
+
+Use `GET /platform/capabilities` for upstream dependency and workflow readiness. Missing
+`lotus-core`, degraded `lotus-risk`, unavailable `lotus-report`, unavailable `lotus-ai`, or
+`lotus-performance` readiness-only posture must degrade the relevant dependency, feature, and
+workflow evidence there without forcing the Advise pod out of service.
+
+Kubernetes readiness probes and container healthchecks should use `/health/ready`. Demo, release,
+RFP, and workflow certification must require both a ready `/health/ready` response and ready
+`/platform/capabilities` evidence for every claimed workflow.
+
 ## Advisory Supportability Metrics
 
 `GET /platform/capabilities` publishes the implemented feature key
