@@ -340,6 +340,8 @@ def test_instrument_enrichment_bulk_ignores_invalid_records(monkeypatch) -> None
         fake_client,  # type: ignore[arg-type]
         base_url="http://core-control.dev.lotus",
         security_ids=["SEC_OK", "SEC_BAD"],
+        portfolio_id="PF_TEST",
+        as_of="2026-03-27",
     )
 
     assert payload == {"SEC_OK": {"security_id": "SEC_OK", "issuer_id": "ISSUER_OK"}}
@@ -1354,6 +1356,63 @@ def test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs
         != second.resolved_context.portfolio_snapshot_id
     )
     assert request_counter["count"] == 8
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
+
+
+def test_resolve_stateful_context_with_lotus_core_isolates_environment_scope(
+    monkeypatch,
+):
+    from src.core.workspace.models import WorkspaceStatefulInput
+
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    request_counter = {"count": 0}
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "resolved_as_of_date": "2026-03-27",
+                "cash_accounts": [],
+            }
+        ),
+    }
+
+    class _CountingFakeClient(_FakeClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ) -> _FakeResponse:
+            request_counter["count"] += 1
+            return super().request(method, url, json=json)
+
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _CountingFakeClient(responses),
+    )
+
+    stateful_input = WorkspaceStatefulInput(
+        portfolio_id="DEMO_ADV_USD_001",
+        as_of="2026-03-27",
+    )
+    monkeypatch.setenv("ENVIRONMENT", "dev")
+    first = resolve_stateful_context_with_lotus_core(stateful_input)
+    monkeypatch.setenv("ENVIRONMENT", "uat")
+    second = resolve_stateful_context_with_lotus_core(stateful_input)
+
+    assert first.resolved_context == second.resolved_context
+    assert request_counter["count"] == 8
+    stats = get_stateful_context_cache_stats_for_tests()
+    assert stats["resolved_context"].misses == 2
+    assert stats["resolved_context"].hits == 0
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
     assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 

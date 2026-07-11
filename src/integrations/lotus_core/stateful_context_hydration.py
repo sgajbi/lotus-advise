@@ -19,6 +19,11 @@ from src.integrations.lotus_core.stateful_context_cache import (
     INSTRUMENT_LOOKUP_CACHE,
     PRICE_LOOKUP_CACHE,
 )
+from src.integrations.lotus_core.stateful_context_cache_identity import (
+    fx_lookup_cache_key,
+    instrument_lookup_cache_key,
+    price_lookup_cache_key,
+)
 from src.integrations.lotus_core.stateful_context_routes import (
     FX_RATES_PATH,
     INSTRUMENTS_PATH,
@@ -43,6 +48,7 @@ class _TradeDraftHydrationContext:
     client: httpx.Client
     as_of: str
     base_url: str
+    portfolio_id: str
     enrichment_by_instrument_id: dict[str, dict[str, Any]]
     classification_taxonomy: ClassificationTaxonomy
 
@@ -337,7 +343,13 @@ def append_fx_rate_if_missing(
     fx_payload = fetch_json_with_cache(
         client,
         cache=FX_LOOKUP_CACHE,
-        cache_key=f"fx:{instrument_currency}:{portfolio_base_currency}",
+        cache_key=fx_lookup_cache_key(
+            query_base_url=base_url,
+            from_currency=instrument_currency,
+            to_currency=portfolio_base_currency,
+            portfolio_id=simulate_request.portfolio_snapshot.portfolio_id,
+            as_of=as_of,
+        ),
         method="GET",
         base_url=base_url,
         path=FX_RATES_PATH.format(
@@ -378,6 +390,7 @@ def enrich_stateful_simulate_request_for_trade_drafts(
             as_of=as_of,
             base_url=base_url,
             control_plane_base_url=control_plane_base_url,
+            portfolio_id=simulate_request.portfolio_snapshot.portfolio_id,
             missing_instrument_ids=missing_instrument_ids,
         )
         for instrument_id in sorted(missing_instrument_ids):
@@ -411,16 +424,20 @@ def _build_trade_draft_hydration_context(
     as_of: str,
     base_url: str,
     control_plane_base_url: str,
+    portfolio_id: str,
     missing_instrument_ids: set[str],
 ) -> _TradeDraftHydrationContext:
     return _TradeDraftHydrationContext(
         client=client,
         as_of=as_of,
         base_url=base_url,
+        portfolio_id=portfolio_id,
         enrichment_by_instrument_id=fetch_instrument_enrichment_bulk(
             client,
             base_url=control_plane_base_url,
             security_ids=sorted(missing_instrument_ids),
+            portfolio_id=portfolio_id,
+            as_of=as_of,
         ),
         classification_taxonomy=fetch_classification_taxonomy(
             client,
@@ -475,7 +492,12 @@ def _fetch_trade_instrument_row(
     instrument_payload = fetch_json_with_cache(
         hydration_context.client,
         cache=INSTRUMENT_LOOKUP_CACHE,
-        cache_key=f"instrument:{instrument_id}",
+        cache_key=instrument_lookup_cache_key(
+            query_base_url=hydration_context.base_url,
+            instrument_id=instrument_id,
+            portfolio_id=hydration_context.portfolio_id,
+            as_of=hydration_context.as_of,
+        ),
         method="GET",
         base_url=hydration_context.base_url,
         path=INSTRUMENTS_PATH.format(instrument_id=instrument_id),
@@ -491,7 +513,12 @@ def _fetch_trade_price_row(
     price_payload = fetch_json_with_cache(
         hydration_context.client,
         cache=PRICE_LOOKUP_CACHE,
-        cache_key=f"price:{instrument_id}",
+        cache_key=price_lookup_cache_key(
+            query_base_url=hydration_context.base_url,
+            instrument_id=instrument_id,
+            portfolio_id=hydration_context.portfolio_id,
+            as_of=hydration_context.as_of,
+        ),
         method="GET",
         base_url=hydration_context.base_url,
         path=PRICES_PATH.format(instrument_id=instrument_id),

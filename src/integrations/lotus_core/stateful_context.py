@@ -184,11 +184,21 @@ def enrich_stateful_simulate_request_for_trade_drafts(
 def resolve_stateful_context_with_lotus_core(
     stateful_input: WorkspaceStatefulInput,
 ) -> LotusCoreResolvedAdvisoryContext:
-    cached = _get_cached_resolved_context(stateful_input)
+    base_url = _resolve_query_base_url()
+    control_plane_base_url = _resolve_control_plane_base_url()
+    cached = _get_cached_resolved_context(
+        stateful_input,
+        query_base_url=base_url,
+        control_plane_base_url=control_plane_base_url,
+    )
     if cached is not None:
         return cached
 
-    source_payloads = _fetch_stateful_context_source_payloads(stateful_input)
+    source_payloads = _fetch_stateful_context_source_payloads(
+        stateful_input,
+        base_url=base_url,
+        control_plane_base_url=control_plane_base_url,
+    )
     portfolio_id, base_currency = _resolved_portfolio_identity(
         source_payloads.portfolio_payload,
         stateful_input=stateful_input,
@@ -214,15 +224,21 @@ def resolve_stateful_context_with_lotus_core(
             market_data_snapshot_id=market_data_snapshot_id,
         ),
     )
-    _cache_resolved_context(stateful_input, resolved)
+    _cache_resolved_context(
+        stateful_input,
+        resolved,
+        query_base_url=base_url,
+        control_plane_base_url=control_plane_base_url,
+    )
     return _clone_resolved_context(resolved)
 
 
 def _fetch_stateful_context_source_payloads(
     stateful_input: WorkspaceStatefulInput,
+    *,
+    base_url: str,
+    control_plane_base_url: str,
 ) -> _StatefulContextSourcePayloads:
-    base_url = _resolve_query_base_url()
-    control_plane_base_url = _resolve_control_plane_base_url()
     with httpx.Client(timeout=_resolve_timeout()) as client:
         portfolio_payload = _request_json(
             client,
@@ -255,6 +271,8 @@ def _fetch_stateful_context_source_payloads(
             client,
             base_url=control_plane_base_url,
             security_ids=_held_position_instrument_ids(positions_payload),
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
         )
         classification_taxonomy = _fetch_classification_taxonomy(
             client,

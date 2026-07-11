@@ -40,6 +40,22 @@ Important rule:
 - stateful context reads must reject returned portfolio, positions, cash, or resolved-as-of identity
   that conflicts with the requested source identity before advisory snapshots are built or cached
 
+Cache policy:
+
+- stateful context, enrichment, taxonomy, instrument, price, and FX caches are short-lived,
+  process-local `TimedCache` instances
+- cache TTL defaults to 15 seconds and is configured with
+  `LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS`; setting it to `0` disables reuse
+- cache size defaults to 128 entries and is configured with
+  `LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE`; oldest entries are evicted when the limit is reached
+- keys are built through `stateful_context_cache_identity.py` and include sanitized source URL,
+  environment, tenant, contract version, portfolio, as-of, mandate, benchmark, reporting currency,
+  current look-through/allocation/risk defaults, and lookup-specific identifiers
+- invalidation is TTL, size eviction, process restart, or explicit test reset only; production code
+  must not clear one scope to work around missing key dimensions
+- cache diagnostics expose hit, miss, write, expiration, eviction, and size counters without raw
+  source payloads
+
 ## `lotus-risk`
 
 Current governed usage includes:
