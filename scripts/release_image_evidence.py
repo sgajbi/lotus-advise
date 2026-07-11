@@ -69,6 +69,7 @@ class ReleaseEvidence:
             },
             "artifacts": {
                 "sbom": self.sbom_path,
+                "license_ip_inventory": "docs/standards/license-ip-inventory.v1.json",
                 "vulnerability_scan": self.vulnerability_scan_path,
                 "signature": self.signature_ref,
                 "provenance_attestation": self.provenance_attestation_ref,
@@ -88,6 +89,8 @@ class ReleaseEvidence:
                 "bandit_gate": "make bandit-severity-regression-gate",
                 "bandit_baseline": "quality/bandit_security_baseline.v1.json",
                 "dependency_audit": "make security-audit",
+                "license_ip_gate": "make license-ip-gate",
+                "license_ip_inventory": "docs/standards/license-ip-inventory.v1.json",
                 "sbom": self.sbom_path,
                 "container_vulnerability_scan": self.vulnerability_scan_path,
             },

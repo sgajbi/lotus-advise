@@ -382,14 +382,19 @@ Important validation expectations:
    findings are blocked, current medium/low findings are accepted only through
    `quality/bandit_security_baseline.v1.json`, and new, stale, expired, or worsened entries fail
    local and CI gates,
-6. advisory workflow changes should be validated against canonical upstream posture,
-7. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-8. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+6. License/IP posture is enforced through `make license-ip-gate`: runtime and development
+   dependency graphs, including transitive packages, must match
+   `docs/standards/license-ip-inventory.v1.json` and
+   `docs/standards/license-ip-policy.v1.json`; review-required terms need owner-approved expiring
+   exceptions before release evidence is green,
+7. advisory workflow changes should be validated against canonical upstream posture,
+8. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+9. `make demo-certification-live` is the repo-native app-level live certification command; it writes
    machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-9. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
+10. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
    trust, echo, or imply tenant-specific entitlement policy unless a future slice adds an explicit
    authoritative entitlement port and contract tests,
 10. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.

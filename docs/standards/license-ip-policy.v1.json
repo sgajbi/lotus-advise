@@ -1,0 +1,58 @@
+{
+  "schema_version": "lotus.license-ip-policy.v1",
+  "service_name": "lotus-advise",
+  "policy_owner": "Lotus platform engineering",
+  "allowed_license_terms": [
+    "0BSD",
+    "Apache 2.0",
+    "Apache-2.0",
+    "BSD 2-Clause License",
+    "BSD 3-Clause",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MIT license",
+    "MPL-2.0",
+    "PSF-2.0",
+    "PSFL",
+    "Zlib"
+  ],
+  "review_required_license_terms": [
+    "LGPL-2.1-only",
+    "LGPL-2.1-or-later",
+    "LGPL-3.0-only",
+    "LGPL-3.0-or-later",
+    "UNKNOWN"
+  ],
+  "prohibited_license_terms": [
+    "AGPL-3.0-only",
+    "AGPL-3.0-or-later",
+    "GPL-2.0-only",
+    "GPL-2.0-or-later",
+    "GPL-3.0-only",
+    "GPL-3.0-or-later",
+    "SSPL-1.0"
+  ],
+  "approved_exceptions": [
+    {
+      "id": "LA-LIC-001",
+      "package": "psycopg",
+      "license_term": "LGPL-3.0-only",
+      "classification": "APPROVED_EXCEPTION",
+      "owner": "Lotus platform engineering",
+      "expires_on": "2027-12-31",
+      "rationale": "Runtime PostgreSQL adapter dependency used through standard dynamic Python packaging; keep under explicit review until legal/compliance owner replaces or renews the exception."
+    },
+    {
+      "id": "LA-LIC-002",
+      "package": "psycopg-binary",
+      "license_term": "LGPL-3.0-only",
+      "classification": "APPROVED_EXCEPTION",
+      "owner": "Lotus platform engineering",
+      "expires_on": "2027-12-31",
+      "rationale": "Binary PostgreSQL adapter companion package used for CI/local release validation; keep under explicit review until legal/compliance owner replaces or renews the exception."
+    }
+  ]
+}

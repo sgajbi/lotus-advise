@@ -20,12 +20,21 @@ This repository adopts the platform-wide standard defined in:
   - `python -m pip check`
 - CI-aligned security audit target:
   - `make security-audit`
+- License/IP release evidence:
+  - `make license-ip-inventory`
+  - `make license-ip-gate`
 - Report-only dependency inventory:
   - `python -m deptry . --config pyproject.toml --json-output output/deptry-report.json`
 
 Deptry is calibrated as report-only. Current quality reports record whether the deptry
 configuration is executable and the current issue count. Findings must be classified before deptry
 becomes a fail-on-new-regression or blocking CI gate.
+
+`make license-ip-gate` is blocking. It validates
+`docs/standards/license-ip-inventory.v1.json` against
+`docs/standards/license-ip-policy.v1.json` for runtime and development dependency graphs, including
+transitive packages. Review-required license terms must have explicit owner-approved exceptions with
+expiry dates; prohibited or unclassified terms fail the gate.
 
 ## Update Cadence
 
@@ -37,4 +46,7 @@ becomes a fail-on-new-regression or blocking CI gate.
 
 - CI job: `PR Merge Gate / Lint Typecheck Governance`
 - Quality artifact: `quality/baseline_report.md`
+- License/IP inventory: `docs/standards/license-ip-inventory.v1.json`
+- License/IP policy: `docs/standards/license-ip-policy.v1.json`
+- Notice file: `NOTICE.md`
 - Platform conformance artifacts under `lotus-platform/output/`

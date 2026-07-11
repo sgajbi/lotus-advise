@@ -4,13 +4,26 @@
 fast feedback, block real degradation before merge, and confirm release-grade posture after the
 change reaches `main`.
 
+## Current Scope
+
+This page is the operating map for local gates, GitHub Actions lanes, release evidence, and
+post-merge wiki publication. It names blocking commands and the evidence each lane protects.
+
+## Reader Map
+
+| Reader | Start here |
+| --- | --- |
+| Agent or developer | Lane Map, Repo-Native Commands, Blocking Gates |
+| PR reviewer | Blocking Gates, Pull Request Merge Gate evidence |
+| Release operator | Release Image Evidence, Main Releasability Gate |
+
 ## Lane Map
 
 | Lane | Primary proof | What it protects |
 | --- | --- | --- |
-| Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, quality-baseline freshness, high-severity security, and unit behavior. |
-| Local PR-grade gate | `make ci` | Dependency health, static governance, migrations, security audit, release-image provenance, coverage, Docker build, Postgres runtime contracts, and production-profile guardrail negatives. |
-| Remote Feature Lane | GitHub `Remote Feature Lane` | Branch feedback for workflow lint, unit tests, dependency governance, Bandit severity regression, demo-assurance checks, and quality-baseline freshness. |
+| Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, quality-baseline freshness, high-severity security, license/IP evidence, and unit behavior. |
+| Local PR-grade gate | `make ci` | Dependency health, static governance, migrations, security audit, license/IP evidence, release-image provenance, coverage, Docker build, Postgres runtime contracts, and production-profile guardrail negatives. |
+| Remote Feature Lane | GitHub `Remote Feature Lane` | Branch feedback for workflow lint, unit tests, dependency governance, license/IP evidence, Bandit severity regression, demo-assurance checks, and quality-baseline freshness. |
 | PR Merge Gate | GitHub `Pull Request Merge Gate` | Merge readiness across lint/typecheck governance, unit/integration/e2e tests, coverage, Docker build, Postgres migration smoke, production startup smoke, and production guardrail negatives. |
 | Main Releasability Gate | GitHub `Main Releasability Gate` | Post-merge release evidence on `main`, including the same static, runtime, migration, coverage, Docker, security, observability, and advisory-domain signals. |
 | Report-only quality evidence | `Quality Baseline / Report Only` and `make quality-baseline` | Trend evidence for code health and refactoring scorecards. Report-only signals should not be promoted until deterministic, low-noise, locally runnable, and policy-backed. |
@@ -40,6 +53,7 @@ make quality-baseline-check
 make demo-assurance-gate
 make demo-certification-live
 make security-audit
+make license-ip-gate
 make bandit-severity-regression-gate
 make openapi-gate
 make no-alias-gate
@@ -98,12 +112,15 @@ The current blocking posture is intentionally high-signal:
    runs dependency health with audit posture and the Bandit severity-regression gate in PR-grade
    paths.
 12. `make release-image-provenance-gate`
-    blocks drift in Dockerfile build metadata args, OCI labels, Docker build arguments, and
-    support-safe metadata naming before the image is built or pushed.
-13. `make coverage-combined`
-    enforces the combined coverage floor across unit, integration, and e2e suites.
-14. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
-    protect supported runtime startup and production-profile guardrail behavior.
+     blocks drift in Dockerfile build metadata args, OCI labels, Docker build arguments, and
+     support-safe metadata naming before the image is built or pushed.
+13. `make license-ip-gate`
+     validates the committed runtime/development dependency license inventory and owner-approved
+     expiring exceptions.
+14. `make coverage-combined`
+     enforces the combined coverage floor across unit, integration, and e2e suites.
+15. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
+     protect supported runtime startup and production-profile guardrail behavior.
 
 These gates are blocking because they are measured, deterministic, repo-native, and low-noise for
 the current codebase.
@@ -116,9 +133,10 @@ timestamp, CI run ID, and image-digest posture, then retains one evidence bundle
 
 1. `release-evidence.json` with the pushed digest and immutable image reference,
 2. SBOM,
-3. vulnerability scan report,
-4. image signature reference,
-5. provenance attestation reference.
+3. license/IP dependency inventory,
+4. vulnerability scan report,
+5. image signature reference,
+6. provenance attestation reference.
 
 The running service exposes `GET /version` with the same support-safe metadata. Release deployment
 must use the digest reference from the retained manifest and promote the same image across
