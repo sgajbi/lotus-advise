@@ -388,6 +388,8 @@ def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts
     assert "sigstore/cosign-installer@v3.9.2" in release_section
     assert "cosign sign --yes" in release_section
     assert "actions/attest-build-provenance@v3" in release_section
+    assert "subject-name: ghcr.io/${{ github.repository }}" in release_section
+    assert "subject-name: ${{ env.IMAGE_REF }}" not in release_section
     assert "scripts/release_image_evidence.py write-manifest" in release_section
     assert "release-evidence.json" in release_section
     assert "name: lotus-advise-image-release-evidence" in release_section
