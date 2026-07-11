@@ -27225,3 +27225,35 @@
   - No cross-app defect was raised in this slice. Gateway/platform authentication remains the source
     of upstream claims, while Advise now consumes and enforces the trusted principal contract at its
     policy-control write boundary.
+
+## LA-REV-925
+
+- Scope: Lotus Core advisory simulation source-effects boundary
+- Pattern: Peer-service source effects must be mapped through a named anti-corruption contract
+  before local advisory decision policy runs.
+- Status: Hardened
+- Finding Class: Architecture ownership, application port clarity, and migration compatibility
+- Summary: GitHub issue #434 identified that the Lotus Core simulation adapter deserialized the
+  full Core `ProposalResult`, including suitability and workflow-gate decisions, as the Advise
+  result. Advise already owned suitability and workflow policy locally, but the adapter allowed
+  Core-returned decision fields to look authoritative.
+- Evidence:
+  - `src/core/advisory/source_effects.py` defines `CoreProjectedTransactionEffects` for Core-owned
+    before/after transaction effects, intents, reconciliation, rule results, allocation lens, and
+    source lineage.
+  - `src/integrations/lotus_core/simulation.py` now maps Core responses through that source-effects
+    model, retains Core decision-shaped fields only under `non_authoritative_core_decisions`, and
+    recomputes Advise suitability, gate, drift, decision summary inputs, and next-step evidence from
+    Advise policy modules.
+  - Adapter tests prove Core-returned suitability classifications and workflow gates are
+    compatibility snapshots only while the returned `ProposalResult` uses Advise-owned decisions.
+- Consequence:
+  - Core remains the source-effects authority without becoming the advisory suitability, consent,
+    recommendation, or workflow decision authority. The v1 compatibility payload is preserved for
+    dual-run and migration review without driving Advise behavior.
+- Documentation:
+  - Updated RFC-0082 upstream contract map, README, wiki Architecture, repository context, and this
+    ledger with the ownership matrix.
+- Follow-Up:
+  - Continue #434 by expanding external-adapter fixtures and golden/private-banking dual-run
+    evidence, then coordinate Core v2 retirement once linked Core producer issues are complete.
