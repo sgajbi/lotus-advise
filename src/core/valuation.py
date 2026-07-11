@@ -29,11 +29,11 @@ def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> 
         return Decimal("1.0")
 
     direct_rate = _fx_rate_for_pair(market_data, _fx_pair(from_ccy, to_ccy))
-    if direct_rate:
+    if direct_rate is not None:
         return _decimal_fx_rate(direct_rate)
 
     inverse_rate = _fx_rate_for_pair(market_data, _fx_pair(to_ccy, from_ccy))
-    if inverse_rate:
+    if inverse_rate is not None:
         return Decimal("1.0") / _decimal_fx_rate(inverse_rate)
 
     return None
@@ -332,7 +332,7 @@ def _cash_value_in_base(
         return amount
 
     rate = get_fx_rate(market_data, cash.currency, base_ccy)
-    if rate:
+    if rate is not None:
         return amount * rate
 
     dq_log.setdefault("fx_missing", []).append(f"{cash.currency}/{base_ccy}")

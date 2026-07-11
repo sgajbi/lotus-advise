@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from src.core.portfolio_models import FxRate, Price
 from src.integrations.lotus_core.stateful_context_payload_values import (
@@ -10,6 +10,10 @@ from src.integrations.lotus_core.stateful_context_payload_values import (
     mapping_rows,
     normalized_text,
 )
+
+
+class InvalidLotusCoreFxRateError(ValueError):
+    pass
 
 
 def build_prices(positions_payload: dict[str, Any]) -> list[Price]:
@@ -129,11 +133,22 @@ def _fx_rate_from_values(
     if decimal_inputs is None:
         return None
     numerator_decimal, denominator_decimal = decimal_inputs
-    pair = f"{from_currency}/{to_currency}"
-    return FxRate(
-        pair=pair,
+    return fx_rate_from_source_value(
+        pair=f"{from_currency}/{to_currency}",
         rate=numerator_decimal / denominator_decimal,
     )
+
+
+def fx_rate_from_source_value(*, pair: str, rate: Any) -> FxRate | None:
+    if not _explicit_rate_value(rate):
+        return None
+    fx_rate = decimal_or_none(rate)
+    if fx_rate is None:
+        raise InvalidLotusCoreFxRateError("LOTUS_CORE_STATEFUL_FX_INVALID")
+    try:
+        return FxRate(pair=pair, rate=fx_rate)
+    except ValueError as exc:
+        raise InvalidLotusCoreFxRateError("LOTUS_CORE_STATEFUL_FX_INVALID") from exc
 
 
 def _has_distinct_currency_pair(from_currency: str, to_currency: str) -> bool:
@@ -141,10 +156,29 @@ def _has_distinct_currency_pair(from_currency: str, to_currency: str) -> bool:
 
 
 def _decimal_rate_inputs(*, numerator: Any, denominator: Any) -> tuple[Decimal, Decimal] | None:
-    numerator_decimal = decimal_or_none(numerator)
-    denominator_decimal = decimal_or_none(denominator)
-    if numerator_decimal is None or denominator_decimal is None:
+    if not _rate_values_present(numerator=numerator, denominator=denominator):
         return None
-    if denominator_decimal == Decimal("0"):
-        return None
+    numerator_decimal = _required_decimal_rate_value(numerator)
+    denominator_decimal = _required_decimal_rate_value(denominator)
+    _require_non_zero_denominator(denominator_decimal)
     return numerator_decimal, denominator_decimal
+
+
+def _rate_values_present(*, numerator: Any, denominator: Any) -> bool:
+    return _explicit_rate_value(numerator) and _explicit_rate_value(denominator)
+
+
+def _required_decimal_rate_value(value: Any) -> Decimal:
+    rate_value = decimal_or_none(value)
+    if rate_value is None:
+        raise InvalidLotusCoreFxRateError("LOTUS_CORE_STATEFUL_FX_INVALID")
+    return cast(Decimal, rate_value)
+
+
+def _require_non_zero_denominator(denominator: Decimal) -> None:
+    if denominator == Decimal("0"):
+        raise InvalidLotusCoreFxRateError("LOTUS_CORE_STATEFUL_FX_INVALID")
+
+
+def _explicit_rate_value(value: Any) -> bool:
+    return value is not None and value != ""

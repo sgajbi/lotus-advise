@@ -1,4 +1,10 @@
-from src.integrations.lotus_core.stateful_context_market_data import build_prices, derive_fx_rates
+import pytest
+
+from src.integrations.lotus_core.stateful_context_market_data import (
+    InvalidLotusCoreFxRateError,
+    build_prices,
+    derive_fx_rates,
+)
 
 
 def test_build_prices_skips_cash_missing_values_and_deduplicates_by_instrument() -> None:
@@ -64,14 +70,6 @@ def test_derive_fx_rates_uses_position_and_cash_values_with_last_pair_winning() 
                         "market_value_local": "120",
                     },
                 },
-                {
-                    "security_id": "SEC_INVALID",
-                    "currency": "GBP",
-                    "valuation": {
-                        "market_value": "90",
-                        "market_value_local": "0",
-                    },
-                },
             ]
         },
         cash_payload={
@@ -86,11 +84,6 @@ def test_derive_fx_rates_uses_position_and_cash_values_with_last_pair_winning() 
                     "balance_portfolio_currency": "25",
                     "balance_account_currency": "25",
                 },
-                {
-                    "account_currency": "SGD",
-                    "balance_portfolio_currency": "bad-rate",
-                    "balance_account_currency": "100",
-                },
             ]
         },
     )
@@ -99,3 +92,34 @@ def test_derive_fx_rates_uses_position_and_cash_values_with_last_pair_winning() 
         {"pair": "CHF/USD", "rate": "1.11"},
         {"pair": "EUR/USD", "rate": "1.1"},
     ]
+
+
+@pytest.mark.parametrize(
+    ("numerator", "denominator"),
+    [
+        ("90", "0"),
+        ("bad-rate", "100"),
+        ("NaN", "100"),
+        ("-90", "100"),
+    ],
+)
+def test_derive_fx_rates_rejects_invalid_explicit_source_fx_values(
+    numerator: str, denominator: str
+) -> None:
+    with pytest.raises(InvalidLotusCoreFxRateError, match="LOTUS_CORE_STATEFUL_FX_INVALID"):
+        derive_fx_rates(
+            portfolio_base_currency="USD",
+            positions_payload={
+                "positions": [
+                    {
+                        "security_id": "SEC_INVALID",
+                        "currency": "GBP",
+                        "valuation": {
+                            "market_value": numerator,
+                            "market_value_local": denominator,
+                        },
+                    }
+                ]
+            },
+            cash_payload={"cash_accounts": []},
+        )

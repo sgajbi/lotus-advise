@@ -44,6 +44,10 @@ Important rule:
   timestamp, freshness posture, and advisory simulation contract version. Raw Lotus Core payloads
   are not stored in proposal lineage. Conflicting provenance fails closed before snapshot
   construction, cache writes, persistence, or replay.
+- source-derived FX rates must be finite, strictly positive, and as-of eligible before valuation.
+  Explicit invalid rates or source ratios fail closed with `LOTUS_CORE_STATEFUL_FX_INVALID`.
+  Future-only FX lookup rows are not selected, and missing eligible FX remains bounded
+  data-quality evidence rather than a fabricated conversion rate.
 
 Cache policy:
 

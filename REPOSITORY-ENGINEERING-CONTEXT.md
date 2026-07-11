@@ -241,26 +241,31 @@ Boundary rules:
    resolved context, advisory snapshots, and proposal lineage without storing raw source payloads.
    Conflicting source snapshot or provenance values must fail closed before advisory snapshot
    construction, caching, persistence, or replay,
-7. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
-8. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
-9. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
+7. Lotus Core source-derived FX rates must be finite, strictly positive, and as-of eligible before
+   advisory valuation. Invalid explicit rates or source ratios fail closed with
+   `LOTUS_CORE_STATEFUL_FX_INVALID`; missing eligible rates remain data-quality evidence rather
+   than fabricated conversion inputs. Inverse-pair valuation is supported only from a valid positive
+   inverse rate,
+8. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
+9. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
+10. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
    preserve source refs, and must not discover the global portfolio universe or open DPM campaigns,
-10. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
+11. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
    records advisory posture while downstream providers remain execution systems of record,
-11. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
-12. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
-13. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
+12. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
+13. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
+14. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
    the handoff envelope and retains proposal, suitability, approval, publication, and execution
    authority until a later certified realization slice implements those controls,
-14. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
+15. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
    missing, malformed, over-length, or control-character-bearing; do not reintroduce synthetic
    production defaults such as a hardcoded tenant or service actor,
-15. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
+16. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
    jurisdiction/booking-center metadata; current-date, USD, and SG fallbacks are not production
    source truth,
-16. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
+17. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
    code; do not allow `risk_authority="unavailable"` with `degraded=false`.
-17. advisor memo and policy sign-off report packages must not project archive-ready status from
+18. advisor memo and policy sign-off report packages must not project archive-ready status from
     accepted, running, missing-status, malformed-status, or failed status lookups; terminal
     readiness requires `lotus-report` archive evidence and all non-terminal status must preserve
     the report job id for operator recovery.
