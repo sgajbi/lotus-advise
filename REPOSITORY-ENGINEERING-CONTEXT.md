@@ -225,30 +225,33 @@ Boundary rules:
 1. advisor-only workflows belong here,
 2. management-only workflows belong in `lotus-manage`,
 3. proposal simulation must remain aligned with authoritative upstream data and risk posture,
-4. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
-5. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
-6. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
+4. Lotus Core stateful context must reject returned portfolio, positions, cash, or resolved-as-of
+   identity that conflicts with the requested source identity before constructing or caching
+   advisory snapshots,
+5. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
+6. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
+7. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
    preserve source refs, and must not discover the global portfolio universe or open DPM campaigns,
-7. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
+8. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
    records advisory posture while downstream providers remain execution systems of record,
-8. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
-9. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
-10. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
+9. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
+10. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
+11. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
    the handoff envelope and retains proposal, suitability, approval, publication, and execution
    authority until a later certified realization slice implements those controls,
-11. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
+12. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
    missing, malformed, over-length, or control-character-bearing; do not reintroduce synthetic
    production defaults such as a hardcoded tenant or service actor,
-12. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
+13. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
    jurisdiction/booking-center metadata; current-date, USD, and SG fallbacks are not production
    source truth,
-13. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
+14. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
    code; do not allow `risk_authority="unavailable"` with `degraded=false`.
-14. advisor memo and policy sign-off report packages must not project archive-ready status from
+15. advisor memo and policy sign-off report packages must not project archive-ready status from
     accepted, running, missing-status, malformed-status, or failed status lookups; terminal
     readiness requires `lotus-report` archive evidence and all non-terminal status must preserve
     the report job id for operator recovery.
-15. external service adapters for `lotus-core`, `lotus-risk`, `lotus-report`, and `lotus-ai`
+16. external service adapters for `lotus-core`, `lotus-risk`, `lotus-report`, and `lotus-ai`
     must keep versioned consumer-contract fixtures under
     `tests/fixtures/external-adapter-contracts/` and pass `make external-adapter-contracts`.
     The lane must cover valid responses, malformed JSON, missing fields, portfolio/as-of identity

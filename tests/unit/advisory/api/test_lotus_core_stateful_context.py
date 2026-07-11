@@ -1546,7 +1546,7 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
     request_counter = {"count": 0}
-    portfolio_payload = {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": ""}
+    portfolio_payload = {"portfolio_id": "OTHER_PORTFOLIO", "base_currency": "USD"}
 
     class _RecoveringFakeClient:
         def __enter__(self) -> "_RecoveringFakeClient":
@@ -1594,7 +1594,7 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
     with pytest.raises(LotusCoreStatefulContextUnavailableError):
         resolve_stateful_context_with_lotus_core(stateful_input)
 
-    portfolio_payload["base_currency"] = "USD"
+    portfolio_payload["portfolio_id"] = "DEMO_ADV_USD_001"
     recovered = resolve_stateful_context_with_lotus_core(stateful_input)
 
     assert recovered.resolved_context.portfolio_id == "DEMO_ADV_USD_001"

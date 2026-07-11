@@ -37,6 +37,8 @@ Important rule:
 
 - simulation execution authority lives on the control-plane binding
 - query reads do not substitute for execution authority
+- stateful context reads must reject returned portfolio, positions, cash, or resolved-as-of identity
+  that conflicts with the requested source identity before advisory snapshots are built or cached
 
 ## `lotus-risk`
 
