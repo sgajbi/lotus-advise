@@ -366,8 +366,15 @@ def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts
     assert "LOTUS_BUILD_COMMIT_SHA=${{ github.sha }}" in release_section
     assert "LOTUS_CI_PIPELINE_ID=${{ github.run_id }}" in release_section
     assert "anchore/sbom-action@v0" in release_section
-    assert 'mkdir -p "$HOME/.local/bin/trivy-bin"' in release_section
-    assert "aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4" in release_section
+    assert 'TRIVY_VERSION: "0.64.1"' in release_section
+    assert "Install Trivy CLI" in release_section
+    assert (
+        'trivy_release_base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"'
+        in release_section
+    )
+    assert "sha256sum -c -" in release_section
+    assert "trivy image" in release_section
+    assert "--output output/release/trivy-image-scan.json" in release_section
     assert "sigstore/cosign-installer@v3.9.2" in release_section
     assert "cosign sign --yes" in release_section
     assert "actions/attest-build-provenance@v3" in release_section
