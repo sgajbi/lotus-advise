@@ -170,7 +170,8 @@ lifecycle, completed policy approval authority, or full RFC-0028 demo/RFP readin
 locally. It maps Core simulation responses into `CoreProjectedTransactionEffects` and recomputes
 advisory suitability, workflow gates, decision summaries, alternatives, consent posture, and
 next-step decisions inside Advise. Legacy Core-returned decision fields are retained only as
-`non_authoritative_core_decisions` for parity and migration review.
+`non_authoritative_core_decisions` and classified under `core_decision_parity` for parity and
+migration review.
 
 ### `lotus-manage`
 

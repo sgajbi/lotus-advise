@@ -10,6 +10,7 @@ from src.core.advisory.simulation_intent_plan import SimulationIntentPlan
 from src.core.common.canonical import hash_canonical_payload
 from src.core.common.simulation_shared import derive_status_from_rules
 from src.core.diagnostics_models import DiagnosticsData, LineageData, RuleResult
+from src.core.gate_models import GateDecision
 from src.core.order_intent_models import ProposalOrderIntent
 from src.core.proposal_effect_models import Reconciliation
 from src.core.proposal_request_models import (
@@ -19,6 +20,7 @@ from src.core.proposal_request_models import (
 )
 from src.core.proposal_result_models import ProposalResult
 from src.core.simulation_state_models import ProposalAllocationLens, SimulatedState
+from src.core.suitability_models import SuitabilityResult
 
 ADVISE_DECISION_CALCULATION_VERSION = "lotus-advise.advisory-decision-support.v1"
 
@@ -47,6 +49,7 @@ class CoreDecisionCompatibilitySnapshot(BaseModel):
         return any(
             value is not None
             for value in (
+                self.reported_status,
                 self.suitability,
                 self.gate_decision,
                 self.proposal_decision_summary,
@@ -111,10 +114,6 @@ def build_advise_owned_proposal_result_from_source_effects(
     policy_context: dict[str, object] | None,
 ) -> ProposalResult:
     result_status = _advise_status_from_source_effects(source_effects)
-    explanation = _advise_source_effect_explanation(
-        source_effects=source_effects,
-        compatibility_snapshot=compatibility_snapshot,
-    )
     decision_support = build_simulation_decision_support(
         portfolio=request.portfolio_snapshot,
         market_data=request.market_data_snapshot,
@@ -131,6 +130,13 @@ def build_advise_owned_proposal_result_from_source_effects(
         rule_results=source_effects.rule_results,
         reference_model=request.reference_model,
         policy_context=policy_context,
+    )
+    explanation = _advise_source_effect_explanation(
+        source_effects=source_effects,
+        compatibility_snapshot=compatibility_snapshot,
+        advise_status=result_status,
+        advise_suitability=decision_support.suitability,
+        advise_gate_decision=decision_support.gate_decision,
     )
 
     return ProposalResult(
@@ -185,6 +191,9 @@ def _advise_source_effect_explanation(
     *,
     source_effects: CoreProjectedTransactionEffects,
     compatibility_snapshot: CoreDecisionCompatibilitySnapshot,
+    advise_status: Literal["READY", "BLOCKED", "PENDING_REVIEW"],
+    advise_suitability: SuitabilityResult | None,
+    advise_gate_decision: GateDecision | None,
 ) -> dict[str, Any]:
     explanation = deepcopy(source_effects.explanation)
     explanation["core_projected_transaction_effects"] = {
@@ -203,7 +212,145 @@ def _advise_source_effect_explanation(
             mode="json",
             exclude_none=True,
         )
+        explanation["core_decision_parity"] = _core_decision_parity_report(
+            compatibility_snapshot=compatibility_snapshot,
+            advise_status=advise_status,
+            advise_suitability=advise_suitability,
+            advise_gate_decision=advise_gate_decision,
+        )
     return explanation
+
+
+def _core_decision_parity_report(
+    *,
+    compatibility_snapshot: CoreDecisionCompatibilitySnapshot,
+    advise_status: Literal["READY", "BLOCKED", "PENDING_REVIEW"],
+    advise_suitability: SuitabilityResult | None,
+    advise_gate_decision: GateDecision | None,
+) -> dict[str, Any]:
+    mismatches: list[dict[str, str | None]] = []
+    compared_fields: list[str] = []
+
+    _append_parity_mismatch(
+        mismatches=mismatches,
+        compared_fields=compared_fields,
+        field="status",
+        core_value=compatibility_snapshot.reported_status,
+        advise_value=advise_status,
+    )
+    _compare_suitability_parity(
+        mismatches=mismatches,
+        compared_fields=compared_fields,
+        core_suitability=compatibility_snapshot.suitability,
+        advise_suitability=advise_suitability,
+    )
+    _compare_gate_parity(
+        mismatches=mismatches,
+        compared_fields=compared_fields,
+        core_gate=compatibility_snapshot.gate_decision,
+        advise_gate_decision=advise_gate_decision,
+    )
+
+    return {
+        "status": "MISMATCH" if mismatches else "MATCH",
+        "compared_fields": compared_fields,
+        "mismatches": mismatches,
+        "core_decisions_authoritative": False,
+    }
+
+
+def _compare_suitability_parity(
+    *,
+    mismatches: list[dict[str, str | None]],
+    compared_fields: list[str],
+    core_suitability: dict[str, Any] | None,
+    advise_suitability: SuitabilityResult | None,
+) -> None:
+    if core_suitability is None:
+        return
+    summary = core_suitability.get("summary")
+    if isinstance(summary, dict):
+        _append_parity_mismatch(
+            mismatches=mismatches,
+            compared_fields=compared_fields,
+            field="suitability.summary.new_count",
+            core_value=_string_value(summary.get("new_count")),
+            advise_value=_string_value(
+                advise_suitability.summary.new_count if advise_suitability is not None else None
+            ),
+        )
+        _append_parity_mismatch(
+            mismatches=mismatches,
+            compared_fields=compared_fields,
+            field="suitability.summary.persistent_count",
+            core_value=_string_value(summary.get("persistent_count")),
+            advise_value=_string_value(
+                advise_suitability.summary.persistent_count
+                if advise_suitability is not None
+                else None
+            ),
+        )
+    _append_parity_mismatch(
+        mismatches=mismatches,
+        compared_fields=compared_fields,
+        field="suitability.recommended_gate",
+        core_value=_string_value(core_suitability.get("recommended_gate")),
+        advise_value=advise_suitability.recommended_gate
+        if advise_suitability is not None
+        else None,
+    )
+
+
+def _compare_gate_parity(
+    *,
+    mismatches: list[dict[str, str | None]],
+    compared_fields: list[str],
+    core_gate: dict[str, Any] | None,
+    advise_gate_decision: GateDecision | None,
+) -> None:
+    if core_gate is None:
+        return
+    _append_parity_mismatch(
+        mismatches=mismatches,
+        compared_fields=compared_fields,
+        field="gate_decision.gate",
+        core_value=_string_value(core_gate.get("gate")),
+        advise_value=advise_gate_decision.gate if advise_gate_decision is not None else None,
+    )
+    _append_parity_mismatch(
+        mismatches=mismatches,
+        compared_fields=compared_fields,
+        field="gate_decision.recommended_next_step",
+        core_value=_string_value(core_gate.get("recommended_next_step")),
+        advise_value=(
+            advise_gate_decision.recommended_next_step if advise_gate_decision is not None else None
+        ),
+    )
+
+
+def _append_parity_mismatch(
+    *,
+    mismatches: list[dict[str, str | None]],
+    compared_fields: list[str],
+    field: str,
+    core_value: str | None,
+    advise_value: str | None,
+) -> None:
+    if core_value is None:
+        return
+    compared_fields.append(field)
+    if core_value != advise_value:
+        mismatches.append(
+            {
+                "field": field,
+                "core_value": core_value,
+                "advise_value": advise_value,
+            }
+        )
+
+
+def _string_value(value: object) -> str | None:
+    return None if value is None else str(value)
 
 
 def _source_effect_hash_payload(

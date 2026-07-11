@@ -27247,6 +27247,9 @@
     Advise policy modules.
   - Adapter tests prove Core-returned suitability classifications and workflow gates are
     compatibility snapshots only while the returned `ProposalResult` uses Advise-owned decisions.
+  - The adapter now emits `core_decision_parity` so Core v1 decision-shaped fields are classified
+    as match or mismatch against Advise-owned status, suitability, and workflow gate output before
+    the compatibility path is retired.
   - `tests/fixtures/external-adapter-contracts/lotus-advise-external-adapter-contracts.v1.json`
     now declares `CoreProjectedTransactionEffects`, source-effect authority fields,
     non-authoritative Core decision fields, Advise decision authority fields, and the parity

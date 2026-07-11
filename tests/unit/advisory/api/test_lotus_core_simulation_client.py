@@ -619,6 +619,10 @@ def test_simulate_with_lotus_core_quarantines_core_suitability_classification(mo
         ]
         is False
     )
+    parity = result.explanation["core_decision_parity"]
+    assert parity["status"] == "MISMATCH"
+    assert parity["core_decisions_authoritative"] is False
+    assert "suitability.summary.new_count" in parity["compared_fields"]
 
 
 def test_simulate_with_lotus_core_preserves_canonical_suitability_classification(monkeypatch):
@@ -701,6 +705,14 @@ def test_simulate_with_lotus_core_treats_core_gate_as_non_authoritative(monkeypa
     assert result.gate_decision.gate != "BLOCKED"
     core_decisions = _non_authoritative_core_decisions(result)
     assert core_decisions["gate_decision"]["gate"] == "BLOCKED"
+    parity = result.explanation["core_decision_parity"]
+    assert parity["status"] == "MISMATCH"
+    assert any(
+        mismatch["field"] == "gate_decision.gate"
+        and mismatch["core_value"] == "BLOCKED"
+        and mismatch["advise_value"] == result.gate_decision.gate
+        for mismatch in parity["mismatches"]
+    )
     source_effects = result.explanation["core_projected_transaction_effects"]
     assert source_effects["advise_calculation_version"] == (
         "lotus-advise.advisory-decision-support.v1"
