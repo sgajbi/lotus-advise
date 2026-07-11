@@ -16,13 +16,13 @@ This document records the current security hardening baseline for Lotus Advise.
   called by `make security-audit` and has a compatibility alias at
   `make bandit-high-severity-gate`.
 - Current Bandit inventory is governed by `quality/bandit_security_baseline.v1.json`: `0` high,
-  `26` medium, and `1` low severity finding. High findings are never baselined; current medium/low
+  `26` medium, and `0` low severity findings. High findings are never baselined; current medium/low
   entries require owner, rationale, expiry, linked remediation, and compensating controls.
 
 ## Current Gaps
 
-- The current Bandit medium/low baseline remains non-certifying security debt. Issue #435 tracks
-  reducing or retiring those entries before their `2026-12-31` expiry.
+- The current Bandit medium baseline remains non-certifying security debt. Issue #435 tracks
+  reducing or retiring the constant-owned SQL-template entries before their `2026-12-31` expiry.
 - Full authentication, authorization, CORS, header, and API abuse-protection inventories need
   separate implementation-backed review slices.
 - Broader route-level authenticated caller-context resolution remains a separate authorization
@@ -32,6 +32,5 @@ This document records the current security hardening baseline for Lotus Advise.
 
 ## Next Steps
 
-- Reduce the current medium/low Bandit baseline by replacing static SQL helper false positives
-  with Bandit-clean helpers where practical and replacing the production `assert` finding with an
-  explicit exception.
+- Reduce the current medium Bandit baseline by replacing constant-owned SQL template false
+  positives with Bandit-clean helpers where practical.

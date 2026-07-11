@@ -421,7 +421,7 @@ def main(argv: list[str] | None = None) -> int:
         "--baseline-rationale",
         default=(
             "Current Bandit medium/low inventory accepted as non-certifying baseline while "
-            "parameterized SQL helpers and production assert usage are remediated."
+            "constant-owned SQL templates are reviewed for narrower query-builder patterns."
         ),
     )
     parser.add_argument("--baseline-expires-on", default="2026-12-31")

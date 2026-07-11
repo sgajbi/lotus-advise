@@ -1,12 +1,12 @@
 # Lotus Advise Engineering Health Baseline
 
-- Generated At: `2026-07-11T05:39:33.401314+00:00`
+- Generated At: `2026-07-11T05:58:09.372898+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - Python Files: `991`
 - Packages: `39`
 - Modules: `952`
-- Total Python Lines: `163664`
+- Total Python Lines: `163736`
 
 ## Largest Files
 
@@ -20,7 +20,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1703 |
 | 8 | `scripts/quality_baseline_report.py` | 1599 |
-| 9 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
+| 9 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1493 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1250 |
 | 11 | `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` | 1173 |
 | 12 | `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` | 1054 |
@@ -38,7 +38,7 @@
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
 | 1 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 803 | 480 |
-| 2 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
+| 2 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 58 | 478 |
 | 3 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
 | 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 92 | 297 |
 | 5 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |

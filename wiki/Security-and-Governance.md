@@ -59,7 +59,7 @@ The release-image evidence path is intentionally split:
 `quality/bandit_security_baseline.v1.json` is the governed Bandit medium/low baseline. It is not a
 security certification claim. Each accepted entry carries a stable fingerprint, owner, rationale,
 expiry, linked remediation, and compensating control. The current baseline records `0` high, `26`
-medium, and `1` low finding, with remediation tracked in issue #435.
+medium, and `0` low findings, with remediation tracked in issue #435.
 
 Use `make bandit-severity-regression-gate` for the direct gate. `make security-audit` runs the same
 gate after dependency health. `make bandit-high-severity-gate` remains only as a compatibility alias.
