@@ -377,6 +377,9 @@ generation, or downstream execution truth.
   boot posture before treating the pod as healthy
 - use `/platform/capabilities` to confirm upstream dependency and workflow readiness before
   claiming an advisory workflow, demo, or release evidence path is operational
+- use `make slo-capacity-gate` to validate
+  `docs/standards/advisory-slo-capacity-budgets.v1.json` and emit the load-smoke plan before
+  claiming SLO/capacity evidence
 - use `/version` to compare runtime build metadata with retained Main Releasability image release
   evidence
 - treat upstream simulation and risk failures as dependency issues first, not as reasons to invent local fallback truth

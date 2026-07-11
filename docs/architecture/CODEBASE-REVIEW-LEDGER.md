@@ -1,5 +1,39 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-917
+
+- Scope: Advisory workflow SLO and capacity budgets
+- Pattern: Timeout and retry settings need a measurable budget contract that ties public
+  workflows, downstream dependencies, bounded telemetry dimensions, alerts, and load-smoke
+  evidence together before operators can tune latency, capacity, or AI cost posture.
+- Status: Hardened
+- Finding Class: SLO, capacity, AI cost, operational supportability
+- Summary: GitHub issue #408 identified that `lotus-advise` had timeout defaults and general
+  scalability guidance, but no endpoint/workflow p95/p99 targets, dependency budgets, concurrency
+  targets, load profile, or AI token/cost budget gate.
+- Evidence:
+  - Added `docs/standards/advisory-slo-capacity-budgets.v1.json` covering workflow availability,
+    p95/p99 latency, timeout, error/degraded-rate, concurrency, dependency, alert, and AI
+    token/output/cost budgets.
+  - Added `scripts/slo_capacity_contract.py` and `make slo-capacity-gate`; the gate validates the
+    contract and emits `output/slo-capacity-smoke-plan.json` for live capacity automation.
+  - Wired `slo-capacity-gate` into `make check`, `make ci`, and `make ci-local`.
+  - Added unit tests for current-contract validity, generated smoke-plan evidence, unknown
+    dependency references, missing workflow fields, sensitive metric dimensions, missing AI cost
+    budget, and invalid load-smoke workflow references.
+  - Updated scalability, operations, README, and Operations wiki source guidance.
+- Consequence:
+  - Advisory latency, dependency, degraded-rate, concurrency, and AI cost claims are now governed
+    by a reviewable contract and CI-visible gate instead of scattered timeout defaults.
+- Documentation:
+  - README, scalability standard, operations runbook, Operations wiki source, generated quality
+    reports, and review ledger updated. Wiki source changed, so repo-wiki check is required before
+    merge and publication is required after merge.
+- Follow-Up:
+  - No cross-app ownership issue was raised in this slice. Dependency budget breaches should be
+    routed to the owning Lotus service with dependency-key evidence, but the Advise budget contract
+    itself belongs in `lotus-advise`.
+
 ## LA-REV-916
 
 - Scope: Health readiness and dependency-aware workflow readiness

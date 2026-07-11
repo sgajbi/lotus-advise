@@ -1,0 +1,346 @@
+{
+  "schema_version": "lotus.advise.slo-capacity-budgets.v1",
+  "service_name": "lotus-advise",
+  "owner_boundary": "lotus-advise service owners with platform SRE and downstream integration owners",
+  "metric_dimensions": {
+    "allowed": [
+      "route_template",
+      "operation_name",
+      "dependency_key",
+      "workflow_key",
+      "status_class",
+      "outcome",
+      "degraded_reason",
+      "fallback_mode",
+      "readiness_basis"
+    ],
+    "forbidden": [
+      "account_id",
+      "advisor_id",
+      "client_id",
+      "correlation_id",
+      "portfolio_id",
+      "proposal_id",
+      "request_body",
+      "request_id",
+      "response_body",
+      "trace_id",
+      "workspace_id"
+    ]
+  },
+  "workflow_budgets": [
+    {
+      "workflow_key": "advisory_proposal_simulation",
+      "route_templates": [
+        "/advisory/proposals/simulate"
+      ],
+      "availability_target_percent": 99.5,
+      "p95_latency_ms": 400,
+      "p99_latency_ms": 900,
+      "timeout_budget_ms": 4000,
+      "max_error_rate_percent": 1.0,
+      "max_degraded_rate_percent": 5.0,
+      "max_concurrent_requests": 25,
+      "required_dependency_keys": [
+        "lotus_core",
+        "lotus_risk"
+      ],
+      "alert_policy_key": "advisor_workflow_latency_or_error_budget"
+    },
+    {
+      "workflow_key": "advisory_proposal_lifecycle",
+      "route_templates": [
+        "/advisory/proposals",
+        "/advisory/proposals/{proposal_id}",
+        "/advisory/proposals/{proposal_id}/versions"
+      ],
+      "availability_target_percent": 99.5,
+      "p95_latency_ms": 350,
+      "p99_latency_ms": 800,
+      "timeout_budget_ms": 3500,
+      "max_error_rate_percent": 1.0,
+      "max_degraded_rate_percent": 2.0,
+      "max_concurrent_requests": 30,
+      "required_dependency_keys": [
+        "postgres"
+      ],
+      "alert_policy_key": "advisor_workflow_latency_or_error_budget"
+    },
+    {
+      "workflow_key": "advisory_proposal_memo_evidence_pack",
+      "route_templates": [
+        "/advisory/proposals/{proposal_id}/memo",
+        "/advisory/proposals/{proposal_id}/memo/report-package"
+      ],
+      "availability_target_percent": 99.0,
+      "p95_latency_ms": 700,
+      "p99_latency_ms": 1500,
+      "timeout_budget_ms": 8000,
+      "max_error_rate_percent": 1.0,
+      "max_degraded_rate_percent": 5.0,
+      "max_concurrent_requests": 15,
+      "required_dependency_keys": [
+        "postgres",
+        "lotus_report"
+      ],
+      "alert_policy_key": "downstream_dependency_budget"
+    },
+    {
+      "workflow_key": "advisory_policy_evaluation",
+      "route_templates": [
+        "/advisory/policy-evaluations",
+        "/advisory/policy-evaluations/{evaluation_id}",
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off"
+      ],
+      "availability_target_percent": 99.0,
+      "p95_latency_ms": 700,
+      "p99_latency_ms": 1500,
+      "timeout_budget_ms": 8000,
+      "max_error_rate_percent": 1.0,
+      "max_degraded_rate_percent": 5.0,
+      "max_concurrent_requests": 15,
+      "required_dependency_keys": [
+        "postgres",
+        "lotus_report",
+        "lotus_ai"
+      ],
+      "alert_policy_key": "downstream_dependency_budget"
+    },
+    {
+      "workflow_key": "advisor_cockpit_operating_workflow",
+      "route_templates": [
+        "/advisory/cockpit/actions",
+        "/advisory/cockpit/actions/{action_id}",
+        "/advisory/cockpit/snapshot",
+        "/advisory/cockpit/supportability"
+      ],
+      "availability_target_percent": 99.5,
+      "p95_latency_ms": 500,
+      "p99_latency_ms": 1000,
+      "timeout_budget_ms": 5000,
+      "max_error_rate_percent": 1.0,
+      "max_degraded_rate_percent": 5.0,
+      "max_concurrent_requests": 20,
+      "required_dependency_keys": [
+        "postgres",
+        "lotus_core",
+        "lotus_risk",
+        "lotus_report"
+      ],
+      "alert_policy_key": "advisor_workflow_latency_or_error_budget"
+    },
+    {
+      "workflow_key": "advisory_copilot_interaction",
+      "route_templates": [
+        "/advisory/copilot/runs",
+        "/advisory/copilot/runs/{run_id}",
+        "/advisory/copilot/runs/{run_id}/review"
+      ],
+      "availability_target_percent": 99.0,
+      "p95_latency_ms": 1500,
+      "p99_latency_ms": 3500,
+      "timeout_budget_ms": 10000,
+      "max_error_rate_percent": 1.0,
+      "max_degraded_rate_percent": 5.0,
+      "max_concurrent_requests": 8,
+      "required_dependency_keys": [
+        "postgres",
+        "lotus_ai"
+      ],
+      "alert_policy_key": "ai_latency_cost_or_fallback_budget"
+    },
+    {
+      "workflow_key": "advisory_bank_demo_proof",
+      "route_templates": [
+        "/advisory/bank-demo-proof/scenario",
+        "/advisory/bank-demo-proof/proof-packs",
+        "/advisory/bank-demo-proof/runtime-posture"
+      ],
+      "availability_target_percent": 99.0,
+      "p95_latency_ms": 800,
+      "p99_latency_ms": 1800,
+      "timeout_budget_ms": 9000,
+      "max_error_rate_percent": 1.0,
+      "max_degraded_rate_percent": 2.0,
+      "max_concurrent_requests": 10,
+      "required_dependency_keys": [
+        "postgres",
+        "lotus_core",
+        "lotus_risk",
+        "lotus_ai",
+        "lotus_report"
+      ],
+      "alert_policy_key": "demo_proof_budget"
+    },
+    {
+      "workflow_key": "platform_capabilities",
+      "route_templates": [
+        "/platform/capabilities"
+      ],
+      "availability_target_percent": 99.9,
+      "p95_latency_ms": 150,
+      "p99_latency_ms": 300,
+      "timeout_budget_ms": 1000,
+      "max_error_rate_percent": 0.5,
+      "max_degraded_rate_percent": 10.0,
+      "max_concurrent_requests": 50,
+      "required_dependency_keys": [
+        "lotus_core",
+        "lotus_risk",
+        "lotus_report",
+        "lotus_ai",
+        "lotus_performance"
+      ],
+      "alert_policy_key": "capability_readiness_budget"
+    }
+  ],
+  "dependency_budgets": [
+    {
+      "dependency_key": "postgres",
+      "timeout_budget_ms": 1000,
+      "retry_attempts": 0,
+      "p95_latency_ms": 80,
+      "p99_latency_ms": 200,
+      "max_error_rate_percent": 0.5,
+      "max_concurrent_operations": 40,
+      "rate_limit_per_minute": 1200
+    },
+    {
+      "dependency_key": "lotus_core",
+      "timeout_budget_ms": 5000,
+      "retry_attempts": 0,
+      "p95_latency_ms": 400,
+      "p99_latency_ms": 1000,
+      "max_error_rate_percent": 1.0,
+      "max_concurrent_operations": 30,
+      "rate_limit_per_minute": 600
+    },
+    {
+      "dependency_key": "lotus_risk",
+      "timeout_budget_ms": 5000,
+      "retry_attempts": 2,
+      "p95_latency_ms": 500,
+      "p99_latency_ms": 1200,
+      "max_error_rate_percent": 1.0,
+      "max_concurrent_operations": 20,
+      "rate_limit_per_minute": 400
+    },
+    {
+      "dependency_key": "lotus_report",
+      "timeout_budget_ms": 8000,
+      "retry_attempts": 0,
+      "p95_latency_ms": 900,
+      "p99_latency_ms": 2000,
+      "max_error_rate_percent": 1.0,
+      "max_concurrent_operations": 10,
+      "rate_limit_per_minute": 120
+    },
+    {
+      "dependency_key": "lotus_ai",
+      "timeout_budget_ms": 10000,
+      "retry_attempts": 0,
+      "p95_latency_ms": 1500,
+      "p99_latency_ms": 3500,
+      "max_error_rate_percent": 1.0,
+      "max_concurrent_operations": 8,
+      "rate_limit_per_minute": 60,
+      "ai_budget": {
+        "max_input_tokens": 6000,
+        "max_output_tokens": 1200,
+        "max_estimated_cost_usd_per_request": 0.25,
+        "fallback_reason": "AI_UNAVAILABLE"
+      }
+    },
+    {
+      "dependency_key": "lotus_performance",
+      "timeout_budget_ms": 3000,
+      "retry_attempts": 0,
+      "p95_latency_ms": 250,
+      "p99_latency_ms": 700,
+      "max_error_rate_percent": 1.0,
+      "max_concurrent_operations": 10,
+      "rate_limit_per_minute": 120,
+      "readiness_only": true
+    }
+  ],
+  "alert_policies": [
+    {
+      "alert_policy_key": "advisor_workflow_latency_or_error_budget",
+      "page_on": [
+        "p99_latency_ms_breach_10m",
+        "error_rate_budget_breach_10m"
+      ],
+      "runbook": "wiki/Operations-Runbook.md#slo-and-capacity-budgets"
+    },
+    {
+      "alert_policy_key": "downstream_dependency_budget",
+      "page_on": [
+        "dependency_error_budget_breach_10m",
+        "dependency_timeout_budget_breach_10m"
+      ],
+      "runbook": "wiki/Operations-Runbook.md#slo-and-capacity-budgets"
+    },
+    {
+      "alert_policy_key": "ai_latency_cost_or_fallback_budget",
+      "page_on": [
+        "ai_latency_budget_breach_10m",
+        "ai_cost_budget_breach_1h",
+        "ai_fallback_budget_breach_10m"
+      ],
+      "runbook": "wiki/Operations-Runbook.md#slo-and-capacity-budgets"
+    },
+    {
+      "alert_policy_key": "demo_proof_budget",
+      "page_on": [
+        "demo_proof_error_budget_breach_10m",
+        "demo_proof_material_drift"
+      ],
+      "runbook": "wiki/Operations-Runbook.md#slo-and-capacity-budgets"
+    },
+    {
+      "alert_policy_key": "capability_readiness_budget",
+      "page_on": [
+        "capability_readiness_error_budget_breach_10m",
+        "dependency_readiness_degraded_10m"
+      ],
+      "runbook": "wiki/Operations-Runbook.md#slo-and-capacity-budgets"
+    }
+  ],
+  "load_smoke_profiles": [
+    {
+      "profile_key": "local_advisory_capacity_smoke",
+      "duration_seconds": 60,
+      "ramp_seconds": 10,
+      "target_concurrent_requests": 8,
+      "workflow_keys": [
+        "advisory_proposal_simulation",
+        "advisory_proposal_lifecycle",
+        "advisor_cockpit_operating_workflow",
+        "platform_capabilities"
+      ],
+      "required_evidence": [
+        "route_template_latency_histogram",
+        "status_class_counts",
+        "dependency_key_outcomes"
+      ]
+    },
+    {
+      "profile_key": "dependency_latency_error_injection",
+      "duration_seconds": 120,
+      "ramp_seconds": 20,
+      "target_concurrent_requests": 6,
+      "workflow_keys": [
+        "advisory_proposal_simulation",
+        "advisory_proposal_memo_evidence_pack",
+        "advisory_policy_evaluation",
+        "advisory_copilot_interaction"
+      ],
+      "required_evidence": [
+        "dependency_timeout_count",
+        "degraded_reason_counts",
+        "fallback_mode_counts",
+        "ai_cost_latency_summary"
+      ]
+    }
+  ]
+}
