@@ -314,6 +314,7 @@ jobs:
           actual_checksum="$(sha256sum "$archive" | cut -d' ' -f1)"
           test "$expected_checksum" = "$actual_checksum"
           tar -xzf "$archive" trivy
+          mkdir -p "$HOME/.local/bin"
           install -m 0755 trivy "$HOME/.local/bin/trivy"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/trivy" --version
