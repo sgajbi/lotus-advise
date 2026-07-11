@@ -5,6 +5,7 @@ from collections.abc import Callable
 from contextlib import closing
 from typing import Any
 
+from src.core.proposals.exceptions import ProposalIdempotencyConflictError
 from src.infrastructure.proposals.postgres_mappers import json_dump
 
 ConnectionFactory = Callable[[], Any]
@@ -46,18 +47,27 @@ class PostgresPolicyEvaluationStateStore:
 
     def save_snapshot(self, snapshot: dict[str, Any]) -> None:
         with closing(self._connect()) as connection:
-            for record in snapshot.get("records", {}).values():
-                _upsert_policy_evaluation_record(connection=connection, record=record)
-            for events in snapshot.get("events", {}).values():
-                for event in events:
-                    _upsert_policy_evaluation_event(connection=connection, event=event)
-            for idempotency in snapshot.get("idempotency", []):
-                _upsert_policy_evaluation_idempotency(
-                    connection=connection,
-                    idempotency=idempotency,
-                    created_at=_event_created_at(snapshot=snapshot, idempotency=idempotency),
-                )
-            connection.commit()
+            try:
+                events_by_evaluation = snapshot.get("events", {})
+                for record in snapshot.get("records", {}).values():
+                    _upsert_policy_evaluation_record(
+                        connection=connection,
+                        record=record,
+                        event_count=len(events_by_evaluation.get(record["evaluation_id"], [])),
+                    )
+                for events in events_by_evaluation.values():
+                    for event in events:
+                        _upsert_policy_evaluation_event(connection=connection, event=event)
+                for idempotency in snapshot.get("idempotency", []):
+                    _upsert_policy_evaluation_idempotency(
+                        connection=connection,
+                        idempotency=idempotency,
+                        created_at=_event_created_at(snapshot=snapshot, idempotency=idempotency),
+                    )
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
 
 
 class PostgresPolicyPackCatalogStateStore:
@@ -95,23 +105,33 @@ class PostgresPolicyPackCatalogStateStore:
 
     def save_snapshot(self, snapshot: dict[str, Any]) -> None:
         with closing(self._connect()) as connection:
-            for definition in snapshot.get("definitions", []):
-                _upsert_policy_pack_catalog_version(
-                    connection=connection,
-                    definition=definition,
-                )
-            for event in snapshot.get("events", []):
-                _upsert_policy_pack_catalog_event(connection=connection, event=event)
-            for idempotency in snapshot.get("idempotency", []):
-                _upsert_policy_pack_catalog_idempotency(
-                    connection=connection,
-                    idempotency=idempotency,
-                    created_at=_catalog_event_created_at(
-                        snapshot=snapshot,
+            try:
+                events = snapshot.get("events", [])
+                for definition in snapshot.get("definitions", []):
+                    _upsert_policy_pack_catalog_version(
+                        connection=connection,
+                        definition=definition,
+                        event_count=_catalog_event_count(
+                            events=events,
+                            policy_pack_id=definition["policy_pack_id"],
+                            policy_version=definition["policy_version"],
+                        ),
+                    )
+                for event in events:
+                    _upsert_policy_pack_catalog_event(connection=connection, event=event)
+                for idempotency in snapshot.get("idempotency", []):
+                    _upsert_policy_pack_catalog_idempotency(
+                        connection=connection,
                         idempotency=idempotency,
-                    ),
-                )
-            connection.commit()
+                        created_at=_catalog_event_created_at(
+                            snapshot=snapshot,
+                            idempotency=idempotency,
+                        ),
+                    )
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
 
 
 def _records_snapshot(rows: list[Any]) -> dict[str, dict[str, Any]]:
@@ -125,8 +145,10 @@ def _events_snapshot(rows: list[Any]) -> dict[str, list[dict[str, Any]]]:
     return events
 
 
-def _upsert_policy_evaluation_record(*, connection: Any, record: dict[str, Any]) -> None:
-    connection.execute(
+def _upsert_policy_evaluation_record(
+    *, connection: Any, record: dict[str, Any], event_count: int
+) -> None:
+    cursor = connection.execute(
         """
         INSERT INTO policy_evaluation_records (
             evaluation_id,
@@ -145,6 +167,12 @@ def _upsert_policy_evaluation_record(*, connection: Any, record: dict[str, Any])
         ON CONFLICT (evaluation_id) DO UPDATE SET
             evaluation_status=excluded.evaluation_status,
             record_json=excluded.record_json
+        WHERE policy_evaluation_records.evaluation_hash = excluded.evaluation_hash
+          AND (
+              SELECT COUNT(*)
+              FROM policy_evaluation_audit_events
+              WHERE policy_evaluation_audit_events.evaluation_id = excluded.evaluation_id
+          ) <= %s
         """,
         (
             record["evaluation_id"],
@@ -159,13 +187,15 @@ def _upsert_policy_evaluation_record(*, connection: Any, record: dict[str, Any])
             record["policy_content_hash"],
             record["evaluation_hash"],
             json_dump(record),
+            event_count,
         ),
     )
+    _raise_if_no_rows(cursor, "POLICY_EVALUATION_RECORD_CONFLICT")
 
 
 def _upsert_policy_evaluation_event(*, connection: Any, event: dict[str, Any]) -> None:
     reason = event.get("reason_json", {})
-    connection.execute(
+    cursor = connection.execute(
         """
         INSERT INTO policy_evaluation_audit_events (
             evaluation_id,
@@ -178,7 +208,9 @@ def _upsert_policy_evaluation_event(*, connection: Any, event: dict[str, Any]) -
             event_json
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (evaluation_id, event_id) DO UPDATE SET
-            event_json=excluded.event_json
+            event_json=policy_evaluation_audit_events.event_json
+        WHERE policy_evaluation_audit_events.request_hash = excluded.request_hash
+          AND policy_evaluation_audit_events.event_json = excluded.event_json
         """,
         (
             event["evaluation_id"],
@@ -191,12 +223,13 @@ def _upsert_policy_evaluation_event(*, connection: Any, event: dict[str, Any]) -
             json_dump(event),
         ),
     )
+    _raise_if_no_rows(cursor, "POLICY_EVALUATION_EVENT_CONFLICT")
 
 
 def _upsert_policy_evaluation_idempotency(
     *, connection: Any, idempotency: dict[str, Any], created_at: str
 ) -> None:
-    connection.execute(
+    cursor = connection.execute(
         """
         INSERT INTO policy_evaluation_idempotency (
             idempotency_key,
@@ -206,9 +239,12 @@ def _upsert_policy_evaluation_idempotency(
             created_at
         ) VALUES (%s, %s, %s, %s, %s)
         ON CONFLICT (idempotency_key) DO UPDATE SET
-            request_hash=excluded.request_hash,
-            evaluation_id=excluded.evaluation_id,
-            event_id=excluded.event_id
+            request_hash=policy_evaluation_idempotency.request_hash,
+            evaluation_id=policy_evaluation_idempotency.evaluation_id,
+            event_id=policy_evaluation_idempotency.event_id
+        WHERE policy_evaluation_idempotency.request_hash = excluded.request_hash
+          AND policy_evaluation_idempotency.evaluation_id = excluded.evaluation_id
+          AND policy_evaluation_idempotency.event_id = excluded.event_id
         """,
         (
             idempotency["idempotency_key"],
@@ -218,10 +254,13 @@ def _upsert_policy_evaluation_idempotency(
             created_at,
         ),
     )
+    _raise_if_no_rows(cursor, "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT")
 
 
-def _upsert_policy_pack_catalog_version(*, connection: Any, definition: dict[str, Any]) -> None:
-    connection.execute(
+def _upsert_policy_pack_catalog_version(
+    *, connection: Any, definition: dict[str, Any], event_count: int
+) -> None:
+    cursor = connection.execute(
         """
         INSERT INTO policy_pack_catalog_versions (
             policy_pack_id,
@@ -234,6 +273,13 @@ def _upsert_policy_pack_catalog_version(*, connection: Any, definition: dict[str
             activation_state=excluded.activation_state,
             content_hash=excluded.content_hash,
             definition_json=excluded.definition_json
+        WHERE policy_pack_catalog_versions.content_hash = excluded.content_hash
+          AND (
+              SELECT COUNT(*)
+              FROM policy_pack_catalog_audit_events
+              WHERE policy_pack_catalog_audit_events.policy_pack_id = excluded.policy_pack_id
+                AND policy_pack_catalog_audit_events.policy_version = excluded.policy_version
+          ) <= %s
         """,
         (
             definition["policy_pack_id"],
@@ -241,13 +287,15 @@ def _upsert_policy_pack_catalog_version(*, connection: Any, definition: dict[str
             definition["activation_state"],
             definition["content_hash"],
             json_dump(definition),
+            event_count,
         ),
     )
+    _raise_if_no_rows(cursor, "POLICY_PACK_CATALOG_VERSION_CONFLICT")
 
 
 def _upsert_policy_pack_catalog_event(*, connection: Any, event: dict[str, Any]) -> None:
     reason = event.get("reason", {})
-    connection.execute(
+    cursor = connection.execute(
         """
         INSERT INTO policy_pack_catalog_audit_events (
             policy_pack_id,
@@ -261,7 +309,9 @@ def _upsert_policy_pack_catalog_event(*, connection: Any, event: dict[str, Any])
             event_json
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (policy_pack_id, policy_version, event_id) DO UPDATE SET
-            event_json=excluded.event_json
+            event_json=policy_pack_catalog_audit_events.event_json
+        WHERE policy_pack_catalog_audit_events.request_hash = excluded.request_hash
+          AND policy_pack_catalog_audit_events.event_json = excluded.event_json
         """,
         (
             event["policy_pack_id"],
@@ -275,12 +325,13 @@ def _upsert_policy_pack_catalog_event(*, connection: Any, event: dict[str, Any])
             json_dump(event),
         ),
     )
+    _raise_if_no_rows(cursor, "POLICY_PACK_CATALOG_EVENT_CONFLICT")
 
 
 def _upsert_policy_pack_catalog_idempotency(
     *, connection: Any, idempotency: dict[str, Any], created_at: str
 ) -> None:
-    connection.execute(
+    cursor = connection.execute(
         """
         INSERT INTO policy_pack_catalog_idempotency (
             idempotency_key,
@@ -291,10 +342,14 @@ def _upsert_policy_pack_catalog_idempotency(
             created_at
         ) VALUES (%s, %s, %s, %s, %s, %s)
         ON CONFLICT (idempotency_key) DO UPDATE SET
-            request_hash=excluded.request_hash,
-            policy_pack_id=excluded.policy_pack_id,
-            policy_version=excluded.policy_version,
-            event_id=excluded.event_id
+            request_hash=policy_pack_catalog_idempotency.request_hash,
+            policy_pack_id=policy_pack_catalog_idempotency.policy_pack_id,
+            policy_version=policy_pack_catalog_idempotency.policy_version,
+            event_id=policy_pack_catalog_idempotency.event_id
+        WHERE policy_pack_catalog_idempotency.request_hash = excluded.request_hash
+          AND policy_pack_catalog_idempotency.policy_pack_id = excluded.policy_pack_id
+          AND policy_pack_catalog_idempotency.policy_version = excluded.policy_version
+          AND policy_pack_catalog_idempotency.event_id = excluded.event_id
         """,
         (
             idempotency["idempotency_key"],
@@ -305,6 +360,7 @@ def _upsert_policy_pack_catalog_idempotency(
             created_at,
         ),
     )
+    _raise_if_no_rows(cursor, "POLICY_PACK_IDEMPOTENCY_KEY_CONFLICT")
 
 
 def _event_created_at(*, snapshot: dict[str, Any], idempotency: dict[str, Any]) -> str:
@@ -323,6 +379,21 @@ def _catalog_event_created_at(*, snapshot: dict[str, Any], idempotency: dict[str
         ):
             return str(event["occurred_at"])
     return ""
+
+
+def _catalog_event_count(
+    *, events: list[dict[str, Any]], policy_pack_id: str, policy_version: str
+) -> int:
+    return sum(
+        1
+        for event in events
+        if event["policy_pack_id"] == policy_pack_id and event["policy_version"] == policy_version
+    )
+
+
+def _raise_if_no_rows(cursor: Any, message: str) -> None:
+    if getattr(cursor, "rowcount", None) == 0:
+        raise ProposalIdempotencyConflictError(message)
 
 
 __all__ = [

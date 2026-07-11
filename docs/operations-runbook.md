@@ -158,6 +158,13 @@ Before applying the `policy_packs` active-version uniqueness migration, verify t
 than one `ACTIVE` row per `policy_pack_id`; if duplicates exist, quarantine policy activation and
 remediate the intended current version before rerunning migration apply.
 
+Policy-pack repository writes use a single adapter-owned PostgreSQL transaction for record/catalog
+state, audit events, and idempotency mappings. A partial failure must roll back the whole write.
+Operators should treat `POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT`,
+`POLICY_PACK_IDEMPOTENCY_KEY_CONFLICT`, policy event conflicts, or stale record/catalog conflicts
+as retry/diagnostic events, not as permission to patch rows manually. Preserve the idempotency key,
+request hash, evaluation or policy-pack id, event id, and failed SQL operation in incident evidence.
+
 ## Policy Evaluation Replay
 
 New policy evaluations require an `ACTIVE` policy-pack version. Historical replay pins the stored

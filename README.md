@@ -103,7 +103,8 @@ Boundary rules that matter:
    candidates and preserved lineage.
 6. `AdvisoryPolicyEvaluationRecord:v1` is an active advisor/compliance policy evidence product for
    RFC-0025. Runtime catalog, activation, audit, idempotency, and evaluation state is backed by
-   policy repository ports and the `policy_packs` Postgres migration namespace. Completed
+   policy repository ports and the `policy_packs` Postgres migration namespace with
+   adapter-transactional record/catalog, audit-event, and immutable idempotency writes. Completed
    approval/waiver authority, completed sign-off authority, client-ready policy publication, and
    external client communication remain gated.
 7. `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active
