@@ -307,12 +307,13 @@ def test_lotus_report_adapter_normalizes_pending_status_and_lineage_dates(monkey
     request = _proposal_request()
     request["proposal_version"] = {
         "proposal_result": {
+            "before": {"total_value": {"amount": "100.00", "currency": "SGD"}},
             "lineage": {
                 "core_snapshot_uri": "s3://lotus-core/snapshots/PB_SG_GLOBAL_BAL_001/2026-05-28"
-            }
+            },
         }
     }
-    request["proposal"]["jurisdiction"] = ""
+    request["proposal"]["jurisdiction"] = "HK"
     fake_client = _FakeClient(
         _FakeResponse(
             202,
@@ -333,9 +334,47 @@ def test_lotus_report_adapter_normalizes_pending_status_and_lineage_dates(monkey
 
     assert response.status == "QUEUED_FOR_RENDER"
     [post] = fake_client.posts
-    assert post["headers"]["X-Region"] == "SG"
+    assert post["headers"]["X-Region"] == "HK"
     assert post["json"]["as_of_date"] == "2026-05-28"
-    assert post["json"]["reporting_currency"] == "USD"
+    assert post["json"]["reporting_currency"] == "SGD"
+
+
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda request: request["proposal_version"]["proposal_result"].pop("analytics"),
+        lambda request: request["proposal_version"]["proposal_result"].pop("before"),
+        lambda request: request["proposal"].update({"jurisdiction": ""}),
+    ],
+)
+def test_lotus_report_adapter_rejects_missing_report_source_metadata_before_http_client(
+    monkeypatch,
+    mutator,
+) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_report_001",
+                "status": "data_ready",
+                "idempotency_key": "prr_live_001",
+            },
+        )
+    )
+    request = _proposal_request()
+    mutator(request)
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_proposal_report_with_lotus_report(request=request)
+
+    assert fake_client.posts == []
 
 
 def test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive(monkeypatch) -> None:

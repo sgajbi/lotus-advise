@@ -95,6 +95,8 @@ Boundary rule:
 - report ownership stays outside `lotus-advise`
 - report submissions require bounded trusted tenant and actor identity; unsafe or absent identity
   fails closed before HTTP submission
+- report submissions require source-derived as-of date, reporting currency, and jurisdiction; the
+  mapper does not manufacture current-date, USD, or SG fallbacks
 
 ## `lotus-ai`
 
