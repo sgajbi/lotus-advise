@@ -19,7 +19,10 @@ from src.integrations.lotus_ai.output_safety import (
     map_bounded_string_list,
     map_bounded_text,
 )
-from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.runtime_config import (
+    LotusAITenantIdentityError,
+    resolve_lotus_ai_base_url,
+)
 from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
 from src.integrations.lotus_ai.workflow_response import extract_error_detail, safe_dict
 from src.integrations.lotus_core.runtime_config import env_positive_float
@@ -50,9 +53,13 @@ def generate_workspace_rationale_with_lotus_ai(
     evidence: WorkspaceAssistantEvidence,
 ) -> WorkspaceAssistantResponse:
     base_url = _resolve_base_url()
+    try:
+        request_payload = _build_workflow_pack_request(request=request, evidence=evidence)
+    except LotusAITenantIdentityError as exc:
+        raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE") from exc
     response, payload = _post_workflow_pack_request(
         base_url=base_url,
-        request_payload=_build_workflow_pack_request(request=request, evidence=evidence),
+        request_payload=request_payload,
     )
 
     if response.status_code == 200:

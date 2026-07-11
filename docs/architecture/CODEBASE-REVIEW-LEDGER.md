@@ -26092,3 +26092,35 @@
 - Follow-Up:
   - Continue scanning generated docs and examples for stale non-private-banking vocabulary before
     PR handoff.
+
+## LA-REV-337
+
+- Scope: Downstream report and AI trusted identity boundary
+- Pattern: Outbound adapters must fail closed when tenant or actor identity is absent, malformed,
+  over-length, or control-character-bearing instead of substituting synthetic production defaults
+- Status: Hardened
+- Finding Class: Security posture, tenant isolation, and downstream integration boundary
+- Summary: `lotus-report` request mapping defaulted invalid actors to `lotus-advise` and invalid or
+  missing tenants to `tenant-sg-001`; Lotus AI workflow-pack requests defaulted missing or invalid
+  tenant configuration to `tenant-sg-001`. This could misattribute downstream report or AI work to
+  the wrong tenant or synthetic actor.
+- Evidence:
+  - `src/integrations/lotus_report/request_mapping.py` now requires bounded actor and tenant
+    identity and raises the existing report mapping error before headers or payload options are
+    emitted.
+  - `src/integrations/lotus_ai/runtime_config.py` now raises
+    `LOTUS_AI_TENANT_ID_UNAVAILABLE` for missing, malformed, over-length, or control-character
+    tenant configuration.
+  - Lotus AI adapters build workflow-pack payloads before entering HTTP submission and map missing
+    tenant identity to their existing unavailable posture.
+  - Focused report and AI adapter tests passed with 115 tests, including negative cases proving no
+    report HTTP post is made for invalid tenant or actor identity.
+- Consequence:
+  - Downstream report and AI calls now carry explicit trusted identity or fail closed. The service no
+    longer hides identity gaps behind private-banking demo defaults.
+- Documentation:
+  - Updated security docs, operations runbook, repository context, wiki integration notes, and wiki
+    security governance with the trusted downstream identity rule.
+- Follow-Up:
+  - Apply the same trusted caller-context rule to remaining route-level authorization work, including
+    Advisor Cockpit caller-context resolution.

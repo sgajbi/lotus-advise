@@ -63,15 +63,16 @@ def generate_proposal_narrative_draft_with_lotus_ai(
 ) -> ProposalNarrativeDraftResponse:
     base_url = _resolve_base_url()
     try:
+        request_payload = _build_workflow_pack_request(
+            grounding_packet=grounding_packet,
+            narrative_policy=narrative_policy,
+            requested_sections=requested_sections,
+            requested_by=requested_by,
+        )
         with httpx.Client(timeout=_resolve_timeout()) as client:
             response = client.post(
                 f"{base_url}/platform/workflow-packs/execute",
-                json=_build_workflow_pack_request(
-                    grounding_packet=grounding_packet,
-                    narrative_policy=narrative_policy,
-                    requested_sections=requested_sections,
-                    requested_by=requested_by,
-                ),
+                json=request_payload,
             )
             payload = response.json()
     except (httpx.HTTPError, ValueError) as exc:

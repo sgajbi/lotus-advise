@@ -232,7 +232,10 @@ Boundary rules:
 9. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
 10. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
    the handoff envelope and retains proposal, suitability, approval, publication, and execution
-   authority until a later certified realization slice implements those controls.
+   authority until a later certified realization slice implements those controls,
+11. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
+   missing, malformed, over-length, or control-character-bearing; do not reintroduce synthetic
+   production defaults such as a hardcoded tenant or service actor.
 
 ## Repo-Native Commands
 

@@ -670,7 +670,7 @@ def test_map_workflow_pack_run_requires_identity_and_list_findings() -> None:
 def test_workflow_pack_request_includes_resolved_context_and_portfolio_source_ref(
     monkeypatch,
 ) -> None:
-    monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001")
 
     request_payload = _build_workflow_pack_request(
         request=_build_request(),
@@ -678,7 +678,7 @@ def test_workflow_pack_request_includes_resolved_context_and_portfolio_source_re
     )
 
     task_request = request_payload["task_request"]
-    assert task_request["caller"]["tenant_id"] == "tenant-sg-001"
+    assert task_request["caller"]["tenant_id"] == "tenant-private-bank-001"
     task_context = request_payload["task_request"]["context"]
     assert task_context["payload"]["resolved_context"]["portfolio_id"] == "pf_001"
     assert "lotus-advise:portfolio:pf_001" in task_context["source_refs"]

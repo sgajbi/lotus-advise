@@ -9,8 +9,6 @@ from src.core.proposals.correlation import MAX_CORRELATION_ID_LENGTH
 _SNAPSHOT_DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
 _REPORT_DATE_KEYS = {"as_of_date", "report_end_date", "valuation_date"}
 _SUPPORTED_OUTPUT_FORMATS = {"pdf", "json"}
-_DEFAULT_ACTOR_ID = "lotus-advise"
-_DEFAULT_TENANT_ID = "tenant-sg-001"
 
 
 class LotusReportRequestMappingError(ValueError):
@@ -222,11 +220,11 @@ def proposal_region(request: dict[str, Any]) -> str:
 
 
 def report_actor_id(request: dict[str, Any]) -> str:
-    return bounded_identity(request.get("requested_by"), default=_DEFAULT_ACTOR_ID)
+    return required_bounded_identity(request.get("requested_by"))
 
 
 def bounded_tenant_id(value: Any) -> str:
-    return bounded_identity(value, default=_DEFAULT_TENANT_ID)
+    return required_bounded_identity(value)
 
 
 def report_status_path(status_url: Any) -> str | None:
@@ -289,12 +287,12 @@ def optional_string(value: Any) -> str | None:
     return None
 
 
-def bounded_identity(value: Any, *, default: str) -> str:
+def required_bounded_identity(value: Any) -> str:
     normalized = optional_string(value)
     if (
         normalized is None
         or len(normalized) > MAX_CORRELATION_ID_LENGTH
         or _contains_control_character(normalized)
     ):
-        return default
+        raise LotusReportRequestMappingError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
     return normalized

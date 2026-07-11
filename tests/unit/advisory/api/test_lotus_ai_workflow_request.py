@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from src.integrations.lotus_ai.runtime_config import LotusAITenantIdentityError
 from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
 
 
@@ -47,30 +48,22 @@ def test_build_workflow_pack_execute_request_applies_governed_caller_envelope(
     }
 
 
-def test_build_workflow_pack_execute_request_uses_default_environment_and_tenant(
+def test_build_workflow_pack_execute_request_requires_trusted_tenant(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", raising=False)
     monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
 
-    request = build_workflow_pack_execute_request(
-        pack_id="proposal_narrative_draft.pack",
-        version="v1",
-        workflow_surface="advisory-proposal-narrative",
-        task_id="proposal_narrative_draft.v1",
-        correlation_id="proposal-narrative-pgp_001",
-        requested_by=None,
-        context_summary="Draft advisor-review proposal narrative.",
-        context_payload={"packet_id": "pgp_001"},
-        source_refs=[],
-        expected_output_label="ADVISOR_REVIEW_DRAFT_SECTIONS",
-    )
-
-    task_request = request["task_request"]
-    assert isinstance(task_request, dict)
-    caller = task_request["caller"]
-    assert isinstance(caller, dict)
-
-    assert request["environment"] == "DEVELOPMENT"
-    assert caller["requested_by"] is None
-    assert caller["tenant_id"] == "tenant-sg-001"
+    with pytest.raises(LotusAITenantIdentityError, match="LOTUS_AI_TENANT_ID_UNAVAILABLE"):
+        build_workflow_pack_execute_request(
+            pack_id="proposal_narrative_draft.pack",
+            version="v1",
+            workflow_surface="advisory-proposal-narrative",
+            task_id="proposal_narrative_draft.v1",
+            correlation_id="proposal-narrative-pgp_001",
+            requested_by=None,
+            context_summary="Draft advisor-review proposal narrative.",
+            context_payload={"packet_id": "pgp_001"},
+            source_refs=[],
+            expected_output_label="ADVISOR_REVIEW_DRAFT_SECTIONS",
+        )

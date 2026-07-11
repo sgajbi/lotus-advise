@@ -21,6 +21,14 @@
   checks.
 - `make docker-build`: Docker image build validation.
 
+## Required Runtime Identity
+
+Production-like report and AI integrations require `LOTUS_ADVISE_TENANT_ID` to contain the trusted
+tenant identifier propagated to downstream boundaries. Report requests also require a bounded
+`requested_by` actor in the advisory request payload. Missing, blank, over-length, or
+control-character-containing values fail closed before `lotus-report` or `lotus-ai` HTTP
+submission.
+
 ## Operational Posture
 
 - Treat GitHub Actions as CI truth.

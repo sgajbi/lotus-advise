@@ -23,7 +23,10 @@ from src.integrations.lotus_ai.output_safety import (
     map_bounded_string_list,
     map_review_required_sections,
 )
-from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.runtime_config import (
+    LotusAITenantIdentityError,
+    resolve_lotus_ai_base_url,
+)
 from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
 from src.integrations.lotus_ai.workflow_response import (
     extract_model_version,
@@ -56,14 +59,18 @@ def generate_policy_evidence_summary_with_lotus_ai(
     reason: dict[str, Any],
 ) -> PolicyAiEvidenceDraft:
     base_url = _resolve_base_url()
-    response, payload = _post_workflow_pack_request(
-        base_url=base_url,
-        request_payload=_build_workflow_pack_request(
+    try:
+        request_payload = _build_workflow_pack_request(
             policy_evidence=policy_evidence,
             requested_actions=requested_actions,
             requested_by=requested_by,
             reason=reason,
-        ),
+        )
+    except LotusAITenantIdentityError as exc:
+        raise LotusAIPolicyEvidenceUnavailableError(LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE) from exc
+    response, payload = _post_workflow_pack_request(
+        base_url=base_url,
+        request_payload=request_payload,
     )
 
     if response.status_code == 200:
