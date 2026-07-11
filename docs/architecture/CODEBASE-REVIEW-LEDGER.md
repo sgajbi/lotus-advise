@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-912
+
+- Scope: Advisor Cockpit acknowledgement hydration
+- Pattern: Operator-facing list and snapshot paths should batch runtime-state reads at the
+  repository boundary and join results in memory, while preserving version-aware acknowledgement
+  semantics.
+- Status: Hardened
+- Finding Class: Performance, repository contract, Advisor Cockpit runtime-state projection
+- Summary: GitHub issue #393 identified that Advisor Cockpit source loading already built a
+  bounded action batch, but runtime-state hydration still called
+  `get_cockpit_acknowledgement` once per action. PostgreSQL therefore opened one acknowledgement
+  query/connection path for every action in list, snapshot, and preparation flows.
+- Evidence:
+  - Added `list_cockpit_acknowledgements(action_item_ids=...)` to the Advisor Cockpit repository
+    contract and implemented equivalent in-memory and PostgreSQL adapter behavior.
+  - Changed `AdvisorCockpitService._build_read_model` to issue one bounded acknowledgement batch
+    read for the source action ids and pass matched records into `_attach_runtime_state`.
+  - Preserved the single acknowledgement read for idempotent acknowledgement replay, where the
+    operation is truly single-record.
+  - Added service tests for zero, partial, complete, and stale-version acknowledgement coverage.
+    The complete-coverage regression uses at least 25 source actions and asserts one batch read and
+    zero per-action acknowledgement reads.
+  - Added PostgreSQL repository coverage proving the adapter issues one
+    `WHERE action_item_id = ANY(%s)` acknowledgement query for a batch.
+- Consequence:
+  - Advisor Cockpit list, snapshot, and preparation read models now hydrate acknowledgement state
+    with a constant acknowledgement-read count for the bounded source batch, avoiding N+1
+    database pressure as advisory queues grow.
+- Documentation:
+  - Review ledger and generated quality reports updated. No wiki source change is required because
+    this is an internal repository/query-shape hardening with no operator command or public API
+    contract change.
+- Follow-Up:
+  - Continue applying this batching lens to remaining cockpit/source-loader issues before PR.
+    No cross-app ownership issue was raised because the read model, repository port, and
+    PostgreSQL adapter are all owned by `lotus-advise`.
+
 ## LA-REV-911
 
 - Scope: Proposal lifecycle history indexes

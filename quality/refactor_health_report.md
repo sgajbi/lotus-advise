@@ -209,6 +209,8 @@
   batching, recoverable-operation selection, and copy semantics to focused helpers.
 - Advisor cockpit service delegates acknowledgement idempotency, replay,
   persistence payload, and response projection to a focused service boundary.
+- Advisor cockpit runtime-state hydration uses a repository batch acknowledgement
+  read and version-aware in-memory join instead of per-action acknowledgement queries.
 - Engine option models delegate suitability threshold DTOs, group constraints,
   and reusable validators to focused owner modules while preserving public imports.
 - Tactical house-view source products delegate DTOs and eligibility/supportability

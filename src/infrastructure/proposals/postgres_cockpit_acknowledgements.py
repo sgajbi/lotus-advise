@@ -37,6 +37,36 @@ def get_cockpit_acknowledgement(
         row = connection.execute(query, (action_item_id,)).fetchone()
     if row is None:
         return None
+    return _acknowledgement_from_row(row)
+
+
+def list_cockpit_acknowledgements(
+    *,
+    connect: ConnectionFactory,
+    action_item_ids: list[str],
+) -> dict[str, CockpitAcknowledgementRecord]:
+    if not action_item_ids:
+        return {}
+    ordered_action_item_ids = list(dict.fromkeys(action_item_ids))
+    query = """
+        SELECT
+            acknowledgement_id,
+            action_item_id,
+            action_item_version,
+            acknowledged_by,
+            acknowledged_at,
+            acknowledgement_note,
+            correlation_id,
+            reason_json
+        FROM advisor_cockpit_acknowledgements
+        WHERE action_item_id = ANY(%s)
+    """
+    with closing(connect()) as connection:
+        rows = connection.execute(query, (ordered_action_item_ids,)).fetchall()
+    return {row["action_item_id"]: _acknowledgement_from_row(row) for row in rows}
+
+
+def _acknowledgement_from_row(row: dict[str, Any]) -> CockpitAcknowledgementRecord:
     return CockpitAcknowledgementRecord(
         acknowledgement_id=row["acknowledgement_id"],
         action_item_id=row["action_item_id"],
@@ -163,5 +193,6 @@ def get_cockpit_acknowledgement_idempotency(
 __all__ = [
     "get_cockpit_acknowledgement",
     "get_cockpit_acknowledgement_idempotency",
+    "list_cockpit_acknowledgements",
     "save_cockpit_acknowledgement_with_idempotency",
 ]

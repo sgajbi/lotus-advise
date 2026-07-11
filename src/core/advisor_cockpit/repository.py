@@ -42,6 +42,10 @@ class AdvisorCockpitRepository(Protocol):
         self, *, action_item_id: str
     ) -> Optional[CockpitAcknowledgementRecord]: ...
 
+    def list_cockpit_acknowledgements(
+        self, *, action_item_ids: list[str]
+    ) -> dict[str, CockpitAcknowledgementRecord]: ...
+
     def save_cockpit_acknowledgement_with_idempotency(
         self,
         *,

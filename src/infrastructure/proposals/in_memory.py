@@ -153,6 +153,16 @@ class InMemoryProposalRepository(ProposalRepository):
             record = self._cockpit_acknowledgements.get(action_item_id)
             return copy_optional(record)
 
+    def list_cockpit_acknowledgements(
+        self, *, action_item_ids: list[str]
+    ) -> dict[str, CockpitAcknowledgementRecord]:
+        with self._lock:
+            return {
+                action_item_id: copy_record(record)
+                for action_item_id in dict.fromkeys(action_item_ids)
+                if (record := self._cockpit_acknowledgements.get(action_item_id)) is not None
+            }
+
     def save_cockpit_acknowledgement_with_idempotency(
         self,
         *,
