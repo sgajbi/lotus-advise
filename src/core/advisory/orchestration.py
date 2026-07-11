@@ -20,6 +20,9 @@ from src.integrations.lotus_risk import (
     enrich_with_lotus_risk,
 )
 
+_LOTUS_RISK_ENRICHMENT_UNAVAILABLE = "LOTUS_RISK_ENRICHMENT_UNAVAILABLE"
+_LOTUS_RISK_DEPENDENCY_UNAVAILABLE = "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+
 
 @dataclass(frozen=True)
 class _SimulationResolution:
@@ -170,9 +173,17 @@ def _resolve_risk_enrichment(
         )
         return _RiskResolution(proposal_result, "lotus_risk", combined_degraded_reasons)
     except LotusRiskEnrichmentUnavailableError:
-        if lotus_risk_state.configured:
-            combined_degraded_reasons.append("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+        combined_degraded_reasons.append(_risk_degraded_reason(lotus_risk_state))
         return _RiskResolution(proposal_result, "unavailable", combined_degraded_reasons)
+
+
+def _risk_degraded_reason(lotus_risk_state: object) -> str:
+    state_reason = getattr(lotus_risk_state, "degraded_reason", None)
+    if isinstance(state_reason, str) and state_reason:
+        return state_reason
+    if getattr(lotus_risk_state, "configured", True) is False:
+        return _LOTUS_RISK_DEPENDENCY_UNAVAILABLE
+    return _LOTUS_RISK_ENRICHMENT_UNAVAILABLE
 
 
 def _attach_authority_explanation(

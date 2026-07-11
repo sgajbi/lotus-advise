@@ -26153,3 +26153,31 @@
 - Follow-Up:
   - Continue validating portfolio identity and as-of consistency at the Lotus Core stateful-context
     boundary so source metadata is authoritative before report packaging.
+
+## LA-REV-339
+
+- Scope: Lotus Risk authority degraded reason propagation
+- Pattern: Source-authority absence must be internally consistent across proposal explanation,
+  decision summary, narrative grounding, and proof evidence
+- Status: Hardened
+- Finding Class: Downstream integration correctness and supportability reason-code consistency
+- Summary: Advisory orchestration could report `risk_authority="unavailable"` while leaving
+  `degraded=false` and `degraded_reasons=[]` when `lotus-risk` was not configured. Consumers saw
+  missing risk authority without a stable degraded reason.
+- Evidence:
+  - `src/core/advisory/orchestration.py` now appends a stable risk degraded reason whenever
+    `LotusRiskEnrichmentUnavailableError` is raised.
+  - Dependency-state failures preserve `LOTUS_RISK_DEPENDENCY_UNAVAILABLE`; configured enrichment
+    failures preserve `LOTUS_RISK_ENRICHMENT_UNAVAILABLE`.
+  - Focused orchestration, simulation API, decision-summary, and workflow-service tests passed with
+    150 tests, including unconfigured and invalid risk dependency cases.
+- Consequence:
+  - Proposal authority evidence no longer presents unavailable risk authority as non-degraded.
+    Downstream Gateway, Workbench, proof-pack, and operator surfaces can rely on a stable reason
+    code without Advise fabricating local risk metrics.
+- Documentation:
+  - Updated engine know-how, repository context, wiki integration notes, wiki operations runbook,
+    and review ledger with the risk degraded-reason rule.
+- Follow-Up:
+  - Keep risk-lens absence visible in future narrative, proof-pack, and capability slices; do not
+    convert unavailable risk authority into local risk calculations.

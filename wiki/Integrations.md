@@ -47,6 +47,9 @@ Operational behavior:
 - `4xx` contract or request failures are not retried
 - retry attempts default to `2` and are capped at `5`
 - retry backoff defaults to `0.1` seconds and is capped at `2.0` seconds
+- unavailable risk authority always carries degraded evidence; dependency-state failures use
+  `LOTUS_RISK_DEPENDENCY_UNAVAILABLE`, while configured enrichment failures use
+  `LOTUS_RISK_ENRICHMENT_UNAVAILABLE`
 
 ## `lotus-performance`
 

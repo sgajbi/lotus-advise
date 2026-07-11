@@ -238,7 +238,9 @@ Boundary rules:
    production defaults such as a hardcoded tenant or service actor,
 12. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
    jurisdiction/booking-center metadata; current-date, USD, and SG fallbacks are not production
-   source truth.
+   source truth,
+13. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
+   code; do not allow `risk_authority="unavailable"` with `degraded=false`.
 
 ## Repo-Native Commands
 
