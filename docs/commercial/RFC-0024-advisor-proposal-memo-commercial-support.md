@@ -128,7 +128,8 @@ publication, external client communication, or full bank-demo/RFP proof.
 
 When supporting demos or RFP walkthroughs:
 
-1. verify `/health/ready` and `GET /platform/capabilities` before claiming runtime readiness,
+1. verify `/health/ready` for local service readiness and `GET /platform/capabilities` for
+   dependency and workflow readiness before claiming runtime readiness,
 2. treat `AI_UNAVAILABLE` as an expected bounded posture when `lotus-ai` is not configured,
 3. use memo lineage rather than screenshots as the source of report/render/archive refs,
 4. use replay evidence when explaining audit posture,

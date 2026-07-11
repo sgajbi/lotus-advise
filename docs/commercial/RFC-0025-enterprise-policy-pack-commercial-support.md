@@ -146,8 +146,9 @@ client communication, or full bank-demo/RFP proof.
 
 When supporting demos or RFP walkthroughs:
 
-1. verify `/health/ready` before claiming service readiness,
-2. verify `/platform/capabilities` before claiming supported platform capabilities and state that
+1. verify `/health/ready` before claiming local service readiness,
+2. verify `/platform/capabilities` before claiming dependency, workflow, or supported platform
+   capability readiness and state that
    policy evaluation is promoted for advisor/compliance evidence only,
 3. use policy lineage and replay evidence rather than screenshots as the source of report, render,
    archive, AI, and review-event refs,

@@ -373,7 +373,10 @@ generation, or downstream execution truth.
 ## Operations And Runtime Posture
 
 - use `advise.dev.lotus` for canonical local cross-app validation
-- use readiness to confirm persistence and runtime boot posture before treating the service as healthy
+- use `/health/ready` to confirm local process, persistence, runtime configuration, and proposal
+  boot posture before treating the pod as healthy
+- use `/platform/capabilities` to confirm upstream dependency and workflow readiness before
+  claiming an advisory workflow, demo, or release evidence path is operational
 - use `/version` to compare runtime build metadata with retained Main Releasability image release
   evidence
 - treat upstream simulation and risk failures as dependency issues first, not as reasons to invent local fallback truth

@@ -57,6 +57,43 @@ def test_health_ready_returns_503_when_runtime_probe_fails(monkeypatch):
     assert response.json()["detail"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
 
 
+def test_health_ready_stays_local_when_dependency_capabilities_are_degraded(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://lotus-report:8300")
+    monkeypatch.delenv("LOTUS_AI_BASE_URL", raising=False)
+    monkeypatch.delenv("LOTUS_PERFORMANCE_BASE_URL", raising=False)
+    monkeypatch.setattr(
+        main_module, "validate_configured_integration_runtime_settings", lambda: None
+    )
+    monkeypatch.setattr(main_module, "validate_advisory_runtime_persistence", lambda: None)
+    monkeypatch.setattr(main_module, "ensure_proposal_runtime_ready", lambda: None)
+    monkeypatch.setattr(
+        "src.integrations.base.probe_dependency_health",
+        lambda base_url: "lotus-risk" not in base_url and "lotus-report" not in base_url,
+    )
+
+    with TestClient(app) as client:
+        ready_response = client.get("/health/ready")
+        capabilities_response = client.get("/platform/capabilities")
+
+    assert ready_response.status_code == 200
+    assert ready_response.json() == {"status": "ready"}
+    assert capabilities_response.status_code == 200
+    capabilities_payload = capabilities_response.json()
+    assert capabilities_payload["readiness"]["operational_ready"] is False
+    dependencies = {
+        item["dependency_key"]: item for item in capabilities_payload["readiness"]["dependencies"]
+    }
+    assert dependencies["lotus_core"]["readiness_basis"] == "not_configured"
+    assert dependencies["lotus_core"]["degraded_reason"] == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+    assert dependencies["lotus_risk"]["readiness_basis"] == "probe_failed"
+    assert dependencies["lotus_risk"]["degraded_reason"] == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+    assert dependencies["lotus_report"]["readiness_basis"] == "probe_failed"
+    assert dependencies["lotus_report"]["degraded_reason"] == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+
+
 def test_readiness_probe_redacts_sensitive_runtime_failure(monkeypatch):
     def _raise_sensitive_runtime_error() -> None:
         raise RuntimeError("postgres password secret leaked from driver")
