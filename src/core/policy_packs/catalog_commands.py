@@ -97,6 +97,7 @@ def activate_policy_pack_catalog_definition(
     source_content_hash: str,
     idempotency_key: str,
     reason: dict[str, Any],
+    previous_active_policy_version: str | None,
 ) -> PolicyPackActivationResponse:
     request_hash = _activation_request_hash(
         policy_pack_id=policy_pack_id,
@@ -137,6 +138,7 @@ def activate_policy_pack_catalog_definition(
             definition=definition,
             validation_event=validation_event,
             reason=reason,
+            previous_active_policy_version=previous_active_policy_version,
         ),
     )
     return PolicyPackActivationResponse(
@@ -219,9 +221,14 @@ def _activation_event_reason(
     definition: dict[str, Any],
     validation_event: PolicyPackAuditEvent,
     reason: dict[str, Any],
+    previous_active_policy_version: str | None,
 ) -> dict[str, Any]:
     return {
         "activation_state": "ACTIVE",
+        "previous_active_policy_version": previous_active_policy_version,
+        "resulting_active_policy_version": definition["policy_version"],
+        "superseded_policy_version": previous_active_policy_version,
+        "supersession_contract": "ONE_ACTIVE_VERSION_PER_POLICY_PACK",
         "maker_checker_required": definition["maker_checker_required"],
         "validated_by": validation_event.actor_id,
         "validation_event_id": validation_event.event_id,

@@ -44,7 +44,8 @@ def test_cutover_contract_includes_copilot_persistence_migrations():
         namespace="advisory_copilot"
     ) == ["0001", "0002", "0003"]
     assert production_cutover_contract.expected_migration_versions(namespace="policy_packs") == [
-        "0001"
+        "0001",
+        "0002",
     ]
 
 

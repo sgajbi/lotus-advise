@@ -483,6 +483,41 @@
         "output_path": "output/postgres-migration-rollout-rehearsal.json",
         "evidence_kind": "static_contract_plus_postgres_smoke"
       }
+    },
+    {
+      "namespace_key": "policy_packs",
+      "version": "0002",
+      "path": "src/infrastructure/postgres_migrations/policy_packs/0002_one_active_policy_pack_version.sql",
+      "phase": "expand",
+      "operation_class": "create_partial_unique_index",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "replaces the ineffective policy-pack active-version index with a one-active-version invariant per policy_pack_id"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "blocking_unique_index_build",
+        "online_behavior": "not_concurrent; fails safely if duplicate ACTIVE rows exist before the unique index is installed",
+        "required_operator_control": "preflight duplicate ACTIVE rows by policy_pack_id before production apply"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "preflight_duplicate_active_policy_pack_scan",
+        "resume_strategy": "resolve duplicate ACTIVE rows to one current version and rerun migration",
+        "quarantine_strategy": "halt policy-pack activation traffic until duplicate active rows are resolved"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "corrected active-version uniqueness remains after app rollback; fix forward if operator remediation is needed"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
     }
   ]
 }

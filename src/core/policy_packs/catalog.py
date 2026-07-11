@@ -23,7 +23,7 @@ from src.core.policy_packs.catalog_models import (
 from src.core.policy_packs.catalog_projection import build_policy_pack_detail_response
 from src.core.policy_packs.catalog_reference_packs import reference_policy_packs
 from src.core.policy_packs.repositories import PolicyPackCatalogRepository
-from src.core.proposals.exceptions import ProposalNotFoundError
+from src.core.proposals.exceptions import ProposalNotFoundError, ProposalValidationError
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 
 
@@ -230,7 +230,13 @@ class PolicyPackCatalogStore:
             policy_pack_id=policy_pack_id,
             policy_version=policy_version,
         )
-        return activate_policy_pack_catalog_definition(
+        active_definition = self._single_active_definition(policy_pack_id=policy_pack_id)
+        previous_active_policy_version = (
+            str(active_definition["policy_version"])
+            if active_definition is not None and active_definition is not definition
+            else None
+        )
+        response = activate_policy_pack_catalog_definition(
             definition=definition,
             events=self._events,
             idempotency=self._idempotency,
@@ -240,7 +246,15 @@ class PolicyPackCatalogStore:
             source_content_hash=source_content_hash,
             idempotency_key=idempotency_key,
             reason=reason,
+            previous_active_policy_version=previous_active_policy_version,
         )
+        if (
+            not response.replayed
+            and active_definition is not None
+            and active_definition is not definition
+        ):
+            active_definition["activation_state"] = "SUPERSEDED"
+        return response
 
     def list_policy_pack_events(
         self, *, policy_pack_id: str, policy_version: str
@@ -253,6 +267,16 @@ class PolicyPackCatalogStore:
         if definition is None:
             raise ProposalNotFoundError("POLICY_PACK_VERSION_NOT_FOUND")
         return cast(dict[str, Any], definition)
+
+    def _single_active_definition(self, *, policy_pack_id: str) -> dict[str, Any] | None:
+        active_definitions = [
+            definition
+            for (candidate_pack_id, _policy_version), definition in self._definitions.items()
+            if candidate_pack_id == policy_pack_id and definition["activation_state"] == "ACTIVE"
+        ]
+        if len(active_definitions) > 1:
+            raise ProposalValidationError("POLICY_PACK_ACTIVE_VERSION_CONFLICT")
+        return cast(dict[str, Any] | None, active_definitions[0] if active_definitions else None)
 
     def _detail_from_definition(self, definition: dict[str, Any]) -> PolicyPackDetailResponse:
         return build_policy_pack_detail_response(definition=definition, events=self._events)

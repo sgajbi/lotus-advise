@@ -144,6 +144,23 @@ def test_policy_pack_migration_namespace_declares_durable_state_tables() -> None
     assert "ux_policy_pack_catalog_active_version" in sql
 
 
+def test_policy_pack_migration_enforces_one_active_version_per_pack() -> None:
+    migration_path = (
+        Path("src")
+        / "infrastructure"
+        / "postgres_migrations"
+        / "policy_packs"
+        / "0002_one_active_policy_pack_version.sql"
+    )
+    sql = " ".join(migration_path.read_text(encoding="utf-8").split())
+
+    assert "DROP INDEX IF EXISTS ux_policy_pack_catalog_active_version" in sql
+    assert "CREATE UNIQUE INDEX IF NOT EXISTS ux_policy_pack_catalog_one_active_version" in sql
+    assert "ON policy_pack_catalog_versions (policy_pack_id)" in sql
+    assert "WHERE activation_state = 'ACTIVE'" in sql
+    assert "policy_pack_id, policy_version" not in sql
+
+
 def test_proposal_migrations_index_lifecycle_history_read_paths() -> None:
     migration_path = (
         Path("src")
