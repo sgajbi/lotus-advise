@@ -1115,7 +1115,7 @@ Acceptance gate:
 | Compliance review summary | Supported for internal reviewer use | RFC-0025 policy evidence is consumed as source-backed evidence where present; missing evidence stays explicit. |
 | Operations/report handoff summary | Supported for internal operations support | Report/operations ownership boundaries are preserved and no execution authority is claimed. |
 | Client follow-up draft | Supported only as advisor-reviewed internal draft | Human review, unsupported-evidence posture, and blocked client-ready publication are proven. |
-| Copilot run/review audit | Supported | Persistence/replay, hashes, claim-level source grounding, review actions, retention, and audit lineage are implemented. |
+| Copilot run/review audit | Supported | Persistence/replay, hashes, claim-level source grounding, trusted-principal review authority, maker-checker checks, retention, and audit lineage are implemented. Body actor fields are compatibility echoes only. |
 | Copilot data products | Supported for `AdvisoryCopilotInteractionRecord:v1` | Evidence packets and review events remain audit records inside the interaction product boundary, not standalone promoted data products. |
 | Gateway/Workbench copilot experience | Supported | Gateway and Workbench implementation is proven by canonical browser/product validation. |
 | Copilot model-risk and supportability pack | Supported for implemented scope | Workflow-pack lineage, guardrails, unavailable posture, supportability, and trust telemetry are implementation-backed. |

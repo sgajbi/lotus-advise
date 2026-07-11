@@ -73,6 +73,7 @@ from src.core.advisory_copilot.request_hashing import (
     canonical_json_hash,
 )
 from src.core.advisory_copilot.retention_policy import retention_expires_at
+from src.core.advisory_copilot.review_authority import CopilotReviewPrincipal
 from src.core.advisory_copilot.review_persistence import (
     list_advisory_copilot_reviews as focused_list_advisory_copilot_reviews,
 )
@@ -194,6 +195,26 @@ _REVIEW_COLUMNS = (
 ADVISORY_COPILOT_RECORDS_PATH = Path("src/core/advisory_copilot/records.py")
 ADVISORY_COPILOT_SERVICE_PATH = Path("src/core/advisory_copilot/service.py")
 SRC_ROOT = Path("src")
+
+
+def _review_principal(
+    *,
+    actor_id: str = "supervisor_123",
+    role: str = "COMPLIANCE_REVIEWER",
+    portfolio_id: str = "PB_SG_GLOBAL_BAL_001",
+    proposal_id: str = "proposal_sg_structured_note_001",
+) -> CopilotReviewPrincipal:
+    return CopilotReviewPrincipal(
+        actor_id=actor_id,
+        role=role,
+        tenant_id="tenant-sg-001",
+        legal_entity_code="SGPB",
+        correlation_id="corr_rfc0027_review_001",
+        service_identity="lotus-workbench",
+        capabilities=frozenset({"advisory.copilot.review"}),
+        authorized_proposal_id=proposal_id,
+        authorized_portfolio_id=portfolio_id,
+    )
 
 
 def test_advisory_copilot_record_text_helpers_normalize_audit_text() -> None:
@@ -981,7 +1002,8 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
         repository=repository,
         run_id=result.run.run_id,
         action="APPROVE_FOR_INTERNAL_USE",
-        actor_id="supervisor_123",
+        principal=_review_principal(),
+        submitted_actor_id=None,
         reason={"decision": "Reviewed against source evidence."},
         correlation_id="corr_rfc0027_review_001",
         idempotency_key="copilot-review-idem-001",
@@ -1272,7 +1294,8 @@ def test_copilot_review_actions_are_idempotent_and_audited() -> None:
         repository=repository,
         run_id=run.run_id,
         action="APPROVE_FOR_INTERNAL_USE",
-        actor_id="supervisor_123",
+        principal=_review_principal(),
+        submitted_actor_id=None,
         reason={"decision": "Reviewed against cited source evidence."},
         correlation_id="corr_rfc0027_review_001",
         idempotency_key="copilot-review-idem-001",
@@ -1282,7 +1305,8 @@ def test_copilot_review_actions_are_idempotent_and_audited() -> None:
         repository=repository,
         run_id=run.run_id,
         action="APPROVE_FOR_INTERNAL_USE",
-        actor_id="supervisor_123",
+        principal=_review_principal(),
+        submitted_actor_id="supervisor_123",
         reason={"decision": "Reviewed against cited source evidence."},
         correlation_id="corr_rfc0027_review_001",
         idempotency_key="copilot-review-idem-001",
@@ -1293,6 +1317,9 @@ def test_copilot_review_actions_are_idempotent_and_audited() -> None:
     assert replay.replayed is True
     assert review.run.review_posture == "APPROVED_FOR_INTERNAL_USE"
     assert replay.review.review_id == review.review.review_id
+    assert review.review.actor_id == "supervisor_123"
+    assert review.review.reason_json["trusted_principal"]["subject"] == "supervisor_123"
+    assert review.review.reason_json["review_authorization"]["maker_checker_satisfied"] is True
     assert list_advisory_copilot_reviews(repository=repository, run_id=run.run_id) == (
         review.review,
     )
@@ -1302,9 +1329,60 @@ def test_copilot_review_actions_are_idempotent_and_audited() -> None:
             repository=repository,
             run_id=run.run_id,
             action="REJECT",
-            actor_id="supervisor_123",
+            principal=_review_principal(),
+            submitted_actor_id=None,
             reason={"decision": "Changed mind."},
             correlation_id="corr_rfc0027_review_002",
+        )
+
+
+def test_copilot_review_rejects_wrong_scope_self_review_and_idempotency_actor_swap() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    run = _persist_run(repository).run
+    review = record_advisory_copilot_review(
+        repository=repository,
+        run_id=run.run_id,
+        action="APPROVE_FOR_INTERNAL_USE",
+        principal=_review_principal(),
+        submitted_actor_id=None,
+        reason={"decision": "Reviewed against cited source evidence."},
+        correlation_id="corr_rfc0027_review_001",
+        idempotency_key="copilot-review-idem-001",
+        occurred_at=datetime(2026, 5, 28, 9, 5, tzinfo=timezone.utc),
+    )
+
+    assert review.replayed is False
+
+    with pytest.raises(ValueError, match="COPILOT_REVIEW_SCOPE_FORBIDDEN"):
+        record_advisory_copilot_review(
+            repository=repository,
+            run_id=run.run_id,
+            action="APPROVE_FOR_INTERNAL_USE",
+            principal=_review_principal(portfolio_id="PB_SG_OTHER"),
+            submitted_actor_id=None,
+            reason={"decision": "Wrong scope."},
+            correlation_id="corr_rfc0027_review_002",
+        )
+    with pytest.raises(ValueError, match="COPILOT_REVIEW_MAKER_CHECKER_VIOLATION"):
+        record_advisory_copilot_review(
+            repository=repository,
+            run_id=run.run_id,
+            action="APPROVE_FOR_INTERNAL_USE",
+            principal=_review_principal(actor_id="advisor_123"),
+            submitted_actor_id=None,
+            reason={"decision": "Self review."},
+            correlation_id="corr_rfc0027_review_003",
+        )
+    with pytest.raises(ValueError, match="COPILOT_REVIEW_IDEMPOTENCY_KEY_CONFLICT"):
+        record_advisory_copilot_review(
+            repository=repository,
+            run_id=run.run_id,
+            action="APPROVE_FOR_INTERNAL_USE",
+            principal=_review_principal(actor_id="supervisor_456"),
+            submitted_actor_id=None,
+            reason={"decision": "Reviewed against cited source evidence."},
+            correlation_id="corr_rfc0027_review_004",
+            idempotency_key="copilot-review-idem-001",
         )
 
 
@@ -1628,7 +1706,8 @@ def test_postgres_repository_round_trips_copilot_run_review_and_keyset_pages() -
         repository=repository,
         run_id=first.run.run_id,
         action="APPROVE_FOR_INTERNAL_USE",
-        actor_id="supervisor_123",
+        principal=_review_principal(),
+        submitted_actor_id=None,
         reason={"decision": "Reviewed against cited source evidence."},
         correlation_id="corr_rfc0027_review_001",
         idempotency_key="postgres-copilot-review-idem-001",
@@ -1638,7 +1717,8 @@ def test_postgres_repository_round_trips_copilot_run_review_and_keyset_pages() -
         repository=repository,
         run_id=first.run.run_id,
         action="APPROVE_FOR_INTERNAL_USE",
-        actor_id="supervisor_123",
+        principal=_review_principal(),
+        submitted_actor_id="supervisor_123",
         reason={"decision": "Reviewed against cited source evidence."},
         correlation_id="corr_rfc0027_review_001",
         idempotency_key="postgres-copilot-review-idem-001",

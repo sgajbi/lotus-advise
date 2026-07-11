@@ -34,6 +34,29 @@ from src.runtime import advisory_copilot_repositories
 NOW = datetime(2026, 5, 28, 9, 0, tzinfo=UTC)
 
 
+def _copilot_review_headers(
+    *,
+    actor_id: str = "supervisor_123",
+    role: str = "COMPLIANCE_REVIEWER",
+    portfolio_id: str = "PB_SG_GLOBAL_BAL_001",
+    proposal_id: str = "proposal_sg_structured_note_001",
+    idempotency_key: str = "copilot-review-idem-001",
+    correlation_id: str = "corr_review_001",
+) -> dict[str, str]:
+    return {
+        "Idempotency-Key": idempotency_key,
+        "X-Actor-Id": actor_id,
+        "X-Role": role,
+        "X-Tenant-Id": "tenant-sg-001",
+        "X-Legal-Entity-Code": "SGPB",
+        "X-Correlation-ID": correlation_id,
+        "X-Service-Identity": "lotus-workbench",
+        "X-Capabilities": "advisory.copilot.review",
+        "X-Authorized-Portfolio-Id": portfolio_id,
+        "X-Authorized-Proposal-Id": proposal_id,
+    }
+
+
 @pytest.fixture()
 def copilot_repository(monkeypatch: pytest.MonkeyPatch) -> InMemoryAdvisoryCopilotRepository:
     reset_proposal_workflow_service_for_tests()
@@ -515,31 +538,27 @@ def test_advisory_copilot_review_api_is_idempotent(
             f"/advisory/copilot/actions/{run['run_id']}/reviews",
             json={
                 "action": "APPROVE_FOR_INTERNAL_USE",
-                "actor_id": "supervisor_123",
                 "reason": {"decision": "Reviewed against cited source evidence."},
             },
-            headers={
-                "Idempotency-Key": "copilot-review-idem-001",
-                "X-Correlation-ID": "  corr_review_001  ",
-            },
+            headers=_copilot_review_headers(correlation_id="  corr_review_001  "),
         )
         replay = client.post(
             f"/advisory/copilot/actions/{run['run_id']}/reviews",
             json={
                 "action": "APPROVE_FOR_INTERNAL_USE",
-                "actor_id": "  supervisor_123  ",
+                "actor_id": "supervisor_123",
                 "reason": {"decision": "Reviewed against cited source evidence."},
             },
-            headers={"Idempotency-Key": "copilot-review-idem-001"},
+            headers=_copilot_review_headers(),
         )
-        blank_actor = client.post(
+        actor_mismatch = client.post(
             f"/advisory/copilot/actions/{run['run_id']}/reviews",
             json={
                 "action": "APPROVE_FOR_INTERNAL_USE",
-                "actor_id": "   ",
+                "actor_id": "other_reviewer",
                 "reason": {"decision": "Reviewed against cited source evidence."},
             },
-            headers={"Idempotency-Key": "copilot-review-idem-blank"},
+            headers=_copilot_review_headers(idempotency_key="copilot-review-idem-mismatch"),
         )
 
     assert first.status_code == 200
@@ -547,8 +566,85 @@ def test_advisory_copilot_review_api_is_idempotent(
     assert replay.json()["replayed"] is True
     assert first.json()["review"]["actor_id"] == "supervisor_123"
     assert first.json()["review"]["correlation_id"] == "corr_review_001"
+    assert (
+        first.json()["review"]["reason_json"]["trusted_principal"]["role"] == "COMPLIANCE_REVIEWER"
+    )
+    assert (
+        first.json()["review"]["reason_json"]["review_authorization"]["maker_checker_satisfied"]
+        is True
+    )
     assert first.json()["run"]["review_posture"] == "APPROVED_FOR_INTERNAL_USE"
-    assert blank_actor.status_code == 422
+    assert actor_mismatch.status_code == 422
+    assert actor_mismatch.json()["detail"] == "COPILOT_REVIEW_ACTOR_MISMATCH"
+
+
+def test_advisory_copilot_review_requires_authorized_trusted_principal(
+    monkeypatch: pytest.MonkeyPatch,
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    _ = copilot_repository
+    monkeypatch.setattr(
+        copilot_dependencies,
+        "generate_advisory_copilot_draft_with_lotus_ai",
+        lambda **_: AdvisoryCopilotAiDraft(
+            status="REVIEW_REQUIRED",
+            sections=(),
+            lineage={"workflow_pack_id": "advisory_copilot_proposal_explanation.pack"},
+            review_guidance=(),
+            guardrail_reasons=(),
+        ),
+    )
+
+    with TestClient(app) as client:
+        client.post("/advisory/copilot/evidence-packets", json=_evidence_packet_payload())
+        run = client.post(
+            "/advisory/copilot/actions",
+            json={
+                "evidence_packet_id": "copilot_packet_pb_sg_001",
+                "audience": "ADVISOR",
+                "requested_outputs": ["advisor_review_summary"],
+                "requested_by": "advisor_123",
+                "reason": {"business_reason": "Prepare advisor review."},
+            },
+        ).json()["run"]
+        missing_auth = client.post(
+            f"/advisory/copilot/actions/{run['run_id']}/reviews",
+            json={"action": "APPROVE_FOR_INTERNAL_USE", "reason": {"decision": "ok"}},
+            headers={"Idempotency-Key": "copilot-review-missing-auth"},
+        )
+        wrong_role = client.post(
+            f"/advisory/copilot/actions/{run['run_id']}/reviews",
+            json={"action": "APPROVE_FOR_INTERNAL_USE", "reason": {"decision": "ok"}},
+            headers=_copilot_review_headers(
+                role="ADVISOR",
+                idempotency_key="copilot-review-wrong-role",
+            ),
+        )
+        wrong_scope = client.post(
+            f"/advisory/copilot/actions/{run['run_id']}/reviews",
+            json={"action": "APPROVE_FOR_INTERNAL_USE", "reason": {"decision": "ok"}},
+            headers=_copilot_review_headers(
+                portfolio_id="PB_SG_OTHER",
+                idempotency_key="copilot-review-wrong-scope",
+            ),
+        )
+        self_review = client.post(
+            f"/advisory/copilot/actions/{run['run_id']}/reviews",
+            json={"action": "APPROVE_FOR_INTERNAL_USE", "reason": {"decision": "ok"}},
+            headers=_copilot_review_headers(
+                actor_id="advisor_123",
+                idempotency_key="copilot-review-self-review",
+            ),
+        )
+
+    assert missing_auth.status_code == 401
+    assert missing_auth.json()["detail"] == "COPILOT_REVIEW_PRINCIPAL_REQUIRED"
+    assert wrong_role.status_code == 403
+    assert wrong_role.json()["detail"] == "COPILOT_REVIEW_ROLE_NOT_AUTHORIZED"
+    assert wrong_scope.status_code == 422
+    assert wrong_scope.json()["detail"] == "COPILOT_REVIEW_SCOPE_FORBIDDEN"
+    assert self_review.status_code == 422
+    assert self_review.json()["detail"] == "COPILOT_REVIEW_MAKER_CHECKER_VIOLATION"
 
 
 def test_advisory_copilot_supportability_is_static_contract_without_repository() -> None:
@@ -609,7 +705,7 @@ def test_advisory_copilot_http_edge_bounds_identifiers_and_headers(
                 "actor_id": "supervisor_123",
                 "reason": {"decision": "Reviewed against cited source evidence."},
             },
-            headers={"Idempotency-Key": "x" * 129},
+            headers=_copilot_review_headers(idempotency_key="x" * 129),
         )
         long_cursor = client.get(
             "/advisory/proposals/proposal_sg_structured_note_001/versions/"

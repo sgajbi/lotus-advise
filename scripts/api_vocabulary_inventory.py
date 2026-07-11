@@ -124,8 +124,10 @@ def _semantic_id(name: str) -> str:
 
 
 def _schema_type(schema: dict[str, Any]) -> str:
-    if "$ref" in schema:
-        return schema["$ref"].rsplit("/", 1)[-1]
+    schema = _schema_without_null_variant(schema)
+    ref = schema.get("$ref")
+    if isinstance(ref, str):
+        return ref.rsplit("/", 1)[-1]
     return str(schema.get("type", "object"))
 
 
@@ -133,7 +135,11 @@ def _resolve_schema(schema: dict[str, Any], components: dict[str, Any]) -> dict[
     ref = schema.get("$ref")
     if not isinstance(ref, str):
         return schema
-    return components.get("schemas", {}).get(ref.rsplit("/", 1)[-1], {})
+    schemas = components.get("schemas", {})
+    if not isinstance(schemas, dict):
+        return {}
+    resolved = schemas.get(ref.rsplit("/", 1)[-1], {})
+    return _typed_json_object(resolved)
 
 
 def _fallback_description(name: str) -> str:
@@ -169,6 +175,7 @@ def _first_enum_example(schema: dict[str, Any]) -> Any:
 
 
 def _fallback_type(schema: dict[str, Any]) -> str:
+    schema = _schema_without_null_variant(schema)
     schema_type = schema.get("type")
     if isinstance(schema_type, str):
         return schema_type
@@ -177,6 +184,26 @@ def _fallback_type(schema: dict[str, Any]) -> str:
             (value for value in schema_type if isinstance(value, str) and value != "null"), ""
         )
     return ""
+
+
+def _schema_without_null_variant(schema: dict[str, Any]) -> dict[str, Any]:
+    for union_key in ("anyOf", "oneOf"):
+        variants = schema.get(union_key)
+        if not isinstance(variants, list):
+            continue
+        for variant in variants:
+            if not isinstance(variant, dict):
+                continue
+            if variant.get("type") == "null":
+                continue
+            return _typed_json_object(variant)
+    return schema
+
+
+def _typed_json_object(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): item for key, item in value.items()}
 
 
 def _name_based_fallback_example(canonical: str) -> Any | None:

@@ -6,6 +6,7 @@ from scripts.api_vocabulary_inventory import (
     _fallback_example,
     _is_placeholder_example,
     _preserve_stable_generated_at,
+    _schema_type,
     validate_inventory,
 )
 
@@ -24,6 +25,13 @@ def test_fallback_example_uses_governed_non_placeholder_values() -> None:
         "source_system": "lotus-advise",
         "business_context": "metadata_contract",
     }
+
+
+def test_nullable_union_schema_uses_business_type_for_inventory() -> None:
+    nullable_string = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+
+    assert _schema_type(nullable_string) == "string"
+    assert _fallback_example("x_actor_id", nullable_string) == "x_actor_001"
 
 
 def test_extract_fields_expands_nested_objects_refs_and_arrays() -> None:

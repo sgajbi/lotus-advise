@@ -210,7 +210,10 @@ Current repository posture:
    can remain review-ready. Each provider claim must cite source refs from the input evidence
    packet and align to the output section; missing, duplicate, unknown, or mismatched citations are
    persisted as unsupported or unverifiable grounding posture rather than as review-ready AI
-   output.
+   output. Copilot review actions must also bind reviewer authority to trusted copilot-review
+   headers before mutation; request-body `actor_id` is a compatibility echo only, while trusted
+   principal identity drives role/capability checks, proposal/portfolio/tenant scope,
+   maker-checker enforcement, audit metadata, and idempotent replay identity.
 
 ## Architecture And Module Map
 
@@ -316,6 +319,10 @@ Boundary rules:
     allocation lens, and source lineage are accepted after contract validation; Core-returned
     suitability, workflow gate, decision-summary, alternatives, consent, or next-step fields are
     compatibility evidence only and must not drive Advise advisory decisions.
+23. advisory copilot review routes must resolve `CopilotReviewPrincipal` at the API boundary before
+    application commands run; do not pass caller-supplied actor strings into review persistence
+    unless they have been checked as compatibility echoes against the trusted principal and
+    authorized proposal, portfolio, and tenant scope.
 
 ## Repo-Native Commands
 
@@ -361,9 +368,11 @@ Important validation expectations:
    vocabulary gate recursively rejects placeholder-shaped generated examples such as `sample_text`,
    `sample_key`, `STANDARD_TEXT`, `STANDARD_ITEM`, `ENTITY_001`, and `example_*`; generated
    inventory examples must come from source-authored metadata or the governed deterministic
-   fallback policy. OpenAPI display enrichment remains available for Swagger readability, but the
-   OpenAPI quality gate treats generated operation summaries, descriptions, inferred tags, and
-   generic default error responses as missing public-route contract truth,
+   fallback policy, and nullable OpenAPI `anyOf`/`oneOf` schemas must retain their non-null
+   business type instead of degrading to generic `object`. OpenAPI display enrichment remains
+   available for Swagger readability, but the OpenAPI quality gate treats generated operation
+   summaries, descriptions, inferred tags, and generic default error responses as missing
+   public-route contract truth,
 2. `make external-adapter-contracts` is the named consumer-contract lane for external adapters and
    is included in `make check`; it prevents fake-only adapter tests from drifting away from
    provider-compatible fixtures and adversarial failure-mode evidence,

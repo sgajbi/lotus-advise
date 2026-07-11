@@ -1,5 +1,56 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-932
+
+- Scope: Advisory copilot review trusted-principal authority
+- Pattern: Human review authority for AI-assisted advisory output must be resolved from trusted
+  caller context before review state, audit state, or idempotency state mutates.
+- Status: Hardened
+- Finding Class: Security, human oversight, maker-checker, audit integrity, and API contract
+  truth
+- Summary: GitHub issue #422 identified that copilot review persistence accepted request-body
+  `actor_id` as the reviewer identity. That allowed a caller to choose the reviewer in payload
+  data and left role, capability, tenant, object scope, maker-checker, and idempotent replay
+  authority outside the review boundary.
+- Evidence:
+  - Added `src/api/proposals/copilot_review_principal.py` to resolve the trusted reviewer from
+    `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
+    identity, `X-Capabilities`, and authorized proposal/portfolio headers.
+  - Added `src/core/advisory_copilot/review_authority.py` as the core authority policy for actor
+    echo matching, role/capability posture, tenant and proposal/portfolio scope, maker-checker
+    self-review prevention, and support-safe audit metadata.
+  - Updated advisory copilot review application and persistence paths so `actor_id` in the request
+    body is a compatibility echo only. The stored reviewer actor, request hash, audit metadata, and
+    replay identity derive from the trusted principal.
+  - Added API and persistence tests for successful authorized review, idempotent replay, missing
+    principal, wrong role, missing capability, wrong scope, tenant mismatch, self-review, actor
+    mismatch, and changed-actor idempotency conflict.
+  - Hardened `scripts/api_vocabulary_inventory.py` so nullable OpenAPI `anyOf`/`oneOf` schemas are
+    represented by their non-null business type instead of drifting to `object`; regenerated the
+    governed API vocabulary inventory after `make api-vocabulary-gate`.
+  - Same-pattern scan reused the existing policy-control trusted-principal pattern instead of
+    creating a parallel authorization model. No separate runtime service is justified; this is an
+    internal design-modularity hardening inside the Advise API/application/domain boundary.
+- Consequence:
+  - A caller can no longer approve, reject, supersede, or expire a copilot run by changing a body
+    actor string. Review audit records now carry trusted subject, role, tenant, legal entity,
+    service identity, capability, authorized scope, and maker-checker evidence.
+  - Public vocabulary no longer misclassifies nullable string fields or referenced nullable models
+    as generic objects when generating consumer contract evidence.
+- Documentation:
+  - Updated README, supported-features, repository context, RFC-0027 review/audit docs, API and
+    security wiki source, and this ledger. Wiki source changed, so repo-wiki check is required
+    before merge and publication is required after merge.
+- Modularity:
+  - Trusted header resolution remains an API dependency; reusable authority rules live in the
+    advisory copilot core module; persistence consumes a typed principal instead of raw actor
+    strings. Runtime deployment topology is unchanged.
+- Follow-Up:
+  - No new cross-app issue was raised. Gateway remains responsible for producing trusted identity
+    headers; Advise now consumes and enforces them at the copilot review boundary. No platform
+    skill change is required because the backend delivery skill already covers trusted-principal
+    authority at API write boundaries.
+
 ## LA-REV-931
 
 - Scope: Trust telemetry freshness governance
