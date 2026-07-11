@@ -1,6 +1,6 @@
 {
-  "generated_at_utc": "2026-07-11T11:54:40Z",
-  "git_commit_sha": "537bc0a0c65ad6584a8f0f1fe8c0cb01652711ab",
+  "generated_at_utc": "2026-07-11T14:31:03Z",
+  "git_commit_sha": "adb72021c20cf0589f4611097e25dd7502192d12",
   "image_digest": "unknown",
   "notice_file": "NOTICE.md",
   "packages": [
@@ -1227,7 +1227,7 @@
       "source_files": [
         "requirements-dev.txt"
       ],
-      "version": "0.15.20"
+      "version": "0.15.21"
     },
     {
       "declared_name": "scipy",
@@ -1515,7 +1515,7 @@
       "source_files": [
         "requirements-prod.txt"
       ],
-      "version": "0.49.0"
+      "version": "0.51.0"
     },
     {
       "declared_name": "vulture",

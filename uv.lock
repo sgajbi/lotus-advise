@@ -4,22 +4,22 @@ requires-python = ">=3.11"
 authoritative-source = "requirements"
 generated-by = "scripts/dependency_lock_evidence.py"
 license-inventory = "docs/standards/license-ip-inventory.v1.json"
-license-inventory-sha256 = "a3d3f6d1799330eeedaa0c1b2d6ed06dc128166b0732fff2e401cc5759a42e37"
+license-inventory-sha256 = "54e4093bc66fd5fb237390cdd1dc036e393b0a23caf420216629abc7f2fdcebb"
 
 [[requirement-files]]
 group = "development"
 path = "requirements-dev.txt"
-sha256 = "ef173ecceb768d4ce97887c15f4e6dfa5e617603c6a8bf61dce711fc21b86765"
+sha256 = "5981859540cc5df4319cecaebf94a4276380c86352073cbb3f86f17c50e665bc"
 
 [[requirement-files]]
 group = "install"
 path = "requirements.txt"
-sha256 = "05f81ccaaf44e1f658508b75542be314ec5f88bb5bfec558e3460525cf0c338c"
+sha256 = "e5c034cfef4822aba086f486a2611169bdecebb8b19b15ed30f197d47f7c664c"
 
 [[requirement-files]]
 group = "runtime"
 path = "requirements-prod.txt"
-sha256 = "034e620c38f91955762c79d48d708b4138697e0a5ca454708915a60139025f0c"
+sha256 = "2adf46b2d2c94885a3e04b7da38bb54147400b7c68473fbeb5585a7a0c9f38cc"
 
 [[package]]
 name = "annotated-doc"
@@ -653,12 +653,12 @@ requirement-hashes = []
 
 [[package]]
 name = "ruff"
-version = "0.15.20"
+version = "0.15.21"
 direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["5cedae8a439ac2d9dfe0686cbd6f2bd5020e9695473f5848c64de56f7f76dec8"]
+requirement-hashes = ["e811df97e8f47caf69c37ae7753019e1b680cdd3ea74fad759e9f7de7fe1ea34"]
 
 [[package]]
 name = "scipy"
@@ -806,12 +806,12 @@ requirement-hashes = []
 
 [[package]]
 name = "uvicorn"
-version = "0.49.0"
+version = "0.51.0"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["c1b02bd2faa37bbc9fdaf5034644afc90b50f4c22281e4ed69abe1dd1dab603f"]
+requirement-hashes = ["2712ab0ea0287742c9baa6a8cab8c5dba1bdf7ddca138f7da1e09b8e82fc3ff9"]
 
 [[package]]
 name = "vulture"
