@@ -63,6 +63,30 @@ Kubernetes readiness probes and container healthchecks should use `/health/ready
 RFP, and workflow certification must require both a ready `/health/ready` response and ready
 `/platform/capabilities` evidence for every claimed workflow.
 
+## SLO And Capacity Budgets
+
+Endpoint, workflow, dependency, and AI cost budgets are governed by
+`docs/standards/advisory-slo-capacity-budgets.v1.json` and validated by
+`make slo-capacity-gate`. The gate emits `output/slo-capacity-smoke-plan.json` for live
+load/capacity automation.
+
+Operators should alert and triage by bounded dimensions only: route template, operation name,
+workflow key, dependency key, status class, outcome, degraded reason, fallback mode, and readiness
+basis. Do not add client, portfolio, account, proposal, workspace, request, response, trace, or
+correlation identifiers as metric labels or alert dimensions.
+
+When a budget is breached:
+
+1. confirm whether the breach is local runtime, dependency, AI cost/latency, or degraded-workflow
+   posture using `/health/ready`, `/platform/capabilities`, and bounded telemetry,
+2. compare the affected workflow with its p95/p99, timeout, error-rate, degraded-rate,
+   concurrency, and dependency budgets,
+3. route dependency budget breaches to the owning service with the dependency key and readiness
+   basis, not raw downstream payloads,
+4. route AI token, output, cost, latency, or fallback breaches through the advisory AI governance
+   owner before increasing limits,
+5. record live smoke evidence against the generated smoke plan before claiming recovery.
+
 ## Advisory Supportability Metrics
 
 `GET /platform/capabilities` publishes the implemented feature key

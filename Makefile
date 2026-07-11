@@ -1,4 +1,4 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate docs-source-reference-gate observability-diagnostics advisory-domain-golden-regressions external-adapter-contracts demo-assurance-gate demo-certification-live release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-severity-regression-gate bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate docs-source-reference-gate observability-diagnostics advisory-domain-golden-regressions external-adapter-contracts demo-assurance-gate demo-certification-live slo-capacity-gate release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-severity-regression-gate bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
 SERVICE_VERSION ?= 0.1.0
 IMAGE_REPOSITORY ?= lotus-advise
@@ -21,9 +21,9 @@ install-ci:
 pre-commit:
 	python -m pre_commit run --all-files
 
-check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate external-adapter-contracts docs-source-reference-gate quality-baseline-check bandit-severity-regression-gate release-image-provenance-gate test
+check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate external-adapter-contracts docs-source-reference-gate slo-capacity-gate quality-baseline-check bandit-severity-regression-gate release-image-provenance-gate test
 
-ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate docs-source-reference-gate quality-baseline-check migration-smoke security-audit release-image-provenance-gate coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
+ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate docs-source-reference-gate slo-capacity-gate quality-baseline-check migration-smoke security-audit release-image-provenance-gate coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
 
 test:
 	$(MAKE) test-unit
@@ -57,7 +57,7 @@ test-all-parallel:
 	python -c "import importlib.util, subprocess, sys; args=[sys.executable,'-m','pytest','--cov=src','--cov-report=','--cov-fail-under=97']; args += (['-n','auto','--dist','loadscope'] if importlib.util.find_spec('xdist') else []); raise SystemExit(subprocess.call(args))"
 
 # Local execution flow aligned with the Pull Request Merge Gate
-ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate docs-source-reference-gate quality-baseline-check migration-smoke security-audit release-image-provenance-gate coverage-combined
+ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate docs-source-reference-gate slo-capacity-gate quality-baseline-check migration-smoke security-audit release-image-provenance-gate coverage-combined
 
 ci-local-docker:
 	docker compose -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local
@@ -90,6 +90,9 @@ domain-data-products-gate:
 
 docs-source-reference-gate:
 	python scripts/documentation_source_reference_check.py
+
+slo-capacity-gate:
+	python scripts/slo_capacity_contract.py --emit-smoke-plan output/slo-capacity-smoke-plan.json
 
 engineering-health:
 	python scripts/engineering_health_report.py --output docs/architecture/ENGINEERING-HEALTH-BASELINE.md

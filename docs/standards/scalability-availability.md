@@ -15,6 +15,9 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
 
 - Compliance matrix entry in lotus-platform/output/scalability-availability-compliance.md.
 - Service-specific tests covering resilience and concurrency-critical paths.
+- Machine-readable SLO and capacity budget contract:
+  `docs/standards/advisory-slo-capacity-budgets.v1.json`.
+- Repo-native validation gate: `make slo-capacity-gate`.
 
 ## Database Scalability Fundamentals
 
@@ -28,6 +31,24 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
 - Internal SLO baseline: p95 synchronous proposal API latency < 400 ms; error rate < 1%.
 - Recovery targets: RTO 30 minutes and RPO 15 minutes for persisted lotus-advise operations.
 - Backup and restore validation is required for proposal/run stores in every deployment environment.
+
+## Advisory Workflow SLO And Capacity Budgets
+
+`docs/standards/advisory-slo-capacity-budgets.v1.json` is the source of truth for endpoint and
+workflow budgets. It defines:
+
+- workflow availability, p95/p99 latency, timeout, correctness/degraded-rate, and concurrency
+  targets,
+- Lotus Core, Risk, Report, AI, Performance, and PostgreSQL timeout, retry, rate, and error
+  budgets,
+- AI input-token, output-token, per-request cost, and fallback ceilings,
+- allowed bounded metric dimensions and forbidden high-cardinality or sensitive dimensions,
+- alert/runbook mappings,
+- representative local and dependency-injection load-smoke profiles.
+
+`make slo-capacity-gate` validates the contract and emits
+`output/slo-capacity-smoke-plan.json` for automation that runs live load/capacity smoke evidence.
+`make check`, `make ci`, and `make ci-local` include this gate.
 
 ## Caching Policy Baseline
 
