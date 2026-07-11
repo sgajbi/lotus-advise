@@ -142,3 +142,23 @@ def test_policy_pack_migration_namespace_declares_durable_state_tables() -> None
     assert "source_evidence_hash" in sql
     assert "UNIQUE (" in sql
     assert "ux_policy_pack_catalog_active_version" in sql
+
+
+def test_proposal_migrations_index_lifecycle_history_read_paths() -> None:
+    migration_path = (
+        Path("src")
+        / "infrastructure"
+        / "postgres_migrations"
+        / "proposals"
+        / "0009_lifecycle_history_indexes.sql"
+    )
+    sql = " ".join(migration_path.read_text(encoding="utf-8").split())
+
+    assert (
+        "CREATE INDEX IF NOT EXISTS idx_proposal_workflow_events_history "
+        "ON proposal_workflow_events (proposal_id, occurred_at ASC, event_id ASC)"
+    ) in sql
+    assert (
+        "CREATE INDEX IF NOT EXISTS idx_proposal_approvals_history "
+        "ON proposal_approvals (proposal_id, occurred_at ASC, approval_id ASC)"
+    ) in sql

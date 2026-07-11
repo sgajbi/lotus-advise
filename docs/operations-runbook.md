@@ -59,3 +59,15 @@ Main Releasability image release evidence before promoting or diagnosing a conta
 - Treat GitHub Actions as CI truth.
 - Treat `quality/` reports as baseline evidence, not production-readiness signoff.
 - Publish wiki only when repo-local `wiki/` source changes.
+
+## Proposal History Reads
+
+Proposal workflow events and approvals are indexed for bounded history reads by proposal and
+occurrence time:
+
+- `proposal_workflow_events`: `(proposal_id, occurred_at, event_id)`,
+- `proposal_approvals`: `(proposal_id, occurred_at, approval_id)`.
+
+These indexes support single-proposal detail/replay reads and batched Advisor Cockpit/source-loader
+history reads. Before adding broader history indexes, validate the concrete query path and retention
+profile so proposal lifecycle storage does not accumulate unowned indexes.
