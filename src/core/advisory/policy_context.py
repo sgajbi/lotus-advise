@@ -16,6 +16,7 @@ class ProposalPolicySelectors:
     household_id: str | None = None
     mandate_id: str | None = None
     jurisdiction: str | None = None
+    legal_entity_code: str | None = None
     benchmark_id: str | None = None
 
 
@@ -46,6 +47,7 @@ def build_advisory_policy_context(
         "household_id": selectors.household_id,
         "mandate_id": selectors.mandate_id,
         "jurisdiction": selectors.jurisdiction,
+        "legal_entity_code": selectors.legal_entity_code,
         "benchmark_id": selectors.benchmark_id,
         "missing_context": missing_context,
     }

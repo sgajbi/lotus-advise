@@ -206,6 +206,8 @@ class PolicyEvaluationCreateRequest(BaseModel):
                     "advisory_policy_context": {
                         "jurisdiction": "SG",
                         "client_classification": "ACCREDITED_INVESTOR",
+                        "booking_center_code": "SG",
+                        "legal_entity_code": "REFERENCE",
                     }
                 },
                 "inputs": {"proposed_trades": [{"instrument_id": "US_EQ_ETF", "side": "BUY"}]},

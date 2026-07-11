@@ -37,6 +37,7 @@ def _base_evidence_bundle() -> dict:
                 "jurisdiction": "SG",
                 "client_classification": "ACCREDITED_INVESTOR",
                 "booking_center_code": "SG",
+                "legal_entity_code": "REFERENCE",
                 "account_id": "ACCT-PB-001",
                 "time_horizon": "5Y",
                 "liquidity_need": "MEDIUM",
@@ -175,6 +176,8 @@ def test_policy_evaluation_ready_path_uses_active_pack_and_source_refs() -> None
     assert result.evaluation_status == "READY"
     assert result.applicability.status == "APPLICABLE"
     assert result.applicability.matched_selectors["jurisdiction"] == "SG"
+    assert result.applicability.matched_selectors["legal_entity_code"] == "REFERENCE"
+    assert result.applicability.matched_selectors["product_scope"] == "MULTI_ASSET"
     assert result.supportability["policy_evaluation_api"] == (
         "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"
     )
@@ -209,10 +212,11 @@ def test_policy_evaluation_blocks_missing_source_owner_evidence() -> None:
     )
 
     assert result.evaluation_status == "BLOCKED"
-    source_rule = _rule(result, "GLOBAL_SOURCE_READINESS_REQUIRED")
-    assert source_rule.status == "BLOCKED"
-    assert "CORE_PRODUCT_SHELF_NOT_PROVIDED" in source_rule.reason_codes
-    assert "RESTORE_SOURCE_OWNER_EVIDENCE" in source_rule.required_actions
+    assert result.rule_results == []
+    assert result.applicability.missing_evidence == ["product_scope"]
+    assert "POLICY_APPLICABILITY_PRODUCT_SCOPE_SOURCE_MISSING" in (
+        result.applicability.reason_codes
+    )
 
 
 def test_policy_evaluation_keeps_degraded_source_evidence_pending_review() -> None:
@@ -264,6 +268,59 @@ def test_policy_evaluation_blocks_applicability_when_client_segment_source_is_mi
     assert "client_classification" in result.applicability.missing_evidence
 
 
+def test_policy_evaluation_blocks_applicability_when_declared_selectors_are_missing() -> None:
+    _activate_sg_policy_pack()
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["context_resolution"]["advisory_policy_context"].pop("legal_entity_code")
+    evidence["inputs"]["shelf_entries"] = []
+
+    result = evaluate_policy_pack_version(
+        evidence_bundle=evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    assert result.evaluation_status == "BLOCKED"
+    assert result.rule_results == []
+    assert result.applicability.missing_evidence == ["legal_entity_code", "product_scope"]
+    assert "POLICY_APPLICABILITY_LEGAL_ENTITY_SOURCE_MISSING" in (result.applicability.reason_codes)
+    assert "POLICY_APPLICABILITY_PRODUCT_SCOPE_SOURCE_MISSING" in (
+        result.applicability.reason_codes
+    )
+
+
+def test_policy_evaluation_marks_legal_entity_and_product_scope_out_of_scope() -> None:
+    _activate_sg_policy_pack()
+    legal_entity_evidence = deepcopy(_base_evidence_bundle())
+    legal_entity_evidence["context_resolution"]["advisory_policy_context"]["legal_entity_code"] = (
+        "UNSUPPORTED_ENTITY"
+    )
+
+    legal_entity_result = evaluate_policy_pack_version(
+        evidence_bundle=legal_entity_evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    product_evidence = deepcopy(_base_evidence_bundle())
+    product_evidence["inputs"]["shelf_entries"][0]["product_scope"] = "UNSUPPORTED_PRODUCT"
+    product_result = evaluate_policy_pack_version(
+        evidence_bundle=product_evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    assert legal_entity_result.evaluation_status == "NOT_APPLICABLE"
+    assert legal_entity_result.rule_results == []
+    assert legal_entity_result.applicability.reason_codes == [
+        "POLICY_PACK_LEGAL_ENTITY_NOT_APPLICABLE"
+    ]
+    assert product_result.evaluation_status == "NOT_APPLICABLE"
+    assert product_result.rule_results == []
+    assert product_result.applicability.matched_selectors["product_scope"] == "UNSUPPORTED_PRODUCT"
+    assert product_result.applicability.reason_codes == ["POLICY_PACK_PRODUCT_SCOPE_NOT_APPLICABLE"]
+
+
 def test_policy_evaluation_marks_complex_products_for_disclosure_and_consent_review() -> None:
     _activate_sg_policy_pack()
     evidence = deepcopy(_base_evidence_bundle())
@@ -283,6 +340,9 @@ def test_policy_evaluation_marks_complex_products_for_disclosure_and_consent_rev
 
     complex_rule = _rule(result, "SG_COMPLEX_PRODUCT_DISCLOSURE_REVIEW")
     assert result.evaluation_status == "PENDING_REVIEW"
+    assert result.applicability.matched_selectors["product_scope"] == (
+        "MULTI_ASSET|STRUCTURED_PRODUCT"
+    )
     assert complex_rule.status == "PENDING_REVIEW"
     assert "advisor_reviewed_disclosure:SG_STRUCTURED_NOTE" in complex_rule.missing_evidence
     assert "client_consent:SG_STRUCTURED_NOTE" in complex_rule.missing_evidence
@@ -377,6 +437,50 @@ def test_policy_evaluation_uses_existing_source_posture_without_rebuilding() -> 
     assert _rule(result, "GLOBAL_SOURCE_READINESS_REQUIRED").status == "READY"
 
 
+def test_policy_evaluation_global_scope_allows_non_sg_booking_with_supported_selectors() -> None:
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["context_resolution"]["advisory_policy_context"]["jurisdiction"] = "US"
+    evidence["context_resolution"]["advisory_policy_context"]["booking_center_code"] = "HK"
+
+    result = evaluate_policy_pack_version(
+        evidence_bundle=evidence,
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+    )
+
+    assert result.evaluation_status == "READY"
+    assert result.applicability.status == "APPLICABLE"
+    assert result.applicability.matched_selectors["jurisdiction"] == "US"
+    assert result.applicability.matched_selectors["booking_center_code"] == "HK"
+
+
+def test_policy_evaluation_multi_product_scope_matches_any_declared_product_scope() -> None:
+    _activate_sg_policy_pack()
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["inputs"]["shelf_entries"].append(
+        {
+            "instrument_id": "SG_PRIVATE_FUND",
+            "eligibility": {"jurisdictions": ["SG"]},
+            "target_market": {"client_segments": ["ACCREDITED_INVESTOR"]},
+            "complexity": "PRIVATE_ASSET",
+            "private_asset": True,
+            "structured_product": False,
+        }
+    )
+    evidence["inputs"]["proposed_trades"].append(
+        {"instrument_id": "SG_PRIVATE_FUND", "side": "BUY"}
+    )
+
+    result = evaluate_policy_pack_version(
+        evidence_bundle=evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    assert result.applicability.status == "APPLICABLE"
+    assert result.applicability.matched_selectors["product_scope"] == ("MULTI_ASSET|PRIVATE_ASSET")
+
+
 def test_policy_evaluation_marks_booking_center_and_segment_out_of_scope() -> None:
     _activate_sg_policy_pack()
     evidence = deepcopy(_base_evidence_bundle())
@@ -425,11 +529,9 @@ def test_policy_evaluation_blocks_missing_or_jurisdiction_ineligible_product_she
         policy_version="2026.05",
     )
 
-    assert _rule(missing_result, "SG_AI_PRODUCT_ELIGIBILITY_REVIEW").status == "BLOCKED"
-    assert (
-        "shelf_entry:MISSING_FUND"
-        in _rule(missing_result, "SG_AI_PRODUCT_ELIGIBILITY_REVIEW").missing_evidence
-    )
+    assert missing_result.evaluation_status == "BLOCKED"
+    assert missing_result.rule_results == []
+    assert missing_result.applicability.missing_evidence == ["product_scope"]
     assert (
         "PRODUCT_NOT_ELIGIBLE_FOR_JURISDICTION"
         in _rule(ineligible_result, "SG_AI_PRODUCT_ELIGIBILITY_REVIEW").reason_codes

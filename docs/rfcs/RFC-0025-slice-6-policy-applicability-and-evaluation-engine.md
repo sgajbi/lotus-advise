@@ -21,7 +21,8 @@ The engine lives in `src/core/policy_packs/evaluation.py` and uses contract
 Implemented behavior:
 
 1. active policy-pack enforcement before evaluation,
-2. source-backed applicability for jurisdiction, booking center, and client segment,
+2. source-backed applicability for jurisdiction, booking center, legal entity, client segment, and
+   policy product scope,
 3. global baseline source-readiness and mandate-restriction review,
 4. Singapore reference product eligibility and target-market review,
 5. complex/private/structured product disclosure and consent review posture,
@@ -66,14 +67,16 @@ Covered paths:
 2. non-active policy-pack rejection,
 3. missing source-owner evidence blocked posture,
 4. degraded source-owner evidence pending-review posture,
-5. jurisdiction applicability,
-6. client-segment missing evidence,
-7. mandate source readiness,
-8. product eligibility and target-market blocking,
-9. complex product disclosure and consent required actions,
-10. best-interest cost/tax/friction pending review,
-11. conflict and product-document pending review,
-12. material conflict blocked posture.
+5. jurisdiction and booking-center applicability,
+6. legal-entity and product-scope applicability,
+7. selector-level missing evidence with fail-closed `BLOCKED` posture,
+8. global-scope and multi-product applicability,
+9. mandate source readiness,
+10. product eligibility and target-market blocking,
+11. complex product disclosure and consent required actions,
+12. best-interest cost/tax/friction pending review,
+13. conflict and product-document pending review,
+14. material conflict blocked posture.
 
 ## Wiki And README Decision
 

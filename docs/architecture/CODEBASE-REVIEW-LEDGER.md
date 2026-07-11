@@ -27080,3 +27080,36 @@
 - Follow-Up:
   - Continue scanning OpenAPI schema examples and route families for source-authored specificity as
     new routes are added under RFC-0067.
+
+## LA-REV-921
+
+- Scope: RFC-0025 policy-pack applicability selectors
+- Pattern: Every selector declared by the policy-pack catalog must be enforced by the domain
+  applicability layer before material rule evaluation starts
+- Status: Hardened
+- Finding Class: Domain correctness, selector lineage, and fail-closed policy posture
+- Summary: Policy-pack catalog records advertised `legal_entity_scope` and `product_scope`, but
+  applicability evaluation only matched jurisdiction, booking center, and client segment. A pack
+  could therefore reach rule evaluation with unsupported legal-entity or product context while
+  returned selector lineage omitted the mismatch.
+- Evidence:
+  - `src/core/policy_packs/evaluation_applicability.py` now uses a named
+    `PolicyApplicabilityContext` covering jurisdiction, booking center, legal entity, client
+    segment, and product scopes.
+  - `src/core/policy_packs/evaluation_product_helpers.py` centralizes policy product-scope
+    derivation from proposed-trade shelf evidence.
+  - Missing declared selectors return `BLOCKED` with field-level reason codes; selector mismatches
+    return `NOT_APPLICABLE`; neither path executes material rules.
+  - Engine, API, persistence, and source-context tests cover allowed, missing, mismatched,
+    global-scope, multi-product, and persisted-selector-lineage paths.
+- Consequence:
+  - Advise no longer evaluates suitability, disclosure, consent, approval, or best-interest rules
+    for policy packs outside their declared legal-entity or product scope. Finalized records retain
+    complete matched-selector lineage for replay and operator diagnostics.
+- Documentation:
+  - Updated RFC-0025 Slice 6, README, repository context, operations wiki, API model examples, and
+    this ledger with the full selector contract.
+- Follow-Up:
+  - When upstream Lotus Core stateful context provides legal-entity authority directly, map it into
+    `ProposalPolicySelectors.legal_entity_code` rather than interpreting raw upstream payloads in
+    policy-pack rule logic.

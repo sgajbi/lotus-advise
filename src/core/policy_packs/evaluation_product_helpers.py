@@ -6,6 +6,7 @@ from src.core.proposals.source_readiness_common import dict_at, list_at
 
 _COMPLEX_PRODUCT_CLASSIFICATIONS = frozenset({"COMPLEX", "STRUCTURED", "PRIVATE_ASSET"})
 _COMPLEX_PRODUCT_FLAGS = ("structured_product", "private_asset")
+_PRODUCT_SCOPE_KEY = "product_scope"
 
 
 def proposed_shelf_rows(evidence_bundle: dict[str, Any]) -> dict[str, dict[str, Any] | None]:
@@ -34,6 +35,23 @@ def is_complex_or_private_product(shelf: dict[str, Any]) -> bool:
     return _complexity_classification(shelf, attributes) in _COMPLEX_PRODUCT_CLASSIFICATIONS or any(
         _truthy_product_flag(shelf, attributes, flag) for flag in _COMPLEX_PRODUCT_FLAGS
     )
+
+
+def policy_product_scopes(shelf: dict[str, Any]) -> list[str]:
+    attributes = dict_at(shelf, "attributes")
+    explicit_scopes = _explicit_product_scopes(shelf, attributes)
+    if explicit_scopes:
+        return sorted(explicit_scopes)
+
+    scopes = {"MULTI_ASSET"}
+    complexity = _complexity_classification(shelf, attributes)
+    if complexity == "PRIVATE_ASSET" or _truthy_product_flag(shelf, attributes, "private_asset"):
+        scopes.add("PRIVATE_ASSET")
+    if complexity in {"COMPLEX", "STRUCTURED"} or _truthy_product_flag(
+        shelf, attributes, "structured_product"
+    ):
+        scopes.add("STRUCTURED_PRODUCT")
+    return sorted(scopes)
 
 
 def _shelf_rows_by_instrument(inputs: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -73,6 +91,21 @@ def _truthy_product_flag(
     return bool(shelf.get(flag) or attributes.get(flag))
 
 
+def _explicit_product_scopes(shelf: dict[str, Any], attributes: dict[str, Any]) -> set[str]:
+    values: set[str] = set()
+    for value in (shelf.get(_PRODUCT_SCOPE_KEY), attributes.get(_PRODUCT_SCOPE_KEY)):
+        values.update(_normalized_scope_values(value))
+    return values
+
+
+def _normalized_scope_values(value: Any) -> set[str]:
+    if isinstance(value, list):
+        return {str(item).strip().upper() for item in value if str(item).strip()}
+    if isinstance(value, str) and value.strip():
+        return {value.strip().upper()}
+    return set()
+
+
 def merged_product_policy(shelf: dict[str, Any], key: str) -> dict[str, Any]:
     direct = dict_at(shelf, key)
     attributes = dict_at(shelf, "attributes")
@@ -85,5 +118,6 @@ __all__ = [
     "is_complex_or_private_product",
     "jurisdiction_allowed",
     "merged_product_policy",
+    "policy_product_scopes",
     "proposed_shelf_rows",
 ]

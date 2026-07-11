@@ -17,8 +17,20 @@ class PolicyPackApplicabilityResult(BaseModel):
     )
     matched_selectors: dict[str, str] = Field(
         default_factory=dict,
-        description="Applicability selectors matched from source-owned proposal evidence.",
-        examples=[{"jurisdiction": "SG", "client_segment": "ACCREDITED_INVESTOR"}],
+        description=(
+            "Applicability selectors matched from source-owned proposal evidence, including "
+            "jurisdiction, booking center, legal entity, client segment, and product scope where "
+            "declared by the policy pack."
+        ),
+        examples=[
+            {
+                "jurisdiction": "SG",
+                "booking_center_code": "SG",
+                "legal_entity_code": "REFERENCE",
+                "client_segment": "ACCREDITED_INVESTOR",
+                "product_scope": "MULTI_ASSET",
+            }
+        ],
     )
     missing_evidence: list[str] = Field(
         default_factory=list,

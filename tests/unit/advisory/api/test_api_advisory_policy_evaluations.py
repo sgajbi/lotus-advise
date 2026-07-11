@@ -60,6 +60,7 @@ def _base_evidence_bundle() -> dict:
                 "jurisdiction": "SG",
                 "client_classification": "ACCREDITED_INVESTOR",
                 "booking_center_code": "SG",
+                "legal_entity_code": "REFERENCE",
                 "account_id": "ACCT-PB-001",
                 "time_horizon": "5Y",
                 "liquidity_need": "MEDIUM",
@@ -201,6 +202,14 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         )
         assert read_body["evaluation_json"]["supportability"]["active_data_product_promotion"] == (
             "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE"
+        )
+        assert (
+            read_body["evaluation_json"]["applicability"]["matched_selectors"]["legal_entity_code"]
+            == "REFERENCE"
+        )
+        assert (
+            read_body["evaluation_json"]["applicability"]["matched_selectors"]["product_scope"]
+            == "MULTI_ASSET"
         )
 
         replay = client.post(

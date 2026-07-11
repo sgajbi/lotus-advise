@@ -116,6 +116,7 @@ def _base_evidence_bundle() -> dict:
                 "jurisdiction": "SG",
                 "client_classification": "ACCREDITED_INVESTOR",
                 "booking_center_code": "SG",
+                "legal_entity_code": "REFERENCE",
                 "account_id": "ACCT-PB-001",
                 "time_horizon": "5Y",
                 "liquidity_need": "MEDIUM",
@@ -260,6 +261,14 @@ def test_policy_evaluation_record_is_immutable_hash_backed_and_idempotent() -> N
     )
     assert created.record.evaluation_json["supportability"]["policy_evaluation_persistence"] == (
         "SUPPORTED_BY_RFC0025_SLICE7_INTERNAL"
+    )
+    assert (
+        created.record.evaluation_json["applicability"]["matched_selectors"]["legal_entity_code"]
+        == "REFERENCE"
+    )
+    assert (
+        created.record.evaluation_json["applicability"]["matched_selectors"]["product_scope"]
+        == "MULTI_ASSET"
     )
     assert replayed.replayed is True
     assert replayed.record.evaluation_id == created.record.evaluation_id

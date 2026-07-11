@@ -49,9 +49,10 @@ It is responsible for:
   report/render/archive posture, Gateway/Workbench exposure, data-product declaration, trust
   telemetry, capability discovery, live runtime proof, and governed Workbench canonical proof
 - enterprise policy-pack catalog and advisor/compliance policy evaluation evidence with governed
-  source readiness, finalized evaluation records, replay, workflow/sign-off posture, report-package
-  lineage, bounded AI evidence, Gateway/Workbench exposure, active data-product declaration, and
-  trust telemetry
+  fail-closed applicability across jurisdiction, booking center, legal entity, client segment, and
+  product scope, source readiness, finalized evaluation records, replay, workflow/sign-off posture,
+  report-package lineage, bounded AI evidence, Gateway/Workbench exposure, active data-product
+  declaration, and trust telemetry
 - source-owned tactical house-view affected cohorts from bank-authored house-view instructions and
   caller-supplied source-backed candidate portfolios
 - source-safe `lotus-idea` proposal-intake route foundation for future opportunity-to-advisory
@@ -329,9 +330,9 @@ Contract rules that are easy to get wrong:
    narrative remains gated
 5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
    instead of recomputing portfolio source facts locally
-6. policy evaluation endpoints preserve source/policy/evaluation/replay hashes and must not imply
-   legal advice, completed approval/waiver authority, completed sign-off authority, or client-ready
-   publication
+6. policy evaluation endpoints preserve selector applicability, source/policy/evaluation/replay
+   hashes, and must not imply legal advice, completed approval/waiver authority, completed sign-off
+   authority, or client-ready publication
 7. advisor cockpit endpoints preserve source refs, action lineage, SLA/acknowledgement posture, and
    unsupported-claim boundaries; acknowledgements do not approve policy, clear blockers, contact
    clients, create CRM tasks, or initiate orders
