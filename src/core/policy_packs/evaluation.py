@@ -39,8 +39,30 @@ def evaluate_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
     )
-    if detail.policy_pack.activation_state != "ACTIVE":
-        raise ProposalValidationError("POLICY_PACK_VERSION_NOT_ACTIVE_FOR_EVALUATION")
+    _require_active_policy_version(activation_state=detail.policy_pack.activation_state)
+    return _evaluate_policy_pack_detail(evidence_bundle=evidence_bundle, detail=detail)
+
+
+def evaluate_policy_pack_version_for_replay(
+    *,
+    evidence_bundle: dict[str, Any],
+    policy_pack_id: str,
+    policy_version: str,
+) -> PolicyPackEvaluationResponse:
+    detail = get_policy_pack_version(
+        policy_pack_id=policy_pack_id,
+        policy_version=policy_version,
+    )
+    if detail.policy_pack.activation_state not in {"ACTIVE", "SUPERSEDED", "DISABLED"}:
+        raise ProposalValidationError("POLICY_PACK_VERSION_NOT_REPLAY_ELIGIBLE")
+    return _evaluate_policy_pack_detail(evidence_bundle=evidence_bundle, detail=detail)
+
+
+def _evaluate_policy_pack_detail(
+    *,
+    evidence_bundle: dict[str, Any],
+    detail: Any,
+) -> PolicyPackEvaluationResponse:
 
     source_posture = _source_posture(evidence_bundle)
     applicability = evaluate_policy_pack_applicability(
@@ -79,6 +101,11 @@ def evaluate_policy_pack_version(
         rule_results=results,
         supportability=_supportability(),
     )
+
+
+def _require_active_policy_version(*, activation_state: str) -> None:
+    if activation_state != "ACTIVE":
+        raise ProposalValidationError("POLICY_PACK_VERSION_NOT_ACTIVE_FOR_EVALUATION")
 
 
 def _source_posture(evidence_bundle: dict[str, Any]) -> dict[str, Any]:

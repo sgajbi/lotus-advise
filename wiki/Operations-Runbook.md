@@ -271,6 +271,14 @@ remediated before migration apply.
 Use the full runbook in `docs/documentation/postgres-migration-rollout-runbook.md` for rollout,
 smoke, and fix-forward guidance.
 
+## Policy Evaluation Replay
+
+New policy evaluations require an `ACTIVE` policy-pack version. Historical replay pins the stored
+policy pack, version, and content hash from the finalized record. Replay may compare retained
+`SUPERSEDED` or `DISABLED` versions, but it must not substitute the current active version. Use
+`hash_comparison.policy_activation_state` and `hash_comparison.replay_reason_code` to distinguish
+exact match, source/evaluation drift, missing retained definition, or content-hash drift.
+
 Proposal workflow events and approval history are indexed for the supported hot reads:
 
 - `proposal_workflow_events (proposal_id, occurred_at, event_id)`,

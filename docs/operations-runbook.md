@@ -158,6 +158,15 @@ Before applying the `policy_packs` active-version uniqueness migration, verify t
 than one `ACTIVE` row per `policy_pack_id`; if duplicates exist, quarantine policy activation and
 remediate the intended current version before rerunning migration apply.
 
+## Policy Evaluation Replay
+
+New policy evaluations require an `ACTIVE` policy-pack version. Historical replay pins the stored
+`policy_pack_id`, `policy_version`, and `policy_content_hash` from the finalized record. Replay may
+compare retained `SUPERSEDED` or `DISABLED` versions, but it must not substitute the current active
+version. Operators should inspect `hash_comparison.policy_activation_state` and
+`hash_comparison.replay_reason_code` to distinguish exact match, source/evaluation drift, missing
+retained definition, or content-hash drift.
+
 ## Proposal History Reads
 
 Proposal workflow events and approvals are indexed for bounded history reads by proposal and

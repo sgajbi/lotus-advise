@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T08:17:14.705362+00:00",
+  "generatedAt": "2026-07-11T08:29:36.182686+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -5006,7 +5006,7 @@
       "semanticId": "lotus.hash_comparison",
       "canonicalTerm": "hash_comparison",
       "preferredName": "hash_comparison",
-      "description": "Stored versus replayed hash comparison for policy, source, and result truth.",
+      "description": "Stored versus replayed hash comparison for policy, source, and result truth, including policy lifecycle state and replay reason code. Historical replay pins the stored policy version and never substitutes the current active version.",
       "example": {
         "source_system": "lotus-advise",
         "business_context": "hash_comparison_contract"
