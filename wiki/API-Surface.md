@@ -136,6 +136,13 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   Sign-off, report/archive, AI-evidence, and finalization events are owned by their specialized
   workflow, report-package, AI-evidence, and finalize commands and must not be manufactured through
   the generic event API.
+- Policy-control write routes require a trusted Advise principal at the API boundary. Validation,
+  activation, finalization, review-event, sign-off, report-package, and AI-evidence commands use
+  `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
+  identity, `X-Capabilities`, and, for evaluation-scoped writes, authorized proposal and portfolio
+  headers. Body actor fields such as `requested_by`, `activated_by`, `created_by`, and `actor_id`
+  are compatibility echoes; mismatch returns stable 403 policy-control errors and no state
+  mutation.
 - `contracts/idea-proposal-intake/lotus-advise-idea-proposal-intake.v1.json` is the current
   source-safe `lotus-idea` proposal-intake contract. Its supportability status is
   `not_certified`, and remaining blockers include Advise suitability authority and client

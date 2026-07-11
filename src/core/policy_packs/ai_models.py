@@ -52,7 +52,11 @@ def build_policy_ai_unavailable_evidence(reason: str) -> PolicyAiEvidenceDraft:
 
 class PolicyEvaluationAiEvidenceRequest(BaseModel):
     requested_by: str = Field(
-        description="Actor requesting bounded AI policy-evidence commentary.",
+        description=(
+            "Compatibility actor echo for bounded AI policy-evidence commentary. The route "
+            "authorizes and records the trusted policy checker or compliance reviewer from "
+            "policy-control headers and rejects a mismatch."
+        ),
         examples=["policy_checker_1"],
     )
     source_evaluation_hash: str = Field(

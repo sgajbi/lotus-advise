@@ -194,7 +194,10 @@ class PolicyEvaluationCreateRequest(BaseModel):
         examples=["2026.05"],
     )
     created_by: str = Field(
-        description="Advisor or operator creating the finalized policy evaluation record.",
+        description=(
+            "Compatibility actor echo for finalization. The route authorizes and records the "
+            "trusted advisor principal from policy-control headers and rejects a mismatch."
+        ),
         examples=["advisor_1"],
     )
     evidence_bundle: dict[str, Any] = Field(
@@ -232,7 +235,11 @@ class PolicyEvaluationEventRequest(BaseModel):
         examples=["POLICY_EVALUATION_REVIEW_RECORDED"],
     )
     actor_id: str = Field(
-        description="Actor recording the non-privileged policy review event.",
+        description=(
+            "Compatibility actor echo for the non-privileged policy review event. The route "
+            "authorizes and records the trusted compliance or policy-steward principal from "
+            "policy-control headers and rejects a mismatch."
+        ),
         examples=["compliance_1"],
     )
     reason: dict[str, Any] = Field(

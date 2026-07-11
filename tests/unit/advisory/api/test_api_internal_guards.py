@@ -229,7 +229,7 @@ def test_policy_pack_routes_use_shared_response_metadata():
 def test_policy_pack_routes_use_shared_parameter_contracts():
     source = Path("src/api/proposals/routes_policy_packs.py").read_text(encoding="utf-8")
 
-    assert "from fastapi import status" in source
+    assert _imports_fastapi_status(source)
     assert "Header(" not in source
     assert "Path(" not in source
     assert "PolicyPackIdPath" in source
@@ -527,10 +527,10 @@ def test_policy_evaluation_routes_use_shared_parameter_contracts():
     )
     combined_source = "\n".join([command_source, package_source, read_source, workflow_source])
 
-    assert "from fastapi import status" in command_source
-    assert "from fastapi import status" in package_source
-    assert "from fastapi import status" in read_source
-    assert "from fastapi import status" in workflow_source
+    assert _imports_fastapi_status(command_source)
+    assert _imports_fastapi_status(package_source)
+    assert _imports_fastapi_status(read_source)
+    assert _imports_fastapi_status(workflow_source)
     assert "Header(" not in combined_source
     assert "Path(" not in combined_source
     assert "Query(" not in combined_source
@@ -583,6 +583,10 @@ def test_direct_http_exception_construction_stays_in_error_boundary_modules():
             offenders.append(str(normalized))
 
     assert offenders == []
+
+
+def _imports_fastapi_status(source: str) -> bool:
+    return "from fastapi import status" in source or "from fastapi import Depends, status" in source
 
 
 def test_copilot_dependencies_use_shared_repository_error_helper():

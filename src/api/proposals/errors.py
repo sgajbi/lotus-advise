@@ -72,6 +72,10 @@ def reject_unexpected_query_params(request: Request, *, allowed_params: set[str]
             )
 
 
+def raise_policy_control_http_exception(*, status_code: int, detail: str) -> NoReturn:
+    raise HTTPException(status_code=status_code, detail=detail)
+
+
 def safe_proposal_error_detail(error_detail: str, *, redacted_detail: str) -> str:
     if contains_sensitive_proposal_error_detail(error_detail):
         return redacted_detail

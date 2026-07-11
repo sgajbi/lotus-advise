@@ -1,10 +1,21 @@
 from typing import cast
 
-from fastapi import status
+from fastapi import Depends, status
 
 import src.api.proposals.router as shared
 from src.api.observability import record_policy_evaluation_operation
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.policy_control_principal import (
+    POLICY_EVALUATION_FINALIZE_CAPABILITY,
+    POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
+    PolicyControlPrincipal,
+    assert_policy_evaluation_create_scope,
+    assert_policy_evaluation_record_scope,
+    bind_policy_control_actor,
+    policy_control_audit_reason,
+    require_policy_evaluation_finalize_principal,
+    require_policy_evaluation_review_principal,
+)
 from src.api.proposals.policy_evaluation_parameters import (
     PolicyEvaluationEventIdempotencyKeyHeader,
     PolicyEvaluationFinalizeIdempotencyKeyHeader,
@@ -34,6 +45,8 @@ from src.core.proposals.exceptions import ProposalIdempotencyConflictError, Prop
     description=(
         "Creates or replays a finalized RFC-0025 policy evaluation record from source-backed "
         "proposal evidence. The record is hash-backed, idempotent, and bounded to Advise APIs; "
+        "the `created_by` field must match the trusted `X-Actor-Id` advisor principal and the "
+        "request must carry authorized proposal, portfolio, tenant, and legal-entity scope. "
         "Gateway/Workbench consumption and signed-off report-package handoff are supported by "
         "the current RFC-0025 implementation, while client-ready publication remains gated."
     ),
@@ -44,6 +57,7 @@ def create_or_replay_policy_evaluation(
     proposal_version_id: PolicyEvaluationProposalVersionIdPath,
     payload: PolicyEvaluationCreateRequest,
     idempotency_key: PolicyEvaluationFinalizeIdempotencyKeyHeader,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_finalize_principal),
 ) -> PolicyEvaluationPersistenceResult:
     return cast(
         PolicyEvaluationPersistenceResult,
@@ -53,6 +67,7 @@ def create_or_replay_policy_evaluation(
                 proposal_version_id=proposal_version_id,
                 payload=payload,
                 idempotency_key=idempotency_key,
+                principal=principal,
             )
         ),
     )
@@ -66,7 +81,9 @@ def create_or_replay_policy_evaluation(
     summary="Record Policy Evaluation Review Event",
     description=(
         "Records an append-only non-privileged policy review event against the finalized policy "
-        "evaluation hash. Sign-off, report/archive, AI-evidence, and finalized events are created "
+        "evaluation hash. The `actor_id` field must match the trusted compliance or policy "
+        "steward principal, and the request must be authorized for the evaluation scope. "
+        "Sign-off, report/archive, AI-evidence, and finalized events are created "
         "only through their specialized workflow, report-package, AI-evidence, and finalize "
         "commands. Event capture does not mutate immutable evaluation truth or release "
         "client-ready publication."
@@ -77,6 +94,7 @@ def record_policy_evaluation_event(
     evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationEventRequest,
     idempotency_key: PolicyEvaluationEventIdempotencyKeyHeader,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_review_principal),
 ) -> PolicyEvaluationAuditEvent:
     return cast(
         PolicyEvaluationAuditEvent,
@@ -85,6 +103,7 @@ def record_policy_evaluation_event(
                 evaluation_id=evaluation_id,
                 payload=payload,
                 idempotency_key=idempotency_key,
+                principal=principal,
             )
         ),
     )
@@ -96,7 +115,13 @@ def _create_or_replay_policy_evaluation_with_telemetry(
     proposal_version_id: str,
     payload: PolicyEvaluationCreateRequest,
     idempotency_key: str,
+    principal: PolicyControlPrincipal,
 ) -> PolicyEvaluationPersistenceResult:
+    assert_policy_evaluation_create_scope(
+        principal=principal,
+        proposal_id=proposal_id,
+        evidence_bundle=payload.evidence_bundle,
+    )
     try:
         response = (
             shared.get_policy_evidence_application_service().finalize_policy_evaluation_record(
@@ -105,9 +130,13 @@ def _create_or_replay_policy_evaluation_with_telemetry(
                 policy_version=payload.policy_version,
                 proposal_id=proposal_id,
                 proposal_version_id=proposal_version_id,
-                created_by=payload.created_by,
+                created_by=bind_policy_control_actor(payload.created_by, principal),
                 idempotency_key=idempotency_key,
-                reason=payload.reason,
+                reason=policy_control_audit_reason(
+                    payload.reason,
+                    principal=principal,
+                    capability=POLICY_EVALUATION_FINALIZE_CAPABILITY,
+                ),
             )
         )
     except ProposalIdempotencyConflictError:
@@ -129,13 +158,26 @@ def _record_policy_evaluation_event_with_telemetry(
     evaluation_id: str,
     payload: PolicyEvaluationEventRequest,
     idempotency_key: str,
+    principal: PolicyControlPrincipal,
 ) -> PolicyEvaluationAuditEvent:
+    service = shared.get_policy_evidence_application_service()
+    record = service.get_policy_evaluation_record(evaluation_id=evaluation_id)
+    lineage = service.get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+    assert_policy_evaluation_record_scope(
+        principal=principal,
+        record=record,
+        lineage=lineage,
+    )
     try:
-        response = shared.get_policy_evidence_application_service().append_policy_evaluation_event(
+        response = service.append_policy_evaluation_event(
             evaluation_id=evaluation_id,
             event_type=payload.event_type,
-            actor_id=payload.actor_id,
-            reason=payload.reason,
+            actor_id=bind_policy_control_actor(payload.actor_id, principal),
+            reason=policy_control_audit_reason(
+                payload.reason,
+                principal=principal,
+                capability=POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
+            ),
             idempotency_key=idempotency_key,
         )
     except ProposalIdempotencyConflictError:

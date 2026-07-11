@@ -29,14 +29,33 @@ The highest-risk documentation and implementation drift usually appears at these
 4. live runtime evidence matters when advisory behavior changes materially
 5. outbound report and AI calls must not substitute synthetic tenant or actor defaults; trusted
    identity must be bounded and present before downstream submission
-6. outbound report calls must preserve source-derived as-of date, reporting currency, and
+6. policy-control write routes must authorize an Advise `PolicyControlPrincipal` before state
+   mutation; body actor fields are compatibility echoes and cannot satisfy role, capability,
+   maker-checker, tenant, legal-entity, proposal, or portfolio scope on their own
+7. outbound report calls must preserve source-derived as-of date, reporting currency, and
    jurisdiction instead of silently applying market or current-date defaults
-7. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
+8. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
    OCI metadata, accompanied by digest-bearing release evidence, SBOM, scan, signature, and
    provenance attestation, and deployed by digest
-8. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
+9. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
    current medium/low entries must match the governed baseline, and new, stale, expired, or
    worsened medium/low entries fail CI
+
+## Policy-Control Principal Governance
+
+Policy-pack validation/activation and policy-evaluation finalization, review-event, sign-off,
+report-package, and AI-evidence writes derive authority from trusted policy-control headers:
+`X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service identity,
+route capability, and evaluation-scoped proposal/portfolio authorization. Supported roles are
+domain-specific: `POLICY_STEWARD` validates packs and can record review events,
+`POLICY_CHECKER` activates packs and records sign-off/report-package commands, `ADVISOR` finalizes
+evaluations, and `COMPLIANCE_REVIEWER` records review and AI-evidence requests where allowed.
+
+Request-body actor fields remain for compatibility with existing consumers, but they are not an
+identity source. Advise rejects body/header actor mismatches, missing/expired principals, wrong
+roles, missing capabilities, and cross-scope proposal, portfolio, tenant, or legal-entity access
+before application state transitions. Successful audit events retain trusted subject, role, tenant,
+legal entity, correlation id, service identity, and capability metadata.
 
 ## Release Metadata Governance
 

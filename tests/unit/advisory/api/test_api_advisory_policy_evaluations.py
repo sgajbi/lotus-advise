@@ -6,6 +6,24 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.proposals.policy_control_principal import (
+    ADVISOR_ROLE,
+    COMPLIANCE_REVIEWER_ROLE,
+    POLICY_CHECKER_ROLE,
+    POLICY_CONTROL_ACTOR_MISMATCH,
+    POLICY_CONTROL_PRINCIPAL_INVALID,
+    POLICY_CONTROL_PRINCIPAL_REQUIRED,
+    POLICY_CONTROL_SCOPE_FORBIDDEN,
+    POLICY_CONTROL_SCOPE_REQUIRED,
+    POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+    POLICY_EVALUATION_FINALIZE_CAPABILITY,
+    POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+    POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
+    POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
+    POLICY_PACK_ACTIVATE_CAPABILITY,
+    POLICY_PACK_VALIDATE_CAPABILITY,
+    POLICY_STEWARD_ROLE,
+)
 from src.api.proposals.policy_evaluation_responses import (
     POLICY_AI_EVIDENCE_RESPONSES,
     POLICY_EVALUATION_CREATE_RESPONSES,
@@ -126,6 +144,90 @@ def _create_payload(evidence: dict | None = None) -> dict:
     }
 
 
+def _policy_headers(
+    *,
+    actor_id: str,
+    role: str,
+    capability: str,
+    idempotency_key: str | None = None,
+    proposal_id: str | None = None,
+    portfolio_id: str | None = "PB_SG_GLOBAL_BAL_001",
+    tenant_id: str = "tenant_sg_001",
+    legal_entity_code: str = "REFERENCE",
+    service_identity: str = "lotus-gateway",
+    principal_status: str | None = None,
+) -> dict[str, str]:
+    headers = {
+        "X-Actor-Id": actor_id,
+        "X-Role": role,
+        "X-Tenant-Id": tenant_id,
+        "X-Legal-Entity-Code": legal_entity_code,
+        "X-Correlation-Id": f"corr-{actor_id}",
+        "X-Service-Identity": service_identity,
+        "X-Capabilities": capability,
+    }
+    if principal_status is not None:
+        headers["X-Principal-Status"] = principal_status
+    if proposal_id is not None:
+        headers["X-Authorized-Proposal-Id"] = proposal_id
+    if portfolio_id is not None:
+        headers["X-Authorized-Portfolio-Id"] = portfolio_id
+    if idempotency_key is not None:
+        headers["Idempotency-Key"] = idempotency_key
+    return headers
+
+
+def _policy_evaluation_create_headers(
+    *,
+    proposal_id: str,
+    idempotency_key: str,
+    actor_id: str = "advisor_1",
+    portfolio_id: str = "PB_SG_GLOBAL_BAL_001",
+    tenant_id: str = "tenant_sg_001",
+    legal_entity_code: str = "REFERENCE",
+    service_identity: str = "lotus-gateway",
+    principal_status: str | None = None,
+) -> dict[str, str]:
+    return _policy_headers(
+        actor_id=actor_id,
+        role=ADVISOR_ROLE,
+        capability=POLICY_EVALUATION_FINALIZE_CAPABILITY,
+        idempotency_key=idempotency_key,
+        proposal_id=proposal_id,
+        portfolio_id=portfolio_id,
+        tenant_id=tenant_id,
+        legal_entity_code=legal_entity_code,
+        service_identity=service_identity,
+        principal_status=principal_status,
+    )
+
+
+def _policy_review_headers(*, proposal_id: str, idempotency_key: str) -> dict[str, str]:
+    return _policy_headers(
+        actor_id="compliance_1",
+        role=COMPLIANCE_REVIEWER_ROLE,
+        capability=POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
+        idempotency_key=idempotency_key,
+        proposal_id=proposal_id,
+    )
+
+
+def _policy_checker_headers(
+    *,
+    capability: str,
+    idempotency_key: str | None = None,
+    proposal_id: str,
+    actor_id: str = "policy_checker_1",
+) -> dict[str, str]:
+    return _policy_headers(
+        actor_id=actor_id,
+        role=POLICY_CHECKER_ROLE,
+        capability=capability,
+        idempotency_key=idempotency_key,
+        proposal_id=proposal_id,
+    )
+
+
 def _activate_sg_pack(client: TestClient) -> None:
     content_hash = get_policy_pack_version(
         policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
@@ -134,7 +236,13 @@ def _activate_sg_pack(client: TestClient) -> None:
     validated = client.post(
         "/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05/validate",
         json={"requested_by": "policy_steward_1", "reason": {"purpose": "api test"}},
-        headers={"Idempotency-Key": "api-policy-eval-validate-sg"},
+        headers=_policy_headers(
+            actor_id="policy_steward_1",
+            role=POLICY_STEWARD_ROLE,
+            capability=POLICY_PACK_VALIDATE_CAPABILITY,
+            idempotency_key="api-policy-eval-validate-sg",
+            portfolio_id=None,
+        ),
     )
     assert validated.status_code == 200
     activated = client.post(
@@ -144,7 +252,13 @@ def _activate_sg_pack(client: TestClient) -> None:
             "source_content_hash": content_hash,
             "reason": {"purpose": "api test"},
         },
-        headers={"Idempotency-Key": "api-policy-eval-activate-sg"},
+        headers=_policy_headers(
+            actor_id="policy_checker_1",
+            role=POLICY_CHECKER_ROLE,
+            capability=POLICY_PACK_ACTIVATE_CAPABILITY,
+            idempotency_key="api-policy-eval-activate-sg",
+            portfolio_id=None,
+        ),
     )
     assert activated.status_code == 200
 
@@ -163,12 +277,146 @@ def _sg_pending_payload() -> dict:
     return payload
 
 
+def test_policy_evaluation_control_routes_bind_trusted_principal_and_scope() -> None:
+    with TestClient(app) as client:
+        missing_auth = client.post(
+            "/advisory/proposals/pp_policy_auth/versions/ppv_policy_auth/policy-evaluations",
+            json=_create_payload(),
+            headers={"Idempotency-Key": "api-policy-auth-missing"},
+        )
+        assert missing_auth.status_code == 401
+        assert missing_auth.json()["detail"] == POLICY_CONTROL_PRINCIPAL_REQUIRED
+
+        expired_principal = client.post(
+            "/advisory/proposals/pp_policy_auth/versions/ppv_policy_auth/policy-evaluations",
+            json=_create_payload(),
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_auth",
+                idempotency_key="api-policy-auth-expired",
+                principal_status="EXPIRED",
+            ),
+        )
+        assert expired_principal.status_code == 401
+        assert expired_principal.json()["detail"] == POLICY_CONTROL_PRINCIPAL_INVALID
+
+        missing_scope = client.post(
+            "/advisory/proposals/pp_policy_auth/versions/ppv_policy_auth/policy-evaluations",
+            json=_create_payload(),
+            headers=_policy_headers(
+                actor_id="advisor_1",
+                role=ADVISOR_ROLE,
+                capability=POLICY_EVALUATION_FINALIZE_CAPABILITY,
+                idempotency_key="api-policy-auth-missing-scope",
+                proposal_id=None,
+            ),
+        )
+        assert missing_scope.status_code == 403
+        assert missing_scope.json()["detail"] == POLICY_CONTROL_SCOPE_REQUIRED
+
+        cross_scope = client.post(
+            "/advisory/proposals/pp_policy_auth/versions/ppv_policy_auth/policy-evaluations",
+            json=_create_payload(),
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_other",
+                idempotency_key="api-policy-auth-cross-scope",
+            ),
+        )
+        assert cross_scope.status_code == 403
+        assert cross_scope.json()["detail"] == POLICY_CONTROL_SCOPE_FORBIDDEN
+
+        spoofed_actor = client.post(
+            "/advisory/proposals/pp_policy_auth/versions/ppv_policy_auth/policy-evaluations",
+            json={**_create_payload(), "created_by": "impersonated_advisor"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_auth",
+                idempotency_key="api-policy-auth-spoof",
+            ),
+        )
+        assert spoofed_actor.status_code == 403
+        assert spoofed_actor.json()["detail"] == POLICY_CONTROL_ACTOR_MISMATCH
+
+        created = client.post(
+            "/advisory/proposals/pp_policy_auth/versions/ppv_policy_auth/policy-evaluations",
+            json=_create_payload(),
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_auth",
+                idempotency_key="api-policy-auth-success",
+                service_identity="lotus-gateway",
+            ),
+        )
+        assert created.status_code == 200
+        trusted_principal = created.json()["audit_event"]["reason_json"]["trusted_principal"]
+        assert trusted_principal["subject"] == "advisor_1"
+        assert trusted_principal["role"] == ADVISOR_ROLE
+        assert trusted_principal["tenant_id"] == "tenant_sg_001"
+        assert trusted_principal["correlation_id"] == "corr-advisor_1"
+        assert trusted_principal["service_identity"] == "lotus-gateway"
+
+        evaluation_id = created.json()["record"]["evaluation_id"]
+        review_spoof = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/events",
+            json={
+                "event_type": "POLICY_EVALUATION_REVIEW_RECORDED",
+                "actor_id": "impersonated_reviewer",
+                "reason": {"review_action": "REQUEST_MORE_EVIDENCE"},
+            },
+            headers=_policy_review_headers(
+                proposal_id="pp_policy_auth",
+                idempotency_key="api-policy-auth-review-spoof",
+            ),
+        )
+        assert review_spoof.status_code == 403
+        assert review_spoof.json()["detail"] == POLICY_CONTROL_ACTOR_MISMATCH
+
+
+def test_policy_sign_off_maker_checker_uses_trusted_principal_identity() -> None:
+    with TestClient(app) as client:
+        _activate_sg_pack(client)
+        payload = _sg_pending_payload()
+        payload["created_by"] = "policy_checker_1"
+        created = client.post(
+            "/advisory/proposals/pp_policy_same_actor/versions/ppv_policy_same_actor/policy-evaluations",
+            json=payload,
+            headers=_policy_evaluation_create_headers(
+                actor_id="policy_checker_1",
+                proposal_id="pp_policy_same_actor",
+                idempotency_key="api-policy-same-actor-create",
+            ),
+        )
+        assert created.status_code == 200
+        record = created.json()["record"]
+
+        same_actor_signoff = client.post(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/sign-off-decisions",
+            json={
+                "actor_id": "policy_checker_1",
+                "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "resolved_approval_dependencies": record["approval_dependencies"],
+                "satisfied_disclosure_requirements": record["disclosure_requirements"],
+                "satisfied_consent_requirements": record["consent_requirements"],
+            },
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
+                proposal_id="pp_policy_same_actor",
+                idempotency_key="api-policy-same-actor-signoff",
+            ),
+        )
+        assert same_actor_signoff.status_code == 422
+        assert same_actor_signoff.json()["detail"] == (
+            "POLICY_EVALUATION_SIGN_OFF_REQUIRES_MAKER_CHECKER"
+        )
+
+
 def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> None:
     with TestClient(app) as client:
         created = client.post(
             "/advisory/proposals/pp_policy_api_001/versions/ppv_policy_api_001/policy-evaluations",
             json=_create_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-create-001"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_api_001",
+                idempotency_key="api-policy-eval-create-001",
+            ),
         )
         assert created.status_code == 200
         created_body = created.json()
@@ -177,7 +425,10 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         replayed = client.post(
             "/advisory/proposals/pp_policy_api_001/versions/ppv_policy_api_001/policy-evaluations",
             json=_create_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-create-001"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_api_001",
+                idempotency_key="api-policy-eval-create-001",
+            ),
         )
         assert replayed.status_code == 200
         assert replayed.json()["replayed"] is True
@@ -185,7 +436,10 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         drift = client.post(
             "/advisory/proposals/pp_policy_api_001/versions/ppv_policy_api_001/policy-evaluations",
             json={**_create_payload(), "reason": {"purpose": "changed"}},
-            headers={"Idempotency-Key": "api-policy-eval-create-001"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_api_001",
+                idempotency_key="api-policy-eval-create-001",
+            ),
         )
         assert drift.status_code == 409
 
@@ -235,7 +489,10 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
                 "actor_id": "compliance_1",
                 "reason": {"review_action": "REQUEST_MORE_EVIDENCE"},
             },
-            headers={"Idempotency-Key": "api-policy-eval-review-001"},
+            headers=_policy_review_headers(
+                proposal_id="pp_policy_api_001",
+                idempotency_key="api-policy-eval-review-001",
+            ),
         )
         assert review.status_code == 200
         assert review.json()["event_type"] == "POLICY_EVALUATION_REVIEW_RECORDED"
@@ -265,7 +522,10 @@ def test_generic_policy_evaluation_event_api_rejects_privileged_event_types() ->
             "/advisory/proposals/pp_policy_event_bypass/versions/"
             "ppv_policy_event_bypass/policy-evaluations",
             json=_create_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-bypass"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_event_bypass",
+                idempotency_key="api-policy-eval-bypass",
+            ),
         )
         assert created.status_code == 200
         evaluation_id = created.json()["record"]["evaluation_id"]
@@ -303,10 +563,13 @@ def test_generic_policy_evaluation_event_api_rejects_privileged_event_types() ->
                 f"/advisory/policy-evaluations/{evaluation_id}/events",
                 json={
                     "event_type": event_type,
-                    "actor_id": "spoofed_policy_actor",
+                    "actor_id": "compliance_1",
                     "reason": reason,
                 },
-                headers={"Idempotency-Key": f"api-policy-forged-{event_type.lower()}"},
+                headers=_policy_review_headers(
+                    proposal_id="pp_policy_event_bypass",
+                    idempotency_key=f"api-policy-forged-{event_type.lower()}",
+                ),
             )
             assert response.status_code == 422
 
@@ -327,7 +590,10 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
         created = client.post(
             "/advisory/proposals/pp_policy_signoff_001/versions/ppv_policy_signoff_001/policy-evaluations",
             json=_sg_pending_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-signoff-001"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_signoff_001",
+                idempotency_key="api-policy-eval-signoff-001",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -363,7 +629,11 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
                 "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
                 "source_evaluation_hash": record["evaluation_hash"],
             },
-            headers={"Idempotency-Key": "api-policy-signoff-missing-requirements"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
+                proposal_id="pp_policy_signoff_001",
+                idempotency_key="api-policy-signoff-missing-requirements",
+            ),
         )
         assert blocked.status_code == 422
         assert blocked.json()["detail"] == "POLICY_EVALUATION_SIGN_OFF_REQUIREMENTS_OPEN"
@@ -379,7 +649,11 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
                 "satisfied_consent_requirements": record["consent_requirements"],
                 "reason": {"purpose": "requirements reviewed"},
             },
-            headers={"Idempotency-Key": "  api-policy-signoff-approved  "},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
+                proposal_id="pp_policy_signoff_001",
+                idempotency_key="  api-policy-signoff-approved  ",
+            ),
         )
         assert signed.status_code == 200
         signed_body = signed.json()
@@ -401,6 +675,10 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
                 "source_evaluation_hash": record["evaluation_hash"],
                 "reason": {"purpose": "missing idempotency header is rejected"},
             },
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
+                proposal_id="pp_policy_signoff_001",
+            ),
         )
         assert missing_key.status_code == 422
         assert missing_key.json()["detail"][0]["loc"] == ["header", "Idempotency-Key"]
@@ -464,7 +742,10 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
         created = client.post(
             "/advisory/proposals/pp_policy_report_001/versions/ppv_policy_report_001/policy-evaluations",
             json=_sg_pending_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-report-001"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_report_001",
+                idempotency_key="api-policy-eval-report-001",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -478,7 +759,11 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
                 "source_evaluation_hash": record["evaluation_hash"],
                 "requested_output_formats": ["pdf"],
             },
-            headers={"Idempotency-Key": "api-policy-report-unsigned"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+                proposal_id="pp_policy_report_001",
+                idempotency_key="api-policy-report-unsigned",
+            ),
         )
         assert unsigned.status_code == 422
         assert unsigned.json()["detail"] == "POLICY_REPORT_PACKAGE_REQUIRES_SIGN_OFF"
@@ -494,7 +779,11 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
                 "satisfied_consent_requirements": record["consent_requirements"],
                 "reason": {"purpose": "requirements reviewed"},
             },
-            headers={"Idempotency-Key": "api-policy-report-signoff"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
+                proposal_id="pp_policy_report_001",
+                idempotency_key="api-policy-report-signoff",
+            ),
         )
         assert signed.status_code == 200
 
@@ -507,7 +796,11 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
                 "requested_output_formats": ["pdf"],
                 "reason": {"purpose": "policy sign-off package"},
             },
-            headers={"Idempotency-Key": "  api-policy-report-package  "},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+                proposal_id="pp_policy_report_001",
+                idempotency_key="  api-policy-report-package  ",
+            ),
         )
         assert report.status_code == 200
         body = report.json()
@@ -541,7 +834,11 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
                 "requested_output_formats": ["pdf"],
                 "reason": {"purpose": "policy sign-off package"},
             },
-            headers={"Idempotency-Key": "api-policy-report-package"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+                proposal_id="pp_policy_report_001",
+                idempotency_key="api-policy-report-package",
+            ),
         )
         assert replayed.status_code == 200
         assert replayed.json()["replayed"] is True
@@ -556,7 +853,11 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
                 "requested_output_formats": ["json"],
                 "reason": {"purpose": "policy sign-off package"},
             },
-            headers={"Idempotency-Key": "api-policy-report-package"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+                proposal_id="pp_policy_report_001",
+                idempotency_key="api-policy-report-package",
+            ),
         )
         assert conflict.status_code == 409
         assert conflict.json()["detail"] == "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT"
@@ -582,7 +883,10 @@ def test_policy_report_package_unavailable_response_is_safe() -> None:
             "/advisory/proposals/pp_policy_report_unavailable/versions/"
             "ppv_policy_report_unavailable/policy-evaluations",
             json=_sg_pending_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-report-unavailable"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_report_unavailable",
+                idempotency_key="api-policy-eval-report-unavailable",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -598,7 +902,11 @@ def test_policy_report_package_unavailable_response_is_safe() -> None:
                 "satisfied_consent_requirements": record["consent_requirements"],
                 "reason": {"purpose": "requirements reviewed"},
             },
-            headers={"Idempotency-Key": "api-policy-report-unavailable-signoff"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
+                proposal_id="pp_policy_report_unavailable",
+                idempotency_key="api-policy-report-unavailable-signoff",
+            ),
         )
         assert signed.status_code == 200
 
@@ -610,7 +918,11 @@ def test_policy_report_package_unavailable_response_is_safe() -> None:
                 "source_evaluation_hash": record["evaluation_hash"],
                 "requested_output_formats": ["pdf"],
             },
-            headers={"Idempotency-Key": "api-policy-report-unavailable"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+                proposal_id="pp_policy_report_unavailable",
+                idempotency_key="api-policy-report-unavailable",
+            ),
         )
 
     assert response.status_code == 503
@@ -623,7 +935,10 @@ def test_policy_report_package_blocks_client_ready_document_request() -> None:
         created = client.post(
             "/advisory/proposals/pp_policy_report_blocked/versions/ppv_policy_report_blocked/policy-evaluations",
             json=_sg_pending_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-report-blocked"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_report_blocked",
+                idempotency_key="api-policy-eval-report-blocked",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -637,7 +952,11 @@ def test_policy_report_package_blocks_client_ready_document_request() -> None:
                 "requested_output_formats": ["pdf"],
                 "client_ready_document_requested": True,
             },
-            headers={"Idempotency-Key": "api-policy-report-client-ready-blocked"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+                proposal_id="pp_policy_report_blocked",
+                idempotency_key="api-policy-report-client-ready-blocked",
+            ),
         )
         assert blocked.status_code == 422
         assert blocked.json()["detail"] == "POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
@@ -674,7 +993,10 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy() ->
         created = client.post(
             "/advisory/proposals/pp_policy_ai_001/versions/ppv_policy_ai_001/policy-evaluations",
             json=_sg_pending_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-ai-001"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_ai_001",
+                idempotency_key="api-policy-eval-ai-001",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -691,7 +1013,11 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy() ->
                 ],
                 "reason": {"purpose": "policy evidence explanation"},
             },
-            headers={"Idempotency-Key": "  api-policy-ai-evidence-001  "},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                proposal_id="pp_policy_ai_001",
+                idempotency_key="  api-policy-ai-evidence-001  ",
+            ),
         )
         assert response.status_code == 200
         body = response.json()
@@ -730,7 +1056,11 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy() ->
                 ],
                 "reason": {"purpose": "policy evidence explanation"},
             },
-            headers={"Idempotency-Key": "api-policy-ai-evidence-001"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                proposal_id="pp_policy_ai_001",
+                idempotency_key="api-policy-ai-evidence-001",
+            ),
         )
         assert replayed.status_code == 200
         assert replayed.json()["replayed"] is True
@@ -744,7 +1074,11 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy() ->
                 "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
                 "reason": {"purpose": "changed AI evidence explanation"},
             },
-            headers={"Idempotency-Key": "api-policy-ai-evidence-001"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                proposal_id="pp_policy_ai_001",
+                idempotency_key="api-policy-ai-evidence-001",
+            ),
         )
         assert conflict.status_code == 409
         assert conflict.json()["detail"] == "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT"
@@ -762,7 +1096,10 @@ def test_policy_ai_evidence_rejects_forbidden_action_and_stale_hash() -> None:
         created = client.post(
             "/advisory/proposals/pp_policy_ai_blocked/versions/ppv_policy_ai_blocked/policy-evaluations",
             json=_create_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-ai-blocked"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_ai_blocked",
+                idempotency_key="api-policy-eval-ai-blocked",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -774,7 +1111,11 @@ def test_policy_ai_evidence_rejects_forbidden_action_and_stale_hash() -> None:
                 "source_evaluation_hash": record["evaluation_hash"],
                 "requested_actions": ["APPROVE_POLICY"],
             },
-            headers={"Idempotency-Key": "api-policy-ai-forbidden-action"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                proposal_id="pp_policy_ai_blocked",
+                idempotency_key="api-policy-ai-forbidden-action",
+            ),
         )
         assert forbidden.status_code == 422
         assert forbidden.json()["detail"] == "POLICY_AI_EVIDENCE_FORBIDDEN_ACTION"
@@ -786,7 +1127,11 @@ def test_policy_ai_evidence_rejects_forbidden_action_and_stale_hash() -> None:
                 "source_evaluation_hash": record["evaluation_hash"],
                 "requested_actions": ["   "],
             },
-            headers={"Idempotency-Key": "api-policy-ai-blank-action"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                proposal_id="pp_policy_ai_blocked",
+                idempotency_key="api-policy-ai-blank-action",
+            ),
         )
         assert blank_action.status_code == 422
         assert blank_action.json()["detail"] == "POLICY_AI_EVIDENCE_ACTION_REQUIRED"
@@ -798,7 +1143,11 @@ def test_policy_ai_evidence_rejects_forbidden_action_and_stale_hash() -> None:
                 "source_evaluation_hash": "sha256:stale",
                 "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
             },
-            headers={"Idempotency-Key": "api-policy-ai-stale-hash"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                proposal_id="pp_policy_ai_blocked",
+                idempotency_key="api-policy-ai-stale-hash",
+            ),
         )
         assert stale.status_code == 422
         assert stale.json()["detail"] == "POLICY_AI_EVIDENCE_HASH_MISMATCH"
@@ -809,7 +1158,10 @@ def test_policy_ai_evidence_records_deterministic_unavailable_posture() -> None:
         created = client.post(
             "/advisory/proposals/pp_policy_ai_unavailable/versions/ppv_policy_ai_unavailable/policy-evaluations",
             json=_create_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-ai-unavailable"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_ai_unavailable",
+                idempotency_key="api-policy-eval-ai-unavailable",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -820,7 +1172,11 @@ def test_policy_ai_evidence_records_deterministic_unavailable_posture() -> None:
                 "requested_by": "policy_checker_1",
                 "source_evaluation_hash": record["evaluation_hash"],
             },
-            headers={"Idempotency-Key": "api-policy-ai-unavailable-request"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                proposal_id="pp_policy_ai_unavailable",
+                idempotency_key="api-policy-ai-unavailable-request",
+            ),
         )
 
         assert response.status_code == 200
@@ -846,7 +1202,10 @@ def test_policy_ai_evidence_sanitizes_provider_detail_before_lineage() -> None:
             "/advisory/proposals/pp_policy_ai_provider_detail/versions/"
             "ppv_policy_ai_provider_detail/policy-evaluations",
             json=_create_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-ai-provider-detail"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_ai_provider_detail",
+                idempotency_key="api-policy-eval-ai-provider-detail",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -858,7 +1217,11 @@ def test_policy_ai_evidence_sanitizes_provider_detail_before_lineage() -> None:
                 "source_evaluation_hash": record["evaluation_hash"],
                 "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
             },
-            headers={"Idempotency-Key": "api-policy-ai-provider-detail"},
+            headers=_policy_checker_headers(
+                capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                proposal_id="pp_policy_ai_provider_detail",
+                idempotency_key="api-policy-ai-provider-detail",
+            ),
         )
 
         assert response.status_code == 200
@@ -875,7 +1238,10 @@ def test_policy_write_side_effect_routes_require_idempotency_key() -> None:
             "/advisory/proposals/pp_policy_missing_idem/versions/ppv_policy_missing_idem/"
             "policy-evaluations",
             json=_create_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-missing-idem"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_missing_idem",
+                idempotency_key="api-policy-eval-missing-idem",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -889,6 +1255,12 @@ def test_policy_write_side_effect_routes_require_idempotency_key() -> None:
                     "actor_id": "compliance_1",
                     "reason": {"review_action": "REQUEST_MORE_EVIDENCE"},
                 },
+                _policy_headers(
+                    actor_id="compliance_1",
+                    role=COMPLIANCE_REVIEWER_ROLE,
+                    capability=POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
+                    proposal_id="pp_policy_missing_idem",
+                ),
             ),
             (
                 f"/advisory/policy-evaluations/{evaluation_id}/report-packages",
@@ -898,6 +1270,10 @@ def test_policy_write_side_effect_routes_require_idempotency_key() -> None:
                     "source_evaluation_hash": record["evaluation_hash"],
                     "requested_output_formats": ["pdf"],
                 },
+                _policy_checker_headers(
+                    capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+                    proposal_id="pp_policy_missing_idem",
+                ),
             ),
             (
                 f"/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
@@ -906,11 +1282,15 @@ def test_policy_write_side_effect_routes_require_idempotency_key() -> None:
                     "source_evaluation_hash": record["evaluation_hash"],
                     "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
                 },
+                _policy_checker_headers(
+                    capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+                    proposal_id="pp_policy_missing_idem",
+                ),
             ),
         ]
 
-        for route, payload in route_payloads:
-            response = client.post(route, json=payload)
+        for route, payload, headers in route_payloads:
+            response = client.post(route, json=payload, headers=headers)
             assert response.status_code == 422
             assert response.json()["detail"][0]["loc"] == ["header", "Idempotency-Key"]
 
@@ -921,7 +1301,10 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
         created = client.post(
             "/advisory/proposals/pp_policy_diag/versions/ppv_policy_diag/policy-evaluations",
             json=_sg_pending_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-diagnostics"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_diag",
+                idempotency_key="api-policy-eval-diagnostics",
+            ),
         )
         assert created.status_code == 200
         record = created.json()["record"]
@@ -939,7 +1322,7 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
             f"/advisory/policy-evaluations/{evaluation_id}/events",
             json={
                 "event_type": "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED",
-                "actor_id": "operations_1",
+                "actor_id": "compliance_1",
                 "reason": {
                     "report_package_status": "RECORDED",
                     "report_request_id": "rreq_diag_001",
@@ -948,7 +1331,10 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
                     "archive": {"document_id": "doc_diag_001"},
                 },
             },
-            headers={"Idempotency-Key": "api-policy-diag-report"},
+            headers=_policy_review_headers(
+                proposal_id="pp_policy_diag",
+                idempotency_key="api-policy-diag-report",
+            ),
         )
         assert report_event.status_code == 422
 
@@ -956,7 +1342,7 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
             f"/advisory/policy-evaluations/{evaluation_id}/events",
             json={
                 "event_type": "POLICY_EVALUATION_AI_EVIDENCE_RECORDED",
-                "actor_id": "policy_checker_1",
+                "actor_id": "compliance_1",
                 "reason": {
                     "ai_status": "UNAVAILABLE",
                     "lineage": {
@@ -964,7 +1350,10 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
                     },
                 },
             },
-            headers={"Idempotency-Key": "api-policy-diag-ai"},
+            headers=_policy_review_headers(
+                proposal_id="pp_policy_diag",
+                idempotency_key="api-policy-diag-ai",
+            ),
         )
         assert ai_event.status_code == 422
 
@@ -994,7 +1383,10 @@ def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
         created = client.post(
             "/advisory/proposals/pp_policy_queue_001/versions/ppv_policy_queue_001/policy-evaluations",
             json=_sg_pending_payload(),
-            headers={"Idempotency-Key": "api-policy-eval-queue-001"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_queue_001",
+                idempotency_key="api-policy-eval-queue-001",
+            ),
         )
         assert created.status_code == 200
         evaluation_id = created.json()["record"]["evaluation_id"]
@@ -1007,7 +1399,11 @@ def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
         other_created = client.post(
             "/advisory/proposals/pp_policy_queue_002/versions/ppv_policy_queue_002/policy-evaluations",
             json=other_portfolio_payload,
-            headers={"Idempotency-Key": "api-policy-eval-queue-002"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_queue_002",
+                idempotency_key="api-policy-eval-queue-002",
+                portfolio_id="PB_SG_OTHER_BAL_001",
+            ),
         )
         assert other_created.status_code == 200
         other_evaluation_id = other_created.json()["record"]["evaluation_id"]
@@ -1055,7 +1451,10 @@ def test_policy_evaluation_rejects_missing_portfolio_identity() -> None:
             "/advisory/proposals/pp_policy_missing_portfolio/versions/"
             "ppv_policy_missing_portfolio/policy-evaluations",
             json=payload,
-            headers={"Idempotency-Key": "api-policy-eval-missing-portfolio"},
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_missing_portfolio",
+                idempotency_key="api-policy-eval-missing-portfolio",
+            ),
         )
 
     assert response.status_code == 422

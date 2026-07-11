@@ -158,7 +158,10 @@ class PolicyPackListResponse(BaseModel):
 
 class PolicyPackValidationRequest(BaseModel):
     requested_by: str = Field(
-        description="Actor requesting policy-pack validation.",
+        description=(
+            "Compatibility actor echo for policy-pack validation. The route authorizes and records "
+            "the trusted principal from policy-control headers and rejects a mismatch."
+        ),
         examples=["policy_steward_1"],
     )
     reason: dict[str, Any] = Field(
@@ -189,7 +192,10 @@ class PolicyPackValidationResponse(BaseModel):
 
 class PolicyPackActivationRequest(BaseModel):
     activated_by: str = Field(
-        description="Actor requesting activation.",
+        description=(
+            "Compatibility actor echo for policy-pack activation. The route authorizes and records "
+            "the trusted policy checker from policy-control headers and rejects a mismatch."
+        ),
         examples=["policy_checker_1"],
     )
     source_content_hash: str = Field(

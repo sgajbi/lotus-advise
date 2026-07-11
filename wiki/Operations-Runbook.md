@@ -141,6 +141,24 @@ policy workflow command, report/archive events from the report-package command, 
 events from the bounded AI-evidence command so source hashes, maker-checker posture, downstream
 references, redaction, lineage, idempotency, and client-ready blocked posture remain validated.
 
+Policy-control writes must carry trusted principal headers before Advise records catalog or
+evaluation state:
+
+1. `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, and `X-Correlation-Id`
+2. `X-Service-Identity` or `Authorization`
+3. `X-Capabilities` containing the route capability, for example
+   `advisory.policy_pack.validate`, `advisory.policy_pack.activate`,
+   `advisory.policy_evaluation.finalize`, `advisory.policy_evaluation.review_event`,
+   `advisory.policy_evaluation.sign_off`, `advisory.policy_evaluation.report_package`, or
+   `advisory.policy_evaluation.ai_evidence`
+4. `X-Authorized-Proposal-Id` and `X-Authorized-Portfolio-Id` for evaluation-scoped writes
+
+Body actor fields are compatibility echoes only. A mismatch with `X-Actor-Id`, a missing/expired
+principal, wrong role, missing capability, missing scope, or cross-scope proposal, portfolio, tenant,
+or legal-entity access fails closed with 401/403 policy-control errors. Successful audit events
+retain trusted subject, role, tenant, legal entity, correlation id, service identity, and capability
+metadata.
+
 ## Policy-Pack Applicability
 
 Policy-pack applicability is evaluated before any material rule executes. The selector contract is
