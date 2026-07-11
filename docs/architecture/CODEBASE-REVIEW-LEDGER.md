@@ -27250,6 +27250,9 @@
   - The adapter now emits `core_decision_parity` so Core v1 decision-shaped fields are classified
     as match or mismatch against Advise-owned status, suitability, and workflow gate output before
     the compatibility path is retired.
+  - Curated simulation parity scenarios and the canonical `PB_SG_GLOBAL_BAL_001` private-banking
+    request example now replay stale Core v1 decision fields through `CoreProjectedTransactionEffects`
+    and prove Advise-owned status, suitability, and workflow gate output remains authoritative.
   - `tests/fixtures/external-adapter-contracts/lotus-advise-external-adapter-contracts.v1.json`
     now declares `CoreProjectedTransactionEffects`, source-effect authority fields,
     non-authoritative Core decision fields, Advise decision authority fields, and the parity
@@ -27262,5 +27265,5 @@
   - Updated RFC-0082 upstream contract map, README, wiki Architecture, repository context, and this
     ledger with the ownership matrix.
 - Follow-Up:
-  - Continue #434 by expanding external-adapter fixtures and golden/private-banking dual-run
-    evidence, then coordinate Core v2 retirement once linked Core producer issues are complete.
+  - Continue #434 by coordinating Core v2 retirement once linked Core producer issues are complete
+    and retaining the v1 parity classifier until producer cutover evidence is available.

@@ -106,6 +106,9 @@ Existing tests that cover this posture include:
 The source-effects ownership hardening is covered by focused adapter tests that prove Core
 suitability and gate payloads are quarantined as non-authoritative compatibility evidence while
 Advise-owned decision support is recomputed locally.
+Curated simulation parity scenarios and the canonical `PB_SG_GLOBAL_BAL_001` private-banking request
+example also replay stale Core v1 decision fields through the source-effects contract and assert the
+Advise-owned output remains authoritative while `core_decision_parity` records every mismatch.
 
 ## Gap Register
 
