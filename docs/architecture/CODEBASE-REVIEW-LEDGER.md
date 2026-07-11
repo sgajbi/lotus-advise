@@ -24,8 +24,9 @@
   - Added `make external-adapter-contracts` and included it in `make check` so the manifest becomes
     a repo-native CI contract lane.
   - Hardened concrete runtime gaps found through the issue lens: Lotus Core stateful context now
-    rejects upstream portfolio/as-of mismatch, Lotus Risk rejects contradictory provider metadata,
-    and Lotus Report rejects mismatched provider idempotency echoes.
+    rejects upstream portfolio/as-of mismatch before snapshot construction or cache writes, Lotus
+    Risk rejects contradictory provider metadata, and Lotus Report rejects mismatched provider
+    idempotency echoes.
   - Focused validation passed with `5 passed` for the new contract lane and `10 passed` for the
     targeted Core/Risk/Report adapter regressions.
 - Consequence:
