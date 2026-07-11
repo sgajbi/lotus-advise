@@ -21,9 +21,9 @@ post-merge wiki publication. It names blocking commands and the evidence each la
 
 | Lane | Primary proof | What it protects |
 | --- | --- | --- |
-| Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, quality-baseline freshness, high-severity security, license/IP evidence, and unit behavior. |
-| Local PR-grade gate | `make ci` | Dependency health, static governance, migrations, security audit, license/IP evidence, release-image provenance, coverage, Docker build, Postgres runtime contracts, and production-profile guardrail negatives. |
-| Remote Feature Lane | GitHub `Remote Feature Lane` | Branch feedback for workflow lint, unit tests, dependency governance, license/IP evidence, Bandit severity regression, demo-assurance checks, and quality-baseline freshness. |
+| Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, quality-baseline freshness, high-severity security, dependency-lock evidence, license/IP evidence, and unit behavior. |
+| Local PR-grade gate | `make ci` | Dependency health, static governance, migrations, security audit, dependency-lock evidence, license/IP evidence, release-image provenance, coverage, Docker build, Postgres runtime contracts, and production-profile guardrail negatives. |
+| Remote Feature Lane | GitHub `Remote Feature Lane` | Branch feedback for workflow lint, unit tests, dependency governance, dependency-lock evidence, license/IP evidence, Bandit severity regression, demo-assurance checks, and quality-baseline freshness. |
 | PR Merge Gate | GitHub `Pull Request Merge Gate` | Merge readiness across lint/typecheck governance, unit/integration/e2e tests, coverage, Docker build, Postgres migration smoke, production startup smoke, and production guardrail negatives. |
 | Main Releasability Gate | GitHub `Main Releasability Gate` | Post-merge release evidence on `main`, including the same static, runtime, migration, coverage, Docker, security, observability, and advisory-domain signals. |
 | Report-only quality evidence | `Quality Baseline / Report Only` and `make quality-baseline` | Trend evidence for code health and refactoring scorecards. Report-only signals should not be promoted until deterministic, low-noise, locally runnable, and policy-backed. |
@@ -53,6 +53,7 @@ make quality-baseline-check
 make demo-assurance-gate
 make demo-certification-live
 make security-audit
+make dependency-lock-gate
 make license-ip-gate
 make bandit-severity-regression-gate
 make openapi-gate
@@ -114,12 +115,15 @@ The current blocking posture is intentionally high-signal:
 12. `make release-image-provenance-gate`
      blocks drift in Dockerfile build metadata args, OCI labels, Docker build arguments, and
      support-safe metadata naming before the image is built or pushed.
-13. `make license-ip-gate`
+13. `make dependency-lock-gate`
+     validates `uv.lock` as the generated mirror of the requirements install strategy and
+     dependency inventory.
+14. `make license-ip-gate`
      validates the committed runtime/development dependency license inventory and owner-approved
      expiring exceptions.
-14. `make coverage-combined`
+15. `make coverage-combined`
      enforces the combined coverage floor across unit, integration, and e2e suites.
-15. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
+16. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
      protect supported runtime startup and production-profile guardrail behavior.
 
 These gates are blocking because they are measured, deterministic, repo-native, and low-noise for
@@ -133,10 +137,11 @@ timestamp, CI run ID, and image-digest posture, then retains one evidence bundle
 
 1. `release-evidence.json` with the pushed digest and immutable image reference,
 2. SBOM,
-3. license/IP dependency inventory,
-4. vulnerability scan report,
-5. image signature reference,
-6. provenance attestation reference.
+3. dependency-lock evidence,
+4. license/IP dependency inventory,
+5. vulnerability scan report,
+6. image signature reference,
+7. provenance attestation reference.
 
 The running service exposes `GET /version` with the same support-safe metadata. Release deployment
 must use the digest reference from the retained manifest and promote the same image across

@@ -77,6 +77,8 @@ jobs:
         run: make migration-smoke
       - name: Security Audit
         run: make security-audit
+      - name: Dependency Lock Gate
+        run: make dependency-lock-gate
       - name: License IP Gate
         run: make license-ip-gate
 

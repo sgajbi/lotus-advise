@@ -88,6 +88,7 @@ class ReleaseEvidence:
             "security_evidence": {
                 "bandit_gate": "make bandit-severity-regression-gate",
                 "bandit_baseline": "quality/bandit_security_baseline.v1.json",
+                "dependency_lock": "make dependency-lock-gate",
                 "dependency_audit": "make security-audit",
                 "license_ip_gate": "make license-ip-gate",
                 "license_ip_inventory": "docs/standards/license-ip-inventory.v1.json",

@@ -56,6 +56,8 @@ The highest-risk documentation and implementation drift usually appears at these
 10. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
     including transitive packages, must match the committed inventory and any review-required terms
     must have owner-approved expiring exceptions
+11. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
+    requirements install strategy, requirement-file hashes, and dependency inventory hash
 
 ## Policy-Control Principal Governance
 
@@ -83,9 +85,9 @@ headers, or downstream base URLs.
 The release-image evidence path is intentionally split:
 
 1. PR/local builds validate Dockerfile build args, OCI labels, and label content without pushing.
-2. Main Releasability pushes the Git-SHA image, records the registry digest, generates SBOM,
-   license/IP inventory, and vulnerability-scan artifacts, signs the digest, creates provenance
-   attestation, and uploads the release manifest.
+2. Main Releasability pushes the Git-SHA image, records the registry digest, validates dependency
+   lock evidence, generates SBOM, license/IP inventory, and vulnerability-scan artifacts, signs the
+   digest, creates provenance attestation, and uploads the release manifest.
 3. Deployment must reference the digest from the retained manifest and promote the same immutable
    image across environments.
 
@@ -109,6 +111,16 @@ approved exceptions. `NOTICE.md` records the third-party notice posture.
 Use `make license-ip-inventory` to regenerate the committed inventory after dependency changes, and
 `make license-ip-gate` to verify release posture. New unclassified, prohibited, missing-metadata, or
 expired-exception findings fail CI.
+
+## Dependency Lock Governance
+
+`uv.lock` is the generated lock mirror for the current requirements-based install strategy. It
+records requirement-file hashes, the license/IP inventory hash, direct pins, transitive package
+versions, package groups, extras, and requirement-line hashes.
+
+Use `make dependency-lock` after changing `requirements.txt`, `requirements-prod.txt`,
+`requirements-dev.txt`, or generated dependency inventory. `make dependency-lock-gate` fails on
+missing packages, version drift, stale manifest hashes, or Python-runtime incompatibility.
 
 ## RFC-0028 Proof Artifact Governance
 

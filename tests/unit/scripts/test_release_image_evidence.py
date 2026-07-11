@@ -124,6 +124,7 @@ def test_release_manifest_records_digest_artifacts_and_deploy_policy(tmp_path: P
         manifest["security_evidence"]["bandit_baseline"]
         == "quality/bandit_security_baseline.v1.json"
     )
+    assert manifest["security_evidence"]["dependency_lock"] == "make dependency-lock-gate"
     assert manifest["security_evidence"]["dependency_audit"] == "make security-audit"
     assert manifest["security_evidence"]["license_ip_gate"] == "make license-ip-gate"
     assert (

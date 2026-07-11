@@ -1,3 +1,837 @@
 version = 1
-revision = 3
+revision = 4
 requires-python = ">=3.11"
+authoritative-source = "requirements"
+generated-by = "scripts/dependency_lock_evidence.py"
+license-inventory = "docs/standards/license-ip-inventory.v1.json"
+license-inventory-sha256 = "a3d3f6d1799330eeedaa0c1b2d6ed06dc128166b0732fff2e401cc5759a42e37"
+
+[[requirement-files]]
+group = "development"
+path = "requirements-dev.txt"
+sha256 = "ef173ecceb768d4ce97887c15f4e6dfa5e617603c6a8bf61dce711fc21b86765"
+
+[[requirement-files]]
+group = "install"
+path = "requirements.txt"
+sha256 = "05f81ccaaf44e1f658508b75542be314ec5f88bb5bfec558e3460525cf0c338c"
+
+[[requirement-files]]
+group = "runtime"
+path = "requirements-prod.txt"
+sha256 = "034e620c38f91955762c79d48d708b4138697e0a5ca454708915a60139025f0c"
+
+[[package]]
+name = "annotated-doc"
+version = "0.0.4"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "annotated-types"
+version = "0.7.0"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["20d9452f7f9bb616dd9c6fa59c2638d3bb69f80e4dc538d5635ef4660c9f8884"]
+
+[[package]]
+name = "anyio"
+version = "4.14.1"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["bca65f3e0a51c5f915cd0bb5642626fb2cae5cf1199931af65a5da6aa7c5ad20"]
+
+[[package]]
+name = "attrs"
+version = "25.4.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "bandit"
+version = "1.9.4"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["5d53588b9f2857dca20085cd43c6641d044303a49eed51aa66959c572491459e"]
+
+[[package]]
+name = "boolean-py"
+version = "5.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "cachecontrol"
+version = "0.14.3"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "certifi"
+version = "2026.6.17"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["f648d0a2a0399b66c11f550151c1254aba3f404b6d35dc111617511c91b44eb4"]
+
+[[package]]
+name = "cffi"
+version = "2.0.0"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "charset-normalizer"
+version = "3.4.3"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "clarabel"
+version = "0.11.1"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "click"
+version = "8.4.2"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["43d413e934181b5f5120b59e5b6fd67db4d6d25e892805251e4660fddd923b7b"]
+
+[[package]]
+name = "colorama"
+version = "0.4.6"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["e91f42fdc36833eb19b14a96d440f3806e500e121b6209b9e068949086cdeaf0"]
+
+[[package]]
+name = "coverage"
+version = "7.14.3"
+direct = true
+groups = ["development", "install"]
+requirement-files = ["requirements-dev.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["83555c0fe2304b740289022d0302bbc8f7aad91937dd1f98f3ff00c196264a48"]
+
+[[package]]
+name = "cvxpy"
+version = "1.9.2"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["df8dd023ac0faaae841405b1c5db3c13cf5a589182bae110224faab685ecfed1"]
+
+[[package]]
+name = "cyclonedx-python-lib"
+version = "11.6.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "defusedxml"
+version = "0.7.1"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "deptry"
+version = "0.25.1"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["f2e34bb219519b1a3f889bae70eecf9ed2d2b06629a3c8ce1c8d574eff7c383e"]
+
+[[package]]
+name = "fastapi"
+version = "0.138.1"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["10951889dfbedd52996cac8ed599b02c5def4c91d8d3b41c99f0e8c4c388a529"]
+
+[[package]]
+name = "filelock"
+version = "3.29.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "grimp"
+version = "3.14"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "h11"
+version = "0.16.0"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["4f7d7473e75b0a7452ff07f4250d3c311fc1697b616fcf21b77edd68fc104d9e"]
+
+[[package]]
+name = "highspy"
+version = "1.14.0"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "httpcore"
+version = "1.0.9"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["12edfedc871c35f1b6b7f031d9cc2ef6060b6583db297b688a1c169c38a04e65"]
+
+[[package]]
+name = "httpx"
+version = "0.28.1"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["5fadf5f6ea5bd1b141ea05745cb52449bdccde939c22e76231e7993c2afc91d0"]
+
+[[package]]
+name = "idna"
+version = "3.18"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["1d7c42f54f85a9c2af00d8a5147e3625bf14d357ffba6d30ab863ddcd476a54a"]
+
+[[package]]
+name = "import-linter"
+version = "2.11"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["f1208f453b6f2ca0b5c95525cc9ed3dc333804ce07ffdd9fd4076bb22919bb31"]
+
+[[package]]
+name = "iniconfig"
+version = "2.3.0"
+direct = true
+groups = ["development", "install"]
+requirement-files = ["requirements-dev.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["c0fd136096e686e5617a350e9610149559ad13a1dcbd86cdc5addc614ac6f15c"]
+
+[[package]]
+name = "interrogate"
+version = "1.7.0"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["165e46d0d08c3d6c02d59d65bf6c4474725635de15e6499160d5308c9840af36"]
+
+[[package]]
+name = "jinja2"
+version = "3.1.6"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "joblib"
+version = "1.3.2"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "librt"
+version = "0.8.1"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "license-expression"
+version = "30.4.4"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "mando"
+version = "0.7.1"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "markdown-it-py"
+version = "4.0.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "markupsafe"
+version = "3.0.3"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "mdurl"
+version = "0.1.2"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "msgpack"
+version = "1.1.1"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "mypy"
+version = "1.20.2"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["9029093bd1341a8e1681afd138019cf08e8ad3fce7ba7a0a9aed3b66743a35b9"]
+
+[[package]]
+name = "mypy-extensions"
+version = "1.1.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "numpy"
+version = "2.4.6"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["c8de1d861b73db909afa2d237ed07375e226671f83eda3ed796747c15ebda958"]
+
+[[package]]
+name = "osqp"
+version = "1.1.1"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "packageurl-python"
+version = "0.17.6"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "packaging"
+version = "26.2"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["b8170d9797c77a7857f3789ba265c666ec5cc053c0c64debd000eb84a6e7b184"]
+
+[[package]]
+name = "pathspec"
+version = "1.0.4"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pip"
+version = "25.0.1"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pip-api"
+version = "0.0.34"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pip-audit"
+version = "2.10.0"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["3b3f76462592e863ea74bfe33fa2edffb5885fab4d96f4ae809a8c2cd7cbafdf"]
+
+[[package]]
+name = "pip-requirements-parser"
+version = "32.0.1"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "platformdirs"
+version = "4.4.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pluggy"
+version = "1.6.0"
+direct = true
+groups = ["development", "install"]
+requirement-files = ["requirements-dev.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["ab0be69d1a1bde3794d486d613137d5d20ac87896592eeb5579dc475d9055966"]
+
+[[package]]
+name = "prometheus-client"
+version = "0.24.1"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["d697f7a85c6b63f263a92656db733b5d639dac7fe26cbc7ea9580bd14e9f4f43"]
+
+[[package]]
+name = "prometheus-fastapi-instrumentator"
+version = "8.0.2"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["1bf0fa377624cf398dba5996d75c500454e4368ebe2aab3ce53401092278a717"]
+
+[[package]]
+name = "psycopg"
+version = "3.3.4"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = ["binary"]
+requirement-hashes = ["c05318a4715a56706e92af64930ae4ba66b7971862c965c0230b4fd4a2bd6aaa"]
+
+[[package]]
+name = "psycopg-binary"
+version = "3.3.4"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "py"
+version = "1.11.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "py-serializable"
+version = "2.1.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pycparser"
+version = "3.0"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pydantic"
+version = "2.13.4"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["ef3359e4f1ef2f2420c267c3b87df123e4e4e71f9779a671cd8df6637c88dc79"]
+
+[[package]]
+name = "pydantic-core"
+version = "2.46.4"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pygments"
+version = "2.20.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pyparsing"
+version = "3.3.2"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "pytest"
+version = "9.1.1"
+direct = true
+groups = ["development", "install"]
+requirement-files = ["requirements-dev.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["07a12deb90e41f110fcedf09a2558b5ba9687dd8d63914d9983912241eb73ba8"]
+
+[[package]]
+name = "pytest-cov"
+version = "7.1.0"
+direct = true
+groups = ["development", "install"]
+requirement-files = ["requirements-dev.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["183f2817951fe2a55422543eaca7ad22b764fcadb1445aa92c078e4a87ac4ff7"]
+
+[[package]]
+name = "pyyaml"
+version = "6.0.3"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "qdldl"
+version = "0.1.9.post1"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "radon"
+version = "6.0.1"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["920ec978a6c04be277b5dd1651f35e4630ab3d90e46e83d79b8a88dbdf35f541"]
+
+[[package]]
+name = "requests"
+version = "2.33.1"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "requirements-parser"
+version = "0.13.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "rich"
+version = "14.3.3"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "ruff"
+version = "0.15.20"
+direct = true
+groups = ["development", "install"]
+requirement-files = ["requirements-dev.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["5cedae8a439ac2d9dfe0686cbd6f2bd5020e9695473f5848c64de56f7f76dec8"]
+
+[[package]]
+name = "scipy"
+version = "1.16.1"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "scs"
+version = "3.2.11"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "setuptools"
+version = "82.0.0"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "six"
+version = "1.17.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "sniffio"
+version = "1.3.1"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["deb49fea86a43b4dfe40bfb0611111f7b4ea4d6242f5c10dd68d13bb1345d4c5"]
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "sparsediffpy"
+version = "0.3.0"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "starlette"
+version = "1.3.1"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "stevedore"
+version = "5.8.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "tabulate"
+version = "0.10.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "tomli"
+version = "2.4.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "tomli-w"
+version = "1.2.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "typing-extensions"
+version = "4.15.0"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["d487e7a6974fe327808381ef70dd633442f377482fdebefdcd0feea71876f367"]
+
+[[package]]
+name = "typing-inspection"
+version = "0.4.2"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "tzdata"
+version = "2025.3"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "urllib3"
+version = "2.7.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
+name = "uvicorn"
+version = "0.49.0"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
+extras = []
+requirement-hashes = ["c1b02bd2faa37bbc9fdaf5034644afc90b50f4c22281e4ed69abe1dd1dab603f"]
+
+[[package]]
+name = "vulture"
+version = "2.16"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["8c9384577ad5be91c9de8e4e9f3f9b81deb0730a73f206cc49f023babee36d25"]
+
+[[package]]
+name = "xenon"
+version = "0.9.3"
+direct = true
+groups = ["development"]
+requirement-files = ["requirements-dev.txt"]
+extras = []
+requirement-hashes = ["312b48ce4834462cf1bd1153fd8f235eef6d2d3f12f87b943472c91c6b0e57b5"]
+
+[summary]
+package-count = 90
+direct-package-count = 35
+transitive-package-count = 55

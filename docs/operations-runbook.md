@@ -24,6 +24,8 @@
 - `make docker-build`: Docker image build validation.
 - `make release-image-provenance-gate`: static Dockerfile, OCI label, release metadata, and
   support-safe build metadata contract validation.
+- `make dependency-lock-gate`: validates `uv.lock` against requirement-file hashes and dependency
+  inventory evidence.
 - `make license-ip-gate`: runtime/development dependency license inventory and approved-exception
   validation for release evidence.
 - `make bandit-severity-regression-gate`: Bandit security gate that blocks all high findings and
@@ -85,14 +87,15 @@ Main Releasability image release evidence before promoting or diagnosing a conta
 1. image tag must be the Git SHA,
 2. OCI labels must carry commit, branch/ref, repository URL, service version, build timestamp, CI
    run ID, and image-digest posture,
-3. `release-evidence.json` must carry the pushed image digest plus SBOM, license/IP inventory,
-   vulnerability scan, signature, and provenance-attestation references,
+3. `release-evidence.json` must carry the pushed image digest plus dependency-lock evidence, SBOM,
+   license/IP inventory, vulnerability scan, signature, and provenance-attestation references,
 4. production deployment must use the immutable digest reference and promote the same image across
    environments instead of rebuilding,
 5. Docker build args, environment variables, OCI labels, release manifests, and runtime `/version`
    metadata must remain support-safe and must not carry secrets or DSNs.
-6. release evidence must link Bandit, dependency audit, license/IP inventory, SBOM, and container
-   vulnerability-scan artifacts so security posture is reviewable with the immutable image identity.
+6. release evidence must link Bandit, dependency lock, dependency audit, license/IP inventory, SBOM,
+   and container vulnerability-scan artifacts so security posture is reviewable with the immutable
+   image identity.
 
 ## Production Deployment Manifest
 

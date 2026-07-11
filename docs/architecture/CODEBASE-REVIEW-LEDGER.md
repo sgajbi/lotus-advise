@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-929
+
+- Scope: Authoritative dependency lock mirror
+- Pattern: A repository must not carry an empty lockfile that implies reproducible dependency
+  provenance while CI and release images install a different graph.
+- Status: Hardened
+- Finding Class: Dependency hygiene, supply-chain reproducibility, CI enforcement
+- Summary: GitHub issue #423 identified that `uv.lock` contained only header metadata while
+  Makefile, CI, and Docker installs used `requirements*.txt`. That split allowed manifest drift and
+  made lock provenance cosmetic.
+- Evidence:
+  - Added `scripts/dependency_lock_evidence.py` to generate and validate `uv.lock` as the explicit
+    lock mirror for the current requirements install strategy.
+  - Regenerated `uv.lock` with requirement-file hashes, license/IP inventory hash, direct package
+    pins, transitive package versions from the dependency inventory, package groups, extras, and
+    requirement-line hashes.
+  - Added `make dependency-lock` and `make dependency-lock-gate`; the gate now runs in `make check`,
+    `make ci`, `make ci-local`, Remote Feature Lane, PR Merge Gate, and Main Releasability.
+  - Release image evidence now links `make dependency-lock-gate` beside dependency audit, license/IP
+    inventory, SBOM, vulnerability scan, signing, and provenance.
+  - Added tests for direct plus transitive package records, missing package, version mismatch, stale
+    manifest hash, and Python 3.11 install compatibility.
+- Consequence:
+  - Dependency changes now have one visible reconciliation path: update requirements, regenerate the
+    license/IP inventory when the graph changes, regenerate `uv.lock`, and run the gate. Empty or
+    stale lock posture fails before PR/release.
+- Documentation:
+  - Updated README, dependency hygiene standard, repository context, supported-features, validation
+    wiki, security/governance wiki, release evidence tests, and this ledger. Wiki source changed, so
+    repo-wiki check is required before merge and publication is required after merge.
+- Modularity:
+  - This is CI/release governance modularity. Runtime behavior and service boundaries are unchanged.
+- Follow-Up:
+  - No cross-app issue was raised. Each Lotus app should choose and enforce its own dependency-lock
+    source of truth against its actual install path.
+
 ## LA-REV-928
 
 - Scope: License/IP release evidence gate
