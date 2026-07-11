@@ -1129,7 +1129,8 @@ Current boundary:
 2. `lotus-report` receives immutable policy evaluation, workflow, approval, disclosure, consent,
    conflict, audit, and source-lineage evidence,
 3. returned report/render/archive refs are recorded in policy lineage as
-   `POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED`,
+   `POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED` only by the specialized report-package command
+   after report/render/archive adapter validation,
 4. client-ready document requests fail closed,
 5. AI policy-evidence consumption remains gated to Slice 11; Gateway/Workbench policy support,
    live canonical proof, active data-product promotion, and client-ready publication remain gated
@@ -1164,7 +1165,7 @@ Current boundary:
 4. deterministic unavailable posture is returned when `lotus-ai` is not configured or unavailable,
 5. append-only `POLICY_EVALUATION_AI_EVIDENCE_RECORDED` events retain prompt/output lineage,
    redaction posture, human-review requirement, non-authoritative posture, and client-ready blocked
-   posture,
+   posture, and are recorded only by the specialized AI-evidence command,
 6. Gateway and Workbench product realization is complete in Slice 12, and policy-pack-specific
    commercial material is complete in Slice 13, but canonical live proof,
    active data-product promotion, final hardening, final closure, and

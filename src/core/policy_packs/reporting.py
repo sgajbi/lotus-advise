@@ -6,6 +6,7 @@ from typing import Any, cast
 
 from src.core.common.canonical import hash_canonical_payload
 from src.core.common.idempotency import normalize_optional_idempotency_key
+from src.core.policy_packs.event_authority import POLICY_REPORT_PACKAGE_EVENT_AUTHORITY
 from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
     get_policy_evaluation_record,
@@ -78,6 +79,7 @@ def request_policy_evaluation_report_package(
         event_type="POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED",
         actor_id=payload.requested_by,
         idempotency_key=idempotency_key,
+        authority=POLICY_REPORT_PACKAGE_EVENT_AUTHORITY,
         reason={
             "policy_report_package_contract_version": _REPORTING_CONTRACT_VERSION,
             "policy_report_package_request_hash": request_hash,

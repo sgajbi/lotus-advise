@@ -135,6 +135,12 @@ Diagnostics must stay support-safe. Do not add raw source evidence, raw downstre
 payloads, prompt text, unrestricted exception details, credentials, trace identifiers, correlation
 identifiers, client secrets, or portfolio/account payloads to this endpoint.
 
+Do not use the generic policy-evaluation event route to backfill sign-off, report/archive, or AI
+evidence. That route accepts non-privileged review events only. Sign-off events must come from the
+policy workflow command, report/archive events from the report-package command, and AI evidence
+events from the bounded AI-evidence command so source hashes, maker-checker posture, downstream
+references, redaction, lineage, idempotency, and client-ready blocked posture remain validated.
+
 ## Policy-Pack Applicability
 
 Policy-pack applicability is evaluated before any material rule executes. The selector contract is

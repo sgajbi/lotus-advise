@@ -27147,3 +27147,41 @@
   - Add live multi-connection PostgreSQL integration coverage for concurrent finalization,
     sign-off, activation, and injected write failures when the CI Postgres lane is expanded for
     heavier concurrency scenarios.
+
+## LA-REV-923
+
+- Scope: Policy evaluation event command authority
+- Pattern: Privileged policy-evaluation audit events must be created only by the specialized
+  domain command that owns their validation and downstream side effects
+- Status: Hardened
+- Finding Class: API governance, audit integrity, workflow authority, and downstream evidence
+  reconciliation
+- Summary: The generic policy-evaluation event API and low-level append helper allowed callers to
+  submit sign-off, report/archive, AI-evidence, and finalized event types without going through the
+  workflow, report-package, AI-evidence, or finalization command paths that validate source hashes,
+  maker-checker posture, downstream references, redaction, lineage, and client-ready blocked
+  posture.
+- Evidence:
+  - `PolicyEvaluationEventRequest` is now a non-privileged review-event request, so OpenAPI and
+    API vocabulary expose the generic event endpoint as review-only.
+  - `src/core/policy_packs/event_authority.py` defines explicit command-authority contracts for
+    sign-off, report-package, and AI-evidence events.
+  - The policy evaluation store rejects finalized events through append and rejects privileged
+    sign-off, report/archive, and AI-evidence events unless the specialized command supplies the
+    matching authority context and source-evaluation hash.
+  - Workflow, report-package, and AI-evidence command paths pass their authority context while
+    retaining existing idempotency and lineage behavior.
+  - API and engine tests prove forged privileged generic posts fail, lineage/workflow/diagnostics
+    do not advance, and low-level privileged append calls without command authority fail closed.
+- Consequence:
+  - A caller cannot manufacture policy sign-off, report/archive, or AI-evidence posture through the
+    generic event route or an unqualified append call. Diagnostics and workflow projections remain
+    tied to validated Advise-owned commands and downstream evidence.
+- Documentation:
+  - Updated README, repository context, RFC-0025 Slice 8, RFC-0025 source, API wiki, operations
+    wiki, generated API vocabulary, generated quality reports, and this ledger with the review-only
+    event boundary.
+- Follow-Up:
+  - #432 remains the trusted-principal and role-authority issue for policy control-plane commands;
+    this slice intentionally fixes event-type authority without broadening into authenticated
+    principal binding.

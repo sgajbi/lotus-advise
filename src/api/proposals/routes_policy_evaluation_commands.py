@@ -63,11 +63,13 @@ def create_or_replay_policy_evaluation(
     response_model=PolicyEvaluationAuditEvent,
     status_code=status.HTTP_200_OK,
     tags=["Advisory Policy Evaluation"],
-    summary="Record Policy Evaluation Event",
+    summary="Record Policy Evaluation Review Event",
     description=(
-        "Records an append-only review, sign-off, or report/archive reference event against the "
-        "finalized policy evaluation hash. Event capture does not mutate the immutable evaluation "
-        "truth or release client-ready publication."
+        "Records an append-only non-privileged policy review event against the finalized policy "
+        "evaluation hash. Sign-off, report/archive, AI-evidence, and finalized events are created "
+        "only through their specialized workflow, report-package, AI-evidence, and finalize "
+        "commands. Event capture does not mutate immutable evaluation truth or release "
+        "client-ready publication."
     ),
     responses=POLICY_EVALUATION_EVENT_RESPONSES,
 )

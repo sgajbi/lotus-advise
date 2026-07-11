@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core.common.idempotency import normalize_optional_idempotency_key
+from src.core.policy_packs.event_authority import PolicyEvaluationEventAuthority
 from src.core.policy_packs.persistence_models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationEventType,
@@ -92,6 +93,7 @@ def append_policy_evaluation_event(
     actor_id: str,
     reason: dict[str, Any],
     idempotency_key: str | None = None,
+    authority: PolicyEvaluationEventAuthority | None = None,
 ) -> PolicyEvaluationAuditEvent:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     return _repository().append_policy_evaluation_event(
@@ -100,6 +102,7 @@ def append_policy_evaluation_event(
         actor_id=actor_id,
         reason=reason,
         idempotency_key=idempotency_key,
+        authority=authority,
     )
 
 

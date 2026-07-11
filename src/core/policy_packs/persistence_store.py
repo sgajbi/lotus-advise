@@ -8,6 +8,10 @@ from typing import Any
 from src.core.common.canonical import hash_canonical_payload
 from src.core.policy_packs.catalog import get_policy_pack_version
 from src.core.policy_packs.evaluation import evaluate_policy_pack_version
+from src.core.policy_packs.event_authority import (
+    PolicyEvaluationEventAuthority,
+    validate_policy_evaluation_event_authority,
+)
 from src.core.policy_packs.persistence_models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationEventType,
@@ -272,8 +276,15 @@ class PolicyEvaluationRecordStore:
         actor_id: str,
         reason: dict[str, Any],
         idempotency_key: str | None,
+        authority: PolicyEvaluationEventAuthority | None = None,
     ) -> PolicyEvaluationAuditEvent:
         record = self._load_record(evaluation_id)
+        validate_policy_evaluation_event_authority(
+            event_type=event_type,
+            reason=reason,
+            evaluation_hash=record.evaluation_hash,
+            authority=authority,
+        )
         request_hash = hash_canonical_payload(
             {
                 "operation": event_type,

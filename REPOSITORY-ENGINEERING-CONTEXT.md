@@ -130,6 +130,9 @@ Current repository posture:
    event-backed state. Completed
    approval/waiver authority, completed sign-off authority, client-ready policy publication,
    external client communication, and full RFC-0028 bank-demo/RFP package claims remain gated,
+   and the generic policy-evaluation event API is review-only: sign-off, report/archive,
+   AI-evidence, and finalization events must be created through their specialized workflow,
+   report-package, AI-evidence, and finalize commands with event-authority contract checks,
 8. RFC-0026 advisor cockpit first-wave scope is implemented for source-owned Advise evidence and
    cross-repo product consumption: the dedicated `src/core/advisor_cockpit/` package owns action
    construction, source-read-model aggregation, SLA/acknowledgement rules, supportability, and API
