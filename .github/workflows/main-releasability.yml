@@ -251,7 +251,7 @@ jobs:
       IMAGE_REF: ghcr.io/${{ github.repository }}:${{ github.sha }}
       RELEASE_OUTPUT_DIR: output/release
       SERVICE_VERSION: "0.1.0"
-      TRIVY_VERSION: "0.64.1"
+      TRIVY_VERSION: "0.72.0"
     steps:
       - uses: actions/checkout@v7
       - name: Set release timestamp
@@ -309,7 +309,10 @@ jobs:
           curl -fsSLo "$RUNNER_TEMP/$archive" "$trivy_release_base/$archive"
           curl -fsSLo "$RUNNER_TEMP/$checksum_file" "$trivy_release_base/$checksum_file"
           cd "$RUNNER_TEMP"
-          grep " $archive$" "$checksum_file" | sha256sum -c -
+          expected_checksum="$(awk -v file="$archive" '$2 == file || $2 == "*" file { print $1; exit }' "$checksum_file")"
+          test -n "$expected_checksum"
+          actual_checksum="$(sha256sum "$archive" | cut -d' ' -f1)"
+          test "$expected_checksum" = "$actual_checksum"
           tar -xzf "$archive" trivy
           install -m 0755 trivy "$HOME/.local/bin/trivy"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
