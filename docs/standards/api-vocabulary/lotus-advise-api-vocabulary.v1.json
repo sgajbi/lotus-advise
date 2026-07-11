@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T11:10:08.449468+00:00",
+  "generatedAt": "2026-07-11T11:30:25.322072+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -6082,7 +6082,7 @@
       "semanticId": "lotus.lineage_json",
       "canonicalTerm": "lineage_json",
       "preferredName": "lineage_json",
-      "description": "Adapter, workflow-pack, evidence, and model-risk lineage.",
+      "description": "Adapter, workflow-pack, evidence, model-risk, and claim-grounding lineage.",
       "example": {
         "source_system": "lotus-advise",
         "business_context": "lineage_json_contract"
@@ -7160,7 +7160,7 @@
       "semanticId": "lotus.output_sections_json",
       "canonicalTerm": "output_sections_json",
       "preferredName": "output_sections_json",
-      "description": "Review-gated business-facing output sections; unsafe raw output omitted.",
+      "description": "Review-gated business-facing output sections with bounded claim-grounding posture; unsafe raw output omitted.",
       "example": [
         {
           "source_system": "lotus-advise",

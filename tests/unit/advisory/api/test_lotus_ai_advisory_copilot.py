@@ -93,6 +93,18 @@ def _packet() -> CopilotEvidencePacket:
     )
 
 
+def _policy_source_ref_key() -> str:
+    return "lotus-advise:POLICY_EVALUATION:policy_eval_sg_001:sha256:policy-evaluation"
+
+
+def _grounded_claim(claim_id: str = "policy_posture_claim_001") -> dict[str, object]:
+    return {
+        "claim_id": claim_id,
+        "claim_text": "Policy evaluation requires compliance review.",
+        "source_refs": [_policy_source_ref_key()],
+    }
+
+
 def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_only() -> None:
     request = _build_workflow_pack_request(
         evidence_packet=_packet(),
@@ -198,6 +210,7 @@ def test_generate_advisory_copilot_returns_review_required_sections(
                                             "section_key": "POLICY_POSTURE",
                                             "title": " Policy posture ",
                                             "text": " Evidence remains under advisor review. ",
+                                            "claims": [_grounded_claim()],
                                         }
                                     ],
                                     "review_guidance": ["Review against cited evidence."],
@@ -243,14 +256,12 @@ def test_generate_advisory_copilot_returns_review_required_sections(
     )
 
     assert response.status == "REVIEW_REQUIRED"
-    assert response.sections == (
-        {
-            "section_key": "POLICY_POSTURE",
-            "title": "Policy posture",
-            "text": "Evidence remains under advisor review.",
-            "review_state": "REVIEW_REQUIRED",
-        },
-    )
+    section = response.sections[0]
+    assert section["section_key"] == "POLICY_POSTURE"
+    assert section["review_state"] == "REVIEW_REQUIRED"
+    assert section["grounding_status"] == "GROUNDED"
+    assert section["claim_grounding"][0]["source_refs"] == (_policy_source_ref_key(),)
+    assert response.lineage["claim_grounding_summary"]["ready_for_review"] is True
     assert response.lineage["workflow_run_id"] == "packrun_copilot_001"
     assert response.lineage["model_version"] == "lotus-ai-governed-model.v1"
     assert response.lineage["proposal_version_id"] == "version_sg_001"
@@ -280,6 +291,21 @@ def test_generate_advisory_copilot_extracts_proposal_version_from_source_refs(
                                             "section_key": "POLICY_POSTURE",
                                             "title": "Policy posture",
                                             "text": "Evidence remains under advisor review.",
+                                            "claims": [
+                                                {
+                                                    "claim_id": "version_claim_001",
+                                                    "claim_text": (
+                                                        "Proposal version evidence is available."
+                                                    ),
+                                                    "source_refs": [
+                                                        (
+                                                            "lotus-advise:PROPOSAL_VERSION:"
+                                                            "version_sg_source_ref_001:"
+                                                            "sha256:version"
+                                                        )
+                                                    ],
+                                                }
+                                            ],
                                         },
                                         "ignore invalid section",
                                         {"section_key": "", "title": "", "text": ""},
@@ -329,15 +355,169 @@ def test_generate_advisory_copilot_extracts_proposal_version_from_source_refs(
 
     assert response.status == "REVIEW_REQUIRED"
     assert response.lineage["proposal_version_id"] == "version_sg_source_ref_001"
-    assert response.sections == (
-        {
-            "section_key": "POLICY_POSTURE",
-            "title": "Policy posture",
-            "text": "Evidence remains under advisor review.",
-            "review_state": "REVIEW_REQUIRED",
-        },
-    )
+    assert response.sections[0]["grounding_status"] == "GROUNDED"
     assert response.review_guidance == ("Use cited evidence only.",)
+
+
+def test_generate_advisory_copilot_marks_missing_claim_refs_unsupported(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "state": "REVIEW_REQUIRED",
+                                    "sections": [
+                                        {
+                                            "section_key": "POLICY_POSTURE",
+                                            "title": "Policy posture",
+                                            "text": "Evidence remains under advisor review.",
+                                        }
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNSUPPORTED"
+    assert response.sections[0]["review_state"] == "UNSUPPORTED"
+    assert response.sections[0]["claim_grounding"][0]["unsupported_reason"] == (
+        "COPILOT_CLAIM_REFS_MISSING"
+    )
+    assert response.lineage["claim_grounding_summary"]["ready_for_review"] is False
+
+
+def test_generate_advisory_copilot_marks_unknown_source_refs_unverifiable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    unknown_ref = "lotus-ai:provider-source:invented:sha256:unknown"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "sections": [
+                                        {
+                                            "section_key": "POLICY_POSTURE",
+                                            "title": "Policy posture",
+                                            "text": "Evidence remains under advisor review.",
+                                            "claims": [
+                                                {
+                                                    "claim_id": "unknown_ref_claim",
+                                                    "source_refs": [unknown_ref],
+                                                }
+                                            ],
+                                        }
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    claim = response.sections[0]["claim_grounding"][0]
+    assert response.status == "UNSUPPORTED"
+    assert response.sections[0]["grounding_status"] == "UNVERIFIABLE"
+    assert claim["unsupported_reason"] == "COPILOT_CLAIM_SOURCE_REF_UNKNOWN"
+    assert claim["unknown_source_refs"] == (unknown_ref,)
+    assert response.lineage["claim_grounding_summary"]["unknown_source_refs"] == [unknown_ref]
+
+
+def test_generate_advisory_copilot_marks_duplicate_claim_ids_unverifiable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "sections": [
+                                        {
+                                            "section_key": "POLICY_POSTURE",
+                                            "title": "Policy posture",
+                                            "text": "Evidence remains under advisor review.",
+                                            "claims": [
+                                                _grounded_claim("duplicate_claim"),
+                                                _grounded_claim("duplicate_claim"),
+                                            ],
+                                        }
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNSUPPORTED"
+    assert response.sections[0]["grounding_status"] == "PARTIAL"
+    assert response.sections[0]["claim_grounding"][1]["unsupported_reason"] == (
+        "COPILOT_CLAIM_ID_DUPLICATE"
+    )
 
 
 def test_generate_advisory_copilot_fails_closed_for_invalid_output_sections(
@@ -413,6 +593,7 @@ def test_generate_advisory_copilot_bounds_sections_and_review_guidance(
                                             "section_key": f"SECTION_{index}",
                                             "title": f"Section {index}",
                                             "text": "Evidence remains under advisor review.",
+                                            "claims": [_grounded_claim(f"claim_{index}")],
                                         }
                                         for index in range(MAX_COPILOT_OUTPUT_SECTIONS + 2)
                                     ],
@@ -439,7 +620,7 @@ def test_generate_advisory_copilot_bounds_sections_and_review_guidance(
         reason={"purpose": "advisor review"},
     )
 
-    assert response.status == "REVIEW_REQUIRED"
+    assert response.status == "UNSUPPORTED"
     assert len(response.sections) == MAX_COPILOT_OUTPUT_SECTIONS
     assert response.sections[-1]["section_key"] == "SECTION_7"
     assert response.review_guidance == ("Use cited evidence only.", "Check review posture.")

@@ -1,5 +1,22 @@
 # API Surface
 
+## Current Scope
+
+Current scope: this page summarizes the implementation-backed `lotus-advise` API route families,
+the contract rules that are easy to misuse, and the evidence boundaries that consumers must
+preserve. OpenAPI, API vocabulary, source-reference, and wiki checks back the page; unsupported
+client-ready publication, external client communication, OMS/order lifecycle, and bank attestation
+claims remain out of scope.
+
+## Reader Map
+
+| Reader | Start here | Evidence posture |
+| --- | --- | --- |
+| API consumers | Route family sections below | Use the listed Advise contracts through Gateway/Workbench where applicable. |
+| Operators | Contract Notes and readiness/capability bullets | Use `/health/ready` for local runtime readiness and `/platform/capabilities` for workflow dependency posture. |
+| Reviewers | Advisory copilot, policy, memo, and bank-demo notes | Claims are bounded by persisted evidence, review posture, and supported-feature proof. |
+| Future agents | Contract Notes | Preserve source-owned semantics and do not infer unsupported capability from route existence. |
+
 ## Health
 
 - `GET /health`
@@ -143,6 +160,10 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   headers. Body actor fields such as `requested_by`, `activated_by`, `created_by`, and `actor_id`
   are compatibility echoes; mismatch returns stable 403 policy-control errors and no state
   mutation.
+- Advisory copilot run output includes bounded claim-grounding posture in persisted output sections
+  and lineage. Completed provider output remains review-ready only when every claim cites source
+  refs from the input evidence packet and aligns to the output section; missing, duplicate,
+  unknown, or mismatched citations are exposed as unsupported or unverifiable review posture.
 - `contracts/idea-proposal-intake/lotus-advise-idea-proposal-intake.v1.json` is the current
   source-safe `lotus-idea` proposal-intake contract. Its supportability status is
   `not_certified`, and remaining blockers include Advise suitability authority and client

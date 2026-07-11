@@ -205,7 +205,12 @@ Current repository posture:
    conversion-intent route foundation. It is not certified as proposal realization, does not
    persist proposal lifecycle records, does not run suitability, does not authorize client
    publication, and must not be listed as a supported feature until the downstream realization
-   blockers are closed with runtime evidence.
+   blockers are closed with runtime evidence,
+18. completed advisory copilot output must pass Advise-owned claim-level source grounding before it
+   can remain review-ready. Each provider claim must cite source refs from the input evidence
+   packet and align to the output section; missing, duplicate, unknown, or mismatched citations are
+   persisted as unsupported or unverifiable grounding posture rather than as review-ready AI
+   output.
 
 ## Architecture And Module Map
 

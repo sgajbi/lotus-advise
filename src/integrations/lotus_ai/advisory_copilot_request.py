@@ -7,6 +7,7 @@ from src.core.advisory_copilot import (
     CopilotActionFamily,
     CopilotAudience,
     CopilotEvidencePacket,
+    copilot_source_ref_identity,
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
@@ -110,16 +111,7 @@ def source_refs(evidence_packet: CopilotEvidencePacket) -> list[str]:
     ]
     for section in evidence_packet.sections:
         for source_ref in section.source_refs:
-            refs.append(
-                ":".join(
-                    (
-                        source_ref.source_system,
-                        source_ref.source_type,
-                        source_ref.source_id,
-                        source_ref.content_hash or "no-content-hash",
-                    )
-                )
-            )
+            refs.append(copilot_source_ref_identity(source_ref))
     return [bounded_text(ref, max_length=MAX_COPILOT_SOURCE_REF_LENGTH) for ref in refs][
         :MAX_COPILOT_SOURCE_REFS
     ]
