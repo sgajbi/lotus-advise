@@ -38,6 +38,16 @@ Deployment should use the immutable image digest from the release manifest and p
 image across environments. Do not rebuild per environment, and do not inject secrets through Docker
 build args, OCI labels, release manifests, or `/version` metadata.
 
+## Production Deployment Manifest
+
+`docker-compose.production.yml` is environment-neutral. Deployment automation must inject the
+immutable image digest reference, upstream service URLs, Postgres DSNs from secrets, and the trusted
+tenant id. The production manifest must not contain `.dev.lotus`, `host-gateway`, plaintext DSNs,
+database passwords, local image builds, or mutable image tags.
+
+Production container healthchecks use `/health/ready`. `/version` is release metadata for
+comparing runtime build identity with release evidence; it is not a readiness endpoint.
+
 ## Advisory Supportability Metrics
 
 `GET /platform/capabilities` publishes the implemented feature key

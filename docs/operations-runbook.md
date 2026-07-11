@@ -75,6 +75,21 @@ Main Releasability image release evidence before promoting or diagnosing a conta
 6. release evidence must link Bandit, dependency audit, SBOM, and container vulnerability-scan
    artifacts so security posture is reviewable with the immutable image identity.
 
+## Production Deployment Manifest
+
+`docker-compose.production.yml` is environment-neutral. It must be rendered by the deployment
+environment with:
+
+- `LOTUS_ADVISE_IMAGE_DIGEST_REF`: immutable image reference with digest from release evidence,
+- upstream service URLs (`LOTUS_CORE_BASE_URL`, `LOTUS_CORE_QUERY_BASE_URL`, `LOTUS_RISK_BASE_URL`,
+  `LOTUS_REPORT_BASE_URL`, `LOTUS_AI_BASE_URL`),
+- `PROPOSAL_POSTGRES_DSN` and `POLICY_POSTGRES_DSN` from deployment secrets,
+- `LOTUS_ADVISE_TENANT_ID` from governed tenant configuration.
+
+Do not add `.dev.lotus`, `host-gateway`, plaintext DSNs, database passwords, local image builds, or
+mutable image tags to the production manifest. The manifest healthcheck uses `/health/ready`;
+`/version` remains release metadata, not readiness.
+
 ## Operational Posture
 
 - Treat GitHub Actions as CI truth.

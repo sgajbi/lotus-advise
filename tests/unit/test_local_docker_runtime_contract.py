@@ -17,7 +17,7 @@ def test_local_docker_compose_uses_canonical_upstream_urls() -> None:
     assert '"risk.dev.lotus:host-gateway"' in compose_text
 
 
-def test_runtime_dockerfile_carries_release_metadata_labels_and_version_healthcheck() -> None:
+def test_runtime_dockerfile_carries_release_metadata_labels_and_readiness_healthcheck() -> None:
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
 
     for required in (
@@ -37,7 +37,7 @@ def test_runtime_dockerfile_carries_release_metadata_labels_and_version_healthch
         'com.lotus.image.digest="${LOTUS_IMAGE_DIGEST}"',
         'LOTUS_BUILD_COMMIT_SHA="${LOTUS_BUILD_COMMIT_SHA}"',
         'LOTUS_IMAGE_DIGEST="${LOTUS_IMAGE_DIGEST}"',
-        "http://127.0.0.1:8000/version",
+        "http://127.0.0.1:8000/health/ready",
     ):
         assert required in dockerfile
 
@@ -84,3 +84,33 @@ def test_local_compose_uses_version_endpoint_for_container_readiness() -> None:
     compose_text = Path("docker-compose.yml").read_text(encoding="utf-8")
 
     assert "http://127.0.0.1:8000/version" in compose_text
+
+
+def test_production_compose_is_environment_neutral_and_secret_safe() -> None:
+    compose_text = Path("docker-compose.production.yml").read_text(encoding="utf-8")
+
+    forbidden_fragments = (
+        ".dev.lotus",
+        "host-gateway",
+        "postgresql://",
+        "POSTGRES_PASSWORD",
+        "build:",
+        "image: lotus-advise:latest",
+        "http://127.0.0.1:8000/version",
+    )
+    for fragment in forbidden_fragments:
+        assert fragment not in compose_text
+
+    required_fragments = (
+        "image: ${LOTUS_ADVISE_IMAGE_DIGEST_REF:",
+        "LOTUS_CORE_BASE_URL=${LOTUS_CORE_BASE_URL:?",
+        "LOTUS_CORE_QUERY_BASE_URL=${LOTUS_CORE_QUERY_BASE_URL:?",
+        "LOTUS_RISK_BASE_URL=${LOTUS_RISK_BASE_URL:?",
+        "LOTUS_REPORT_BASE_URL=${LOTUS_REPORT_BASE_URL:?",
+        "LOTUS_AI_BASE_URL=${LOTUS_AI_BASE_URL:?",
+        "PROPOSAL_POSTGRES_DSN=${PROPOSAL_POSTGRES_DSN:?",
+        "POLICY_POSTGRES_DSN=${POLICY_POSTGRES_DSN:?",
+        "http://127.0.0.1:8000/health/ready",
+    )
+    for fragment in required_fragments:
+        assert fragment in compose_text

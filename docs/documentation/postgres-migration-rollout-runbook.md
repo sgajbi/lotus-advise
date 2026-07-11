@@ -12,11 +12,13 @@ Runbook for forward-only schema migration rollout for:
 - PostgreSQL is reachable and healthy.
 - Runtime DSNs are configured:
   - `PROPOSAL_POSTGRES_DSN`
-  - `ADVISORY_COPILOT_POSTGRES_DSN` when copilot records use a separate database. If unset, the
-    migration tool uses `PROPOSAL_POSTGRES_DSN`.
+  - `POLICY_POSTGRES_DSN` when policy records use a separate database. If unset, the runtime can
+    share `PROPOSAL_POSTGRES_DSN`, but production manifests should inject both explicitly.
 - Application image/version to deploy is already tested in non-production.
-- Production compose override available:
+- Production compose manifest available:
   - `docker-compose.production.yml`
+  - rendered with `LOTUS_ADVISE_IMAGE_DIGEST_REF` from release evidence and DSNs from deployment
+    secrets, not committed plaintext credentials.
 
 ## Runtime Contract
 
@@ -55,6 +57,7 @@ python scripts/production_cutover_check.py --check-migrations
 3. Validate production contract (`scripts/production_cutover_check.py --check-migrations`).
 4. Start API services with advisory Postgres runtime enabled:
    - `PROPOSAL_STORE_BACKEND=POSTGRES`
+   - `POLICY_STORE_BACKEND=POSTGRES`
 5. Run advisory smoke API checks.
 6. Shift traffic.
 
@@ -71,6 +74,12 @@ Do not start app replicas with Postgres backend enabled before migrations have c
 - Startup runtime guardrails fail-fast with explicit reason codes:
   - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
   - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
+  - `PERSISTENCE_PROFILE_REQUIRES_POLICY_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_POLICY_POSTGRES_DSN`
+- The production compose manifest must not contain `.dev.lotus`, `host-gateway`, committed
+  plaintext DSNs, database passwords, local image builds, or mutable image tags. Use the immutable
+  image digest reference from release evidence and inject environment-specific values at deploy
+  time.
 
 ## CI Smoke Checks
 
@@ -85,6 +94,7 @@ CI executes:
   - validates startup fails with:
     - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
     - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
+    - malformed numeric integration configuration
 5. Production cutover contract check:
    - `python scripts/production_cutover_check.py --check-migrations`
 6. Optional nightly/manual deep validation:

@@ -5,6 +5,7 @@ import pytest
 
 from scripts.release_image_evidence import (
     ReleaseEvidence,
+    _validate_production_manifest_policy,
     validate_image_labels,
     validate_static_release_contract,
     write_manifest,
@@ -13,6 +14,47 @@ from scripts.release_image_evidence import (
 
 def test_static_release_contract_passes_for_current_repo() -> None:
     assert validate_static_release_contract(Path(".")) == []
+
+
+def test_production_manifest_policy_rejects_dev_hosts_plaintext_secrets_and_builds() -> None:
+    compose_text = """
+services:
+  lotus-advise:
+    build: .
+    image: lotus-advise:latest
+    environment:
+      - LOTUS_CORE_BASE_URL=http://core-control.dev.lotus
+      - PROPOSAL_POSTGRES_DSN=postgresql://advise:advise@postgres:5432/advise
+      - POSTGRES_PASSWORD=advise
+    extra_hosts:
+      - "core-control.dev.lotus:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "http://127.0.0.1:8000/version"]
+"""
+
+    failures = _validate_production_manifest_policy(compose_text)
+
+    assert "Production compose must not reference development DNS names." in failures
+    assert "Production compose must not use host-gateway mappings." in failures
+    assert "Production compose must not commit plaintext PostgreSQL DSNs." in failures
+    assert "Production compose must not commit database passwords." in failures
+    assert "Production compose must deploy a prebuilt release image, not build locally." in failures
+    assert "Production compose must not use mutable latest tags." in failures
+    assert "Production compose healthcheck must use readiness, not version metadata." in failures
+
+
+def test_production_manifest_policy_requires_environment_injection() -> None:
+    failures = _validate_production_manifest_policy("services:\n  lotus-advise: {}\n")
+
+    assert "Production compose must require an immutable image digest ref." in failures
+    assert "Production compose must require LOTUS_CORE_BASE_URL injection." in failures
+    assert "Production compose must require LOTUS_CORE_QUERY_BASE_URL injection." in failures
+    assert "Production compose must require LOTUS_RISK_BASE_URL injection." in failures
+    assert "Production compose must require LOTUS_REPORT_BASE_URL injection." in failures
+    assert "Production compose must require LOTUS_AI_BASE_URL injection." in failures
+    assert "Production compose must require PROPOSAL_POSTGRES_DSN secret injection." in failures
+    assert "Production compose must require POLICY_POSTGRES_DSN secret injection." in failures
+    assert "Production compose must healthcheck the readiness endpoint." in failures
 
 
 def test_image_label_validation_rejects_missing_required_label(monkeypatch) -> None:

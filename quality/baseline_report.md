@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-07-11T07:06:40.029128+00:00`
+- Generated At: `2026-07-11T07:17:36.275944+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `991`
 - Packages: `39`
 - Modules: `952`
-- Total Python lines: `164449`
+- Total Python lines: `164578`
 
 ## Largest Files
 
@@ -23,7 +23,7 @@
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 2449 |
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1703 |
-| 8 | `scripts/quality_baseline_report.py` | 1608 |
+| 8 | `scripts/quality_baseline_report.py` | 1611 |
 | 9 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1516 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1250 |
 
@@ -31,15 +31,15 @@
 
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
-| 1 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 58 | 489 |
-| 2 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 805 | 487 |
+| 1 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 805 | 490 |
+| 2 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 58 | 489 |
 | 3 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
 | 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 92 | 297 |
 | 5 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 6 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 7 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 8 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1294 | 247 |
+| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1297 | 247 |
 | 10 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 
 ## Complexity
@@ -121,7 +121,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4879, missing=4838, covered=41, coverage=0.8%`
+- Interrogate docstring inventory: `total=4880, missing=4839, covered=41, coverage=0.8%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
