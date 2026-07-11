@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T02:23:39.490046+00:00",
+  "generatedAt": "2026-07-11T03:06:26.347741+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -10662,6 +10662,20 @@
       ]
     },
     {
+      "semanticId": "lotus.source_completeness",
+      "canonicalTerm": "source_completeness",
+      "preferredName": "source_completeness",
+      "description": "Upstream source row completeness and rejection-summary evidence.",
+      "example": "source_completeness_value",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.source_content_hash",
       "canonicalTerm": "source_content_hash",
       "preferredName": "source_content_hash",
@@ -16434,6 +16448,14 @@
             "attributeRef": "#/attributeCatalog/lotus.source_provenance"
           },
           {
+            "name": "version.proposal_result.lineage.source_completeness",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_completeness",
+            "attributeRef": "#/attributeCatalog/lotus.source_completeness"
+          },
+          {
             "name": "version.artifact",
             "location": "body",
             "required": true,
@@ -19616,6 +19638,14 @@
             "attributeRef": "#/attributeCatalog/lotus.source_provenance"
           },
           {
+            "name": "current_version.proposal_result.lineage.source_completeness",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_completeness",
+            "attributeRef": "#/attributeCatalog/lotus.source_completeness"
+          },
+          {
             "name": "current_version.artifact",
             "location": "body",
             "required": true,
@@ -22437,6 +22467,14 @@
             "type": "object",
             "semanticId": "lotus.source_provenance",
             "attributeRef": "#/attributeCatalog/lotus.source_provenance"
+          },
+          {
+            "name": "proposal_result.lineage.source_completeness",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_completeness",
+            "attributeRef": "#/attributeCatalog/lotus.source_completeness"
           },
           {
             "name": "artifact",
@@ -25404,6 +25442,14 @@
             "type": "object",
             "semanticId": "lotus.source_provenance",
             "attributeRef": "#/attributeCatalog/lotus.source_provenance"
+          },
+          {
+            "name": "version.proposal_result.lineage.source_completeness",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_completeness",
+            "attributeRef": "#/attributeCatalog/lotus.source_completeness"
           },
           {
             "name": "version.artifact",
@@ -47084,6 +47130,14 @@
             "type": "object",
             "semanticId": "lotus.source_provenance",
             "attributeRef": "#/attributeCatalog/lotus.source_provenance"
+          },
+          {
+            "name": "lineage.source_completeness",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_completeness",
+            "attributeRef": "#/attributeCatalog/lotus.source_completeness"
           }
         ]
       }
@@ -60408,6 +60462,14 @@
             "type": "object",
             "semanticId": "lotus.source_provenance",
             "attributeRef": "#/attributeCatalog/lotus.source_provenance"
+          },
+          {
+            "name": "proposal.version.proposal_result.lineage.source_completeness",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_completeness",
+            "attributeRef": "#/attributeCatalog/lotus.source_completeness"
           },
           {
             "name": "proposal.version.artifact",

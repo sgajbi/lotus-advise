@@ -48,6 +48,11 @@ Important rule:
   Explicit invalid rates or source ratios fail closed with `LOTUS_CORE_STATEFUL_FX_INVALID`.
   Future-only FX lookup rows are not selected, and missing eligible FX remains bounded
   data-quality evidence rather than a fabricated conversion rate.
+- stateful source-row completeness is evaluated before advisory snapshots are constructed. Required
+  malformed positions, cash balances, prices, or FX source rows fail closed with
+  `LOTUS_CORE_STATEFUL_SOURCE_INCOMPLETE`; optional enrichment and classification taxonomy gaps are
+  carried as degraded completeness evidence on resolved context and proposal lineage without raw
+  source payload storage.
 
 Cache policy:
 

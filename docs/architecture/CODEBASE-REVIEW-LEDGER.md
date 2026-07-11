@@ -1,5 +1,47 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-904
+
+- Scope: Lotus Core stateful source completeness and dropped-row reconciliation
+- Pattern: Source-backed advisory snapshots must account for every upstream collection row before
+  normalization, fail closed for rejected required rows, and carry bounded completeness evidence
+  for optional enrichment gaps without storing raw source payloads.
+- Status: Hardened
+- Finding Class: Data quality, source-boundary validation, lineage supportability
+- Summary: GitHub issue #389 identified that Lotus Core positions, cash, prices, FX source values,
+  instrument enrichment, and classification taxonomy rows could be silently skipped before
+  advisory valuation. Required malformed position/cash/price rows could disappear from the
+  Trust Snapshot input, while optional enrichment or taxonomy failures could look like a complete
+  shelf/classification context.
+- Evidence:
+  - Added typed `SourceCompletenessReport` and per-collection completeness summaries with
+    received, accepted, rejected, duplicate, bounded reason, affected-reference, and raw-payload
+    storage posture.
+  - Lotus Core stateful-context resolution now builds completeness evidence before advisory
+    snapshot construction and fails closed with `LOTUS_CORE_STATEFUL_SOURCE_INCOMPLETE` when
+    required position, cash, price, or FX source rows are malformed or incomplete.
+  - Optional instrument enrichment and classification taxonomy gaps now remain explicit degraded
+    source evidence, including malformed enrichment records and taxonomy unavailability, instead
+    of being indistinguishable from complete optional context.
+  - `WorkspaceResolvedContext`, `ProposalResolvedContext`, `PortfolioSnapshot`,
+    `MarketDataSnapshot`, and proposal `LineageData` carry the bounded completeness report on
+    successful source-backed runs without storing raw positions, cash, or provider payloads.
+  - Focused stateful-context and model-contract validation passed with 96 tests, covering
+    non-object rows, missing security identifiers, invalid Decimal values, duplicate instruments,
+    missing valuation/price, malformed enrichment, taxonomy failure, required-row fail-closed
+    behavior, optional degraded posture, and lineage propagation.
+- Consequence:
+  - A READY advisory result can no longer omit malformed required Lotus Core source rows. Operators
+    receive support-safe source completeness diagnostics for reconciliation, while optional
+    enrichment/classification gaps are explicit degraded evidence rather than hidden local
+    fallback behavior.
+- Documentation:
+  - Repository context, integration wiki, and review ledger updated. Wiki source changed, so repo
+    wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - Reuse `SourceCompletenessReport` for any future source-owned adapter that normalizes upstream
+    collections before advisory simulation or proposal lifecycle evidence.
+
 ## LA-REV-903
 
 - Scope: Lotus Core source-derived FX validation and valuation model invariants

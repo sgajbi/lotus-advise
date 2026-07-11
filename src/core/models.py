@@ -179,6 +179,12 @@ from src.core.simulation_state_models import (
 from src.core.simulation_state_models import (
     SimulatedState as SimulatedState,
 )
+from src.core.source_completeness_models import (
+    SourceCollectionCompleteness as SourceCollectionCompleteness,
+)
+from src.core.source_completeness_models import (
+    SourceCompletenessReport as SourceCompletenessReport,
+)
 from src.core.suitability_models import (
     SuitabilityEvidence as SuitabilityEvidence,
 )
