@@ -1,4 +1,14 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate observability-diagnostics advisory-domain-golden-regressions external-adapter-contracts demo-assurance-gate demo-certification-live format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate observability-diagnostics advisory-domain-golden-regressions external-adapter-contracts demo-assurance-gate demo-certification-live release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+
+SERVICE_VERSION ?= 0.1.0
+IMAGE_REPOSITORY ?= lotus-advise
+GIT_SHA ?= $(shell git rev-parse --verify HEAD 2>/dev/null || echo local)
+GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo local)
+REPO_URL ?= https://github.com/sgajbi/lotus-advise
+BUILD_TIMESTAMP ?= $(shell python -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z'))")
+CI_PIPELINE_ID ?= local
+IMAGE_DIGEST ?= unknown
+IMAGE_TAG ?= $(IMAGE_REPOSITORY):$(GIT_SHA)
 
 install: install-ci
 	python -m pre_commit install
@@ -11,9 +21,9 @@ install-ci:
 pre-commit:
 	python -m pre_commit run --all-files
 
-check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate external-adapter-contracts quality-baseline-check bandit-high-severity-gate test
+check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate external-adapter-contracts quality-baseline-check bandit-high-severity-gate release-image-provenance-gate test
 
-ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check migration-smoke security-audit coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
+ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check migration-smoke security-audit release-image-provenance-gate coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
 
 test:
 	$(MAKE) test-unit
@@ -47,7 +57,7 @@ test-all-parallel:
 	python -c "import importlib.util, subprocess, sys; args=[sys.executable,'-m','pytest','--cov=src','--cov-report=','--cov-fail-under=97']; args += (['-n','auto','--dist','loadscope'] if importlib.util.find_spec('xdist') else []); raise SystemExit(subprocess.call(args))"
 
 # Local execution flow aligned with the Pull Request Merge Gate
-ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check migration-smoke security-audit coverage-combined
+ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate quality-baseline-check migration-smoke security-audit release-image-provenance-gate coverage-combined
 
 ci-local-docker:
 	docker compose -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local
@@ -199,7 +209,23 @@ production-profile-guardrail-negatives-local:
 	python scripts/run_runtime_smoke_checks.py production-profile-guardrail-negatives
 
 docker-build:
-	docker build -t lotus-advise:ci-test .
+	docker build \
+		--build-arg LOTUS_BUILD_COMMIT_SHA=$(GIT_SHA) \
+		--build-arg LOTUS_BUILD_GIT_BRANCH=$(GIT_BRANCH) \
+		--build-arg LOTUS_BUILD_REPO_URL=$(REPO_URL) \
+		--build-arg LOTUS_BUILD_VERSION=$(SERVICE_VERSION) \
+		--build-arg LOTUS_BUILD_TIMESTAMP=$(BUILD_TIMESTAMP) \
+		--build-arg LOTUS_CI_PIPELINE_ID=$(CI_PIPELINE_ID) \
+		--build-arg LOTUS_IMAGE_DIGEST=$(IMAGE_DIGEST) \
+		-t $(IMAGE_TAG) \
+		-t lotus-advise:ci-test .
+	$(MAKE) docker-labels-check
+
+docker-labels-check:
+	python scripts/release_image_evidence.py image-label-check --image-ref $(IMAGE_TAG) --expected-commit $(GIT_SHA) --expected-repo-url $(REPO_URL) --expected-ci-run-id $(CI_PIPELINE_ID)
+
+release-image-provenance-gate:
+	python scripts/release_image_evidence.py static-check
 
 docker-up:
 	docker-compose up -d --build

@@ -1,16 +1,16 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-07-11T04:41:59.434052+00:00`
+- Generated At: `2026-07-11T05:05:46.058593+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `986`
+- Python files: `989`
 - Packages: `39`
-- Modules: `947`
-- Total Python lines: `162473`
+- Modules: `950`
+- Total Python lines: `163027`
 
 ## Largest Files
 
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `4424`
-- Radon complexity rank inventory: `A=4357, B=67`
+- Radon analyzed block inventory: `4430`
+- Radon complexity rank inventory: `A=4363, B=67`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -102,7 +102,7 @@
 - Repo-native OpenAPI gate configured: `True`
 - Spectral rules present: `True`
 - Spectral config executable: `True`
-- Spectral OpenAPI path inventory: `86`
+- Spectral OpenAPI path inventory: `87`
 - Spectral current issue inventory: `0`
 - Spectral severity inventory: `none`
 - Spectral is enforced through `make openapi-gate`; the inventory remains recorded
@@ -120,7 +120,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=4830, missing=4794, covered=36, coverage=0.7%`
+- Interrogate docstring inventory: `total=4847, missing=4809, covered=38, coverage=0.8%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

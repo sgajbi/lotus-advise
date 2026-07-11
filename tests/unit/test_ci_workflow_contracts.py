@@ -60,6 +60,13 @@ def test_local_ci_targets_enforce_quality_baseline_freshness() -> None:
         assert "quality-baseline-check" in _makefile_target_dependencies(makefile, target)
 
 
+def test_local_ci_targets_enforce_release_image_provenance_contract() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    for target in ("check", "ci", "ci-local"):
+        assert "release-image-provenance-gate" in _makefile_target_dependencies(makefile, target)
+
+
 def test_local_check_and_feature_lane_enforce_high_severity_security_scan() -> None:
     makefile = Path("Makefile").read_text(encoding="utf-8")
     feature_lane = _workflow_text("feature-lane.yml")
@@ -308,6 +315,9 @@ def test_pr_and_main_runtime_jobs_are_parallelized_without_renaming_required_che
             "needs: [coverage-gate, postgres-migration-smoke, production-profile-smoke, "
             "production-profile-guardrail-negatives]"
         ) in docker_section
+        assert "CI_PIPELINE_ID: ${{ github.run_id }}" in docker_section
+        assert "GIT_SHA: ${{ github.sha }}" in docker_section
+        assert "run: make docker-build" in docker_section
 
         coverage_section = _workflow_job_section(workflow, "coverage-gate")
         assert "needs: [test-suites]" in coverage_section
@@ -317,6 +327,35 @@ def test_pr_and_main_runtime_jobs_are_parallelized_without_renaming_required_che
         assert f"name: {coverage_artifact_prefix}${{{{ matrix.suite }}}}" in test_section
         assert "include-hidden-files: true" in test_section
         assert "if-no-files-found: error" in test_section
+
+
+def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts() -> None:
+    workflow = _workflow_text("main-releasability.yml")
+    release_section = _workflow_job_section(workflow, "image-release-evidence")
+    pr_workflow = _workflow_text("pr-merge-gate.yml")
+
+    assert "Main Releasability / Image Release Evidence" in release_section
+    assert "needs: [docker-build]" in release_section
+    assert "packages: write" in release_section
+    assert "id-token: write" in release_section
+    assert "attestations: write" in release_section
+    assert "IMAGE_REF: ghcr.io/${{ github.repository }}:${{ github.sha }}" in release_section
+    assert "docker/login-action@v3" in release_section
+    assert "docker/build-push-action@v6" in release_section
+    assert "push: true" in release_section
+    assert "LOTUS_BUILD_COMMIT_SHA=${{ github.sha }}" in release_section
+    assert "LOTUS_CI_PIPELINE_ID=${{ github.run_id }}" in release_section
+    assert "anchore/sbom-action@v0" in release_section
+    assert "aquasecurity/trivy-action@0.32.0" in release_section
+    assert "sigstore/cosign-installer@v3.9.2" in release_section
+    assert "cosign sign --yes" in release_section
+    assert "actions/attest-build-provenance@v3" in release_section
+    assert "scripts/release_image_evidence.py write-manifest" in release_section
+    assert "release-evidence.json" in release_section
+    assert "name: lotus-advise-image-release-evidence" in release_section
+
+    assert "docker/login-action@v3" not in pr_workflow
+    assert "push: true" not in pr_workflow
 
 
 def test_nightly_postgres_demo_pack_declares_controlled_ci_fallback() -> None:

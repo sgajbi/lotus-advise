@@ -25,6 +25,7 @@ from src.api.proposals.router import (
 from src.api.proposals.router import (
     router as proposal_lifecycle_router,
 )
+from src.api.release_metadata import build_release_metadata
 from src.api.routers.advisory_simulation import (
     router as advisory_simulation_router,
 )
@@ -202,6 +203,24 @@ def health_ready() -> JSONResponse:
         instance="/health/ready",
         correlation_id=correlation_id_var.get() or "",
     )
+
+
+@app.get(
+    "/version",
+    summary="Get build and image metadata",
+    description=(
+        "Returns support-safe release metadata for comparing a running Lotus Advise service "
+        "with retained CI image release evidence."
+    ),
+    tags=["Runtime"],
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Unexpected error while reading support-safe build metadata."
+        }
+    },
+)
+def version() -> dict[str, str]:
+    return build_release_metadata().as_response()
 
 
 def _safe_request_validation_errors(

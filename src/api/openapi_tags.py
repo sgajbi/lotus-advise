@@ -102,6 +102,13 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         "description": "Operational liveness and readiness probes for runtime health verification.",
     },
     {
+        "name": "Runtime",
+        "description": (
+            "Support-safe runtime build, image, and release metadata used for operator "
+            "diagnostics and release-evidence reconciliation."
+        ),
+    },
+    {
         "name": "Monitoring",
         "description": (
             "Operational telemetry endpoints for metrics scraping and observability tooling."

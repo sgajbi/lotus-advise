@@ -12,6 +12,30 @@ def test_health_endpoints_return_expected_status_payloads():
         assert client.get("/health/ready").json() == {"status": "ready"}
 
 
+def test_version_endpoint_exposes_support_safe_build_metadata(monkeypatch):
+    monkeypatch.setenv("LOTUS_BUILD_COMMIT_SHA", "abc123")
+    monkeypatch.setenv("LOTUS_BUILD_GIT_BRANCH", "feat/provenance")
+    monkeypatch.setenv("LOTUS_BUILD_REPO_URL", "https://github.com/sgajbi/lotus-advise")
+    monkeypatch.setenv("LOTUS_BUILD_VERSION", "0.1.0")
+    monkeypatch.setenv("LOTUS_BUILD_TIMESTAMP", "2026-07-11T00:00:00Z")
+    monkeypatch.setenv("LOTUS_CI_PIPELINE_ID", "123456")
+    monkeypatch.setenv("LOTUS_IMAGE_DIGEST", "sha256:abc")
+
+    with TestClient(app) as client:
+        payload = client.get("/version").json()
+
+    assert payload == {
+        "service_name": "lotus-advise",
+        "service_version": "0.1.0",
+        "git_commit_sha": "abc123",
+        "git_branch": "feat/provenance",
+        "repository_url": "https://github.com/sgajbi/lotus-advise",
+        "build_timestamp_utc": "2026-07-11T00:00:00Z",
+        "ci_pipeline_run_id": "123456",
+        "image_digest": "sha256:abc",
+    }
+
+
 def test_no_versioned_health_endpoints_are_exposed():
     with TestClient(app) as client:
         assert client.get("/api/v1/health").status_code == 404

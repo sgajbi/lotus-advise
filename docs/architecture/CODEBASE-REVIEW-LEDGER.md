@@ -1,5 +1,48 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-907
+
+- Scope: Container image provenance and runtime build metadata
+- Pattern: Deployable service images need support-safe identity from Docker labels through CI
+  release evidence and runtime `/version` parity, with release pushes confined to governed CI.
+- Status: Hardened
+- Finding Class: Release evidence, supply-chain provenance, runtime metadata, CI enforcement
+- Summary: GitHub issue #378 identified that the service image built successfully but lacked a
+  complete artifact identity chain: no required OCI build metadata labels, no Git-SHA image tag,
+  no digest-bearing release manifest, no SBOM/scan/signature/provenance artifact set, and no
+  runtime endpoint for operators to compare a running container with release evidence.
+- Evidence:
+  - `Dockerfile` now accepts support-safe build metadata args, writes OCI labels for commit,
+    branch/ref, repository URL, service version, build timestamp, CI run ID, and image-digest
+    posture, and propagates the same support-safe values into runtime environment metadata.
+  - `GET /version` now returns service name/version, Git commit, branch, repository URL, build
+    timestamp, CI run ID, and image digest when release/deployment injects it.
+  - `scripts/release_image_evidence.py` validates Dockerfile/Makefile release metadata drift,
+    checks built-image labels with `docker image inspect`, writes digest-bearing
+    `release-evidence.json`, and rejects secret-shaped build metadata or manifest keys.
+  - `make release-image-provenance-gate` is included in `make check`, `make ci`, and
+    `make ci-local`; `make docker-build` tags the image with the Git SHA and validates labels.
+  - Main Releasability now has a CI-only image release-evidence job that builds and pushes the
+    Git-SHA image, generates SBOM and vulnerability scan artifacts, signs the image digest, creates
+    provenance attestation, writes `release-evidence.json`, and uploads the evidence bundle.
+    PR/local lanes build and validate without pushing.
+  - Focused validation passed with `32 passed` across release metadata API, Docker runtime
+    contract, CI workflow contract, and release-image evidence tests. The static provenance gate
+    and focused Ruff check also passed.
+- Consequence:
+  - Operators and agents can reconcile source commit, branch, CI run, image digest, release
+    artifacts, and runtime metadata without relying on mutable tags or undocumented build logs.
+    The improvement is CI/release modularity and runtime supportability inside the existing
+    service; no separate runtime service is justified.
+- Documentation:
+  - README, repository context, operations runbook, validation wiki, security wiki, operations
+    wiki, and review ledger updated. Wiki source changed, so repo wiki check is required before
+    merge and publication is required after merge.
+- Follow-Up:
+  - Keep future deployment manifests or Helm values on digest references. If another Lotus app has
+    release-image provenance gaps, raise an app-local issue rather than copying Advise-specific
+    release evidence without ownership review.
+
 ## LA-REV-906
 
 - Scope: Advisory external-provider ports and core integration boundary

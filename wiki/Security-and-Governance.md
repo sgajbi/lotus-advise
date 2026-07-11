@@ -31,6 +31,25 @@ The highest-risk documentation and implementation drift usually appears at these
    identity must be bounded and present before downstream submission
 6. outbound report calls must preserve source-derived as-of date, reporting currency, and
    jurisdiction instead of silently applying market or current-date defaults
+7. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
+   OCI metadata, accompanied by digest-bearing release evidence, SBOM, scan, signature, and
+   provenance attestation, and deployed by digest
+
+## Release Metadata Governance
+
+`GET /version` exposes support-safe build metadata only: service name/version, Git commit, branch,
+repository URL, build timestamp, CI run ID, and image digest when injected by release/deployment.
+It must not expose runtime configuration, DSNs, tokens, tenant identifiers, actor identifiers, raw
+headers, or downstream base URLs.
+
+The release-image evidence path is intentionally split:
+
+1. PR/local builds validate Dockerfile build args, OCI labels, and label content without pushing.
+2. Main Releasability pushes the Git-SHA image, records the registry digest, generates SBOM and
+   vulnerability-scan artifacts, signs the digest, creates provenance attestation, and uploads the
+   release manifest.
+3. Deployment must reference the digest from the retained manifest and promote the same immutable
+   image across environments.
 
 ## RFC-0028 Proof Artifact Governance
 
