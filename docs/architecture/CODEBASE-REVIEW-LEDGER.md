@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-915
+
+- Scope: Production container manifest and image healthcheck
+- Pattern: Production deployment manifests must be environment-neutral and secret-safe. They should
+  consume the immutable release image by digest and require deployment-time injection for endpoints,
+  DSNs, and tenant identity instead of committing development routing or credentials.
+- Status: Hardened
+- Finding Class: Deployment environment parity, secret hygiene, release operations
+- Summary: GitHub issue #404 identified that `docker-compose.production.yml` contained
+  `.dev.lotus` endpoints, `host-gateway` mappings, plaintext Postgres DSNs, and stale `DPM_*`
+  settings. The production path also inherited a `/version` healthcheck, which checks release
+  metadata rather than operational readiness.
+- Evidence:
+  - Replaced the production compose file with an environment-neutral manifest that requires
+    `LOTUS_ADVISE_IMAGE_DIGEST_REF`, upstream service URLs, `PROPOSAL_POSTGRES_DSN`,
+    `POLICY_POSTGRES_DSN`, and `LOTUS_ADVISE_TENANT_ID` to be supplied by deployment
+    configuration/secrets.
+  - Removed production `.dev.lotus`, `host-gateway`, committed DSNs/passwords, local builds, and
+    mutable image references from the production deployment path.
+  - Switched Dockerfile and production compose healthchecks to `/health/ready`.
+  - Extended the static release contract to reject unsafe production manifest fragments and require
+    immutable image/config/secret injection.
+  - Added Docker/runtime and release-image evidence tests for the production manifest policy.
+- Consequence:
+  - The same CI-produced image can be promoted across environments by changing only governed
+    deployment configuration, while production manifests no longer leak development routing or
+    credentials.
+- Documentation:
+  - Operations runbook, PostgreSQL rollout runbook, Operations wiki source, generated quality
+    reports, and review ledger updated. Wiki source changed, so repo-wiki check is required before
+    merge and publication is required after merge.
+- Follow-Up:
+  - Continue applying the same manifest-policy lens to remaining release, SLO, and deployment
+    issues. No cross-app ownership issue was raised because this slice changes the
+    `lotus-advise` production manifest and release gate.
+
 ## LA-REV-914
 
 - Scope: Integration runtime numeric configuration

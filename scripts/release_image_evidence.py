@@ -111,6 +111,7 @@ def validate_static_release_contract(repo_root: Path) -> list[str]:
     failures: list[str] = []
     dockerfile = (repo_root / "Dockerfile").read_text(encoding="utf-8")
     makefile = (repo_root / "Makefile").read_text(encoding="utf-8")
+    production_compose = (repo_root / "docker-compose.production.yml").read_text(encoding="utf-8")
 
     for label in REQUIRED_OCI_LABELS:
         if label not in dockerfile:
@@ -131,6 +132,7 @@ def validate_static_release_contract(repo_root: Path) -> list[str]:
             failures.append(f"Makefile docker-build missing build arg: {required_arg}")
 
     failures.extend(_validate_no_secret_named_arg_or_env(dockerfile))
+    failures.extend(_validate_production_manifest_policy(production_compose))
     return failures
 
 
@@ -186,6 +188,58 @@ def _validate_no_secret_named_arg_or_env(dockerfile: str) -> list[str]:
         name_part = stripped.split(maxsplit=1)[1].split("=", maxsplit=1)[0]
         if FORBIDDEN_BUILD_METADATA_NAME.search(name_part):
             failures.append(f"Dockerfile build metadata name is not support-safe: {name_part}")
+    return failures
+
+
+def _validate_production_manifest_policy(compose_text: str) -> list[str]:
+    failures: list[str] = []
+    forbidden_fragments = {
+        ".dev.lotus": "Production compose must not reference development DNS names.",
+        "host-gateway": "Production compose must not use host-gateway mappings.",
+        "postgresql://": "Production compose must not commit plaintext PostgreSQL DSNs.",
+        "POSTGRES_PASSWORD": "Production compose must not commit database passwords.",
+        "build:": "Production compose must deploy a prebuilt release image, not build locally.",
+        "image: lotus-advise:latest": "Production compose must not use mutable latest tags.",
+        "http://127.0.0.1:8000/version": (
+            "Production compose healthcheck must use readiness, not version metadata."
+        ),
+    }
+    for fragment, message in forbidden_fragments.items():
+        if fragment in compose_text:
+            failures.append(message)
+
+    required_fragments = {
+        "image: ${LOTUS_ADVISE_IMAGE_DIGEST_REF:": (
+            "Production compose must require an immutable image digest ref."
+        ),
+        "LOTUS_CORE_BASE_URL=${LOTUS_CORE_BASE_URL:?": (
+            "Production compose must require LOTUS_CORE_BASE_URL injection."
+        ),
+        "LOTUS_CORE_QUERY_BASE_URL=${LOTUS_CORE_QUERY_BASE_URL:?": (
+            "Production compose must require LOTUS_CORE_QUERY_BASE_URL injection."
+        ),
+        "LOTUS_RISK_BASE_URL=${LOTUS_RISK_BASE_URL:?": (
+            "Production compose must require LOTUS_RISK_BASE_URL injection."
+        ),
+        "LOTUS_REPORT_BASE_URL=${LOTUS_REPORT_BASE_URL:?": (
+            "Production compose must require LOTUS_REPORT_BASE_URL injection."
+        ),
+        "LOTUS_AI_BASE_URL=${LOTUS_AI_BASE_URL:?": (
+            "Production compose must require LOTUS_AI_BASE_URL injection."
+        ),
+        "PROPOSAL_POSTGRES_DSN=${PROPOSAL_POSTGRES_DSN:?": (
+            "Production compose must require PROPOSAL_POSTGRES_DSN secret injection."
+        ),
+        "POLICY_POSTGRES_DSN=${POLICY_POSTGRES_DSN:?": (
+            "Production compose must require POLICY_POSTGRES_DSN secret injection."
+        ),
+        "http://127.0.0.1:8000/health/ready": (
+            "Production compose must healthcheck the readiness endpoint."
+        ),
+    }
+    for fragment, message in required_fragments.items():
+        if fragment not in compose_text:
+            failures.append(message)
     return failures
 
 

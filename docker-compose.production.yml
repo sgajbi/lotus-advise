@@ -1,20 +1,36 @@
 services:
   lotus-advise:
+    image: ${LOTUS_ADVISE_IMAGE_DIGEST_REF:?LOTUS_ADVISE_IMAGE_DIGEST_REF must be an immutable image ref with digest}
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${LOTUS_ADVISE_PORT:-8000}:8000"
     environment:
-      - LOTUS_CORE_BASE_URL=http://core-control.dev.lotus
-      - LOTUS_CORE_QUERY_BASE_URL=http://core-query.dev.lotus
-      - LOTUS_RISK_BASE_URL=http://risk.dev.lotus
-      - DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES
-      - DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://advise:advise@postgres:5432/advise_supportability
+      - ENVIRONMENT=production
+      - LOTUS_CORE_BASE_URL=${LOTUS_CORE_BASE_URL:?LOTUS_CORE_BASE_URL is required}
+      - LOTUS_CORE_QUERY_BASE_URL=${LOTUS_CORE_QUERY_BASE_URL:?LOTUS_CORE_QUERY_BASE_URL is required}
+      - LOTUS_RISK_BASE_URL=${LOTUS_RISK_BASE_URL:?LOTUS_RISK_BASE_URL is required}
+      - LOTUS_REPORT_BASE_URL=${LOTUS_REPORT_BASE_URL:?LOTUS_REPORT_BASE_URL is required}
+      - LOTUS_AI_BASE_URL=${LOTUS_AI_BASE_URL:?LOTUS_AI_BASE_URL is required}
       - PROPOSAL_STORE_BACKEND=POSTGRES
-      - PROPOSAL_POSTGRES_DSN=postgresql://advise:advise@postgres:5432/advise_supportability
-      - DPM_POLICY_PACKS_ENABLED=true
-      - DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES
-      - DPM_POLICY_PACK_POSTGRES_DSN=postgresql://advise:advise@postgres:5432/advise_supportability
-    extra_hosts:
-      - "core-control.dev.lotus:host-gateway"
-      - "core-query.dev.lotus:host-gateway"
-      - "risk.dev.lotus:host-gateway"
-
-
-
+      - PROPOSAL_POSTGRES_DSN=${PROPOSAL_POSTGRES_DSN:?PROPOSAL_POSTGRES_DSN must be supplied by deployment secrets}
+      - POLICY_STORE_BACKEND=POSTGRES
+      - POLICY_POSTGRES_DSN=${POLICY_POSTGRES_DSN:?POLICY_POSTGRES_DSN must be supplied by deployment secrets}
+      - LOTUS_ADVISE_TENANT_ID=${LOTUS_ADVISE_TENANT_ID:?LOTUS_ADVISE_TENANT_ID is required}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
