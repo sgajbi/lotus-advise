@@ -12,11 +12,12 @@ from src.api.capabilities.runtime_flags import resolve_capability_runtime_flags
 from src.api.capabilities.supportability import build_advisory_supportability
 from src.api.capabilities.workflow_catalog import build_workflow_capabilities
 
+DEPLOYMENT_CAPABILITY_TENANT_ID = "deployment-wide"
+
 
 def build_integration_capabilities(
     *,
     consumer_system: ConsumerSystem,
-    tenant_id: str,
     readiness: dict[str, object] | None = None,
 ) -> IntegrationCapabilitiesResponse:
     runtime_flags = resolve_capability_runtime_flags()
@@ -33,7 +34,11 @@ def build_integration_capabilities(
         contract_version="v1",
         source_service="lotus-advise",
         consumer_system=consumer_system,
-        tenant_id=tenant_id,
+        tenant_id=DEPLOYMENT_CAPABILITY_TENANT_ID,
+        publication_scope="deployment",
+        tenant_policy_evaluated=False,
+        consumer_identity_source="bounded_query_parameter",
+        authorization_scope="informational_not_authorization",
         generated_at=datetime.now(UTC),
         as_of_date=date.today(),
         policy_version="advisory.v1",

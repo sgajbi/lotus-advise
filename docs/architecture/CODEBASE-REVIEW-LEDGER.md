@@ -27271,3 +27271,36 @@
   - Track linked Core producer issues through their existing GitHub records; no additional Advise
     defect is required because the local compatibility quarantine and retirement plan are now
     documented and tested.
+
+## LA-REV-926
+
+- Scope: `/platform/capabilities` tenant and consumer publication scope
+- Pattern: Capability discovery should publish implementation-backed deployment readiness and
+  feature truth without implying tenant-specific entitlement evaluation.
+- Status: Hardened
+- Finding Class: Capability publication truth, tenant scope, and API contract clarity
+- Summary: GitHub issue #426 identified that `/platform/capabilities` accepted a `tenant_id` query
+  parameter and echoed it in the response even though feature, workflow, and readiness posture were
+  deployment/runtime scoped rather than tenant-policy scoped.
+- Evidence:
+  - `src/api/routers/integration_capabilities.py` no longer publishes `tenant_id` as a documented
+    query parameter.
+  - `src/api/capabilities/service.py` no longer accepts tenant input and emits the fixed
+    `deployment-wide` compatibility marker.
+  - `src/api/capabilities/models.py` adds explicit scope evidence:
+    `publication_scope=deployment`, `tenant_policy_evaluated=false`,
+    `consumer_identity_source=bounded_query_parameter`, and
+    `authorization_scope=informational_not_authorization`.
+  - Capability API tests prove arbitrary `tenant_id` query values are not echoed and do not change
+    feature, workflow, or supportability publication.
+- Consequence:
+  - Gateway, Workbench, and platform consumers can use capability discovery for deployment-wide
+    readiness and supported-feature posture without mistaking it for authorization or tenant
+    entitlement evidence.
+- Documentation:
+  - Updated README, wiki API Surface, repository context, and this ledger. Wiki source changed, so
+    repo-wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - If tenant-specific capability publication is later required, add an explicit entitlement port,
+    trusted caller identity, authorization behavior, and contract tests before reintroducing a
+    tenant-scoped capability claim.

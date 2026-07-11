@@ -441,8 +441,8 @@ already been folded back into RFC planning.
   - A concrete Gateway alignment gap was fixed on branch
     `feat/advise-capability-query-alignment` at commit `7f282e7`: `src/app/clients/advise_client.py`
     now calls Advise `GET /platform/capabilities` with canonical snake_case
-    `consumer_system=lotus-gateway` and caller `tenant_id`, matching the existing Manage capability
-    pattern and preserving tenant-shaped capability posture.
+    `consumer_system=lotus-gateway`. Advise capability discovery is deployment-scoped; Gateway
+    tenant context must not be treated as Advise tenant-specific capability entitlement.
   - Gateway proof:
     `python -m pytest tests/unit/test_upstream_clients.py::test_advise_client_capabilities_uses_gateway_consumer_and_tenant_context tests/unit/test_router_upstream_selection.py tests/integration/test_platform_capabilities_router.py::test_platform_capabilities_router_preserves_correlation_and_query_context -q`
     passed with `7 passed`.

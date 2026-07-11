@@ -366,7 +366,9 @@ Contract rules that are easy to get wrong:
    legal/regulatory advice, completed sign-off/approval, or OMS/order/fill/settlement.
 9. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
    bounded dependency evidence through `runtime_probe_enabled`, `readiness_basis`, and
-   `degraded_reason` without exposing dependency base URLs
+   `degraded_reason` without exposing dependency base URLs. Capability publication is
+   deployment-scoped and informational; it does not evaluate tenant-specific entitlement policy or
+   authorize endpoint access.
 
 ## Integration Boundaries
 

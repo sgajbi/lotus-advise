@@ -384,7 +384,10 @@ Important validation expectations:
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-9. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
+9. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
+   trust, echo, or imply tenant-specific entitlement policy unless a future slice adds an explicit
+   authoritative entitlement port and contract tests,
+10. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
 
 ## Standards And RFCs That Govern This Repository
 
