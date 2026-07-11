@@ -241,6 +241,10 @@ Boundary rules:
    source truth,
 13. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
    code; do not allow `risk_authority="unavailable"` with `degraded=false`.
+14. advisor memo and policy sign-off report packages must not project archive-ready status from
+    accepted, running, missing-status, malformed-status, or failed status lookups; terminal
+    readiness requires `lotus-report` archive evidence and all non-terminal status must preserve
+    the report job id for operator recovery.
 
 ## Repo-Native Commands
 

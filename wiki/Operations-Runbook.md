@@ -52,6 +52,22 @@ Diagnostics must stay support-safe. Do not add raw source evidence, raw downstre
 payloads, prompt text, unrestricted exception details, credentials, trace identifiers, correlation
 identifiers, client secrets, or portfolio/account payloads to this endpoint.
 
+## Report Package Status Recovery
+
+Advisor memo and policy sign-off report packages preserve `lotus-report` as the report/render/
+archive owner. Advise submits the report job, performs bounded status retrieval, and keeps the
+report job id in the response even when the downstream status is not terminal.
+
+Operational interpretation:
+
+1. `ARCHIVED` means `lotus-report` returned terminal archive evidence.
+2. `ACCEPTED`, `RUNNING`, and `PENDING_ARCHIVE` are not archive-ready states.
+3. `REPORT_STATUS_UNAVAILABLE` means the status URL was missing/unsafe, the status lookup failed,
+   or the status payload was malformed. Operators should use the preserved report job id and
+   idempotency key to inspect `lotus-report`.
+4. `FAILED` means the downstream report/render/archive workflow reached a terminal failure and
+   should be escalated to the report/render/archive owner.
+
 ## Advisor Cockpit Operations
 
 RFC-0026 cockpit supportability is exposed through `GET /advisory/cockpit/supportability` and

@@ -100,6 +100,10 @@ Boundary rule:
   fails closed before HTTP submission
 - report submissions require source-derived as-of date, reporting currency, and jurisdiction; the
   mapper does not manufacture current-date, USD, or SG fallbacks
+- memo and policy sign-off report packages use bounded status retrieval before projecting
+  readiness. `ARCHIVED` is returned only from terminal report-owned archive evidence; accepted,
+  running, missing-status, malformed-status, and status-lookup failures stay explicit pending or
+  unavailable postures with the report job id preserved for recovery.
 
 ## `lotus-ai`
 

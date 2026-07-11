@@ -11,12 +11,19 @@ from src.integrations.lotus_report.adapter import (
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: dict) -> None:
+    def __init__(
+        self,
+        status_code: int,
+        payload: object,
+        *,
+        method: str = "POST",
+        url: str = "http://report.dev.lotus/reports/portfolio-reviews",
+    ) -> None:
         self.status_code = status_code
         self._payload = payload
-        self.request = httpx.Request("POST", "http://report.dev.lotus/reports/portfolio-reviews")
+        self.request = httpx.Request(method, url)
 
-    def json(self) -> dict:
+    def json(self) -> object:
         return self._payload
 
     def raise_for_status(self) -> None:
@@ -29,13 +36,18 @@ class _FakeResponse:
 
 
 class _FakeClient:
-    def __init__(self, response: _FakeResponse, status_payload: dict | None = None) -> None:
+    def __init__(
+        self,
+        response: _FakeResponse,
+        status_payload: dict | list[dict] | None = None,
+        *,
+        status_code: int = 200,
+        status_json: object | None = None,
+    ) -> None:
         self.response = response
-        self.status_payload = status_payload or {
-            "status": "archived",
-            "render": {"render_job_id": "rdr_memo_001"},
-            "archive": {"document_id": "doc_memo_001"},
-        }
+        self.status_payloads = _status_payload_sequence(status_payload)
+        self.status_code = status_code
+        self.status_json = status_json
         self.posts: list[dict] = []
         self.gets: list[dict] = []
 
@@ -51,7 +63,29 @@ class _FakeClient:
 
     def get(self, url: str, *, headers: dict[str, str]) -> _FakeResponse:
         self.gets.append({"url": url, "headers": headers})
-        return _FakeResponse(200, self.status_payload)
+        if self.status_json is not None:
+            return _FakeResponse(self.status_code, self.status_json, method="GET", url=url)
+        payload_index = min(len(self.gets) - 1, len(self.status_payloads) - 1)
+        return _FakeResponse(
+            self.status_code,
+            self.status_payloads[payload_index],
+            method="GET",
+            url=url,
+        )
+
+
+def _status_payload_sequence(status_payload: dict | list[dict] | None) -> list[dict]:
+    if isinstance(status_payload, list):
+        return status_payload
+    if isinstance(status_payload, dict):
+        return [status_payload]
+    return [
+        {
+            "status": "archived",
+            "render": {"render_job_id": "rdr_memo_001"},
+            "archive": {"document_id": "doc_memo_001"},
+        }
+    ]
 
 
 def _proposal_request() -> dict:
@@ -418,7 +452,83 @@ def test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive(monkey
     ]
 
 
-def test_lotus_report_adapter_defaults_memo_outputs_and_tolerates_missing_status_url(
+def test_lotus_report_adapter_polls_memo_package_until_archived(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_memo_001",
+                "status": "accepted",
+                "status_url": "/reports/jobs/rjob_memo_001",
+                "idempotency_key": "prr_memo_001",
+            },
+        ),
+        status_payload=[
+            {"status": "accepted"},
+            {"status": "running"},
+            {
+                "status": "archived",
+                "render": {"render_job_id": "rdr_memo_001"},
+                "archive": {"document_id": "doc_memo_001"},
+            },
+        ],
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setenv("LOTUS_REPORT_STATUS_POLL_ATTEMPTS", "3")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(
+        request=_memo_report_package_request()
+    )
+
+    assert response.status == "ARCHIVED"
+    assert response.explanation["report_job_poll_attempts"] == 3
+    assert response.explanation["render"]["render_job_id"] == "rdr_memo_001"
+    assert response.explanation["archive"]["document_id"] == "doc_memo_001"
+    assert len(fake_client.gets) == 3
+
+
+def test_lotus_report_adapter_returns_pending_after_bounded_status_poll_timeout(
+    monkeypatch,
+) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_memo_001",
+                "status": "accepted",
+                "status_url": "/reports/jobs/rjob_memo_001",
+                "idempotency_key": "prr_memo_001",
+            },
+        ),
+        status_payload=[{"status": "accepted"}, {"status": "running"}],
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setenv("LOTUS_REPORT_STATUS_POLL_ATTEMPTS", "2")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(
+        request=_memo_report_package_request()
+    )
+
+    assert response.status == "RUNNING"
+    assert response.report_reference_id == "rjob_memo_001"
+    assert response.explanation["report_job_pending_reason"] == "REPORT_STATUS_POLLING_TIMEOUT"
+    assert response.explanation["report_job_poll_attempts"] == 2
+    assert response.explanation["render"] == {}
+    assert response.explanation["archive"] == {}
+    assert len(fake_client.gets) == 2
+
+
+def test_lotus_report_adapter_defaults_memo_outputs_and_reports_missing_status_url(
     monkeypatch,
 ) -> None:
     request = _memo_report_package_request()
@@ -440,7 +550,12 @@ def test_lotus_report_adapter_defaults_memo_outputs_and_tolerates_missing_status
 
     response = request_proposal_memo_report_package_with_lotus_report(request=request)
 
-    assert response.status == "READY"
+    assert response.status == "REPORT_STATUS_UNAVAILABLE"
+    assert response.report_reference_id == "rjob_memo_accepted_001"
+    assert (
+        response.explanation["report_job_status_unavailable_reason"]
+        == "REPORT_STATUS_URL_UNAVAILABLE"
+    )
     assert response.explanation["render"] == {}
     assert response.explanation["archive"] == {}
     [post] = fake_client.posts
@@ -470,9 +585,13 @@ def test_lotus_report_adapter_ignores_untrusted_status_url(monkeypatch) -> None:
 
     response = request_proposal_memo_report_package_with_lotus_report(request=request)
 
-    assert response.status == "ACCEPTED"
+    assert response.status == "REPORT_STATUS_UNAVAILABLE"
     assert response.artifact_url is None
     assert response.explanation["report_job_status_url"] is None
+    assert (
+        response.explanation["report_job_status_unavailable_reason"]
+        == "REPORT_STATUS_URL_UNAVAILABLE"
+    )
     assert response.explanation["render"] == {}
     assert response.explanation["archive"] == {}
     assert fake_client.gets == []
@@ -500,10 +619,112 @@ def test_lotus_report_adapter_ignores_status_url_with_query_material(monkeypatch
 
     response = request_proposal_memo_report_package_with_lotus_report(request=request)
 
-    assert response.status == "ACCEPTED"
+    assert response.status == "REPORT_STATUS_UNAVAILABLE"
     assert response.artifact_url is None
     assert response.explanation["report_job_status_url"] is None
+    assert (
+        response.explanation["report_job_status_unavailable_reason"]
+        == "REPORT_STATUS_URL_UNAVAILABLE"
+    )
     assert fake_client.gets == []
+
+
+def test_lotus_report_adapter_returns_unavailable_when_status_lookup_fails(
+    monkeypatch,
+) -> None:
+    request = _memo_report_package_request()
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_memo_001",
+                "status": "accepted",
+                "status_url": "/reports/jobs/rjob_memo_001",
+                "idempotency_key": "prr_memo_001",
+            },
+        ),
+        status_code=503,
+        status_json={"detail": "not ready"},
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(request=request)
+
+    assert response.status == "REPORT_STATUS_UNAVAILABLE"
+    assert response.report_reference_id == "rjob_memo_001"
+    assert response.explanation["report_job_status_unavailable_reason"] == "REPORT_STATUS_HTTP_503"
+    assert len(fake_client.gets) == 1
+
+
+def test_lotus_report_adapter_returns_unavailable_for_malformed_status_payload(
+    monkeypatch,
+) -> None:
+    request = _memo_report_package_request()
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_memo_001",
+                "status": "accepted",
+                "status_url": "/reports/jobs/rjob_memo_001",
+                "idempotency_key": "prr_memo_001",
+            },
+        ),
+        status_json=["not", "a", "mapping"],
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(request=request)
+
+    assert response.status == "REPORT_STATUS_UNAVAILABLE"
+    assert (
+        response.explanation["report_job_status_unavailable_reason"]
+        == "REPORT_STATUS_PAYLOAD_INVALID"
+    )
+    assert len(fake_client.gets) == 1
+
+
+def test_lotus_report_adapter_preserves_terminal_report_failure(monkeypatch) -> None:
+    request = _memo_report_package_request()
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_memo_failed_001",
+                "status": "accepted",
+                "status_url": "/reports/jobs/rjob_memo_failed_001",
+                "idempotency_key": "prr_memo_001",
+            },
+        ),
+        status_payload={
+            "status": "render_failed",
+            "failure_reason": "TEMPLATE_CONTRACT_INVALID",
+        },
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(request=request)
+
+    assert response.status == "FAILED"
+    assert response.report_reference_id == "rjob_memo_failed_001"
+    assert response.explanation["report_job_poll_attempts"] == 1
+    assert response.explanation["render"] == {}
+    assert response.explanation["archive"] == {}
 
 
 def test_lotus_report_adapter_submits_policy_sign_off_package_for_render_archive(
@@ -571,7 +792,11 @@ def test_lotus_report_adapter_defaults_policy_outputs_when_formats_are_invalid(
 
     response = request_policy_sign_off_report_package_with_lotus_report(request=request)
 
-    assert response.status == "ACCEPTED"
+    assert response.status == "REPORT_STATUS_UNAVAILABLE"
+    assert (
+        response.explanation["report_job_status_unavailable_reason"]
+        == "REPORT_STATUS_URL_UNAVAILABLE"
+    )
     [post] = fake_client.posts
     assert post["json"]["requested_output_formats"] == ["pdf"]
 
