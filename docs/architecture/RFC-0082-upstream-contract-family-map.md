@@ -38,11 +38,13 @@ performance analytics, or risk analytics.
 `lotus-advise` treats those fields as compatibility evidence only. The adapter maps the response
 into `CoreProjectedTransactionEffects`, then recomputes advisory suitability, gate, decision
 summary, alternatives, and next-step posture inside Advise.
+When Core v1 includes decision-shaped fields, Advise emits `core_decision_parity` to classify
+match versus mismatch for migration review without treating Core as decision authority.
 
 | Field family | Authority | Advise handling |
 | --- | --- | --- |
 | before-state, after-state, intents, reconciliation, rule results, allocation lens, source lineage | `lotus-core` source-effects authority | Accepted through `CoreProjectedTransactionEffects` after contract-version validation. |
-| suitability issues, recommended suitability gate, workflow gate, proposal decision summary, proposal alternatives, advisory next step, consent posture | `lotus-advise` advisory-decision authority | Recomputed by Advise policy modules; any Core-returned values are retained only under `non_authoritative_core_decisions` for parity and migration review. |
+| suitability issues, recommended suitability gate, workflow gate, proposal decision summary, proposal alternatives, advisory next step, consent posture | `lotus-advise` advisory-decision authority | Recomputed by Advise policy modules; any Core-returned values are retained only under `non_authoritative_core_decisions` and classified under `core_decision_parity` for migration review. |
 | risk-lens enrichment and concentration methodology | `lotus-risk` risk authority | Attached by the risk adapter; missing risk authority remains degraded evidence, not a local risk calculation. |
 
 Environment binding:
