@@ -132,6 +132,14 @@ class PostgresProposalRepository:
             action_item_id=action_item_id,
         )
 
+    def list_cockpit_acknowledgements(
+        self, *, action_item_ids: list[str]
+    ) -> dict[str, CockpitAcknowledgementRecord]:
+        return _cockpit_acknowledgements.list_cockpit_acknowledgements(
+            connect=self._connect,
+            action_item_ids=action_item_ids,
+        )
+
     def save_cockpit_acknowledgement_with_idempotency(
         self,
         *,

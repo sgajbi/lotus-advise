@@ -20,6 +20,7 @@ from src.core.advisor_cockpit.pagination import (
     cockpit_cursor_start,
     normalize_cockpit_page_size,
 )
+from src.core.advisor_cockpit.persistence import CockpitAcknowledgementRecord
 from src.core.advisor_cockpit.projection_bounds import (
     bounded_reference,
 )
@@ -284,8 +285,15 @@ class AdvisorCockpitService:
             source_limit=COCKPIT_SOURCE_LIMIT,
             list_policy_evaluations=list_policy_evaluation_records,
         )
+        acknowledgements = self._repository.list_cockpit_acknowledgements(
+            action_item_ids=[action.action_item_id for action in read_model.action_items]
+        )
         action_items = [
-            self._attach_runtime_state(action=action, correlation_id=correlation_id)
+            self._attach_runtime_state(
+                action=action,
+                acknowledgement=acknowledgements.get(action.action_item_id),
+                correlation_id=correlation_id,
+            )
             for action in read_model.action_items
         ]
         return cast(
@@ -297,13 +305,14 @@ class AdvisorCockpitService:
         self,
         *,
         action: AdvisoryActionItem,
+        acknowledgement: CockpitAcknowledgementRecord | None,
         correlation_id: str | None,
     ) -> AdvisoryActionItem:
         action = with_cockpit_sla_age_band(action, now=self._now_fn())
-        acknowledgement = self._repository.get_cockpit_acknowledgement(
-            action_item_id=action.action_item_id
-        )
-        if acknowledgement is not None:
+        if (
+            acknowledgement is not None
+            and acknowledgement.action_item_version == action.action_item_version
+        ):
             action = apply_cockpit_acknowledgement_state(
                 action,
                 acknowledgement_state(acknowledgement),

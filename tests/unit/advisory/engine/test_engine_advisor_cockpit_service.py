@@ -91,9 +91,11 @@ class CountingCockpitRepository(InMemoryProposalRepository):
         self.bulk_memo_reads = 0
         self.bulk_approval_reads = 0
         self.bulk_event_reads = 0
+        self.bulk_acknowledgement_reads = 0
         self.per_proposal_memo_reads = 0
         self.per_proposal_approval_reads = 0
         self.per_proposal_event_reads = 0
+        self.single_acknowledgement_reads = 0
 
     def list_memos(self, *, proposal_id: str) -> list[ProposalMemoRecord]:
         self.per_proposal_memo_reads += 1
@@ -118,6 +120,22 @@ class CountingCockpitRepository(InMemoryProposalRepository):
     def list_events_for_proposals(self, *, proposal_ids: list[str]):
         self.bulk_event_reads += 1
         return super().list_events_for_proposals(proposal_ids=proposal_ids)
+
+    def get_cockpit_acknowledgement(
+        self, *, action_item_id: str
+    ) -> CockpitAcknowledgementRecord | None:
+        self.single_acknowledgement_reads += 1
+        return super().get_cockpit_acknowledgement(action_item_id=action_item_id)
+
+    def list_cockpit_acknowledgements(
+        self, *, action_item_ids: list[str]
+    ) -> dict[str, CockpitAcknowledgementRecord]:
+        self.bulk_acknowledgement_reads += 1
+        return super().list_cockpit_acknowledgements(action_item_ids=action_item_ids)
+
+    def reset_acknowledgement_read_counts(self) -> None:
+        self.bulk_acknowledgement_reads = 0
+        self.single_acknowledgement_reads = 0
 
 
 class MissingReplayAcknowledgementRepository(InMemoryProposalRepository):
@@ -177,6 +195,34 @@ def _policy(evaluation_id: str = "policy_eval_sg_001") -> PolicyEvaluationRecord
         source_evidence_hash="sha256:source-evidence",
         evaluation_hash=f"sha256:{evaluation_id}",
         evaluation_json={"evaluation_status": "PENDING_REVIEW"},
+    )
+
+
+def _save_acknowledgement(
+    repository: InMemoryProposalRepository,
+    *,
+    action_item_id: str,
+    action_item_version: int = 1,
+) -> None:
+    acknowledgement = CockpitAcknowledgementRecord(
+        acknowledgement_id=f"ack_{action_item_id}",
+        action_item_id=action_item_id,
+        action_item_version=action_item_version,
+        acknowledged_by="advisor_sg_001",
+        acknowledged_at=NOW,
+        acknowledgement_note="Reviewed pending cockpit action.",
+        correlation_id="corr-ack-batch",
+        reason_json={"source": "test"},
+    )
+    repository.save_cockpit_acknowledgement_with_idempotency(
+        acknowledgement=acknowledgement,
+        idempotency=CockpitAcknowledgementIdempotencyRecord(
+            idempotency_key=f"ack-idem-{action_item_id}",
+            request_hash=f"sha256:{action_item_id}",
+            acknowledgement_id=acknowledgement.acknowledgement_id,
+            action_item_id=action_item_id,
+            created_at=NOW,
+        ),
     )
 
 
@@ -306,6 +352,127 @@ def test_cockpit_service_batches_memo_source_reads(monkeypatch: pytest.MonkeyPat
     assert repository.per_proposal_memo_reads == 0
     assert repository.per_proposal_approval_reads == 0
     assert repository.per_proposal_event_reads == 0
+
+
+def test_cockpit_service_batches_acknowledgement_reads_for_zero_coverage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = CountingCockpitRepository()
+    repository.create_proposal(_proposal())
+    repository.create_memo(_memo())
+    monkeypatch.setattr(
+        cockpit_source_loader,
+        "list_policy_evaluation_records",
+        lambda **_: [_policy()],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+
+    page = service.list_actions(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id=None,
+    )
+
+    assert page.total_count == 4
+    assert repository.bulk_acknowledgement_reads == 1
+    assert repository.single_acknowledgement_reads == 0
+    assert all(action.acknowledgement_state.acknowledged is False for action in page.items)
+
+
+def test_cockpit_service_batches_acknowledgement_reads_for_partial_and_stale_coverage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = CountingCockpitRepository()
+    repository.create_proposal(_proposal())
+    repository.create_memo(_memo())
+    monkeypatch.setattr(
+        cockpit_source_loader,
+        "list_policy_evaluation_records",
+        lambda **_: [_policy()],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+    source_actions = service.list_actions(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id=None,
+    ).items
+    _save_acknowledgement(
+        repository,
+        action_item_id=source_actions[0].action_item_id,
+        action_item_version=source_actions[0].action_item_version,
+    )
+    _save_acknowledgement(
+        repository,
+        action_item_id=source_actions[1].action_item_id,
+        action_item_version=source_actions[1].action_item_version + 1,
+    )
+    repository.reset_acknowledgement_read_counts()
+
+    page = service.list_actions(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id=None,
+    )
+
+    acknowledgement_state_by_id = {
+        action.action_item_id: action.acknowledgement_state.acknowledged for action in page.items
+    }
+    assert acknowledgement_state_by_id[source_actions[0].action_item_id] is True
+    assert acknowledgement_state_by_id[source_actions[1].action_item_id] is False
+    assert repository.bulk_acknowledgement_reads == 1
+    assert repository.single_acknowledgement_reads == 0
+
+
+def test_cockpit_service_acknowledgement_query_count_is_constant_for_complete_coverage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = CountingCockpitRepository()
+    repository.create_proposal(_proposal())
+    policy_records = [_policy(f"policy_eval_sg_{index:03d}") for index in range(25)]
+    monkeypatch.setattr(
+        cockpit_source_loader,
+        "list_policy_evaluation_records",
+        lambda **_: policy_records,
+    )
+    monkeypatch.setattr(
+        cockpit_source_loader,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+    source_actions = service.list_actions(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=50,
+        cursor=None,
+        correlation_id=None,
+    ).items
+    for action in source_actions:
+        _save_acknowledgement(
+            repository,
+            action_item_id=action.action_item_id,
+            action_item_version=action.action_item_version,
+        )
+    repository.reset_acknowledgement_read_counts()
+
+    page = service.list_actions(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=50,
+        cursor=None,
+        correlation_id=None,
+    )
+
+    assert page.total_count >= 25
+    assert all(action.acknowledgement_state.acknowledged is True for action in page.items)
+    assert repository.bulk_acknowledgement_reads == 1
+    assert repository.single_acknowledgement_reads == 0
 
 
 def test_cockpit_service_projects_non_advisor_queues_by_owner_role(

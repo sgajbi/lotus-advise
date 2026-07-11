@@ -243,6 +243,17 @@ class _FakeConnection:
                 "reason_json": args[7],
             }
             return _FakeCursor()
+        if (
+            "FROM advisor_cockpit_acknowledgements" in sql
+            and "WHERE action_item_id = ANY(%s)" in sql
+        ):
+            action_item_ids = set(args[0])
+            rows = [
+                row
+                for action_item_id, row in self.cockpit_acknowledgements.items()
+                if action_item_id in action_item_ids
+            ]
+            return _FakeCursor(rows=rows)
         if "FROM advisor_cockpit_acknowledgements" in sql:
             return _FakeCursor(self.cockpit_acknowledgements.get(args[0]))
         if "INSERT INTO advisor_cockpit_acknowledgement_idempotency" in sql:
@@ -1250,7 +1261,7 @@ def test_postgres_repository_memo_idempotency_memo_and_events_roundtrip(monkeypa
 
 
 def test_postgres_repository_cockpit_acknowledgement_roundtrip(monkeypatch):
-    repository, _ = _build_repository(monkeypatch)
+    repository, connection = _build_repository(monkeypatch)
     now = datetime.now(timezone.utc)
     acknowledgement = CockpitAcknowledgementRecord(
         acknowledgement_id="ack_pg_001",
@@ -1279,6 +1290,18 @@ def test_postgres_repository_cockpit_acknowledgement_roundtrip(monkeypatch):
     assert loaded is not None
     assert loaded.acknowledgement_note == "Reviewed pending cockpit action."
     assert loaded.reason_json["contract_version"] == "rfc0026.advisor-cockpit-api.v1"
+    loaded_by_action_id = repository.list_cockpit_acknowledgements(
+        action_item_ids=[acknowledgement.action_item_id, "missing-action"]
+    )
+    assert list(loaded_by_action_id) == [acknowledgement.action_item_id]
+    assert loaded_by_action_id[acknowledgement.action_item_id].acknowledgement_id == "ack_pg_001"
+    batch_selects = [
+        sql
+        for sql in connection.executed_sql
+        if "FROM advisor_cockpit_acknowledgements" in sql
+        and "WHERE action_item_id = ANY(%s)" in sql
+    ]
+    assert len(batch_selects) == 1
     loaded_idempotency = repository.get_cockpit_acknowledgement_idempotency(
         idempotency_key=idempotency.idempotency_key
     )
