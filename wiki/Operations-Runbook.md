@@ -243,16 +243,27 @@ That is the canonical local service identity for cross-app and demo-oriented flo
 ## Postgres Rollout Notes
 
 The active runtime direction is PostgreSQL-backed proposal lifecycle and policy evidence
-persistence. Proposal state uses the `proposals` migration namespace. Policy-pack catalog,
-policy-evaluation records, audit events, and idempotency maps use the `policy_packs` migration
-namespace and are composed through runtime repository ports.
+persistence. Proposal state uses the `proposals` migration namespace, advisory copilot state uses
+`advisory_copilot`, and policy-pack catalog, policy-evaluation records, audit events, and
+idempotency maps use the `policy_packs` migration namespace and are composed through runtime
+repository ports.
 
 Operationally important commands from the rollout runbook:
 
 ```bash
+python scripts/postgres_migration_rollout_contract.py --emit-rehearsal-evidence output/postgres-migration-rollout-rehearsal.json
 python scripts/postgres_migrate.py --target all
 python scripts/production_cutover_check.py --check-migrations
 ```
+
+`--target all` applies all three namespaces. Production cutover validation checks all three and
+uses `POLICY_POSTGRES_DSN` for `policy_packs` when policy storage is separate.
+
+Every migration must be represented in
+`docs/standards/postgres-migration-rollout-contract.v1.json` with expand/migrate/contract phase,
+old/new app compatibility, lock and online behavior, backfill checkpoint/resume/quarantine posture,
+rollback limits, and rehearsal evidence. Current index migrations are normal PostgreSQL index
+builds, not concurrent index builds, so use controlled rollout windows for production-sized tables.
 
 Use the full runbook in `docs/documentation/postgres-migration-rollout-runbook.md` for rollout,
 smoke, and fix-forward guidance.

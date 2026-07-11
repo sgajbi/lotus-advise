@@ -4,10 +4,10 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
-from src.api.proposals.runtime import proposal_postgres_dsn
+from src.api.proposals.runtime import policy_postgres_dsn, proposal_postgres_dsn
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 
-CUTOVER_MIGRATION_NAMESPACES = ("proposals", "advisory_copilot")
+CUTOVER_MIGRATION_NAMESPACES = ("proposals", "advisory_copilot", "policy_packs")
 
 
 def validate_production_cutover_contract(*, check_migrations: bool) -> None:
@@ -22,9 +22,9 @@ def validate_cutover_migrations_applied() -> None:
     import psycopg
     from psycopg.rows import dict_row
 
-    dsn = proposal_postgres_dsn()
-    with psycopg.connect(dsn, row_factory=dict_row) as connection:
-        for namespace in CUTOVER_MIGRATION_NAMESPACES:
+    for namespace in CUTOVER_MIGRATION_NAMESPACES:
+        dsn = cutover_namespace_dsn(namespace=namespace)
+        with psycopg.connect(dsn, row_factory=dict_row) as connection:
             expected_versions = expected_migration_versions(namespace=namespace)
             applied_versions = applied_migration_versions(
                 connection=connection,
@@ -33,6 +33,12 @@ def validate_cutover_migrations_applied() -> None:
             missing = sorted(set(expected_versions) - set(applied_versions))
             if missing:
                 raise RuntimeError(f"CUTOVER_MIGRATION_MISSING:{namespace}:{missing[0]}")
+
+
+def cutover_namespace_dsn(*, namespace: str) -> str:
+    if namespace == "policy_packs":
+        return policy_postgres_dsn()
+    return proposal_postgres_dsn()
 
 
 def expected_migration_versions(*, namespace: str) -> list[str]:

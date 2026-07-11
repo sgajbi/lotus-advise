@@ -46,6 +46,7 @@ make no-alias-gate
 make api-vocabulary-gate
 make domain-data-products-gate
 make external-adapter-contracts
+make migration-rollout-contract-gate
 make release-image-provenance-gate
 make observability-diagnostics
 make advisory-domain-golden-regressions
@@ -86,18 +87,22 @@ The current blocking posture is intentionally high-signal:
    evidence to reference real regression tests.
 8. `make quality-baseline-check`
    blocks stale committed quality report and scorecard truth.
-9. `make bandit-severity-regression-gate`
+9. `make migration-rollout-contract-gate`
+   validates every checked-in Postgres migration has explicit namespace coverage, rollout phase,
+   old/new application compatibility, lock and online behavior, backfill checkpoint/resume/quarantine
+   posture, rollback limits, and non-production rehearsal evidence.
+10. `make bandit-severity-regression-gate`
    blocks high-severity Bandit findings and fails on any new, stale, expired, or worsened
    medium/low finding relative to `quality/bandit_security_baseline.v1.json`.
-10. `make security-audit`
+11. `make security-audit`
    runs dependency health with audit posture and the Bandit severity-regression gate in PR-grade
    paths.
-11. `make release-image-provenance-gate`
+12. `make release-image-provenance-gate`
     blocks drift in Dockerfile build metadata args, OCI labels, Docker build arguments, and
     support-safe metadata naming before the image is built or pushed.
-12. `make coverage-combined`
+13. `make coverage-combined`
     enforces the combined coverage floor across unit, integration, and e2e suites.
-13. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
+14. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
     protect supported runtime startup and production-profile guardrail behavior.
 
 These gates are blocking because they are measured, deterministic, repo-native, and low-noise for

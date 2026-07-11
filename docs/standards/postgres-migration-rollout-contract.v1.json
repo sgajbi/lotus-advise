@@ -1,0 +1,488 @@
+{
+  "schema_version": "lotus.advise.postgres-migration-rollout.v1",
+  "service_name": "lotus-advise",
+  "policy": {
+    "migration_model": "forward_only_expand_migrate_contract",
+    "schema_history_table": "schema_migrations",
+    "lock_model": "namespace_scoped_pg_advisory_lock",
+    "rollback_model": "forward_fix_with_previous_app_compatibility",
+    "rehearsal_evidence_path": "output/postgres-migration-rollout-rehearsal.json"
+  },
+  "namespaces": [
+    {
+      "namespace_key": "proposals",
+      "dsn_env": "PROPOSAL_POSTGRES_DSN",
+      "owned_store": "advisory proposal records, versions, workflow events, approvals, memo state, cockpit acknowledgements",
+      "rollout_order": 10
+    },
+    {
+      "namespace_key": "advisory_copilot",
+      "dsn_env": "ADVISORY_COPILOT_POSTGRES_DSN or PROPOSAL_POSTGRES_DSN",
+      "owned_store": "advisory copilot runs, reviews, evidence packets, and idempotency records",
+      "rollout_order": 20
+    },
+    {
+      "namespace_key": "policy_packs",
+      "dsn_env": "POLICY_POSTGRES_DSN or PROPOSAL_POSTGRES_DSN",
+      "owned_store": "policy evaluation records, catalog state, audit events, and idempotency records",
+      "rollout_order": 30
+    }
+  ],
+  "migrations": [
+    {
+      "namespace_key": "proposals",
+      "version": "0001",
+      "path": "src/infrastructure/postgres_migrations/proposals/0001_baseline.sql",
+      "phase": "expand",
+      "operation_class": "create_table",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "creates additive proposal tables before Postgres-backed proposal runtime receives traffic"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_transactional_ddl",
+        "online_behavior": "metadata_only_when_tables_absent",
+        "required_operator_control": "run before traffic shift or during maintenance window"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_if_not_exists",
+        "quarantine_strategy": "halt_cutover_before_traffic_shift"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "do not edit applied SQL; redeploy previous compatible app or add a new forward migration"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "proposals",
+      "version": "0002",
+      "path": "src/infrastructure/postgres_migrations/proposals/0002_simulation_idempotency.sql",
+      "phase": "expand",
+      "operation_class": "create_table",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds simulation idempotency state without changing existing proposal reads"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_transactional_ddl",
+        "online_behavior": "metadata_only_when_table_absent",
+        "required_operator_control": "run before enabling simulation idempotency persistence"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_if_not_exists",
+        "quarantine_strategy": "disable new simulation persistence traffic until migration succeeds"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "previous app version ignores the additive table"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "proposals",
+      "version": "0003",
+      "path": "src/infrastructure/postgres_migrations/proposals/0003_lifecycle_origin.sql",
+      "phase": "expand",
+      "operation_class": "add_column",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds lifecycle origin columns with defaults/nullability that keep older proposal code compatible"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_transactional_ddl",
+        "online_behavior": "metadata_add_column_with_default_on_supported_postgres_versions",
+        "required_operator_control": "validate table size in non-production before production apply"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "default_value_on_existing_rows",
+        "resume_strategy": "rerun_idempotent_add_column_if_not_exists",
+        "quarantine_strategy": "halt cutover if column apply exceeds rollout window"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "older app versions ignore the additive columns"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "proposals",
+      "version": "0004",
+      "path": "src/infrastructure/postgres_migrations/proposals/0004_async_runtime_hardening.sql",
+      "phase": "expand",
+      "operation_class": "create_index",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds async runtime columns and recovery index while preserving existing async operation fields"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "blocking_index_build_or_short_add_column_lock",
+        "online_behavior": "not_concurrent; schedule controlled window for existing large tables",
+        "required_operator_control": "rehearse with production-like row counts before production apply"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "defaults_cover_existing_rows",
+        "resume_strategy": "rerun_idempotent_add_column_and_create_index_if_not_exists",
+        "quarantine_strategy": "keep async recovery workers disabled until migration verifies"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "do not drop new columns or index during rollback; redeploy previous app or forward-fix"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "proposals",
+      "version": "0005",
+      "path": "src/infrastructure/postgres_migrations/proposals/0005_async_idempotency_unique.sql",
+      "phase": "expand",
+      "operation_class": "create_partial_unique_index",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds uniqueness enforcement for populated async idempotency keys without changing null-key records"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "blocking_unique_index_build",
+        "online_behavior": "not_concurrent; requires low-write or maintenance window",
+        "required_operator_control": "preflight duplicate idempotency-key scan before production apply"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "preflight_duplicate_scan",
+        "resume_strategy": "rerun_idempotent_create_unique_index_if_not_exists",
+        "quarantine_strategy": "quarantine duplicate idempotency rows before applying index"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "unique index remains in place after app rollback"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "proposals",
+      "version": "0006",
+      "path": "src/infrastructure/postgres_migrations/proposals/0006_proposal_list_keyset_indexes.sql",
+      "phase": "expand",
+      "operation_class": "create_index",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds read-path indexes for proposal listing without changing API shape"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "blocking_index_build",
+        "online_behavior": "not_concurrent; schedule controlled window for existing large tables",
+        "required_operator_control": "rehearse index duration with production-like proposal row count"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_index_if_not_exists",
+        "quarantine_strategy": "hold traffic shift if index build breaches rehearsal budget"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "indexes are additive and remain after app rollback"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "proposals",
+      "version": "0007",
+      "path": "src/infrastructure/postgres_migrations/proposals/0007_memo_persistence.sql",
+      "phase": "expand",
+      "operation_class": "create_table_and_indexes",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds memo tables and memo read indexes before memo persistence is enabled"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_create_table_plus_empty_index_build",
+        "online_behavior": "metadata_only_when_tables_absent; indexes build before memo traffic",
+        "required_operator_control": "apply before enabling memo endpoints on Postgres runtime"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_if_not_exists",
+        "quarantine_strategy": "keep memo persistence disabled until migration verifies"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "older app versions ignore additive memo tables"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "proposals",
+      "version": "0008",
+      "path": "src/infrastructure/postgres_migrations/proposals/0008_cockpit_acknowledgements.sql",
+      "phase": "expand",
+      "operation_class": "create_table_and_indexes",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds cockpit acknowledgement tables without affecting existing proposal workflows"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_create_table_plus_empty_index_build",
+        "online_behavior": "metadata_only_when_tables_absent; indexes build before acknowledgement traffic",
+        "required_operator_control": "apply before enabling cockpit acknowledgement persistence"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_if_not_exists",
+        "quarantine_strategy": "keep acknowledgement writes disabled until migration verifies"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "older app versions ignore additive acknowledgement tables"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "proposals",
+      "version": "0009",
+      "path": "src/infrastructure/postgres_migrations/proposals/0009_lifecycle_history_indexes.sql",
+      "phase": "expand",
+      "operation_class": "create_index",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds lifecycle history read indexes without changing workflow event or approval schemas"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "blocking_index_build",
+        "online_behavior": "not_concurrent; schedule controlled window for existing large tables",
+        "required_operator_control": "rehearse index duration with production-like workflow history volume"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_index_if_not_exists",
+        "quarantine_strategy": "hold rollout if index build breaches rehearsal budget"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "indexes are additive and remain after app rollback"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "advisory_copilot",
+      "version": "0001",
+      "path": "src/infrastructure/postgres_migrations/advisory_copilot/0001_copilot_run_persistence.sql",
+      "phase": "expand",
+      "operation_class": "create_table_and_indexes",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds copilot run, review, and idempotency state before copilot persistence is enabled"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_create_table_plus_empty_index_build",
+        "online_behavior": "metadata_only_when_tables_absent; indexes build before copilot traffic",
+        "required_operator_control": "apply before enabling advisory copilot Postgres writes"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_if_not_exists",
+        "quarantine_strategy": "keep copilot writes disabled until migration verifies"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "older app versions ignore additive copilot tables"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "advisory_copilot",
+      "version": "0002",
+      "path": "src/infrastructure/postgres_migrations/advisory_copilot/0002_evidence_packet_records.sql",
+      "phase": "expand",
+      "operation_class": "create_table_and_indexes",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds evidence packet state before evidence packet read/write traffic is shifted"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_create_table_plus_empty_index_build",
+        "online_behavior": "metadata_only_when_table_absent; indexes build before evidence-packet traffic",
+        "required_operator_control": "apply before enabling evidence packet persistence"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_if_not_exists",
+        "quarantine_strategy": "keep evidence packet writes disabled until migration verifies"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "older app versions ignore additive evidence packet table"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "advisory_copilot",
+      "version": "0003",
+      "path": "src/infrastructure/postgres_migrations/advisory_copilot/0003_copilot_run_version_pagination_indexes.sql",
+      "phase": "expand",
+      "operation_class": "create_expression_index",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds version pagination indexes without changing copilot run schema or response contracts"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "blocking_expression_index_build",
+        "online_behavior": "not_concurrent; schedule controlled window for existing copilot run volume",
+        "required_operator_control": "rehearse expression index duration with production-like copilot history"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_index_if_not_exists",
+        "quarantine_strategy": "hold rollout if expression index build breaches rehearsal budget"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "indexes are additive and remain after app rollback"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "policy_packs",
+      "version": "0001",
+      "path": "src/infrastructure/postgres_migrations/policy_packs/0001_policy_pack_state.sql",
+      "phase": "expand",
+      "operation_class": "create_table_and_indexes",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds policy evaluation and catalog state before policy Postgres repositories receive traffic"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_create_table_plus_empty_index_build",
+        "online_behavior": "metadata_only_when_tables_absent; indexes build before policy traffic",
+        "required_operator_control": "apply before enabling policy evaluation or catalog Postgres writes"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_if_not_exists",
+        "quarantine_strategy": "keep policy writes disabled until migration verifies"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "older app versions ignore additive policy tables when policy writes remain disabled"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    }
+  ]
+}

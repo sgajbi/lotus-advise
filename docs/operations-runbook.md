@@ -16,6 +16,8 @@
 ## Runtime Validation
 
 - `make migration-smoke`: migration and runtime persistence smoke tests.
+- `make migration-rollout-contract-gate`: validates every Postgres migration namespace and SQL
+  file has rollout phase, lock/online behavior, compatibility, rollback, and rehearsal metadata.
 - `make postgres-runtime-contracts-local`: local Postgres runtime contract checks.
 - `make production-profile-guardrail-negatives-local`: production-profile negative guardrail
   checks, including malformed numeric integration runtime configuration.
@@ -135,6 +137,23 @@ When a budget is breached:
 4. route AI token, output, cost, latency, or fallback breaches through the advisory AI governance
    owner before increasing limits,
 5. record live smoke evidence against the generated smoke plan before claiming recovery.
+
+## PostgreSQL Migration Rollout
+
+PostgreSQL schema rollout is governed by
+`docs/standards/postgres-migration-rollout-contract.v1.json` and validated by
+`make migration-rollout-contract-gate`. The gate emits
+`output/postgres-migration-rollout-rehearsal.json` and fails if a checked-in SQL migration lacks
+expand/migrate/contract phase metadata, old/new application compatibility, lock and online
+behavior, backfill checkpoint/resume/quarantine posture, rollback limits, or rehearsal evidence.
+
+`python scripts/postgres_migrate.py --target all` applies `proposals`, `advisory_copilot`, and
+`policy_packs`. `python scripts/production_cutover_check.py --check-migrations` verifies all three
+namespaces and uses `POLICY_POSTGRES_DSN` for `policy_packs` when policy storage is separate.
+
+Current index migrations are not `CREATE INDEX CONCURRENTLY`; treat them as controlled-window
+operations on production-sized tables. Keep the previous compatible app version available, retain
+backup/restore evidence, and fix forward with a new migration rather than editing applied SQL.
 
 ## Proposal History Reads
 

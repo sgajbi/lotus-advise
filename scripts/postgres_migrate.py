@@ -15,7 +15,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--target",
-        choices=["all", "proposals", "advisory_copilot"],
+        choices=["all", "proposals", "advisory_copilot", "policy_packs"],
         default="all",
         help="Migration target namespace.",
     )
@@ -32,6 +32,14 @@ def main() -> int:
         ),
         help="PostgreSQL DSN for advisory copilot migrations.",
     )
+    parser.add_argument(
+        "--policy-postgres-dsn",
+        default=(
+            os.getenv("POLICY_POSTGRES_DSN", "").strip()
+            or os.getenv("PROPOSAL_POSTGRES_DSN", "").strip()
+        ),
+        help="PostgreSQL DSN for policy pack migrations.",
+    )
     args = parser.parse_args()
 
     if find_spec("psycopg") is None:
@@ -45,6 +53,7 @@ def main() -> int:
         args.target,
         proposals_dsn=args.proposals_dsn,
         advisory_copilot_dsn=args.advisory_copilot_dsn,
+        policy_packs_dsn=args.policy_postgres_dsn,
     )
     for namespace, dsn in targets:
         if not dsn:
@@ -60,10 +69,12 @@ def _resolve_targets(
     *,
     proposals_dsn: str,
     advisory_copilot_dsn: str,
+    policy_packs_dsn: str,
 ) -> list[tuple[str, str]]:
     targets = {
         "proposals": proposals_dsn,
         "advisory_copilot": advisory_copilot_dsn,
+        "policy_packs": policy_packs_dsn,
     }
     if target == "all":
         return list(targets.items())
