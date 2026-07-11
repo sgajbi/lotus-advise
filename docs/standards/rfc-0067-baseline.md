@@ -52,3 +52,16 @@ Source of truth: `lotus-platform/rfcs/RFC-0067-centralized-api-vocabulary-invent
   `src/` public contract code.
 - Historical audit posture: prior ledger and RFC audit references to `DPM_OWNER` remain historical
   evidence only; no internal historical audit records are renamed without a separate migration plan.
+
+### API Vocabulary Example Quality
+
+- Date: 2026-07-11
+- Decision: generated API vocabulary examples must be source-authored or derived from a governed
+  deterministic fallback policy. Placeholder-shaped examples are not valid public contract truth.
+- Blocked patterns: `sample_text`, `sample_key`, `STANDARD_TEXT`, `STANDARD_ITEM`, `ENTITY_001`,
+  and generated `example_*` strings.
+- Guardrail: `scripts/api_vocabulary_inventory.py --validate-only` recursively rejects placeholder
+  examples in the attribute and controls catalogs and fails on inventory drift.
+- Consumer posture: public examples should use representative private-banking identifiers,
+  source-system values, dates, hashes, money/rate values, enums, and object/list shapes without
+  publishing real customer data.

@@ -4,6 +4,7 @@ from scripts.api_vocabulary_inventory import (
     _attribute_catalog_entry,
     _extract_fields,
     _fallback_example,
+    _is_placeholder_example,
     _preserve_stable_generated_at,
     validate_inventory,
 )
@@ -13,12 +14,16 @@ def test_fallback_example_uses_governed_non_placeholder_values() -> None:
     assert _fallback_example("status", {"enum": ["READY", "BLOCKED"]}) == "READY"
     assert _fallback_example("status", {"enum": [None, "READY"]}) is None
     assert _fallback_example("as_of", {"format": "date"}) == "2026-02-20"
-    assert _fallback_example("created_at", {"format": "date-time"}) == "2026-02-20T00:00:00Z"
-    assert _fallback_example("proposal_id", {"type": "string"}) == "ENTITY_001"
+    assert _fallback_example("created_at", {"format": "date-time"}) == "2026-02-20T10:00:00Z"
+    assert _fallback_example("proposal_id", {"type": "string"}) == "pp_001"
     assert _fallback_example("review_required", {"type": "boolean"}) is True
     assert _fallback_example("review_required", {"type": ["boolean", "null"]}) is True
     assert _fallback_example("cash_weight", {"type": "number"}) == 0.1
-    assert _fallback_example("unsupported", {"type": "string"}) == "STANDARD_TEXT"
+    assert _fallback_example("unsupported", {"type": "string"}) == "advisory_review_context"
+    assert _fallback_example("metadata", {"type": "object"}) == {
+        "source_system": "lotus-advise",
+        "business_context": "metadata_contract",
+    }
 
 
 def test_extract_fields_expands_nested_objects_refs_and_arrays() -> None:
@@ -64,7 +69,14 @@ def test_extract_fields_expands_nested_objects_refs_and_arrays() -> None:
     assert by_name["client.bookingCenter"]["semanticId"] == "lotus.booking_center_code"
     assert by_name["actions"]["required"] is True
     assert by_name["actions[].actionId"]["semanticId"] == "lotus.action_id"
-    assert by_name["actions[].actionId"]["example"] == "ENTITY_001"
+    assert by_name["actions[].actionId"]["example"] == "action_001"
+
+
+def test_placeholder_example_detection_is_recursive() -> None:
+    assert _is_placeholder_example("example_source_system") is True
+    assert _is_placeholder_example({"key": "sample_text"}) is True
+    assert _is_placeholder_example(["ENTITY_001"]) is True
+    assert _is_placeholder_example({"source_system": "lotus-advise"}) is False
 
 
 def test_attribute_catalog_uses_canonical_description_for_reused_terms() -> None:
@@ -122,7 +134,7 @@ def test_validate_inventory_rejects_placeholder_and_endpoint_metadata_duplicatio
                 "semanticId": "lotus.client_id",
                 "canonicalTerm": "client_id",
                 "preferredName": "client_id",
-                "example": "sample",
+                "example": {"source_system": "example_source_system"},
             },
             {
                 "semanticId": "lotus.client_id",
@@ -148,6 +160,12 @@ def test_validate_inventory_rejects_placeholder_and_endpoint_metadata_duplicatio
                 "response": {"fields": []},
             }
         ],
+        "controlsCatalog": [
+            {
+                "semanticId": "lotus.role",
+                "example": "example_role",
+            }
+        ],
     }
 
     errors = validate_inventory(inventory)
@@ -161,3 +179,4 @@ def test_validate_inventory_rejects_placeholder_and_endpoint_metadata_duplicatio
     )
     assert any("endpoint field missing semanticId" in error for error in errors)
     assert any("endpoint field missing attributeRef" in error for error in errors)
+    assert "generic control example is not allowed: lotus.role" in errors

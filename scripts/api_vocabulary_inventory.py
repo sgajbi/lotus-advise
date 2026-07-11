@@ -23,6 +23,8 @@ DEFAULT_OUTPUT = (
 PLACEHOLDER_EXAMPLES = {
     "example",
     "sample",
+    "sample_key",
+    "sample_text",
     "string",
     "value",
     "test",
@@ -30,7 +32,14 @@ PLACEHOLDER_EXAMPLES = {
     "bar",
     "baz",
     "placeholder",
+    "standard_item",
+    "standard_text",
+    "entity_001",
 }
+PLACEHOLDER_EXAMPLE_PATTERNS = (
+    re.compile(r"(^|[:/])example_[A-Za-z0-9_]+"),
+    re.compile(r"\bsample_(key|text|item)\b"),
+)
 LEGACY_TERM_MAP: dict[str, str] = {
     "cif_id": "client_id",
     "booking_center": "booking_center_code",
@@ -43,8 +52,45 @@ TYPE_FALLBACK_EXAMPLES: dict[str, Any] = {
     "boolean": True,
     "integer": 1,
     "number": 0.1,
-    "array": ["STANDARD_ITEM"],
-    "object": {"key": "sample_text"},
+    "string": "advisory_review_context",
+}
+CANONICAL_FALLBACK_EXAMPLES: dict[str, Any] = {
+    "acknowledged_at": "2026-02-20T10:00:00Z",
+    "acknowledged_by": "advisor_123",
+    "activated_by": "supervisor_123",
+    "advisor_id": "advisor_123",
+    "archive_id": "archive_001",
+    "as_of": "2026-02-20",
+    "as_of_date": "2026-02-20",
+    "base_currency": "USD",
+    "booking_center_code": "SG",
+    "client_id": "client_sg_001",
+    "content_hash": "sha256:advisory-content",
+    "correlation_id": "corr_advisory_001",
+    "created_at": "2026-02-20T10:00:00Z",
+    "created_by": "advisor_123",
+    "currency": "USD",
+    "generated_at": "2026-02-20T10:00:00Z",
+    "idempotency_key": "proposal-create-idem-001",
+    "jurisdiction": "SG",
+    "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+    "memo_id": "memo_001",
+    "occurred_at": "2026-02-20T10:00:00Z",
+    "operation_id": "pop_001",
+    "policy_evaluation_id": "policy_eval_sg_001",
+    "policy_pack_id": "SG_PRIVATE_BANKING_REFERENCE",
+    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+    "proposal_id": "pp_001",
+    "proposal_run_id": "pr_001",
+    "proposal_version_id": "ppv_001",
+    "report_id": "report_001",
+    "request_hash": "sha256:advisory-request",
+    "source_service": "lotus-advise",
+    "source_system": "lotus-advise",
+    "source_type": "ADVISORY_EVIDENCE",
+    "tenant_id": "default",
+    "updated_at": "2026-02-20T10:00:00Z",
+    "version_no": 1,
 }
 ATTRIBUTE_CATALOG_OVERRIDES: dict[str, dict[str, Any]] = {
     "lotus.intent_type": {
@@ -97,16 +143,22 @@ def _fallback_description(name: str) -> str:
 
 def _fallback_example(name: str, schema: dict[str, Any]) -> Any:
     canonical = _canonical_term(name)
+    canonical_example = CANONICAL_FALLBACK_EXAMPLES.get(canonical)
+    if canonical_example is not None:
+        return canonical_example
     enum_example = _first_enum_example(schema)
     if enum_example is not _NO_ENUM_EXAMPLE:
         return enum_example
     format_example = FORMAT_FALLBACK_EXAMPLES.get(str(schema.get("format", "")))
     if format_example is not None:
         return format_example
+    structured_example = _structured_fallback_example(canonical, schema)
+    if structured_example is not _NO_ENUM_EXAMPLE:
+        return structured_example
     name_example = _name_based_fallback_example(canonical)
     if name_example is not None:
         return name_example
-    return TYPE_FALLBACK_EXAMPLES.get(_fallback_type(schema), "STANDARD_TEXT")
+    return TYPE_FALLBACK_EXAMPLES.get(_fallback_type(schema), f"{canonical}_value")
 
 
 def _first_enum_example(schema: dict[str, Any]) -> Any:
@@ -129,10 +181,71 @@ def _fallback_type(schema: dict[str, Any]) -> str:
 
 def _name_based_fallback_example(canonical: str) -> Any | None:
     if canonical.endswith("_id"):
-        return "ENTITY_001"
+        return f"{canonical.removesuffix('_id')}_001"
+    if canonical.endswith("_at") or "timestamp" in canonical:
+        return "2026-02-20T10:00:00Z"
     if canonical.endswith("_date"):
         return "2026-02-20"
+    if canonical.endswith("_by") or "actor" in canonical or "reviewer" in canonical:
+        return "advisor_123"
+    if canonical.endswith("_hash") or "hash" in canonical:
+        return "sha256:advisory-evidence"
+    if canonical.endswith("_uri") or canonical.endswith("_url") or canonical.endswith("_href"):
+        return "/advisory/proposals/pp_001"
+    if "currency" in canonical:
+        return "USD"
+    if "amount" in canonical or "value" in canonical:
+        return 125000.5
+    if "weight" in canonical or "rate" in canonical:
+        return 0.1
+    if canonical.endswith("_code") or "reason" in canonical:
+        return "ADVISORY_REVIEW_REQUIRED"
     return None
+
+
+def _structured_fallback_example(canonical: str, schema: dict[str, Any]) -> Any:
+    schema_type = _fallback_type(schema)
+    if schema_type == "array":
+        return _array_fallback_example(canonical, schema)
+    if schema_type == "object" or "properties" in schema:
+        return _object_fallback_example(canonical, schema)
+    return _NO_ENUM_EXAMPLE
+
+
+def _array_fallback_example(canonical: str, schema: dict[str, Any]) -> list[Any]:
+    item_schema = schema.get("items")
+    if isinstance(item_schema, dict):
+        return [_fallback_example(f"{canonical}_item", item_schema)]
+    return [f"{canonical}_value"]
+
+
+def _object_fallback_example(canonical: str, schema: dict[str, Any]) -> dict[str, Any]:
+    properties = schema.get("properties")
+    if isinstance(properties, dict) and properties:
+        selected_names = _selected_object_property_names(schema, properties)
+        return {
+            str(prop_name): _fallback_example(str(prop_name), prop_schema)
+            for prop_name, prop_schema in selected_names
+            if isinstance(prop_schema, dict)
+        }
+    additional_schema = schema.get("additionalProperties")
+    if isinstance(additional_schema, dict):
+        example_key = "USD" if "currency" in canonical or "ccy" in canonical else "advisory_key"
+        return {example_key: _fallback_example(f"{canonical}_value", additional_schema)}
+    return {
+        "source_system": "lotus-advise",
+        "business_context": f"{canonical}_contract",
+    }
+
+
+def _selected_object_property_names(
+    schema: dict[str, Any],
+    properties: dict[str, Any],
+) -> list[tuple[str, Any]]:
+    required = schema.get("required")
+    if isinstance(required, list) and required:
+        return [(str(name), properties.get(str(name))) for name in required[:5]]
+    return [(str(name), prop_schema) for name, prop_schema in list(properties.items())[:5]]
 
 
 def _extract_fields(
@@ -198,8 +311,23 @@ def _field_metadata(
 
 
 def _field_example(field_name: str, resolved_schema: dict[str, Any]) -> Any:
-    example = resolved_schema.get("example")
-    return example if example is not None else _fallback_example(field_name, resolved_schema)
+    example = _schema_example(resolved_schema)
+    if example is None or _is_placeholder_example(example):
+        return _fallback_example(field_name, resolved_schema)
+    return example
+
+
+def _schema_example(schema: dict[str, Any]) -> Any | None:
+    example = schema.get("example")
+    if example is not None:
+        return example
+    examples = schema.get("examples")
+    if isinstance(examples, list):
+        for candidate in examples:
+            if not _is_placeholder_example(candidate):
+                return candidate
+        return examples[0] if examples else None
+    return None
 
 
 def _iter_nested_field_schemas(
@@ -252,9 +380,7 @@ def _extract_request_fields(
                 "description": parameter.get("description")
                 or schema.get("description")
                 or _fallback_description(name),
-                "example": parameter.get("example")
-                if parameter.get("example") is not None
-                else _fallback_example(name, schema),
+                "example": _parameter_example(name, parameter, schema),
                 "allowedValues": schema.get("enum", []),
                 "semanticId": _semantic_id(name),
                 "attributeRef": f"#/attributeCatalog/{_semantic_id(name)}",
@@ -270,6 +396,15 @@ def _extract_request_fields(
                 request_fields.extend(_extract_fields(schema, components=components))
 
     return request_fields, controls
+
+
+def _parameter_example(name: str, parameter: dict[str, Any], schema: dict[str, Any]) -> Any:
+    example = parameter.get("example")
+    if example is None:
+        example = _schema_example(schema)
+    if example is None or _is_placeholder_example(example):
+        return _fallback_example(name, schema)
+    return example
 
 
 def _extract_response_fields(
@@ -414,15 +549,21 @@ def _is_snake_case(value: str) -> bool:
 
 def _is_placeholder_example(value: Any) -> bool:
     if isinstance(value, str):
-        return value.strip().lower() in PLACEHOLDER_EXAMPLES
-    if isinstance(value, list) and value and isinstance(value[0], str):
-        return value[0].strip().lower() in PLACEHOLDER_EXAMPLES
+        normalized = value.strip().lower()
+        return normalized in PLACEHOLDER_EXAMPLES or any(
+            pattern.search(value) for pattern in PLACEHOLDER_EXAMPLE_PATTERNS
+        )
+    if isinstance(value, list):
+        return any(_is_placeholder_example(item) for item in value)
+    if isinstance(value, dict):
+        return any(_is_placeholder_example(item) for item in value.values())
     return False
 
 
 def validate_inventory(inventory: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     errors.extend(_validate_attribute_catalog(inventory.get("attributeCatalog", [])))
+    errors.extend(_validate_controls_catalog(inventory.get("controlsCatalog", [])))
     errors.extend(_validate_endpoint_field_refs(inventory.get("endpoints", [])))
     return errors
 
@@ -461,6 +602,18 @@ def _validate_attribute_identity(
         errors.append(f"legacy term is not allowed: {canonical} (use {LEGACY_TERM_MAP[canonical]})")
     if _is_placeholder_example(attr.get("example")):
         errors.append(f"generic placeholder example is not allowed: {semantic_id}")
+    return errors
+
+
+def _validate_controls_catalog(controls_catalog: Any) -> list[str]:
+    errors: list[str] = []
+    for control in controls_catalog:
+        if not isinstance(control, dict):
+            errors.append("controlsCatalog entry must be an object")
+            continue
+        semantic_id = str(control.get("semanticId", ""))
+        if _is_placeholder_example(control.get("example")):
+            errors.append(f"generic control example is not allowed: {semantic_id}")
     return errors
 
 
