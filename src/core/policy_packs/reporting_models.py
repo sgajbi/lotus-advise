@@ -13,7 +13,11 @@ from src.core.proposals.response_models import ProposalReportResponse
 
 class PolicyEvaluationReportPackageRequest(BaseModel):
     requested_by: str = Field(
-        description="Actor requesting policy sign-off report/render/archive materialization.",
+        description=(
+            "Compatibility actor echo for report/render/archive materialization. The route "
+            "authorizes and records the trusted policy checker principal from policy-control "
+            "headers and rejects a mismatch."
+        ),
         examples=["policy_checker_1"],
     )
     portfolio_id: str = Field(

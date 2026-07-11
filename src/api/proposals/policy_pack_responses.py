@@ -4,6 +4,18 @@ from fastapi import status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
 
+POLICY_CONTROL_AUTH_RESPONSES = {
+    status.HTTP_401_UNAUTHORIZED: {
+        "description": "Trusted policy-control principal is missing or invalid."
+    },
+    status.HTTP_403_FORBIDDEN: {
+        "description": (
+            "Trusted principal lacks the required policy-control role, capability, actor binding, "
+            "or legal-entity scope for the policy pack."
+        )
+    },
+}
+
 POLICY_PACK_LIST_RESPONSES = {
     status.HTTP_200_OK: {"description": "Policy-pack catalog metadata returned."},
     status.HTTP_500_INTERNAL_SERVER_ERROR: {
@@ -16,6 +28,7 @@ POLICY_PACK_NOT_FOUND_RESPONSE = {
 }
 
 POLICY_PACK_VALIDATE_RESPONSES = {
+    **POLICY_CONTROL_AUTH_RESPONSES,
     **POLICY_PACK_NOT_FOUND_RESPONSE,
     status.HTTP_409_CONFLICT: {
         "description": "Idempotency key was reused for a different validation request."
@@ -24,6 +37,7 @@ POLICY_PACK_VALIDATE_RESPONSES = {
 }
 
 POLICY_PACK_ACTIVATE_RESPONSES = {
+    **POLICY_CONTROL_AUTH_RESPONSES,
     **POLICY_PACK_NOT_FOUND_RESPONSE,
     status.HTTP_409_CONFLICT: {
         "description": "Idempotency key was reused for a different activation request."

@@ -54,6 +54,21 @@ friendliness and adds `gateway_support` and `workbench_support` string fields fo
 | Data-product posture | `AdvisoryPolicyEvaluationRecord:v1` remains blocked until final closure. |
 | Dead code and duplication | Duplicated supportability maps were removed from policy-pack modules. |
 
+## Post-Review Security Hardening
+
+Issue #432 closed an additional policy-control boundary gap discovered after this slice: policy
+validation, activation, evaluation finalization, review event, sign-off, report-package, and
+AI-evidence routes now resolve a trusted `PolicyControlPrincipal` from headers before application
+state transitions. The role matrix is explicit (`POLICY_STEWARD`, `POLICY_CHECKER`, `ADVISOR`,
+`COMPLIANCE_REVIEWER`), route capabilities are command-specific, and evaluation writes verify
+authorized proposal, portfolio, legal-entity, and tenant scope where source metadata is present.
+
+Request-body actor fields are retained as compatibility echoes only. They must match `X-Actor-Id`;
+otherwise the command fails with a stable policy-control authorization error and no catalog,
+evaluation, sign-off, report-package, or AI-evidence mutation occurs. Successful audit events carry
+trusted subject, role, tenant, legal entity, correlation id, service identity, and capability
+metadata for support review.
+
 ## Validation
 
 Targeted validation:

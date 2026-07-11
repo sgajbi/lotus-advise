@@ -195,6 +195,7 @@ class PolicyEvaluationRecordStore:
                 "source_evidence_hash": record.source_evidence_hash,
                 "evaluation_hash": record.evaluation_hash,
                 "finalization_reason": reason,
+                **_trusted_principal_from_reason(reason),
             },
         )
         self._records[record.evaluation_id] = record
@@ -431,6 +432,13 @@ def _identity_index_from_snapshot(
             )
         ] = str(item["evaluation_id"])
     return index
+
+
+def _trusted_principal_from_reason(reason: dict[str, Any]) -> dict[str, Any]:
+    trusted_principal = reason.get("trusted_principal")
+    if isinstance(trusted_principal, dict):
+        return {"trusted_principal": trusted_principal}
+    return {}
 
 
 __all__ = ["PolicyEvaluationRecordStore"]

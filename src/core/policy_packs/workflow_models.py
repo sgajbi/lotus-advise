@@ -134,7 +134,11 @@ class PolicyEvaluationWorkflowResponse(BaseModel):
 
 class PolicyEvaluationSignOffDecisionRequest(BaseModel):
     actor_id: str = Field(
-        description="Actor recording the policy sign-off decision.",
+        description=(
+            "Compatibility actor echo for the policy sign-off decision. The route authorizes and "
+            "records the trusted policy checker principal from policy-control headers and rejects "
+            "a mismatch."
+        ),
         examples=["policy_checker_1"],
     )
     decision: PolicyEvaluationSignOffDecision = Field(

@@ -107,8 +107,13 @@ Boundary rules that matter:
    adapter-transactional record/catalog, audit-event, and immutable idempotency writes. The generic
    policy-evaluation event API is review-only; sign-off, report/archive, AI-evidence, and
    finalization events are recorded only by their specialized Advise commands with event-authority
-   contract checks. Completed approval/waiver authority, client-ready policy publication, and
-   external client communication remain gated.
+   contract checks. Policy validation, activation, evaluation finalization, review event,
+   sign-off, report-package, and AI-evidence commands now bind actor authority to trusted
+   `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`,
+   service-identity, capability, proposal, and portfolio headers; request-body actor fields are
+   compatibility echoes and are rejected when they do not match the trusted principal. Completed
+   approval/waiver authority, client-ready policy publication, and external client communication
+   remain gated.
 7. `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active
    source-owned RFC-0026 advisor operating workflow products. They cover Advise action items,
    snapshot, supportability, acknowledgements, Gateway/Workbench consumption, and canonical
@@ -334,8 +339,10 @@ Contract rules that are easy to get wrong:
 5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
    instead of recomputing portfolio source facts locally
 6. policy evaluation endpoints preserve selector applicability, source/policy/evaluation/replay
-   hashes, and must not imply legal advice, completed approval/waiver authority, completed sign-off
-   authority, or client-ready publication
+   hashes, trusted policy-control principal metadata, and must not imply legal advice, completed
+   approval/waiver authority, completed sign-off authority, or client-ready publication. Policy
+   command body actor fields are not authoritative identity; they must match the trusted
+   policy-control principal and authorized scope headers
 7. advisor cockpit endpoints preserve source refs, action lineage, SLA/acknowledgement posture, and
    unsupported-claim boundaries; acknowledgements do not approve policy, clear blockers, contact
    clients, create CRM tasks, or initiate orders

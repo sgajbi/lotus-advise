@@ -4,7 +4,20 @@ from fastapi import status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
 
+POLICY_CONTROL_AUTH_RESPONSES = {
+    status.HTTP_401_UNAUTHORIZED: {
+        "description": "Trusted policy-control principal is missing or invalid."
+    },
+    status.HTTP_403_FORBIDDEN: {
+        "description": (
+            "Trusted principal lacks the required policy-control role, capability, actor binding, "
+            "or authorized proposal/portfolio/legal-entity scope."
+        )
+    },
+}
+
 POLICY_EVALUATION_CREATE_RESPONSES = {
+    **POLICY_CONTROL_AUTH_RESPONSES,
     status.HTTP_404_NOT_FOUND: {"description": "Policy-pack version was not found."},
     status.HTTP_409_CONFLICT: {
         "description": "Idempotency key was reused for a different evaluation request."
@@ -23,6 +36,7 @@ POLICY_EVALUATION_READ_RESPONSES = {
 }
 
 POLICY_EVALUATION_EVENT_RESPONSES = {
+    **POLICY_CONTROL_AUTH_RESPONSES,
     **POLICY_EVALUATION_READ_RESPONSES,
     status.HTTP_409_CONFLICT: {
         "description": "Idempotency key was reused for a different event request."
@@ -30,6 +44,7 @@ POLICY_EVALUATION_EVENT_RESPONSES = {
 }
 
 POLICY_SIGN_OFF_DECISION_RESPONSES = {
+    **POLICY_CONTROL_AUTH_RESPONSES,
     **POLICY_EVALUATION_READ_RESPONSES,
     status.HTTP_409_CONFLICT: {
         "description": "Idempotency key was reused for a different sign-off decision."
@@ -43,6 +58,7 @@ POLICY_SIGN_OFF_DECISION_RESPONSES = {
 }
 
 POLICY_REPORT_PACKAGE_RESPONSES = {
+    **POLICY_CONTROL_AUTH_RESPONSES,
     **POLICY_EVALUATION_READ_RESPONSES,
     status.HTTP_409_CONFLICT: {
         "description": "Idempotency key was reused with a different report-package request."
@@ -59,6 +75,7 @@ POLICY_REPORT_PACKAGE_RESPONSES = {
 }
 
 POLICY_AI_EVIDENCE_RESPONSES = {
+    **POLICY_CONTROL_AUTH_RESPONSES,
     **POLICY_EVALUATION_READ_RESPONSES,
     status.HTTP_409_CONFLICT: {
         "description": "Idempotency key was reused with a different AI evidence request."

@@ -132,7 +132,13 @@ Current repository posture:
    external client communication, and full RFC-0028 bank-demo/RFP package claims remain gated,
    and the generic policy-evaluation event API is review-only: sign-off, report/archive,
    AI-evidence, and finalization events must be created through their specialized workflow,
-   report-package, AI-evidence, and finalize commands with event-authority contract checks,
+   report-package, AI-evidence, and finalize commands with event-authority contract checks.
+   Policy-pack validation/activation and policy-evaluation finalize/review/sign-off/report/AI
+   commands bind actor authority to trusted policy-control headers: `X-Actor-Id`, `X-Role`,
+   `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service identity, capability,
+   authorized proposal id, and authorized portfolio id. Body actor fields are compatibility echoes
+   only and must match the trusted principal; maker-checker, audit metadata, and scope checks use
+   trusted principal identity rather than request strings,
 8. RFC-0026 advisor cockpit first-wave scope is implemented for source-owned Advise evidence and
    cross-repo product consumption: the dedicated `src/core/advisor_cockpit/` package owns action
    construction, source-read-model aggregation, SLA/acknowledgement rules, supportability, and API
@@ -281,12 +287,16 @@ Boundary rules:
 17. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
    missing, malformed, over-length, or control-character-bearing; do not reintroduce synthetic
    production defaults such as a hardcoded tenant or service actor,
-18. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
+18. policy-control write routes must resolve `PolicyControlPrincipal` at the API boundary before
+    application commands run; do not pass caller-supplied actor strings into policy-pack or
+    evaluation state transitions unless they have been bound to the trusted principal and
+    authorized proposal, portfolio, tenant, and legal-entity scope,
+19. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
    jurisdiction/booking-center metadata; current-date, USD, and SG fallbacks are not production
    source truth,
-19. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
+20. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
    code; do not allow `risk_authority="unavailable"` with `degraded=false`.
-20. advisor memo and policy sign-off report packages must not project archive-ready status from
+21. advisor memo and policy sign-off report packages must not project archive-ready status from
     accepted, running, missing-status, malformed-status, or failed status lookups; terminal
     readiness requires `lotus-report` archive evidence and all non-terminal status must preserve
     the report job id for operator recovery.

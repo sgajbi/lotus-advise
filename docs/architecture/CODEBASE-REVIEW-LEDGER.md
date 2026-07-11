@@ -27185,3 +27185,43 @@
   - #432 remains the trusted-principal and role-authority issue for policy control-plane commands;
     this slice intentionally fixes event-type authority without broadening into authenticated
     principal binding.
+
+## LA-REV-924
+
+- Scope: Policy control-plane trusted principal binding
+- Pattern: API write boundaries must resolve actor, role, tenant, legal entity, capability, and
+  object scope from trusted caller context before application/domain state transitions.
+- Status: Hardened
+- Finding Class: Security, authorization, audit integrity, and maker-checker correctness
+- Summary: GitHub issue #432 identified that policy-pack validation/activation and policy
+  evaluation finalization, review-event, sign-off, report-package, and AI-evidence commands used
+  mutable request-body actor strings as authority. Generic enterprise header presence did not bind
+  the submitted actor to the authenticated principal, authorized role, capability, or evaluation
+  scope.
+- Evidence:
+  - `src/api/proposals/policy_control_principal.py` defines Advise-specific
+    `PolicyControlPrincipal`, policy-control capabilities, role matrix, stable 401/403 error codes,
+    actor binding, audit metadata, and proposal/portfolio/legal-entity/tenant scope checks.
+  - Policy-pack and policy-evaluation write routes now require trusted principal dependencies before
+    invoking application services. Body actor fields are compatibility echoes and are rejected when
+    they differ from `X-Actor-Id`.
+  - Finalized, review, sign-off, report-package, and AI-evidence audit events retain trusted
+    subject, role, tenant, legal entity, correlation id, service identity, and capability metadata.
+  - Evaluation-scoped writes require authorized proposal and portfolio headers and reject
+    cross-scope access; legal-entity scope is checked against source evidence or persisted matched
+    selectors, and tenant scope is checked when source or prior trusted metadata is present.
+  - API tests cover missing principal, expired principal, wrong role, actor spoofing, missing scope,
+    cross-scope access, service identity success, trusted audit metadata, and maker-checker using
+    trusted principal identity.
+- Consequence:
+  - Callers can no longer impersonate a policy steward, checker, advisor, or reviewer by changing
+    body actor fields. Maker-checker and support audit evidence are now based on trusted Advise
+    policy-control identity and authorized object scope.
+- Documentation:
+  - Updated README, repository context, RFC-0025 hardening note, API/security/operations wiki
+    source, request-model descriptions, OpenAPI response metadata, and this ledger. Wiki source
+    changed, so repo-wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - No cross-app defect was raised in this slice. Gateway/platform authentication remains the source
+    of upstream claims, while Advise now consumes and enforces the trusted principal contract at its
+    policy-control write boundary.
