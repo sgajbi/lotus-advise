@@ -96,6 +96,13 @@ tables and rehearse with production-like row counts before production apply.
 - Applied migration checksums are stored in `schema_migrations`.
 - Migration execution is wrapped in a namespace-scoped PostgreSQL advisory lock
   to avoid concurrent deploy races.
+- Policy-pack state writes are transactional at the repository adapter boundary. Record/catalog
+  state, audit events, and idempotency mappings must commit together or roll back together.
+- Policy-pack idempotency mappings are immutable request-hash decisions. Reusing a key with a
+  different request hash is a conflict, not an update.
+- Policy-pack audit-event inserts must not replace a different payload for the same event id, and
+  record/catalog snapshot updates are guarded by persisted event counts to avoid stale-snapshot
+  overwrite.
 - `--target all` applies `proposals`, `advisory_copilot`, and `policy_packs`; production cutover
   validation checks all three namespaces and uses the policy DSN for `policy_packs`.
 - If a checked-in migration file is modified after apply, execution fails with:

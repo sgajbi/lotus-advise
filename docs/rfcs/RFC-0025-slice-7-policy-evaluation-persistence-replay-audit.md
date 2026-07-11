@@ -37,7 +37,13 @@ Implemented behavior:
    `POLICY_CONTENT_HASH_DRIFT_REPLAY_BLOCKED`, and
    `POLICY_DEFINITION_UNAVAILABLE_FOR_REPLAY` without substituting the current active version,
 8. persisted disclosure, consent, and approval dependency projections derived from source-backed
-   rule outcomes.
+   rule outcomes,
+9. PostgreSQL state persistence commits policy records, audit events, catalog activation state, and
+   idempotency mappings in one transaction with rollback on write failure,
+10. PostgreSQL idempotency rows are immutable request-hash decisions; changed payload reuse returns
+    a conflict rather than overwriting the original mapping,
+11. PostgreSQL audit-event writes reject colliding event ids with different payloads, and stale
+    snapshots cannot overwrite newer record or catalog state after additional events are present.
 
 The Slice 6 evaluator supportability now reports
 `policy_evaluation_persistence = SUPPORTED_BY_RFC0025_SLICE7_INTERNAL` while keeping
@@ -73,6 +79,8 @@ Covered paths:
 7. replay continues to compare historical evaluations after the original policy version becomes
    `SUPERSEDED`,
 8. complex-product policy outcomes persist disclosure, consent, and approval dependencies.
+9. PostgreSQL snapshot writes roll back on partial failure, preserve immutable idempotency mappings,
+   and guard record/catalog updates with persisted audit-event counts.
 
 ## Wiki And README Decision
 

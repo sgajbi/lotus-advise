@@ -123,7 +123,11 @@ Current repository posture:
    posture, platform SLO/access/evidence-policy support, and durable README/wiki/RFC/context/
    domain-product/trust telemetry closure truth. Runtime policy catalog/evaluation state is now
    composed through policy repository ports and backed by the `policy_packs` Postgres migration
-   namespace for records, audit events, activation state, and idempotency maps. Completed
+   namespace for records, audit events, activation state, and idempotency maps. Policy-pack
+   PostgreSQL state writes are adapter-transactional across record/catalog state,
+   audit events, and idempotency mappings; idempotency mappings are immutable request-hash
+   decisions, audit-event conflicts must fail closed, and stale snapshots must not overwrite newer
+   event-backed state. Completed
    approval/waiver authority, completed sign-off authority, client-ready policy publication,
    external client communication, and full RFC-0028 bank-demo/RFP package claims remain gated,
 8. RFC-0026 advisor cockpit first-wave scope is implemented for source-owned Advise evidence and

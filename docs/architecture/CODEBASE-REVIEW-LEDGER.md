@@ -27113,3 +27113,37 @@
   - When upstream Lotus Core stateful context provides legal-entity authority directly, map it into
     `ProposalPolicySelectors.legal_entity_code` rather than interpreting raw upstream payloads in
     policy-pack rule logic.
+
+## LA-REV-922
+
+- Scope: Policy-pack PostgreSQL state persistence
+- Pattern: Control-plane record/catalog state, audit events, and idempotency mappings must be
+  committed atomically and must not use last-writer-wins upserts
+- Status: Hardened
+- Finding Class: Unit-of-work transaction safety, idempotency correctness, and audit integrity
+- Summary: The Postgres policy-pack state adapter saved whole snapshots with overwriting upserts
+  for evaluation records, audit events, catalog versions, and idempotency rows. A failure between
+  writes could leave partial policy evidence, while stale snapshots or changed idempotency payloads
+  could overwrite newer state.
+- Evidence:
+  - `src/infrastructure/policy_packs/postgres_state.py` now wraps snapshot persistence in one
+    adapter-owned transaction and rolls back on any write failure.
+  - Evaluation and catalog idempotency upserts are immutable request-hash decisions; changed
+    payload reuse raises stable policy idempotency conflicts instead of replacing the original row.
+  - Audit-event upserts reject same-id/different-payload collisions instead of silently replacing
+    event JSON.
+  - Evaluation record and catalog-version updates are guarded by persisted audit-event counts so a
+    stale snapshot cannot overwrite newer event-backed state.
+  - Focused Postgres boundary, migration, policy persistence, and policy catalog tests passed with
+    rollback and SQL-guard assertions.
+- Consequence:
+  - Policy evaluation finalization, sign-off/review events, report/archive refs, validation, and
+    activation writes no longer rely on unsafe last-writer-wins persistence in the Postgres adapter.
+    Operators get deterministic conflicts for stale or changed writes.
+- Documentation:
+  - Updated RFC-0025 Slice 7, Postgres rollout runbook, operations runbook, operations wiki,
+    repository context, and this ledger with the transaction and conflict semantics.
+- Follow-Up:
+  - Add live multi-connection PostgreSQL integration coverage for concurrent finalization,
+    sign-off, activation, and injected write failures when the CI Postgres lane is expanded for
+    heavier concurrency scenarios.
