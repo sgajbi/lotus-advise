@@ -337,9 +337,44 @@ def test_enterprise_middleware_audits_payload_too_large_denial(
     assert audit["correlation_id"] == "corr-payload-001"
     assert audit["metadata"] == {
         "reason": "payload_too_large",
+        "http_method": "POST",
+        "route_template": "/advisory/proposals",
+        "operation_name": "POST /advisory/proposals",
         "content_length": 9,
         "max_write_payload_bytes": 8,
     }
+
+
+def test_enterprise_middleware_audit_actions_use_route_templates_for_parameterized_routes(
+    monkeypatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("ENTERPRISE_MAX_WRITE_PAYLOAD_BYTES", "8")
+    caplog.set_level(logging.INFO, logger="enterprise_readiness")
+
+    response = _enterprise_test_client().post(
+        "/advisory/proposals/proposal_secret_001/versions/1/reviews",
+        content=b"012345678",
+        headers={
+            "X-Actor-Id": "advisor-sg-001",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Role": "ADVISOR",
+            "X-Correlation-Id": "corr-payload-template-001",
+        },
+    )
+
+    assert response.status_code == 413
+    audit = _last_enterprise_audit(caplog)
+    assert audit["action"] == (
+        "DENY POST /advisory/proposals/{proposal_id}/versions/{version_no}/reviews"
+    )
+    assert "proposal_secret_001" not in json.dumps(audit)
+    assert audit["metadata"]["route_template"] == (
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/reviews"
+    )
+    assert audit["metadata"]["operation_name"] == (
+        "POST /advisory/proposals/{proposal_id}/versions/{version_no}/reviews"
+    )
 
 
 def test_enterprise_middleware_adds_policy_version_on_authorization_denial(
@@ -363,7 +398,14 @@ def test_enterprise_middleware_adds_policy_version_on_authorization_denial(
     assert response.status_code == 403
     assert response.headers["X-Enterprise-Policy-Version"] == "1.0.0"
     assert response.json()["reason"] == "missing_service_identity"
-    assert _last_enterprise_audit(caplog)["metadata"] == {"reason": "missing_service_identity"}
+    audit = _last_enterprise_audit(caplog)
+    assert audit["action"] == "DENY POST /advisory/proposals"
+    assert audit["metadata"] == {
+        "reason": "missing_service_identity",
+        "http_method": "POST",
+        "route_template": "/advisory/proposals",
+        "operation_name": "POST /advisory/proposals",
+    }
 
 
 def _enterprise_test_client() -> TestClient:
@@ -373,6 +415,10 @@ def _enterprise_test_client() -> TestClient:
     @app.post("/advisory/proposals")
     def _write_endpoint() -> dict[str, bool]:
         return {"ok": True}
+
+    @app.post("/advisory/proposals/{proposal_id}/versions/{version_no}/reviews")
+    def _parameterized_write_endpoint(proposal_id: str, version_no: int) -> dict[str, object]:
+        return {"proposal_id": proposal_id, "version_no": version_no}
 
     return TestClient(app)
 

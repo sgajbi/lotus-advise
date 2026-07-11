@@ -135,6 +135,9 @@ def setup_observability(app: FastAPI) -> None:
         request_id = _resolve_request_id(request.headers.get("X-Request-Id"))
         traceparent = _meaningful_header(request.headers.get("traceparent")) or ""
         trace_id = uuid4().hex
+        route_template = request_route_template(request)
+        operation_name = http_operation_name(request)
+        response: Response | None = None
         if traceparent:
             parts = traceparent.split("-")
             if len(parts) >= 4 and len(parts[1]) == 32:
@@ -144,15 +147,20 @@ def setup_observability(app: FastAPI) -> None:
         request_token = request_id_var.set(request_id)
         trace_token = trace_id_var.set(trace_id)
         try:
-            response: Response = await call_next(request)
+            response = await call_next(request)
         finally:
             latency_ms = round((time.perf_counter() - started) * 1000, 2)
+            status_code = response.status_code if response is not None else 500
             logger.info(
                 "request.completed",
                 extra={
                     "extra_fields": {
                         "http_method": request.method,
-                        "endpoint": request.url.path,
+                        "endpoint": route_template,
+                        "route_template": route_template,
+                        "operation_name": operation_name,
+                        "http_status_code": status_code,
+                        "http_status_class": _http_status_class(status_code),
                         "latency_ms": latency_ms,
                     }
                 },
@@ -170,6 +178,27 @@ def setup_observability(app: FastAPI) -> None:
         response.headers["X-Trace-Id"] = trace_id
         response.headers["traceparent"] = f"00-{trace_id}-0000000000000001-01"
         return response
+
+
+def request_route_template(request: Request) -> str:
+    scoped_route = request.scope.get("route")
+    scoped_path = _route_path(scoped_route)
+    if scoped_path is not None:
+        return scoped_path
+    routes = getattr(request.app, "routes", None)
+    if isinstance(routes, list):
+        route_name = _instrumentator_route_name(dict(request.scope), routes)
+        if route_name is not None:
+            return route_name
+    return "unmatched"
+
+
+def http_operation_name(request: Request) -> str:
+    return f"{request.method.upper()} {request_route_template(request)}"
+
+
+def _http_status_class(status_code: int) -> str:
+    return f"{status_code // 100}xx"
 
 
 def record_advisory_supportability(

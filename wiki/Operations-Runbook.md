@@ -51,6 +51,18 @@ summary reports only bounded operational posture:
 metric exactly. Do not add portfolio, account, client, advisor, proposal, workspace, request,
 response, correlation, trace, transaction, security, or payload identifiers to this metric.
 
+## HTTP Telemetry And Audit Labels
+
+Request logs and enterprise audit actions must aggregate by bounded route templates and operation
+names. Use fields such as `route_template`, `operation_name`, `http_status_code`,
+`http_status_class`, and supportability reason codes for dashboards and alerts.
+
+Do not use raw URL paths or proposal, workspace, policy-evaluation, async-operation, portfolio,
+client, or account identifiers as metric labels, dashboard dimensions, alert dimensions, request
+log endpoint fields, or enterprise audit action strings. If raw identifiers are needed for a
+support investigation, capture them only in a separately governed diagnostic artifact with explicit
+redaction and retention controls.
+
 ## Risk Authority Degradation
 
 Proposal authority evidence must stay internally consistent when `lotus-risk` is unavailable. If

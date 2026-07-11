@@ -395,6 +395,8 @@
   write-authorization denial selection, recursive audit redaction, and
   audit-identity validation to focused helpers while preserving bounded denial and
   redaction behavior.
+- HTTP observability and enterprise audit telemetry use bounded route templates,
+  operation names, and status-class fields instead of raw request paths.
 - Integration dependency readiness delegates sanitized URL configuration,
   health-endpoint probing, readiness-basis selection, and unavailable-reason
   projection to focused helpers while preserving fail-closed dependency posture.

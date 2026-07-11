@@ -7,6 +7,7 @@ from typing import Any, Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+from src.api.observability import http_operation_name, request_route_template
 from src.core.proposals.correlation import (
     MAX_CORRELATION_ID_LENGTH,
     normalize_optional_correlation_id,
@@ -333,19 +334,24 @@ def _enterprise_policy_response(*, status_code: int, content: dict[str, Any]) ->
 def build_enterprise_audit_middleware() -> MiddlewareCallable:
     async def middleware(request: Request, call_next: MiddlewareNext) -> Response:
         max_write_payload_bytes = _env_int("ENTERPRISE_MAX_WRITE_PAYLOAD_BYTES", 1_048_576)
+        operation_name = http_operation_name(request)
+        route_template = request_route_template(request)
         try:
             content_length = int(request.headers.get("content-length", "0"))
         except ValueError:
             content_length = 0
         if request.method in _WRITE_METHODS and content_length > max_write_payload_bytes:
             emit_audit_event(
-                action=f"DENY {request.method} {request.url.path}",
+                action=f"DENY {operation_name}",
                 actor_id=request.headers.get("X-Actor-Id", "unknown"),
                 tenant_id=request.headers.get("X-Tenant-Id", "default"),
                 role=request.headers.get("X-Role", "unknown"),
                 correlation_id=request.headers.get("X-Correlation-Id"),
                 metadata={
                     "reason": "payload_too_large",
+                    "http_method": request.method,
+                    "route_template": route_template,
+                    "operation_name": operation_name,
                     "content_length": content_length,
                     "max_write_payload_bytes": max_write_payload_bytes,
                 },
@@ -360,12 +366,17 @@ def build_enterprise_audit_middleware() -> MiddlewareCallable:
         )
         if not authorized:
             emit_audit_event(
-                action=f"DENY {request.method} {request.url.path}",
+                action=f"DENY {operation_name}",
                 actor_id=request.headers.get("X-Actor-Id", "unknown"),
                 tenant_id=request.headers.get("X-Tenant-Id", "default"),
                 role=request.headers.get("X-Role", "unknown"),
                 correlation_id=request.headers.get("X-Correlation-Id"),
-                metadata={"reason": reason},
+                metadata={
+                    "reason": reason,
+                    "http_method": request.method,
+                    "route_template": route_template,
+                    "operation_name": operation_name,
+                },
             )
             return _enterprise_policy_response(
                 status_code=403, content={"detail": "authorization_policy_denied", "reason": reason}
@@ -375,12 +386,17 @@ def build_enterprise_audit_middleware() -> MiddlewareCallable:
         response.headers["X-Enterprise-Policy-Version"] = enterprise_policy_version()
         if request.method in _WRITE_METHODS:
             emit_audit_event(
-                action=f"{request.method} {request.url.path}",
+                action=operation_name,
                 actor_id=request.headers.get("X-Actor-Id", "unknown"),
                 tenant_id=request.headers.get("X-Tenant-Id", "default"),
                 role=request.headers.get("X-Role", "unknown"),
                 correlation_id=request.headers.get("X-Correlation-Id"),
-                metadata={"status_code": response.status_code},
+                metadata={
+                    "status_code": response.status_code,
+                    "http_method": request.method,
+                    "route_template": route_template,
+                    "operation_name": operation_name,
+                },
             )
         return response
 
