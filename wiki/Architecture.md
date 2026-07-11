@@ -175,6 +175,12 @@ migration review. Curated simulation scenarios and the canonical `PB_SG_GLOBAL_B
 private-banking request replay stale Core v1 decisions to prove Advise-owned output remains
 authoritative during the compatibility window.
 
+The Core v1 compatibility quarantine remains in place until Core publishes a source-effects-only v2
+contract after `sgajbi/lotus-core#470`, `sgajbi/lotus-core#709`, and `sgajbi/lotus-core#710`.
+Cutover requires updated adapter fixtures and dual-run parity over curated and
+`PB_SG_GLOBAL_BAL_001` scenarios. Rollback keeps the v1 quarantine path enabled; Advise must not
+invent missing Core source authority.
+
 ### `lotus-manage`
 
 `lotus-advise` can produce `TacticalHouseViewAffectedCohort:v1` as source-owned cohort evidence.
