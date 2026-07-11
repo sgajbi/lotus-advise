@@ -192,3 +192,11 @@ python scripts/production_cutover_check.py --check-migrations
 
 Use the full runbook in `docs/documentation/postgres-migration-rollout-runbook.md` for rollout,
 smoke, and fix-forward guidance.
+
+Proposal workflow events and approval history are indexed for the supported hot reads:
+
+- `proposal_workflow_events (proposal_id, occurred_at, event_id)`,
+- `proposal_approvals (proposal_id, occurred_at, approval_id)`.
+
+These support single-proposal history/replay and batched Advisor Cockpit/source-loader reads.
+Validate query shape and retention evidence before adding broader lifecycle-history indexes.

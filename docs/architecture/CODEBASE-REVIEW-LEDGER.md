@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-911
+
+- Scope: Proposal lifecycle history indexes
+- Pattern: Hot supportability and replay reads should have query-shaped indexes that match both
+  filters and deterministic ordering, while avoiding broad unowned indexes that add write cost.
+- Status: Hardened
+- Finding Class: Database operations, query shape, runtime scalability
+- Summary: GitHub issue #392 identified that workflow event and approval history reads filter by
+  `proposal_id` and order by occurrence time plus stable record id, but the `proposals` migration
+  namespace did not create matching indexes. Advisor Cockpit/source-loader paths also batch these
+  reads by proposal id, so growing lifecycle history could degrade support and replay surfaces.
+- Evidence:
+  - Added `src/infrastructure/postgres_migrations/proposals/0009_lifecycle_history_indexes.sql`
+    with `idx_proposal_workflow_events_history` on
+    `(proposal_id, occurred_at ASC, event_id ASC)` and `idx_proposal_approvals_history` on
+    `(proposal_id, occurred_at ASC, approval_id ASC)`.
+  - Added a migration contract test proving the index names, tables, and ordered columns remain
+    present in the proposal migration namespace.
+  - Operations runbook and wiki source now document the supported lifecycle-history query paths and
+    retention caution before adding broader indexes.
+- Consequence:
+  - Single-proposal proposal detail/replay reads and batched Advisor Cockpit/source-loader history
+    reads have bounded, deterministic database access paths as lifecycle history volume grows.
+- Documentation:
+  - Operations runbook, wiki Operations Runbook, and review ledger updated. Wiki source changed, so
+    repo-wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - Future transaction/integrity issues (#390 and #391) should keep these history indexes intact
+    while adding database-level conflict and append-only guarantees.
+
 ## LA-REV-910
 
 - Scope: Bandit baseline reduction and async operation invariant failure
