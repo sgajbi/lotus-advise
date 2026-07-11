@@ -11,11 +11,14 @@
 
 Readiness is not a cosmetic check. Startup and readiness validate:
 
-1. advisory runtime persistence posture
-2. proposal repository boot readiness
-3. proposal async runtime recovery posture
+1. numeric integration runtime configuration
+2. advisory runtime persistence posture
+3. proposal repository boot readiness
+4. proposal async runtime recovery posture
 
 If the service cannot satisfy the advisory persistence contract, readiness should fail closed.
+Malformed numeric settings also fail startup/readiness with the setting name and validation rule
+only; raw configured values are not exposed in readiness bodies.
 
 `GET /version` is not a readiness check. It exposes support-safe build and image metadata so
 operators can compare a running container with Main Releasability release evidence.

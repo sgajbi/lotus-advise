@@ -44,6 +44,10 @@ from src.integrations.lotus_core.context_resolution import (
     LotusCoreResolvedAdvisoryContext,
     configure_lotus_core_advisory_context_resolver,
 )
+from src.integrations.lotus_core.runtime_config import (
+    RuntimeConfigurationError,
+    validate_configured_integration_runtime_settings,
+)
 from src.integrations.lotus_core.stateful_context import resolve_stateful_context_with_lotus_core
 from src.integrations.lotus_report import (
     configure_memo_report_package_requester_for_lotus_report,
@@ -58,6 +62,7 @@ from src.runtime.advisory_provider_ports import configure_advisory_external_prov
 
 @asynccontextmanager
 async def _app_lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    validate_configured_integration_runtime_settings()
     validate_advisory_runtime_persistence()
     ensure_proposal_runtime_ready()
     recover_proposal_async_runtime()
@@ -172,9 +177,12 @@ app.openapi = custom_openapi
 
 def _readiness_probe() -> tuple[bool, str | None]:
     try:
+        validate_configured_integration_runtime_settings()
         validate_advisory_runtime_persistence()
         ensure_proposal_runtime_ready()
     except RuntimeError as exc:
+        return False, _safe_readiness_error_detail(str(exc))
+    except RuntimeConfigurationError as exc:
         return False, _safe_readiness_error_detail(str(exc))
     except (TypeError, ValueError):
         return False, "PROPOSAL_POSTGRES_CONNECTION_FAILED"

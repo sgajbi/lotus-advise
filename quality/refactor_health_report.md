@@ -397,6 +397,9 @@
   redaction behavior.
 - HTTP observability and enterprise audit telemetry use bounded route templates,
   operation names, and status-class fields instead of raw request paths.
+- Integration runtime numeric settings fail startup/readiness when explicitly
+  malformed or out of range while preserving documented defaults for unset
+  local/test configuration.
 - Integration dependency readiness delegates sanitized URL configuration,
   health-endpoint probing, readiness-basis selection, and unavailable-reason
   projection to focused helpers while preserving fail-closed dependency posture.

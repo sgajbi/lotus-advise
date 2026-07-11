@@ -12,7 +12,12 @@ from src.integrations.base import (
     build_dependency_state,
     sanitized_http_base_url,
 )
-from src.integrations.lotus_core.runtime_config import env_positive_float
+from src.integrations.lotus_core.runtime_config import (
+    RuntimeConfigurationError,
+    env_non_negative_float,
+    env_positive_float,
+    env_positive_int,
+)
 from src.integrations.lotus_report.job_status import is_report_package_terminal_status
 from src.integrations.lotus_report.request_mapping import (
     LotusReportRequestMappingError,
@@ -330,21 +335,14 @@ def _status_payload_unavailable(payload: dict[str, Any]) -> bool:
 
 
 def _resolve_status_poll_attempts() -> int:
-    raw_value = os.getenv("LOTUS_REPORT_STATUS_POLL_ATTEMPTS")
-    if raw_value is None:
-        return 3
-    try:
-        configured = int(raw_value)
-    except ValueError:
-        return 3
-    return min(max(configured, 1), 5)
+    return env_positive_int("LOTUS_REPORT_STATUS_POLL_ATTEMPTS", default=3, maximum=5)
 
 
 def _resolve_status_poll_backoff_seconds() -> float:
-    return cast(
-        float,
-        env_positive_float("LOTUS_REPORT_STATUS_POLL_BACKOFF_SECONDS", default=0.0),
-    )
+    try:
+        return env_non_negative_float("LOTUS_REPORT_STATUS_POLL_BACKOFF_SECONDS", default=0.0)
+    except RuntimeConfigurationError as exc:
+        raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE") from exc
 
 
 def _resolve_base_url() -> str:
@@ -355,7 +353,10 @@ def _resolve_base_url() -> str:
 
 
 def _resolve_timeout() -> httpx.Timeout:
-    timeout_seconds = env_positive_float("LOTUS_REPORT_TIMEOUT_SECONDS", default=30.0)
+    try:
+        timeout_seconds = env_positive_float("LOTUS_REPORT_TIMEOUT_SECONDS", default=30.0)
+    except RuntimeConfigurationError as exc:
+        raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE") from exc
     return httpx.Timeout(timeout_seconds)
 
 

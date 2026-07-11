@@ -17,6 +17,7 @@ from src.core.models import (
 )
 from src.core.valuation import build_simulated_state
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
+from src.integrations.lotus_core.runtime_config import RuntimeConfigurationError
 from src.integrations.lotus_core.stateful_context import (
     ClassificationTaxonomy,
     LotusCoreStatefulContextUnavailableError,
@@ -166,16 +167,29 @@ def test_core_base_url_derivation_strips_credentials_and_swaps_ports(monkeypatch
     assert _resolve_control_plane_base_url() == "http://core.dev.lotus:8202/api"
 
 
-def test_stateful_context_env_parsing_falls_back_for_invalid_values(monkeypatch) -> None:
-    monkeypatch.setenv("LOTUS_CORE_TIMEOUT_SECONDS", "invalid")
-    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", "invalid")
-    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE", "invalid")
+def test_stateful_context_env_parsing_uses_defaults_for_missing_values(monkeypatch) -> None:
+    monkeypatch.delenv("LOTUS_CORE_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", raising=False)
+    monkeypatch.delenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE", raising=False)
 
     timeout = _resolve_timeout()
 
     assert timeout.connect == 10.0
     assert _stateful_context_cache_ttl_seconds() == 15.0
     assert _stateful_context_cache_max_size() == 128
+
+
+def test_stateful_context_env_parsing_fails_fast_for_invalid_values(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_CORE_TIMEOUT_SECONDS", "invalid")
+    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", "invalid")
+    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE", "invalid")
+
+    with pytest.raises(RuntimeConfigurationError):
+        _resolve_timeout()
+    with pytest.raises(RuntimeConfigurationError):
+        _stateful_context_cache_ttl_seconds()
+    with pytest.raises(RuntimeConfigurationError):
+        _stateful_context_cache_max_size()
 
 
 def test_stateful_context_env_parsing_rejects_non_positive_runtime_values(monkeypatch) -> None:
@@ -183,11 +197,12 @@ def test_stateful_context_env_parsing_rejects_non_positive_runtime_values(monkey
     monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", "-1")
     monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE", "0")
 
-    timeout = _resolve_timeout()
-
-    assert timeout.connect == 10.0
-    assert _stateful_context_cache_ttl_seconds() == 15.0
-    assert _stateful_context_cache_max_size() == 128
+    with pytest.raises(RuntimeConfigurationError):
+        _resolve_timeout()
+    with pytest.raises(RuntimeConfigurationError):
+        _stateful_context_cache_ttl_seconds()
+    with pytest.raises(RuntimeConfigurationError):
+        _stateful_context_cache_max_size()
 
 
 def test_decimal_and_liquidity_helpers_cover_fallback_branches() -> None:
