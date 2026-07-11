@@ -299,6 +299,8 @@ jobs:
           image: ${{ env.IMAGE_REF }}
           output-file: output/release/lotus-advise.spdx.json
           upload-artifact: false
+      - name: Prepare Trivy cache directory
+        run: mkdir -p "$HOME/.local/bin/trivy-bin"
       - name: Scan image vulnerabilities
         uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4
         with:
