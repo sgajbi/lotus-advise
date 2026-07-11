@@ -360,8 +360,12 @@ def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts
     assert "id-token: write" in release_section
     assert "attestations: write" in release_section
     assert "IMAGE_REF: ghcr.io/${{ github.repository }}:${{ github.sha }}" in release_section
-    assert "docker/login-action@v3" in release_section
-    assert "docker/build-push-action@v6" in release_section
+    assert "docker/setup-buildx-action@v4.2.0" in release_section
+    assert "docker/login-action@v4.4.0" in release_section
+    assert "docker/build-push-action@v7.3.0" in release_section
+    assert "docker/setup-buildx-action@v3" not in release_section
+    assert "docker/login-action@v3" not in release_section
+    assert "docker/build-push-action@v6" not in release_section
     assert "push: true" in release_section
     assert "LOTUS_BUILD_COMMIT_SHA=${{ github.sha }}" in release_section
     assert "LOTUS_CI_PIPELINE_ID=${{ github.run_id }}" in release_section
@@ -387,7 +391,7 @@ def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts
     assert "--exit-code 1" in release_section
     assert "sigstore/cosign-installer@v3.9.2" in release_section
     assert "cosign sign --yes" in release_section
-    assert "actions/attest-build-provenance@v3" in release_section
+    assert "actions/attest-build-provenance@v4.1.1" in release_section
     assert "subject-name: ghcr.io/${{ github.repository }}" in release_section
     assert "subject-name: ${{ env.IMAGE_REF }}" not in release_section
     assert "scripts/release_image_evidence.py write-manifest" in release_section
@@ -395,6 +399,7 @@ def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts
     assert "name: lotus-advise-image-release-evidence" in release_section
 
     assert "docker/login-action@v3" not in pr_workflow
+    assert "docker/login-action@v4" not in pr_workflow
     assert "push: true" not in pr_workflow
 
 
