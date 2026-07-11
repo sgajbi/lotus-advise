@@ -251,6 +251,7 @@ jobs:
       IMAGE_REF: ghcr.io/${{ github.repository }}:${{ github.sha }}
       RELEASE_OUTPUT_DIR: output/release
       SERVICE_VERSION: "0.1.0"
+      TRIVY_VERSION: "0.64.1"
     steps:
       - uses: actions/checkout@v7
       - name: Set release timestamp
@@ -299,16 +300,28 @@ jobs:
           image: ${{ env.IMAGE_REF }}
           output-file: output/release/lotus-advise.spdx.json
           upload-artifact: false
-      - name: Prepare Trivy cache directory
-        run: mkdir -p "$HOME/.local/bin/trivy-bin"
+      - name: Install Trivy CLI
+        run: |
+          set -euo pipefail
+          trivy_release_base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+          archive="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          checksum_file="trivy_${TRIVY_VERSION}_checksums.txt"
+          curl -fsSLo "$RUNNER_TEMP/$archive" "$trivy_release_base/$archive"
+          curl -fsSLo "$RUNNER_TEMP/$checksum_file" "$trivy_release_base/$checksum_file"
+          cd "$RUNNER_TEMP"
+          grep " $archive$" "$checksum_file" | sha256sum -c -
+          tar -xzf "$archive" trivy
+          install -m 0755 trivy "$HOME/.local/bin/trivy"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/trivy" --version
       - name: Scan image vulnerabilities
-        uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4
-        with:
-          image-ref: ${{ env.IMAGE_REF }}
-          format: json
-          output: output/release/trivy-image-scan.json
-          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
-          exit-code: "1"
+        run: >-
+          trivy image
+          --format json
+          --output output/release/trivy-image-scan.json
+          --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          --exit-code 1
+          "$IMAGE_REF"
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.9.2
       - name: Sign image digest
