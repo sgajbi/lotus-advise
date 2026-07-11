@@ -21,6 +21,8 @@ This repository adopts the platform-wide standard defined in:
 - CI-aligned security audit target:
   - `make security-audit`
 - License/IP release evidence:
+  - `make dependency-lock`
+  - `make dependency-lock-gate`
   - `make license-ip-inventory`
   - `make license-ip-gate`
 - Report-only dependency inventory:
@@ -36,6 +38,11 @@ becomes a fail-on-new-regression or blocking CI gate.
 transitive packages. Review-required license terms must have explicit owner-approved exceptions with
 expiry dates; prohibited or unclassified terms fail the gate.
 
+`make dependency-lock-gate` is blocking. `uv.lock` is the generated dependency-lock mirror for the
+requirements install strategy. It records requirement-file hashes, the license/IP inventory hash, and
+the package closure used for local/CI/release evidence. Regenerate it with `make dependency-lock`
+after any dependency manifest or generated dependency-inventory change.
+
 ## Update Cadence
 
 - Patch/minor updates for tooling and low-risk libraries should be reviewed continuously.
@@ -48,5 +55,6 @@ expiry dates; prohibited or unclassified terms fail the gate.
 - Quality artifact: `quality/baseline_report.md`
 - License/IP inventory: `docs/standards/license-ip-inventory.v1.json`
 - License/IP policy: `docs/standards/license-ip-policy.v1.json`
+- Dependency lock mirror: `uv.lock`
 - Notice file: `NOTICE.md`
 - Platform conformance artifacts under `lotus-platform/output/`

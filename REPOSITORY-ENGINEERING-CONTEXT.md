@@ -387,14 +387,17 @@ Important validation expectations:
    `docs/standards/license-ip-inventory.v1.json` and
    `docs/standards/license-ip-policy.v1.json`; review-required terms need owner-approved expiring
    exceptions before release evidence is green,
-7. advisory workflow changes should be validated against canonical upstream posture,
-8. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-9. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+7. Dependency-lock posture is enforced through `make dependency-lock-gate`: `uv.lock` is the
+   generated lock mirror for the current requirements install strategy and must match
+   requirement-file hashes plus the license/IP dependency inventory hash,
+8. advisory workflow changes should be validated against canonical upstream posture,
+9. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+10. `make demo-certification-live` is the repo-native app-level live certification command; it writes
    machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-10. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
+11. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
    trust, echo, or imply tenant-specific entitlement policy unless a future slice adds an explicit
    authoritative entitlement port and contract tests,
 10. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.

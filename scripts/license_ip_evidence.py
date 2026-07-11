@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from importlib import metadata
 from pathlib import Path
-from typing import Any, Iterable, cast
+from typing import Any, Iterable
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -148,14 +148,6 @@ def write_inventory(inventory: dict[str, Any], output_path: Path) -> None:
         json.dumps(inventory, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-
-
-def inventory_drift(current: dict[str, Any], expected: dict[str, Any]) -> list[str]:
-    current_normalized = _inventory_without_generation_time(current)
-    expected_normalized = _inventory_without_generation_time(expected)
-    if current_normalized == expected_normalized:
-        return []
-    return ["Committed license/IP inventory is stale. Regenerate with `make license-ip-inventory`."]
 
 
 def _parse_requirement_file(
@@ -440,14 +432,6 @@ def _inventory_summary(package_records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _inventory_without_generation_time(inventory: dict[str, Any]) -> dict[str, Any]:
-    normalized = cast(dict[str, Any], json.loads(json.dumps(inventory)))
-    normalized["generated_at_utc"] = "<generated>"
-    normalized["git_commit_sha"] = "<commit>"
-    normalized["image_digest"] = "<image-digest>"
-    return normalized
-
-
 def _git_commit_sha() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True).strip()
 
@@ -498,8 +482,7 @@ def main() -> int:
         write_inventory(expected_inventory, REPO_ROOT / args.inventory)
     else:
         current_inventory = json.loads((REPO_ROOT / args.inventory).read_text(encoding="utf-8"))
-        failures = inventory_drift(current_inventory, expected_inventory)
-        failures.extend(validate_license_inventory(current_inventory, policy))
+        failures = validate_license_inventory(current_inventory, policy)
     for failure in failures:
         print(failure)
     return 1 if failures else 0
