@@ -67,7 +67,10 @@ The current blocking posture is intentionally high-signal:
 4. `make no-alias-gate`
    blocks accidental compatibility aliases.
 5. `make api-vocabulary-gate`
-   regenerates and validates the governed API vocabulary inventory.
+   regenerates and validates the governed API vocabulary inventory. The gate rejects
+   placeholder-shaped generated examples such as `sample_text`, `sample_key`, `STANDARD_TEXT`,
+   `STANDARD_ITEM`, `ENTITY_001`, and `example_*`; public examples must be source-authored or
+   derived from governed deterministic domain examples.
 6. `make domain-data-products-gate`
    validates repo-native domain data product declarations against platform contracts.
 7. `make quality-baseline-check`

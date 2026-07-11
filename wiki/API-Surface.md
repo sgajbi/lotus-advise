@@ -124,6 +124,10 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
 ## Contract Notes
 
 - OpenAPI is the governed external contract.
+- Generated API vocabulary is a governed consumer artifact. It must not publish placeholder-shaped
+  examples such as `sample_text`, `sample_key`, `STANDARD_TEXT`, `STANDARD_ITEM`, `ENTITY_001`, or
+  `example_*`; examples must be source-authored or derived from the deterministic domain fallback
+  policy used by `make api-vocabulary-gate`.
 - `contracts/idea-proposal-intake/lotus-advise-idea-proposal-intake.v1.json` is the current
   source-safe `lotus-idea` proposal-intake contract. Its supportability status is
   `not_certified`, and remaining blockers include Advise suitability authority and client

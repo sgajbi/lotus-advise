@@ -26243,3 +26243,33 @@
 - Follow-Up:
   - Keep historical ledger/RFC mentions as audit history only; any internal historical data rename
     requires a separate migration plan.
+
+## LA-REV-342
+
+- Scope: Generated API vocabulary example quality
+- Pattern: Generated public contract artifacts must not publish placeholder-shaped examples or
+  ambiguous generic fallback objects
+- Status: Hardened
+- Finding Class: API consumer experience, contract governance, and future-agent guardrails
+- Summary: The API vocabulary generator accepted schema and fallback examples such as
+  `sample_text`, `example_source_system`, `ENTITY_001`, and `STANDARD_TEXT`. Those values could
+  appear in the governed public vocabulary even though they were generated placeholders rather than
+  source-owned consumer examples.
+- Evidence:
+  - `scripts/api_vocabulary_inventory.py` now derives deterministic examples from canonical terms,
+    enum/format/type metadata, and object/list schema shape without using generic placeholders.
+  - Inventory validation recursively rejects placeholder-shaped examples in the attribute and
+    controls catalogs.
+  - Unit tests prove recursive placeholder detection, governed fallback examples, nested field
+    extraction, and control-catalog rejection.
+  - The regenerated vocabulary inventory contains zero tracked placeholder matches for
+    `sample_text`, `sample_key`, `STANDARD_TEXT`, `STANDARD_ITEM`, `ENTITY_001`, or `example_*`.
+- Consequence:
+  - API consumers receive stable, sanitized, domain-representative vocabulary examples, and future
+    generated contract drift fails in the repo-native API vocabulary gate.
+- Documentation:
+  - Updated RFC-0067 baseline decisions, repository engineering context, API surface wiki, CI wiki,
+    and backend delivery skill guidance with the generated-example rule.
+- Follow-Up:
+  - Continue hardening source OpenAPI examples under #383 where route-level display enrichment still
+    needs to distinguish authored documentation from generated fallback text.

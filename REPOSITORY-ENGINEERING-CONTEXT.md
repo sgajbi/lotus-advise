@@ -287,7 +287,11 @@ Important validation expectations:
    runtime rather than an incompatible package release that only supports a newer Python line,
    while routine Dependabot version-update PRs are paused with
    `open-pull-requests-limit: 0` so dependency suggestions are handled through deliberate
-   repo-native refresh, security review, and PR validation instead of noisy bot branches,
+   repo-native refresh, security review, and PR validation instead of noisy bot branches. The API
+   vocabulary gate recursively rejects placeholder-shaped generated examples such as `sample_text`,
+   `sample_key`, `STANDARD_TEXT`, `STANDARD_ITEM`, `ENTITY_001`, and `example_*`; generated
+   inventory examples must come from source-authored metadata or the governed deterministic
+   fallback policy,
 2. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
 3. advisory workflow changes should be validated against canonical upstream posture,
 4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
