@@ -375,8 +375,16 @@ def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts
     assert 'expected_checksum="$(awk -v file="$archive"' in release_section
     assert 'test "$expected_checksum" = "$actual_checksum"' in release_section
     assert 'mkdir -p "$HOME/.local/bin"' in release_section
+    assert "Record full image vulnerability inventory" in release_section
+    assert "Enforce fixable high critical vulnerability gate" in release_section
     assert "trivy image" in release_section
+    assert "--output output/release/trivy-image-inventory.json" in release_section
     assert "--output output/release/trivy-image-scan.json" in release_section
+    assert "--severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL" in release_section
+    assert "--exit-code 0" in release_section
+    assert "--severity HIGH,CRITICAL" in release_section
+    assert "--ignore-unfixed" in release_section
+    assert "--exit-code 1" in release_section
     assert "sigstore/cosign-installer@v3.9.2" in release_section
     assert "cosign sign --yes" in release_section
     assert "actions/attest-build-provenance@v3" in release_section

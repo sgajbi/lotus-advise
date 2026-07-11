@@ -1,4 +1,18 @@
-# Use the official Python 3.11 slim image for a smaller footprint
+# Build runtime dependencies outside the final image so installer tooling does
+# not become part of the release vulnerability surface.
+FROM python:3.11-slim AS dependency-builder
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /build
+COPY requirements-prod.txt .
+
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/python -m pip install --upgrade pip setuptools wheel \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements-prod.txt
+
+# Use the official Python 3.11 slim image for a smaller footprint.
 FROM python:3.11-slim
 
 ARG LOTUS_BUILD_COMMIT_SHA=unknown
@@ -25,6 +39,7 @@ LABEL org.opencontainers.image.title="lotus-advise" \
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    PATH="/opt/venv/bin:${PATH}" \
     LOTUS_BUILD_COMMIT_SHA="${LOTUS_BUILD_COMMIT_SHA}" \
     LOTUS_BUILD_GIT_BRANCH="${LOTUS_BUILD_GIT_BRANCH}" \
     LOTUS_BUILD_REPO_URL="${LOTUS_BUILD_REPO_URL}" \
@@ -33,17 +48,34 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LOTUS_CI_PIPELINE_ID="${LOTUS_CI_PIPELINE_ID}" \
     LOTUS_IMAGE_DIGEST="${LOTUS_IMAGE_DIGEST}"
 
-# Create a non-root user for security compliance
-RUN adduser --disabled-password --gecos '' lotus-advise
+# Apply available base-image security updates, then create a non-root user.
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && rm -rf /var/lib/apt/lists/* \
+    && adduser --disabled-password --gecos '' lotus-advise
 
 # Set the working directory
 WORKDIR /app
 
-# Copy only runtime requirements first to leverage Docker layer caching
-COPY requirements-prod.txt .
-
-# Install runtime dependencies only
-RUN pip install -r requirements-prod.txt
+# Copy runtime dependencies from the builder and remove installer packages that
+# are not needed by the running service.
+COPY --from=dependency-builder /opt/venv /opt/venv
+RUN rm -rf \
+    /usr/local/lib/python3.11/site-packages/pip \
+    /usr/local/lib/python3.11/site-packages/pip-*.dist-info \
+    /usr/local/lib/python3.11/site-packages/setuptools \
+    /usr/local/lib/python3.11/site-packages/setuptools-*.dist-info \
+    /usr/local/lib/python3.11/site-packages/wheel \
+    /usr/local/lib/python3.11/site-packages/wheel-*.dist-info \
+    /opt/venv/bin/pip \
+    /opt/venv/bin/pip3 \
+    /opt/venv/bin/pip3.11 \
+    /opt/venv/lib/python3.11/site-packages/pip \
+    /opt/venv/lib/python3.11/site-packages/pip-*.dist-info \
+    /opt/venv/lib/python3.11/site-packages/setuptools \
+    /opt/venv/lib/python3.11/site-packages/setuptools-*.dist-info \
+    /opt/venv/lib/python3.11/site-packages/wheel \
+    /opt/venv/lib/python3.11/site-packages/wheel-*.dist-info
 
 # Copy the core application code
 COPY src/ ./src/

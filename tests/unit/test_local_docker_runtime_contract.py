@@ -21,6 +21,10 @@ def test_runtime_dockerfile_carries_release_metadata_labels_and_readiness_health
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
 
     for required in (
+        "FROM python:3.11-slim AS dependency-builder",
+        "FROM python:3.11-slim",
+        "COPY --from=dependency-builder /opt/venv /opt/venv",
+        'PATH="/opt/venv/bin:${PATH}"',
         "ARG LOTUS_BUILD_COMMIT_SHA",
         "ARG LOTUS_BUILD_GIT_BRANCH",
         "ARG LOTUS_BUILD_REPO_URL",
@@ -40,6 +44,18 @@ def test_runtime_dockerfile_carries_release_metadata_labels_and_readiness_health
         "http://127.0.0.1:8000/health/ready",
     ):
         assert required in dockerfile
+
+
+def test_runtime_dockerfile_excludes_installer_tooling_from_final_image() -> None:
+    dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
+
+    assert "/opt/venv/bin/python -m pip install --upgrade pip setuptools wheel" in dockerfile
+    assert "/opt/venv/bin/pip install --no-cache-dir -r requirements-prod.txt" in dockerfile
+    assert "/usr/local/lib/python3.11/site-packages/setuptools" in dockerfile
+    assert "/usr/local/lib/python3.11/site-packages/wheel" in dockerfile
+    assert "/opt/venv/lib/python3.11/site-packages/setuptools" in dockerfile
+    assert "/opt/venv/lib/python3.11/site-packages/wheel" in dockerfile
+    assert "/opt/venv/bin/pip" in dockerfile
 
 
 def test_release_image_provenance_is_repo_native() -> None:

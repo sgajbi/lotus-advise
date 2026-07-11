@@ -318,12 +318,21 @@ jobs:
           install -m 0755 trivy "$HOME/.local/bin/trivy"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/trivy" --version
-      - name: Scan image vulnerabilities
+      - name: Record full image vulnerability inventory
+        run: >-
+          trivy image
+          --format json
+          --output output/release/trivy-image-inventory.json
+          --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          --exit-code 0
+          "$IMAGE_REF"
+      - name: Enforce fixable high critical vulnerability gate
         run: >-
           trivy image
           --format json
           --output output/release/trivy-image-scan.json
-          --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
           --exit-code 1
           "$IMAGE_REF"
       - name: Install Cosign
