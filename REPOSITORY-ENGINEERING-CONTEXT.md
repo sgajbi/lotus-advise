@@ -344,14 +344,18 @@ Important validation expectations:
    Releasability pushes Git-SHA-tagged images from CI only and retains digest-bearing
    `release-evidence.json`, SBOM, vulnerability scan, signature, and provenance attestation
    artifacts,
-5. advisory workflow changes should be validated against canonical upstream posture,
-6. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-7. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+5. Bandit security posture is enforced through `make bandit-severity-regression-gate`: high
+   findings are blocked, current medium/low findings are accepted only through
+   `quality/bandit_security_baseline.v1.json`, and new, stale, expired, or worsened entries fail
+   local and CI gates,
+6. advisory workflow changes should be validated against canonical upstream posture,
+7. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+8. `make demo-certification-live` is the repo-native app-level live certification command; it writes
    machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-8. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
+9. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
 
 ## Standards And RFCs That Govern This Repository
 

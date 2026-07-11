@@ -173,7 +173,8 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "Feature Lane, PR Merge Gate, and Main Releasability" in scorecard
     assert "Executable Vulture inventory" in scorecard
     assert "Enforced plus deptry inventory" in scorecard
-    assert "High-severity enforced plus Bandit inventory" in scorecard
+    assert "severity-regression gate enforced" in scorecard
+    assert "quality/bandit_security_baseline.v1.json" in scorecard
     assert "make check + Feature Lane + security-audit" in scorecard
     assert "Enforced with Spectral" in scorecard
     assert "make lint runs import-linter architecture contracts" in scorecard
@@ -343,14 +344,14 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "preserving local proof-artifact path normalization" in refactor_health
     assert "CI workflow jobs now declare explicit timeouts" in refactor_health
     assert "Development requirements pin the report-only quality tools" in refactor_health
-    assert "Bandit high-severity security scanning now fails earlier" in refactor_health
+    assert "Bandit security scanning now fails earlier" in refactor_health
     assert "Remaining Enterprise-Readiness Work" in refactor_health
     assert "Calibrate Radon complexity enforcement beyond the current no-C/D/E/F gate" in (
         refactor_health
     )
     assert "Vulture dead-code inventory" in refactor_health
     assert "Interrogate docstring inventory" in refactor_health
-    assert "Expand Bandit security enforcement beyond high severity" in refactor_health
+    assert "Reduce the governed Bandit medium/low baseline before expiry" in refactor_health
     assert "Spectral OpenAPI enforcement" in refactor_health
     assert "deptry dependency inventory" in refactor_health
     assert "advisory trade-intent construction" in scorecard

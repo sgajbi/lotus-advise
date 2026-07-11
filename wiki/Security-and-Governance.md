@@ -34,6 +34,9 @@ The highest-risk documentation and implementation drift usually appears at these
 7. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
    OCI metadata, accompanied by digest-bearing release evidence, SBOM, scan, signature, and
    provenance attestation, and deployed by digest
+8. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
+   current medium/low entries must match the governed baseline, and new, stale, expired, or
+   worsened medium/low entries fail CI
 
 ## Release Metadata Governance
 
@@ -50,6 +53,16 @@ The release-image evidence path is intentionally split:
    release manifest.
 3. Deployment must reference the digest from the retained manifest and promote the same immutable
    image across environments.
+
+## Security Baseline Governance
+
+`quality/bandit_security_baseline.v1.json` is the governed Bandit medium/low baseline. It is not a
+security certification claim. Each accepted entry carries a stable fingerprint, owner, rationale,
+expiry, linked remediation, and compensating control. The current baseline records `0` high, `26`
+medium, and `1` low finding, with remediation tracked in issue #435.
+
+Use `make bandit-severity-regression-gate` for the direct gate. `make security-audit` runs the same
+gate after dependency health. `make bandit-high-severity-gate` remains only as a compatibility alias.
 
 ## RFC-0028 Proof Artifact Governance
 

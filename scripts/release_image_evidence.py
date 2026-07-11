@@ -84,6 +84,13 @@ class ReleaseEvidence:
                 "oci_label_name_scan": "passed",
                 "release_manifest_name_scan": "passed",
             },
+            "security_evidence": {
+                "bandit_gate": "make bandit-severity-regression-gate",
+                "bandit_baseline": "quality/bandit_security_baseline.v1.json",
+                "dependency_audit": "make security-audit",
+                "sbom": self.sbom_path,
+                "container_vulnerability_scan": self.vulnerability_scan_path,
+            },
             "required_oci_labels": sorted(REQUIRED_OCI_LABELS),
             "version_endpoint": {
                 "path": "/version",

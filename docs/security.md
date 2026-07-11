@@ -12,15 +12,17 @@ This document records the current security hardening baseline for Lotus Advise.
 - Downstream report requests require source-derived as-of date, reporting currency, and
   jurisdiction/booking-center metadata; missing or conflicting values fail closed before HTTP
   submission.
-- Bandit high-severity findings are enforced through `make bandit-high-severity-gate`, which is
-  called by `make security-audit`.
-- Current Bandit inventory remains visible in the quality baseline: `0` high, `26` medium, and `1`
-  low severity finding.
+- Bandit security findings are enforced through `make bandit-severity-regression-gate`, which is
+  called by `make security-audit` and has a compatibility alias at
+  `make bandit-high-severity-gate`.
+- Current Bandit inventory is governed by `quality/bandit_security_baseline.v1.json`: `0` high,
+  `26` medium, and `1` low severity finding. High findings are never baselined; current medium/low
+  entries require owner, rationale, expiry, linked remediation, and compensating controls.
 
 ## Current Gaps
 
-- Medium and low Bandit findings still need evidence-backed classification before broader
-  fail-on-new-regression enforcement.
+- The current Bandit medium/low baseline remains non-certifying security debt. Issue #435 tracks
+  reducing or retiring those entries before their `2026-12-31` expiry.
 - Full authentication, authorization, CORS, header, and API abuse-protection inventories need
   separate implementation-backed review slices.
 - Broader route-level authenticated caller-context resolution remains a separate authorization
@@ -30,6 +32,6 @@ This document records the current security hardening baseline for Lotus Advise.
 
 ## Next Steps
 
-- Classify the current medium and low Bandit findings and suppress only governed false positives.
-- Move medium/low Bandit classes to fail-on-new-regression before enforcing absolute security
-  thresholds.
+- Reduce the current medium/low Bandit baseline by replacing static SQL helper false positives
+  with Bandit-clean helpers where practical and replacing the production `assert` finding with an
+  explicit exception.
