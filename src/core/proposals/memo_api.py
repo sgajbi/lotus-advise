@@ -9,6 +9,11 @@ from src.core.proposals.exceptions import (
     ProposalValidationError,
 )
 from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
+from src.core.proposals.memo_ai_ports import (
+    ProposalMemoAiCommentaryUnavailableError,
+    build_proposal_memo_ai_unavailable_commentary,
+    generate_proposal_memo_ai_commentary,
+)
 from src.core.proposals.memo_event_recording import (
     append_or_replay_memo_event,
     memo_event_request_hash,
@@ -21,6 +26,7 @@ from src.core.proposals.memo_persistence import (
     ProposalMemoPersistenceError,
     create_or_replay_proposal_memo,
 )
+from src.core.proposals.memo_report_ports import request_proposal_memo_report_package
 from src.core.proposals.memo_request_context import (
     load_memo_for_proposal_version,
     load_proposal_version_for_memo,
@@ -51,12 +57,9 @@ from src.core.proposals.models import (
     ProposalMemoReviewResponse,
 )
 from src.core.proposals.repository import ProposalRepository
-from src.integrations.lotus_ai import (
-    LotusAIProposalMemoUnavailableError,
-    build_proposal_memo_ai_unavailable_commentary,
-    generate_proposal_memo_commentary_with_lotus_ai,
-)
-from src.integrations.lotus_report import request_proposal_memo_report_package_with_lotus_report
+
+generate_proposal_memo_commentary_with_lotus_ai = generate_proposal_memo_ai_commentary
+request_proposal_memo_report_package_with_lotus_report = request_proposal_memo_report_package
 
 
 def create_or_replay_memo_response(
@@ -283,7 +286,7 @@ def request_memo_ai_commentary_response(
         occurred_at=occurred_at,
         generate_commentary=generate_proposal_memo_commentary_with_lotus_ai,
         build_unavailable_commentary=build_proposal_memo_ai_unavailable_commentary,
-        unavailable_error=LotusAIProposalMemoUnavailableError,
+        unavailable_error=ProposalMemoAiCommentaryUnavailableError,
     )
 
 

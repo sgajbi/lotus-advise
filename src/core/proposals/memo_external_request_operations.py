@@ -5,6 +5,7 @@ from datetime import datetime
 
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.proposals.exceptions import ProposalValidationError
+from src.core.proposals.memo_ai_ports import ProposalMemoAiCommentaryDraft
 from src.core.proposals.memo_event_recording import (
     append_or_replay_memo_event,
     find_replayed_memo_event,
@@ -36,7 +37,6 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.projections import to_proposal_summary
 from src.core.proposals.repository import ProposalRepository
-from src.integrations.lotus_ai.proposal_memo import ProposalMemoAiCommentaryDraft
 
 MemoReportRequester = Callable[..., ProposalReportResponse]
 MemoAiCommentaryGenerator = Callable[..., ProposalMemoAiCommentaryDraft]

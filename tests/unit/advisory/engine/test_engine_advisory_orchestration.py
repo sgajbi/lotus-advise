@@ -4,11 +4,15 @@ from typing import Any
 import pytest
 
 from src.core.advisory import orchestration
+from src.core.advisory.provider_ports import (
+    AdvisoryRiskEnrichmentUnavailableError as LotusRiskEnrichmentUnavailableError,
+)
+from src.core.advisory.provider_ports import (
+    AdvisorySimulationUnavailableError as LotusCoreSimulationUnavailableError,
+)
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import EngineOptions, ProposalSimulateRequest
 from src.core.proposal_result_models import ProposalResult
-from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
-from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.factories import (
     cash,
     market_data_snapshot,

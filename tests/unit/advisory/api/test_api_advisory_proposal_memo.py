@@ -6,7 +6,7 @@ import src.api.main as api_main
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.proposals import memo_api
-from src.integrations.lotus_ai.proposal_memo import ProposalMemoAiCommentaryDraft
+from src.core.proposals.memo_ai_ports import ProposalMemoAiCommentaryDraft
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 

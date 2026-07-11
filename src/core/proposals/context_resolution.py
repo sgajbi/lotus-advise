@@ -6,6 +6,10 @@ from typing import cast
 
 from src.core.advisory.policy_context import ProposalPolicySelectors
 from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.proposals.context_ports import (
+    ProposalStatefulContextResolutionUnavailableError,
+    resolve_proposal_stateful_context,
+)
 from src.core.proposals.models import (
     ProposalCreateMetadata,
     ProposalCreateRequest,
@@ -14,10 +18,6 @@ from src.core.proposals.models import (
     ProposalSimulationRequest,
     ProposalStatefulInput,
     ProposalVersionRequest,
-)
-from src.integrations.lotus_core import (
-    LotusCoreContextResolutionError,
-    resolve_lotus_core_advisory_context,
 )
 
 
@@ -262,8 +262,8 @@ def _resolve_stateful_input(
     stateful_input: ProposalStatefulInput,
 ) -> tuple[ProposalSimulateRequest, ProposalResolvedContext]:
     try:
-        resolved = resolve_lotus_core_advisory_context(stateful_input)
-    except LotusCoreContextResolutionError as exc:
+        resolved = resolve_proposal_stateful_context(stateful_input)
+    except ProposalStatefulContextResolutionUnavailableError as exc:
         raise ProposalContextResolutionError(
             "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
         ) from exc

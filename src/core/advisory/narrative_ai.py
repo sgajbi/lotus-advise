@@ -3,6 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
+from src.core.advisory.narrative_ai_ports import (
+    ProposalNarrativeDraftResponse,
+    ProposalNarrativeDraftSection,
+    ProposalNarrativeDraftUnavailableError,
+    build_ai_fallback_lineage,
+    generate_proposal_narrative_draft,
+)
 from src.core.advisory.narrative_grounding_models import ProposalNarrativeGroundingPacket
 from src.core.advisory.narrative_policy_models import ProposalNarrativePolicy
 from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
@@ -10,13 +17,6 @@ from src.core.advisory.narrative_section_models import ProposalNarrativeSection
 from src.core.advisory.narrative_types import (
     ProposalNarrativeGenerationMode,
     ProposalNarrativeSectionKey,
-)
-from src.integrations.lotus_ai.proposal_narrative import (
-    LotusAIProposalNarrativeUnavailableError,
-    ProposalNarrativeDraftResponse,
-    ProposalNarrativeDraftSection,
-    build_ai_fallback_lineage,
-    generate_proposal_narrative_draft_with_lotus_ai,
 )
 
 _AI_UNAVAILABLE_REASON = "LOTUS_AI_NARRATIVE_UNAVAILABLE"
@@ -32,7 +32,7 @@ def apply_ai_draft_sections(
     requested_sections: list[ProposalNarrativeSectionKey],
     generate_ai_draft: Callable[
         ..., ProposalNarrativeDraftResponse
-    ] = generate_proposal_narrative_draft_with_lotus_ai,
+    ] = generate_proposal_narrative_draft,
 ) -> tuple[
     list[ProposalNarrativeSection],
     ProposalNarrativeAiLineage,
@@ -78,7 +78,7 @@ def _generate_ai_response(
             ),
             None,
         )
-    except LotusAIProposalNarrativeUnavailableError as exc:
+    except ProposalNarrativeDraftUnavailableError as exc:
         return None, str(exc)
 
 

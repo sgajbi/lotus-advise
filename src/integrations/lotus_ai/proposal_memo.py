@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, NoReturn, cast
 
 import httpx
 
+from src.core.proposals.memo_ai_ports import (
+    ProposalMemoAiCommentaryDraft,
+)
+from src.core.proposals.memo_ai_ports import (
+    build_proposal_memo_ai_unavailable_commentary as _build_core_unavailable_commentary,
+)
 from src.integrations.lotus_ai.output_safety import (
     DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH,
     DEFAULT_AI_OUTPUT_SECTION_LIMIT,
@@ -42,14 +47,6 @@ MAX_MEMO_AI_REVIEW_GUIDANCE_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
 
 class LotusAIProposalMemoUnavailableError(Exception):
     pass
-
-
-@dataclass(frozen=True)
-class ProposalMemoAiCommentaryDraft:
-    status: str
-    sections: tuple[dict[str, Any], ...]
-    lineage: dict[str, Any]
-    review_guidance: tuple[str, ...]
 
 
 def generate_proposal_memo_commentary_with_lotus_ai(
@@ -133,25 +130,7 @@ def _raise_proposal_memo_response_error(
 
 
 def build_proposal_memo_ai_unavailable_commentary(reason: str) -> ProposalMemoAiCommentaryDraft:
-    return ProposalMemoAiCommentaryDraft(
-        status="UNAVAILABLE",
-        sections=(),
-        lineage={
-            "adapter_version": ADAPTER_VERSION,
-            "workflow_pack_id": WORKFLOW_PACK_ID,
-            "workflow_pack_version": WORKFLOW_PACK_VERSION,
-            "workflow_surface": WORKFLOW_SURFACE,
-            "workflow_run_id": None,
-            "model_version": None,
-            "fallback_reason": reason,
-        },
-        review_guidance=(
-            "AI memo commentary is unavailable; use persisted memo evidence "
-            "and deterministic sections only.",
-            "Do not infer missing suitability, eligibility, fee, tax, conflict, "
-            "or approval evidence.",
-        ),
-    )
+    return _build_core_unavailable_commentary(reason)
 
 
 def _build_workflow_pack_request(

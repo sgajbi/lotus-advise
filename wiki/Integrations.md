@@ -16,6 +16,18 @@ a roadmap, client-publication claim, or substitute for provider-owned API docume
 
 `lotus-advise` follows the upstream contract-family map documented in RFC-0082.
 
+## Runtime Composition Ports
+
+Core advisory and proposal modules depend on Advise-owned ports, not concrete integration
+adapters. Runtime startup wires the production providers for Lotus Core simulation/context, Lotus
+Risk enrichment and dependency-state, Lotus AI narrative/memo workflow packs, and Lotus Report memo
+package requests. Tests should use deterministic port doubles rather than monkeypatching HTTP
+adapters into core orchestration.
+
+Provider-specific exceptions must be translated at the runtime adapter boundary. Core logic sees
+typed Advise unavailable outcomes and attaches stable authority/degraded evidence for downstream
+proposal, workspace, memo, and operator surfaces.
+
 ## Consumer Contract Certification
 
 External service adapters must keep provider-compatible fixture evidence in
@@ -66,8 +78,9 @@ Important rule:
   carried as degraded completeness evidence on resolved context and proposal lineage without raw
   source payload storage.
 - stateful context resolution is selected through an explicit runtime-composed port. API startup
-  registers the production Lotus Core resolver; integration modules must not discover
-  `src.api.main`, read `sys.modules`, or rely on FastAPI import order for resolver behavior.
+  registers the production Lotus Core resolver through the Advise-owned context port; integration
+  modules must not discover `src.api.main`, read `sys.modules`, or rely on FastAPI import order for
+  resolver behavior.
 
 Cache policy:
 
@@ -109,6 +122,8 @@ Operational behavior:
 - unavailable risk authority always carries degraded evidence; dependency-state failures use
   `LOTUS_RISK_DEPENDENCY_UNAVAILABLE`, while configured enrichment failures use
   `LOTUS_RISK_ENRICHMENT_UNAVAILABLE`
+- risk enrichment is selected through the Advise-owned runtime port, and provider-specific Lotus
+  Risk errors are translated before core orchestration handles degraded authority.
 
 ## `lotus-performance`
 
@@ -167,7 +182,8 @@ Boundary rule:
   an idempotency key; mismatches fail closed.
 - request overrides are selected through explicit runtime-composed requester ports registered by
   API startup. The adapter must not discover API-module globals or depend on FastAPI import order
-  to choose portfolio-review, memo package, or policy sign-off package request behavior.
+  to choose portfolio-review, memo package, or policy sign-off package request behavior. Core memo
+  orchestration calls the Advise-owned memo report-package port.
 
 ## `lotus-ai`
 
@@ -183,3 +199,6 @@ Boundary rule:
 - AI must not become the authority for suitability, approvals, trade generation, or proposal alternatives
 - AI workflow-pack calls require `LOTUS_ADVISE_TENANT_ID`; unsafe or absent tenant identity fails
   closed before HTTP submission
+- proposal narrative and memo AI calls are selected through Advise-owned ports. Lotus AI adapter
+  errors are translated into core unavailable outcomes before proposal narrative or memo
+  orchestration handles fallback posture.

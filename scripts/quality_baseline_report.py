@@ -1397,8 +1397,11 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Architecture boundaries",
             "Import-linter contracts were present but report-only pending installation "
             "and baseline.",
-            "Import-linter inventory `total=3, kept=3, broken=0`; architecture contracts "
-            "run inside `make lint`.",
+            "Import-linter inventory "
+            f"`total={_optional_count(context.importlinter_contract_count)}, "
+            f"kept={_optional_count(context.importlinter_kept_count)}, "
+            f"broken={_optional_count(context.importlinter_broken_count)}`; "
+            "architecture contracts run inside `make lint`.",
             "Layering contracts are now executable and locally enforced.",
         ),
         (

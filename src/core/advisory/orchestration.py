@@ -3,22 +3,19 @@ from typing import cast
 
 from src.core.advisory.alternatives_projection import build_proposal_alternatives
 from src.core.advisory.decision_summary import build_proposal_decision_summary
+from src.core.advisory.provider_ports import (
+    AdvisoryProviderDependencyState,
+    AdvisoryRiskEnrichmentUnavailableError,
+    AdvisorySimulationUnavailableError,
+    build_advisory_risk_dependency_state,
+    enrich_with_advisory_risk_provider,
+    resolve_advisory_simulation_fallback_policy,
+    simulate_with_advisory_simulation_provider,
+)
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposal_result_models import ProposalResult
-from src.integrations.lotus_core import (
-    LotusCoreSimulationUnavailableError,
-    lotus_core_local_fallback_enabled,
-    lotus_core_local_fallback_permitted,
-    lotus_core_local_fallback_requested,
-    simulate_with_lotus_core,
-)
-from src.integrations.lotus_risk import (
-    LotusRiskEnrichmentUnavailableError,
-    build_lotus_risk_dependency_state,
-    enrich_with_lotus_risk,
-)
 
 _LOTUS_RISK_ENRICHMENT_UNAVAILABLE = "LOTUS_RISK_ENRICHMENT_UNAVAILABLE"
 _LOTUS_RISK_DEPENDENCY_UNAVAILABLE = "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
@@ -36,6 +33,44 @@ class _RiskResolution:
     proposal_result: ProposalResult
     authority: str
     degraded_reasons: list[str]
+
+
+def simulate_with_lotus_core(
+    *,
+    request: ProposalSimulateRequest,
+    request_hash: str,
+    idempotency_key: str | None,
+    correlation_id: str,
+    policy_context: dict[str, object] | None = None,
+) -> ProposalResult:
+    return simulate_with_advisory_simulation_provider(
+        request=request,
+        request_hash=request_hash,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+        policy_context=policy_context,
+    )
+
+
+def enrich_with_lotus_risk(
+    *,
+    request: ProposalSimulateRequest,
+    proposal_result: ProposalResult,
+    correlation_id: str,
+    resolved_as_of: str | None = None,
+    input_mode: str | None = None,
+) -> ProposalResult:
+    return enrich_with_advisory_risk_provider(
+        request=request,
+        proposal_result=proposal_result,
+        correlation_id=correlation_id,
+        resolved_as_of=resolved_as_of,
+        input_mode=input_mode,
+    )
+
+
+def build_lotus_risk_dependency_state() -> AdvisoryProviderDependencyState:
+    return build_advisory_risk_dependency_state()
 
 
 def evaluate_advisory_proposal(
@@ -101,7 +136,7 @@ def _resolve_simulation(
             authority="lotus_core",
             degraded_reasons=[],
         )
-    except LotusCoreSimulationUnavailableError as exc:
+    except AdvisorySimulationUnavailableError as exc:
         proposal_result = _run_local_fallback_simulation(
             request=request,
             request_hash=request_hash,
@@ -124,14 +159,15 @@ def _run_local_fallback_simulation(
     idempotency_key: str | None,
     correlation_id: str,
     policy_context: dict[str, object] | None,
-    original_error: LotusCoreSimulationUnavailableError,
+    original_error: AdvisorySimulationUnavailableError,
 ) -> ProposalResult:
-    if lotus_core_local_fallback_requested() and not lotus_core_local_fallback_permitted():
-        raise LotusCoreSimulationUnavailableError(
+    fallback_policy = resolve_advisory_simulation_fallback_policy()
+    if fallback_policy.requested and not fallback_policy.permitted:
+        raise AdvisorySimulationUnavailableError(
             "LOTUS_CORE_SIMULATION_REQUIRED_IN_THIS_ENVIRONMENT",
             status_code=original_error.status_code,
         ) from original_error
-    if not lotus_core_local_fallback_enabled():
+    if not fallback_policy.enabled:
         raise original_error
 
     proposal_result = run_proposal_simulation(
@@ -172,7 +208,7 @@ def _resolve_risk_enrichment(
             input_mode=input_mode,
         )
         return _RiskResolution(proposal_result, "lotus_risk", combined_degraded_reasons)
-    except LotusRiskEnrichmentUnavailableError:
+    except AdvisoryRiskEnrichmentUnavailableError:
         combined_degraded_reasons.append(_risk_degraded_reason(lotus_risk_state))
         return _RiskResolution(proposal_result, "unavailable", combined_degraded_reasons)
 

@@ -4,6 +4,13 @@ from typing import cast
 
 from src.core.advisory.narrative_ai import apply_ai_draft_sections
 from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
+from src.core.advisory.narrative_ai_ports import (
+    ProposalNarrativeDraftResponse,
+    ProposalNarrativeDraftSection,
+)
+from src.core.advisory.narrative_ai_ports import (
+    ProposalNarrativeDraftUnavailableError as LotusAIProposalNarrativeUnavailableError,
+)
 from src.core.advisory.narrative_grounding_models import (
     ProposalNarrativeGroundingPacket,
     ProposalNarrativeSourceRef,
@@ -15,11 +22,6 @@ from src.core.advisory.narrative_policy_models import (
 from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
 from src.core.advisory.narrative_section_models import ProposalNarrativeSection
 from src.core.advisory.narrative_types import ProposalNarrativeSectionKey
-from src.integrations.lotus_ai.proposal_narrative import (
-    LotusAIProposalNarrativeUnavailableError,
-    ProposalNarrativeDraftResponse,
-    ProposalNarrativeDraftSection,
-)
 
 
 def test_apply_ai_draft_sections_preserves_deterministic_grounding_metadata() -> None:

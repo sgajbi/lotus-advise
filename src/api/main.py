@@ -36,9 +36,9 @@ from src.api.routers.tactical_house_view import router as tactical_house_view_ro
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.api.workspaces.router import router as workspace_router
+from src.core.advisory.provider_ports import AdvisorySimulationUnavailableError
 from src.core.proposals.models import ProposalReportResponse
 from src.core.workspace.input_models import WorkspaceStatefulInput
-from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
 from src.integrations.lotus_core.context_resolution import (
     LotusCoreResolvedAdvisoryContext,
     configure_lotus_core_advisory_context_resolver,
@@ -52,6 +52,7 @@ from src.integrations.lotus_report import (
     request_proposal_memo_report_package_with_lotus_report_http,
     request_proposal_report_with_lotus_report_http,
 )
+from src.runtime.advisory_provider_ports import configure_advisory_external_provider_ports
 
 
 @asynccontextmanager
@@ -97,6 +98,7 @@ def resolve_lotus_core_advisory_context(
 configure_lotus_core_advisory_context_resolver(
     lambda stateful_input: resolve_lotus_core_advisory_context(stateful_input)
 )
+configure_advisory_external_provider_ports()
 
 
 def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> ProposalReportResponse:
@@ -240,10 +242,10 @@ async def unhandled_exception_to_problem_details(request: Request, exc: Exceptio
     )
 
 
-@app.exception_handler(LotusCoreSimulationUnavailableError)
+@app.exception_handler(AdvisorySimulationUnavailableError)
 async def lotus_core_simulation_unavailable_to_problem_details(
     request: Request,
-    exc: LotusCoreSimulationUnavailableError,
+    exc: AdvisorySimulationUnavailableError,
 ) -> JSONResponse:
     status_code = exc.status_code or status.HTTP_503_SERVICE_UNAVAILABLE
     return build_problem_detail_response(

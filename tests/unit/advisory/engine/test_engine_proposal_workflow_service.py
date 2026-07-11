@@ -18,9 +18,9 @@ import src.core.proposals.service_read_operations as proposal_service_read_modul
 from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
-from src.core.models import ProposalSimulateRequest
 from src.core.proposals.command_validation import resolve_proposal_approval_transition
 from src.core.proposals.context import ProposalContextResolutionError
+from src.core.proposals.context_ports import configure_proposal_stateful_context_resolver
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
@@ -44,9 +44,7 @@ from src.core.proposals.service import (
     ProposalValidationError,
     ProposalWorkflowService,
 )
-from src.core.workspace.models import WorkspaceResolvedContext
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
-from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
@@ -571,39 +569,35 @@ def test_service_create_proposal_persists_material_change_projection() -> None:
     assert "CURRENCY_EXPOSURE_CHANGE" in families
 
 
-def test_service_create_proposal_persists_policy_context_for_stateful_requests(monkeypatch):
+def test_service_create_proposal_persists_policy_context_for_stateful_requests():
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
 
     def _resolved_stateful_context(stateful_input):
-        payload = build_resolved_stateful_context(
+        return build_resolved_stateful_context(
             stateful_input.portfolio_id,
             stateful_input.as_of,
         )
-        return LotusCoreResolvedAdvisoryContext(
-            simulate_request=ProposalSimulateRequest.model_validate(payload["simulate_request"]),
-            resolved_context=WorkspaceResolvedContext.model_validate(payload["resolved_context"]),
+
+    configure_proposal_stateful_context_resolver(_resolved_stateful_context)
+
+    try:
+        created = service.create_proposal(
+            payload=ProposalCreateRequest(
+                created_by="advisor_service",
+                input_mode="stateful",
+                stateful_input={
+                    "portfolio_id": "pf_service_stateful_1",
+                    "as_of": "2026-03-25",
+                    "household_id": "hh_001",
+                    "mandate_id": "mandate_growth_01",
+                },
+                metadata={"title": "Stateful service test", "jurisdiction": "SG"},
+            ),
+            idempotency_key="service-idem-stateful-policy",
+            correlation_id="corr-service-stateful-policy",
         )
-
-    monkeypatch.setattr(
-        "src.core.proposals.context_resolution.resolve_lotus_core_advisory_context",
-        _resolved_stateful_context,
-    )
-
-    created = service.create_proposal(
-        payload=ProposalCreateRequest(
-            created_by="advisor_service",
-            input_mode="stateful",
-            stateful_input={
-                "portfolio_id": "pf_service_stateful_1",
-                "as_of": "2026-03-25",
-                "household_id": "hh_001",
-                "mandate_id": "mandate_growth_01",
-            },
-            metadata={"title": "Stateful service test", "jurisdiction": "SG"},
-        ),
-        idempotency_key="service-idem-stateful-policy",
-        correlation_id="corr-service-stateful-policy",
-    )
+    finally:
+        configure_proposal_stateful_context_resolver(None)
 
     policy_context = created.version.evidence_bundle["context_resolution"][
         "advisory_policy_context"
