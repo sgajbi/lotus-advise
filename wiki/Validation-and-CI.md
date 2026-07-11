@@ -143,7 +143,7 @@ timestamp, CI run ID, and image-digest posture, then retains one evidence bundle
 2. SBOM,
 3. dependency-lock evidence,
 4. license/IP dependency inventory,
-5. vulnerability scan report,
+5. passing high/critical fixable-vulnerability scan report plus full all-severity inventory,
 6. image signature reference,
 7. provenance attestation reference.
 

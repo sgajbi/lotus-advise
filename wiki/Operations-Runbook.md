@@ -1,5 +1,19 @@
 # Operations Runbook
 
+## Current Scope
+
+This page covers first-response operation of the implemented `lotus-advise` service: health and
+readiness endpoints, release image evidence, production manifest expectations, workflow readiness,
+and basic troubleshooting. It does not certify upstream `lotus-core`, `lotus-risk`, `lotus-report`,
+or `lotus-ai` availability beyond the dependency posture that Advise exposes.
+
+| Reader | Start Here | Evidence Or Action |
+| --- | --- | --- |
+| Operations | Release Image Operations | Compare `/version` with retained Main Releasability evidence before promotion. |
+| Platform/Release | Production Deployment Manifest | Deploy the immutable digest image and inject runtime secrets at deployment time. |
+| Support | Health And Workflow Readiness | Use readiness for pod routing and `/platform/capabilities` for workflow posture. |
+| Engineering | Troubleshooting | Reproduce with repo-native checks before changing runtime policy. |
+
 ## Health Endpoints
 
 - `GET /health`
@@ -30,7 +44,7 @@ the Git SHA and accompanied by retained evidence:
 
 1. digest-bearing `release-evidence.json`,
 2. SBOM,
-3. vulnerability scan report,
+3. passing high/critical fixable-vulnerability scan report plus full all-severity inventory,
 4. image signature,
 5. provenance attestation.
 
