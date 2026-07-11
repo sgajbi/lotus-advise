@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, cast
 
 import httpx
@@ -29,6 +30,12 @@ from src.integrations.lotus_core.timed_cache import TimedCache
 
 class LotusCoreStatefulContextUnavailableError(LotusCoreContextResolutionError):
     pass
+
+
+@dataclass(frozen=True)
+class InstrumentEnrichmentFetchResult:
+    enrichment_by_security_id: dict[str, dict[str, Any]]
+    malformed_record_count: int = 0
 
 
 _FETCH_STAT_BY_ERROR_CODE = {
@@ -99,6 +106,23 @@ def fetch_instrument_enrichment_bulk(
     portfolio_id: str,
     as_of: str,
 ) -> dict[str, dict[str, Any]]:
+    return fetch_instrument_enrichment_bulk_with_diagnostics(
+        client,
+        base_url=base_url,
+        security_ids=security_ids,
+        portfolio_id=portfolio_id,
+        as_of=as_of,
+    ).enrichment_by_security_id
+
+
+def fetch_instrument_enrichment_bulk_with_diagnostics(
+    client: httpx.Client,
+    *,
+    base_url: str,
+    security_ids: list[str],
+    portfolio_id: str,
+    as_of: str,
+) -> InstrumentEnrichmentFetchResult:
     requested_ids = _requested_security_ids(security_ids)
     enrichment_by_security_id, missing_ids = _cached_instrument_enrichment(
         requested_ids,
@@ -107,9 +131,9 @@ def fetch_instrument_enrichment_bulk(
         as_of=as_of,
     )
     if not requested_ids:
-        return enrichment_by_security_id
+        return InstrumentEnrichmentFetchResult(enrichment_by_security_id)
     if not missing_ids:
-        return enrichment_by_security_id
+        return InstrumentEnrichmentFetchResult(enrichment_by_security_id)
     payload = request_json(
         client,
         method="POST",
@@ -164,19 +188,27 @@ def _with_fetched_instrument_enrichment(
     base_url: str,
     portfolio_id: str,
     as_of: str,
-) -> dict[str, dict[str, Any]]:
+) -> InstrumentEnrichmentFetchResult:
+    malformed_record_count = 0
     records = payload.get("records")
     if not isinstance(records, list):
-        return enrichment_by_security_id
+        return InstrumentEnrichmentFetchResult(
+            enrichment_by_security_id,
+            malformed_record_count=1,
+        )
     for record in records:
-        _append_instrument_enrichment_record(
+        if not _append_instrument_enrichment_record(
             enrichment_by_security_id,
             record,
             base_url=base_url,
             portfolio_id=portfolio_id,
             as_of=as_of,
-        )
-    return enrichment_by_security_id
+        ):
+            malformed_record_count += 1
+    return InstrumentEnrichmentFetchResult(
+        enrichment_by_security_id,
+        malformed_record_count=malformed_record_count,
+    )
 
 
 def _append_instrument_enrichment_record(
@@ -186,12 +218,12 @@ def _append_instrument_enrichment_record(
     base_url: str,
     portfolio_id: str,
     as_of: str,
-) -> None:
+) -> bool:
     if not isinstance(record, dict):
-        return
+        return False
     security_id = str(record.get("security_id") or "").strip()
     if not security_id:
-        return
+        return False
     enrichment_by_security_id[security_id] = cache_payload(
         INSTRUMENT_ENRICHMENT_CACHE,
         cache_key=instrument_enrichment_cache_key(
@@ -202,6 +234,7 @@ def _append_instrument_enrichment_record(
         ),
         payload=record,
     )
+    return True
 
 
 def fetch_classification_taxonomy(
@@ -216,17 +249,14 @@ def fetch_classification_taxonomy(
         as_of=as_of,
         taxonomy_scope=taxonomy_scope,
     )
-    try:
-        payload = fetch_json_with_cache(
-            client,
-            cache=CLASSIFICATION_TAXONOMY_CACHE,
-            cache_key=cache_key,
-            method="POST",
-            base_url=base_url,
-            path=CLASSIFICATION_TAXONOMY_PATH,
-            error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
-            json_body={"as_of_date": as_of, "taxonomy_scope": taxonomy_scope},
-        )
-    except (LotusCoreStatefulContextUnavailableError, AssertionError):
-        return ClassificationTaxonomy(labels_by_dimension={})
+    payload = fetch_json_with_cache(
+        client,
+        cache=CLASSIFICATION_TAXONOMY_CACHE,
+        cache_key=cache_key,
+        method="POST",
+        base_url=base_url,
+        path=CLASSIFICATION_TAXONOMY_PATH,
+        error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
+        json_body={"as_of_date": as_of, "taxonomy_scope": taxonomy_scope},
+    )
     return parse_classification_taxonomy(payload)

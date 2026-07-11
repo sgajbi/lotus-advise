@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
 from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.source_completeness_models import SourceCompletenessReport
 from src.core.source_provenance_models import SourceProvenanceEnvelope
 
 
@@ -121,5 +122,12 @@ class ProposalResolvedContext(BaseModel):
         description=(
             "Optional upstream source snapshot, version, freshness, and contract evidence used "
             "to resolve this proposal context."
+        ),
+    )
+    source_completeness: Optional[SourceCompletenessReport] = Field(
+        default=None,
+        description=(
+            "Optional upstream source row completeness and rejection-summary evidence used "
+            "to reconcile stateful proposal context hydration."
         ),
     )

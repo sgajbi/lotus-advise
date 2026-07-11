@@ -5,6 +5,7 @@ from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from src.core.source_completeness_models import SourceCompletenessReport
 from src.core.source_provenance_models import SourceProvenanceRecord
 
 
@@ -103,6 +104,10 @@ class PortfolioSnapshot(BaseModel):
         default=None,
         description="Optional upstream portfolio source provenance for audit and replay.",
     )
+    source_completeness: Optional[SourceCompletenessReport] = Field(
+        default=None,
+        description="Optional upstream source row completeness report for reconciliation.",
+    )
     portfolio_id: str = Field(description="Portfolio identifier.", examples=["pf_123"])
     base_currency: str = Field(
         description="Base reporting currency for valuation and rules.",
@@ -142,6 +147,10 @@ class MarketDataSnapshot(BaseModel):
     source_provenance: Optional[SourceProvenanceRecord] = Field(
         default=None,
         description="Optional upstream market-data source provenance for audit and replay.",
+    )
+    source_completeness: Optional[SourceCompletenessReport] = Field(
+        default=None,
+        description="Optional upstream source row completeness report for reconciliation.",
     )
     prices: List[Price] = Field(default_factory=list, description="Instrument prices.")
     fx_rates: List[FxRate] = Field(

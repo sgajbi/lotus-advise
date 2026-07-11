@@ -51,6 +51,9 @@ from src.integrations.lotus_core.stateful_context import (
     reset_stateful_context_cache_for_tests,
     resolve_stateful_context_with_lotus_core,
 )
+from src.integrations.lotus_core.stateful_context_completeness import (
+    build_lotus_core_source_completeness,
+)
 from tests.shared.stateful_context_assertions import assert_core_context_fetch_counts
 
 
@@ -865,6 +868,223 @@ def test_resolve_stateful_context_preserves_upstream_source_provenance(monkeypat
     lineage_payload = result.lineage.model_dump(mode="json")
     assert "positions" not in str(lineage_payload)
     assert "cash_accounts" not in str(lineage_payload)
+
+
+def test_lotus_core_source_completeness_counts_rejections_without_raw_payloads() -> None:
+    report = build_lotus_core_source_completeness(
+        portfolio_id="PF_SOURCE_QUALITY",
+        resolved_as_of="2026-03-27",
+        portfolio_base_currency="USD",
+        positions_payload={
+            "positions": [
+                {
+                    "security_id": "SEC_OK",
+                    "quantity": "10",
+                    "asset_class": "Equity",
+                    "currency": "USD",
+                    "valuation": {"market_price": "25", "market_value": "250"},
+                },
+                {
+                    "security_id": "SEC_OK",
+                    "quantity": "2",
+                    "asset_class": "Equity",
+                    "currency": "USD",
+                    "valuation": {"market_price": "25", "market_value": "50"},
+                },
+                "raw-sensitive-bad-row",
+                {"security_id": "", "asset_class": "Equity", "quantity": "1"},
+                {
+                    "security_id": "SEC_NAN",
+                    "quantity": "NaN",
+                    "asset_class": "Equity",
+                    "currency": "USD",
+                    "valuation": {"market_price": "10", "market_value": "10"},
+                },
+                {
+                    "security_id": "SEC_NO_VAL",
+                    "quantity": "1",
+                    "asset_class": "Bond",
+                    "currency": "USD",
+                    "valuation": {"market_price": "99.5"},
+                },
+            ]
+        },
+        cash_payload={
+            "cash_accounts": [
+                {"account_currency": "USD", "balance_account_currency": "100"},
+                "raw-sensitive-cash-row",
+                {"account_currency": "", "balance_account_currency": "50"},
+            ]
+        },
+        enrichment_by_instrument_id={"SEC_OK": {"security_id": "SEC_OK"}},
+        classification_taxonomy=None,
+        classification_taxonomy_unavailable=True,
+    )
+
+    by_collection = {item.source_collection: item for item in report.collections}
+
+    assert report.status == "INCOMPLETE"
+    assert report.raw_payload_stored is False
+    assert by_collection["POSITIONS"].received_count == 6
+    assert by_collection["POSITIONS"].accepted_count == 2
+    assert by_collection["POSITIONS"].rejected_count == 4
+    assert by_collection["POSITIONS"].duplicate_count == 1
+    assert by_collection["POSITIONS"].rejection_reasons == {
+        "INVALID_QUANTITY": 1,
+        "INVALID_MARKET_VALUE": 1,
+        "MISSING_SECURITY_ID": 1,
+        "NON_OBJECT_ROW": 1,
+    }
+    assert by_collection["CASH_BALANCES"].rejection_reasons == {
+        "MISSING_CURRENCY": 1,
+        "NON_OBJECT_ROW": 1,
+    }
+    assert by_collection["PRICES"].received_count == 5
+    assert by_collection["PRICES"].accepted_count == 4
+    assert by_collection["PRICES"].rejected_count == 1
+    assert by_collection["PRICES"].rejection_reasons == {"MISSING_PRICE_VALUATION": 1}
+    assert by_collection["INSTRUMENT_ENRICHMENT"].required is False
+    assert by_collection["INSTRUMENT_ENRICHMENT"].rejection_reasons == {"MISSING_ENRICHMENT": 2}
+    assert by_collection["CLASSIFICATION_TAXONOMY"].rejection_reasons == {
+        "CLASSIFICATION_TAXONOMY_UNAVAILABLE": 1
+    }
+    assert "raw-sensitive" not in str(report.model_dump(mode="json"))
+
+
+def test_resolve_stateful_context_reports_optional_source_degradation_in_lineage(
+    monkeypatch, stateful_input
+) -> None:
+    base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "positions": [
+                    {
+                        "security_id": "SEC_OPTIONAL_GAP",
+                        "quantity": "10",
+                        "asset_class": "Equity",
+                        "currency": "USD",
+                        "valuation": {"market_price": "20", "market_value": "200"},
+                    }
+                ],
+            }
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "resolved_as_of_date": "2026-03-27",
+                "cash_accounts": [{"account_currency": "USD", "balance_account_currency": "50"}],
+            }
+        ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse({"records": ["bad-row", {"security_id": ""}]}),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _FakeClient(responses),
+    )
+
+    resolved = resolve_stateful_context_with_lotus_core(stateful_input)
+
+    source_completeness = resolved.resolved_context.source_completeness
+    assert source_completeness is not None
+    assert source_completeness.status == "DEGRADED"
+    by_collection = {item.source_collection: item for item in source_completeness.collections}
+    assert by_collection["POSITIONS"].status == "COMPLETE"
+    assert by_collection["CASH_BALANCES"].status == "COMPLETE"
+    assert by_collection["INSTRUMENT_ENRICHMENT"].rejection_reasons == {
+        "MALFORMED_ENRICHMENT": 2,
+        "MISSING_ENRICHMENT": 1,
+    }
+    assert by_collection["CLASSIFICATION_TAXONOMY"].rejection_reasons == {
+        "CLASSIFICATION_TAXONOMY_UNAVAILABLE": 1
+    }
+
+    result = run_proposal_simulation(
+        portfolio=resolved.simulate_request.portfolio_snapshot,
+        market_data=resolved.simulate_request.market_data_snapshot,
+        shelf=resolved.simulate_request.shelf_entries,
+        options=resolved.simulate_request.options,
+        proposed_cash_flows=[],
+        proposed_trades=[],
+        request_hash="sha256:source-completeness",
+    )
+
+    assert result.status == "READY"
+    assert result.lineage.source_completeness == source_completeness
+    assert result.lineage.source_completeness.raw_payload_stored is False
+
+
+def test_resolve_stateful_context_rejects_silently_dropped_required_source_rows(
+    monkeypatch, stateful_input
+) -> None:
+    base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "positions": [
+                    {
+                        "security_id": "SEC_VALID",
+                        "quantity": "10",
+                        "asset_class": "Equity",
+                        "currency": "USD",
+                        "valuation": {"market_price": "10", "market_value": "100"},
+                    },
+                    "bad-row",
+                    {"security_id": "", "asset_class": "Equity", "quantity": "5"},
+                    {
+                        "security_id": "SEC_MISSING_VALUE",
+                        "quantity": "2",
+                        "asset_class": "Bond",
+                        "currency": "USD",
+                        "valuation": {"market_price": "99.5"},
+                    },
+                ],
+            }
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "resolved_as_of_date": "2026-03-27",
+                "cash_accounts": [{"account_currency": "USD", "balance_account_currency": "10"}],
+            }
+        ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse({"records": [{"security_id": "SEC_VALID"}]}),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/reference/classification-taxonomy",
+        ): _FakeResponse(
+            {"records": [{"dimension_name": "asset_class", "dimension_value": "Equity"}]}
+        ),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _FakeClient(responses),
+    )
+
+    with pytest.raises(LotusCoreStatefulContextUnavailableError) as exc_info:
+        resolve_stateful_context_with_lotus_core(stateful_input)
+
+    assert str(exc_info.value) == "LOTUS_CORE_STATEFUL_SOURCE_INCOMPLETE"
 
 
 def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(

@@ -246,30 +246,36 @@ Boundary rules:
    `LOTUS_CORE_STATEFUL_FX_INVALID`; missing eligible rates remain data-quality evidence rather
    than fabricated conversion inputs. Inverse-pair valuation is supported only from a valid positive
    inverse rate,
-8. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
-9. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
-10. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
+8. Lotus Core stateful context must account for source-row completeness before advisory snapshot
+   construction. Required positions, cash, price, and FX source rows cannot silently disappear:
+   malformed or incomplete required rows fail closed with
+   `LOTUS_CORE_STATEFUL_SOURCE_INCOMPLETE`. Optional enrichment and classification taxonomy gaps
+   remain explicit degraded source-completeness evidence on resolved context, advisory snapshots,
+   and proposal lineage without storing raw source payloads,
+9. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
+10. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
+11. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
    preserve source refs, and must not discover the global portfolio universe or open DPM campaigns,
-11. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
+12. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
    records advisory posture while downstream providers remain execution systems of record,
-12. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
-13. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
-14. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
+13. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
+14. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
+15. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
    the handoff envelope and retains proposal, suitability, approval, publication, and execution
    authority until a later certified realization slice implements those controls,
-15. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
+16. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
    missing, malformed, over-length, or control-character-bearing; do not reintroduce synthetic
    production defaults such as a hardcoded tenant or service actor,
-16. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
+17. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
    jurisdiction/booking-center metadata; current-date, USD, and SG fallbacks are not production
    source truth,
-17. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
+18. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
    code; do not allow `risk_authority="unavailable"` with `degraded=false`.
-18. advisor memo and policy sign-off report packages must not project archive-ready status from
+19. advisor memo and policy sign-off report packages must not project archive-ready status from
     accepted, running, missing-status, malformed-status, or failed status lookups; terminal
     readiness requires `lotus-report` archive evidence and all non-terminal status must preserve
     the report job id for operator recovery.
-17. external service adapters for `lotus-core`, `lotus-risk`, `lotus-report`, and `lotus-ai`
+20. external service adapters for `lotus-core`, `lotus-risk`, `lotus-report`, and `lotus-ai`
     must keep versioned consumer-contract fixtures under
     `tests/fixtures/external-adapter-contracts/` and pass `make external-adapter-contracts`.
     The lane must cover valid responses, malformed JSON, missing fields, portfolio/as-of identity

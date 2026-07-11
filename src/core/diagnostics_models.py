@@ -6,6 +6,7 @@ from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 from src.core.portfolio_models import Money
+from src.core.source_completeness_models import SourceCompletenessReport
 from src.core.source_provenance_models import SourceProvenanceEnvelope
 
 
@@ -155,6 +156,10 @@ class LineageData(BaseModel):
     source_provenance: Optional[SourceProvenanceEnvelope] = Field(
         default=None,
         description="Upstream source snapshot, version, freshness, and contract evidence.",
+    )
+    source_completeness: Optional[SourceCompletenessReport] = Field(
+        default=None,
+        description="Upstream source row completeness and rejection-summary evidence.",
     )
 
 

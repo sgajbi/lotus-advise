@@ -15,10 +15,12 @@ from src.core.portfolio_models import (
     PortfolioSnapshot,
 )
 from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.source_completeness_models import SourceCompletenessReport
 from src.core.source_provenance_models import SourceProvenanceEnvelope
 from src.core.workspace.input_models import WorkspaceResolvedContext, WorkspaceStatefulInput
 from src.integrations.lotus_core import classification as _classification
 from src.integrations.lotus_core import stateful_context_hydration as _hydration
+from src.integrations.lotus_core import stateful_context_source_reads as _source_reads
 from src.integrations.lotus_core.context_resolution import (
     LotusCoreResolvedAdvisoryContext,
 )
@@ -48,6 +50,9 @@ from src.integrations.lotus_core.stateful_context_cache import (
 from src.integrations.lotus_core.stateful_context_cache import (
     reset_stateful_context_cache as _reset_stateful_context_cache,
 )
+from src.integrations.lotus_core.stateful_context_completeness import (
+    build_lotus_core_source_completeness as _build_lotus_core_source_completeness,
+)
 from src.integrations.lotus_core.stateful_context_market_data import (
     InvalidLotusCoreFxRateError,
 )
@@ -71,9 +76,6 @@ from src.integrations.lotus_core.stateful_context_source_reads import (
 )
 from src.integrations.lotus_core.stateful_context_source_reads import (
     fetch_classification_taxonomy as _fetch_classification_taxonomy,
-)
-from src.integrations.lotus_core.stateful_context_source_reads import (
-    fetch_instrument_enrichment_bulk as _fetch_instrument_enrichment_bulk,
 )
 from src.integrations.lotus_core.stateful_context_source_reads import (
     request_json as _request_json,
@@ -108,6 +110,10 @@ _select_instrument_row = _hydration.select_instrument_row
 _select_latest_dated_row = _hydration.select_latest_dated_row
 _select_latest_fx_row = _hydration.select_latest_fx_row
 _select_latest_price_row = _hydration.select_latest_price_row
+_fetch_instrument_enrichment_bulk = _source_reads.fetch_instrument_enrichment_bulk
+_fetch_instrument_enrichment_bulk_with_diagnostics = (
+    _source_reads.fetch_instrument_enrichment_bulk_with_diagnostics
+)
 
 
 @dataclass(frozen=True)
@@ -116,7 +122,9 @@ class _StatefulContextSourcePayloads:
     positions_payload: dict[str, Any]
     cash_payload: dict[str, Any]
     enrichment_by_instrument_id: dict[str, dict[str, Any]]
-    classification_taxonomy: _classification.ClassificationTaxonomy
+    enrichment_malformed_record_count: int
+    classification_taxonomy: _classification.ClassificationTaxonomy | None
+    classification_taxonomy_unavailable: bool
 
 
 def _resolve_timeout() -> httpx.Timeout:
@@ -234,6 +242,19 @@ def resolve_stateful_context_with_lotus_core(
         ) from exc
     portfolio_snapshot_id = source_provenance.portfolio.source_id
     market_data_snapshot_id = source_provenance.market_data.source_id
+    source_completeness = _build_lotus_core_source_completeness(
+        portfolio_id=portfolio_id,
+        resolved_as_of=resolved_as_of,
+        portfolio_base_currency=base_currency,
+        positions_payload=source_payloads.positions_payload,
+        cash_payload=source_payloads.cash_payload,
+        enrichment_by_instrument_id=source_payloads.enrichment_by_instrument_id,
+        enrichment_malformed_record_count=source_payloads.enrichment_malformed_record_count,
+        classification_taxonomy=source_payloads.classification_taxonomy,
+        classification_taxonomy_unavailable=source_payloads.classification_taxonomy_unavailable,
+    )
+    if source_completeness.has_required_rejections():
+        raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_SOURCE_INCOMPLETE")
     try:
         simulate_request = _build_stateful_simulate_request(
             source_payloads,
@@ -242,6 +263,7 @@ def resolve_stateful_context_with_lotus_core(
             portfolio_snapshot_id=portfolio_snapshot_id,
             market_data_snapshot_id=market_data_snapshot_id,
             source_provenance=source_provenance,
+            source_completeness=source_completeness,
         )
     except InvalidLotusCoreFxRateError as exc:
         raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_FX_INVALID") from exc
@@ -253,6 +275,7 @@ def resolve_stateful_context_with_lotus_core(
             portfolio_snapshot_id=portfolio_snapshot_id,
             market_data_snapshot_id=market_data_snapshot_id,
             source_provenance=source_provenance,
+            source_completeness=source_completeness,
         ),
     )
     _cache_resolved_context(
@@ -298,18 +321,23 @@ def _fetch_stateful_context_source_payloads(
             ),
             error_code="LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE",
         )
-        enrichment_by_instrument_id = _fetch_instrument_enrichment_bulk(
+        enrichment_result = _fetch_instrument_enrichment_bulk_with_diagnostics(
             client,
             base_url=control_plane_base_url,
             security_ids=_held_position_instrument_ids(positions_payload),
             portfolio_id=stateful_input.portfolio_id,
             as_of=stateful_input.as_of,
         )
-        classification_taxonomy = _fetch_classification_taxonomy(
-            client,
-            base_url=control_plane_base_url,
-            as_of=stateful_input.as_of,
-        )
+        classification_taxonomy_unavailable = False
+        try:
+            classification_taxonomy = _fetch_classification_taxonomy(
+                client,
+                base_url=control_plane_base_url,
+                as_of=stateful_input.as_of,
+            )
+        except (LotusCoreStatefulContextUnavailableError, AssertionError):
+            classification_taxonomy = None
+            classification_taxonomy_unavailable = True
     _validate_stateful_payload_identity(
         portfolio_payload=portfolio_payload,
         positions_payload=positions_payload,
@@ -320,8 +348,10 @@ def _fetch_stateful_context_source_payloads(
         portfolio_payload=portfolio_payload,
         positions_payload=positions_payload,
         cash_payload=cash_payload,
-        enrichment_by_instrument_id=enrichment_by_instrument_id,
+        enrichment_by_instrument_id=enrichment_result.enrichment_by_security_id,
+        enrichment_malformed_record_count=enrichment_result.malformed_record_count,
         classification_taxonomy=classification_taxonomy,
+        classification_taxonomy_unavailable=classification_taxonomy_unavailable,
     )
 
 
@@ -428,11 +458,13 @@ def _build_stateful_simulate_request(
     portfolio_snapshot_id: str,
     market_data_snapshot_id: str,
     source_provenance: SourceProvenanceEnvelope,
+    source_completeness: SourceCompletenessReport,
 ) -> ProposalSimulateRequest:
     return ProposalSimulateRequest(
         portfolio_snapshot=PortfolioSnapshot(
             snapshot_id=portfolio_snapshot_id,
             source_provenance=source_provenance.portfolio,
+            source_completeness=source_completeness,
             portfolio_id=portfolio_id,
             base_currency=base_currency,
             positions=_build_positions(
@@ -444,6 +476,7 @@ def _build_stateful_simulate_request(
         market_data_snapshot=MarketDataSnapshot(
             snapshot_id=market_data_snapshot_id,
             source_provenance=source_provenance.market_data,
+            source_completeness=source_completeness,
             prices=_build_prices(source_payloads.positions_payload),
             fx_rates=_derive_fx_rates(
                 portfolio_base_currency=base_currency,

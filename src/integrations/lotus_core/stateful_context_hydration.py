@@ -31,6 +31,7 @@ from src.integrations.lotus_core.stateful_context_routes import (
     PRICES_PATH,
 )
 from src.integrations.lotus_core.stateful_context_source_reads import (
+    LotusCoreStatefulContextUnavailableError,
     fetch_classification_taxonomy,
     fetch_instrument_enrichment_bulk,
     fetch_json_with_cache,
@@ -51,7 +52,7 @@ class _TradeDraftHydrationContext:
     base_url: str
     portfolio_id: str
     enrichment_by_instrument_id: dict[str, dict[str, Any]]
-    classification_taxonomy: ClassificationTaxonomy
+    classification_taxonomy: ClassificationTaxonomy | None
 
 
 def select_latest_dated_row(
@@ -445,12 +446,28 @@ def _build_trade_draft_hydration_context(
             portfolio_id=portfolio_id,
             as_of=as_of,
         ),
-        classification_taxonomy=fetch_classification_taxonomy(
-            client,
-            base_url=control_plane_base_url,
+        classification_taxonomy=_fetch_optional_classification_taxonomy(
+            client=client,
+            control_plane_base_url=control_plane_base_url,
             as_of=as_of,
         ),
     )
+
+
+def _fetch_optional_classification_taxonomy(
+    *,
+    client: httpx.Client,
+    control_plane_base_url: str,
+    as_of: str,
+) -> ClassificationTaxonomy | None:
+    try:
+        return fetch_classification_taxonomy(
+            client,
+            base_url=control_plane_base_url,
+            as_of=as_of,
+        )
+    except (LotusCoreStatefulContextUnavailableError, AssertionError):
+        return None
 
 
 def _enrich_missing_trade_instrument(

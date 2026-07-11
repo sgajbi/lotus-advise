@@ -16,6 +16,7 @@ from src.core.portfolio_models import (
 )
 from src.core.proposal_request_models import ProposedCashFlow, ProposedTrade
 from src.core.proposal_result_models import ProposalResult
+from src.core.source_completeness_models import SourceCompletenessReport
 from src.core.source_provenance_models import SourceProvenanceEnvelope
 from src.core.valuation import build_simulated_state
 
@@ -121,6 +122,10 @@ def run_proposal_simulation(
                 portfolio=portfolio,
                 market_data=market_data,
             ),
+            source_completeness=_source_completeness_report(
+                portfolio=portfolio,
+                market_data=market_data,
+            ),
         ),
     )
 
@@ -140,3 +145,13 @@ def _source_provenance_envelope(
         portfolio=portfolio.source_provenance,
         market_data=market_data.source_provenance,
     )
+
+
+def _source_completeness_report(
+    *,
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+) -> SourceCompletenessReport | None:
+    if portfolio.source_completeness is not None:
+        return portfolio.source_completeness
+    return market_data.source_completeness
