@@ -32,6 +32,14 @@ summary reports only bounded operational posture:
 metric exactly. Do not add portfolio, account, client, advisor, proposal, workspace, request,
 response, correlation, trace, transaction, security, or payload identifiers to this metric.
 
+## Risk Authority Degradation
+
+Proposal authority evidence must stay internally consistent when `lotus-risk` is unavailable. If
+`authority_resolution.risk_authority` is `unavailable`, `authority_resolution.degraded` is `true`
+and `degraded_reasons` contains a stable reason. Dependency configuration/readiness failures use
+`LOTUS_RISK_DEPENDENCY_UNAVAILABLE`; configured enrichment failures use
+`LOTUS_RISK_ENRICHMENT_UNAVAILABLE`. Do not infer local risk metrics when either reason is present.
+
 ## Policy Evaluation Diagnostics
 
 Use `GET /advisory/policy-evaluations/{evaluation_id}/diagnostics` when support needs one

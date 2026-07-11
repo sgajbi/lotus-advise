@@ -70,7 +70,10 @@ def test_evaluate_advisory_proposal_records_authoritative_core_and_policy_contex
     monkeypatch.setattr(
         orchestration,
         "build_lotus_risk_dependency_state",
-        lambda: SimpleNamespace(configured=False),
+        lambda: SimpleNamespace(
+            configured=False,
+            degraded_reason="LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
+        ),
     )
     monkeypatch.setattr(
         orchestration,
@@ -90,10 +93,42 @@ def test_evaluate_advisory_proposal_records_authoritative_core_and_policy_contex
     assert authority == {
         "simulation_authority": "lotus_core",
         "risk_authority": "unavailable",
-        "degraded": False,
-        "degraded_reasons": [],
+        "degraded": True,
+        "degraded_reasons": ["LOTUS_RISK_DEPENDENCY_UNAVAILABLE"],
     }
     assert result.explanation["advisory_policy_context"] == policy_context
+    assert result.proposal_decision_summary is not None
+
+
+def test_evaluate_advisory_proposal_records_invalid_risk_configuration_reason(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _request()
+
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "ftp://risk.invalid")
+    monkeypatch.setattr(
+        orchestration,
+        "simulate_with_lotus_core",
+        lambda **kwargs: _local_result(request, request_hash=kwargs["request_hash"]),
+    )
+    monkeypatch.setattr(
+        orchestration,
+        "enrich_with_lotus_risk",
+        lambda **kwargs: (_ for _ in ()).throw(LotusRiskEnrichmentUnavailableError("unavailable")),
+    )
+
+    result = orchestration.evaluate_advisory_proposal(
+        request=request,
+        request_hash="sha256:orch-invalid-risk",
+        idempotency_key="orch-idem",
+        correlation_id="corr-orch",
+    )
+
+    authority = result.explanation["authority_resolution"]
+    assert authority["simulation_authority"] == "lotus_core"
+    assert authority["risk_authority"] == "unavailable"
+    assert authority["degraded"] is True
+    assert authority["degraded_reasons"] == ["LOTUS_RISK_DEPENDENCY_UNAVAILABLE"]
     assert result.proposal_decision_summary is not None
 
 
@@ -114,7 +149,7 @@ def test_evaluate_advisory_proposal_records_controlled_local_fallback_and_risk_d
     monkeypatch.setattr(
         orchestration,
         "build_lotus_risk_dependency_state",
-        lambda: SimpleNamespace(configured=True),
+        lambda: SimpleNamespace(configured=True, degraded_reason=None),
     )
     monkeypatch.setattr(
         orchestration,

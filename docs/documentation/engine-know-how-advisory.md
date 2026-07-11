@@ -61,6 +61,9 @@ Authority orchestration note:
   local/dev/test-style environments, and the response explanation includes
   `authority_resolution` metadata showing which authorities were used and whether fallback
   degradation occurred
+- unavailable `lotus-risk` authority always sets `authority_resolution.degraded=true` with a
+  stable reason code. Dependency-state failures use `LOTUS_RISK_DEPENDENCY_UNAVAILABLE`; configured
+  enrichment failures use `LOTUS_RISK_ENRICHMENT_UNAVAILABLE`.
 
 ### `POST /advisory/proposals`
 - Purpose: run simulation+artifact and persist proposal aggregate/version/workflow event.
