@@ -3,6 +3,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.source_provenance_models import SourceProvenanceEnvelope
 
 WorkspaceInputMode = Literal["stateless", "stateful"]
 
@@ -87,4 +88,11 @@ class WorkspaceResolvedContext(BaseModel):
             "Optional reporting-context identifier used to correlate downstream report generation."
         ),
         examples=["report_ctx_001"],
+    )
+    source_provenance: Optional[SourceProvenanceEnvelope] = Field(
+        default=None,
+        description=(
+            "Optional upstream source snapshot, version, freshness, and contract evidence used "
+            "to resolve this workspace context."
+        ),
     )

@@ -5,6 +5,8 @@ from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
+from src.core.source_provenance_models import SourceProvenanceRecord
+
 
 class Money(BaseModel):
     amount: Decimal = Field(
@@ -90,6 +92,10 @@ class PortfolioSnapshot(BaseModel):
         default=None,
         description="Optional immutable snapshot identifier for lineage.",
     )
+    source_provenance: Optional[SourceProvenanceRecord] = Field(
+        default=None,
+        description="Optional upstream portfolio source provenance for audit and replay.",
+    )
     portfolio_id: str = Field(description="Portfolio identifier.", examples=["pf_123"])
     base_currency: str = Field(
         description="Base reporting currency for valuation and rules.",
@@ -125,6 +131,10 @@ class MarketDataSnapshot(BaseModel):
     snapshot_id: Optional[str] = Field(
         default=None,
         description="Optional immutable market-data snapshot identifier for lineage.",
+    )
+    source_provenance: Optional[SourceProvenanceRecord] = Field(
+        default=None,
+        description="Optional upstream market-data source provenance for audit and replay.",
     )
     prices: List[Price] = Field(default_factory=list, description="Instrument prices.")
     fx_rates: List[FxRate] = Field(

@@ -39,6 +39,11 @@ Important rule:
 - query reads do not substitute for execution authority
 - stateful context reads must reject returned portfolio, positions, cash, or resolved-as-of identity
   that conflicts with the requested source identity before advisory snapshots are built or cached
+- advisory lineage preserves Lotus Core portfolio and market-data source provenance as typed
+  metadata: upstream snapshot id, source version, event or batch reference, source hash, valuation
+  timestamp, freshness posture, and advisory simulation contract version. Raw Lotus Core payloads
+  are not stored in proposal lineage. Conflicting provenance fails closed before snapshot
+  construction, cache writes, persistence, or replay.
 
 Cache policy:
 
