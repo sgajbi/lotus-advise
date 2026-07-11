@@ -4,6 +4,16 @@
 
 `lotus-advise` follows the upstream contract-family map documented in RFC-0082.
 
+## Consumer Contract Certification
+
+External service adapters must keep provider-compatible fixture evidence in
+`tests/fixtures/external-adapter-contracts/lotus-advise-external-adapter-contracts.v1.json`.
+Run `make external-adapter-contracts` after changing `lotus-core`, `lotus-risk`, `lotus-report`,
+or `lotus-ai` adapter behavior. The lane requires every adapter to cover valid responses,
+malformed JSON, missing fields, portfolio/as-of identity mismatch, partial data, auth failures,
+timeouts, retry or bounded non-retry posture, duplicate/idempotency behavior, provider error
+mapping, and raw-payload/secret non-leakage with references to real regression tests.
+
 ## `lotus-core`
 
 Current governed usage includes:
@@ -47,6 +57,8 @@ Operational behavior:
 - `4xx` contract or request failures are not retried
 - retry attempts default to `2` and are capped at `5`
 - retry backoff defaults to `0.1` seconds and is capped at `2.0` seconds
+- response metadata must not contradict the requested portfolio identity or resolved stateful
+  as-of date when those fields are present
 - unavailable risk authority always carries degraded evidence; dependency-state failures use
   `LOTUS_RISK_DEPENDENCY_UNAVAILABLE`, while configured enrichment failures use
   `LOTUS_RISK_ENRICHMENT_UNAVAILABLE`
@@ -104,6 +116,8 @@ Boundary rule:
   readiness. `ARCHIVED` is returned only from terminal report-owned archive evidence; accepted,
   running, missing-status, malformed-status, and status-lookup failures stay explicit pending or
   unavailable postures with the report job id preserved for recovery.
+- downstream idempotency echoes must match the Advise report request id when the provider returns
+  an idempotency key; mismatches fail closed.
 
 ## `lotus-ai`
 

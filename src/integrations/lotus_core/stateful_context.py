@@ -261,6 +261,12 @@ def _fetch_stateful_context_source_payloads(
             base_url=control_plane_base_url,
             as_of=stateful_input.as_of,
         )
+    _validate_stateful_payload_identity(
+        portfolio_payload=portfolio_payload,
+        positions_payload=positions_payload,
+        cash_payload=cash_payload,
+        stateful_input=stateful_input,
+    )
     return _StatefulContextSourcePayloads(
         portfolio_payload=portfolio_payload,
         positions_payload=positions_payload,
@@ -293,12 +299,57 @@ def _is_cash_position(raw_position: dict[str, Any]) -> bool:
     return asset_class == "cash"
 
 
+def _validate_stateful_payload_identity(
+    *,
+    portfolio_payload: dict[str, Any],
+    positions_payload: dict[str, Any],
+    cash_payload: dict[str, Any],
+    stateful_input: WorkspaceStatefulInput,
+) -> None:
+    _require_matching_payload_value(
+        portfolio_payload,
+        "portfolio_id",
+        expected=stateful_input.portfolio_id,
+    )
+    _require_matching_payload_value(
+        positions_payload,
+        "portfolio_id",
+        expected=stateful_input.portfolio_id,
+    )
+    _require_matching_payload_value(
+        cash_payload,
+        "portfolio_id",
+        expected=stateful_input.portfolio_id,
+    )
+    _require_matching_payload_value(
+        cash_payload,
+        "resolved_as_of_date",
+        expected=stateful_input.as_of,
+    )
+
+
+def _require_matching_payload_value(
+    payload: dict[str, Any],
+    key: str,
+    *,
+    expected: str,
+) -> str:
+    actual = str(payload.get(key) or "").strip()
+    if actual != expected:
+        raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_CONTEXT_INVALID")
+    return actual
+
+
 def _resolved_portfolio_identity(
     portfolio_payload: dict[str, Any],
     *,
     stateful_input: WorkspaceStatefulInput,
 ) -> tuple[str, str]:
-    portfolio_id = str(portfolio_payload.get("portfolio_id") or stateful_input.portfolio_id).strip()
+    portfolio_id = _require_matching_payload_value(
+        portfolio_payload,
+        "portfolio_id",
+        expected=stateful_input.portfolio_id,
+    )
     base_currency = str(portfolio_payload.get("base_currency") or "").strip()
     if not portfolio_id or not base_currency:
         raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_CONTEXT_INVALID")
@@ -310,7 +361,11 @@ def _resolved_stateful_as_of(
     *,
     stateful_input: WorkspaceStatefulInput,
 ) -> str:
-    resolved_as_of = str(cash_payload.get("resolved_as_of_date") or stateful_input.as_of).strip()
+    resolved_as_of = _require_matching_payload_value(
+        cash_payload,
+        "resolved_as_of_date",
+        expected=stateful_input.as_of,
+    )
     if not resolved_as_of:
         raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_CONTEXT_INVALID")
     return resolved_as_of

@@ -45,6 +45,7 @@ make openapi-gate
 make no-alias-gate
 make api-vocabulary-gate
 make domain-data-products-gate
+make external-adapter-contracts
 make observability-diagnostics
 make advisory-domain-golden-regressions
 ```
@@ -76,15 +77,21 @@ The current blocking posture is intentionally high-signal:
    derived from governed deterministic domain examples.
 6. `make domain-data-products-gate`
    validates repo-native domain data product declarations against platform contracts.
-7. `make quality-baseline-check`
+7. `make external-adapter-contracts`
+   validates the versioned consumer-contract fixture manifest for `lotus-core`, `lotus-risk`,
+   `lotus-report`, and `lotus-ai`. The lane requires valid-response, malformed JSON, missing
+   fields, identity/as-of mismatch, partial data, auth failure, timeout, retry or bounded
+   non-retry, duplicate/idempotency, provider error mapping, and raw-payload/secret non-leakage
+   evidence to reference real regression tests.
+8. `make quality-baseline-check`
    blocks stale committed quality report and scorecard truth.
-8. `make bandit-high-severity-gate`
+9. `make bandit-high-severity-gate`
    blocks high-severity Bandit findings in the fast local and Feature Lane path.
-9. `make security-audit`
+10. `make security-audit`
    runs dependency health with audit posture and the high-severity Bandit gate in PR-grade paths.
-10. `make coverage-combined`
+11. `make coverage-combined`
     enforces the combined coverage floor across unit, integration, and e2e suites.
-11. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
+12. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
     protect supported runtime startup and production-profile guardrail behavior.
 
 These gates are blocking because they are measured, deterministic, repo-native, and low-noise for

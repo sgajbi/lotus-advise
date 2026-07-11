@@ -10,6 +10,7 @@ from src.integrations.lotus_report.job_status import (
     normalize_report_package_status,
 )
 from src.integrations.lotus_report.request_mapping import (
+    LotusReportRequestMappingError,
     as_mapping,
     report_status_path,
     required_string,
@@ -24,6 +25,7 @@ def build_portfolio_review_response(
     report_job_request: dict[str, Any],
     response_payload: dict[str, Any],
 ) -> ProposalReportResponse:
+    _validate_response_idempotency_key(response_payload, request_id=request_id)
     proposal = cast(dict[str, Any], request.get("proposal") or {})
     normalized_report_status_path = report_status_path(response_payload.get("status_url"))
     explanation = {
@@ -68,6 +70,7 @@ def build_memo_report_package_response(
     response_payload: dict[str, Any],
     status_payload: dict[str, Any],
 ) -> ProposalReportResponse:
+    _validate_response_idempotency_key(response_payload, request_id=request_id)
     proposal = cast(dict[str, Any], request.get("proposal") or {})
     memo_package = as_mapping(request.get("proposal_memo_package"))
     normalized_report_status_path = report_status_path(response_payload.get("status_url"))
@@ -115,6 +118,7 @@ def build_policy_sign_off_report_package_response(
     response_payload: dict[str, Any],
     status_payload: dict[str, Any],
 ) -> ProposalReportResponse:
+    _validate_response_idempotency_key(response_payload, request_id=request_id)
     proposal = cast(dict[str, Any], request.get("proposal") or {})
     package = as_mapping(request.get("policy_sign_off_package"))
     normalized_report_status_path = report_status_path(response_payload.get("status_url"))
@@ -159,6 +163,18 @@ def _report_job_request_summary(report_job_request: dict[str, Any]) -> dict[str,
         "as_of_date": report_job_request["as_of_date"],
         "requested_output_formats": report_job_request["requested_output_formats"],
     }
+
+
+def _validate_response_idempotency_key(
+    response_payload: dict[str, Any],
+    *,
+    request_id: str,
+) -> None:
+    response_idempotency_key = response_payload.get("idempotency_key")
+    if response_idempotency_key is None:
+        return
+    if response_idempotency_key != request_id:
+        raise LotusReportRequestMappingError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
 
 
 def _generated_at() -> str:

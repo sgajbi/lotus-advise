@@ -1,0 +1,458 @@
+{
+  "manifest_version": "lotus-advise.external-adapter-contracts.v1",
+  "fixture_revision": "2026-07-11.issue-411",
+  "required_case_ids": [
+    "valid_provider_response",
+    "malformed_json",
+    "missing_fields",
+    "identity_as_of_mismatch",
+    "partial_data",
+    "auth_failure",
+    "timeout",
+    "retry",
+    "duplicate_response",
+    "provider_error_mapping",
+    "no_raw_payload_or_secret"
+  ],
+  "adapters": {
+    "lotus_core": {
+      "provider_contract": {
+        "name": "advisory-simulation",
+        "version": "advisory-simulation.v1",
+        "schema_ref": "src/integrations/lotus_core/contracts.py",
+        "fixture_revision": "2026-07-11.issue-411"
+      },
+      "authority": "canonical portfolio state and advisory simulation execution",
+      "valid_request": {
+        "portfolio_id": "DEMO_ADV_USD_001",
+        "as_of": "2026-03-27",
+        "contract_version": "advisory-simulation.v1",
+        "request_hash": "sha256:adapter-contract-core",
+        "idempotency_key": "idem-adapter-contract-core"
+      },
+      "valid_response": {
+        "portfolio_id": "DEMO_ADV_USD_001",
+        "as_of": "2026-03-27",
+        "simulation_contract_version": "advisory-simulation.v1",
+        "allocation_lens_source": "LOTUS_CORE",
+        "provider_schema": "ProposalResult"
+      },
+      "cases": [
+        {
+          "case_id": "valid_provider_response",
+          "expected_behavior": "accepts matching contract header and canonical simulation lineage",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_sends_contract_header_and_validates_response"
+          ]
+        },
+        {
+          "case_id": "malformed_json",
+          "expected_behavior": "maps malformed or non-object provider problem detail to unavailable",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_bounds_non_object_problem_detail"
+          ]
+        },
+        {
+          "case_id": "missing_fields",
+          "expected_behavior": "rejects missing source identity and as-of fields",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_resolve_stateful_context_rejects_missing_resolved_as_of",
+            "tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_resolve_stateful_context_with_lotus_core_rejects_invalid_portfolio_payload"
+          ]
+        },
+        {
+          "case_id": "identity_as_of_mismatch",
+          "expected_behavior": "rejects upstream portfolio and resolved-as-of mismatch",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_resolve_stateful_context_rejects_upstream_identity_mismatch"
+          ]
+        },
+        {
+          "case_id": "partial_data",
+          "expected_behavior": "skips malformed rows without fabricating holdings or market data",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_stateful_builders_skip_malformed_rows",
+            "tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_enrich_stateful_simulate_request_for_trade_drafts_skips_malformed_lookup_rows"
+          ]
+        },
+        {
+          "case_id": "auth_failure",
+          "expected_behavior": "maps upstream authorization or validation failure to unavailable with status evidence",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_preserves_upstream_problem_status"
+          ]
+        },
+        {
+          "case_id": "timeout",
+          "expected_behavior": "masks transport timeout under stable unavailable posture",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_rejects_invalid_base_url_without_http_client"
+          ]
+        },
+        {
+          "case_id": "retry",
+          "expected_behavior": "does not replay canonical simulation without caller idempotency evidence",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_omits_malformed_outbound_idempotency_key"
+          ]
+        },
+        {
+          "case_id": "duplicate_response",
+          "expected_behavior": "isolates cache keys by portfolio, as-of, and optional identity dimensions",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs",
+            "tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_enrich_stateful_simulate_request_for_trade_drafts_avoids_duplicate_entries"
+          ]
+        },
+        {
+          "case_id": "provider_error_mapping",
+          "expected_behavior": "maps provider contract mismatch to canonical unavailable error",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_rejects_response_header_contract_mismatch",
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_rejects_problem_details_contract_mismatch"
+          ]
+        },
+        {
+          "case_id": "no_raw_payload_or_secret",
+          "expected_behavior": "sanitizes outbound URL and omits malformed idempotency material",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_sanitizes_configured_base_url",
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_omits_malformed_outbound_idempotency_key"
+          ]
+        }
+      ]
+    },
+    "lotus_risk": {
+      "provider_contract": {
+        "name": "risk-concentration",
+        "version": "risk-concentration.v1",
+        "schema_ref": "src/integrations/lotus_risk/concentration_response.py",
+        "fixture_revision": "2026-07-11.issue-411"
+      },
+      "authority": "risk-lens concentration enrichment",
+      "valid_request": {
+        "portfolio_id": "DEMO_ADV_USD_001",
+        "as_of": "2026-03-27",
+        "input_mode": "simulation",
+        "issuer_grouping_level": "ultimate_parent",
+        "enrichment_policy": "merge_caller_then_core"
+      },
+      "valid_response": {
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "metadata": {
+          "portfolio_id": "DEMO_ADV_USD_001",
+          "as_of_date": "2026-03-27",
+          "simulation_session_id": "SIM_ADAPTER_CONTRACT_001"
+        }
+      },
+      "cases": [
+        {
+          "case_id": "valid_provider_response",
+          "expected_behavior": "attaches canonical risk lens from validated provider response",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_maps_proposal_to_stateless_concentration"
+          ]
+        },
+        {
+          "case_id": "malformed_json",
+          "expected_behavior": "maps malformed provider JSON to risk unavailable",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_rejects_contract_mismatch"
+          ]
+        },
+        {
+          "case_id": "missing_fields",
+          "expected_behavior": "rejects missing required concentration fields",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_concentration_response.py::test_concentration_response_rejects_wrong_source_service"
+          ]
+        },
+        {
+          "case_id": "identity_as_of_mismatch",
+          "expected_behavior": "rejects provider metadata portfolio and as-of mismatch",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_rejects_response_portfolio_identity_mismatch",
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_rejects_response_as_of_mismatch_for_stateful_input"
+          ]
+        },
+        {
+          "case_id": "partial_data",
+          "expected_behavior": "preserves unavailable issuer coverage without inventing issuer evidence",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_accepts_unavailable_issuer_descriptors"
+          ]
+        },
+        {
+          "case_id": "auth_failure",
+          "expected_behavior": "does not retry non-retryable 4xx provider failures",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_does_not_retry_non_retryable_4xx"
+          ]
+        },
+        {
+          "case_id": "timeout",
+          "expected_behavior": "masks missing or invalid endpoint configuration before unsafe calls",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_rejects_invalid_base_url_without_http_client"
+          ]
+        },
+        {
+          "case_id": "retry",
+          "expected_behavior": "retries transient 5xx and retryable failures with bounded backoff",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_retries_transient_upstream_5xx_then_succeeds",
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_uses_bounded_configurable_retry_backoff"
+          ]
+        },
+        {
+          "case_id": "duplicate_response",
+          "expected_behavior": "deduplicates and bounds retry attempts instead of replaying indefinitely",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_caps_retry_backoff_configuration"
+          ]
+        },
+        {
+          "case_id": "provider_error_mapping",
+          "expected_behavior": "maps provider HTTP and schema failures to risk unavailable",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_rejects_upstream_http_failure",
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_rejects_contract_mismatch"
+          ]
+        },
+        {
+          "case_id": "no_raw_payload_or_secret",
+          "expected_behavior": "sanitizes configured base URL and propagates only bounded correlation ID",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_sanitizes_configured_base_url",
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_normalizes_invalid_outbound_correlation_id"
+          ]
+        }
+      ]
+    },
+    "lotus_report": {
+      "provider_contract": {
+        "name": "portfolio-review-report-package",
+        "version": "portfolio-review-report-package.v1",
+        "schema_ref": "src/integrations/lotus_report/response_projection.py",
+        "fixture_revision": "2026-07-11.issue-411"
+      },
+      "authority": "report/render/archive package readiness",
+      "valid_request": {
+        "report_request_id": "prr_adapter_contract_001",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "as_of": "2026-04-10",
+        "requested_output_formats": [
+          "pdf"
+        ]
+      },
+      "valid_response": {
+        "report_job_id": "rjob_adapter_contract_001",
+        "status": "archived",
+        "status_url": "/reports/jobs/rjob_adapter_contract_001",
+        "idempotency_key": "prr_adapter_contract_001"
+      },
+      "cases": [
+        {
+          "case_id": "valid_provider_response",
+          "expected_behavior": "submits report package and projects terminal archive evidence only",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive"
+          ]
+        },
+        {
+          "case_id": "malformed_json",
+          "expected_behavior": "maps malformed status payload to explicit status unavailable posture",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_returns_unavailable_for_malformed_status_payload"
+          ]
+        },
+        {
+          "case_id": "missing_fields",
+          "expected_behavior": "rejects missing source metadata and missing report response identity",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_rejects_missing_report_source_metadata_before_http_client",
+            "tests/unit/advisory/api/test_lotus_report_response_projection.py::test_projection_fails_closed_when_report_response_identity_is_missing"
+          ]
+        },
+        {
+          "case_id": "identity_as_of_mismatch",
+          "expected_behavior": "requires source-derived report as-of, currency, region, actor, and tenant",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_request_mapping.py::test_extract_report_as_of_date_rejects_missing_or_conflicting_source_dates",
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_rejects_invalid_actor_identity_before_http_client"
+          ]
+        },
+        {
+          "case_id": "partial_data",
+          "expected_behavior": "keeps non-terminal, missing-status, and failed package states explicit",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_defaults_memo_outputs_and_reports_missing_status_url",
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_preserves_terminal_report_failure"
+          ]
+        },
+        {
+          "case_id": "auth_failure",
+          "expected_behavior": "fails closed before HTTP when actor or tenant identity is unsafe",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_rejects_invalid_tenant_identity_before_http_client",
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_rejects_invalid_actor_identity_before_http_client"
+          ]
+        },
+        {
+          "case_id": "timeout",
+          "expected_behavior": "bounds report-package polling and records timeout reason",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_returns_pending_after_bounded_status_poll_timeout"
+          ]
+        },
+        {
+          "case_id": "retry",
+          "expected_behavior": "polls report status until terminal archive evidence or bounded timeout",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_polls_memo_package_until_archived"
+          ]
+        },
+        {
+          "case_id": "duplicate_response",
+          "expected_behavior": "rejects downstream idempotency echo mismatch",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_response_projection.py::test_projection_fails_closed_when_report_response_idempotency_key_mismatches"
+          ]
+        },
+        {
+          "case_id": "provider_error_mapping",
+          "expected_behavior": "maps report HTTP and validation failures to report unavailable",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_fails_closed_for_http_and_validation_errors",
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_returns_unavailable_when_status_lookup_fails"
+          ]
+        },
+        {
+          "case_id": "no_raw_payload_or_secret",
+          "expected_behavior": "rejects untrusted status URLs and sanitized configured base URLs",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_sanitizes_configured_base_url",
+            "tests/unit/advisory/api/test_lotus_report_adapter.py::test_lotus_report_adapter_ignores_status_url_with_query_material"
+          ]
+        }
+      ]
+    },
+    "lotus_ai": {
+      "provider_contract": {
+        "name": "workflow-pack-execution",
+        "version": "workflow-pack-execution.v1",
+        "schema_ref": "src/integrations/lotus_ai/workflow_request.py",
+        "fixture_revision": "2026-07-11.issue-411"
+      },
+      "authority": "governed AI workflow-pack execution and model-risk controls",
+      "valid_request": {
+        "pack_id": "advisory_copilot_proposal_explanation.pack",
+        "version": "v1",
+        "workflow_surface": "advisory-copilot-proposal-explanation",
+        "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
+        "expected_output_label": "EXPLANATION_ONLY"
+      },
+      "valid_response": {
+        "execution": {
+          "status": "COMPLETED",
+          "result": {
+            "model_version": "lotus-ai-governed-model.v1",
+            "structured_output_state": "REVIEW_REQUIRED"
+          }
+        },
+        "workflow_pack_run": {
+          "run_id": "packrun_adapter_contract_001"
+        }
+      },
+      "cases": [
+        {
+          "case_id": "valid_provider_response",
+          "expected_behavior": "returns review-required bounded sections with workflow lineage",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_returns_review_required_sections"
+          ]
+        },
+        {
+          "case_id": "malformed_json",
+          "expected_behavior": "masks invalid provider JSON as unavailable",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_masks_invalid_lotus_ai_json",
+            "tests/unit/advisory/api/test_lotus_ai_rationale.py::test_generate_workspace_rationale_masks_non_object_provider_payload"
+          ]
+        },
+        {
+          "case_id": "missing_fields",
+          "expected_behavior": "rejects incomplete execution envelopes and blank outputs",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_fails_closed_for_non_completed_execution",
+            "tests/unit/advisory/api/test_lotus_ai_rationale.py::test_generate_workspace_rationale_rejects_blank_output"
+          ]
+        },
+        {
+          "case_id": "identity_as_of_mismatch",
+          "expected_behavior": "requires trusted tenant identity and bounded source refs before execution",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_runtime_config.py::test_lotus_ai_adapters_reject_invalid_configured_base_url",
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot_request.py::test_source_refs_bound_packet_refs_and_cited_evidence_without_raw_objects"
+          ]
+        },
+        {
+          "case_id": "partial_data",
+          "expected_behavior": "rejects oversized or malformed AI sections without fabricating output",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_fails_closed_for_invalid_output_sections",
+            "tests/unit/advisory/api/test_lotus_ai_output_safety.py::test_map_review_required_sections_trims_bounds_and_discards_invalid_items"
+          ]
+        },
+        {
+          "case_id": "auth_failure",
+          "expected_behavior": "returns deterministic unavailable posture when Lotus AI is not configured",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_returns_unavailable_without_lotus_ai"
+          ]
+        },
+        {
+          "case_id": "timeout",
+          "expected_behavior": "masks transport timeout under unavailable lineage",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_masks_transport_failure",
+            "tests/unit/advisory/api/test_lotus_ai_proposal_narrative.py::test_generate_proposal_narrative_draft_masks_timeout_and_transport_failure"
+          ]
+        },
+        {
+          "case_id": "retry",
+          "expected_behavior": "does not replay unsafe AI execution after preflight guardrail rejection",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_fails_closed_before_unsafe_execution"
+          ]
+        },
+        {
+          "case_id": "duplicate_response",
+          "expected_behavior": "deduplicates bounded requested outputs and allowed review actions",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot_request.py::test_requested_outputs_dedupe_and_bound_advisor_requested_keys",
+            "tests/unit/advisory/api/test_lotus_ai_rationale.py::test_map_workflow_pack_run_requires_identity_and_list_findings"
+          ]
+        },
+        {
+          "case_id": "provider_error_mapping",
+          "expected_behavior": "maps business errors through bounded detail and non-success posture",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_uses_error_detail_for_non_success_response",
+            "tests/unit/advisory/api/test_lotus_ai_proposal_narrative.py::test_generate_proposal_narrative_draft_uses_provider_detail_for_business_errors"
+          ]
+        },
+        {
+          "case_id": "no_raw_payload_or_secret",
+          "expected_behavior": "removes raw prompt/provider material and blocks unsafe output",
+          "test_references": [
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot_request.py::test_safe_reason_removes_raw_prompt_material_and_bounds_values",
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_rejects_unsafe_output",
+            "tests/unit/advisory/api/test_lotus_ai_workflow_response.py::test_optional_text_can_bound_copilot_lineage_without_leaking_long_provider_text"
+          ]
+        }
+      ]
+    }
+  }
+}

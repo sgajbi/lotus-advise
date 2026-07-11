@@ -248,6 +248,12 @@ Boundary rules:
     accepted, running, missing-status, malformed-status, or failed status lookups; terminal
     readiness requires `lotus-report` archive evidence and all non-terminal status must preserve
     the report job id for operator recovery.
+15. external service adapters for `lotus-core`, `lotus-risk`, `lotus-report`, and `lotus-ai`
+    must keep versioned consumer-contract fixtures under
+    `tests/fixtures/external-adapter-contracts/` and pass `make external-adapter-contracts`.
+    The lane must cover valid responses, malformed JSON, missing fields, portfolio/as-of identity
+    mismatch, partial data, auth failures, timeouts, retry or bounded non-retry posture, duplicate
+    or idempotency behavior, provider error mapping, and raw-payload/secret non-leakage.
 
 ## Repo-Native Commands
 
@@ -294,15 +300,18 @@ Important validation expectations:
    fallback policy. OpenAPI display enrichment remains available for Swagger readability, but the
    OpenAPI quality gate treats generated operation summaries, descriptions, inferred tags, and
    generic default error responses as missing public-route contract truth,
-2. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
-3. advisory workflow changes should be validated against canonical upstream posture,
-4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-5. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+2. `make external-adapter-contracts` is the named consumer-contract lane for external adapters and
+   is included in `make check`; it prevents fake-only adapter tests from drifting away from
+   provider-compatible fixtures and adversarial failure-mode evidence,
+3. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
+4. advisory workflow changes should be validated against canonical upstream posture,
+5. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+6. `make demo-certification-live` is the repo-native app-level live certification command; it writes
    machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-6. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
+7. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
 
 ## Standards And RFCs That Govern This Repository
 
