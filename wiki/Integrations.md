@@ -93,14 +93,20 @@ Current usage:
 Boundary rule:
 
 - report ownership stays outside `lotus-advise`
+- report submissions require bounded trusted tenant and actor identity; unsafe or absent identity
+  fails closed before HTTP submission
 
 ## `lotus-ai`
 
 Current implemented usage:
 
 - workspace-rationale integration boundary
+- proposal narrative, proposal memo, policy-evidence, advisory-copilot, and workspace-rationale
+  workflow-pack calls use the same trusted tenant envelope
 
 Boundary rule:
 
 - AI may assist with grounded rationale generation
 - AI must not become the authority for suitability, approvals, trade generation, or proposal alternatives
+- AI workflow-pack calls require `LOTUS_ADVISE_TENANT_ID`; unsafe or absent tenant identity fails
+  closed before HTTP submission

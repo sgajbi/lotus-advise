@@ -59,7 +59,7 @@ def _memo_evidence() -> dict[str, object]:
 def test_workflow_pack_request_uses_bounded_memo_evidence_without_raw_prompt(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001")
 
     request_payload = _build_workflow_pack_request(
         memo_evidence=_memo_evidence(),
@@ -82,7 +82,7 @@ def test_workflow_pack_request_uses_bounded_memo_evidence_without_raw_prompt(
     assert request_payload["workflow_surface"] == "advisor-proposal-memo-commentary"
     assert task_request["input_mode"] == "STRUCTURED_CONTEXT"
     assert task_request["expected_output_label"] == "EXPLANATION_ONLY"
-    assert caller["tenant_id"] == "tenant-sg-001"
+    assert caller["tenant_id"] == "tenant-private-bank-001"
     assert "prompt" not in task_request
     assert "instruction" not in task_request
     assert "prompt" not in payload

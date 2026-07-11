@@ -132,16 +132,17 @@ def _execute_workflow_pack(
     reason: dict[str, Any],
 ) -> tuple[int, dict[str, Any]]:
     base_url = _resolve_base_url()
+    request_payload = _build_workflow_pack_request(
+        evidence_packet=evidence_packet,
+        audience=audience,
+        requested_outputs=requested_outputs,
+        requested_by=requested_by,
+        reason=reason,
+    )
     with httpx.Client(timeout=_resolve_timeout()) as client:
         response = client.post(
             f"{base_url}/platform/workflow-packs/execute",
-            json=_build_workflow_pack_request(
-                evidence_packet=evidence_packet,
-                audience=audience,
-                requested_outputs=requested_outputs,
-                requested_by=requested_by,
-                reason=reason,
-            ),
+            json=request_payload,
         )
         return response.status_code, response.json()
 

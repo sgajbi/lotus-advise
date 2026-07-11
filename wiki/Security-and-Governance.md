@@ -27,6 +27,8 @@ The highest-risk documentation and implementation drift usually appears at these
 2. decision-summary posture must remain backend-owned
 3. local fallback or degraded behavior must not be presented as canonical upstream truth
 4. live runtime evidence matters when advisory behavior changes materially
+5. outbound report and AI calls must not substitute synthetic tenant or actor defaults; trusted
+   identity must be bounded and present before downstream submission
 
 ## RFC-0028 Proof Artifact Governance
 

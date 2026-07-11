@@ -231,7 +231,7 @@ def test_lotus_report_adapter_bounds_identity_headers_and_payload_actor(monkeypa
         )
     )
     request = _proposal_request()
-    request["requested_by"] = "advisor_1\x7f"
+    request["requested_by"] = "advisor_sg_002"
     monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
     monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", " tenant-private-bank-001 ")
     monkeypatch.setattr(
@@ -242,12 +242,14 @@ def test_lotus_report_adapter_bounds_identity_headers_and_payload_actor(monkeypa
     request_proposal_report_with_lotus_report(request=request)
 
     [post] = fake_client.posts
-    assert post["headers"]["X-Actor-Id"] == "lotus-advise"
+    assert post["headers"]["X-Actor-Id"] == "advisor_sg_002"
     assert post["headers"]["X-Tenant-Id"] == "tenant-private-bank-001"
-    assert post["json"]["options"]["requested_by"] == "lotus-advise"
+    assert post["json"]["options"]["requested_by"] == "advisor_sg_002"
 
 
-def test_lotus_report_adapter_defaults_invalid_tenant_identity(monkeypatch) -> None:
+def test_lotus_report_adapter_rejects_invalid_tenant_identity_before_http_client(
+    monkeypatch,
+) -> None:
     fake_client = _FakeClient(
         _FakeResponse(
             202,
@@ -266,10 +268,39 @@ def test_lotus_report_adapter_defaults_invalid_tenant_identity(monkeypatch) -> N
         lambda timeout: fake_client,
     )
 
-    request_proposal_report_with_lotus_report(request=_proposal_request())
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_proposal_report_with_lotus_report(request=_proposal_request())
 
-    [post] = fake_client.posts
-    assert post["headers"]["X-Tenant-Id"] == "tenant-sg-001"
+    assert fake_client.posts == []
+
+
+def test_lotus_report_adapter_rejects_invalid_actor_identity_before_http_client(
+    monkeypatch,
+) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_report_001",
+                "status": "data_ready",
+                "idempotency_key": "prr_live_001",
+            },
+        )
+    )
+    request = _proposal_request()
+    request["requested_by"] = "advisor_1\x7f"
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_proposal_report_with_lotus_report(request=request)
+
+    assert fake_client.posts == []
 
 
 def test_lotus_report_adapter_normalizes_pending_status_and_lineage_dates(monkeypatch) -> None:

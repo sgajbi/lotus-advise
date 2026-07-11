@@ -98,18 +98,17 @@ def test_memo_and_policy_mappings_keep_report_package_boundaries() -> None:
     assert policy_payload["policy_sign_off_package"]["client_ready_publication"] == "BLOCKED"
 
 
-def test_mapping_bounds_headers_output_formats_and_status_paths() -> None:
+def test_mapping_preserves_trusted_headers_output_formats_and_status_paths() -> None:
     request = _proposal_request()
-    request["requested_by"] = "advisor_1\x7f"
 
     headers = build_report_headers(
         request=request,
         request_id="prr_live_001",
-        tenant_id="tenant-private-bank-001\x7f",
+        tenant_id="tenant-private-bank-001",
     )
 
-    assert headers["X-Actor-Id"] == "lotus-advise"
-    assert headers["X-Tenant-Id"] == "tenant-sg-001"
+    assert headers["X-Actor-Id"] == "advisor_1"
+    assert headers["X-Tenant-Id"] == "tenant-private-bank-001"
     assert normalized_output_formats(["xlsx", "", "JSON"]) == ["json"]
     assert normalized_output_formats("pdf") == ["pdf"]
     assert report_status_path("/reports/jobs/rjob_001") == "/reports/jobs/rjob_001"
@@ -117,6 +116,33 @@ def test_mapping_bounds_headers_output_formats_and_status_paths() -> None:
     assert report_status_path("/reports/jobs/rjob_001?token=secret") is None
     assert report_status_path("/reports/jobs/rjob_001#fragment") is None
     assert report_status_path("/reports/jobs/rjob_001\x7f") is None
+
+
+@pytest.mark.parametrize(
+    ("requested_by", "tenant_id"),
+    [
+        ("advisor_1\x7f", "tenant-private-bank-001"),
+        ("advisor_1", "tenant-private-bank-001\x7f"),
+        ("", "tenant-private-bank-001"),
+        ("advisor_1", None),
+    ],
+)
+def test_mapping_rejects_untrusted_actor_and_tenant_identity(
+    requested_by: str | None,
+    tenant_id: str | None,
+) -> None:
+    request = _proposal_request()
+    request["requested_by"] = requested_by
+
+    with pytest.raises(
+        LotusReportRequestMappingError,
+        match="LOTUS_REPORT_REQUEST_UNAVAILABLE",
+    ):
+        build_report_headers(
+            request=request,
+            request_id="prr_live_001",
+            tenant_id=tenant_id,
+        )
 
 
 def test_reporting_currency_uses_source_total_value_or_usd_fallback() -> None:
