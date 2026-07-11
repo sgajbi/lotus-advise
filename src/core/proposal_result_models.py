@@ -69,7 +69,13 @@ class ProposalResult(BaseModel):
     rule_results: List[RuleResult] = Field(
         default_factory=list, description="Rule engine evaluations."
     )
-    explanation: Dict[str, Any] = Field(description="Additional explanatory payload.")
+    explanation: Dict[str, Any] = Field(
+        description=(
+            "Governed explanatory payload. Material authority and policy-context sections must "
+            "use the typed advisory explanation contracts; opaque extension metadata must remain "
+            "explicitly bounded by the owning projection."
+        ),
+    )
     diagnostics: DiagnosticsData = Field(description="Diagnostics and warnings for the run.")
     drift_analysis: Optional[DriftAnalysis] = Field(
         default=None,

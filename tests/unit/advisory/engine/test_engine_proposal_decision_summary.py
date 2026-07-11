@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory.decision_summary_models import ProposalDecisionMissingEvidence
@@ -314,6 +315,32 @@ def _base_result() -> ProposalResult:
         "degraded_reasons": [],
     }
     return result
+
+
+def test_decision_summary_rejects_unknown_authority_resolution_values() -> None:
+    result = _base_result()
+    result.explanation["authority_resolution"] = {
+        "simulation_authority": "lotus-core",
+        "risk_authority": "lotus-risk",
+        "degraded": False,
+        "degraded_reasons": [],
+    }
+
+    with pytest.raises(ValidationError):
+        build_proposal_decision_summary(result)
+
+
+def test_decision_summary_rejects_inconsistent_degraded_authority_resolution() -> None:
+    result = _base_result()
+    result.explanation["authority_resolution"] = {
+        "simulation_authority": "lotus_core",
+        "risk_authority": "unavailable",
+        "degraded": False,
+        "degraded_reasons": ["LOTUS_RISK_ENRICHMENT_UNAVAILABLE"],
+    }
+
+    with pytest.raises(ValidationError, match="degraded must match"):
+        build_proposal_decision_summary(result)
 
 
 def test_decision_summary_projects_ready_for_client_review() -> None:

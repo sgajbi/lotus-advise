@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-930
+
+- Scope: Governed proposal explanation authority sections
+- Pattern: Material decision evidence must cross the domain boundary through named contracts rather
+  than free-form dictionary mutation.
+- Status: In progress
+- Finding Class: Domain contract, decision evidence, authority validation
+- Summary: GitHub issue #421 identified that proposal explanation sections carried authority and
+  policy-context semantics as arbitrary dictionaries. The first fix slice introduces typed authority
+  and policy-context explanation contracts while preserving the existing wire JSON shape.
+- Evidence:
+  - Added `src/core/advisory/explanation_contracts.py` with `AuthorityResolutionExplanation` and
+    `AdvisoryPolicyContextExplanation`.
+  - `src/core/advisory/orchestration.py` now attaches authority and policy-context explanation
+    sections through the governed contract helper instead of mutating raw dictionary keys.
+  - `src/core/advisory/decision_summary.py` now validates authority and policy-context sections
+    before deriving risk posture, missing evidence, and client/mandate posture.
+  - Added regression tests proving unknown authority names and inconsistent degraded posture fail at
+    the domain boundary.
+- Consequence:
+  - Renaming `lotus_core`, `lotus_risk`, or `unavailable` authority values, or emitting a degraded
+    flag that contradicts degraded reasons, now fails deterministically instead of silently changing
+    decision summary behavior.
+- Documentation:
+  - Updated this ledger only. No wiki source change is required for this slice because operator
+    behavior and published API JSON shape are unchanged.
+- Modularity:
+  - Authority and policy-context explanation semantics now live in a focused domain module that can
+    be reused by persistence, replay, and API projection. The remaining #421 work should extend the
+    same pattern to alternatives deltas, generated intents, comparator inputs, and decision-summary
+    projections.
+- Follow-Up:
+  - Continue #421 by replacing alternatives response free-form deltas and generated-intent payloads
+    with typed domain contracts.
+
 ## LA-REV-929
 
 - Scope: Authoritative dependency lock mirror

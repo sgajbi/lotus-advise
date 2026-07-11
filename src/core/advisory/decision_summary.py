@@ -17,14 +17,20 @@ from src.core.advisory.decision_summary_status_rules import (
     primary_decision_summary,
     recommended_decision_next_action,
 )
+from src.core.advisory.explanation_contracts import (
+    ADVISORY_POLICY_CONTEXT_EXPLANATION_KEY,
+    AUTHORITY_RESOLUTION_EXPLANATION_KEY,
+    authority_resolution_from_explanation,
+    policy_context_from_explanation,
+)
 from src.core.advisory.policy_context import client_context_available, mandate_context_available
 from src.core.proposal_result_models import ProposalResult
 from src.core.suitability_models import SuitabilityIssue, SuitabilityResult
 
 _DECISION_POLICY_VERSION = "advisory-decision-policy.2026-04"
 _EXPLANATION_EVIDENCE_REF_PATHS = (
-    ("authority_resolution", "proposal.explanation.authority_resolution"),
-    ("advisory_policy_context", "proposal.explanation.advisory_policy_context"),
+    (AUTHORITY_RESOLUTION_EXPLANATION_KEY, "proposal.explanation.authority_resolution"),
+    (ADVISORY_POLICY_CONTEXT_EXPLANATION_KEY, "proposal.explanation.advisory_policy_context"),
 )
 
 
@@ -100,14 +106,14 @@ def _build_suitability_posture(
 
 def _build_risk_posture(result: ProposalResult) -> ProposalDecisionRiskPosture:
     risk_lens = result.explanation.get("risk_lens")
-    authority_resolution = result.explanation.get("authority_resolution", {})
+    authority_resolution = authority_resolution_from_explanation(result.explanation)
     if isinstance(risk_lens, dict):
         return ProposalDecisionRiskPosture(
             status="AVAILABLE",
             source_service=_string_or_none(risk_lens.get("source_service")),
             summary="Risk lens evidence is available from canonical upstream enrichment.",
         )
-    if authority_resolution.get("risk_authority") == "unavailable":
+    if authority_resolution is not None and authority_resolution.risk_authority == "unavailable":
         return ProposalDecisionRiskPosture(
             status="UNAVAILABLE",
             source_service=None,
@@ -123,15 +129,16 @@ def _build_risk_posture(result: ProposalResult) -> ProposalDecisionRiskPosture:
 def _build_client_and_mandate_posture(
     result: ProposalResult,
 ) -> ProposalDecisionClientMandatePosture:
-    policy_context = result.explanation.get("advisory_policy_context")
-    if not isinstance(policy_context, dict):
+    policy_context = policy_context_from_explanation(result.explanation)
+    if policy_context is None:
         return ProposalDecisionClientMandatePosture(
             status="NOT_EVALUATED",
             summary="Client and mandate posture was not attached to this proposal result.",
         )
 
-    client_available = client_context_available(policy_context)
-    mandate_available = mandate_context_available(policy_context)
+    policy_context_payload = policy_context.model_dump(by_alias=True, exclude_none=True)
+    client_available = client_context_available(policy_context_payload)
+    mandate_available = mandate_context_available(policy_context_payload)
     if client_available and mandate_available:
         return ProposalDecisionClientMandatePosture(
             status="AVAILABLE",
@@ -183,8 +190,8 @@ def _fx_missing_evidence(*, blocking: bool) -> ProposalDecisionMissingEvidence:
 
 
 def _risk_missing_evidence(result: ProposalResult) -> ProposalDecisionMissingEvidence | None:
-    authority_resolution = result.explanation.get("authority_resolution", {})
-    if authority_resolution.get("risk_authority") != "unavailable":
+    authority_resolution = authority_resolution_from_explanation(result.explanation)
+    if authority_resolution is None or authority_resolution.risk_authority != "unavailable":
         return None
     return ProposalDecisionMissingEvidence(
         evidence_type="RISK_LENS",

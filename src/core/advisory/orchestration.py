@@ -3,6 +3,10 @@ from typing import cast
 
 from src.core.advisory.alternatives_projection import build_proposal_alternatives
 from src.core.advisory.decision_summary import build_proposal_decision_summary
+from src.core.advisory.explanation_contracts import (
+    attach_governed_explanation_sections,
+    build_authority_resolution_explanation,
+)
 from src.core.advisory.provider_ports import (
     AdvisoryProviderDependencyState,
     AdvisoryRiskEnrichmentUnavailableError,
@@ -43,12 +47,15 @@ def simulate_with_lotus_core(
     correlation_id: str,
     policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
-    return simulate_with_advisory_simulation_provider(
-        request=request,
-        request_hash=request_hash,
-        idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
-        policy_context=policy_context,
+    return cast(
+        ProposalResult,
+        simulate_with_advisory_simulation_provider(
+            request=request,
+            request_hash=request_hash,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            policy_context=policy_context,
+        ),
     )
 
 
@@ -60,12 +67,15 @@ def enrich_with_lotus_risk(
     resolved_as_of: str | None = None,
     input_mode: str | None = None,
 ) -> ProposalResult:
-    return enrich_with_advisory_risk_provider(
-        request=request,
-        proposal_result=proposal_result,
-        correlation_id=correlation_id,
-        resolved_as_of=resolved_as_of,
-        input_mode=input_mode,
+    return cast(
+        ProposalResult,
+        enrich_with_advisory_risk_provider(
+            request=request,
+            proposal_result=proposal_result,
+            correlation_id=correlation_id,
+            resolved_as_of=resolved_as_of,
+            input_mode=input_mode,
+        ),
     )
 
 
@@ -170,19 +180,22 @@ def _run_local_fallback_simulation(
     if not fallback_policy.enabled:
         raise original_error
 
-    proposal_result = run_proposal_simulation(
-        portfolio=request.portfolio_snapshot,
-        market_data=request.market_data_snapshot,
-        shelf=request.shelf_entries,
-        options=request.options,
-        proposed_cash_flows=request.proposed_cash_flows,
-        proposed_trades=request.proposed_trades,
-        reference_model=request.reference_model,
-        request_hash=request_hash,
-        idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
-        simulation_contract_version="advisory-simulation.v1",
-        policy_context=policy_context,
+    proposal_result = cast(
+        ProposalResult,
+        run_proposal_simulation(
+            portfolio=request.portfolio_snapshot,
+            market_data=request.market_data_snapshot,
+            shelf=request.shelf_entries,
+            options=request.options,
+            proposed_cash_flows=request.proposed_cash_flows,
+            proposed_trades=request.proposed_trades,
+            reference_model=request.reference_model,
+            request_hash=request_hash,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            simulation_contract_version="advisory-simulation.v1",
+            policy_context=policy_context,
+        ),
     )
     proposal_result.allocation_lens.source = "LOTUS_ADVISE_LOCAL_FALLBACK"
     return proposal_result
@@ -230,17 +243,16 @@ def _attach_authority_explanation(
     degraded_reasons: list[str],
     policy_context: dict[str, object] | None,
 ) -> None:
-    explanation = dict(proposal_result.explanation)
-    explanation["authority_resolution"] = {
-        "simulation_authority": simulation_authority,
-        "risk_authority": risk_authority,
-        "degraded": bool(degraded_reasons),
-        "degraded_reasons": degraded_reasons,
-    }
-    if policy_context is not None:
-        explanation["advisory_policy_context"] = dict(policy_context)
-
-    proposal_result.explanation = explanation
+    authority_resolution = build_authority_resolution_explanation(
+        simulation_authority=simulation_authority,
+        risk_authority=risk_authority,
+        degraded_reasons=degraded_reasons,
+    )
+    proposal_result.explanation = attach_governed_explanation_sections(
+        explanation=proposal_result.explanation,
+        authority_resolution=authority_resolution,
+        policy_context=policy_context,
+    )
 
 
 def _attach_proposal_outputs(
