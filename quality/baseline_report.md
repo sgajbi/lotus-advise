@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-07-11T05:48:03.874017+00:00`
+- Generated At: `2026-07-11T05:57:41.800255+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `991`
 - Packages: `39`
 - Modules: `952`
-- Total Python lines: `163689`
+- Total Python lines: `163736`
 
 ## Largest Files
 
@@ -24,7 +24,7 @@
 | 6 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1703 |
 | 8 | `scripts/quality_baseline_report.py` | 1599 |
-| 9 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1447 |
+| 9 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1493 |
 | 10 | `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | 1250 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -32,7 +32,7 @@
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
 | 1 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 803 | 480 |
-| 2 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 56 | 478 |
+| 2 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 58 | 478 |
 | 3 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
 | 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 92 | 297 |
 | 5 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
@@ -84,8 +84,8 @@
 - Deptry config executable: `True`
 - Deptry current issue inventory: `14`
 - Bandit config executable: `True`
-- Bandit current issue inventory: `27`
-- Bandit severity inventory: `high=0, medium=26, low=1`
+- Bandit current issue inventory: `26`
+- Bandit severity inventory: `high=0, medium=26, low=0`
 
 ## Security
 

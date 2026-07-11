@@ -9,7 +9,7 @@
       "line_number": 323,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -23,7 +23,7 @@
       "line_number": 36,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -37,7 +37,7 @@
       "line_number": 55,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -51,7 +51,7 @@
       "line_number": 77,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -65,7 +65,7 @@
       "line_number": 45,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -79,24 +79,10 @@
       "line_number": 80,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
-    },
-    {
-      "compensating_control": "CI blocks high findings plus any new, stale, expired, or worsened medium/low finding; PostgreSQL values remain parameterized.",
-      "confidence": "HIGH",
-      "expires_on": "2026-12-31",
-      "filename": "src/infrastructure/proposals/postgres_async_operations.py",
-      "fingerprint": "0f8d1f57e87a8f8f213f5c057c8f5b084f1150c9a808181e57a97ef2df917afd",
-      "line_number": 102,
-      "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
-      "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
-      "severity": "LOW",
-      "test_id": "B101",
-      "test_name": "assert_used"
     },
     {
       "compensating_control": "CI blocks high findings plus any new, stale, expired, or worsened medium/low finding; PostgreSQL values remain parameterized.",
@@ -104,10 +90,10 @@
       "expires_on": "2026-12-31",
       "filename": "src/infrastructure/proposals/postgres_async_operations.py",
       "fingerprint": "3dd200ef17a6eba77130f8b62afedc74d0b473c1473a7c445d1e6bba8ff9f42a",
-      "line_number": 111,
+      "line_number": 112,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -118,10 +104,10 @@
       "expires_on": "2026-12-31",
       "filename": "src/infrastructure/proposals/postgres_async_operations.py",
       "fingerprint": "4be5923fd45edfe3c6fbdfd09ca225a4208294d3bb500d0d9f4926b5aec05d18",
-      "line_number": 127,
+      "line_number": 128,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -132,10 +118,10 @@
       "expires_on": "2026-12-31",
       "filename": "src/infrastructure/proposals/postgres_async_operations.py",
       "fingerprint": "edf012647009f62fba49e49d09c2c77f726ef1ec5cfd796e02e2d9734a779d8b",
-      "line_number": 143,
+      "line_number": 144,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -146,10 +132,10 @@
       "expires_on": "2026-12-31",
       "filename": "src/infrastructure/proposals/postgres_async_operations.py",
       "fingerprint": "91376a75cb0720fee65361fef7b2b377c884733e71b5b90ce02cd1da3d1aa5c3",
-      "line_number": 165,
+      "line_number": 166,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -163,7 +149,7 @@
       "line_number": 42,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -177,7 +163,7 @@
       "line_number": 53,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -191,7 +177,7 @@
       "line_number": 70,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -205,7 +191,7 @@
       "line_number": 82,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -219,7 +205,7 @@
       "line_number": 101,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -233,7 +219,7 @@
       "line_number": 53,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -247,7 +233,7 @@
       "line_number": 162,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -261,7 +247,7 @@
       "line_number": 173,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -275,7 +261,7 @@
       "line_number": 196,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -289,7 +275,7 @@
       "line_number": 30,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -303,7 +289,7 @@
       "line_number": 57,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -317,7 +303,7 @@
       "line_number": 69,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -331,7 +317,7 @@
       "line_number": 86,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -345,7 +331,7 @@
       "line_number": 37,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -359,7 +345,7 @@
       "line_number": 56,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
@@ -373,7 +359,7 @@
       "line_number": 78,
       "linked_remediation": "https://github.com/sgajbi/lotus-advise/issues/435",
       "owner": "lotus-advise-security",
-      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while parameterized SQL helpers and production assert usage are remediated.",
+      "rationale": "Current Bandit medium/low inventory accepted as non-certifying baseline while constant-owned SQL templates are reviewed for narrower query-builder patterns.",
       "severity": "MEDIUM",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"

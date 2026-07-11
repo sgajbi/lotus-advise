@@ -1461,7 +1461,7 @@ def render_quality_scorecard(context: QualityContext) -> str:
             "Security",
             "Bandit config was present for report-only rollout; sensitive-data handling "
             "remained test-governed.",
-            "Bandit inventory executable with `high=0, medium=26, low=1`; "
+            "Bandit inventory executable with `high=0, medium=26, low=0`; "
             "severity-regression gate enforced through `make check`, Remote Feature Lane, "
             "and `make security-audit`; medium/low findings are governed by "
             "`quality/bandit_security_baseline.v1.json`; proof/source refs reject unsafe and "

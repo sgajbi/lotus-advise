@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-910
+
+- Scope: Bandit baseline reduction and async operation invariant failure
+- Pattern: Security baseline entries should be reduced when a finding is a real production-code
+  smell, while retained scanner exceptions should keep explicit owner, rationale, expiry,
+  remediation, and compensating-control metadata.
+- Status: Hardened
+- Finding Class: Security debt reduction, persistence failure semantics, baseline governance
+- Summary: GitHub issue #435 followed #412 by reducing the governed Bandit baseline rather than
+  leaving all medium/low findings as permanent accepted debt. The low-severity B101 finding was a
+  production `assert` in the PostgreSQL async-operation idempotency path, which could be optimized
+  away and did not expose a stable operational failure reason if the atomic insert/read invariant
+  was violated.
+- Evidence:
+  - Replaced the production `assert stored is not None` in
+    `src/infrastructure/proposals/postgres_async_operations.py` with
+    `RuntimeError("PROPOSAL_ASYNC_OPERATION_CREATE_INVARIANT_FAILED")`.
+  - Added focused PostgreSQL repository coverage proving the invariant failure returns the stable
+    runtime error instead of relying on assertion behavior.
+  - Regenerated `quality/bandit_security_baseline.v1.json`; the baseline moved from `0` high,
+    `26` medium, and `1` low finding to `0` high, `26` medium, and `0` low findings.
+  - Renewed the remaining B608 baseline rationale to describe constant-owned SQL templates and
+    preserve the existing owner, expiry, linked-remediation issue #435, and compensating control.
+- Consequence:
+  - Production persistence now fails with an explicit supportable error for an impossible
+    insert/read result, and the security gate no longer carries a production-assert exception.
+    Remaining medium findings are tracked as non-certifying SQL-template debt rather than hidden
+    by broad `nosec` suppression.
+- Documentation:
+  - Security docs, security/governance wiki source, generated quality reports, and review ledger
+    updated. Wiki source changed, so repo-wiki check is required before merge and publication is
+    required after merge.
+- Follow-Up:
+  - Continue reducing the remaining constant-owned SQL-template B608 baseline entries with a
+    narrow query-builder or equivalent Bandit-clean pattern. No cross-app ownership issue was
+    raised because these findings remain Advise-local PostgreSQL persistence implementation.
+
 ## LA-REV-909
 
 - Scope: Bandit medium/low severity-regression baseline
@@ -980,10 +1017,11 @@
   workflow contract tests.
 - Status: Hardened
 - Finding Class: CI security enforcement and agent guardrails
-- Summary: `make bandit-high-severity-gate` was already measured at `high=0, medium=26, low=1` and
+- Summary: `make bandit-high-severity-gate` was already measured with zero high findings and
   enforced through PR/main `security-audit`, but local `make check` and the Remote Feature Lane did
   not fail early on new high-severity first-party Bandit findings. Agent-driven feature branches
   could therefore defer deterministic security scanner failures until later merge-grade checks.
+  Later issue #435 reduced the active baseline to `high=0, medium=26, low=0`.
 - Evidence:
   - Added `bandit-high-severity-gate` to the repo-native `make check` aggregate.
   - Added a Remote Feature Lane step that runs `make bandit-high-severity-gate` without promoting

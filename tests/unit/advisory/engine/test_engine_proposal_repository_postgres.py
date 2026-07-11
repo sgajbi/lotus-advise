@@ -2,6 +2,8 @@ import sys
 from datetime import datetime, timedelta, timezone
 from types import ModuleType
 
+import pytest
+
 import src.infrastructure.proposals.postgres as postgres_module
 from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
@@ -19,7 +21,7 @@ from src.core.proposals.models import (
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
 )
-from src.infrastructure.proposals import postgres_mappers
+from src.infrastructure.proposals import postgres_async_operations, postgres_mappers
 from src.infrastructure.proposals.postgres import PostgresProposalRepository
 
 
@@ -542,6 +544,19 @@ class _FakeConnection:
         return None
 
 
+class _NoOperationReturnedConnection(_FakeConnection):
+    def execute(self, query, args=None):
+        sql = " ".join(str(query).split())
+        if (
+            "INSERT INTO proposal_async_operations" in sql
+            and "ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING" in sql
+        ):
+            self.executed_sql.append(sql)
+            self.executed_args.append(tuple(args or ()))
+            return _FakeCursor()
+        return super().execute(query, args)
+
+
 def _build_repository(monkeypatch):
     connection = _FakeConnection()
     monkeypatch.setattr(postgres_module, "find_spec", lambda _name: object())
@@ -749,6 +764,37 @@ def test_postgres_repository_create_operation_if_absent_by_idempotency_is_atomic
     assert by_idempotency.operation_id == "pop_atomic_1"
     assert by_idempotency.correlation_id == "corr-atomic-1"
     assert list(connection.operations) == ["pop_atomic_1"]
+
+
+def test_create_operation_if_absent_raises_stable_error_when_insert_returns_no_row():
+    connection = _NoOperationReturnedConnection()
+    operation = ProposalAsyncOperationRecord(
+        operation_id="pop_missing_row",
+        operation_type="CREATE_PROPOSAL",
+        status="PENDING",
+        correlation_id="corr-missing-row",
+        idempotency_key="idem-missing-row",
+        proposal_id=None,
+        created_by="advisor_1",
+        created_at=datetime.now(timezone.utc),
+        payload_json={"payload": {"created_by": "advisor_1"}},
+        attempt_count=0,
+        max_attempts=3,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="PROPOSAL_ASYNC_OPERATION_CREATE_INVARIANT_FAILED",
+    ):
+        postgres_async_operations.create_operation_if_absent_by_idempotency(
+            connect=lambda: connection,
+            operation=operation,
+        )
 
 
 def test_postgres_repository_non_idempotent_operation_create_returns_snapshot(monkeypatch):

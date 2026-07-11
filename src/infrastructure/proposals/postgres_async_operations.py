@@ -99,7 +99,8 @@ def create_operation_if_absent_by_idempotency(
         row = connection.execute(query, params).fetchone()
         connection.commit()
     stored = to_operation(row)
-    assert stored is not None
+    if stored is None:
+        raise RuntimeError("PROPOSAL_ASYNC_OPERATION_CREATE_INVARIANT_FAILED")
     return stored, stored.operation_id == operation.operation_id
 
 
