@@ -20,6 +20,7 @@ def test_policy_context_projects_available_and_missing_source_status() -> None:
             household_id="hh_1",
             mandate_id=None,
             jurisdiction="SG",
+            legal_entity_code="REFERENCE",
             benchmark_id="GLOBAL_BALANCED",
         ),
     )
@@ -27,6 +28,7 @@ def test_policy_context_projects_available_and_missing_source_status() -> None:
     assert context[CLIENT_CONTEXT_STATUS] == POLICY_CONTEXT_AVAILABLE
     assert context[MANDATE_CONTEXT_STATUS] == POLICY_CONTEXT_MISSING
     assert context[JURISDICTION_CONTEXT_STATUS] == POLICY_CONTEXT_AVAILABLE
+    assert context["legal_entity_code"] == "REFERENCE"
     assert context["missing_context"] == ["MANDATE_CONTEXT"]
     assert client_context_available(context) is True
     assert mandate_context_available(context) is False

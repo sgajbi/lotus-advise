@@ -86,9 +86,10 @@ Current repository posture:
    activate APIs, schema/content validation, content hashes, maker-checker activation, and audit
    events for `GLOBAL_PRIVATE_BANKING_BASELINE` and `SG_PRIVATE_BANKING_REFERENCE`. Slice 6 adds
    the internal `rfc0025.policy-evaluation-engine.v1` applicability and rule-evaluation engine for
-   active policy packs, including source-backed material rule posture for source readiness,
-   mandate, product eligibility, complex-product disclosure/consent, best-interest cost evidence,
-   and conflict/product-document review. Slice 7 adds internal
+   active policy packs, including fail-closed source-backed selection by jurisdiction, booking
+   center, legal entity, client segment, and policy product scope, plus material rule posture for
+   source readiness, mandate, product eligibility, complex-product disclosure/consent,
+   best-interest cost evidence, and conflict/product-document review. Slice 7 adds internal
    `rfc0025.policy-evaluation-persistence.v1` finalized policy evaluation records with
    policy/source/evaluation hashes, per-rule hashes, source gaps, approval dependencies,
    disclosure and consent requirements, replay metadata, duplicate prevention, idempotent replay,

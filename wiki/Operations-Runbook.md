@@ -135,6 +135,26 @@ Diagnostics must stay support-safe. Do not add raw source evidence, raw downstre
 payloads, prompt text, unrestricted exception details, credentials, trace identifiers, correlation
 identifiers, client secrets, or portfolio/account payloads to this endpoint.
 
+## Policy-Pack Applicability
+
+Policy-pack applicability is evaluated before any material rule executes. The selector contract is
+source-backed and fail-closed across jurisdiction, booking center, legal entity, client segment, and
+policy product scope.
+
+Operational interpretation:
+
+1. missing required selector evidence returns `BLOCKED` with field-level reason codes such as
+   `POLICY_APPLICABILITY_LEGAL_ENTITY_SOURCE_MISSING` or
+   `POLICY_APPLICABILITY_PRODUCT_SCOPE_SOURCE_MISSING`
+2. selector mismatch returns `NOT_APPLICABLE` with the mismatched dimension reason code
+3. failed applicability produces no rule results and must not be treated as a positive policy
+   posture
+4. `applicability.matched_selectors` is retained in finalized records, lineage, replay, and
+   diagnostics so operators can see which source-backed selectors drove the decision
+5. product scope comes from proposed-trade shelf evidence; unsupported or missing product
+   classification must be fixed at the source-evidence boundary rather than inferred in support
+   tooling
+
 ## Report Package Status Recovery
 
 Advisor memo and policy sign-off report packages preserve `lotus-report` as the report/render/

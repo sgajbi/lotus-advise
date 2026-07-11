@@ -57,6 +57,7 @@ def _base_evidence_bundle() -> dict:
                 "jurisdiction": "SG",
                 "client_classification": "ACCREDITED_INVESTOR",
                 "booking_center_code": "SG",
+                "legal_entity_code": "REFERENCE",
                 "household_id": "HH-PB-001",
                 "account_id": "ACCT-PB-001",
                 "time_horizon": "5Y",
