@@ -103,8 +103,9 @@ The release-image evidence path is intentionally split:
 
 1. PR/local builds validate Dockerfile build args, OCI labels, and label content without pushing.
 2. Main Releasability pushes the Git-SHA image, records the registry digest, validates dependency
-   lock evidence, generates SBOM, license/IP inventory, and vulnerability-scan artifacts, signs the
-   digest, creates provenance attestation, and uploads the release manifest.
+   lock evidence, generates SBOM, license/IP inventory, a full vulnerability inventory, and a
+   passing high/critical fixable-vulnerability scan artifact, signs the digest, creates provenance
+   attestation, and uploads the release manifest.
 3. Deployment must reference the digest from the retained manifest and promote the same immutable
    image across environments.
 

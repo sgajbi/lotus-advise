@@ -91,14 +91,15 @@ Main Releasability image release evidence before promoting or diagnosing a conta
 2. OCI labels must carry commit, branch/ref, repository URL, service version, build timestamp, CI
    run ID, and image-digest posture,
 3. `release-evidence.json` must carry the pushed image digest plus dependency-lock evidence, SBOM,
-   license/IP inventory, vulnerability scan, signature, and provenance-attestation references,
+   license/IP inventory, the passing high/critical fixable-vulnerability scan, signature, and
+   provenance-attestation references,
 4. production deployment must use the immutable digest reference and promote the same image across
    environments instead of rebuilding,
 5. Docker build args, environment variables, OCI labels, release manifests, and runtime `/version`
    metadata must remain support-safe and must not carry secrets or DSNs.
 6. release evidence must link Bandit, dependency lock, dependency audit, license/IP inventory, SBOM,
-   and container vulnerability-scan artifacts so security posture is reviewable with the immutable
-   image identity.
+   the full all-severity container vulnerability inventory, and the passing high/critical
+   fixable-vulnerability scan so security posture is reviewable with the immutable image identity.
 
 ## Production Deployment Manifest
 
