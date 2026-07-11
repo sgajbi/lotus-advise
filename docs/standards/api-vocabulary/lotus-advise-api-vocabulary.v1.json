@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-05T10:35:07.236514+00:00",
+  "generatedAt": "2026-07-11T00:56:19.209373+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -14329,7 +14329,7 @@
       "location": "query",
       "required": false,
       "type": "string",
-      "description": "Caller role for server-side projection. `DPM_OWNER` is accepted only as a legacy caller alias and is projected to `PORTFOLIO_MANAGER` owned actions.",
+      "description": "Caller role for server-side projection. Use `PORTFOLIO_MANAGER` for portfolio-management owned actions.",
       "example": "ADVISOR",
       "allowedValues": [
         "ADVISOR",
@@ -14342,7 +14342,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -14426,7 +14425,7 @@
       "location": "query",
       "required": false,
       "type": "string",
-      "description": "Caller role for server-side projection. `DPM_OWNER` is accepted only as a legacy caller alias and is projected to `PORTFOLIO_MANAGER` owned actions.",
+      "description": "Caller role for server-side projection. Use `PORTFOLIO_MANAGER` for portfolio-management owned actions.",
       "example": "ADVISOR",
       "allowedValues": [
         "ADVISOR",
@@ -14439,7 +14438,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -14487,7 +14485,7 @@
       "location": "query",
       "required": false,
       "type": "string",
-      "description": "Caller role for server-side projection. `DPM_OWNER` is accepted only as a legacy caller alias and is projected to `PORTFOLIO_MANAGER` owned actions.",
+      "description": "Caller role for server-side projection. Use `PORTFOLIO_MANAGER` for portfolio-management owned actions.",
       "example": "ADVISOR",
       "allowedValues": [
         "ADVISOR",
@@ -14500,7 +14498,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -14548,7 +14545,7 @@
       "location": "query",
       "required": false,
       "type": "string",
-      "description": "Caller role for server-side projection. `DPM_OWNER` is accepted only as a legacy caller alias and is projected to `PORTFOLIO_MANAGER` owned actions.",
+      "description": "Caller role for server-side projection. Use `PORTFOLIO_MANAGER` for portfolio-management owned actions.",
       "example": "ADVISOR",
       "allowedValues": [
         "ADVISOR",
@@ -14561,7 +14558,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -14633,7 +14629,7 @@
       "location": "query",
       "required": false,
       "type": "string",
-      "description": "Caller role for server-side projection. `DPM_OWNER` is accepted only as a legacy caller alias and is projected to `PORTFOLIO_MANAGER` owned actions.",
+      "description": "Caller role for server-side projection. Use `PORTFOLIO_MANAGER` for portfolio-management owned actions.",
       "example": "ADVISOR",
       "allowedValues": [
         "ADVISOR",
@@ -14646,7 +14642,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",
@@ -14706,7 +14701,7 @@
       "location": "query",
       "required": false,
       "type": "string",
-      "description": "Caller role for server-side projection. `DPM_OWNER` is accepted only as a legacy caller alias and is projected to `PORTFOLIO_MANAGER` owned actions.",
+      "description": "Caller role for server-side projection. Use `PORTFOLIO_MANAGER` for portfolio-management owned actions.",
       "example": "ADVISOR",
       "allowedValues": [
         "ADVISOR",
@@ -14719,7 +14714,6 @@
         "REPORTING_OWNER",
         "ARCHIVE_OWNER",
         "EXECUTION_OWNER",
-        "DPM_OWNER",
         "SYSTEM"
       ],
       "semanticId": "lotus.role",

@@ -17,6 +17,7 @@ PATTERNS = {
     "alias_choices": re.compile(r"\bAliasChoices\b"),
     "legacy_client_term": re.compile(r"\bcif_id\b"),
     "legacy_booking_center_term": re.compile(r"\bbooking_center\b"),
+    "legacy_dpm_owner_role": re.compile(r"\bDPM_OWNER\b"),
 }
 
 

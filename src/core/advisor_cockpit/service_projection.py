@@ -20,7 +20,6 @@ _ROLE_VISIBLE_OWNER_ROLES: dict[str, frozenset[str]] = {
     "INVESTMENT_DESK": frozenset({"INVESTMENT_DESK"}),
     "OPERATIONS": frozenset({"REPORTING_OWNER", "ARCHIVE_OWNER", "EXECUTION_OWNER", "OPERATIONS"}),
     "PORTFOLIO_MANAGER": frozenset({"PORTFOLIO_MANAGER"}),
-    "DPM_OWNER": frozenset({"PORTFOLIO_MANAGER"}),
     "CRM_OWNER": frozenset({"CRM_OWNER", "ADVISOR"}),
 }
 
