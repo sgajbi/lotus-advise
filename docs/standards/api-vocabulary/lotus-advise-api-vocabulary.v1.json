@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T03:06:26.347741+00:00",
+  "generatedAt": "2026-07-11T05:01:29.911686+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -61770,6 +61770,19 @@
       "path": "/health/ready",
       "operationId": "health_ready_health_ready_get",
       "summary": "Health Ready",
+      "request": {
+        "fields": []
+      },
+      "response": {
+        "fields": []
+      }
+    },
+    {
+      "domain": "runtime",
+      "method": "GET",
+      "path": "/version",
+      "operationId": "version_version_get",
+      "summary": "Get build and image metadata",
       "request": {
         "fields": []
       },

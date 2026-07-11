@@ -17,6 +17,41 @@ def test_local_docker_compose_uses_canonical_upstream_urls() -> None:
     assert '"risk.dev.lotus:host-gateway"' in compose_text
 
 
+def test_runtime_dockerfile_carries_release_metadata_labels_and_version_healthcheck() -> None:
+    dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
+
+    for required in (
+        "ARG LOTUS_BUILD_COMMIT_SHA",
+        "ARG LOTUS_BUILD_GIT_BRANCH",
+        "ARG LOTUS_BUILD_REPO_URL",
+        "ARG LOTUS_BUILD_VERSION",
+        "ARG LOTUS_BUILD_TIMESTAMP",
+        "ARG LOTUS_CI_PIPELINE_ID",
+        "ARG LOTUS_IMAGE_DIGEST",
+        'org.opencontainers.image.revision="${LOTUS_BUILD_COMMIT_SHA}"',
+        'org.opencontainers.image.ref.name="${LOTUS_BUILD_GIT_BRANCH}"',
+        'org.opencontainers.image.source="${LOTUS_BUILD_REPO_URL}"',
+        'org.opencontainers.image.version="${LOTUS_BUILD_VERSION}"',
+        'org.opencontainers.image.created="${LOTUS_BUILD_TIMESTAMP}"',
+        'com.lotus.ci.run-id="${LOTUS_CI_PIPELINE_ID}"',
+        'com.lotus.image.digest="${LOTUS_IMAGE_DIGEST}"',
+        'LOTUS_BUILD_COMMIT_SHA="${LOTUS_BUILD_COMMIT_SHA}"',
+        'LOTUS_IMAGE_DIGEST="${LOTUS_IMAGE_DIGEST}"',
+        "http://127.0.0.1:8000/version",
+    ):
+        assert required in dockerfile
+
+
+def test_release_image_provenance_is_repo_native() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    assert "release-image-provenance-gate" in makefile
+    assert "scripts/release_image_evidence.py static-check" in makefile
+    assert "-t $(IMAGE_TAG)" in makefile
+    assert "-t lotus-advise:ci-test" in makefile
+    assert "scripts/release_image_evidence.py image-label-check" in makefile
+
+
 def test_local_docker_compose_does_not_publish_internal_postgres_port() -> None:
     compose_text = Path("docker-compose.yml").read_text(encoding="utf-8")
 
@@ -43,3 +78,9 @@ def test_public_docs_reference_current_capability_route() -> None:
         text = path.read_text(encoding="utf-8")
         assert "GET /platform/capabilities" in text
         assert "GET /integration/capabilities" not in text
+
+
+def test_local_compose_uses_version_endpoint_for_container_readiness() -> None:
+    compose_text = Path("docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "http://127.0.0.1:8000/version" in compose_text

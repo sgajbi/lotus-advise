@@ -338,14 +338,20 @@ Important validation expectations:
    is included in `make check`; it prevents fake-only adapter tests from drifting away from
    provider-compatible fixtures and adversarial failure-mode evidence,
 3. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
-4. advisory workflow changes should be validated against canonical upstream posture,
-5. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-6. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+4. release-image provenance is part of the repo-native CI contract: `Dockerfile` must carry
+   support-safe build args, OCI labels for commit/ref/repo/version/build/run metadata, and runtime
+   `/version` parity; `make release-image-provenance-gate` blocks Dockerfile/Makefile drift; Main
+   Releasability pushes Git-SHA-tagged images from CI only and retains digest-bearing
+   `release-evidence.json`, SBOM, vulnerability scan, signature, and provenance attestation
+   artifacts,
+5. advisory workflow changes should be validated against canonical upstream posture,
+6. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+7. `make demo-certification-live` is the repo-native app-level live certification command; it writes
    machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-7. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
+8. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness.
 
 ## Standards And RFCs That Govern This Repository
 

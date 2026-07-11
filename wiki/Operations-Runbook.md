@@ -5,6 +5,7 @@
 - `GET /health`
 - `GET /health/live`
 - `GET /health/ready`
+- `GET /version`
 
 ## Readiness Meaning
 
@@ -15,6 +16,24 @@ Readiness is not a cosmetic check. Startup and readiness validate:
 3. proposal async runtime recovery posture
 
 If the service cannot satisfy the advisory persistence contract, readiness should fail closed.
+
+`GET /version` is not a readiness check. It exposes support-safe build and image metadata so
+operators can compare a running container with Main Releasability release evidence.
+
+## Release Image Operations
+
+Release images are pushed only by the Main Releasability Gate. The release image must be tagged with
+the Git SHA and accompanied by retained evidence:
+
+1. digest-bearing `release-evidence.json`,
+2. SBOM,
+3. vulnerability scan report,
+4. image signature,
+5. provenance attestation.
+
+Deployment should use the immutable image digest from the release manifest and promote that same
+image across environments. Do not rebuild per environment, and do not inject secrets through Docker
+build args, OCI labels, release manifests, or `/version` metadata.
 
 ## Advisory Supportability Metrics
 

@@ -175,7 +175,7 @@ Main runtime surfaces come from [src/api/main.py](src/api/main.py):
 - integration capabilities
   `GET /platform/capabilities`
 - platform surfaces
-  `/health`, `/health/live`, `/health/ready`, `/docs`
+  `/health`, `/health/live`, `/health/ready`, `/version`, `/docs`
 
 Key code areas:
 
@@ -235,6 +235,7 @@ Quick probes:
 ```bash
 curl http://advise.dev.lotus/health
 curl http://advise.dev.lotus/health/ready
+curl http://advise.dev.lotus/version
 ```
 
 OpenAPI UI:
@@ -273,6 +274,9 @@ defaults to `0.1` seconds and is capped at `2.0` seconds.
   local feature-lane proof
 - `make ci-local-docker`
   Linux container parity for the host-side CI contract
+- `make release-image-provenance-gate`
+  static release-image metadata contract check for Dockerfile labels, Docker build args, and
+  support-safe build metadata names
 - `make run`
   local runtime
 
@@ -290,7 +294,8 @@ Repo-native gate mapping:
   fast local quality gate
 - `make ci`
   PR-grade validation with dependency health, OpenAPI, vocabulary, no-alias governance, migration
-  smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail checks
+  smoke, release-image provenance, coverage, Docker build, Postgres runtime smoke, and
+  production-profile guardrail checks
 - `make ci-local`
   local feature-lane proof
 - `make ci-local-docker`
@@ -367,6 +372,8 @@ generation, or downstream execution truth.
 
 - use `advise.dev.lotus` for canonical local cross-app validation
 - use readiness to confirm persistence and runtime boot posture before treating the service as healthy
+- use `/version` to compare runtime build metadata with retained Main Releasability image release
+  evidence
 - treat upstream simulation and risk failures as dependency issues first, not as reasons to invent local fallback truth
 - keep proposal decision-summary and alternatives behavior aligned to canonical and degraded live evidence
 - capture RFC-0028 backend proof with `scripts/capture_rfc0028_backend_proof.py` and review
