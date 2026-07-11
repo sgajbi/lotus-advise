@@ -1,5 +1,45 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-902
+
+- Scope: Lotus Core source provenance and advisory result lineage
+- Pattern: Source-backed advisory results must preserve upstream snapshot, revision, event/batch,
+  freshness, hash, and contract identity as typed lineage instead of synthesizing only local
+  fallback snapshot ids.
+- Status: Hardened
+- Finding Class: Auditability, replay determinism, source-contract supportability
+- Summary: GitHub issue #401 identified that Lotus Core stateful context synthesized
+  `lotus-core:portfolio:{portfolio_id}:{as_of}` and
+  `lotus-core:market-data:{portfolio_id}:{as_of}` lineage without retaining upstream source
+  version, source event or batch, valuation freshness, or source hash. That made two revisions for
+  the same portfolio/as-of hard to distinguish in proposal replay and support diagnostics.
+- Evidence:
+  - Added `src/core/source_provenance_models.py` with a support-safe
+    `SourceProvenanceEnvelope` and portfolio/market-data provenance records.
+  - Lotus Core stateful-context resolution now extracts upstream portfolio and market-data
+    provenance from source payload metadata, uses upstream snapshot ids when present, rejects
+    conflicting snapshot or provenance values, and maps provenance conflicts to the existing
+    stable `LOTUS_CORE_STATEFUL_CONTEXT_INVALID` posture.
+  - `WorkspaceResolvedContext`, `ProposalResolvedContext`, `PortfolioSnapshot`,
+    `MarketDataSnapshot`, and proposal `LineageData` now carry the same typed provenance envelope
+    without storing raw source payloads.
+  - Focused stateful-context and model-contract validation passed with 92 tests, covering
+    provenance preservation, conflicting portfolio/market-data snapshot ids, replay-lineage
+    propagation, and no raw positions or cash payload leakage in serialized lineage.
+- Consequence:
+  - Advisory proposal results can distinguish source revisions for the same portfolio/as-of and
+    operators can replay or diagnose source identity using bounded metadata rather than raw Lotus
+    Core payloads. This improves design modularity inside the existing deployable through typed
+    source-provenance models and a focused Lotus Core adapter helper; no separate runtime boundary
+    is justified for this lineage extraction.
+- Documentation:
+  - Repository context, integration wiki, and review ledger updated. Wiki source changed, so repo
+    wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - Keep future source-owned evidence adapters on typed provenance envelopes. If another provider
+    exposes revision/freshness metadata, add provider-specific extraction at the adapter boundary
+    and propagate the same support-safe lineage contract instead of extending raw payload storage.
+
 ## LA-REV-344
 
 - Scope: External service adapter consumer contracts

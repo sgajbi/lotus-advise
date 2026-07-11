@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T01:07:51.050880+00:00",
+  "generatedAt": "2026-07-11T02:23:39.490046+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -10848,6 +10848,20 @@
       ]
     },
     {
+      "semanticId": "lotus.source_provenance",
+      "canonicalTerm": "source_provenance",
+      "preferredName": "source_provenance",
+      "description": "Upstream source snapshot, version, freshness, and contract evidence.",
+      "example": "source_provenance_value",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.source_readiness_gaps",
       "canonicalTerm": "source_readiness_gaps",
       "preferredName": "source_readiness_gaps",
@@ -16412,6 +16426,14 @@
             "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
           },
           {
+            "name": "version.proposal_result.lineage.source_provenance",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_provenance",
+            "attributeRef": "#/attributeCatalog/lotus.source_provenance"
+          },
+          {
             "name": "version.artifact",
             "location": "body",
             "required": true,
@@ -19586,6 +19608,14 @@
             "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
           },
           {
+            "name": "current_version.proposal_result.lineage.source_provenance",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_provenance",
+            "attributeRef": "#/attributeCatalog/lotus.source_provenance"
+          },
+          {
             "name": "current_version.artifact",
             "location": "body",
             "required": true,
@@ -22399,6 +22429,14 @@
             "type": "object",
             "semanticId": "lotus.simulation_contract_version",
             "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
+          },
+          {
+            "name": "proposal_result.lineage.source_provenance",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_provenance",
+            "attributeRef": "#/attributeCatalog/lotus.source_provenance"
           },
           {
             "name": "artifact",
@@ -25358,6 +25396,14 @@
             "type": "object",
             "semanticId": "lotus.simulation_contract_version",
             "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
+          },
+          {
+            "name": "version.proposal_result.lineage.source_provenance",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_provenance",
+            "attributeRef": "#/attributeCatalog/lotus.source_provenance"
           },
           {
             "name": "version.artifact",
@@ -47030,6 +47076,14 @@
             "type": "object",
             "semanticId": "lotus.simulation_contract_version",
             "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
+          },
+          {
+            "name": "lineage.source_provenance",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_provenance",
+            "attributeRef": "#/attributeCatalog/lotus.source_provenance"
           }
         ]
       }
@@ -60346,6 +60400,14 @@
             "type": "object",
             "semanticId": "lotus.simulation_contract_version",
             "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
+          },
+          {
+            "name": "proposal.version.proposal_result.lineage.source_provenance",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_provenance",
+            "attributeRef": "#/attributeCatalog/lotus.source_provenance"
           },
           {
             "name": "proposal.version.artifact",

@@ -16,6 +16,7 @@ from src.core.portfolio_models import (
 )
 from src.core.proposal_request_models import ProposedCashFlow, ProposedTrade
 from src.core.proposal_result_models import ProposalResult
+from src.core.source_provenance_models import SourceProvenanceEnvelope
 from src.core.valuation import build_simulated_state
 
 
@@ -116,5 +117,26 @@ def run_proposal_simulation(
             idempotency_key=idempotency_key,
             engine_version="0.1.0",
             simulation_contract_version=simulation_contract_version,
+            source_provenance=_source_provenance_envelope(
+                portfolio=portfolio,
+                market_data=market_data,
+            ),
         ),
+    )
+
+
+def _source_provenance_envelope(
+    *,
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+) -> SourceProvenanceEnvelope | None:
+    if portfolio.source_provenance is None or market_data.source_provenance is None:
+        return None
+    source_system = portfolio.source_provenance.source_system
+    if market_data.source_provenance.source_system != source_system:
+        return None
+    return SourceProvenanceEnvelope(
+        source_system=source_system,
+        portfolio=portfolio.source_provenance,
+        market_data=market_data.source_provenance,
     )

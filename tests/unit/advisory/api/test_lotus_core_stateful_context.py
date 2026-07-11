@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import (
     EngineOptions,
     MarketDataSnapshot,
@@ -706,6 +707,14 @@ def test_resolve_stateful_context_rejects_missing_resolved_as_of(
         lambda payloads: payloads["positions"].update({"portfolio_id": "OTHER_PORTFOLIO"}),
         lambda payloads: payloads["cash"].update({"portfolio_id": "OTHER_PORTFOLIO"}),
         lambda payloads: payloads["cash"].update({"resolved_as_of_date": "2026-03-28"}),
+        lambda payloads: (
+            payloads["positions"].update({"portfolio_snapshot_id": "ps_rev_1"})
+            or payloads["cash"].update({"portfolio_snapshot_id": "ps_rev_2"})
+        ),
+        lambda payloads: (
+            payloads["positions"].update({"market_data_snapshot_id": "md_rev_1"})
+            or payloads["cash"].update({"market_data_snapshot_id": "md_rev_2"})
+        ),
     ],
 )
 def test_resolve_stateful_context_rejects_upstream_identity_mismatch(
@@ -749,6 +758,95 @@ def test_resolve_stateful_context_rejects_upstream_identity_mismatch(
         resolve_stateful_context_with_lotus_core(stateful_input)
 
     assert str(exc_info.value) == "LOTUS_CORE_STATEFUL_CONTEXT_INVALID"
+
+
+def test_resolve_stateful_context_preserves_upstream_source_provenance(monkeypatch) -> None:
+    from src.core.workspace.models import WorkspaceStatefulInput
+
+    base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
+    responses = {
+        ("GET", f"{base_url}/portfolios/PF_REVISIONED"): _FakeResponse(
+            {
+                "portfolio_id": "PF_REVISIONED",
+                "base_currency": "USD",
+                "portfolio_snapshot_id": "core-portfolio-snapshot-rev-001",
+                "source_version": "portfolio-revision-001",
+                "source_event_id": "portfolio-event-001",
+                "source_hash": "sha256:portfolio-source",
+                "generated_at": "2026-03-27T09:30:00Z",
+                "freshness_status": "CURRENT",
+            }
+        ),
+        ("GET", f"{base_url}/portfolios/PF_REVISIONED/positions"): _FakeResponse(
+            {
+                "portfolio_id": "PF_REVISIONED",
+                "portfolio_snapshot_id": "core-portfolio-snapshot-rev-001",
+                "market_data_snapshot_id": "core-market-data-snapshot-rev-001",
+                "source_version": "market-data-revision-001",
+                "source_batch_id": "market-data-batch-001",
+                "source_hash": "sha256:market-data-source",
+                "valuation_timestamp": "2026-03-27T09:35:00Z",
+                "freshness_status": "CURRENT",
+                "positions": [],
+            }
+        ),
+        ("GET", f"{base_url}/portfolios/PF_REVISIONED/cash-balances"): _FakeResponse(
+            {
+                "portfolio_id": "PF_REVISIONED",
+                "resolved_as_of_date": "2026-03-27",
+                "portfolio_snapshot_id": "core-portfolio-snapshot-rev-001",
+                "market_data_snapshot_id": "core-market-data-snapshot-rev-001",
+                "cash_accounts": [],
+            }
+        ),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _FakeClient(responses),
+    )
+
+    resolved = resolve_stateful_context_with_lotus_core(
+        WorkspaceStatefulInput(portfolio_id="PF_REVISIONED", as_of="2026-03-27")
+    )
+
+    provenance = resolved.resolved_context.source_provenance
+    assert provenance is not None
+    assert resolved.resolved_context.portfolio_snapshot_id == "core-portfolio-snapshot-rev-001"
+    assert resolved.resolved_context.market_data_snapshot_id == "core-market-data-snapshot-rev-001"
+    assert resolved.simulate_request.portfolio_snapshot.snapshot_id == (
+        "core-portfolio-snapshot-rev-001"
+    )
+    assert resolved.simulate_request.market_data_snapshot.snapshot_id == (
+        "core-market-data-snapshot-rev-001"
+    )
+    assert provenance.portfolio.source_version == "portfolio-revision-001"
+    assert provenance.portfolio.source_event_id == "portfolio-event-001"
+    assert provenance.portfolio.source_hash == "sha256:portfolio-source"
+    assert provenance.market_data.source_version == "market-data-revision-001"
+    assert provenance.market_data.source_batch_id == "market-data-batch-001"
+    assert provenance.market_data.valuation_timestamp == "2026-03-27T09:35:00Z"
+    assert provenance.raw_payload_stored is False
+
+    result = run_proposal_simulation(
+        portfolio=resolved.simulate_request.portfolio_snapshot,
+        market_data=resolved.simulate_request.market_data_snapshot,
+        shelf=resolved.simulate_request.shelf_entries,
+        options=resolved.simulate_request.options,
+        proposed_cash_flows=resolved.simulate_request.proposed_cash_flows,
+        proposed_trades=resolved.simulate_request.proposed_trades,
+        request_hash="sha256:source-revisioned-context",
+        simulation_contract_version="advisory-simulation.v1",
+    )
+
+    assert result.lineage.portfolio_snapshot_id == "core-portfolio-snapshot-rev-001"
+    assert result.lineage.market_data_snapshot_id == "core-market-data-snapshot-rev-001"
+    assert result.lineage.source_provenance == provenance
+    lineage_payload = result.lineage.model_dump(mode="json")
+    assert "positions" not in str(lineage_payload)
+    assert "cash_accounts" not in str(lineage_payload)
 
 
 def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(

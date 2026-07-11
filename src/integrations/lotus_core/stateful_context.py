@@ -15,6 +15,7 @@ from src.core.portfolio_models import (
     PortfolioSnapshot,
 )
 from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.source_provenance_models import SourceProvenanceEnvelope
 from src.core.workspace.input_models import WorkspaceResolvedContext, WorkspaceStatefulInput
 from src.integrations.lotus_core import classification as _classification
 from src.integrations.lotus_core import stateful_context_hydration as _hydration
@@ -46,6 +47,12 @@ from src.integrations.lotus_core.stateful_context_cache import (
 )
 from src.integrations.lotus_core.stateful_context_cache import (
     reset_stateful_context_cache as _reset_stateful_context_cache,
+)
+from src.integrations.lotus_core.stateful_context_provenance import (
+    LotusCoreSourceProvenanceError,
+)
+from src.integrations.lotus_core.stateful_context_provenance import (
+    build_lotus_core_source_provenance as _build_lotus_core_source_provenance,
 )
 from src.integrations.lotus_core.stateful_context_routes import (
     PORTFOLIO_PATH as _PORTFOLIO_PATH,
@@ -207,8 +214,20 @@ def resolve_stateful_context_with_lotus_core(
         source_payloads.cash_payload,
         stateful_input=stateful_input,
     )
-    portfolio_snapshot_id = f"lotus-core:portfolio:{portfolio_id}:{resolved_as_of}"
-    market_data_snapshot_id = f"lotus-core:market-data:{portfolio_id}:{resolved_as_of}"
+    try:
+        source_provenance = _build_lotus_core_source_provenance(
+            portfolio_id=portfolio_id,
+            resolved_as_of=resolved_as_of,
+            portfolio_payload=source_payloads.portfolio_payload,
+            positions_payload=source_payloads.positions_payload,
+            cash_payload=source_payloads.cash_payload,
+        )
+    except LotusCoreSourceProvenanceError as exc:
+        raise LotusCoreStatefulContextUnavailableError(
+            "LOTUS_CORE_STATEFUL_CONTEXT_INVALID"
+        ) from exc
+    portfolio_snapshot_id = source_provenance.portfolio.source_id
+    market_data_snapshot_id = source_provenance.market_data.source_id
     resolved = LotusCoreResolvedAdvisoryContext(
         simulate_request=_build_stateful_simulate_request(
             source_payloads,
@@ -216,12 +235,14 @@ def resolve_stateful_context_with_lotus_core(
             base_currency=base_currency,
             portfolio_snapshot_id=portfolio_snapshot_id,
             market_data_snapshot_id=market_data_snapshot_id,
+            source_provenance=source_provenance,
         ),
         resolved_context=WorkspaceResolvedContext(
             portfolio_id=portfolio_id,
             as_of=resolved_as_of,
             portfolio_snapshot_id=portfolio_snapshot_id,
             market_data_snapshot_id=market_data_snapshot_id,
+            source_provenance=source_provenance,
         ),
     )
     _cache_resolved_context(
@@ -396,10 +417,12 @@ def _build_stateful_simulate_request(
     base_currency: str,
     portfolio_snapshot_id: str,
     market_data_snapshot_id: str,
+    source_provenance: SourceProvenanceEnvelope,
 ) -> ProposalSimulateRequest:
     return ProposalSimulateRequest(
         portfolio_snapshot=PortfolioSnapshot(
             snapshot_id=portfolio_snapshot_id,
+            source_provenance=source_provenance.portfolio,
             portfolio_id=portfolio_id,
             base_currency=base_currency,
             positions=_build_positions(
@@ -410,6 +433,7 @@ def _build_stateful_simulate_request(
         ),
         market_data_snapshot=MarketDataSnapshot(
             snapshot_id=market_data_snapshot_id,
+            source_provenance=source_provenance.market_data,
             prices=_build_prices(source_payloads.positions_payload),
             fx_rates=_derive_fx_rates(
                 portfolio_base_currency=base_currency,

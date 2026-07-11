@@ -6,6 +6,7 @@ from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 from src.core.portfolio_models import Money
+from src.core.source_provenance_models import SourceProvenanceEnvelope
 
 
 class RuleResult(BaseModel):
@@ -150,6 +151,10 @@ class LineageData(BaseModel):
         default=None,
         description="Canonical simulation contract version used for this result.",
         examples=["advisory-simulation.v1"],
+    )
+    source_provenance: Optional[SourceProvenanceEnvelope] = Field(
+        default=None,
+        description="Upstream source snapshot, version, freshness, and contract evidence.",
     )
 
 

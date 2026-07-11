@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from src.core.advisory.narrative_request_models import ProposalNarrativeRequest
 from src.core.proposal_request_models import ProposalSimulateRequest
+from src.core.source_provenance_models import SourceProvenanceEnvelope
 
 
 class ProposalCreateMetadata(BaseModel):
@@ -114,4 +115,11 @@ class ProposalResolvedContext(BaseModel):
             "Optional reporting-context identifier used to correlate downstream report generation."
         ),
         examples=["report_ctx_001"],
+    )
+    source_provenance: Optional[SourceProvenanceEnvelope] = Field(
+        default=None,
+        description=(
+            "Optional upstream source snapshot, version, freshness, and contract evidence used "
+            "to resolve this proposal context."
+        ),
     )
