@@ -26214,3 +26214,32 @@
 - Follow-Up:
   - Reuse typed terminal/non-terminal status semantics for any future report-package status route
     rather than reinterpreting raw provider strings in API controllers.
+
+## LA-REV-341
+
+- Scope: Advisor Cockpit public caller-role vocabulary
+- Pattern: Public API contracts must expose canonical business role names and reject retired legacy
+  aliases at the request DTO boundary
+- Status: Hardened
+- Finding Class: Domain vocabulary, API governance, and downstream contract clarity
+- Summary: Advisor Cockpit still accepted `DPM_OWNER` as a public caller-role alias for
+  portfolio-management owned actions even though emitted action owner roles had moved to
+  `PORTFOLIO_MANAGER`. That kept a legacy discretionary-portfolio-management term in OpenAPI and
+  generated vocabulary.
+- Evidence:
+  - `AdvisorCockpitCallerRole` now omits `DPM_OWNER`.
+  - Advisor Cockpit query parameter documentation points callers to `PORTFOLIO_MANAGER` without
+    compatibility wording.
+  - Projection no longer translates `DPM_OWNER` to `PORTFOLIO_MANAGER`.
+  - The no-alias contract guard now fails if `DPM_OWNER` is reintroduced into `src/`.
+  - API and engine tests now prove canonical `PORTFOLIO_MANAGER` access and legacy caller-role
+    rejection.
+- Consequence:
+  - Gateway, Workbench, and other consumers see a single canonical Advisor Cockpit role vocabulary.
+    Legacy role translation cannot silently leak back into the public Advise contract.
+- Documentation:
+  - Updated RFC-0067 baseline migration decisions and repository engineering context with the
+    canonical role rule.
+- Follow-Up:
+  - Keep historical ledger/RFC mentions as audit history only; any internal historical data rename
+    requires a separate migration plan.

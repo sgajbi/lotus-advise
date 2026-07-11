@@ -276,11 +276,10 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
             headers={"X-Correlation-ID": "corr-cockpit-house-view-legacy"},
         )
 
-    assert legacy_response.status_code == 200
-    legacy_action = legacy_response.json()["items"][0]
-    assert legacy_action["action_family"] == "HOUSE_VIEW_IMPACT_REVIEW"
-    assert legacy_action["owner_role"] == "PORTFOLIO_MANAGER"
-    assert legacy_action["owner_role_label"] == "Portfolio manager"
+    assert legacy_response.status_code == 422
+    legacy_error = legacy_response.json()["detail"][0]
+    assert legacy_error["loc"] == ["query", "role"]
+    assert legacy_error["type"] == "literal_error"
 
 
 def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
@@ -392,8 +391,9 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
     role_parameter = next(
         parameter for parameter in action_operation["parameters"] if parameter["name"] == "role"
     )
-    assert "legacy caller alias" in role_parameter["description"]
-    assert "DPM_OWNER" in role_parameter["schema"]["enum"]
+    assert "legacy caller alias" not in role_parameter["description"]
+    assert "portfolio-management owned actions" in role_parameter["description"]
+    assert "DPM_OWNER" not in role_parameter["schema"]["enum"]
     assert "PORTFOLIO_MANAGER" in role_parameter["schema"]["enum"]
     assert preparation_operation["summary"] == "List Advisor Cockpit Preparation Packets"
     assert "Gateway and Workbench must render these packets" in preparation_operation["description"]

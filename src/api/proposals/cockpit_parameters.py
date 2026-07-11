@@ -31,8 +31,8 @@ AdvisorCockpitCallerRoleQuery = Annotated[
     AdvisorCockpitCallerRole,
     Query(
         description=(
-            "Caller role for server-side projection. `DPM_OWNER` is accepted only as a legacy "
-            "caller alias and is projected to `PORTFOLIO_MANAGER` owned actions."
+            "Caller role for server-side projection. Use `PORTFOLIO_MANAGER` for "
+            "portfolio-management owned actions."
         ),
         examples=["ADVISOR"],
     ),

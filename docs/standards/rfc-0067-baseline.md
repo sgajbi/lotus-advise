@@ -37,3 +37,18 @@ Source of truth: `lotus-platform/rfcs/RFC-0067-centralized-api-vocabulary-invent
 
 - OpenAPI lifecycle contract tests: pass
 - RFC-0067 compliance: fail (gaps above)
+
+## Migration Decisions
+
+### Advisor Cockpit Caller Role Vocabulary
+
+- Date: 2026-07-11
+- Decision: `PORTFOLIO_MANAGER` is the canonical public caller and owner role for
+  portfolio-management owned Advisor Cockpit actions.
+- Compatibility posture: the legacy `DPM_OWNER` caller role is retired from public OpenAPI,
+  generated API vocabulary, and runtime query validation. Requests that submit `DPM_OWNER` fail at
+  the request DTO boundary instead of being translated inside the canonical contract.
+- Guardrail: `scripts/no_alias_contract_guard.py` fails if `DPM_OWNER` is reintroduced into
+  `src/` public contract code.
+- Historical audit posture: prior ledger and RFC audit references to `DPM_OWNER` remain historical
+  evidence only; no internal historical audit records are renamed without a separate migration plan.

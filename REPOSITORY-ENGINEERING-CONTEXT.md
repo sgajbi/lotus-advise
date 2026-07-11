@@ -132,6 +132,9 @@ Current repository posture:
    routes; Gateway and Workbench consume those contracts; canonical `PB_SG_GLOBAL_BAL_001` proof is
    present; `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active
    data products with trust telemetry and `/platform/capabilities` feature/workflow posture.
+   Public Advisor Cockpit caller and owner role vocabulary uses `PORTFOLIO_MANAGER` for
+   portfolio-management owned actions; the legacy `DPM_OWNER` caller alias is retired from OpenAPI,
+   API vocabulary inventory, and request validation.
    Client-ready publication, external client communication, CRM system-of-record behavior, OMS
    order/fill/settlement lifecycle, completed policy approval authority, and full RFC-0028
    demo/RFP package claims remain gated,

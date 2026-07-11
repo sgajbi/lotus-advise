@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 import src.core.advisor_cockpit.service_source_loader as cockpit_source_loader
 from src.core.advisor_cockpit import (
@@ -225,7 +226,7 @@ def test_cockpit_projection_role_visibility_contract_is_explicit() -> None:
         "OPERATIONS",
     }
     assert visible_owner_roles_for_role("PORTFOLIO_MANAGER") == {"PORTFOLIO_MANAGER"}
-    assert visible_owner_roles_for_role("DPM_OWNER") == {"PORTFOLIO_MANAGER"}
+    assert visible_owner_roles_for_role("DPM_OWNER") == {"DPM_OWNER"}
     assert visible_owner_roles_for_role("CRM_OWNER") == {"CRM_OWNER", "ADVISOR"}
     assert visible_owner_roles_for_role("BESPOKE_OWNER") == {"BESPOKE_OWNER"}
 
@@ -406,15 +407,8 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
     assert action.evidence_refs[0].evidence_type == "TACTICAL_HOUSE_VIEW_COHORT"
     assert action.correlation_id == "corr-cockpit-thv"
 
-    legacy_page = service.list_actions(
-        caller_context=_caller(role="DPM_OWNER", advisor_id=None),
-        portfolio_id="PB_SG_GLOBAL_BAL_001",
-        limit=25,
-        cursor=None,
-        correlation_id="corr-cockpit-thv",
-    )
-    assert [action.action_family for action in legacy_page.items] == ["HOUSE_VIEW_IMPACT_REVIEW"]
-    assert legacy_page.items[0].owner_role == "PORTFOLIO_MANAGER"
+    with pytest.raises(ValidationError):
+        _caller(role="DPM_OWNER", advisor_id=None)
 
 
 def test_cockpit_source_loader_uses_first_non_default_house_view_reason() -> None:

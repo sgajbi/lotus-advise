@@ -36,7 +36,6 @@ AdvisorCockpitCallerRole = Literal[
     "REPORTING_OWNER",
     "ARCHIVE_OWNER",
     "EXECUTION_OWNER",
-    "DPM_OWNER",
     "SYSTEM",
 ]
 AdvisorCockpitSlaAgeBand = Literal[
