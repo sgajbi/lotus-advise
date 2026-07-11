@@ -366,6 +366,7 @@ def test_main_releasability_pushes_only_ci_release_image_with_evidence_artifacts
     assert "LOTUS_BUILD_COMMIT_SHA=${{ github.sha }}" in release_section
     assert "LOTUS_CI_PIPELINE_ID=${{ github.run_id }}" in release_section
     assert "anchore/sbom-action@v0" in release_section
+    assert 'mkdir -p "$HOME/.local/bin/trivy-bin"' in release_section
     assert "aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4" in release_section
     assert "sigstore/cosign-installer@v3.9.2" in release_section
     assert "cosign sign --yes" in release_section
