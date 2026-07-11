@@ -5,12 +5,13 @@
 - Scope: Governed proposal explanation and alternatives response sections
 - Pattern: Material decision evidence must cross the domain boundary through named contracts rather
   than free-form dictionary mutation.
-- Status: In progress
+- Status: Hardened
 - Finding Class: Domain contract, decision evidence, authority validation
 - Summary: GitHub issue #421 identified that proposal explanation and alternatives response
-  sections carried material authority, policy-context, delta, and ranking semantics as arbitrary
-  dictionaries. The first slices introduce typed authority, policy-context, comparison-delta, and
-  ranking-comparator contracts while preserving the existing wire JSON shape.
+  sections carried material authority, policy-context, delta, ranking, generated simulation-intent,
+  and decision-summary snapshot semantics as arbitrary dictionaries. The #421 slices introduced
+  named authority, policy-context, comparison-delta, ranking-comparator, generated simulation-intent,
+  and alternative decision-summary snapshot contracts while preserving the existing wire JSON shape.
 - Evidence:
   - Added `src/core/advisory/explanation_contracts.py` with `AuthorityResolutionExplanation` and
     `AdvisoryPolicyContextExplanation`.
@@ -29,22 +30,43 @@
   - Fixed the no-alias Feature Lane failure from the first slice by validating policy context
     without `by_alias` serialization and without adding default `missing_context` fields to
     arbitrary policy-context payloads.
+  - Added `AlternativeDecisionSummarySnapshot` plus focused approval-requirement and
+    missing-evidence snapshot contracts so alternative response summaries validate governed
+    decision status, top-level status, next-action, confidence, and comparison-list shapes while
+    preserving extra comparison fields and nullable canonical risk posture.
+  - Added `validate_alternative_simulation_intent_payload` and wired alternatives enrichment to
+    validate generated candidate payloads against the canonical `ProposalSimulateRequest` cash-flow
+    and security-trade contracts before upstream simulation.
+  - Preserved existing unsupported-intent behavior with `ALTERNATIVE_INTENT_UNSUPPORTED` and added
+    `ALTERNATIVE_INTENT_CONTRACT_INVALID` for known intent families with malformed simulation
+    payload fields.
+  - Added contract and enrichment regression tests for valid simulation-intent payloads, invalid
+    known trade payloads, invalid governed decision status, snapshot extra-field compatibility, and
+    existing unsupported FX-swap rejection.
 - Consequence:
   - Renaming `lotus_core`, `lotus_risk`, or `unavailable` authority values, or emitting a degraded
     flag that contradicts degraded reasons, now fails deterministically instead of silently changing
     decision summary behavior.
   - Negative alternative counts and malformed ranking comparator counters now fail at model
     validation instead of drifting through response projection.
+  - Malformed generated alternative simulation payloads now fail before canonical upstream
+    evaluation with a stable Advise reason code, while full and partial alternative decision-summary
+    snapshots retain API compatibility.
 - Documentation:
-  - Updated this ledger only. No wiki source change is required for this slice because operator
-    behavior and published API JSON shape are unchanged.
+  - Updated this ledger only. No README, wiki, repository-context, skill, or operator-doc change is
+    required for this final #421 slice because operator behavior, public API JSON shape, commands,
+    and platform guidance are unchanged.
 - Modularity:
   - Authority and policy-context explanation semantics now live in a focused domain module that can
-    be reused by persistence, replay, and API projection. Alternatives comparison and ranking
-    semantics now live in named response contracts instead of unbounded maps.
+    be reused by persistence, replay, and API projection. Alternatives comparison, ranking,
+    generated simulation-intent validation, and decision-summary snapshot semantics now live in
+    named response contracts instead of unbounded maps. This improves internal design modularity
+    without adding a separate runtime boundary.
 - Follow-Up:
-  - Continue #421 by replacing generated-intent payloads and alternative decision-summary snapshots
-    with typed domain contracts.
+  - No remaining #421 contract gap is known after this slice. Continue applying the same pattern to
+    future material advisory evidence maps: name the business contract, validate it at the owning
+    boundary, preserve compatible wire JSON only when downstream consumers already rely on it, and
+    add focused regression tests before marking issues fixed locally.
 
 ## LA-REV-929
 

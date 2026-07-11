@@ -16,11 +16,16 @@ from src.core.advisory.alternatives_models import (
     AlternativeConstraintResult,
     AlternativeCostDelta,
     AlternativeCurrencyDelta,
+    AlternativeDecisionApprovalRequirementSnapshot,
+    AlternativeDecisionMissingEvidenceSnapshot,
+    AlternativeDecisionSummarySnapshot,
     AlternativeRankingProjection,
     AlternativeRiskDelta,
     AlternativeTradeoff,
     ProposalAlternatives,
     RejectedAlternativeCandidate,
+    validate_alternative_decision_summary_snapshot,
+    validate_alternative_simulation_intent_payload,
 )
 
 
@@ -116,6 +121,65 @@ def test_proposal_alternative_allows_canonical_summary_payload_shape():
     assert alternative.proposal_decision_summary["decision_status"] == "REQUIRES_RISK_REVIEW"
 
 
+def test_alternative_decision_summary_snapshot_validates_known_governed_fields():
+    snapshot = validate_alternative_decision_summary_snapshot(
+        {
+            "decision_status": "READY_FOR_CLIENT_REVIEW",
+            "top_level_status": "READY",
+            "approval_requirements": [{"approval_type": "RISK", "blocking_until_approved": True}],
+            "missing_evidence": [{"reason_code": "MISSING_RISK_LENS"}],
+            "risk_posture": {
+                "single_position_concentration": {"top_position_weight_proposed": "0.10"}
+            },
+            "comparison_only_field": "preserved",
+        }
+    )
+
+    assert snapshot["comparison_only_field"] == "preserved"
+    assert (
+        AlternativeDecisionSummarySnapshot.model_validate(snapshot).decision_status
+        == "READY_FOR_CLIENT_REVIEW"
+    )
+
+    with pytest.raises(ValidationError):
+        ProposalAlternative(
+            alternative_id="alt_bad_summary",
+            label="Bad summary",
+            objective="REDUCE_CONCENTRATION",
+            status="FEASIBLE",
+            construction_policy_version="advisory-construction.2026-04",
+            ranking_policy_version="advisory-ranking.2026-04",
+            proposal_decision_summary={"decision_status": "READY"},
+        )
+
+
+def test_alternative_generated_simulation_intent_payloads_use_request_contracts():
+    trade = validate_alternative_simulation_intent_payload(
+        {
+            "intent_type": "SECURITY_TRADE",
+            "side": "BUY",
+            "instrument_id": "EQ_NEW",
+            "quantity": "4",
+        }
+    )
+    cash_flow = validate_alternative_simulation_intent_payload(
+        {"intent_type": "CASH_FLOW", "currency": "USD", "amount": "125.50"}
+    )
+
+    assert trade["intent_type"] == "SECURITY_TRADE"
+    assert trade["quantity"] == "4"
+    assert cash_flow["amount"] == "125.50"
+
+    with pytest.raises(ValidationError):
+        validate_alternative_simulation_intent_payload(
+            {
+                "intent_type": "SECURITY_TRADE",
+                "side": "BUY",
+                "instrument_id": "EQ_NEW",
+            }
+        )
+
+
 def test_alternative_comparison_and_ranking_payloads_use_typed_contracts():
     summary = AlternativeComparisonSummary(
         headline="Reduce concentration",
@@ -200,6 +264,9 @@ def test_alternatives_models_keep_request_and_response_boundaries_split():
         AlternativeConstraintResult,
         AlternativeCostDelta,
         AlternativeCurrencyDelta,
+        AlternativeDecisionApprovalRequirementSnapshot,
+        AlternativeDecisionMissingEvidenceSnapshot,
+        AlternativeDecisionSummarySnapshot,
         AlternativeRankingProjection,
         AlternativeRiskDelta,
         AlternativeTradeoff,

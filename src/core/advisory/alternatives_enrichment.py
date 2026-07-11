@@ -1,10 +1,11 @@
 from typing import Any, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from src.core.advisory.alternatives_models import (
     ProposalAlternative,
     RejectedAlternativeCandidate,
+    validate_alternative_simulation_intent_payload,
 )
 from src.core.advisory.alternatives_normalizer import NormalizedProposalAlternativesRequest
 from src.core.advisory.alternatives_strategies import AlternativeCandidateSeed
@@ -98,9 +99,13 @@ def append_candidate_simulation_intent(
 ) -> None:
     match normalized_intent_type(intent):
         case "CASH_FLOW":
-            proposed_cash_flows.append(dict(intent))
+            proposed_cash_flows.append(
+                validated_candidate_simulation_intent(candidate=candidate, intent=intent)
+            )
         case "SECURITY_TRADE":
-            proposed_trades.append(dict(intent))
+            proposed_trades.append(
+                validated_candidate_simulation_intent(candidate=candidate, intent=intent)
+            )
         case unsupported_type:
             raise AlternativesSimulationError(
                 reason_code="ALTERNATIVE_INTENT_UNSUPPORTED",
@@ -113,6 +118,28 @@ def append_candidate_simulation_intent(
                     "intent_type": unsupported_type or None,
                 },
             )
+
+
+def validated_candidate_simulation_intent(
+    *,
+    candidate: AlternativeCandidateSeed,
+    intent: dict[str, Any],
+) -> dict[str, Any]:
+    try:
+        return validate_alternative_simulation_intent_payload(intent)
+    except ValidationError as exc:
+        raise AlternativesSimulationError(
+            reason_code="ALTERNATIVE_INTENT_CONTRACT_INVALID",
+            message=(
+                "Alternative candidate contains a generated simulation intent that does not "
+                "match the governed advisory simulation contract."
+            ),
+            details={
+                "candidate_id": candidate.candidate_id,
+                "intent_type": normalized_intent_type(intent) or None,
+                "validation_error_count": len(exc.errors()),
+            },
+        ) from exc
 
 
 def normalized_intent_type(intent: dict[str, Any]) -> str:
