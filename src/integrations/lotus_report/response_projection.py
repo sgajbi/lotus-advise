@@ -5,10 +5,12 @@ from typing import Any, cast
 
 from src.core.proposals.contract_types import ProposalReportType
 from src.core.proposals.models import ProposalReportResponse
+from src.integrations.lotus_report.job_status import (
+    normalize_portfolio_review_status,
+    normalize_report_package_status,
+)
 from src.integrations.lotus_report.request_mapping import (
     as_mapping,
-    normalize_memo_report_job_status,
-    normalize_report_job_status,
     report_status_path,
     required_string,
 )
@@ -50,7 +52,7 @@ def build_portfolio_review_response(
         report_request_id=request_id,
         report_type=report_type,
         report_service="lotus-report",
-        status=normalize_report_job_status(response_payload.get("status")),
+        status=normalize_portfolio_review_status(response_payload.get("status")),
         generated_at=_generated_at(),
         report_reference_id=required_string(response_payload, "report_job_id"),
         artifact_url=normalized_report_status_path,
@@ -83,6 +85,11 @@ def build_memo_report_package_response(
         "report_job_idempotency_key": response_payload.get("idempotency_key"),
         "render": as_mapping(status_payload.get("render")),
         "archive": as_mapping(status_payload.get("archive")),
+        "report_job_poll_attempts": status_payload.get("report_job_poll_attempts"),
+        "report_job_pending_reason": status_payload.get("report_job_pending_reason"),
+        "report_job_status_unavailable_reason": status_payload.get(
+            "report_job_status_unavailable_reason"
+        ),
         "report_job_request": _report_job_request_summary(report_job_request),
     }
     return ProposalReportResponse(
@@ -90,7 +97,7 @@ def build_memo_report_package_response(
         report_request_id=request_id,
         report_type=cast(ProposalReportType, "PORTFOLIO_REVIEW"),
         report_service="lotus-report",
-        status=normalize_memo_report_job_status(
+        status=normalize_report_package_status(
             status_payload.get("status") or response_payload.get("status")
         ),
         generated_at=_generated_at(),
@@ -124,6 +131,11 @@ def build_policy_sign_off_report_package_response(
         "report_job_idempotency_key": response_payload.get("idempotency_key"),
         "render": as_mapping(status_payload.get("render")),
         "archive": as_mapping(status_payload.get("archive")),
+        "report_job_poll_attempts": status_payload.get("report_job_poll_attempts"),
+        "report_job_pending_reason": status_payload.get("report_job_pending_reason"),
+        "report_job_status_unavailable_reason": status_payload.get(
+            "report_job_status_unavailable_reason"
+        ),
         "report_job_request": _report_job_request_summary(report_job_request),
     }
     return ProposalReportResponse(
@@ -131,7 +143,7 @@ def build_policy_sign_off_report_package_response(
         report_request_id=request_id,
         report_type=cast(ProposalReportType, "PORTFOLIO_REVIEW"),
         report_service="lotus-report",
-        status=normalize_memo_report_job_status(
+        status=normalize_report_package_status(
             status_payload.get("status") or response_payload.get("status")
         ),
         generated_at=_generated_at(),

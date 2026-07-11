@@ -26181,3 +26181,36 @@
 - Follow-Up:
   - Keep risk-lens absence visible in future narrative, proof-pack, and capability slices; do not
     convert unavailable risk authority into local risk calculations.
+
+## LA-REV-340
+
+- Scope: Lotus Report job terminal-state projection
+- Pattern: Report/render/archive readiness must be projected from typed downstream terminal
+  evidence, not from a single ambiguous provider status response
+- Status: Hardened
+- Finding Class: Downstream resilience, readiness correctness, and operator recovery
+- Summary: Memo and policy sign-off report package adapters submitted a report job and performed at
+  most one status lookup. Missing or unsafe status URLs could fall back to the initial POST status,
+  allowing non-terminal or incomplete report/render/archive work to appear ready.
+- Evidence:
+  - `src/integrations/lotus_report/job_status.py` now owns portfolio-review and report-package
+    status semantics separately.
+  - `src/integrations/lotus_report/adapter.py` performs bounded package status retrieval, preserves
+    correlation/idempotency headers, and emits explicit unavailable or timeout metadata instead of
+    hiding lookup failures.
+  - `src/integrations/lotus_report/response_projection.py` only returns `ARCHIVED` for package
+    jobs when terminal archive evidence is present; accepted, running, pending archive, lookup
+    failure, malformed payload, and terminal failed states remain distinct.
+  - Focused Lotus Report adapter, request-mapping, memo API, and policy API tests passed with
+    69 tests covering accepted/running/archived sequences, timeout, status 503, malformed payload,
+    unsafe status URL, missing status URL, and terminal render failure.
+- Consequence:
+  - Advise no longer reports advisor memo or policy sign-off package readiness before the downstream
+    report/render/archive owner proves terminal artifact state. Operators retain report job identity
+    and idempotency context for recovery.
+- Documentation:
+  - Updated engine know-how, repository context, integration wiki, operations runbook, and this
+    ledger with the terminal report-job rule.
+- Follow-Up:
+  - Reuse typed terminal/non-terminal status semantics for any future report-package status route
+    rather than reinterpreting raw provider strings in API controllers.

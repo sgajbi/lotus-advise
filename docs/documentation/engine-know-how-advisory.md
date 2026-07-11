@@ -137,6 +137,10 @@ Authority orchestration note:
   evidence is missing, not approved, or hash continuity no longer matches the source narrative.
 - Evidence rule: delivery summary and replay evidence expose only a compact package summary; raw
   report rendering and archive ownership remain downstream responsibilities.
+- Report-package readiness rule: memo and policy sign-off package requests preserve the
+  `lotus-report` job id and only report archive-ready posture when a bounded status lookup returns
+  terminal report-owned archive evidence. Accepted/running states remain pending, missing or unsafe
+  status URLs become `REPORT_STATUS_UNAVAILABLE`, and terminal downstream failures become `FAILED`.
 
 ### `POST /advisory/proposals/{proposal_id}/execution-handoffs`
 - Purpose: record an auditable advisory execution handoff request for an execution provider.

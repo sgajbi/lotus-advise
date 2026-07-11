@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -13,6 +14,7 @@ from src.integrations.base import (
     sanitized_http_base_url,
 )
 from src.integrations.lotus_core.runtime_config import env_positive_float
+from src.integrations.lotus_report.job_status import is_report_package_terminal_status
 from src.integrations.lotus_report.request_mapping import (
     LotusReportRequestMappingError,
     build_memo_report_package_job_request,
@@ -30,6 +32,10 @@ from src.integrations.lotus_report.response_projection import (
 )
 
 _PORTFOLIO_REVIEW_PATH = "/reports/portfolio-reviews"
+_REPORT_STATUS_POLLING_TIMEOUT = "REPORT_STATUS_POLLING_TIMEOUT"
+_REPORT_STATUS_URL_UNAVAILABLE = "REPORT_STATUS_URL_UNAVAILABLE"
+_REPORT_STATUS_PAYLOAD_INVALID = "REPORT_STATUS_PAYLOAD_INVALID"
+_REPORT_STATUS_HTTP_UNAVAILABLE = "REPORT_STATUS_HTTP_UNAVAILABLE"
 
 
 class LotusReportUnavailableError(Exception):
@@ -196,11 +202,94 @@ def _load_report_status(
 ) -> dict[str, Any]:
     status_path = report_status_path(status_url)
     if status_path is None:
-        return {}
-    status_response = client.get(f"{base_url}{status_path}", headers=headers)
-    status_response.raise_for_status()
-    payload = status_response.json()
-    return payload if isinstance(payload, dict) else {}
+        return _unavailable_status_payload(_REPORT_STATUS_URL_UNAVAILABLE)
+    attempts = _resolve_status_poll_attempts()
+    backoff_seconds = _resolve_status_poll_backoff_seconds()
+    last_payload: dict[str, Any] = {}
+    for attempt in range(1, attempts + 1):
+        payload = _load_report_status_once(
+            client=client,
+            url=f"{base_url}{status_path}",
+            headers=headers,
+            attempt=attempt,
+        )
+        if _status_payload_unavailable(payload) or is_report_package_terminal_status(
+            payload.get("status")
+        ):
+            return payload
+        last_payload = payload
+        if attempt < attempts and backoff_seconds > 0:
+            time.sleep(backoff_seconds)
+    return _with_poll_metadata(
+        last_payload or _unavailable_status_payload(_REPORT_STATUS_PAYLOAD_INVALID),
+        reason=_REPORT_STATUS_POLLING_TIMEOUT,
+        attempts=attempts,
+    )
+
+
+def _load_report_status_once(
+    *,
+    client: httpx.Client,
+    url: str,
+    headers: dict[str, str],
+    attempt: int,
+) -> dict[str, Any]:
+    try:
+        status_response = client.get(url, headers=headers)
+        status_response.raise_for_status()
+        payload = status_response.json()
+    except httpx.HTTPStatusError as exc:
+        return _unavailable_status_payload(
+            f"REPORT_STATUS_HTTP_{exc.response.status_code}",
+            attempts=attempt,
+        )
+    except httpx.HTTPError:
+        return _unavailable_status_payload(_REPORT_STATUS_HTTP_UNAVAILABLE, attempts=attempt)
+    except ValueError:
+        return _unavailable_status_payload(_REPORT_STATUS_PAYLOAD_INVALID, attempts=attempt)
+    if not isinstance(payload, dict):
+        return _unavailable_status_payload(_REPORT_STATUS_PAYLOAD_INVALID, attempts=attempt)
+    return _with_poll_metadata(payload, attempts=attempt)
+
+
+def _unavailable_status_payload(reason: str, *, attempts: int = 0) -> dict[str, Any]:
+    return {
+        "status": "report_status_unavailable",
+        "report_job_status_unavailable_reason": reason,
+        "report_job_poll_attempts": attempts,
+    }
+
+
+def _with_poll_metadata(
+    payload: dict[str, Any],
+    *,
+    attempts: int,
+    reason: str | None = None,
+) -> dict[str, Any]:
+    enriched = dict(payload)
+    enriched["report_job_poll_attempts"] = attempts
+    if reason is not None:
+        enriched["report_job_pending_reason"] = reason
+    return enriched
+
+
+def _status_payload_unavailable(payload: dict[str, Any]) -> bool:
+    return payload.get("status") == "report_status_unavailable"
+
+
+def _resolve_status_poll_attempts() -> int:
+    raw_value = os.getenv("LOTUS_REPORT_STATUS_POLL_ATTEMPTS")
+    if raw_value is None:
+        return 3
+    try:
+        configured = int(raw_value)
+    except ValueError:
+        return 3
+    return min(max(configured, 1), 5)
+
+
+def _resolve_status_poll_backoff_seconds() -> float:
+    return env_positive_float("LOTUS_REPORT_STATUS_POLL_BACKOFF_SECONDS", default=0.0)
 
 
 def _resolve_base_url() -> str:
