@@ -171,7 +171,9 @@ locally. It maps Core simulation responses into `CoreProjectedTransactionEffects
 advisory suitability, workflow gates, decision summaries, alternatives, consent posture, and
 next-step decisions inside Advise. Legacy Core-returned decision fields are retained only as
 `non_authoritative_core_decisions` and classified under `core_decision_parity` for parity and
-migration review.
+migration review. Curated simulation scenarios and the canonical `PB_SG_GLOBAL_BAL_001`
+private-banking request replay stale Core v1 decisions to prove Advise-owned output remains
+authoritative during the compatibility window.
 
 ### `lotus-manage`
 
