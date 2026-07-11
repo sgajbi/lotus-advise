@@ -2,7 +2,13 @@ from decimal import Decimal
 from typing import Any
 
 from src.core.advisory.alternatives_models import (
+    AlternativeAllocationDelta,
+    AlternativeApprovalDelta,
+    AlternativeCashDelta,
     AlternativeComparisonSummary,
+    AlternativeCostDelta,
+    AlternativeCurrencyDelta,
+    AlternativeRiskDelta,
     ProposalAlternative,
 )
 from src.core.proposal_result_models import ProposalResult
@@ -40,7 +46,7 @@ def build_comparison_summary(
         baseline_result=baseline_result, alternative=alternative
     )
     _append_decimal_delta_messages(
-        raw_delta=risk_delta.get("top_position_weight_delta_improvement"),
+        raw_delta=risk_delta.top_position_weight_delta_improvement,
         improvement_message="Single-name concentration is lower than the baseline proposal.",
         deterioration_message="Single-name concentration is higher than the baseline proposal.",
         improvements=improvements,
@@ -51,7 +57,7 @@ def build_comparison_summary(
         baseline_result=baseline_result, alternative=alternative
     )
     _append_decimal_delta_messages(
-        raw_delta=cash_delta.get("base_currency_cash_delta"),
+        raw_delta=cash_delta.base_currency_cash_delta,
         improvement_message="Base-currency cash is higher than the baseline proposal.",
         deterioration_message="Base-currency cash is lower than the baseline proposal.",
         improvements=improvements,
@@ -67,11 +73,11 @@ def build_comparison_summary(
             baseline_result=baseline_result,
             alternative=alternative,
         ),
-        approval_delta={
-            "baseline_approval_count": baseline_approval_count,
-            "alternative_approval_count": alternative_approval_count,
-            "delta": alternative_approval_count - baseline_approval_count,
-        },
+        approval_delta=AlternativeApprovalDelta(
+            baseline_approval_count=baseline_approval_count,
+            alternative_approval_count=alternative_approval_count,
+            delta=alternative_approval_count - baseline_approval_count,
+        ),
         risk_delta=risk_delta,
         allocation_delta=allocation_delta_for_alternative(
             baseline_result=baseline_result,
@@ -82,7 +88,7 @@ def build_comparison_summary(
             baseline_result=baseline_result,
             alternative=alternative,
         ),
-        cost_delta={"status": "NOT_AVAILABLE"},
+        cost_delta=AlternativeCostDelta(status="NOT_AVAILABLE"),
         evidence_refs=list(alternative.evidence_refs),
     )
 
@@ -166,7 +172,7 @@ def risk_delta_for_alternative(
     *,
     baseline_result: ProposalResult,
     alternative: ProposalAlternative,
-) -> dict[str, Any]:
+) -> AlternativeRiskDelta:
     baseline_weight = top_position_weight(
         baseline_result.explanation.get("risk_lens", {}),
         "top_position_weight_proposed",
@@ -177,65 +183,65 @@ def risk_delta_for_alternative(
     )
     if alternative_weight is None:
         alternative_weight = top_position_weight_from_evidence_refs(alternative)
-    return {
-        "baseline_top_position_weight": baseline_weight,
-        "alternative_top_position_weight": alternative_weight,
-        "top_position_weight_delta_improvement": (
+    return AlternativeRiskDelta(
+        baseline_top_position_weight=baseline_weight,
+        alternative_top_position_weight=alternative_weight,
+        top_position_weight_delta_improvement=(
             (baseline_weight - alternative_weight)
             if baseline_weight is not None and alternative_weight is not None
             else None
         ),
-    }
+    )
 
 
 def allocation_delta_for_alternative(
     *,
     baseline_result: ProposalResult,
     alternative: ProposalAlternative,
-) -> dict[str, Any]:
+) -> AlternativeAllocationDelta:
     baseline_total = baseline_result.after_simulated.total_value.amount
     alternative_total = baseline_total
-    return {
-        "baseline_total_value": str(baseline_total),
-        "alternative_total_value": str(alternative_total),
-    }
+    return AlternativeAllocationDelta(
+        baseline_total_value=baseline_total,
+        alternative_total_value=alternative_total,
+    )
 
 
 def cash_delta_for_alternative(
     *,
     baseline_result: ProposalResult,
     alternative: ProposalAlternative,
-) -> dict[str, Any]:
+) -> AlternativeCashDelta:
     base_currency = baseline_result.after_simulated.total_value.currency
     baseline_cash = cash_balance_amount(
         baseline_result.after_simulated.cash_balances,
         base_currency,
     )
     alternative_cash = baseline_cash
-    return {
-        "currency": base_currency,
-        "baseline_cash": str(baseline_cash),
-        "alternative_cash": str(alternative_cash),
-        "base_currency_cash_delta": str(alternative_cash - baseline_cash),
-    }
+    return AlternativeCashDelta(
+        currency=base_currency,
+        baseline_cash=baseline_cash,
+        alternative_cash=alternative_cash,
+        base_currency_cash_delta=alternative_cash - baseline_cash,
+    )
 
 
 def currency_delta_for_alternative(
     *,
     baseline_result: ProposalResult,
     alternative: ProposalAlternative,
-) -> dict[str, Any]:
+) -> AlternativeCurrencyDelta:
     base_currency = baseline_result.after_simulated.total_value.currency
     baseline_weight = allocation_bucket_weight(
         baseline_result.after_simulated.allocation_views,
         "currency",
         base_currency,
     )
-    return {
-        "base_currency": base_currency,
-        "baseline_weight": str(baseline_weight) if baseline_weight is not None else None,
-        "alternative_weight": str(baseline_weight) if baseline_weight is not None else None,
-    }
+    return AlternativeCurrencyDelta(
+        base_currency=base_currency,
+        baseline_weight=baseline_weight,
+        alternative_weight=baseline_weight,
+    )
 
 
 def top_position_weight(risk_payload: Any, field_name: str) -> Decimal | None:

@@ -2,14 +2,15 @@
 
 ## LA-REV-930
 
-- Scope: Governed proposal explanation authority sections
+- Scope: Governed proposal explanation and alternatives response sections
 - Pattern: Material decision evidence must cross the domain boundary through named contracts rather
   than free-form dictionary mutation.
 - Status: In progress
 - Finding Class: Domain contract, decision evidence, authority validation
-- Summary: GitHub issue #421 identified that proposal explanation sections carried authority and
-  policy-context semantics as arbitrary dictionaries. The first fix slice introduces typed authority
-  and policy-context explanation contracts while preserving the existing wire JSON shape.
+- Summary: GitHub issue #421 identified that proposal explanation and alternatives response
+  sections carried material authority, policy-context, delta, and ranking semantics as arbitrary
+  dictionaries. The first slices introduce typed authority, policy-context, comparison-delta, and
+  ranking-comparator contracts while preserving the existing wire JSON shape.
 - Evidence:
   - Added `src/core/advisory/explanation_contracts.py` with `AuthorityResolutionExplanation` and
     `AdvisoryPolicyContextExplanation`.
@@ -19,20 +20,30 @@
     before deriving risk posture, missing evidence, and client/mandate posture.
   - Added regression tests proving unknown authority names and inconsistent degraded posture fail at
     the domain boundary.
+  - Added typed alternatives response contracts for approval, risk, allocation, cash, currency,
+    cost, and ranking comparator inputs.
+  - `src/core/advisory/alternatives_comparison_projection.py` now constructs typed comparison
+    deltas instead of returning anonymous dictionaries.
+  - `src/core/advisory/alternatives_ranking_projection.py` now constructs typed comparator inputs
+    and ranks by explicit attributes.
+  - Fixed the no-alias Feature Lane failure from the first slice by validating policy context
+    without `by_alias` serialization and without adding default `missing_context` fields to
+    arbitrary policy-context payloads.
 - Consequence:
   - Renaming `lotus_core`, `lotus_risk`, or `unavailable` authority values, or emitting a degraded
     flag that contradicts degraded reasons, now fails deterministically instead of silently changing
     decision summary behavior.
+  - Negative alternative counts and malformed ranking comparator counters now fail at model
+    validation instead of drifting through response projection.
 - Documentation:
   - Updated this ledger only. No wiki source change is required for this slice because operator
     behavior and published API JSON shape are unchanged.
 - Modularity:
   - Authority and policy-context explanation semantics now live in a focused domain module that can
-    be reused by persistence, replay, and API projection. The remaining #421 work should extend the
-    same pattern to alternatives deltas, generated intents, comparator inputs, and decision-summary
-    projections.
+    be reused by persistence, replay, and API projection. Alternatives comparison and ranking
+    semantics now live in named response contracts instead of unbounded maps.
 - Follow-Up:
-  - Continue #421 by replacing alternatives response free-form deltas and generated-intent payloads
+  - Continue #421 by replacing generated-intent payloads and alternative decision-summary snapshots
     with typed domain contracts.
 
 ## LA-REV-929

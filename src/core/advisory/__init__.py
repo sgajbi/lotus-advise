@@ -1,9 +1,17 @@
 """Advisory simulation package."""
 
 from src.core.advisory.alternatives_models import (
+    AlternativeAllocationDelta,
+    AlternativeApprovalDelta,
     AlternativeCandidateSeed,
+    AlternativeCashDelta,
+    AlternativeComparatorInputs,
     AlternativeComparisonSummary,
     AlternativeConstraintResult,
+    AlternativeCostDelta,
+    AlternativeCurrencyDelta,
+    AlternativeRankingProjection,
+    AlternativeRiskDelta,
     AlternativeTradeoff,
     ProposalAlternative,
     ProposalAlternatives,
@@ -29,10 +37,18 @@ from src.core.advisory.alternatives_strategies import (
 )
 
 __all__ = [
+    "AlternativeAllocationDelta",
+    "AlternativeApprovalDelta",
     "AlternativeCandidateSeed",
+    "AlternativeCashDelta",
     "AlternativeComparisonSummary",
+    "AlternativeComparatorInputs",
     "AlternativeConstraintResult",
     "AlternativeConstructionStrategy",
+    "AlternativeCostDelta",
+    "AlternativeCurrencyDelta",
+    "AlternativeRankingProjection",
+    "AlternativeRiskDelta",
     "AlternativeStrategyBuildResult",
     "AlternativeStrategyInputs",
     "AlternativeTradeoff",

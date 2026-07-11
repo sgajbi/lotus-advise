@@ -124,11 +124,8 @@ def attach_governed_explanation_sections(
     updated = dict(explanation)
     updated[AUTHORITY_RESOLUTION_EXPLANATION_KEY] = authority_resolution.model_dump()
     if policy_context is not None:
-        policy_context_section = AdvisoryPolicyContextExplanation.model_validate(policy_context)
-        updated[ADVISORY_POLICY_CONTEXT_EXPLANATION_KEY] = policy_context_section.model_dump(
-            by_alias=True,
-            exclude_none=True,
-        )
+        AdvisoryPolicyContextExplanation.model_validate(policy_context)
+        updated[ADVISORY_POLICY_CONTEXT_EXPLANATION_KEY] = dict(policy_context)
     return updated
 
 

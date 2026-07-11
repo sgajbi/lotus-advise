@@ -136,7 +136,7 @@ def _build_client_and_mandate_posture(
             summary="Client and mandate posture was not attached to this proposal result.",
         )
 
-    policy_context_payload = policy_context.model_dump(by_alias=True, exclude_none=True)
+    policy_context_payload = policy_context.model_dump(exclude_none=True)
     client_available = client_context_available(policy_context_payload)
     mandate_available = mandate_context_available(policy_context_payload)
     if client_available and mandate_available:

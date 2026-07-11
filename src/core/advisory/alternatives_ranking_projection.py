@@ -2,6 +2,7 @@ from typing import Any
 
 from src.core.advisory.alternatives_comparison_projection import build_comparison_summary
 from src.core.advisory.alternatives_models import (
+    AlternativeComparatorInputs,
     AlternativeRankingProjection,
     ProposalAlternative,
 )
@@ -112,11 +113,11 @@ def selected_ranked_alternative(
 def ranking_key(*, alternative: ProposalAlternative, objective_rank: int) -> tuple[Any, ...]:
     comparator_values = comparator_inputs(alternative=alternative, objective_rank=objective_rank)
     return (
-        comparator_values["status_priority"],
-        comparator_values["missing_evidence_count"],
-        comparator_values["blocking_approval_count"],
-        comparator_values["approval_count"],
-        comparator_values["turnover_trade_count"],
+        comparator_values.status_priority,
+        comparator_values.missing_evidence_count,
+        comparator_values.blocking_approval_count,
+        comparator_values.approval_count,
+        comparator_values.turnover_trade_count,
         objective_rank,
         alternative.alternative_id,
     )
@@ -124,7 +125,7 @@ def ranking_key(*, alternative: ProposalAlternative, objective_rank: int) -> tup
 
 def comparator_inputs(
     *, alternative: ProposalAlternative, objective_rank: int
-) -> dict[str, int | str]:
+) -> AlternativeComparatorInputs:
     summary = alternative.proposal_decision_summary
     approval_requirements = summary.get("approval_requirements", [])
     missing_evidence = summary.get("missing_evidence", [])
@@ -134,17 +135,17 @@ def comparator_inputs(
         status_priority = 1
     else:
         status_priority = 2
-    return {
-        "status_priority": status_priority,
-        "decision_status": str(summary.get("decision_status", "UNKNOWN")),
-        "approval_count": len(approval_requirements),
-        "blocking_approval_count": sum(
+    return AlternativeComparatorInputs(
+        status_priority=status_priority,
+        decision_status=str(summary.get("decision_status", "UNKNOWN")),
+        approval_count=len(approval_requirements),
+        blocking_approval_count=sum(
             1 for item in approval_requirements if item.get("blocking_until_approved") is True
         ),
-        "missing_evidence_count": len(missing_evidence),
-        "turnover_trade_count": len(alternative.intents),
-        "objective_rank": objective_rank,
-    }
+        missing_evidence_count=len(missing_evidence),
+        turnover_trade_count=len(alternative.intents),
+        objective_rank=objective_rank,
+    )
 
 
 def ranking_reason_codes(*, alternative: ProposalAlternative) -> list[str]:
