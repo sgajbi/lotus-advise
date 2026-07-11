@@ -1,7 +1,8 @@
+from collections.abc import Mapping
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
 
 from src.core.advisory.alternatives_types import (
     AlternativeCandidateStatus,
@@ -9,6 +10,113 @@ from src.core.advisory.alternatives_types import (
     AlternativeEvidenceRequirement,
     AlternativeStatus,
 )
+from src.core.advisory.decision_summary_models import (
+    ProposalDecisionConfidence,
+    ProposalDecisionNextAction,
+    ProposalDecisionStatus,
+)
+
+_ALTERNATIVE_SIMULATION_INTENT_ADAPTER: TypeAdapter[Any] | None = None
+
+
+class AlternativeDecisionApprovalRequirementSnapshot(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    approval_type: str | None = Field(
+        default=None,
+        description="Approval or remediation type carried by the decision-summary snapshot.",
+    )
+    blocking_until_approved: bool | None = Field(
+        default=None,
+        description="Whether this snapshot requirement blocks progression.",
+    )
+
+
+class AlternativeDecisionMissingEvidenceSnapshot(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    reason_code: str | None = Field(
+        default=None,
+        description="Stable missing-evidence reason code carried by the snapshot.",
+    )
+    blocking: bool | None = Field(
+        default=None,
+        description="Whether this missing-evidence item blocks progression.",
+    )
+
+
+class AlternativeDecisionSummarySnapshot(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    decision_status: ProposalDecisionStatus | None = Field(
+        default=None,
+        description="Governed decision status when projected into the alternative snapshot.",
+    )
+    top_level_status: Literal["READY", "PENDING_REVIEW", "BLOCKED"] | None = Field(
+        default=None,
+        description="Coarse proposal status when projected into the alternative snapshot.",
+    )
+    primary_reason_code: str | None = Field(
+        default=None,
+        description="Primary stable reason code when available.",
+    )
+    recommended_next_action: ProposalDecisionNextAction | None = Field(
+        default=None,
+        description="Recommended advisor action when available.",
+    )
+    decision_policy_version: str | None = Field(
+        default=None,
+        description="Decision-summary policy version when available.",
+    )
+    confidence: ProposalDecisionConfidence | None = Field(
+        default=None,
+        description="Decision-summary confidence when available.",
+    )
+    approval_requirements: list[AlternativeDecisionApprovalRequirementSnapshot] = Field(
+        default_factory=list,
+        description="Approval requirement snapshots used for alternative comparison.",
+    )
+    missing_evidence: list[AlternativeDecisionMissingEvidenceSnapshot] = Field(
+        default_factory=list,
+        description="Missing-evidence snapshots used for alternative comparison.",
+    )
+    risk_posture: dict[str, Any] | None = Field(
+        default=None,
+        description="Risk-posture comparison snapshot. Extra fields preserve API compatibility.",
+    )
+
+
+def validate_alternative_simulation_intent_payload(intent: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate generated alternative payloads against simulation request contracts."""
+
+    validated_intent = _alternative_simulation_intent_adapter().validate_python(dict(intent))
+    return cast(dict[str, Any], validated_intent.model_dump(mode="json"))
+
+
+def _alternative_simulation_intent_adapter() -> TypeAdapter[Any]:
+    global _ALTERNATIVE_SIMULATION_INTENT_ADAPTER
+    if _ALTERNATIVE_SIMULATION_INTENT_ADAPTER is None:
+        from src.core.proposal_request_models import ProposedCashFlow, ProposedTrade
+
+        alternative_simulation_intent_payload = Annotated[
+            ProposedCashFlow | ProposedTrade,
+            Field(discriminator="intent_type"),
+        ]
+        _ALTERNATIVE_SIMULATION_INTENT_ADAPTER = TypeAdapter(alternative_simulation_intent_payload)
+    return _ALTERNATIVE_SIMULATION_INTENT_ADAPTER
+
+
+def validate_alternative_decision_summary_snapshot(value: Any) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if isinstance(value, BaseModel):
+        value = value.model_dump(mode="json")
+    if not isinstance(value, Mapping):
+        raise ValueError("proposal_decision_summary must be an object")
+
+    snapshot = dict(value)
+    AlternativeDecisionSummarySnapshot.model_validate(snapshot)
+    return snapshot
 
 
 class AlternativeConstraintResult(BaseModel):
@@ -274,7 +382,11 @@ class ProposalAlternative(BaseModel):
     )
     proposal_decision_summary: dict[str, Any] = Field(
         default_factory=dict,
-        description="Canonical proposal decision summary projected for this alternative.",
+        description=(
+            "Canonical proposal decision-summary snapshot projected for this alternative. "
+            "Wire compatibility remains a JSON object, while known fields are validated "
+            "through AlternativeDecisionSummarySnapshot."
+        ),
     )
     comparison_summary: AlternativeComparisonSummary | None = Field(
         default=None,
@@ -296,6 +408,11 @@ class ProposalAlternative(BaseModel):
         default_factory=list,
         description="Evidence references supporting the alternative.",
     )
+
+    @field_validator("proposal_decision_summary", mode="before")
+    @classmethod
+    def validate_decision_summary_snapshot(cls, value: Any) -> dict[str, Any]:
+        return validate_alternative_decision_summary_snapshot(value)
 
 
 class ProposalAlternatives(BaseModel):
@@ -339,10 +456,15 @@ __all__ = [
     "AlternativeConstraintResult",
     "AlternativeCostDelta",
     "AlternativeCurrencyDelta",
+    "AlternativeDecisionApprovalRequirementSnapshot",
+    "AlternativeDecisionMissingEvidenceSnapshot",
+    "AlternativeDecisionSummarySnapshot",
     "AlternativeRankingProjection",
     "AlternativeRiskDelta",
     "AlternativeTradeoff",
     "ProposalAlternative",
     "ProposalAlternatives",
     "RejectedAlternativeCandidate",
+    "validate_alternative_decision_summary_snapshot",
+    "validate_alternative_simulation_intent_payload",
 ]

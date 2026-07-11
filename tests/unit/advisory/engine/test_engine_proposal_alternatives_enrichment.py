@@ -334,6 +334,10 @@ def test_evaluate_alternative_candidates_batch_rejects_overflow_without_upstream
             [{"intent_type": "FX_SWAP", "currency": "USD", "amount": "1"}],
             "ALTERNATIVE_INTENT_UNSUPPORTED",
         ),
+        (
+            [{"intent_type": "SECURITY_TRADE", "side": "BUY", "instrument_id": "EQ_NEW"}],
+            "ALTERNATIVE_INTENT_CONTRACT_INVALID",
+        ),
     ],
 )
 def test_evaluate_alternative_candidates_batch_rejects_invalid_candidate_intents(

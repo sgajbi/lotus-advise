@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T11:30:25.322072+00:00",
+  "generatedAt": "2026-07-11T13:11:22.850692+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -4387,7 +4387,7 @@
       "semanticId": "lotus.explanation",
       "canonicalTerm": "explanation",
       "preferredName": "explanation",
-      "description": "Additional explanatory payload.",
+      "description": "Governed explanatory payload. Material authority and policy-context sections must use the typed advisory explanation contracts; opaque extension metadata must remain explicitly bounded by the owning projection.",
       "example": {
         "source_system": "lotus-advise",
         "business_context": "explanation_contract"
