@@ -3,6 +3,8 @@ import pytest
 
 from src.integrations.lotus_report.adapter import (
     LotusReportUnavailableError,
+    _resolve_status_poll_attempts,
+    _resolve_status_poll_backoff_seconds,
     _resolve_timeout,
     request_policy_sign_off_report_package_with_lotus_report,
     request_proposal_memo_report_package_with_lotus_report,
@@ -865,3 +867,48 @@ def test_lotus_report_timeout_uses_positive_override(monkeypatch) -> None:
 
     assert timeout.connect == 45.0
     assert timeout.read == 45.0
+
+
+@pytest.mark.parametrize("configured_value", ["invalid", "0"])
+def test_lotus_report_timeout_rejects_invalid_override(
+    monkeypatch,
+    configured_value: str,
+) -> None:
+    monkeypatch.setenv("LOTUS_REPORT_TIMEOUT_SECONDS", configured_value)
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        _resolve_timeout()
+
+
+def test_lotus_report_status_poll_attempts_defaults_when_missing(monkeypatch) -> None:
+    monkeypatch.delenv("LOTUS_REPORT_STATUS_POLL_ATTEMPTS", raising=False)
+
+    assert _resolve_status_poll_attempts() == 3
+
+
+@pytest.mark.parametrize("configured_value", ["invalid", "0", "6"])
+def test_lotus_report_status_poll_attempts_rejects_invalid_override(
+    monkeypatch,
+    configured_value: str,
+) -> None:
+    monkeypatch.setenv("LOTUS_REPORT_STATUS_POLL_ATTEMPTS", configured_value)
+
+    with pytest.raises(ValueError, match="LOTUS_REPORT_STATUS_POLL_ATTEMPTS"):
+        _resolve_status_poll_attempts()
+
+
+def test_lotus_report_status_poll_backoff_accepts_zero_override(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_REPORT_STATUS_POLL_BACKOFF_SECONDS", "0")
+
+    assert _resolve_status_poll_backoff_seconds() == 0.0
+
+
+@pytest.mark.parametrize("configured_value", ["invalid", "-0.1"])
+def test_lotus_report_status_poll_backoff_rejects_invalid_override(
+    monkeypatch,
+    configured_value: str,
+) -> None:
+    monkeypatch.setenv("LOTUS_REPORT_STATUS_POLL_BACKOFF_SECONDS", configured_value)
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        _resolve_status_poll_backoff_seconds()

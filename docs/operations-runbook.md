@@ -18,7 +18,7 @@
 - `make migration-smoke`: migration and runtime persistence smoke tests.
 - `make postgres-runtime-contracts-local`: local Postgres runtime contract checks.
 - `make production-profile-guardrail-negatives-local`: production-profile negative guardrail
-  checks.
+  checks, including malformed numeric integration runtime configuration.
 - `make docker-build`: Docker image build validation.
 - `make release-image-provenance-gate`: static Dockerfile, OCI label, release metadata, and
   support-safe build metadata contract validation.
@@ -36,6 +36,27 @@ submission.
 Report requests additionally require source-derived as-of date, reporting currency, and proposal
 jurisdiction metadata. The service does not manufacture current-date, USD, or SG fallbacks for
 production-like downstream report submissions.
+
+## Runtime Configuration Guardrails
+
+Explicit numeric integration settings fail startup and readiness when malformed or out of range.
+Unset values use documented local/test defaults, but configured values are never silently coerced.
+
+Guarded settings include:
+
+- `LOTUS_CORE_TIMEOUT_SECONDS`
+- `LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS`
+- `LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE`
+- `LOTUS_AI_TIMEOUT_SECONDS`
+- `LOTUS_RISK_TIMEOUT_SECONDS`
+- `LOTUS_RISK_RETRY_ATTEMPTS`
+- `LOTUS_RISK_RETRY_BACKOFF_SECONDS`
+- `LOTUS_REPORT_TIMEOUT_SECONDS`
+- `LOTUS_REPORT_STATUS_POLL_ATTEMPTS`
+- `LOTUS_REPORT_STATUS_POLL_BACKOFF_SECONDS`
+
+Readiness and startup errors expose only the setting name and validation rule, not the raw configured
+value.
 
 ## Release Image Evidence
 

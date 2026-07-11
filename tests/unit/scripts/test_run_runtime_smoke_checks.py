@@ -136,3 +136,53 @@ def test_guardrail_failure_rejects_process_that_stays_alive(
         )
 
     assert process.stopped is True
+
+
+def test_production_profile_guardrail_negatives_include_malformed_runtime_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[int, tuple[str, ...], str | None, str | None]] = []
+    monkeypatch.delenv("LOTUS_CORE_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("PROPOSAL_STORE_BACKEND", raising=False)
+
+    def fake_assert_guardrail_failure(
+        *,
+        env: dict[str, str],
+        port: int,
+        expected_messages: tuple[str, ...],
+    ) -> None:
+        calls.append(
+            (
+                port,
+                expected_messages,
+                env.get("LOTUS_CORE_TIMEOUT_SECONDS"),
+                env.get("PROPOSAL_STORE_BACKEND"),
+            )
+        )
+
+    monkeypatch.setattr(
+        run_runtime_smoke_checks,
+        "_assert_guardrail_failure",
+        fake_assert_guardrail_failure,
+    )
+
+    run_runtime_smoke_checks.run_production_profile_guardrail_negatives()
+
+    assert calls == [
+        (8003, ("LOTUS_CORE_TIMEOUT_SECONDS",), "invalid", None),
+        (
+            8004,
+            (
+                "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES",
+                "PROPOSAL_STORE_BACKEND_UNSUPPORTED",
+            ),
+            None,
+            "IN_MEMORY",
+        ),
+        (
+            8007,
+            ("PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN",),
+            None,
+            "POSTGRES",
+        ),
+    ]

@@ -165,6 +165,14 @@ def run_production_profile_smoke() -> None:
 
 
 def run_production_profile_guardrail_negatives() -> None:
+    malformed_runtime_env = os.environ.copy()
+    malformed_runtime_env["LOTUS_CORE_TIMEOUT_SECONDS"] = "invalid"
+    _assert_guardrail_failure(
+        env=malformed_runtime_env,
+        port=8003,
+        expected_messages=("LOTUS_CORE_TIMEOUT_SECONDS",),
+    )
+
     unsupported_env = os.environ.copy()
     unsupported_env["PROPOSAL_STORE_BACKEND"] = "IN_MEMORY"
     _assert_guardrail_failure(

@@ -5,6 +5,7 @@ import pytest
 
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.integrations.lotus_core.runtime_config import RuntimeConfigurationError
 from src.integrations.lotus_risk.enrichment import (
     LotusRiskEnrichmentUnavailableError,
     _resolve_retry_attempts,
@@ -366,7 +367,7 @@ def test_enrich_with_lotus_risk_uses_bounded_configurable_retry_backoff(monkeypa
     )
     sleep_delays: list[float] = []
     monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
-    monkeypatch.setenv("LOTUS_RISK_RETRY_ATTEMPTS", "99")
+    monkeypatch.setenv("LOTUS_RISK_RETRY_ATTEMPTS", "5")
     monkeypatch.setenv("LOTUS_RISK_RETRY_BACKOFF_SECONDS", "0.25")
     monkeypatch.setattr(
         "src.integrations.lotus_risk.enrichment.httpx.Client",
@@ -390,10 +391,18 @@ def test_enrich_with_lotus_risk_uses_bounded_configurable_retry_backoff(monkeypa
     assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
 
 
-def test_enrich_with_lotus_risk_caps_retry_backoff_configuration(monkeypatch):
+def test_enrich_with_lotus_risk_rejects_retry_configuration_above_maximum(monkeypatch):
+    monkeypatch.setenv("LOTUS_RISK_RETRY_ATTEMPTS", "99")
+
+    with pytest.raises(RuntimeConfigurationError, match="LOTUS_RISK_RETRY_ATTEMPTS"):
+        _resolve_retry_attempts()
+
+
+def test_enrich_with_lotus_risk_rejects_retry_backoff_above_maximum(monkeypatch):
     monkeypatch.setenv("LOTUS_RISK_RETRY_BACKOFF_SECONDS", "99")
 
-    assert _resolve_retry_backoff_seconds() == 2.0
+    with pytest.raises(RuntimeConfigurationError, match="LOTUS_RISK_RETRY_BACKOFF_SECONDS"):
+        _resolve_retry_backoff_seconds()
 
 
 def test_enrich_with_lotus_risk_does_not_retry_non_retryable_4xx(monkeypatch):

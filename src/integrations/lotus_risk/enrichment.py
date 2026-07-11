@@ -37,8 +37,7 @@ def _resolve_timeout() -> httpx.Timeout:
 
 
 def _resolve_retry_attempts() -> int:
-    attempts = env_positive_int("LOTUS_RISK_RETRY_ATTEMPTS", default=2)
-    return min(int(attempts), 5)
+    return env_positive_int("LOTUS_RISK_RETRY_ATTEMPTS", default=2, maximum=5)
 
 
 def _is_retryable_http_error(exc: httpx.HTTPError) -> bool:
@@ -131,7 +130,7 @@ def _reject_metadata_mismatch(*, actual: str | None, expected: str) -> None:
 
 
 def _resolve_retry_backoff_seconds() -> float:
-    return min(env_positive_float("LOTUS_RISK_RETRY_BACKOFF_SECONDS", default=0.1), 2.0)
+    return env_positive_float("LOTUS_RISK_RETRY_BACKOFF_SECONDS", default=0.1, maximum=2.0)
 
 
 def _retry_delay_seconds(*, attempt: int) -> float:

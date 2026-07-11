@@ -258,8 +258,10 @@ Canonical local Docker upstream defaults:
 - `LOTUS_RISK_BASE_URL=http://risk.dev.lotus`
 
 Lotus Risk enrichment uses bounded retries for transient `5xx`, `429`, and network failures.
-`LOTUS_RISK_RETRY_ATTEMPTS` defaults to `2` and is capped at `5`; `LOTUS_RISK_RETRY_BACKOFF_SECONDS`
-defaults to `0.1` seconds and is capped at `2.0` seconds.
+`LOTUS_RISK_RETRY_ATTEMPTS` defaults to `2` and must be between `1` and `5`;
+`LOTUS_RISK_RETRY_BACKOFF_SECONDS` defaults to `0.1` seconds and must be between `0.001`
+and `2.0` seconds. Explicit malformed or out-of-range numeric integration settings fail
+startup/readiness instead of falling back silently.
 
 ## Common Commands
 

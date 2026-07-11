@@ -209,7 +209,7 @@
           "case_id": "duplicate_response",
           "expected_behavior": "deduplicates and bounds retry attempts instead of replaying indefinitely",
           "test_references": [
-            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_caps_retry_backoff_configuration"
+            "tests/unit/advisory/api/test_lotus_risk_enrichment_client.py::test_enrich_with_lotus_risk_rejects_retry_backoff_above_maximum"
           ]
         },
         {

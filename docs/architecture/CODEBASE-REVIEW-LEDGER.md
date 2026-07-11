@@ -1,5 +1,40 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-914
+
+- Scope: Integration runtime numeric configuration
+- Pattern: Missing local/test configuration may use documented defaults, but explicitly configured
+  numeric runtime settings must be parsed once, bounded, and rejected on malformed or out-of-range
+  values before serving traffic.
+- Status: Hardened
+- Finding Class: Configuration safety, startup readiness, operational supportability
+- Summary: GitHub issue #403 identified that Lotus Core runtime helpers returned defaults when
+  timeout, retry, and cache environment variables were malformed. The same fallback pattern was
+  present in adjacent Risk retry/backoff and Report polling settings, which could make production
+  behavior diverge from operator intent without a visible startup or readiness failure.
+- Evidence:
+  - Added `RuntimeConfigurationError` and fail-fast parsing in the shared integration runtime
+    config helper. Error messages include setting names and validation rules, not raw values.
+  - Added explicit maximum bounds for Risk retry attempts/backoff and Report status-poll attempts.
+  - Added a startup/readiness validator for Core, AI, Risk, and Report numeric integration
+    settings, and wired it into FastAPI lifespan plus `/health/ready`.
+  - Added production-profile negative smoke coverage for malformed numeric runtime config.
+  - Updated Core/stateful-context, Risk enrichment, Report adapter, and smoke-script tests to prove
+    missing values use defaults, valid boundaries pass, invalid values fail closed, and raw values
+    are not leaked.
+  - Updated README, operations runbook, and Operations wiki source with the new guardrail.
+- Consequence:
+  - A typo in timeout, retry, backoff, or cache settings now blocks startup/readiness instead of
+    silently changing runtime behavior.
+- Documentation:
+  - README, operations runbook, Operations wiki source, generated quality reports, and review
+    ledger updated. Wiki source changed, so repo-wiki check is required before merge and
+    publication is required after merge.
+- Follow-Up:
+  - Apply the same configured-value lens to remaining secret, endpoint, retention, and AI-provider
+    issues. No cross-app ownership issue was raised because the failing behavior lives in
+    `lotus-advise` adapter configuration for upstream services.
+
 ## LA-REV-913
 
 - Scope: HTTP request and enterprise audit telemetry route labels

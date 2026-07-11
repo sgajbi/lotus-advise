@@ -28,6 +28,7 @@ from src.integrations.lotus_ai.rationale import (
     apply_workspace_rationale_review_action_with_lotus_ai,
     generate_workspace_rationale_with_lotus_ai,
 )
+from src.integrations.lotus_core.runtime_config import RuntimeConfigurationError
 
 
 class _FakeResponse:
@@ -138,7 +139,8 @@ def test_resolve_timeout_uses_positive_float_helper(monkeypatch: pytest.MonkeyPa
     assert _resolve_timeout().connect == 7.5
 
     monkeypatch.setenv("LOTUS_AI_TIMEOUT_SECONDS", "invalid")
-    assert _resolve_timeout().connect == 10.0
+    with pytest.raises(RuntimeConfigurationError, match="LOTUS_AI_TIMEOUT_SECONDS"):
+        _resolve_timeout()
 
 
 def test_generate_workspace_rationale_returns_unavailable_for_incomplete_execution(
