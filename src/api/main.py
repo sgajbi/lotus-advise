@@ -13,6 +13,7 @@ from src.api.enterprise_readiness import (
     build_enterprise_audit_middleware,
     validate_enterprise_runtime_config,
 )
+from src.api.http_boundary import install_http_boundary
 from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.observability import correlation_id_var, setup_observability
 from src.api.openapi_enrichment import enrich_openapi_schema
@@ -83,6 +84,7 @@ READINESS_CHECK_FAILED_DETAIL = "READINESS_CHECK_FAILED"
 setup_observability(app)
 validate_enterprise_runtime_config()
 app.middleware("http")(build_enterprise_audit_middleware())
+install_http_boundary(app)
 
 app.include_router(proposal_lifecycle_router)
 app.include_router(advisory_simulation_router)

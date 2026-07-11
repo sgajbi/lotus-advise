@@ -7,6 +7,7 @@ from typing import Any, Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+from src.api.http_boundary import http_boundary_config_issues
 from src.api.observability import http_operation_name, request_route_template
 from src.core.proposals.correlation import (
     MAX_CORRELATION_ID_LENGTH,
@@ -96,6 +97,7 @@ def _enterprise_runtime_config_issues() -> list[str]:
         "ENTERPRISE_CAPABILITY_RULES_JSON",
         "invalid_capability_rules_json",
     )
+    issues.extend(http_boundary_config_issues())
     return issues
 
 
