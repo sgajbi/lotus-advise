@@ -25676,6 +25676,43 @@
   - Keep future proposal-owned write APIs on the shared idempotency helper instead of wrapping the
     common normalizer locally.
 
+## LA-REV-350
+
+- Scope: Lotus Core stateful-context cache identity
+- Pattern: Source-backed cache keys must include every semantic dimension that can change upstream
+  response meaning instead of using local lookup identifiers alone
+- Status: Hardened
+- Finding Class: Source-contract dependency semantics, cache correctness, and supportability
+- Summary: GitHub issue #400 identified that resolved context, enrichment, taxonomy, instrument,
+  price, and FX caches were keyed by partial local identifiers such as portfolio/as-of,
+  `instrument-enrichment:{security_id}`, `price:{instrument_id}`, or currency pair. That permitted
+  stale reuse across source URL, environment, tenant, contract version, as-of, portfolio, mandate,
+  benchmark, reporting currency, and future look-through/allocation/risk dimensions.
+- Evidence:
+  - Added `src/integrations/lotus_core/stateful_context_cache_identity.py` as the shared typed cache
+    identity builder for every Lotus Core stateful cache family.
+  - Resolved-context cache reads and writes now include sanitized query/control-plane source URLs,
+    `ENVIRONMENT`, `LOTUS_ADVISE_TENANT_ID` when configured, advisory simulation contract version,
+    portfolio, as-of, household, mandate, benchmark, reporting currency, and explicit current
+    defaults for unsupported look-through/allocation/risk dimensions.
+  - Enrichment, taxonomy, instrument, price, and FX lookup caches now use the same identity family
+    rather than ad hoc string keys.
+  - Focused cache identity and stateful-context tests passed with 43 tests, including a
+    table-driven RFC-0020 dimension matrix, safe URL key material, distinct cache-family keys,
+    distinct as-of inputs, distinct environment scopes, TTL-zero refetch, eviction, and failure
+    non-caching.
+- Consequence:
+  - A surviving process cache can no longer reuse Lotus Core stateful, market-data, taxonomy, or
+    enrichment payloads across environment, tenant, contract, portfolio, as-of, or supported scope
+    dimensions. Cache observability remains through bounded stats rather than raw source payloads.
+- Documentation:
+  - Updated repository engineering context and integration wiki with the semantic identity rule,
+    TTL/max-size settings, invalidation model, restart expectation, and diagnostics boundary.
+- Follow-Up:
+  - If future WorkspaceStatefulInput versions add reporting currency, look-through, allocation, or
+    risk option fields, extend the request DTO directly; the cache identity builder already treats
+    those field names as semantic key dimensions.
+
 ## LA-REV-349
 
 - Scope: RFC-0026 public vocabulary

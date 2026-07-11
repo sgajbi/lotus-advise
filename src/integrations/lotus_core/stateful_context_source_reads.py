@@ -16,6 +16,10 @@ from src.integrations.lotus_core.stateful_context_cache import (
     get_cached_payload,
     record_fetch_stat,
 )
+from src.integrations.lotus_core.stateful_context_cache_identity import (
+    classification_taxonomy_cache_key,
+    instrument_enrichment_cache_key,
+)
 from src.integrations.lotus_core.stateful_context_routes import (
     CLASSIFICATION_TAXONOMY_PATH,
     INSTRUMENT_ENRICHMENT_BULK_PATH,
@@ -92,9 +96,16 @@ def fetch_instrument_enrichment_bulk(
     *,
     base_url: str,
     security_ids: list[str],
+    portfolio_id: str,
+    as_of: str,
 ) -> dict[str, dict[str, Any]]:
     requested_ids = _requested_security_ids(security_ids)
-    enrichment_by_security_id, missing_ids = _cached_instrument_enrichment(requested_ids)
+    enrichment_by_security_id, missing_ids = _cached_instrument_enrichment(
+        requested_ids,
+        base_url=base_url,
+        portfolio_id=portfolio_id,
+        as_of=as_of,
+    )
     if not requested_ids:
         return enrichment_by_security_id
     if not missing_ids:
@@ -107,7 +118,13 @@ def fetch_instrument_enrichment_bulk(
         error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
         json_body={"security_ids": missing_ids},
     )
-    return _with_fetched_instrument_enrichment(enrichment_by_security_id, payload)
+    return _with_fetched_instrument_enrichment(
+        enrichment_by_security_id,
+        payload,
+        base_url=base_url,
+        portfolio_id=portfolio_id,
+        as_of=as_of,
+    )
 
 
 def _requested_security_ids(security_ids: list[str]) -> list[str]:
@@ -116,13 +133,22 @@ def _requested_security_ids(security_ids: list[str]) -> list[str]:
 
 def _cached_instrument_enrichment(
     requested_ids: list[str],
+    *,
+    base_url: str,
+    portfolio_id: str,
+    as_of: str,
 ) -> tuple[dict[str, dict[str, Any]], list[str]]:
     enrichment_by_security_id: dict[str, dict[str, Any]] = {}
     missing_ids: list[str] = []
     for security_id in requested_ids:
         cached_record = get_cached_payload(
             INSTRUMENT_ENRICHMENT_CACHE,
-            cache_key=_instrument_enrichment_cache_key(security_id),
+            cache_key=instrument_enrichment_cache_key(
+                control_plane_base_url=base_url,
+                security_id=security_id,
+                portfolio_id=portfolio_id,
+                as_of=as_of,
+            ),
         )
         if cached_record is None:
             missing_ids.append(security_id)
@@ -134,18 +160,32 @@ def _cached_instrument_enrichment(
 def _with_fetched_instrument_enrichment(
     enrichment_by_security_id: dict[str, dict[str, Any]],
     payload: dict[str, Any],
+    *,
+    base_url: str,
+    portfolio_id: str,
+    as_of: str,
 ) -> dict[str, dict[str, Any]]:
     records = payload.get("records")
     if not isinstance(records, list):
         return enrichment_by_security_id
     for record in records:
-        _append_instrument_enrichment_record(enrichment_by_security_id, record)
+        _append_instrument_enrichment_record(
+            enrichment_by_security_id,
+            record,
+            base_url=base_url,
+            portfolio_id=portfolio_id,
+            as_of=as_of,
+        )
     return enrichment_by_security_id
 
 
 def _append_instrument_enrichment_record(
     enrichment_by_security_id: dict[str, dict[str, Any]],
     record: Any,
+    *,
+    base_url: str,
+    portfolio_id: str,
+    as_of: str,
 ) -> None:
     if not isinstance(record, dict):
         return
@@ -154,13 +194,14 @@ def _append_instrument_enrichment_record(
         return
     enrichment_by_security_id[security_id] = cache_payload(
         INSTRUMENT_ENRICHMENT_CACHE,
-        cache_key=_instrument_enrichment_cache_key(security_id),
+        cache_key=instrument_enrichment_cache_key(
+            control_plane_base_url=base_url,
+            security_id=security_id,
+            portfolio_id=portfolio_id,
+            as_of=as_of,
+        ),
         payload=record,
     )
-
-
-def _instrument_enrichment_cache_key(security_id: str) -> str:
-    return f"instrument-enrichment:{security_id}"
 
 
 def fetch_classification_taxonomy(
@@ -170,7 +211,11 @@ def fetch_classification_taxonomy(
     as_of: str,
     taxonomy_scope: str = "instrument",
 ) -> ClassificationTaxonomy:
-    cache_key = f"classification-taxonomy:{taxonomy_scope}:{as_of}"
+    cache_key = classification_taxonomy_cache_key(
+        control_plane_base_url=base_url,
+        as_of=as_of,
+        taxonomy_scope=taxonomy_scope,
+    )
     try:
         payload = fetch_json_with_cache(
             client,

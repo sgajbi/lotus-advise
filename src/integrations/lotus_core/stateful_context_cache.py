@@ -10,6 +10,9 @@ from src.integrations.lotus_core.runtime_config import (
     env_non_negative_float,
     env_positive_int,
 )
+from src.integrations.lotus_core.stateful_context_cache_identity import (
+    stateful_context_cache_key,
+)
 from src.integrations.lotus_core.timed_cache import TimedCache, TimedCacheStats
 
 _DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS = 15.0
@@ -27,9 +30,12 @@ class StatefulContextFetchStats:
 
 
 def stateful_context_cache_ttl_seconds() -> float:
-    return env_non_negative_float(
-        "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
-        default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
+    return cast(
+        float,
+        env_non_negative_float(
+            "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
+            default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
+        ),
     )
 
 
@@ -39,18 +45,6 @@ def stateful_context_cache_max_size() -> int:
             "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE",
             default=_DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE,
         )
-    )
-
-
-def stateful_context_cache_key(stateful_input: WorkspaceStatefulInput) -> str:
-    return "|".join(
-        [
-            stateful_input.portfolio_id,
-            stateful_input.as_of,
-            stateful_input.household_id or "",
-            stateful_input.mandate_id or "",
-            stateful_input.benchmark_id or "",
-        ]
     )
 
 
@@ -111,15 +105,34 @@ _FETCH_STATS = {
 
 def get_cached_resolved_context(
     stateful_input: WorkspaceStatefulInput,
+    *,
+    query_base_url: str,
+    control_plane_base_url: str,
 ) -> LotusCoreResolvedAdvisoryContext | None:
-    return STATEFUL_CONTEXT_CACHE.get(stateful_context_cache_key(stateful_input))
+    return STATEFUL_CONTEXT_CACHE.get(
+        stateful_context_cache_key(
+            stateful_input,
+            query_base_url=query_base_url,
+            control_plane_base_url=control_plane_base_url,
+        )
+    )
 
 
 def cache_resolved_context(
     stateful_input: WorkspaceStatefulInput,
     resolved: LotusCoreResolvedAdvisoryContext,
+    *,
+    query_base_url: str,
+    control_plane_base_url: str,
 ) -> None:
-    STATEFUL_CONTEXT_CACHE.set(stateful_context_cache_key(stateful_input), resolved)
+    STATEFUL_CONTEXT_CACHE.set(
+        stateful_context_cache_key(
+            stateful_input,
+            query_base_url=query_base_url,
+            control_plane_base_url=control_plane_base_url,
+        ),
+        resolved,
+    )
 
 
 def reset_stateful_context_cache() -> None:
