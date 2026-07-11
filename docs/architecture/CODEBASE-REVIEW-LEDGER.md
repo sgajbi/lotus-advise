@@ -1,5 +1,42 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-906
+
+- Scope: Advisory external-provider ports and core integration boundary
+- Pattern: Core proposal orchestration must depend on Advise-owned ports and typed unavailable
+  outcomes instead of concrete `src.integrations` modules, provider exceptions, or adapter
+  configuration helpers.
+- Status: Hardened
+- Finding Class: Ports/adapters, modularity, deterministic testing, architecture enforcement
+- Summary: GitHub issue #418 identified that advisory simulation, risk enrichment, and stateful
+  context resolution imported concrete Lotus Core/Risk integration modules from `src.core`. Same-
+  pattern scanning found proposal narrative and memo orchestration also importing Lotus AI and
+  Lotus Report DTOs/requesters from core. This made core behavior sensitive to provider exception
+  classes, HTTP adapter configuration, and import order.
+- Evidence:
+  - Added Advise-owned provider ports for advisory simulation, risk enrichment, stateful proposal
+    context resolution, AI narrative drafts, memo AI commentary, and memo report-package requests.
+  - Runtime composition translates Lotus Core, Lotus Risk, Lotus AI, and Lotus Report adapter
+    exceptions into core unavailable outcomes before they reach orchestration.
+  - Local simulation fallback now resolves from an explicit application fallback-policy object
+    rather than reading Lotus Core adapter helper functions from core.
+  - `.importlinter` now forbids `src.core` from importing `src.integrations`; a focused unit guard
+    also scans core source for integration imports.
+  - Focused validation passed with `206 passed` across advisory orchestration, proposal context,
+    narrative AI, proposal memo API, lifecycle, workspace, and proposal simulation tests.
+  - `make architecture-boundaries` passed with four kept contracts, including the new core-to-
+    integrations ban.
+- Consequence:
+  - Proposal orchestration can replace or test external providers through stable Advise-owned
+    ports. Provider-specific exceptions and concrete HTTP adapter modules no longer cross into
+    core application logic, reducing runtime coupling and test brittleness.
+- Documentation:
+  - Repository context, integration wiki, and review ledger updated. Wiki source changed, so repo
+    wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - Keep new external-provider capabilities behind application-owned ports first. Only runtime
+    composition and integration adapter modules may import concrete provider implementations.
+
 ## LA-REV-905
 
 - Scope: Integration runtime composition for Lotus Core stateful context and Lotus Report requests

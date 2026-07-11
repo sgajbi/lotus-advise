@@ -5,6 +5,7 @@ from typing import cast
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory.narrative_ai import apply_ai_draft_sections
 from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
+from src.core.advisory.narrative_ai_ports import generate_proposal_narrative_draft
 from src.core.advisory.narrative_envelope_models import ProposalNarrative
 from src.core.advisory.narrative_grounding import (
     TEMPLATE_POLICY_VERSION,
@@ -27,9 +28,8 @@ from src.core.advisory.narrative_types import (
     ProposalNarrativeSectionKey,
 )
 from src.core.common.canonical import hash_canonical_payload
-from src.integrations.lotus_ai.proposal_narrative import (
-    generate_proposal_narrative_draft_with_lotus_ai,
-)
+
+generate_proposal_narrative_draft_with_lotus_ai = generate_proposal_narrative_draft
 
 _ALL_SECTIONS: tuple[ProposalNarrativeSectionKey, ...] = (
     "EXECUTIVE_SUMMARY",

@@ -17,8 +17,10 @@ from src.api.services.workspace_service import (
     reevaluate_workspace_session,
     reset_workspace_sessions_for_tests,
 )
+from src.core.advisory.provider_ports import (
+    AdvisoryRiskEnrichmentUnavailableError as LotusRiskEnrichmentUnavailableError,
+)
 from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
-from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,

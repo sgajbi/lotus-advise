@@ -19,6 +19,14 @@ forbidden_modules =
     fastapi
     starlette
 
+[importlinter:contract:core_does_not_import_integrations]
+name = Core domain and application modules do not depend on integration adapters
+type = forbidden
+source_modules =
+    src.core
+forbidden_modules =
+    src.integrations
+
 [importlinter:contract:infrastructure_does_not_import_api]
 name = Infrastructure does not depend on API routers
 type = forbidden

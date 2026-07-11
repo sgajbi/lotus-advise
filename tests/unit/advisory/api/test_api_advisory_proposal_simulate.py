@@ -8,19 +8,25 @@ import src.api.services.advisory_simulation_validation as advisory_simulation_va
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
-from src.core.advisory_engine import run_proposal_simulation
-from src.core.proposals.context import ProposalContextResolutionError
-from src.integrations.lotus_ai.proposal_narrative import (
-    LotusAIProposalNarrativeUnavailableError,
+from src.core.advisory.narrative_ai_ports import (
     ProposalNarrativeDraftResponse,
     ProposalNarrativeDraftSection,
 )
-from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
+from src.core.advisory.narrative_ai_ports import (
+    ProposalNarrativeDraftUnavailableError as LotusAIProposalNarrativeUnavailableError,
+)
+from src.core.advisory.provider_ports import (
+    AdvisoryRiskEnrichmentUnavailableError as LotusRiskEnrichmentUnavailableError,
+)
+from src.core.advisory.provider_ports import (
+    AdvisorySimulationUnavailableError as LotusCoreSimulationUnavailableError,
+)
+from src.core.advisory_engine import run_proposal_simulation
+from src.core.proposals.context import ProposalContextResolutionError
 from src.integrations.lotus_core.stateful_context import (
     get_stateful_context_fetch_stats_for_tests,
     reset_stateful_context_cache_for_tests,
 )
-from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,

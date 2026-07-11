@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.advisory.provider_ports import configure_advisory_simulation_provider
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import CashBalance, EngineOptions, PortfolioSnapshot
 from src.core.policy_packs import (
@@ -85,8 +86,13 @@ def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.fixture(autouse=True)
 def advisory_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
-    def _simulate_with_lotus_core(**kwargs):
-        request = kwargs["request"]
+    def _simulate_with_lotus_core(
+        request,
+        request_hash,
+        idempotency_key,
+        correlation_id,
+        policy_context,
+    ):
         return run_proposal_simulation(
             portfolio=request.portfolio_snapshot,
             market_data=request.market_data_snapshot,
@@ -95,18 +101,16 @@ def advisory_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
             proposed_cash_flows=request.proposed_cash_flows,
             proposed_trades=request.proposed_trades,
             reference_model=request.reference_model,
-            request_hash=kwargs["request_hash"],
-            idempotency_key=kwargs["idempotency_key"],
-            correlation_id=kwargs["correlation_id"],
+            request_hash=request_hash,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
             simulation_contract_version="advisory-simulation.v1",
-            policy_context=kwargs.get("policy_context"),
+            policy_context=policy_context,
         )
 
     monkeypatch.setenv("ENVIRONMENT", "test")
-    monkeypatch.setattr(
-        "src.core.advisory.orchestration.simulate_with_lotus_core",
-        _simulate_with_lotus_core,
-    )
+    configure_advisory_simulation_provider(_simulate_with_lotus_core)
     reset_proposal_workflow_service_for_tests()
     yield
+    configure_advisory_simulation_provider(None)
     reset_proposal_workflow_service_for_tests()

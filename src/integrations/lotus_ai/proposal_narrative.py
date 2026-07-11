@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, cast
 
 import httpx
 
 from src.core.advisory.narrative_ai_models import ProposalNarrativeAiLineage
+from src.core.advisory.narrative_ai_ports import (
+    ProposalNarrativeDraftResponse,
+    ProposalNarrativeDraftSection,
+)
 from src.core.advisory.narrative_grounding_models import ProposalNarrativeGroundingPacket
 from src.core.advisory.narrative_policy_models import ProposalNarrativePolicy
 from src.core.advisory.narrative_types import (
@@ -39,19 +42,6 @@ MAX_NARRATIVE_AI_SECTION_TEXT_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH
 
 class LotusAIProposalNarrativeUnavailableError(Exception):
     pass
-
-
-@dataclass(frozen=True)
-class ProposalNarrativeDraftSection:
-    section_key: ProposalNarrativeSectionKey
-    title: str
-    text: str
-
-
-@dataclass(frozen=True)
-class ProposalNarrativeDraftResponse:
-    sections: tuple[ProposalNarrativeDraftSection, ...]
-    lineage: ProposalNarrativeAiLineage
 
 
 def generate_proposal_narrative_draft_with_lotus_ai(

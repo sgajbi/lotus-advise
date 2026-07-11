@@ -252,10 +252,13 @@ Boundary rules:
    `LOTUS_CORE_STATEFUL_SOURCE_INCOMPLETE`. Optional enrichment and classification taxonomy gaps
    remain explicit degraded source-completeness evidence on resolved context, advisory snapshots,
    and proposal lineage without storing raw source payloads,
-9. Lotus Core stateful-context resolution and Lotus Report request overrides are runtime-composed
-   integration ports. API startup registers production resolver/requester shims explicitly;
-   integration modules must not import `src.api.main`, read `sys.modules`, or depend on FastAPI
-   import order to select resolver or requester behavior,
+9. External advisory providers are runtime-composed through Advise-owned ports. Core application
+   modules must not import concrete `src.integrations` modules or provider-specific exception
+   classes. API/runtime startup registers production Lotus Core simulation/context, Lotus Risk
+   enrichment/dependency-state, Lotus AI narrative/memo, and Lotus Report memo package adapters
+   explicitly; tests should use deterministic port doubles. Integration modules must not import
+   `src.api.main`, read `sys.modules`, or depend on FastAPI import order to select resolver or
+   requester behavior,
 10. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
 11. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
 12. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
