@@ -36,10 +36,22 @@ from src.api.routers.tactical_house_view import router as tactical_house_view_ro
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.api.workspaces.router import router as workspace_router
+from src.core.proposals.models import ProposalReportResponse
 from src.core.workspace.input_models import WorkspaceStatefulInput
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
-from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
+from src.integrations.lotus_core.context_resolution import (
+    LotusCoreResolvedAdvisoryContext,
+    configure_lotus_core_advisory_context_resolver,
+)
 from src.integrations.lotus_core.stateful_context import resolve_stateful_context_with_lotus_core
+from src.integrations.lotus_report import (
+    configure_memo_report_package_requester_for_lotus_report,
+    configure_policy_sign_off_report_package_requester_for_lotus_report,
+    configure_proposal_report_requester_for_lotus_report,
+    request_policy_sign_off_report_package_with_lotus_report_http,
+    request_proposal_memo_report_package_with_lotus_report_http,
+    request_proposal_report_with_lotus_report_http,
+)
 
 
 @asynccontextmanager
@@ -76,7 +88,65 @@ app.include_router(workspace_router)
 def resolve_lotus_core_advisory_context(
     stateful_input: WorkspaceStatefulInput,
 ) -> LotusCoreResolvedAdvisoryContext:
-    return resolve_stateful_context_with_lotus_core(stateful_input)
+    return cast(
+        LotusCoreResolvedAdvisoryContext,
+        resolve_stateful_context_with_lotus_core(stateful_input),
+    )
+
+
+configure_lotus_core_advisory_context_resolver(
+    lambda stateful_input: resolve_lotus_core_advisory_context(stateful_input)
+)
+
+
+def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> ProposalReportResponse:
+    return request_proposal_report_with_lotus_report_http(request=request)
+
+
+def request_proposal_memo_report_package_with_lotus_report(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
+    return request_proposal_memo_report_package_with_lotus_report_http(request=request)
+
+
+def request_policy_sign_off_report_package_with_lotus_report(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
+    return request_policy_sign_off_report_package_with_lotus_report_http(request=request)
+
+
+def _request_proposal_report_runtime_adapter(*, request: dict[str, Any]) -> ProposalReportResponse:
+    requester = globals().get("request_proposal_report_with_lotus_report")
+    if callable(requester):
+        return cast(ProposalReportResponse, requester(request=request))
+    return request_proposal_report_with_lotus_report_http(request=request)
+
+
+def _request_proposal_memo_report_package_runtime_adapter(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
+    requester = globals().get("request_proposal_memo_report_package_with_lotus_report")
+    if callable(requester):
+        return cast(ProposalReportResponse, requester(request=request))
+    return request_proposal_memo_report_package_with_lotus_report_http(request=request)
+
+
+def _request_policy_sign_off_report_package_runtime_adapter(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
+    requester = globals().get("request_policy_sign_off_report_package_with_lotus_report")
+    if callable(requester):
+        return cast(ProposalReportResponse, requester(request=request))
+    return request_policy_sign_off_report_package_with_lotus_report_http(request=request)
+
+
+configure_proposal_report_requester_for_lotus_report(_request_proposal_report_runtime_adapter)
+configure_memo_report_package_requester_for_lotus_report(
+    _request_proposal_memo_report_package_runtime_adapter
+)
+configure_policy_sign_off_report_package_requester_for_lotus_report(
+    _request_policy_sign_off_report_package_runtime_adapter
+)
 
 
 def custom_openapi() -> dict[str, Any]:

@@ -12,6 +12,10 @@ _EXPORTS: Final[dict[str, tuple[str, str]]] = {
         "src.integrations.lotus_core.context_resolution",
         "LotusCoreContextResolutionError",
     ),
+    "LotusCoreAdvisoryContextResolver": (
+        "src.integrations.lotus_core.context_resolution",
+        "LotusCoreAdvisoryContextResolver",
+    ),
     "LotusCoreResolvedAdvisoryContext": (
         "src.integrations.lotus_core.context_resolution",
         "LotusCoreResolvedAdvisoryContext",
@@ -23,6 +27,14 @@ _EXPORTS: Final[dict[str, tuple[str, str]]] = {
     "build_lotus_core_dependency_state": (
         "src.integrations.lotus_core.adapter",
         "build_lotus_core_dependency_state",
+    ),
+    "configure_lotus_core_advisory_context_resolver": (
+        "src.integrations.lotus_core.context_resolution",
+        "configure_lotus_core_advisory_context_resolver",
+    ),
+    "get_lotus_core_advisory_context_resolver_for_tests": (
+        "src.integrations.lotus_core.context_resolution",
+        "get_lotus_core_advisory_context_resolver_for_tests",
     ),
     "lotus_core_fallback_mode": (
         "src.integrations.lotus_core.adapter",
@@ -43,6 +55,10 @@ _EXPORTS: Final[dict[str, tuple[str, str]]] = {
     "resolve_lotus_core_advisory_context": (
         "src.integrations.lotus_core.context_resolution",
         "resolve_lotus_core_advisory_context",
+    ),
+    "reset_lotus_core_advisory_context_resolver_for_tests": (
+        "src.integrations.lotus_core.context_resolution",
+        "reset_lotus_core_advisory_context_resolver_for_tests",
     ),
     "simulate_with_lotus_core": (
         "src.integrations.lotus_core.simulation",

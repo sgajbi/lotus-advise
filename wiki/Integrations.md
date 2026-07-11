@@ -1,5 +1,17 @@
 # Integrations
 
+## Current Scope
+
+This page summarizes implementation-backed upstream and downstream integration contracts for
+`lotus-advise`. It is operator and engineering guidance for supported advisory workflows; it is not
+a roadmap, client-publication claim, or substitute for provider-owned API documentation.
+
+| Reader | Use this page for | Evidence posture |
+| --- | --- | --- |
+| Engineering | Adapter ownership, runtime-composed ports, cache identity, and source-boundary rules | Backed by code, adapter tests, and repo-native gates |
+| Operations | Environment bindings, degraded states, and support-safe failure behavior | Backed by current runbook and integration tests |
+| Product and support | Which upstreams are authoritative for advisory behavior and which claims remain out of scope | Backed by repository context and supported-feature posture |
+
 ## Current Upstream Posture
 
 `lotus-advise` follows the upstream contract-family map documented in RFC-0082.
@@ -53,6 +65,9 @@ Important rule:
   `LOTUS_CORE_STATEFUL_SOURCE_INCOMPLETE`; optional enrichment and classification taxonomy gaps are
   carried as degraded completeness evidence on resolved context and proposal lineage without raw
   source payload storage.
+- stateful context resolution is selected through an explicit runtime-composed port. API startup
+  registers the production Lotus Core resolver; integration modules must not discover
+  `src.api.main`, read `sys.modules`, or rely on FastAPI import order for resolver behavior.
 
 Cache policy:
 
@@ -150,6 +165,9 @@ Boundary rule:
   unavailable postures with the report job id preserved for recovery.
 - downstream idempotency echoes must match the Advise report request id when the provider returns
   an idempotency key; mismatches fail closed.
+- request overrides are selected through explicit runtime-composed requester ports registered by
+  API startup. The adapter must not discover API-module globals or depend on FastAPI import order
+  to choose portfolio-review, memo package, or policy sign-off package request behavior.
 
 ## `lotus-ai`
 
