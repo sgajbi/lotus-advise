@@ -48,6 +48,11 @@ def test_integration_capabilities_response_uses_canonical_snake_case_fields():
     assert "source_service" in payload
     assert "consumer_system" in payload
     assert "tenant_id" in payload
+    assert payload["tenant_id"] == "deployment-wide"
+    assert payload["publication_scope"] == "deployment"
+    assert payload["tenant_policy_evaluated"] is False
+    assert payload["consumer_identity_source"] == "bounded_query_parameter"
+    assert payload["authorization_scope"] == "informational_not_authorization"
     assert "generated_at" in payload
     assert "as_of_date" in payload
     assert "policy_version" in payload
@@ -59,6 +64,10 @@ def test_integration_capabilities_response_uses_canonical_snake_case_fields():
         "sourceService",
         "consumerSystem",
         "tenantId",
+        "publicationScope",
+        "tenantPolicyEvaluated",
+        "consumerIdentitySource",
+        "authorizationScope",
         "generatedAt",
         "asOfDate",
         "policyVersion",
@@ -214,14 +223,39 @@ def test_rfc0028_capabilities_advertise_bank_demo_proof_after_canonical_proof():
     assert "oms order lifecycle" in payload_text
 
 
-def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
+def test_integration_capabilities_openapi_exposes_deployment_scoped_query_parameters_only():
     openapi = app.openapi()
     operation = openapi["paths"]["/platform/capabilities"]["get"]
     parameter_names = [param["name"] for param in operation["parameters"]]
     assert "consumer_system" in parameter_names
-    assert "tenant_id" in parameter_names
+    assert "tenant_id" not in parameter_names
     assert "consumerSystem" not in parameter_names
     assert "tenantId" not in parameter_names
+    description = operation["description"]
+    assert "deployment-scoped" in description
+    assert "Tenant-specific entitlement decisions are not published" in description
+
+
+def test_integration_capabilities_do_not_echo_arbitrary_tenant_scope():
+    with TestClient(app) as client:
+        tenant_a = client.get(
+            "/platform/capabilities",
+            params={"consumer_system": "lotus-gateway", "tenant_id": "tenant-a"},
+        ).json()
+        tenant_b = client.get(
+            "/platform/capabilities",
+            params={"consumer_system": "lotus-gateway", "tenant_id": "tenant-b"},
+        ).json()
+
+    for payload in (tenant_a, tenant_b):
+        assert payload["tenant_id"] == "deployment-wide"
+        assert payload["publication_scope"] == "deployment"
+        assert payload["tenant_policy_evaluated"] is False
+        assert "tenant-a" not in str(payload)
+        assert "tenant-b" not in str(payload)
+    assert tenant_a["features"] == tenant_b["features"]
+    assert tenant_a["workflows"] == tenant_b["workflows"]
+    assert tenant_a["supportability"] == tenant_b["supportability"]
 
 
 def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch):
@@ -844,7 +878,6 @@ def test_integration_capabilities_service_fails_closed_for_missing_dependency():
 
     response = build_integration_capabilities(
         consumer_system="lotus-gateway",
-        tenant_id="default",
         readiness=readiness,
     )
 

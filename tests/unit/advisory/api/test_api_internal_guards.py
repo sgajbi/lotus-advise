@@ -653,7 +653,7 @@ def test_integration_capabilities_routes_use_shared_parameter_contracts():
     assert "from fastapi import APIRouter" in source
     assert "Query(" not in source
     assert "IntegrationConsumerSystemQuery" in source
-    assert "IntegrationTenantIdQuery" in source
+    assert "IntegrationTenantIdQuery" not in source
 
 
 def test_capabilities_service_delegates_supportability_projection():

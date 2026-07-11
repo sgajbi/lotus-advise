@@ -158,6 +158,10 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   `lotus-core`, degraded `lotus-risk`, unavailable `lotus-report`, unavailable `lotus-ai`, or
   readiness-only `lotus-performance` posture must degrade the relevant dependency, feature, and
   workflow evidence there before any demo, RFP, release, or workflow claim is made.
+- Capability publication is deployment-scoped and informational. The response carries
+  `publication_scope=deployment`, `tenant_policy_evaluated=false`, and a fixed
+  `tenant_id=deployment-wide` compatibility marker; arbitrary `tenant_id` query values are not
+  documented, trusted, echoed, or used for entitlement decisions.
 - `GET /platform/capabilities` includes `advise.observability.advisory_supportability`,
   `advisory.proposals.reviewed_narrative_evidence`, and the
   `advisory_proposal_reviewed_narrative_evidence` workflow for advisor-review narrative evidence.

@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +28,11 @@ class IntegrationCapabilitiesResponse(BaseModel):
                 "contract_version": "v1",
                 "source_service": "lotus-advise",
                 "consumer_system": "lotus-gateway",
-                "tenant_id": "default",
+                "tenant_id": "deployment-wide",
+                "publication_scope": "deployment",
+                "tenant_policy_evaluated": False,
+                "consumer_identity_source": "bounded_query_parameter",
+                "authorization_scope": "informational_not_authorization",
                 "generated_at": "2026-03-25T00:00:00Z",
                 "as_of_date": "2026-03-25",
                 "policy_version": "advisory.v1",
@@ -98,8 +103,40 @@ class IntegrationCapabilitiesResponse(BaseModel):
         examples=["lotus-gateway"],
     )
     tenant_id: str = Field(
-        description="Tenant identifier used for feature policy resolution.",
-        examples=["default"],
+        description=(
+            "Compatibility scope marker for this deployment-wide capability contract; this "
+            "endpoint does not evaluate tenant-specific policy."
+        ),
+        examples=["deployment-wide"],
+    )
+    publication_scope: Literal["deployment"] = Field(
+        default="deployment",
+        description=(
+            "Scope of published capability truth. Current capabilities are deployment-wide "
+            "readiness and feature posture, not tenant-specific entitlement decisions."
+        ),
+        examples=["deployment"],
+    )
+    tenant_policy_evaluated: bool = Field(
+        default=False,
+        description="False because this endpoint does not resolve tenant-specific policy state.",
+        examples=[False],
+        json_schema_extra={"example": False},
+    )
+    consumer_identity_source: Literal["bounded_query_parameter"] = Field(
+        default="bounded_query_parameter",
+        description=(
+            "Consumer view selector source. It is bounded to known consumer values and is not an "
+            "authenticated caller identity."
+        ),
+        examples=["bounded_query_parameter"],
+    )
+    authorization_scope: Literal["informational_not_authorization"] = Field(
+        default="informational_not_authorization",
+        description=(
+            "Capability discovery is informational and must not be used as endpoint authorization."
+        ),
+        examples=["informational_not_authorization"],
     )
     generated_at: datetime = Field(
         description="UTC timestamp when capability payload is generated.",

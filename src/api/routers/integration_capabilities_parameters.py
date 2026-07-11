@@ -9,15 +9,10 @@ from src.api.capabilities import ConsumerSystem
 IntegrationConsumerSystemQuery = Annotated[
     ConsumerSystem,
     Query(
-        description="Consumer system requesting capabilities.",
+        description=(
+            "Bounded consumer-system view for deployment-scoped capability discovery. This value "
+            "is not an authenticated caller identity or tenant entitlement decision."
+        ),
         examples=["lotus-gateway"],
-    ),
-]
-
-IntegrationTenantIdQuery = Annotated[
-    str,
-    Query(
-        description="Tenant identifier used for policy resolution.",
-        examples=["default"],
     ),
 ]

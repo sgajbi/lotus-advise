@@ -6,7 +6,6 @@ from src.api.capabilities import (
 )
 from src.api.routers.integration_capabilities_parameters import (
     IntegrationConsumerSystemQuery,
-    IntegrationTenantIdQuery,
 )
 from src.api.routers.integration_capabilities_responses import INTEGRATION_CAPABILITIES_RESPONSES
 
@@ -18,16 +17,15 @@ router = APIRouter(tags=["Integration"])
     response_model=IntegrationCapabilitiesResponse,
     summary="Get Integration Capabilities",
     description=(
-        "Returns integration capability flags and workflow readiness metadata for "
-        "the specified consumer system and tenant."
+        "Returns deployment-scoped integration capability flags and workflow readiness metadata "
+        "for a bounded consumer-system view. Tenant-specific entitlement decisions are not "
+        "published by this discovery endpoint."
     ),
     responses=INTEGRATION_CAPABILITIES_RESPONSES,
 )
 async def get_integration_capabilities(
     consumer_system: IntegrationConsumerSystemQuery = "lotus-gateway",
-    tenant_id: IntegrationTenantIdQuery = "default",
 ) -> IntegrationCapabilitiesResponse:
     return build_integration_capabilities(
         consumer_system=consumer_system,
-        tenant_id=tenant_id,
     )

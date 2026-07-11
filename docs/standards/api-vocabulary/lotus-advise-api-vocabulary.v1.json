@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T09:48:18.100007+00:00",
+  "generatedAt": "2026-07-11T11:10:08.449468+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -1361,6 +1361,20 @@
       ]
     },
     {
+      "semanticId": "lotus.authorization_scope",
+      "canonicalTerm": "authorization_scope",
+      "preferredName": "authorization_scope",
+      "description": "Capability discovery is informational and must not be used as endpoint authorization.",
+      "example": "informational_not_authorization",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.auto_funding",
       "canonicalTerm": "auto_funding",
       "preferredName": "auto_funding",
@@ -2343,6 +2357,20 @@
       "preferredName": "constraint_key",
       "description": "Applied group constraint key.",
       "example": "advisory_review_context",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.consumer_identity_source",
+      "canonicalTerm": "consumer_identity_source",
+      "preferredName": "consumer_identity_source",
+      "description": "Consumer view selector source. It is bounded to known consumer values and is not an authenticated caller identity.",
+      "example": "bounded_query_parameter",
       "type": "string",
       "locations": [
         "body"
@@ -8228,6 +8256,20 @@
       ]
     },
     {
+      "semanticId": "lotus.publication_scope",
+      "canonicalTerm": "publication_scope",
+      "preferredName": "publication_scope",
+      "description": "Scope of published capability truth. Current capabilities are deployment-wide readiness and feature posture, not tenant-specific entitlement decisions.",
+      "example": "deployment",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.quantity",
       "canonicalTerm": "quantity",
       "preferredName": "quantity",
@@ -11660,11 +11702,24 @@
       "example": "default",
       "type": "string",
       "locations": [
-        "body",
-        "query"
+        "body"
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.tenant_policy_evaluated",
+      "canonicalTerm": "tenant_policy_evaluated",
+      "preferredName": "tenant_policy_evaluated",
+      "description": "False because this endpoint does not resolve tenant-specific policy state.",
+      "example": false,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
       ]
     },
     {
@@ -15433,7 +15488,7 @@
       "location": "query",
       "required": false,
       "type": "string",
-      "description": "Consumer system requesting capabilities.",
+      "description": "Bounded consumer-system view for deployment-scoped capability discovery. This value is not an authenticated caller identity or tenant entitlement decision.",
       "example": "lotus-gateway",
       "allowedValues": [
         "lotus-gateway",
@@ -15443,18 +15498,6 @@
       ],
       "semanticId": "lotus.consumer_system",
       "attributeRef": "#/attributeCatalog/lotus.consumer_system"
-    },
-    {
-      "name": "tenant_id",
-      "kind": "request_option",
-      "location": "query",
-      "required": false,
-      "type": "string",
-      "description": "Tenant identifier used for policy resolution.",
-      "example": "default",
-      "allowedValues": [],
-      "semanticId": "lotus.tenant_id",
-      "attributeRef": "#/attributeCatalog/lotus.tenant_id"
     },
     {
       "name": "x_correlation_id",
@@ -51775,14 +51818,6 @@
             "type": "string",
             "semanticId": "lotus.consumer_system",
             "attributeRef": "#/attributeCatalog/lotus.consumer_system"
-          },
-          {
-            "name": "tenant_id",
-            "location": "query",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.tenant_id",
-            "attributeRef": "#/attributeCatalog/lotus.tenant_id"
           }
         ]
       },
@@ -51819,6 +51854,38 @@
             "type": "string",
             "semanticId": "lotus.tenant_id",
             "attributeRef": "#/attributeCatalog/lotus.tenant_id"
+          },
+          {
+            "name": "publication_scope",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.publication_scope",
+            "attributeRef": "#/attributeCatalog/lotus.publication_scope"
+          },
+          {
+            "name": "tenant_policy_evaluated",
+            "location": "body",
+            "required": false,
+            "type": "boolean",
+            "semanticId": "lotus.tenant_policy_evaluated",
+            "attributeRef": "#/attributeCatalog/lotus.tenant_policy_evaluated"
+          },
+          {
+            "name": "consumer_identity_source",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.consumer_identity_source",
+            "attributeRef": "#/attributeCatalog/lotus.consumer_identity_source"
+          },
+          {
+            "name": "authorization_scope",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.authorization_scope",
+            "attributeRef": "#/attributeCatalog/lotus.authorization_scope"
           },
           {
             "name": "generated_at",
