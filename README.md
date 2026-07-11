@@ -90,6 +90,10 @@ Boundary rules that matter:
    `lotus-advise` records advisory posture while downstream providers remain execution systems of
    record
 6. REST/OpenAPI remains the governed integration contract for current upstream calls
+7. `lotus-core` projected transaction effects are mapped through
+   `CoreProjectedTransactionEffects`; any Core-returned suitability, gate, decision-summary,
+   alternatives, or next-step fields are non-authoritative compatibility evidence, while Advise
+   recomputes advisory decisions through its own suitability and workflow policy modules
 
 ## Current Operational Posture
 

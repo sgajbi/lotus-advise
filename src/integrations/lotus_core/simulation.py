@@ -3,6 +3,11 @@ from typing import Any, cast
 
 import httpx
 
+from src.core.advisory.source_effects import (
+    build_advise_owned_proposal_result_from_source_effects,
+    extract_core_decision_compatibility_snapshot,
+    map_core_payload_to_projected_transaction_effects,
+)
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposal_result_models import ProposalResult
@@ -82,7 +87,6 @@ def simulate_with_lotus_core(
     correlation_id: str,
     policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
-    del policy_context
     response = _post_simulation_request(
         request=request,
         request_hash=request_hash,
@@ -91,11 +95,34 @@ def simulate_with_lotus_core(
     )
     payload = _simulation_response_payload(response)
     _validate_response_contract_header(response)
-    result: ProposalResult = ProposalResult.model_validate(
-        _normalize_suitability_issue_classification(payload)
+    result = _proposal_result_from_core_source_effects(
+        request=request,
+        payload=_normalize_suitability_issue_classification(payload),
+        policy_context=policy_context,
     )
     _validate_result_contracts(result)
     return result
+
+
+def _proposal_result_from_core_source_effects(
+    *,
+    request: ProposalSimulateRequest,
+    payload: dict[str, Any],
+    policy_context: dict[str, object] | None,
+) -> ProposalResult:
+    try:
+        source_effects = map_core_payload_to_projected_transaction_effects(payload)
+        compatibility_snapshot = extract_core_decision_compatibility_snapshot(payload)
+        return build_advise_owned_proposal_result_from_source_effects(
+            request=request,
+            source_effects=source_effects,
+            compatibility_snapshot=compatibility_snapshot,
+            policy_context=policy_context,
+        )
+    except ValueError as exc:
+        raise LotusCoreSimulationUnavailableError(
+            "LOTUS_CORE_PROJECTED_TRANSACTION_EFFECTS_UNSUPPORTED"
+        ) from exc
 
 
 def _simulation_headers(

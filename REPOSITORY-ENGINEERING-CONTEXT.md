@@ -306,6 +306,11 @@ Boundary rules:
     The lane must cover valid responses, malformed JSON, missing fields, portfolio/as-of identity
     mismatch, partial data, auth failures, timeouts, retry or bounded non-retry posture, duplicate
     or idempotency behavior, provider error mapping, and raw-payload/secret non-leakage.
+22. Lotus Core advisory simulation responses must enter Advise through
+    `CoreProjectedTransactionEffects`. Core-owned before/after transaction effects, rule results,
+    allocation lens, and source lineage are accepted after contract validation; Core-returned
+    suitability, workflow gate, decision-summary, alternatives, consent, or next-step fields are
+    compatibility evidence only and must not drive Advise advisory decisions.
 
 ## Repo-Native Commands
 

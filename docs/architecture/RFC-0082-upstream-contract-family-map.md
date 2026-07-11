@@ -32,6 +32,19 @@ performance analytics, or risk analytics.
 | stateful context enrichment load | `POST /integration/instruments/enrichment-bulk` | Analytics Input watchlist | enrichment context for proposal construction | enrichment semantics remain upstream; local fallback labels are not authoritative analytics |
 | stateful context classification taxonomy load | `POST /integration/reference/classification-taxonomy` | Analytics Input watchlist | governed instrument classification labels for proposal shelf construction | use effective-dated core taxonomy labels where available; expose `UNKNOWN` plus supportability attributes when upstream labels are missing from the governed taxonomy |
 
+### Source Effects And Advisory Decision Ownership
+
+`lotus-core` v1 can still return legacy advisory decision-shaped fields on the simulation route.
+`lotus-advise` treats those fields as compatibility evidence only. The adapter maps the response
+into `CoreProjectedTransactionEffects`, then recomputes advisory suitability, gate, decision
+summary, alternatives, and next-step posture inside Advise.
+
+| Field family | Authority | Advise handling |
+| --- | --- | --- |
+| before-state, after-state, intents, reconciliation, rule results, allocation lens, source lineage | `lotus-core` source-effects authority | Accepted through `CoreProjectedTransactionEffects` after contract-version validation. |
+| suitability issues, recommended suitability gate, workflow gate, proposal decision summary, proposal alternatives, advisory next step, consent posture | `lotus-advise` advisory-decision authority | Recomputed by Advise policy modules; any Core-returned values are retained only under `non_authoritative_core_decisions` for parity and migration review. |
+| risk-lens enrichment and concentration methodology | `lotus-risk` risk authority | Attached by the risk adapter; missing risk authority remains degraded evidence, not a local risk calculation. |
+
 Environment binding:
 
 1. `LOTUS_CORE_BASE_URL` is the lotus-core control-plane base URL for advisory simulation execution
@@ -88,8 +101,9 @@ Existing tests that cover this posture include:
 7. `tests/e2e/live/test_degraded_runtime_live.py`
 8. `tests/e2e/live/test_live_runtime_suite.py`
 
-This RFC-0082 documentation slice did not change runtime behavior, OpenAPI output, or upstream
-request/response contracts.
+The source-effects ownership hardening is covered by focused adapter tests that prove Core
+suitability and gate payloads are quarantined as non-authoritative compatibility evidence while
+Advise-owned decision support is recomputed locally.
 
 ## Gap Register
 

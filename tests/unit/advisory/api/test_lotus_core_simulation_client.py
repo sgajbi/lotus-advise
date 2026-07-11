@@ -186,6 +186,12 @@ def _payload_with_suitability_issue(issue: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _non_authoritative_core_decisions(result: ProposalResult) -> dict[str, Any]:
+    payload = result.explanation.get("non_authoritative_core_decisions")
+    assert isinstance(payload, dict)
+    return payload
+
+
 class _FakeResponse:
     def __init__(self, *, status_code: int, payload: Any, headers: dict[str, str]) -> None:
         self.status_code = status_code
@@ -510,6 +516,35 @@ def test_simulate_with_lotus_core_rejects_allocation_lens_contract_mismatch(monk
         )
 
 
+def test_simulate_with_lotus_core_rejects_missing_source_effect_evidence(monkeypatch):
+    payload = _result_payload()
+    payload.pop("before")
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=200,
+            payload=payload,
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    with pytest.raises(
+        LotusCoreSimulationUnavailableError,
+        match="LOTUS_CORE_PROJECTED_TRANSACTION_EFFECTS_UNSUPPORTED",
+    ):
+        simulate_with_lotus_core(
+            request=_request(),
+            request_hash="sha256:test-hash",
+            idempotency_key="idem-1",
+            correlation_id="corr-1",
+        )
+
+
 def test_simulate_with_lotus_core_preserves_upstream_problem_status(monkeypatch):
     fake_client = _FakeClient(
         _FakeResponse(
@@ -549,7 +584,7 @@ def test_simulate_with_lotus_core_preserves_upstream_problem_status(monkeypatch)
     )
 
 
-def test_simulate_with_lotus_core_backfills_missing_suitability_classification(monkeypatch):
+def test_simulate_with_lotus_core_quarantines_core_suitability_classification(monkeypatch):
     payload = _payload_with_suitability_issue(
         _suitability_issue_payload(issue_id="MISSING_CLASSIFICATION")
     )
@@ -575,7 +610,15 @@ def test_simulate_with_lotus_core_backfills_missing_suitability_classification(m
     )
 
     assert result.suitability is not None
-    assert result.suitability.issues[0].classification == "NEW"
+    assert result.suitability.issues[0].classification == "PERSISTENT"
+    core_decisions = _non_authoritative_core_decisions(result)
+    assert core_decisions["suitability"]["issues"][0]["classification"] == "NEW"
+    assert (
+        result.explanation["core_projected_transaction_effects"][
+            "core_reported_status_authoritative"
+        ]
+        is False
+    )
 
 
 def test_simulate_with_lotus_core_preserves_canonical_suitability_classification(monkeypatch):
@@ -609,9 +652,65 @@ def test_simulate_with_lotus_core_preserves_canonical_suitability_classification
 
     assert result.suitability is not None
     assert result.suitability.issues[0].classification == "PERSISTENT"
+    core_decisions = _non_authoritative_core_decisions(result)
+    assert core_decisions["suitability"]["issues"][0]["classification"] == "PERSISTENT"
 
 
-def test_simulate_with_lotus_core_replaces_malformed_suitability_classification(monkeypatch):
+def test_simulate_with_lotus_core_treats_core_gate_as_non_authoritative(monkeypatch):
+    payload = _result_payload()
+    payload["gate_decision"] = {
+        "gate": "BLOCKED",
+        "recommended_next_step": "FIX_INPUT",
+        "reasons": [
+            {
+                "reason_code": "CORE_REPORTED_BLOCK",
+                "severity": "HIGH",
+                "source": "RULE_ENGINE",
+                "details": {},
+            }
+        ],
+        "summary": {
+            "hard_fail_count": 1,
+            "soft_fail_count": 0,
+            "new_high_suitability_count": 0,
+            "new_medium_suitability_count": 0,
+        },
+    }
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=200,
+            payload=payload,
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    result = simulate_with_lotus_core(
+        request=_request(),
+        request_hash="sha256:test-hash",
+        idempotency_key="idem-1",
+        correlation_id="corr-1",
+    )
+
+    assert result.gate_decision is not None
+    assert result.gate_decision.gate != "BLOCKED"
+    core_decisions = _non_authoritative_core_decisions(result)
+    assert core_decisions["gate_decision"]["gate"] == "BLOCKED"
+    source_effects = result.explanation["core_projected_transaction_effects"]
+    assert source_effects["advise_calculation_version"] == (
+        "lotus-advise.advisory-decision-support.v1"
+    )
+    assert source_effects["source_effects_hash"].startswith("sha256:")
+
+
+def test_simulate_with_lotus_core_normalizes_core_suitability_only_for_parity_snapshot(
+    monkeypatch,
+):
     payload = _payload_with_suitability_issue(
         _suitability_issue_payload(
             issue_id="MALFORMED_CLASSIFICATION",
@@ -641,4 +740,6 @@ def test_simulate_with_lotus_core_replaces_malformed_suitability_classification(
     )
 
     assert result.suitability is not None
-    assert result.suitability.issues[0].classification == "RESOLVED"
+    assert result.suitability.issues[0].classification == "PERSISTENT"
+    core_decisions = _non_authoritative_core_decisions(result)
+    assert core_decisions["suitability"]["issues"][0]["classification"] == "RESOLVED"

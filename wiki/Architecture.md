@@ -163,9 +163,14 @@ lifecycle, completed policy approval authority, or full RFC-0028 demo/RFP readin
 - portfolio source data
 - holdings and cash reads
 - instrument, price, and FX reads
-- advisory simulation execution contract
+- advisory simulation source effects: before-state, after-state, intents, reconciliation, rule
+  results, allocation lens, and source lineage
 
-`lotus-advise` must not duplicate `lotus-core` execution semantics or source-data authority locally.
+`lotus-advise` must not duplicate `lotus-core` execution semantics or source-data authority
+locally. It maps Core simulation responses into `CoreProjectedTransactionEffects` and recomputes
+advisory suitability, workflow gates, decision summaries, alternatives, consent posture, and
+next-step decisions inside Advise. Legacy Core-returned decision fields are retained only as
+`non_authoritative_core_decisions` for parity and migration review.
 
 ### `lotus-manage`
 
