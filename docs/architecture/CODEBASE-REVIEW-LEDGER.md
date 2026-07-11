@@ -1,5 +1,46 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-919
+
+- Scope: Policy-pack catalog active-version invariant
+- Pattern: Product-control catalog state must enforce one current policy truth per policy pack in
+  domain semantics and database constraints; audit evidence must identify supersession.
+- Status: Hardened
+- Finding Class: Data-model quality, policy correctness, and auditability
+- Summary: GitHub issue #428 identified that the `policy_packs` baseline migration created a
+  partial unique index on `(policy_pack_id, policy_version)` for `ACTIVE` rows, which duplicated
+  the primary-key shape and did not prevent multiple active versions for the same policy pack.
+  Activation logic also marked the requested version `ACTIVE` without superseding or rejecting a
+  different active version.
+- Evidence:
+  - Added forward-only migration
+    `src/infrastructure/postgres_migrations/policy_packs/0002_one_active_policy_pack_version.sql`
+    to replace the ineffective index with a partial unique index on `policy_pack_id` for `ACTIVE`
+    rows.
+  - Updated policy-pack activation to detect duplicate pre-existing active versions, fail closed
+    with `POLICY_PACK_ACTIVE_VERSION_CONFLICT`, and supersede the single prior active version when
+    activating a different validated version.
+  - Activation audit-event reasons now record previous active version, resulting active version,
+    superseded version, idempotency request hash, actor, timestamp, and the
+    `ONE_ACTIVE_VERSION_PER_POLICY_PACK` supersession contract.
+  - Updated production cutover expectations and the PostgreSQL migration rollout contract so the
+    new `policy_packs` migration is covered by migration smoke and rollout metadata gates.
+  - Added focused tests for second-version activation, prior-version supersession, duplicate-active
+    conflict behavior, corrected partial unique-index SQL, and policy cutover version coverage.
+- Consequence:
+  - Policy evaluation and downstream reporting can resolve one deterministic active policy-pack
+    version per pack, and duplicate active catalog state now fails before further activation rather
+    than producing ambiguous policy truth.
+- Documentation:
+  - Updated RFC-0025 Slice 5, API model descriptions/API vocabulary, operations runbook,
+    Operations wiki source, migration rollout contract, generated quality reports, and this ledger.
+    Wiki source changed, so repo-wiki check is required before merge and publication is required
+    after merge.
+- Follow-Up:
+  - #429 remains the broader transaction/CAS hardening issue for policy-pack repository
+    read-modify-write flows, immutable idempotency persistence, and concurrent activation races
+    across PostgreSQL connections.
+
 ## LA-REV-918
 
 - Scope: PostgreSQL migration rollout and cutover evidence

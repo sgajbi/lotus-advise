@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -14,6 +15,7 @@ from src.core.policy_packs import (
     validate_policy_pack_version,
 )
 from src.core.policy_packs.catalog_definitions import validate_definition
+from src.core.policy_packs.catalog_reference_packs import reference_policy_packs
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalValidationError,
@@ -184,6 +186,8 @@ def test_policy_pack_activation_enforces_hash_maker_checker_and_immutability() -
     assert activated.activation_event.idempotency_key == "activate-sg-reference"
     assert activated.policy_pack.content_hash == detail.policy_pack.content_hash
     assert activated.activation_event.reason["validated_by"] == "policy_steward_1"
+    assert activated.activation_event.reason["previous_active_policy_version"] is None
+    assert activated.activation_event.reason["resulting_active_policy_version"] == "2026.05"
     assert replayed.replayed is True
     assert replayed.activation_event.event_id == activated.activation_event.event_id
     with pytest.raises(ProposalValidationError, match="IMMUTABLE"):
@@ -194,6 +198,75 @@ def test_policy_pack_activation_enforces_hash_maker_checker_and_immutability() -
             source_content_hash=detail.policy_pack.content_hash,
             idempotency_key="activate-again",
             reason={"purpose": "second activation should fail"},
+        )
+
+
+def test_policy_pack_activation_supersedes_prior_active_version() -> None:
+    store = PolicyPackCatalogStore(_two_version_sg_policy_pack_definitions())
+    new_detail = store.get_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.06",
+    )
+    store.validate_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.06",
+        requested_by="policy_steward_1",
+        idempotency_key="validate-sg-reference-2026-06",
+        reason={"purpose": "pre-activation validation"},
+    )
+
+    activated = store.activate_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.06",
+        activated_by="policy_checker_1",
+        source_content_hash=new_detail.policy_pack.content_hash,
+        idempotency_key="activate-sg-reference-2026-06",
+        reason={"purpose": "activate superseding reference pack"},
+    )
+    old_detail = store.get_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+    listed = store.list_policy_pack_versions()
+
+    assert activated.policy_pack.activation_state == "ACTIVE"
+    assert old_detail.policy_pack.activation_state == "SUPERSEDED"
+    assert [
+        item.policy_version
+        for item in listed.items
+        if (
+            item.policy_pack_id == "SG_PRIVATE_BANKING_REFERENCE"
+            and item.activation_state == "ACTIVE"
+        )
+    ] == ["2026.06"]
+    assert activated.activation_event.reason["previous_active_policy_version"] == "2026.05"
+    assert activated.activation_event.reason["superseded_policy_version"] == "2026.05"
+    assert activated.activation_event.reason["resulting_active_policy_version"] == "2026.06"
+    assert (
+        activated.activation_event.reason["supersession_contract"]
+        == "ONE_ACTIVE_VERSION_PER_POLICY_PACK"
+    )
+
+
+def test_policy_pack_activation_blocks_preexisting_duplicate_active_versions() -> None:
+    definitions = _two_version_sg_policy_pack_definitions()
+    for definition in definitions:
+        if definition["policy_pack_id"] == "SG_PRIVATE_BANKING_REFERENCE":
+            definition["activation_state"] = "ACTIVE"
+    store = PolicyPackCatalogStore(definitions)
+    detail = store.get_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.06",
+    )
+
+    with pytest.raises(ProposalValidationError, match="POLICY_PACK_ACTIVE_VERSION_CONFLICT"):
+        store.activate_policy_pack_version(
+            policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+            policy_version="2026.06",
+            activated_by="policy_checker_1",
+            source_content_hash=detail.policy_pack.content_hash,
+            idempotency_key="activate-conflicting-sg-reference",
+            reason={"purpose": "duplicate active should fail"},
         )
 
 
@@ -339,3 +412,20 @@ def test_policy_pack_definition_validation_rejects_unsafe_rule_wording() -> None
         "SG_UNSAFE_WORDING_FORBIDDEN_POSITIVE_MISSING_EVIDENCE_WORDING",
         "RULE_MUST_BE_OBJECT",
     ]
+
+
+def _two_version_sg_policy_pack_definitions() -> list[dict[str, Any]]:
+    definitions = [
+        definition
+        for definition in reference_policy_packs()
+        if definition["policy_pack_id"] == "SG_PRIVATE_BANKING_REFERENCE"
+    ]
+    old_definition = definitions[0]
+    old_definition["activation_state"] = "ACTIVE"
+    new_definition = {
+        **old_definition,
+        "policy_version": "2026.06",
+        "activation_state": "DRAFT",
+        "effective_from": "2026-06-01",
+    }
+    return [old_definition, new_definition]

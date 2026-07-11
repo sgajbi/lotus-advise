@@ -42,6 +42,15 @@ the caller to supply the validated source content hash. Activated versions canno
 with a different command, and maker-checker packs require the activation actor to differ from the
 validation actor.
 
+Activation enforces a one-active-version invariant per `policy_pack_id`. Activating a different
+validated version atomically changes that version to `ACTIVE` in the catalog snapshot and marks the
+prior active version `SUPERSEDED`; the activation audit event records the previous and resulting
+active versions, actor, idempotency key, request hash, and timestamp. If existing catalog state
+contains more than one active version for the same pack, activation fails closed with
+`POLICY_PACK_ACTIVE_VERSION_CONFLICT` until the duplicate active state is remediated. PostgreSQL
+persistence backs the invariant with the `policy_packs` `0002_one_active_policy_pack_version`
+migration, which installs a partial unique index on `policy_pack_id` for `ACTIVE` rows.
+
 The `/platform/capabilities` response now advertises `advisory.policy_pack_catalog` and
 `advisory_policy_pack_catalog` as catalog support only. It still does not advertise
 `advisory.proposals.policy_evaluation` or `advisory_policy_evaluation`.
@@ -52,7 +61,8 @@ Local behavioral proof:
 
 1. `tests/unit/advisory/engine/test_engine_policy_pack_catalog.py`
    validates idempotent validation, idempotency conflicts, content-hash enforcement,
-   maker-checker enforcement, activation immutability, and fail-fast invalid-pack diagnostics.
+   maker-checker enforcement, activation immutability, one-active-version supersession,
+   duplicate-active conflict behavior, and fail-fast invalid-pack diagnostics.
 2. `tests/unit/advisory/api/test_api_advisory_policy_packs.py`
    validates list/detail/validate/activate routes, audit events, OpenAPI route publication, and
    absence of proposal policy-evaluation routes.

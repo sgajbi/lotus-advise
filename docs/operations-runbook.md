@@ -154,6 +154,9 @@ namespaces and uses `POLICY_POSTGRES_DSN` for `policy_packs` when policy storage
 Current index migrations are not `CREATE INDEX CONCURRENTLY`; treat them as controlled-window
 operations on production-sized tables. Keep the previous compatible app version available, retain
 backup/restore evidence, and fix forward with a new migration rather than editing applied SQL.
+Before applying the `policy_packs` active-version uniqueness migration, verify there is no more
+than one `ACTIVE` row per `policy_pack_id`; if duplicates exist, quarantine policy activation and
+remediate the intended current version before rerunning migration apply.
 
 ## Proposal History Reads
 

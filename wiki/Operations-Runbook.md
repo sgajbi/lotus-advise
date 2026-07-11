@@ -264,6 +264,9 @@ Every migration must be represented in
 old/new app compatibility, lock and online behavior, backfill checkpoint/resume/quarantine posture,
 rollback limits, and rehearsal evidence. Current index migrations are normal PostgreSQL index
 builds, not concurrent index builds, so use controlled rollout windows for production-sized tables.
+Before applying policy-pack active-version uniqueness changes, preflight that each
+`policy_pack_id` has at most one `ACTIVE` version; duplicate active rows must be quarantined and
+remediated before migration apply.
 
 Use the full runbook in `docs/documentation/postgres-migration-rollout-runbook.md` for rollout,
 smoke, and fix-forward guidance.

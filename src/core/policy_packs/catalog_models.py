@@ -65,7 +65,11 @@ class PolicyPackSummary(BaseModel):
         examples=["Global Private Banking Baseline"],
     )
     activation_state: PolicyPackActivationState = Field(
-        description="Current activation posture of this immutable policy-pack version.",
+        description=(
+            "Current activation posture of this immutable policy-pack version. Exactly one "
+            "version per policy pack may be ACTIVE; activating a newer version supersedes the "
+            "prior active version."
+        ),
         examples=["ACTIVE"],
     )
     reference_posture: str = Field(
@@ -202,7 +206,10 @@ class PolicyPackActivationRequest(BaseModel):
 class PolicyPackActivationResponse(BaseModel):
     policy_pack: PolicyPackSummary = Field(description="Policy pack metadata after activation.")
     activation_event: PolicyPackAuditEvent = Field(
-        description="Append-only activation audit event."
+        description=(
+            "Append-only activation audit event. The reason payload identifies the previous "
+            "active version, resulting active version, actor, idempotency key, and timestamp."
+        )
     )
     replayed: bool = Field(
         description="Whether this response replayed a prior idempotent activation event.",
