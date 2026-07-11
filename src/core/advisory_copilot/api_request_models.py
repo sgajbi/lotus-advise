@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -71,20 +71,23 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     @field_validator("created_by")
     @classmethod
     def _normalize_created_by(cls, value: str) -> str:
-        return normalize_copilot_actor_id(value)
+        return cast(str, normalize_copilot_actor_id(value))
 
     @field_validator("evidence_packet_id", "portfolio_id")
     @classmethod
     def _normalize_required_identifier(cls, value: str) -> str:
-        return normalize_required_copilot_identifier(
-            value,
-            error_code="COPILOT_IDENTIFIER_REQUIRED",
+        return cast(
+            str,
+            normalize_required_copilot_identifier(
+                value,
+                error_code="COPILOT_IDENTIFIER_REQUIRED",
+            ),
         )
 
     @field_validator("proposal_id")
     @classmethod
     def _normalize_optional_identifier(cls, value: str | None) -> str | None:
-        return normalize_optional_copilot_identifier(value)
+        return cast(str | None, normalize_optional_copilot_identifier(value))
 
 
 class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
@@ -130,20 +133,23 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
     @field_validator("created_by")
     @classmethod
     def _normalize_created_by(cls, value: str) -> str:
-        return normalize_copilot_actor_id(value)
+        return cast(str, normalize_copilot_actor_id(value))
 
     @field_validator("proposal_id")
     @classmethod
     def _normalize_proposal_id(cls, value: str) -> str:
-        return normalize_required_copilot_identifier(
-            value,
-            error_code="COPILOT_PROPOSAL_ID_REQUIRED",
+        return cast(
+            str,
+            normalize_required_copilot_identifier(
+                value,
+                error_code="COPILOT_PROPOSAL_ID_REQUIRED",
+            ),
         )
 
     @field_validator("evidence_packet_id")
     @classmethod
     def _normalize_evidence_packet_id(cls, value: str | None) -> str | None:
-        return normalize_optional_copilot_identifier(value)
+        return cast(str | None, normalize_optional_copilot_identifier(value))
 
 
 class AdvisoryCopilotActionRequest(BaseModel):
@@ -189,42 +195,51 @@ class AdvisoryCopilotActionRequest(BaseModel):
     @field_validator("requested_outputs", mode="before")
     @classmethod
     def _normalize_requested_outputs(cls, value: Any) -> tuple[str, ...]:
-        return normalize_bounded_copilot_string_tuple(
-            value,
-            error_code="COPILOT_REQUESTED_OUTPUT_REQUIRED",
-            max_items=COPILOT_REQUESTED_OUTPUT_LIMIT,
-            max_item_length=COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
-            allow_empty=False,
+        return cast(
+            tuple[str, ...],
+            normalize_bounded_copilot_string_tuple(
+                value,
+                error_code="COPILOT_REQUESTED_OUTPUT_REQUIRED",
+                max_items=COPILOT_REQUESTED_OUTPUT_LIMIT,
+                max_item_length=COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
+                allow_empty=False,
+            ),
         )
 
     @field_validator("evidence_packet_id")
     @classmethod
     def _normalize_evidence_packet_id(cls, value: str) -> str:
-        return normalize_required_copilot_identifier(
-            value,
-            error_code="COPILOT_EVIDENCE_PACKET_ID_REQUIRED",
+        return cast(
+            str,
+            normalize_required_copilot_identifier(
+                value,
+                error_code="COPILOT_EVIDENCE_PACKET_ID_REQUIRED",
+            ),
         )
 
     @field_validator("requested_by")
     @classmethod
     def _normalize_requested_by(cls, value: str) -> str:
-        return normalize_copilot_actor_id(value)
+        return cast(str, normalize_copilot_actor_id(value))
 
     @field_validator("requested_intents", mode="before")
     @classmethod
     def _normalize_requested_intents(cls, value: Any) -> tuple[str, ...]:
-        return normalize_bounded_copilot_string_tuple(
-            value,
-            error_code="COPILOT_REQUESTED_INTENT_INVALID",
-            max_items=COPILOT_REQUESTED_INTENT_LIMIT,
-            max_item_length=COPILOT_REQUESTED_INTENT_MAX_LENGTH,
-            allow_empty=True,
+        return cast(
+            tuple[str, ...],
+            normalize_bounded_copilot_string_tuple(
+                value,
+                error_code="COPILOT_REQUESTED_INTENT_INVALID",
+                max_items=COPILOT_REQUESTED_INTENT_LIMIT,
+                max_item_length=COPILOT_REQUESTED_INTENT_MAX_LENGTH,
+                allow_empty=True,
+            ),
         )
 
     @field_validator("user_instruction")
     @classmethod
     def _normalize_user_instruction(cls, value: str) -> str:
-        return normalize_copilot_user_instruction(value)
+        return cast(str, normalize_copilot_user_instruction(value))
 
 
 class AdvisoryCopilotReviewRequest(BaseModel):
@@ -232,8 +247,12 @@ class AdvisoryCopilotReviewRequest(BaseModel):
         description="Review action to apply to the copilot run.",
         examples=["APPROVE_FOR_INTERNAL_USE"],
     )
-    actor_id: str = Field(
-        description="Actor recording the review event.",
+    actor_id: str | None = Field(
+        default=None,
+        description=(
+            "Compatibility actor echo. The trusted reviewer is resolved from authentication "
+            "headers, and this field is rejected when it does not match that principal."
+        ),
         examples=["supervisor_123"],
     )
     reason: dict[str, Any] = Field(
@@ -244,8 +263,8 @@ class AdvisoryCopilotReviewRequest(BaseModel):
 
     @field_validator("actor_id")
     @classmethod
-    def _normalize_actor_id(cls, value: str) -> str:
-        return normalize_copilot_actor_id(value)
+    def _normalize_actor_id(cls, value: str | None) -> str | None:
+        return cast(str, normalize_copilot_actor_id(value)) if value is not None else None
 
 
 __all__ = [

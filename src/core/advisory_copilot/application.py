@@ -29,6 +29,7 @@ from src.core.advisory_copilot.proposal_projection_persistence import (
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.request_hashing import build_advisory_copilot_run_request_hash
 from src.core.advisory_copilot.review import CopilotReviewAction
+from src.core.advisory_copilot.review_authority import CopilotReviewPrincipal
 from src.core.advisory_copilot.review_persistence import (
     list_advisory_copilot_reviews,
     record_advisory_copilot_review,
@@ -223,6 +224,7 @@ class AdvisoryCopilotApplicationService:
         run_id: str,
         payload: AdvisoryCopilotReviewRequest,
         idempotency_key: str,
+        principal: CopilotReviewPrincipal,
         correlation_id: str | None,
     ) -> AdvisoryCopilotReviewResponse:
         idempotency_key = normalize_required_idempotency_key(idempotency_key)
@@ -230,7 +232,8 @@ class AdvisoryCopilotApplicationService:
             repository=self._repository,
             run_id=run_id,
             action=cast(CopilotReviewAction, payload.action),
-            actor_id=payload.actor_id,
+            principal=principal,
+            submitted_actor_id=payload.actor_id,
             reason=payload.reason,
             correlation_id=resolve_advisory_copilot_correlation_id(
                 correlation_id,

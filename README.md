@@ -121,13 +121,20 @@ Boundary rules that matter:
    compatibility echoes and are rejected when they do not match the trusted principal. Completed
    approval/waiver authority, client-ready policy publication, and external client communication
    remain gated.
-7. `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active
+7. `AdvisoryCopilotInteractionRecord:v1` is active for governed internal advisor/reviewer copilot
+   interactions. Completed copilot output must pass claim-level source grounding, and review
+   actions bind reviewer authority to trusted `X-Actor-Id`, `X-Role`, `X-Tenant-Id`,
+   `X-Legal-Entity-Code`, `X-Correlation-Id`, service-identity, capability, proposal, and
+   portfolio headers. Request-body `actor_id` is only a compatibility echo; mismatches, missing
+   scope, wrong tenant, missing capability, wrong role, self-review, and changed-actor idempotency
+   replay fail before review state mutates.
+8. `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active
    source-owned RFC-0026 advisor operating workflow products. They cover Advise action items,
    snapshot, supportability, acknowledgements, Gateway/Workbench consumption, and canonical
    `PB_SG_GLOBAL_BAL_001` proof while client-ready publication, external client communication,
    CRM system-of-record behavior, OMS lifecycle, and completed policy approval authority remain
    gated. RFC-0028 bank-demo/RFP proof is governed separately through supported claims.
-8. RFC-0028 bank-demo proof is implemented through the Advise scenario contract, supported-claim
+9. RFC-0028 bank-demo proof is implemented through the Advise scenario contract, supported-claim
    register, sanitized proof-pack capture, Gateway publication, Platform canonical contract
    registration, and Workbench `advisory.bank_demo_proof` surface. Canonical validation for
    `PB_SG_GLOBAL_BAL_001` records `BANK_DEMO_PROOF_PACK_CREATED` and keeps client-ready

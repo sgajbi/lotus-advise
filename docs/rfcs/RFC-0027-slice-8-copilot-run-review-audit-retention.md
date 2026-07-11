@@ -17,7 +17,8 @@ Implemented capability:
    Current hardening also stores bounded claim-grounding posture in output sections and lineage so
    unsupported or unverifiable provider claims remain audit-visible but not review-ready.
 2. `AdvisoryCopilotReviewRecord` stores approve, reject, supersede, and expire review actions with
-   previous/new posture, actor, reason, idempotency, request hash, and correlation id.
+   previous/new posture, trusted reviewer actor, role/scope audit metadata, reason, idempotency,
+   request hash, and correlation id.
 3. `persist_advisory_copilot_run` creates replay-safe run records without storing raw prompts,
    provider responses, unsafe raw output, or unrestricted source payloads.
 4. `record_advisory_copilot_review` applies idempotent review actions, prevents non-idempotent
@@ -59,9 +60,15 @@ Supported review actions:
 3. `SUPERSEDE`
 4. `EXPIRE`
 
+Review actions are authorized from trusted reviewer context rather than request-body identity.
+`X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service identity,
+`X-Capabilities`, and authorized proposal/portfolio scope determine review authority. Body
+`actor_id` is a compatibility echo and is rejected when it differs from the trusted principal.
+
 Review actions are idempotent when an idempotency key is supplied. Reusing a key with a different
-request hash is rejected. Once a run is terminal, a different non-idempotent review action is
-rejected so audit history cannot be silently rewritten.
+request hash, including a different trusted reviewer actor or action, is rejected. Once a run is
+terminal, a different non-idempotent review action is rejected so audit history cannot be silently
+rewritten. Self-review by the run creator is blocked by maker-checker validation before mutation.
 
 ## Retention
 

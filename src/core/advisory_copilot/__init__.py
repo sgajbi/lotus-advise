@@ -56,6 +56,7 @@ from src.core.advisory_copilot.review import (
     is_terminal_review_posture,
     review_posture_for_action,
 )
+from src.core.advisory_copilot.review_authority import CopilotReviewPrincipal
 from src.core.advisory_copilot.review_persistence import (
     list_advisory_copilot_reviews,
     record_advisory_copilot_review,
@@ -118,6 +119,7 @@ __all__ = [
     "CopilotEvidenceSectionKey",
     "CopilotGuardrailReasonCode",
     "CopilotLineageRef",
+    "CopilotReviewPrincipal",
     "CopilotReviewAction",
     "CopilotReviewPosture",
     "CopilotRetentionClass",

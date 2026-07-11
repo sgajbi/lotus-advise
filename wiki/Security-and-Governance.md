@@ -45,18 +45,21 @@ The highest-risk documentation and implementation drift usually appears at these
 6. policy-control write routes must authorize an Advise `PolicyControlPrincipal` before state
    mutation; body actor fields are compatibility echoes and cannot satisfy role, capability,
    maker-checker, tenant, legal-entity, proposal, or portfolio scope on their own
-7. outbound report calls must preserve source-derived as-of date, reporting currency, and
+7. advisory copilot review routes must authorize a trusted reviewer principal before state
+   mutation; body `actor_id` is only a compatibility echo and cannot satisfy role, capability,
+   maker-checker, tenant, proposal, portfolio, or idempotency replay authority on its own
+8. outbound report calls must preserve source-derived as-of date, reporting currency, and
    jurisdiction instead of silently applying market or current-date defaults
-8. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
+9. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
    OCI metadata, accompanied by digest-bearing release evidence, SBOM, scan, signature, and
    provenance attestation, and deployed by digest
-9. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
+10. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
    current medium/low entries must match the governed baseline, and new, stale, expired, or
    worsened medium/low entries fail CI
-10. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
+11. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
     including transitive packages, must match the committed inventory and any review-required terms
     must have owner-approved expiring exceptions
-11. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
+12. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
     requirements install strategy, requirement-file hashes, and dependency inventory hash
 
 ## Policy-Control Principal Governance
@@ -74,6 +77,20 @@ identity source. Advise rejects body/header actor mismatches, missing/expired pr
 roles, missing capabilities, and cross-scope proposal, portfolio, tenant, or legal-entity access
 before application state transitions. Successful audit events retain trusted subject, role, tenant,
 legal entity, correlation id, service identity, and capability metadata.
+
+## Advisory Copilot Review Principal Governance
+
+Advisory copilot review writes derive authority from trusted reviewer headers before application
+state transitions. Supported reviewer roles are `ADVISORY_SUPERVISOR`, `COMPLIANCE_REVIEWER`, and
+`POLICY_CHECKER`; the required capability is `advisory.copilot.review`. The authorized portfolio
+must match the persisted run portfolio, the authorized proposal must match when the run is
+proposal-scoped, and the trusted tenant must match the run tenant.
+
+Request-body `actor_id` remains a compatibility echo for existing consumers, but it is not an
+identity source. Advise rejects body/header actor mismatches, missing principals, wrong roles,
+missing capabilities, cross-scope access, tenant mismatch, and self-review before review state or
+idempotency state can mutate. Successful review audit records retain trusted principal metadata
+and maker-checker authorization evidence alongside the review reason.
 
 ## Release Metadata Governance
 

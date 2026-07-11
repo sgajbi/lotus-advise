@@ -11,6 +11,11 @@ from src.core.advisory_copilot.review import (
     is_terminal_review_posture,
     review_posture_for_action,
 )
+from src.core.advisory_copilot.review_authority import (
+    CopilotReviewPrincipal,
+    copilot_review_audit_reason,
+    validate_copilot_review_authority,
+)
 from src.core.advisory_copilot.review_records import AdvisoryCopilotReviewRecord
 from src.core.advisory_copilot.run_lineage import stable_copilot_record_id
 from src.core.advisory_copilot.run_records import AdvisoryCopilotRunRecord
@@ -23,7 +28,8 @@ def record_advisory_copilot_review(
     repository: AdvisoryCopilotRepository,
     run_id: str,
     action: CopilotReviewAction,
-    actor_id: str,
+    principal: CopilotReviewPrincipal,
+    submitted_actor_id: str | None,
     reason: dict[str, Any],
     correlation_id: str,
     idempotency_key: str | None = None,
@@ -34,13 +40,23 @@ def record_advisory_copilot_review(
     run = repository.get_run(run_id=run_id)
     if run is None:
         raise ValueError("COPILOT_RUN_NOT_FOUND")
+    validate_copilot_review_authority(
+        principal=principal,
+        run=run,
+        submitted_actor_id=submitted_actor_id,
+    )
+    audit_reason = copilot_review_audit_reason(
+        reason,
+        principal=principal,
+        action=action,
+    )
 
     now = occurred_at or datetime.now(timezone.utc)
     request_hash = _review_request_hash(
         run_id=run_id,
         action=action,
-        actor_id=actor_id,
-        reason=reason,
+        actor_id=principal.actor_id,
+        reason=audit_reason,
     )
     replay = _resolve_idempotent_review_replay(
         repository=repository,
@@ -55,8 +71,8 @@ def record_advisory_copilot_review(
     review = _build_review_record(
         run=run,
         action=action,
-        actor_id=actor_id,
-        reason=reason,
+        actor_id=principal.actor_id,
+        reason=audit_reason,
         correlation_id=correlation_id,
         idempotency_key=idempotency_key,
         request_hash=request_hash,

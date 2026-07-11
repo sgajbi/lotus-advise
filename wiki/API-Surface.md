@@ -164,6 +164,11 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   and lineage. Completed provider output remains review-ready only when every claim cites source
   refs from the input evidence packet and aligns to the output section; missing, duplicate,
   unknown, or mismatched citations are exposed as unsupported or unverifiable review posture.
+- Advisory copilot review routes require a trusted reviewer principal at the API boundary.
+  `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
+  identity, `X-Capabilities`, and authorized proposal/portfolio headers drive authority,
+  maker-checker, audit metadata, and idempotency. Body `actor_id` is a compatibility echo only and
+  cannot grant or widen review authority.
 - `contracts/idea-proposal-intake/lotus-advise-idea-proposal-intake.v1.json` is the current
   source-safe `lotus-idea` proposal-intake contract. Its supportability status is
   `not_certified`, and remaining blockers include Advise suitability authority and client

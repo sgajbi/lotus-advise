@@ -25,6 +25,9 @@ from src.api.proposals.copilot_parameters import (
     AdvisoryCopilotRunIdPath,
     AdvisoryCopilotRunLimitQuery,
 )
+from src.api.proposals.copilot_review_principal import (
+    require_advisory_copilot_review_principal,
+)
 from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -41,6 +44,7 @@ from src.core.advisory_copilot.api_response_models import (
 from src.core.advisory_copilot.application import (
     AdvisoryCopilotApplicationService,
 )
+from src.core.advisory_copilot.review_authority import CopilotReviewPrincipal
 from src.core.advisory_copilot.supportability import (
     build_advisory_copilot_supportability_response,
 )
@@ -197,6 +201,7 @@ def review_advisory_copilot_run(
     run_id: AdvisoryCopilotRunIdPath,
     payload: AdvisoryCopilotReviewRequest,
     idempotency_key: AdvisoryCopilotReviewIdempotencyKeyHeader,
+    principal: CopilotReviewPrincipal = Depends(require_advisory_copilot_review_principal),
     correlation_id: AdvisoryCopilotCorrelationIdHeader = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotReviewResponse:
@@ -207,6 +212,7 @@ def review_advisory_copilot_run(
                 run_id=run_id,
                 payload=payload,
                 idempotency_key=idempotency_key,
+                principal=principal,
                 correlation_id=correlation_id,
             )
         ),
