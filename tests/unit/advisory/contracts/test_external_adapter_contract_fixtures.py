@@ -55,7 +55,7 @@ def test_external_adapter_contract_manifest_declares_all_authority_seams() -> No
     manifest = _manifest()
 
     assert manifest["manifest_version"] == "lotus-advise.external-adapter-contracts.v1"
-    assert manifest["fixture_revision"] == "2026-07-11.issue-411"
+    assert manifest["fixture_revision"] == "2026-07-11.issue-434"
     assert set(manifest["required_case_ids"]) == REQUIRED_CASE_IDS
     assert set(manifest["adapters"]) == REQUIRED_ADAPTERS
 
@@ -67,6 +67,37 @@ def test_external_adapter_contract_manifest_declares_all_authority_seams() -> No
         assert adapter["authority"]
         assert adapter["valid_request"]
         assert adapter["valid_response"]
+
+
+def test_lotus_core_contract_declares_source_effect_decision_ownership() -> None:
+    manifest = _manifest()
+    core_response = manifest["adapters"]["lotus_core"]["valid_response"]
+
+    assert core_response["provider_schema"] == "CoreProjectedTransactionEffects"
+    assert core_response["parity_snapshot_field"] == "non_authoritative_core_decisions"
+
+    source_effect_fields = set(core_response["source_effect_authority_fields"])
+    non_authoritative_fields = set(core_response["non_authoritative_decision_fields"])
+    advise_decision_fields = set(core_response["advise_decision_authority_fields"])
+
+    assert {
+        "before",
+        "after_simulated",
+        "intents",
+        "reconciliation",
+        "rule_results",
+        "allocation_lens",
+        "lineage",
+    } <= source_effect_fields
+    assert {
+        "status",
+        "suitability",
+        "gate_decision",
+        "proposal_decision_summary",
+        "proposal_alternatives",
+    } <= non_authoritative_fields
+    assert advise_decision_fields <= non_authoritative_fields
+    assert source_effect_fields.isdisjoint(non_authoritative_fields)
 
 
 def test_external_adapter_contract_cases_cover_required_failure_modes() -> None:

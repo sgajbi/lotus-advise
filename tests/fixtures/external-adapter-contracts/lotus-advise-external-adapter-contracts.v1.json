@@ -1,6 +1,6 @@
 {
   "manifest_version": "lotus-advise.external-adapter-contracts.v1",
-  "fixture_revision": "2026-07-11.issue-411",
+  "fixture_revision": "2026-07-11.issue-434",
   "required_case_ids": [
     "valid_provider_response",
     "malformed_json",
@@ -20,7 +20,7 @@
         "name": "advisory-simulation",
         "version": "advisory-simulation.v1",
         "schema_ref": "src/integrations/lotus_core/contracts.py",
-        "fixture_revision": "2026-07-11.issue-411"
+        "fixture_revision": "2026-07-11.issue-434"
       },
       "authority": "canonical portfolio state and advisory simulation execution",
       "valid_request": {
@@ -35,7 +35,32 @@
         "as_of": "2026-03-27",
         "simulation_contract_version": "advisory-simulation.v1",
         "allocation_lens_source": "LOTUS_CORE",
-        "provider_schema": "ProposalResult"
+        "provider_schema": "CoreProjectedTransactionEffects",
+        "source_effect_authority_fields": [
+          "before",
+          "after_simulated",
+          "intents",
+          "reconciliation",
+          "rule_results",
+          "allocation_lens",
+          "lineage"
+        ],
+        "non_authoritative_decision_fields": [
+          "status",
+          "suitability",
+          "gate_decision",
+          "proposal_decision_summary",
+          "proposal_alternatives",
+          "drift_analysis"
+        ],
+        "advise_decision_authority_fields": [
+          "status",
+          "suitability",
+          "gate_decision",
+          "proposal_decision_summary",
+          "proposal_alternatives"
+        ],
+        "parity_snapshot_field": "non_authoritative_core_decisions"
       },
       "cases": [
         {
@@ -127,7 +152,7 @@
         "name": "risk-concentration",
         "version": "risk-concentration.v1",
         "schema_ref": "src/integrations/lotus_risk/concentration_response.py",
-        "fixture_revision": "2026-07-11.issue-411"
+        "fixture_revision": "2026-07-11.issue-434"
       },
       "authority": "risk-lens concentration enrichment",
       "valid_request": {
@@ -235,7 +260,7 @@
         "name": "portfolio-review-report-package",
         "version": "portfolio-review-report-package.v1",
         "schema_ref": "src/integrations/lotus_report/response_projection.py",
-        "fixture_revision": "2026-07-11.issue-411"
+        "fixture_revision": "2026-07-11.issue-434"
       },
       "authority": "report/render/archive package readiness",
       "valid_request": {
@@ -343,7 +368,7 @@
         "name": "workflow-pack-execution",
         "version": "workflow-pack-execution.v1",
         "schema_ref": "src/integrations/lotus_ai/workflow_request.py",
-        "fixture_revision": "2026-07-11.issue-411"
+        "fixture_revision": "2026-07-11.issue-434"
       },
       "authority": "governed AI workflow-pack execution and model-risk controls",
       "valid_request": {
