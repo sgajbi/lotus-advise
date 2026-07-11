@@ -1,5 +1,22 @@
 # RFC Index
 
+## Current Scope
+
+Current scope: this page is the reader map for repository-local Advise RFC truth. It distinguishes
+implemented advisory backbone, active future work, crown-jewel implementation posture, and
+historical slice evidence. The evidence posture is repository RFC source, supported-feature truth,
+tests, and linked proof artifacts; target-state roadmap text below must not be read as current
+client-ready, external communication, OMS/order lifecycle, or bank-attestation support.
+
+## Reader Map
+
+| Reader | Start here | Decision supported |
+| --- | --- | --- |
+| Product or demo reviewer | Important Interpretation | Which implemented RFCs can be discussed and which claims remain gated. |
+| Engineer or future agent | Active Implemented Backbone and detailed RFC sections | Which RFC owns a behavior before changing code or docs. |
+| Operations/support | Crown-jewel RFC summaries and closure notes | Which evidence, lineage, replay, and supportability surfaces are current. |
+| Platform reviewer | RFC links and data-product references | Which repo-local truth should align with platform governance. |
+
 ## Governing Rule
 
 Service-specific implementation RFCs live in this repository. Cross-cutting or multi-service RFCs
@@ -60,8 +77,8 @@ idempotency, supportability posture, and action evidence/lineage.
 
 RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions. It supports
 all six supported action families through Advise-owned source evidence, governed `lotus-ai`
-workflow-pack execution, Gateway publication, Workbench Gateway-first rendering, canonical
-`RFC27_ADVISORY_COPILOT_CANONICAL` proof, and active
+workflow-pack execution, claim-level source grounding, Gateway publication, Workbench Gateway-first
+rendering, canonical `RFC27_ADVISORY_COPILOT_CANONICAL` proof, and active
 `AdvisoryCopilotInteractionRecord:v1` data-product posture. Evidence packets and review events are
 audit records inside the interaction product boundary rather than standalone promoted data
 products. Client-ready publication, external client communication, policy approval/sign-off

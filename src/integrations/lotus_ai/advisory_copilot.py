@@ -11,6 +11,7 @@ from src.core.advisory_copilot import (
     CopilotGuardrailReasonCode,
     CopilotLineageRef,
     CopilotSourceRef,
+    align_copilot_output_claims_to_evidence,
     evaluate_copilot_guardrails,
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
@@ -174,7 +175,8 @@ def _draft_from_workflow_response(
 
     result = safe_dict(execution.get("result"))
     structured_output = safe_dict(result.get("structured_output"))
-    sections = _map_sections(structured_output.get("sections"))
+    raw_sections = structured_output.get("sections")
+    sections = _map_sections(raw_sections)
     if not sections:
         return build_advisory_copilot_unavailable_draft(
             evidence_packet=evidence_packet,
@@ -186,6 +188,7 @@ def _draft_from_workflow_response(
         payload=payload,
         result=result,
         structured_output=structured_output,
+        raw_sections=raw_sections,
         sections=sections,
     )
 
@@ -196,6 +199,7 @@ def _draft_from_completed_workflow_output(
     payload: dict[str, Any],
     result: dict[str, Any],
     structured_output: dict[str, Any],
+    raw_sections: Any,
     sections: tuple[dict[str, Any], ...],
 ) -> AdvisoryCopilotAiDraft:
     output_reasons = evaluate_copilot_guardrails(
@@ -219,9 +223,20 @@ def _draft_from_completed_workflow_output(
             ),
         )
 
+    grounded_sections, grounding_summary = align_copilot_output_claims_to_evidence(
+        evidence_packet=evidence_packet,
+        raw_sections=raw_sections,
+        output_sections=sections,
+    )
+    draft_status = (
+        str(structured_output.get("state") or "REVIEW_REQUIRED")
+        if grounding_summary["ready_for_review"]
+        else "UNSUPPORTED"
+    )
+
     return AdvisoryCopilotAiDraft(
-        status=str(structured_output.get("state") or "REVIEW_REQUIRED"),
-        sections=sections,
+        status=draft_status,
+        sections=grounded_sections,
         lineage=_build_lineage(
             evidence_packet=evidence_packet,
             workflow_run_id=extract_workflow_run_id(
@@ -233,6 +248,7 @@ def _draft_from_completed_workflow_output(
                 max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
             ),
             fallback_reason=None,
+            claim_grounding_summary=grounding_summary,
         ),
         review_guidance=_map_string_list(structured_output.get("review_guidance")),
         guardrail_reasons=(),
@@ -365,8 +381,9 @@ def _build_lineage(
     workflow_run_id: str | None,
     model_version: str | None,
     fallback_reason: str | None,
+    claim_grounding_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    lineage: dict[str, Any] = {
         "adapter_version": ADAPTER_VERSION,
         "workflow_pack_id": workflow_pack_id_for_action(evidence_packet.action_family),
         "workflow_pack_version": workflow_pack_version_for_action(evidence_packet.action_family),
@@ -382,6 +399,9 @@ def _build_lineage(
         "proposal_version_no": _proposal_version_no(evidence_packet),
         "fallback_reason": fallback_reason,
     }
+    if claim_grounding_summary is not None:
+        lineage["claim_grounding_summary"] = claim_grounding_summary
+    return lineage
 
 
 def _proposal_version_id(evidence_packet: CopilotEvidencePacket) -> str | None:

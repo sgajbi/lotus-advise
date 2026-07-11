@@ -210,7 +210,10 @@ class AdvisoryCopilotRunRecord(BaseModel):
         max_length=COPILOT_RUN_JSON_FIELD_MAX_ITEMS,
     )
     output_sections_json: list[dict[str, Any]] = Field(
-        description="Review-gated business-facing output sections; unsafe raw output omitted.",
+        description=(
+            "Review-gated business-facing output sections with bounded claim-grounding posture; "
+            "unsafe raw output omitted."
+        ),
         max_length=COPILOT_RUN_OUTPUT_SECTION_LIMIT,
     )
     review_guidance_json: list[str] = Field(
@@ -222,7 +225,7 @@ class AdvisoryCopilotRunRecord(BaseModel):
         max_length=COPILOT_RUN_GUARDRAIL_REASON_LIMIT,
     )
     lineage_json: dict[str, Any] = Field(
-        description="Adapter, workflow-pack, evidence, and model-risk lineage.",
+        description=("Adapter, workflow-pack, evidence, model-risk, and claim-grounding lineage."),
         max_length=COPILOT_RUN_JSON_FIELD_MAX_ITEMS,
     )
 

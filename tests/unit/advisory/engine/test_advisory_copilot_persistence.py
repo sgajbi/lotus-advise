@@ -739,8 +739,8 @@ def _persist_run(
     repository: InMemoryAdvisoryCopilotRepository,
     *,
     draft_status: str = "REVIEW_REQUIRED",
-    output_sections: tuple[dict[str, str], ...] | None = None,
-    lineage: dict[str, str | int | None] | None = None,
+    output_sections: tuple[dict[str, Any], ...] | None = None,
+    lineage: dict[str, Any] | None = None,
     idempotency_key: str | None = "copilot-action-idem-001",
     user_instruction: str = "Summarize the advisory evidence for internal review.",
     created_at: datetime | None = None,
@@ -798,6 +798,56 @@ def test_persisted_copilot_run_is_replayable_and_excludes_raw_prompt() -> None:
     assert result.run.lotus_ai_workflow_run_id == "packrun_copilot_001"
     assert result.run.retention_expires_at is not None
     assert result.run.retention_expires_at.year == 2033
+
+
+def test_persisted_copilot_run_stores_claim_grounding_audit_posture() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    source_ref = "lotus-advise:POLICY_EVALUATION:policy_eval_sg_001:sha256:policy-evaluation"
+
+    result = _persist_run(
+        repository,
+        output_sections=(
+            {
+                "section_key": "POLICY_POSTURE",
+                "title": "Policy posture",
+                "text": "Policy review is required before client communication.",
+                "review_state": "REVIEW_REQUIRED",
+                "grounding_status": "GROUNDED",
+                "claim_grounding": (
+                    {
+                        "claim_id": "policy_posture_claim_001",
+                        "claim_text": "Policy evaluation requires compliance review.",
+                        "grounding_status": "GROUNDED",
+                        "source_refs": (source_ref,),
+                    },
+                ),
+            },
+        ),
+        lineage={
+            "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+            "workflow_pack_version": "v1",
+            "workflow_run_id": "packrun_copilot_001",
+            "model_version": "lotus-ai-governed-model.v1",
+            "prompt_template_version": "advisory-copilot-prompt-template.v1",
+            "output_schema_version": "advisory-copilot-output-schema.v1",
+            "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
+            "proposal_version_no": 1,
+            "claim_grounding_summary": {
+                "grounding_status": "GROUNDED",
+                "ready_for_review": True,
+                "total_sections": 1,
+                "total_claims": 1,
+                "grounded_claims": 1,
+                "unsupported_claims": 0,
+                "unverifiable_claims": 0,
+                "unknown_source_refs": [],
+            },
+        },
+    )
+
+    assert result.run.output_sections_json[0]["grounding_status"] == "GROUNDED"
+    assert result.run.output_sections_json[0]["claim_grounding"][0]["source_refs"] == (source_ref,)
+    assert result.run.lineage_json["claim_grounding_summary"]["ready_for_review"] is True
     assert result.run.evidence_packet_json["evidence_packet_id"] == "copilot_packet_pb_sg_001"
     assert "user_instruction_hash" in result.run.request_summary_json
     assert "Summarize the advisory evidence" not in str(result.run.model_dump(mode="json"))

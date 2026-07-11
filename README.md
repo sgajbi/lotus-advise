@@ -53,6 +53,9 @@ It is responsible for:
   product scope, source readiness, finalized evaluation records, replay, workflow/sign-off posture,
   report-package lineage, bounded AI evidence, Gateway/Workbench exposure, active data-product
   declaration, and trust telemetry
+- advisory copilot evidence packets, workflow-pack output, persisted run/review records, and
+  claim-level source grounding that marks unsupported or unverifiable AI output as not
+  review-ready without raw provider payload retention
 - source-owned tactical house-view affected cohorts from bank-authored house-view instructions and
   caller-supplied source-backed candidate portfolios
 - source-safe `lotus-idea` proposal-intake route foundation for future opportunity-to-advisory

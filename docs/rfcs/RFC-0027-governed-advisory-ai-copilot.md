@@ -1115,7 +1115,7 @@ Acceptance gate:
 | Compliance review summary | Supported for internal reviewer use | RFC-0025 policy evidence is consumed as source-backed evidence where present; missing evidence stays explicit. |
 | Operations/report handoff summary | Supported for internal operations support | Report/operations ownership boundaries are preserved and no execution authority is claimed. |
 | Client follow-up draft | Supported only as advisor-reviewed internal draft | Human review, unsupported-evidence posture, and blocked client-ready publication are proven. |
-| Copilot run/review audit | Supported | Persistence/replay, hashes, review actions, retention, and audit lineage are implemented. |
+| Copilot run/review audit | Supported | Persistence/replay, hashes, claim-level source grounding, review actions, retention, and audit lineage are implemented. |
 | Copilot data products | Supported for `AdvisoryCopilotInteractionRecord:v1` | Evidence packets and review events remain audit records inside the interaction product boundary, not standalone promoted data products. |
 | Gateway/Workbench copilot experience | Supported | Gateway and Workbench implementation is proven by canonical browser/product validation. |
 | Copilot model-risk and supportability pack | Supported for implemented scope | Workflow-pack lineage, guardrails, unavailable posture, supportability, and trust telemetry are implementation-backed. |
@@ -1132,13 +1132,15 @@ Implemented:
 1. all six supported action families are action-specific and no free-form prompt endpoint exists,
 2. Advise builds and persists source-backed proposal-version evidence packets,
 3. governed `lotus-ai` workflow-pack execution is used through the approved adapter,
-4. run and review records preserve hashes, lineage, guardrail posture, review posture, correlation
-   IDs, and idempotency,
-5. Gateway exposes `/api/v1/advisory-copilot/*` without direct `lotus-ai` calls,
-6. Workbench consumes Gateway/BFF only at `/recommendations?mode=copilot`,
-7. canonical `PB_SG_GLOBAL_BAL_001` validation records
+4. completed workflow-pack output is grounded claim by claim against input evidence-packet source
+   refs before it can remain review-ready,
+5. run and review records preserve hashes, lineage, claim-grounding posture, guardrail posture,
+   review posture, correlation IDs, and idempotency,
+6. Gateway exposes `/api/v1/advisory-copilot/*` without direct `lotus-ai` calls,
+7. Workbench consumes Gateway/BFF only at `/recommendations?mode=copilot`,
+8. canonical `PB_SG_GLOBAL_BAL_001` validation records
    `ADVISORY_COPILOT_CANONICAL_PROOF_CREATED` and captures `advisory-advisory-copilot-live.png`,
-8. `AdvisoryCopilotInteractionRecord:v1` is an active data product with trust telemetry.
+9. `AdvisoryCopilotInteractionRecord:v1` is an active data product with trust telemetry.
 
 Still gated outside RFC-0027 support:
 
@@ -1160,8 +1162,8 @@ RFC-0027 is implemented only when:
    state, and projection,
 5. forbidden actions, unsupported claims, prompt injection, restricted-field leakage, missing
    source refs, missing disclosure/policy evidence, and unavailable AI are tested,
-6. copilot runs are persisted or reproducibly rebuilt with hashes, lineage, guardrail posture,
-   review state, and correlation IDs,
+6. copilot runs are persisted or reproducibly rebuilt with hashes, lineage, claim-grounding
+   posture, guardrail posture, review state, and correlation IDs,
 7. Gateway and Workbench are updated in the same RFC where required to realize product value,
 8. data-product declarations and trust telemetry reflect implemented copilot products only,
 9. `/platform/capabilities` promotes copilot support only after implementation and proof,
@@ -1181,7 +1183,7 @@ RFC-0027 is implemented only when:
 | Risk | Mitigation |
 | --- | --- |
 | Copilot becomes an autonomous advisor | Action-specific endpoints, forbidden-action tests, review posture, and clear ownership boundaries. |
-| AI invents advisory facts | Evidence packets, source refs, unsupported-evidence responses, and output validation. |
+| AI invents advisory facts | Evidence packets, claim-level source-ref alignment, unsupported or unverifiable claim dispositions, and output validation. |
 | Sensitive data leaks to provider, logs, metrics, docs, or screenshots | Redaction before AI call, no raw prompts/output logs, bounded metric labels, and evidence-policy tests. |
 | UI or Gateway bypasses governed AI controls | Gateway/Workbench consume only `lotus-advise` copilot endpoints; no direct `lotus-ai` calls for advisory behavior. |
 | RFC-0027 duplicates RFC-0023 narrative generation | RFC-0027 consumes grounded narrative components and owns assistant workflows; overlapping scope is resolved in Slice 0. |

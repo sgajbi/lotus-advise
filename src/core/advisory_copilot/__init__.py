@@ -7,6 +7,10 @@ from src.core.advisory_copilot.catalog_models import (
     CopilotActionDefinition,
     CopilotBusinessProjection,
 )
+from src.core.advisory_copilot.claim_grounding import (
+    align_copilot_output_claims_to_evidence,
+    copilot_source_ref_identity,
+)
 from src.core.advisory_copilot.evidence_packets import (
     ACTION_REQUIRED_EVIDENCE_SECTIONS,
     SOURCE_EVIDENCE_SECTIONS,
@@ -121,11 +125,13 @@ __all__ = [
     "CopilotSourceRef",
     "CopilotUnsupportedEvidence",
     "CopilotUnsupportedEvidenceReason",
+    "align_copilot_output_claims_to_evidence",
     "business_projection_for_action",
     "build_advisory_copilot_run_request_hash",
     "build_copilot_evidence_packet",
     "can_attempt_advisory_copilot_run_refresh",
     "canonical_json_hash",
+    "copilot_source_ref_identity",
     "evaluate_copilot_guardrails",
     "get_copilot_action_definition",
     "guardrail_reason_for_intent",

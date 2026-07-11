@@ -1,5 +1,22 @@
 # Mesh Data Products
 
+## Current Scope
+
+Current scope: this page lists the repo-native Advise data products that are implementation-backed
+today, their approved consumers, and the product boundaries that must remain visible in Gateway,
+Workbench, platform catalog, and future-agent work. Source declarations, trust telemetry, and
+platform mesh validators are the evidence posture; planned or blocked client-publication claims are
+not promoted here.
+
+## Reader Map
+
+| Reader | Use this page to decide | Evidence anchor |
+| --- | --- | --- |
+| Platform/catalog reviewer | Which Advise products are source-owned and active | `contracts/domain-data-products/` and `contracts/trust-telemetry/` |
+| Gateway/Workbench consumer | Which products can be consumed without rebuilding Advise truth | Approved downstream consumer rows |
+| Operations/support | Which boundaries remain unsupported or gated | Operating rule and product role rows |
+| Future agent | Whether a new claim belongs in Advise or another Lotus app | Product role, owner boundary, and approved consumer fields |
+
 ## Mesh role
 
 `lotus-advise` is a maturity-wave producer in the Lotus enterprise data mesh.
@@ -68,8 +85,8 @@
 
 - Product ID: `lotus-advise:AdvisoryCopilotInteractionRecord:v1`
 - Product role: reviewed internal advisor/reviewer copilot interaction record for proposal-version
-  evidence packets, persisted run/review records, workflow-pack lineage, guardrail posture, and
-  supportability posture
+  evidence packets, persisted run/review records, workflow-pack lineage, claim-level source
+  grounding, guardrail posture, and supportability posture
 - Source declaration: `contracts/domain-data-products/`
 - Approved downstream consumers: `lotus-gateway`, `lotus-workbench`, `lotus-idea`
 - Lotus Idea boundary: consumes reviewed copilot interaction posture as decision-support signal;

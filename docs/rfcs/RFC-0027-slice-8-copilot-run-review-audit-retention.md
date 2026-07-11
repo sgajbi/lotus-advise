@@ -14,6 +14,8 @@ Implemented capability:
 1. `AdvisoryCopilotRunRecord` stores the bounded evidence packet, request hash, output hash,
    review posture, creator/caller context, tenant, correlation id, lotus-ai workflow run refs,
    workflow-pack lineage, guardrail reasons, retention class, legal hold posture, and expiry.
+   Current hardening also stores bounded claim-grounding posture in output sections and lineage so
+   unsupported or unverifiable provider claims remain audit-visible but not review-ready.
 2. `AdvisoryCopilotReviewRecord` stores approve, reject, supersede, and expire review actions with
    previous/new posture, actor, reason, idempotency, request hash, and correlation id.
 3. `persist_advisory_copilot_run` creates replay-safe run records without storing raw prompts,
@@ -37,7 +39,7 @@ Persisted records include:
 
 1. evidence-packet id and hash,
 2. safe request summary and request hash,
-3. review-gated output sections and output hash,
+3. review-gated output sections, claim-grounding posture, and output hash,
 4. guardrail result codes,
 5. lotus-ai workflow-pack id, version, workflow run id, model version, prompt-template lineage,
    output-schema lineage, and evaluation-pack ref,

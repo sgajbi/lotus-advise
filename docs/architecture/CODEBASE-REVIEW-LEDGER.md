@@ -1,5 +1,47 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-927
+
+- Scope: Advisory copilot claim-level source grounding
+- Pattern: AI-assisted advisory output must be grounded at claim level against the bounded Advise
+  evidence packet before it can remain review-ready; packet-level lineage alone is not enough audit
+  evidence.
+- Status: Hardened
+- Finding Class: AI explainability, auditability, source lineage, and review-ready posture
+- Summary: GitHub issue #425 identified that the Lotus AI advisory-copilot adapter mapped completed
+  provider sections into bounded persisted output with packet-level lineage, but did not require
+  per-section claim citations, source-ref alignment, or coverage posture before a completed output
+  could be persisted as review-ready.
+- Evidence:
+  - Added `src/core/advisory_copilot/claim_grounding.py` as the Advise-owned domain policy for
+    source-ref identity, claim citation validation, unsupported/unverifiable disposition, duplicate
+    claim handling, and claim-grounding summaries.
+  - Updated the Lotus AI advisory-copilot adapter so completed output is grounded claim by claim
+    against the input evidence packet. Missing, duplicate, unknown, or section-mismatched citations
+    force `UNSUPPORTED` posture while preserving source-safe output-section and lineage evidence.
+  - Reused the same source-ref identity in outbound workflow-pack request construction and inbound
+    citation validation so provider-controlled citation strings cannot invent new sources.
+  - Persisted claim grounding in existing bounded `output_sections_json` and
+    `lineage_json.claim_grounding_summary` without raw prompt, provider response, or raw payload
+    retention.
+  - Added adapter and persistence tests for valid grounded output, missing citations, unknown
+    source refs, duplicate claim ids, and persisted claim-grounding audit posture.
+- Consequence:
+  - Reviewers can distinguish grounded, unsupported, and unverifiable copilot claims directly from
+    the run record. AI output cannot become review-ready merely because an evidence packet existed.
+- Documentation:
+  - Updated README, supported-features, repository context, API wiki, mesh data-product wiki,
+    RFC index, RFC-0027 source, generated quality health notes, and this ledger. Wiki source
+    changed, so repo-wiki check is required before merge and publication is required after merge.
+- Modularity:
+  - This is an internal design-modularity improvement. A separate runtime service is not justified
+    because the policy is local to Advise-owned evidence packets and persisted run posture.
+- Follow-Up:
+  - #422 remains the authenticated reviewer authority and maker-checker issue for copilot reviews;
+    #415 and #416 remain the AI data-boundary and budget-control issues. No new cross-app issue was
+    raised because this slice hardens the Advise-side source-alignment contract and does not change
+    Lotus AI provider governance.
+
 ## LA-REV-920
 
 - Scope: Policy evaluation replay across policy-pack lifecycle changes
