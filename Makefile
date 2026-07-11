@@ -1,4 +1,4 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate docs-source-reference-gate observability-diagnostics advisory-domain-golden-regressions external-adapter-contracts demo-assurance-gate demo-certification-live slo-capacity-gate migration-rollout-contract-gate dependency-lock dependency-lock-gate license-ip-inventory license-ip-gate release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-severity-regression-gate bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate docs-source-reference-gate observability-diagnostics advisory-domain-golden-regressions external-adapter-contracts demo-assurance-gate demo-certification-live slo-capacity-gate migration-rollout-contract-gate trust-telemetry-freshness-gate dependency-lock dependency-lock-gate license-ip-inventory license-ip-gate release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-severity-regression-gate bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
 SERVICE_VERSION ?= 0.1.0
 IMAGE_REPOSITORY ?= lotus-advise
@@ -21,9 +21,9 @@ install-ci:
 pre-commit:
 	python -m pre_commit run --all-files
 
-check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate external-adapter-contracts docs-source-reference-gate slo-capacity-gate migration-rollout-contract-gate quality-baseline-check bandit-severity-regression-gate dependency-lock-gate license-ip-gate release-image-provenance-gate test
+check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate trust-telemetry-freshness-gate external-adapter-contracts docs-source-reference-gate slo-capacity-gate migration-rollout-contract-gate quality-baseline-check bandit-severity-regression-gate dependency-lock-gate license-ip-gate release-image-provenance-gate test
 
-ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate docs-source-reference-gate slo-capacity-gate migration-rollout-contract-gate quality-baseline-check migration-smoke security-audit dependency-lock-gate license-ip-gate release-image-provenance-gate coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
+ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate trust-telemetry-freshness-gate docs-source-reference-gate slo-capacity-gate migration-rollout-contract-gate quality-baseline-check migration-smoke security-audit dependency-lock-gate license-ip-gate release-image-provenance-gate coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
 
 test:
 	$(MAKE) test-unit
@@ -57,7 +57,7 @@ test-all-parallel:
 	python -c "import importlib.util, subprocess, sys; args=[sys.executable,'-m','pytest','--cov=src','--cov-report=','--cov-fail-under=97']; args += (['-n','auto','--dist','loadscope'] if importlib.util.find_spec('xdist') else []); raise SystemExit(subprocess.call(args))"
 
 # Local execution flow aligned with the Pull Request Merge Gate
-ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate docs-source-reference-gate slo-capacity-gate migration-rollout-contract-gate quality-baseline-check migration-smoke security-audit dependency-lock-gate license-ip-gate release-image-provenance-gate coverage-combined
+ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate trust-telemetry-freshness-gate docs-source-reference-gate slo-capacity-gate migration-rollout-contract-gate quality-baseline-check migration-smoke security-audit dependency-lock-gate license-ip-gate release-image-provenance-gate coverage-combined
 
 ci-local-docker:
 	docker compose -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local
@@ -87,6 +87,9 @@ api-vocabulary-gate:
 
 domain-data-products-gate:
 	python scripts/validate_domain_data_product_declarations.py
+
+trust-telemetry-freshness-gate:
+	python scripts/trust_telemetry_freshness.py check
 
 docs-source-reference-gate:
 	python scripts/documentation_source_reference_check.py

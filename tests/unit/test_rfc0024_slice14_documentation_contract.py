@@ -55,7 +55,7 @@ def test_rfc0024_slice14_promotes_only_advisor_use_data_product() -> None:
     assert "client-ready memo publication remains gated" in repo_context
 
 
-def test_rfc0024_slice14_contracts_are_unblocked_without_client_ready_claims() -> None:
+def test_rfc0024_slice14_contracts_are_freshness_gated_without_client_ready_claims() -> None:
     telemetry_text = _read(
         "contracts/trust-telemetry/advisory-proposal-memo-evidence-pack.telemetry.v1.json"
     )
@@ -65,7 +65,9 @@ def test_rfc0024_slice14_contracts_are_unblocked_without_client_ready_claims() -
     assert '"lifecycle_status": "active"' in declaration_text
     assert '"completeness_status": "complete"' in telemetry_text
     assert '"lineage_materialized": true' in telemetry_text
-    assert '"blocked": false' in telemetry_text
+    assert '"freshness_state": "stale"' in telemetry_text
+    assert '"blocked": true' in telemetry_text
+    assert '"blocked_reason": "TRUST_TELEMETRY_STALE"' in telemetry_text
     assert "client-ready memo publication" in declaration_text
     assert "client-ready memo publication" in capability_text
     assert "client_ready_memo_publication" not in capability_text

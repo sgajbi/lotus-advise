@@ -21,7 +21,7 @@ post-merge wiki publication. It names blocking commands and the evidence each la
 
 | Lane | Primary proof | What it protects |
 | --- | --- | --- |
-| Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, quality-baseline freshness, high-severity security, dependency-lock evidence, license/IP evidence, and unit behavior. |
+| Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, trust telemetry freshness, quality-baseline freshness, high-severity security, dependency-lock evidence, license/IP evidence, and unit behavior. |
 | Local PR-grade gate | `make ci` | Dependency health, static governance, migrations, security audit, dependency-lock evidence, license/IP evidence, release-image provenance, coverage, Docker build, Postgres runtime contracts, and production-profile guardrail negatives. |
 | Remote Feature Lane | GitHub `Remote Feature Lane` | Branch feedback for workflow lint, unit tests, dependency governance, dependency-lock evidence, license/IP evidence, Bandit severity regression, demo-assurance checks, and quality-baseline freshness. |
 | PR Merge Gate | GitHub `Pull Request Merge Gate` | Merge readiness across lint/typecheck governance, unit/integration/e2e tests, coverage, Docker build, Postgres migration smoke, production startup smoke, and production guardrail negatives. |
@@ -60,6 +60,7 @@ make openapi-gate
 make no-alias-gate
 make api-vocabulary-gate
 make domain-data-products-gate
+make trust-telemetry-freshness-gate
 make external-adapter-contracts
 make migration-rollout-contract-gate
 make release-image-provenance-gate
@@ -94,36 +95,39 @@ The current blocking posture is intentionally high-signal:
    derived from governed deterministic domain examples.
 6. `make domain-data-products-gate`
    validates repo-native domain data product declarations against platform contracts.
-7. `make external-adapter-contracts`
+7. `make trust-telemetry-freshness-gate`
+   derives trust telemetry age and blocking posture from observed implementation evidence so stale
+   snapshots cannot keep claiming current promotion posture.
+8. `make external-adapter-contracts`
    validates the versioned consumer-contract fixture manifest for `lotus-core`, `lotus-risk`,
    `lotus-report`, and `lotus-ai`. The lane requires valid-response, malformed JSON, missing
    fields, identity/as-of mismatch, partial data, auth failure, timeout, retry or bounded
    non-retry, duplicate/idempotency, provider error mapping, and raw-payload/secret non-leakage
    evidence to reference real regression tests.
-8. `make quality-baseline-check`
+9. `make quality-baseline-check`
    blocks stale committed quality report and scorecard truth.
-9. `make migration-rollout-contract-gate`
+10. `make migration-rollout-contract-gate`
    validates every checked-in Postgres migration has explicit namespace coverage, rollout phase,
    old/new application compatibility, lock and online behavior, backfill checkpoint/resume/quarantine
    posture, rollback limits, and non-production rehearsal evidence.
-10. `make bandit-severity-regression-gate`
+11. `make bandit-severity-regression-gate`
    blocks high-severity Bandit findings and fails on any new, stale, expired, or worsened
    medium/low finding relative to `quality/bandit_security_baseline.v1.json`.
-11. `make security-audit`
+12. `make security-audit`
    runs dependency health with audit posture and the Bandit severity-regression gate in PR-grade
    paths.
-12. `make release-image-provenance-gate`
+13. `make release-image-provenance-gate`
      blocks drift in Dockerfile build metadata args, OCI labels, Docker build arguments, and
      support-safe metadata naming before the image is built or pushed.
-13. `make dependency-lock-gate`
+14. `make dependency-lock-gate`
      validates `uv.lock` as the generated mirror of the requirements install strategy and
      dependency inventory.
-14. `make license-ip-gate`
+15. `make license-ip-gate`
      validates the committed runtime/development dependency license inventory and owner-approved
      expiring exceptions.
-15. `make coverage-combined`
+16. `make coverage-combined`
      enforces the combined coverage floor across unit, integration, and e2e suites.
-16. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
+17. `make postgres-runtime-contracts-local` and `make production-profile-guardrail-negatives-local`
      protect supported runtime startup and production-profile guardrail behavior.
 
 These gates are blocking because they are measured, deterministic, repo-native, and low-noise for

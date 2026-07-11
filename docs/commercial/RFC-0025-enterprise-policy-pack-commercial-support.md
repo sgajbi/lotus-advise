@@ -31,7 +31,7 @@ Supported today:
 7. bounded AI policy-evidence summaries through `policy_evidence_summary.pack@v1`,
 8. Gateway-routed policy APIs and Workbench Gateway/BFF-only review posture, selected evidence,
    sign-off package posture, workflow posture, and bounded request-more-evidence actions,
-9. active `AdvisoryPolicyEvaluationRecord:v1` data-product posture with current trust telemetry,
+9. active `AdvisoryPolicyEvaluationRecord:v1` data-product posture with freshness-gated trust telemetry,
    `/platform/capabilities`, and platform SLO/access/evidence-policy support.
 
 Not supported today:

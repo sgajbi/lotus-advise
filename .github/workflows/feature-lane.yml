@@ -58,6 +58,8 @@ jobs:
         run: make api-vocabulary-gate
       - name: Quality Baseline Freshness
         run: make quality-baseline-check
+      - name: Trust Telemetry Freshness
+        run: make trust-telemetry-freshness-gate
       - name: Checkout Lotus Platform Contracts
         uses: actions/checkout@v7
         with:

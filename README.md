@@ -300,6 +300,9 @@ startup/readiness instead of falling back silently.
   posture
 - `make dependency-lock-gate`
   validates `uv.lock` as the generated mirror of requirements files plus dependency inventory
+- `make trust-telemetry-freshness-gate`
+  validates repo-owned trust telemetry freshness and blocks stale evidence that still claims
+  current promotion posture
 - `make run`
   local runtime
 
@@ -317,8 +320,8 @@ Repo-native gate mapping:
   fast local quality gate
 - `make ci`
   PR-grade validation with dependency health, OpenAPI, vocabulary, no-alias governance, migration
-  rollout contract evidence, migration smoke, dependency-lock evidence, license/IP evidence,
-  release-image provenance, coverage, Docker build, Postgres runtime smoke, and
+  rollout contract evidence, trust telemetry freshness, migration smoke, dependency-lock evidence,
+  license/IP evidence, release-image provenance, coverage, Docker build, Postgres runtime smoke, and
   production-profile guardrail checks
 - `make ci-local`
   local feature-lane proof
