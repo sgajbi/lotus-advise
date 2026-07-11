@@ -1,5 +1,35 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-908
+
+- Scope: Live documentation source-reference and advisory engine import guidance
+- Pattern: Live repository documentation should not describe removed compatibility shims as active
+  implementation paths.
+- Status: Hardened
+- Finding Class: Documentation drift, stale compatibility guidance, CI enforcement
+- Summary: GitHub issue #427 identified that `docs/documentation/engine-know-how-advisory.md`
+  still described `src/core/advisory/engine.py` as an active compatibility shim even though the
+  current source tree and tests use `src/core/advisory_engine.py` directly and the removed shim is
+  already guarded against reintroduction.
+- Evidence:
+  - Replaced the stale deprecation note with an import-path note that names
+    `src/core/advisory_engine.py` as the stable advisory engine path and makes removed shims
+    historical audit context only.
+  - Added `scripts/documentation_source_reference_check.py` and `make docs-source-reference-gate`
+    to validate backticked repository paths in live documentation surfaces: README, repository
+    context, `docs/documentation/`, and repo-local `wiki/`.
+  - Added unit coverage proving the current live documentation resolves and command snippets are
+    not misread as source paths.
+- Consequence:
+  - Future stale source-path references in live operator or agent-facing documentation fail in the
+    repo-native gate before agents preserve or recreate removed compatibility modules.
+- Documentation:
+  - Engine know-how and review ledger updated. README and wiki were inspected by the same-pattern
+    search; no active advisory engine compatibility-shim references were present there.
+- Follow-Up:
+  - Historical RFCs and the review ledger remain audit records; do not broaden this gate to all
+    historical RFC text without explicit historical-path semantics.
+
 ## LA-REV-907
 
 - Scope: Container image provenance and runtime build metadata

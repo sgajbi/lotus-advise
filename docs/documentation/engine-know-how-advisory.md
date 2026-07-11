@@ -358,7 +358,8 @@ Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`
 - CI runs this check before lint/test to enforce vulnerability visibility.
 
-## Deprecation Notes
+## Import Path Notes
 
-- `src/core/advisory/engine.py` is a compatibility shim and emits `DeprecationWarning`.
-- Use `src/core/advisory_engine.py` as the current stable advisory engine import path.
+- `src/core/advisory_engine.py` is the current stable advisory engine import path.
+- No advisory engine compatibility shim is supported. Historical references to removed shims are
+  audit context only and must not be used as implementation guidance.
