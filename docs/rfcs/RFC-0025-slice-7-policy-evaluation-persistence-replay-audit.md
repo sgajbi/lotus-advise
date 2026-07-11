@@ -31,7 +31,12 @@ Implemented behavior:
 5. append-only review, sign-off, and report/archive reference events,
 6. replay comparison that pins the stored policy version, compares current policy content hash,
    compares source evidence hash, and compares replayed evaluation hash,
-7. persisted disclosure, consent, and approval dependency projections derived from source-backed
+7. replay permits retained `SUPERSEDED` and `DISABLED` policy versions for historical comparison
+   while new evaluations still require `ACTIVE`; replay reports lifecycle state and reason codes
+   such as `POLICY_REPLAY_EXACT_MATCH`, `POLICY_REPLAY_HASH_DRIFT`,
+   `POLICY_CONTENT_HASH_DRIFT_REPLAY_BLOCKED`, and
+   `POLICY_DEFINITION_UNAVAILABLE_FOR_REPLAY` without substituting the current active version,
+8. persisted disclosure, consent, and approval dependency projections derived from source-backed
    rule outcomes.
 
 The Slice 6 evaluator supportability now reports
@@ -65,7 +70,9 @@ Covered paths:
 4. review, sign-off, and report/archive refs are append-only events,
 5. event replay does not mutate finalized evaluation hash,
 6. replay exposes stored versus replayed policy, source, and evaluation hashes,
-7. complex-product policy outcomes persist disclosure, consent, and approval dependencies.
+7. replay continues to compare historical evaluations after the original policy version becomes
+   `SUPERSEDED`,
+8. complex-product policy outcomes persist disclosure, consent, and approval dependencies.
 
 ## Wiki And README Decision
 

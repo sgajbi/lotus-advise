@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from src.core.policy_packs import (
     DurablePolicyEvaluationRepository,
     InMemoryPolicyEvaluationStateStore,
+    PolicyPackCatalogStore,
     activate_policy_pack_version,
     append_policy_evaluation_event,
     configure_policy_evaluation_repository,
+    configure_policy_pack_catalog_repository,
     finalize_policy_evaluation_record,
     get_policy_evaluation_record,
     get_policy_pack_version,
@@ -21,6 +24,7 @@ from src.core.policy_packs import (
     reset_policy_pack_catalog_for_tests,
     validate_policy_pack_version,
 )
+from src.core.policy_packs.catalog_reference_packs import reference_policy_packs
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError
 
 SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
@@ -187,6 +191,24 @@ def _activate_sg_policy_pack() -> None:
         idempotency_key="activate-sg-for-persistence",
         reason={"purpose": "slice 7 persistence test"},
     )
+
+
+def _two_version_global_policy_pack_definitions() -> list[dict[str, Any]]:
+    definitions = [
+        definition
+        for definition in reference_policy_packs()
+        if definition["policy_pack_id"] == "GLOBAL_PRIVATE_BANKING_BASELINE"
+    ]
+    old_definition = definitions[0]
+    old_definition["activation_state"] = "ACTIVE"
+    old_definition["maker_checker_required"] = True
+    new_definition = {
+        **old_definition,
+        "policy_version": "2026.06",
+        "activation_state": "DRAFT",
+        "effective_from": "2026-06-01",
+    }
+    return [old_definition, new_definition]
 
 
 def test_policy_evaluation_record_is_immutable_hash_backed_and_idempotent() -> None:
@@ -394,6 +416,70 @@ def test_policy_evaluation_replay_compares_policy_source_and_evaluation_hashes()
     assert changed.hash_comparison["evaluation_hash_matches"] is False
     assert changed.hash_comparison["stored_evaluation_hash"].startswith("sha256:")
     assert changed.hash_comparison["replayed_evaluation_hash"].startswith("sha256:")
+
+
+def test_policy_evaluation_replay_allows_superseded_policy_version() -> None:
+    configure_policy_pack_catalog_repository(
+        PolicyPackCatalogStore(_two_version_global_policy_pack_definitions())
+    )
+    evidence = _base_evidence_bundle()
+    persisted = finalize_policy_evaluation_record(
+        evidence_bundle=evidence,
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_replay_superseded",
+        proposal_version_id="ppv_policy_replay_superseded",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-replay-superseded",
+        reason={"purpose": "superseded replay proof"},
+    )
+    new_detail = get_policy_pack_version(
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.06",
+    )
+    validate_policy_pack_version(
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.06",
+        requested_by="policy_steward_1",
+        idempotency_key="validate-global-2026-06",
+        reason={"purpose": "activate superseding policy"},
+    )
+    activate_policy_pack_version(
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.06",
+        activated_by="policy_checker_1",
+        source_content_hash=new_detail.policy_pack.content_hash,
+        idempotency_key="activate-global-2026-06",
+        reason={"purpose": "activate superseding policy"},
+    )
+    superseded_detail = get_policy_pack_version(
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+    )
+
+    matching = replay_policy_evaluation_record(
+        evaluation_id=persisted.record.evaluation_id,
+        evidence_bundle=deepcopy(evidence),
+    )
+    changed_evidence = deepcopy(evidence)
+    changed_evidence["risk_lens"]["var"]["var_95_1m"] = "0.07"
+    changed = replay_policy_evaluation_record(
+        evaluation_id=persisted.record.evaluation_id,
+        evidence_bundle=changed_evidence,
+    )
+
+    assert superseded_detail.policy_pack.activation_state == "SUPERSEDED"
+    assert matching.hash_comparison["current_policy_version"] == "2026.05"
+    assert matching.hash_comparison["policy_activation_state"] == "SUPERSEDED"
+    assert matching.hash_comparison["policy_content_hash_matches"] is True
+    assert matching.hash_comparison["source_evidence_hash_matches"] is True
+    assert matching.hash_comparison["evaluation_hash_matches"] is True
+    assert matching.hash_comparison["replay_reason_code"] == "POLICY_REPLAY_EXACT_MATCH"
+    assert changed.hash_comparison["current_policy_version"] == "2026.05"
+    assert changed.hash_comparison["policy_activation_state"] == "SUPERSEDED"
+    assert changed.hash_comparison["source_evidence_hash_matches"] is False
+    assert changed.hash_comparison["evaluation_hash_matches"] is False
+    assert changed.hash_comparison["replay_reason_code"] == "POLICY_REPLAY_HASH_DRIFT"
 
 
 def test_policy_evaluation_persists_disclosure_consent_and_approval_dependencies() -> None:

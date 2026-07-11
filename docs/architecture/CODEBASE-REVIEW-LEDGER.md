@@ -1,5 +1,41 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-920
+
+- Scope: Policy evaluation replay across policy-pack lifecycle changes
+- Pattern: New policy evaluation eligibility and historical replay eligibility must be separate
+  code paths; replay must pin stored policy identity and never substitute the current active
+  version.
+- Status: Hardened
+- Finding Class: Auditability, lineage, compliance replay, and policy lifecycle correctness
+- Summary: GitHub issue #430 identified that replay with evidence called the active-only policy
+  evaluator. Once the policy version that created a finalized record became `SUPERSEDED` or
+  `DISABLED`, replay failed before comparing stored and replayed hashes even though the record
+  retained immutable policy version and content-hash metadata.
+- Evidence:
+  - Added `evaluate_policy_pack_version_for_replay` to permit retained `ACTIVE`, `SUPERSEDED`, and
+    `DISABLED` versions for historical comparison while keeping new evaluation creation active-only.
+  - Updated replay comparison to expose policy lifecycle state and deterministic reason codes:
+    `POLICY_REPLAY_EXACT_MATCH`, `POLICY_REPLAY_HASH_DRIFT`,
+    `POLICY_CONTENT_HASH_DRIFT_REPLAY_BLOCKED`, and
+    `POLICY_DEFINITION_UNAVAILABLE_FOR_REPLAY`.
+  - Replay hash calculation reconstructs the original evaluation payload's activation-state
+    posture for hash comparison while separately reporting the current policy lifecycle state.
+  - Added regression coverage that finalizes an evaluation against an active policy version,
+    activates a newer version, verifies the original becomes `SUPERSEDED`, and proves identical
+    evidence still replays exactly while changed evidence reports hash drift.
+- Consequence:
+  - Historical policy evidence remains explainable after policy-pack rollout, without making
+    superseded or disabled versions eligible for new evaluations or silently evaluating the current
+    active version.
+- Documentation:
+  - Updated RFC-0025 Slice 7, API replay response descriptions/API vocabulary, operations runbook,
+    Operations wiki source, generated quality reports, and this ledger. Wiki source changed, so
+    repo-wiki check is required before merge and publication is required after merge.
+- Follow-Up:
+  - Missing retained policy definitions and content-hash drift now return explicit replay reason
+    codes; #398 remains the broader backup/restore and durable retention drill.
+
 ## LA-REV-919
 
 - Scope: Policy-pack catalog active-version invariant

@@ -173,7 +173,11 @@ class PolicyEvaluationReplayResponse(BaseModel):
     source_refs: list[str] = Field(description="Persisted source refs used for replay proof.")
     source_gaps: list[str] = Field(description="Persisted source gaps used for replay proof.")
     hash_comparison: dict[str, Any] = Field(
-        description="Stored versus replayed hash comparison for policy, source, and result truth.",
+        description=(
+            "Stored versus replayed hash comparison for policy, source, and result truth, "
+            "including policy lifecycle state and replay reason code. Historical replay pins the "
+            "stored policy version and never substitutes the current active version."
+        ),
     )
     replay_metadata: dict[str, Any] = Field(description="Persisted replay metadata.")
 
