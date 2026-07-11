@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import Any, cast
 
 from src.core.proposals.correlation import MAX_CORRELATION_ID_LENGTH
@@ -129,11 +128,10 @@ def _normalized_output_format(value: Any) -> str | None:
 
 def extract_report_as_of_date(request: dict[str, Any]) -> str:
     proposal_result = _proposal_result_payload(request)
-    return (
-        _direct_report_as_of_date(proposal_result)
-        or _lineage_report_as_of_date(proposal_result)
-        or datetime.now(UTC).date().isoformat()
-    )
+    dates = _unique_report_as_of_dates(proposal_result)
+    if len(dates) == 1:
+        return next(iter(dates))
+    raise LotusReportRequestMappingError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
 
 
 def _proposal_result_payload(request: dict[str, Any]) -> dict[str, Any]:
@@ -152,6 +150,36 @@ def _lineage_report_as_of_date(proposal_result: dict[str, Any]) -> str | None:
     return None
 
 
+def _unique_report_as_of_dates(proposal_result: dict[str, Any]) -> set[str]:
+    dates = set(_report_date_values(proposal_result))
+    lineage_date = _lineage_report_as_of_date(proposal_result)
+    if lineage_date is not None:
+        dates.add(lineage_date)
+    return dates
+
+
+def _report_date_values(payload: Any) -> list[str]:
+    if isinstance(payload, dict):
+        return _report_date_values_from_mapping(payload)
+    if isinstance(payload, list):
+        dates: list[str] = []
+        for value in payload:
+            dates.extend(_report_date_values(value))
+        return dates
+    return []
+
+
+def _report_date_values_from_mapping(payload: dict[str, Any]) -> list[str]:
+    dates: list[str] = []
+    for key, value in payload.items():
+        if key in _REPORT_DATE_KEYS:
+            normalized = normalized_snapshot_date(value)
+            if normalized is not None:
+                dates.append(normalized)
+        dates.extend(_report_date_values(value))
+    return dates
+
+
 def _first_snapshot_date_in_mapping(lineage: dict[str, Any]) -> str | None:
     for value in lineage.values():
         if isinstance(value, str):
@@ -162,13 +190,19 @@ def _first_snapshot_date_in_mapping(lineage: dict[str, Any]) -> str | None:
 
 
 def extract_reporting_currency(request: dict[str, Any]) -> str | None:
-    return _before_total_value_currency(_proposal_result_payload(request)) or "USD"
+    currency = _before_total_value_currency(_proposal_result_payload(request))
+    if currency is None:
+        raise LotusReportRequestMappingError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
+    return currency
 
 
 def _before_total_value_currency(proposal_result: dict[str, Any]) -> str | None:
     before = as_mapping(proposal_result.get("before"))
     total_value = as_mapping(before.get("total_value"))
-    return optional_string(total_value.get("currency"))
+    currency = optional_string(total_value.get("currency"))
+    if currency is None or not re.fullmatch(r"[A-Z]{3}", currency):
+        return None
+    return currency
 
 
 def find_first_key_value(payload: Any, *, keys: set[str]) -> str | None:
@@ -216,7 +250,7 @@ def normalized_snapshot_date(value: Any) -> str | None:
 
 def proposal_region(request: dict[str, Any]) -> str:
     proposal = cast(dict[str, Any], request.get("proposal") or {})
-    return optional_string(proposal.get("jurisdiction")) or "SG"
+    return required_string(proposal, "jurisdiction")
 
 
 def report_actor_id(request: dict[str, Any]) -> str:

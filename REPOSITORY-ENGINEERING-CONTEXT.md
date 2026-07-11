@@ -235,7 +235,10 @@ Boundary rules:
    authority until a later certified realization slice implements those controls,
 11. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
    missing, malformed, over-length, or control-character-bearing; do not reintroduce synthetic
-   production defaults such as a hardcoded tenant or service actor.
+   production defaults such as a hardcoded tenant or service actor,
+12. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
+   jurisdiction/booking-center metadata; current-date, USD, and SG fallbacks are not production
+   source truth.
 
 ## Repo-Native Commands
 

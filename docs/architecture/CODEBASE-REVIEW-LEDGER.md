@@ -26124,3 +26124,32 @@
 - Follow-Up:
   - Apply the same trusted caller-context rule to remaining route-level authorization work, including
     Advisor Cockpit caller-context resolution.
+
+## LA-REV-338
+
+- Scope: Downstream report source metadata boundary
+- Pattern: Outbound report requests must carry source-derived as-of date, reporting currency, and
+  jurisdiction/booking-center metadata instead of applying current-date or market defaults
+- Status: Hardened
+- Finding Class: Source-contract correctness and downstream integration boundary
+- Summary: `src/integrations/lotus_report/request_mapping.py` silently defaulted missing report
+  metadata to the current UTC date, `USD`, and `SG`. A historical or non-Singapore advisory report
+  could therefore be accepted with materially wrong business context.
+- Evidence:
+  - Report as-of date extraction now requires exactly one normalized source date across direct
+    proposal-result metadata and lineage snapshot references.
+  - Reporting currency now requires a source-backed three-letter currency from the proposal-result
+    total value.
+  - Proposal jurisdiction is required before report region and booking-center headers are emitted.
+  - Focused Lotus Report mapping and adapter tests passed with 34 tests, including missing metadata,
+    conflicting dates, and historical HK/SGD report evidence.
+- Consequence:
+  - `lotus-advise` no longer manufactures source truth for downstream report submission. Missing or
+    conflicting source metadata maps to the stable `LOTUS_REPORT_REQUEST_UNAVAILABLE` posture before
+    any report HTTP request is made.
+- Documentation:
+  - Updated security docs, operations runbook, repository context, wiki integration notes, and wiki
+    security governance with the report metadata rule.
+- Follow-Up:
+  - Continue validating portfolio identity and as-of consistency at the Lotus Core stateful-context
+    boundary so source metadata is authoritative before report packaging.

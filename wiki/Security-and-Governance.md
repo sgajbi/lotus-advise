@@ -29,6 +29,8 @@ The highest-risk documentation and implementation drift usually appears at these
 4. live runtime evidence matters when advisory behavior changes materially
 5. outbound report and AI calls must not substitute synthetic tenant or actor defaults; trusted
    identity must be bounded and present before downstream submission
+6. outbound report calls must preserve source-derived as-of date, reporting currency, and
+   jurisdiction instead of silently applying market or current-date defaults
 
 ## RFC-0028 Proof Artifact Governance
 

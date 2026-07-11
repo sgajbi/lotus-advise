@@ -29,6 +29,10 @@ tenant identifier propagated to downstream boundaries. Report requests also requ
 control-character-containing values fail closed before `lotus-report` or `lotus-ai` HTTP
 submission.
 
+Report requests additionally require source-derived as-of date, reporting currency, and proposal
+jurisdiction metadata. The service does not manufacture current-date, USD, or SG fallbacks for
+production-like downstream report submissions.
+
 ## Operational Posture
 
 - Treat GitHub Actions as CI truth.

@@ -9,6 +9,9 @@ This document records the current security hardening baseline for Lotus Advise.
 - Advisory-copilot structured payload tests reject raw AI payload and sensitive unredacted inputs.
 - Downstream `lotus-report` and `lotus-ai` requests require bounded trusted actor and tenant
   identity; missing or malformed values fail closed before HTTP submission.
+- Downstream report requests require source-derived as-of date, reporting currency, and
+  jurisdiction/booking-center metadata; missing or conflicting values fail closed before HTTP
+  submission.
 - Bandit high-severity findings are enforced through `make bandit-high-severity-gate`, which is
   called by `make security-audit`.
 - Current Bandit inventory remains visible in the quality baseline: `0` high, `26` medium, and `1`

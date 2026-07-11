@@ -145,7 +145,7 @@ def test_mapping_rejects_untrusted_actor_and_tenant_identity(
         )
 
 
-def test_reporting_currency_uses_source_total_value_or_usd_fallback() -> None:
+def test_reporting_currency_uses_source_total_value_and_requires_authority() -> None:
     request = _proposal_request()
     request["proposal_version"]["proposal_result"]["before"]["total_value"]["currency"] = " SGD "
 
@@ -153,7 +153,11 @@ def test_reporting_currency_uses_source_total_value_or_usd_fallback() -> None:
 
     request["proposal_version"]["proposal_result"].pop("before")
 
-    assert extract_reporting_currency(request) == "USD"
+    with pytest.raises(
+        LotusReportRequestMappingError,
+        match="LOTUS_REPORT_REQUEST_UNAVAILABLE",
+    ):
+        extract_reporting_currency(request)
 
 
 def test_find_first_key_value_preserves_depth_first_report_date_selection() -> None:
@@ -187,6 +191,45 @@ def test_extract_report_as_of_date_ignores_invalid_direct_dates_before_lineage_f
     }
 
     assert extract_report_as_of_date(request) == "2026-04-13"
+
+
+def test_extract_report_as_of_date_rejects_missing_or_conflicting_source_dates() -> None:
+    request = _proposal_request()
+    request["proposal_version"]["proposal_result"] = {
+        "analytics": {"metadata": {"as_of_date": "2026-04-10"}},
+        "lineage": {"snapshot_ref": "lotus-core/snapshot/2026-04-13.json"},
+    }
+
+    with pytest.raises(
+        LotusReportRequestMappingError,
+        match="LOTUS_REPORT_REQUEST_UNAVAILABLE",
+    ):
+        extract_report_as_of_date(request)
+
+    request["proposal_version"]["proposal_result"] = {
+        "before": {"total_value": {"amount": "100.00", "currency": "USD"}},
+    }
+
+    with pytest.raises(
+        LotusReportRequestMappingError,
+        match="LOTUS_REPORT_REQUEST_UNAVAILABLE",
+    ):
+        extract_report_as_of_date(request)
+
+
+def test_mapping_rejects_missing_report_jurisdiction_before_headers() -> None:
+    request = _proposal_request()
+    request["proposal"]["jurisdiction"] = ""
+
+    with pytest.raises(
+        LotusReportRequestMappingError,
+        match="LOTUS_REPORT_REQUEST_UNAVAILABLE",
+    ):
+        build_report_headers(
+            request=request,
+            request_id="prr_live_001",
+            tenant_id="tenant-private-bank-001",
+        )
 
 
 def test_mapping_fails_closed_when_required_advisory_source_identity_is_missing() -> None:
