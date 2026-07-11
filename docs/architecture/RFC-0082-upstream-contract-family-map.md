@@ -110,6 +110,25 @@ Curated simulation parity scenarios and the canonical `PB_SG_GLOBAL_BAL_001` pri
 example also replay stale Core v1 decision fields through the source-effects contract and assert the
 Advise-owned output remains authoritative while `core_decision_parity` records every mismatch.
 
+## Core Simulation Compatibility Retirement
+
+`lotus-advise` preserves the existing public proposal simulation response shape while Core still
+publishes the v1 simulation contract. The v1 consumer path accepts Core source effects, quarantines
+legacy Core decision-shaped fields under `non_authoritative_core_decisions`, and records
+`core_decision_parity` for migration review.
+
+Advise must not delete the v1 compatibility quarantine until the Core producer closes the linked
+source-contract work:
+
+1. `sgajbi/lotus-core#470` contains advisory decisioning so Core remains source-data focused.
+2. `sgajbi/lotus-core#709` projects transaction economics through Core-owned transaction semantics.
+3. `sgajbi/lotus-core#710` pins source baseline, content hash, freshness, and replay lineage.
+
+Cutover requires a Core source-effects-only v2 contract fixture, updated Advise adapter contract
+fixtures, successful dual-run parity over the curated and `PB_SG_GLOBAL_BAL_001` cases, and remote
+feature-lane evidence. Rollback keeps the v1 quarantine path enabled; no Advise fallback may invent
+missing Core source facts.
+
 ## Gap Register
 
 1. Advisory stateful context still uses multiple operational reads. If the access pattern grows into a

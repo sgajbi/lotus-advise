@@ -27253,6 +27253,9 @@
   - Curated simulation parity scenarios and the canonical `PB_SG_GLOBAL_BAL_001` private-banking
     request example now replay stale Core v1 decision fields through `CoreProjectedTransactionEffects`
     and prove Advise-owned status, suitability, and workflow gate output remains authoritative.
+  - RFC-0082 now records the Core v2 retirement posture: keep the v1 quarantine until Core issues
+    #470, #709, and #710 deliver the source-effects-only producer contract, then cut over with
+    updated fixtures, dual-run evidence, and v1 rollback.
   - `tests/fixtures/external-adapter-contracts/lotus-advise-external-adapter-contracts.v1.json`
     now declares `CoreProjectedTransactionEffects`, source-effect authority fields,
     non-authoritative Core decision fields, Advise decision authority fields, and the parity
@@ -27265,5 +27268,6 @@
   - Updated RFC-0082 upstream contract map, README, wiki Architecture, repository context, and this
     ledger with the ownership matrix.
 - Follow-Up:
-  - Continue #434 by coordinating Core v2 retirement once linked Core producer issues are complete
-    and retaining the v1 parity classifier until producer cutover evidence is available.
+  - Track linked Core producer issues through their existing GitHub records; no additional Advise
+    defect is required because the local compatibility quarantine and retirement plan are now
+    documented and tested.
