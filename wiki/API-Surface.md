@@ -112,8 +112,10 @@ the global portfolio universe, create rebalance waves, approve trades, or integr
 These RFC-0026 endpoints expose source-owned advisor operating workflow evidence for action items,
 daily snapshot posture, supportability, and durable acknowledgement replay. Responses preserve
 source refs, action reason codes, SLA posture, acknowledgement lineage, and unsupported-claim
-boundaries. Acknowledgements are advisor workflow evidence only: they do not approve policy, clear
-blockers, contact clients, create CRM tasks, or initiate OMS activity.
+boundaries. Caller role, advisor scope, and portfolio scope come from trusted gateway/service
+headers; `role` and `advisor_id` query parameters are not authorization inputs. Acknowledgements
+are advisor workflow evidence only: they do not approve policy, clear blockers, contact clients,
+create CRM tasks, or initiate OMS activity.
 
 ## Bank Demo Proof
 

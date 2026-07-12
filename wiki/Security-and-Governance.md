@@ -48,22 +48,38 @@ The highest-risk documentation and implementation drift usually appears at these
 7. advisory copilot review routes must authorize a trusted reviewer principal before state
    mutation; body `actor_id` is only a compatibility echo and cannot satisfy role, capability,
    maker-checker, tenant, proposal, portfolio, or idempotency replay authority on its own
-8. outbound report calls must preserve source-derived as-of date, reporting currency, and
+8. Advisor Cockpit reads and acknowledgements must derive caller role, advisor scope, and portfolio
+   scope from trusted headers; query parameters cannot authorize role or advisor impersonation
+9. outbound report calls must preserve source-derived as-of date, reporting currency, and
    jurisdiction instead of silently applying market or current-date defaults
-9. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
+10. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
    OCI metadata, accompanied by digest-bearing release evidence, SBOM, scan, signature, and
    provenance attestation, and deployed by digest
-10. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
+11. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
    current medium/low entries must match the governed baseline, and new, stale, expired, or
    worsened medium/low entries fail CI
-11. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
+12. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
     including transitive packages, must match the committed inventory and any review-required terms
     must have owner-approved expiring exceptions
-12. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
+13. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
     requirements install strategy, requirement-file hashes, and dependency inventory hash
-13. HTTP boundary posture must fail closed for unsafe production-like host/origin configuration:
+14. HTTP boundary posture must fail closed for unsafe production-like host/origin configuration:
     trusted hosts are service-owned, browser origins are deny-by-default, security headers are
     applied to API responses, and write-payload limits remain enforced at the API boundary
+
+## Advisor Cockpit Principal Governance
+
+Advisor Cockpit action, detail, snapshot, preparation-packet, supportability, and acknowledgement
+routes derive authority from trusted gateway/service headers: `X-Actor-Id`, `X-Role`,
+`X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service identity, route capability,
+`X-Authorized-Advisor-Id`, and `X-Authorized-Portfolio-Id`. Caller-controlled `role` and
+`advisor_id` query parameters are rejected at the API boundary. Requested `portfolio_id` values
+must match trusted authorized portfolio scope before source records are loaded.
+
+Acknowledgement writes require `advisory.advisor_cockpit.acknowledge`, bind body
+`acknowledged_by` to the trusted actor, and retain trusted-principal authorization metadata in
+append-only acknowledgement audit evidence. Read routes require
+`advisory.advisor_cockpit.read` and use trusted role headers for owner-role projection.
 
 ## Policy-Control Principal Governance
 

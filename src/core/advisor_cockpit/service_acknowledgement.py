@@ -7,6 +7,10 @@ from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
 )
+from src.core.advisor_cockpit.caller_authority import (
+    AdvisorCockpitPrincipal,
+    cockpit_acknowledgement_audit_reason,
+)
 from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
@@ -36,6 +40,7 @@ def acknowledge_cockpit_action(
     idempotency_key: str,
     correlation_id: str | None,
     contract_version: str,
+    principal: AdvisorCockpitPrincipal,
 ) -> AdvisorCockpitAcknowledgeResponse:
     idempotency_key = require_proposal_idempotency_key(idempotency_key)
     _validate_acknowledgement_version(action=action, payload=payload)
@@ -64,6 +69,7 @@ def acknowledge_cockpit_action(
         contract_version=contract_version,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        principal=principal,
     )
     _save_acknowledgement(
         repository=repository,
@@ -147,6 +153,7 @@ def _acknowledgement_record(
     contract_version: str,
     idempotency_key: str,
     request_hash: str,
+    principal: AdvisorCockpitPrincipal,
 ) -> CockpitAcknowledgementRecord:
     return CockpitAcknowledgementRecord(
         acknowledgement_id=bounded_reference(f"ack_{action_item_id}"),
@@ -161,6 +168,7 @@ def _acknowledgement_record(
             contract_version=contract_version,
             idempotency_key=idempotency_key,
             request_hash=request_hash,
+            principal=principal,
         ),
     )
 
@@ -171,14 +179,18 @@ def _acknowledgement_reason_json(
     contract_version: str,
     idempotency_key: str,
     request_hash: str,
+    principal: AdvisorCockpitPrincipal,
 ) -> dict[str, Any]:
-    return {
-        "contract_version": contract_version,
-        "idempotency_key": idempotency_key,
-        "request_hash": request_hash,
-        "owner_role": action.owner_role,
-        "status_after_acknowledgement": action.status,
-    }
+    return cockpit_acknowledgement_audit_reason(
+        {
+            "contract_version": contract_version,
+            "idempotency_key": idempotency_key,
+            "request_hash": request_hash,
+            "owner_role": action.owner_role,
+            "status_after_acknowledgement": action.status,
+        },
+        principal=principal,
+    )
 
 
 def _save_acknowledgement(

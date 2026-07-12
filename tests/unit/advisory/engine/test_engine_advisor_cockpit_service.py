@@ -16,6 +16,10 @@ from src.core.advisor_cockpit import (
     PolicyReviewActionSource,
     build_policy_review_required_action,
 )
+from src.core.advisor_cockpit.caller_authority import (
+    ADVISOR_COCKPIT_ACKNOWLEDGE_CAPABILITY,
+    AdvisorCockpitPrincipal,
+)
 from src.core.advisor_cockpit.service_projection import (
     project_actions_for_caller,
     visible_owner_roles_for_role,
@@ -247,6 +251,20 @@ def _caller(
     role: str = "ADVISOR", advisor_id: str | None = "advisor_sg_001"
 ) -> CockpitCallerContext:
     return CockpitCallerContext(advisor_id=advisor_id, role=role)
+
+
+def _principal() -> AdvisorCockpitPrincipal:
+    return AdvisorCockpitPrincipal(
+        actor_id="advisor_sg_001",
+        role="ADVISOR",
+        tenant_id="tenant-sg-001",
+        legal_entity_code="SGPB",
+        correlation_id="corr-cockpit-service",
+        service_identity="lotus-workbench",
+        capabilities=frozenset({ADVISOR_COCKPIT_ACKNOWLEDGE_CAPABILITY}),
+        authorized_advisor_id="advisor_sg_001",
+        authorized_portfolio_id="PB_SG_GLOBAL_BAL_001",
+    )
 
 
 def _policy_action():
@@ -838,6 +856,7 @@ def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_postu
         correlation_id="corr-ack-001",
         caller_context=_caller(),
         portfolio_id="PB_SG_GLOBAL_BAL_001",
+        principal=_principal(),
     )
     replay = service.acknowledge_action(
         action_item_id=action.action_item_id,
@@ -846,6 +865,7 @@ def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_postu
         correlation_id="corr-ack-retry-002",
         caller_context=_caller(),
         portfolio_id="PB_SG_GLOBAL_BAL_001",
+        principal=_principal(),
     )
 
     assert response.replayed is False
@@ -854,6 +874,30 @@ def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_postu
     assert response.audit["idempotency_key"] == "ack-policy-001"
     assert response.acknowledgement.acknowledged_by == "advisor_sg_001"
     assert response.acknowledgement.acknowledgement_note == "Reviewed pending policy action."
+    saved_acknowledgement = service._repository.get_cockpit_acknowledgement(
+        action_item_id=action.action_item_id
+    )
+    assert saved_acknowledgement is not None
+    assert saved_acknowledgement.reason_json["trusted_principal"]["subject"] == "advisor_sg_001"
+    assert saved_acknowledgement.reason_json["trusted_principal"]["role"] == "ADVISOR"
+    assert saved_acknowledgement.reason_json["acknowledgement_authorization"] == {
+        "decision": "AUTHORIZED",
+        "required_capability": "advisory.advisor_cockpit.acknowledge",
+        "authorized_roles": [
+            "ADVISOR",
+            "ARCHIVE_OWNER",
+            "COMPLIANCE_REVIEWER",
+            "CRM_OWNER",
+            "DESK_HEAD",
+            "EXECUTION_OWNER",
+            "INVESTMENT_DESK",
+            "OPERATIONS",
+            "PORTFOLIO_MANAGER",
+            "REPORTING_OWNER",
+            "SYSTEM",
+        ],
+        "scope_decision": "AUTHORIZED",
+    }
     assert replay.audit["correlation_id"] == "corr-ack-001"
     assert replay.action_item.correlation_id == "corr-ack-retry-002"
     assert replay.action_item.status == "PENDING_REVIEW"
@@ -925,6 +969,7 @@ def test_cockpit_acknowledgement_bounds_ack_id_for_boundary_length_action(
         correlation_id="corr-ack-boundary",
         caller_context=_caller(),
         portfolio_id="PB_SG_GLOBAL_BAL_001",
+        principal=_principal(),
     )
 
     assert len(action.action_item_id) <= 160
@@ -954,6 +999,7 @@ def test_cockpit_acknowledgement_rejects_conflict_and_stale_version(
         correlation_id="corr-ack-001",
         caller_context=_caller(),
         portfolio_id="PB_SG_GLOBAL_BAL_001",
+        principal=_principal(),
     )
 
     with pytest.raises(ProposalIdempotencyConflictError):
@@ -968,6 +1014,7 @@ def test_cockpit_acknowledgement_rejects_conflict_and_stale_version(
             correlation_id="corr-ack-different",
             caller_context=_caller(),
             portfolio_id="PB_SG_GLOBAL_BAL_001",
+            principal=_principal(),
         )
 
     with pytest.raises(ProposalValidationError, match="ADVISOR_COCKPIT_ACTION_VERSION_STALE"):
@@ -981,6 +1028,7 @@ def test_cockpit_acknowledgement_rejects_conflict_and_stale_version(
             correlation_id=None,
             caller_context=_caller(),
             portfolio_id="PB_SG_GLOBAL_BAL_001",
+            principal=_principal(),
         )
 
 
@@ -1020,6 +1068,7 @@ def test_cockpit_acknowledgement_replay_requires_saved_acknowledgement_record(
         correlation_id="corr-ack-missing-record",
         caller_context=_caller(),
         portfolio_id="PB_SG_GLOBAL_BAL_001",
+        principal=_principal(),
     )
 
     with pytest.raises(ProposalNotFoundError, match="ADVISOR_COCKPIT_ACKNOWLEDGEMENT_NOT_FOUND"):
@@ -1030,4 +1079,5 @@ def test_cockpit_acknowledgement_replay_requires_saved_acknowledgement_record(
             correlation_id="corr-ack-missing-record-replay",
             caller_context=_caller(),
             portfolio_id="PB_SG_GLOBAL_BAL_001",
+            principal=_principal(),
         )

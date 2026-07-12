@@ -16,6 +16,7 @@ from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitSnapshotResponse,
     AdvisorCockpitSupportabilityResponse,
 )
+from src.core.advisor_cockpit.caller_authority import AdvisorCockpitPrincipal
 from src.core.advisor_cockpit.pagination import (
     cockpit_cursor_start,
     normalize_cockpit_page_size,
@@ -238,6 +239,7 @@ class AdvisorCockpitService:
         correlation_id: str | None,
         caller_context: CockpitCallerContext,
         portfolio_id: str | None,
+        principal: AdvisorCockpitPrincipal,
     ) -> AdvisorCockpitAcknowledgeResponse:
         action = self.get_action(
             action_item_id=action_item_id,
@@ -254,6 +256,7 @@ class AdvisorCockpitService:
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
             contract_version=COCKPIT_CONTRACT_VERSION,
+            principal=principal,
         )
 
     def _build_actions(

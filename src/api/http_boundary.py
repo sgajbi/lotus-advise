@@ -28,6 +28,7 @@ _CORS_ALLOW_HEADERS = (
     "Content-Type",
     "Idempotency-Key",
     "X-Actor-Id",
+    "X-Authorized-Advisor-Id",
     "X-Authorized-Portfolio-Id",
     "X-Authorized-Proposal-Id",
     "X-Capabilities",

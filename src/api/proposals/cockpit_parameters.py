@@ -4,7 +4,6 @@ from typing import Annotated
 
 from fastapi import Header, Path, Query
 
-from src.core.advisor_cockpit import AdvisorCockpitCallerRole
 from src.core.advisor_cockpit.pagination import COCKPIT_ACTION_MAX_PAGE_SIZE
 from src.core.advisor_cockpit.projection_bounds import COCKPIT_IDENTIFIER_MAX_LENGTH
 from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
@@ -15,26 +14,6 @@ AdvisorCockpitPortfolioIdQuery = Annotated[
         description="Optional portfolio scope.",
         max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
         examples=["PB_SG_GLOBAL_BAL_001"],
-    ),
-]
-
-AdvisorCockpitAdvisorIdQuery = Annotated[
-    str | None,
-    Query(
-        description="Optional advisor actor scope.",
-        max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
-        examples=["advisor_sg_001"],
-    ),
-]
-
-AdvisorCockpitCallerRoleQuery = Annotated[
-    AdvisorCockpitCallerRole,
-    Query(
-        description=(
-            "Caller role for server-side projection. Use `PORTFOLIO_MANAGER` for "
-            "portfolio-management owned actions."
-        ),
-        examples=["ADVISOR"],
     ),
 ]
 

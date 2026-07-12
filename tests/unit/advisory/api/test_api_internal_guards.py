@@ -284,7 +284,7 @@ def test_lifecycle_routes_use_shared_parameter_contracts():
     assert "ProposalCreateIdempotencyKeyHeader" in source
     assert "ProposalVersionCorrelationIdHeader" in source
     assert "ProposalListLimitQuery" in source
-    assert "ProposalOptionalNarrativeReviewIdempotencyKeyHeader" in source
+    assert "ProposalNarrativeReviewIdempotencyKeyHeader" in source
 
 
 def test_idea_intake_route_uses_shared_response_and_parameter_contracts():
@@ -450,12 +450,13 @@ def test_advisor_cockpit_routes_use_shared_error_boundary():
 def test_advisor_cockpit_routes_use_shared_parameter_contracts():
     source = Path("src/api/proposals/routes_advisor_cockpit.py").read_text(encoding="utf-8")
 
-    assert "from fastapi import Depends, status" in source
+    assert "from fastapi import Depends, Request, status" in source
     assert "Query(" not in source
     assert "Header(" not in source
     assert "Path(" not in source
     assert "AdvisorCockpitPortfolioIdQuery" in source
-    assert "AdvisorCockpitCallerRoleQuery" in source
+    assert "AdvisorCockpitPrincipal" in source
+    assert "require_advisor_cockpit_read_principal" in source
     assert "AdvisorCockpitCorrelationIdHeader" in source
     assert "AdvisorCockpitAcknowledgementIdempotencyKeyHeader" in source
 

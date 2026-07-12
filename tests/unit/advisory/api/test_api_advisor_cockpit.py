@@ -28,6 +28,33 @@ from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 NOW = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
 
 
+def _cockpit_headers(
+    *,
+    actor_id: str = "advisor_sg_001",
+    role: str = "ADVISOR",
+    capability: str = "advisory.advisor_cockpit.read",
+    portfolio_id: str = "PB_SG_GLOBAL_BAL_001",
+    advisor_id: str | None = "advisor_sg_001",
+    correlation_id: str = "corr-cockpit-api",
+    idempotency_key: str | None = None,
+) -> dict[str, str]:
+    headers = {
+        "X-Actor-Id": actor_id,
+        "X-Role": role,
+        "X-Tenant-Id": "tenant-sg-001",
+        "X-Legal-Entity-Code": "SGPB",
+        "X-Correlation-ID": correlation_id,
+        "X-Service-Identity": "lotus-workbench",
+        "X-Capabilities": capability,
+        "X-Authorized-Portfolio-Id": portfolio_id,
+    }
+    if advisor_id is not None:
+        headers["X-Authorized-Advisor-Id"] = advisor_id
+    if idempotency_key is not None:
+        headers["Idempotency-Key"] = idempotency_key
+    return headers
+
+
 def setup_function() -> None:
     reset_proposal_workflow_service_for_tests()
     clear_tactical_house_view_affected_cohorts_for_tests()
@@ -186,16 +213,18 @@ def test_advisor_cockpit_api_lists_actions_and_snapshot(
     with TestClient(app) as client:
         actions = client.get(
             "/advisory/cockpit/actions",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
-            headers={"X-Correlation-ID": "corr-cockpit-api"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(correlation_id="corr-cockpit-api"),
         )
         snapshot = client.get(
             "/advisory/cockpit/snapshot",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(),
         )
         supportability_response = client.get(
             "/advisory/cockpit/supportability",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(),
         )
 
     assert actions.status_code == 200
@@ -221,10 +250,12 @@ def test_advisor_cockpit_api_projects_compliance_queue_by_caller_role(
     with TestClient(app) as client:
         response = client.get(
             "/advisory/cockpit/actions",
-            params={
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "role": "COMPLIANCE_REVIEWER",
-            },
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(
+                actor_id="compliance_reviewer_001",
+                role="COMPLIANCE_REVIEWER",
+                advisor_id=None,
+            ),
         )
 
     assert response.status_code == 200
@@ -248,11 +279,13 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
         )
         response = client.get(
             "/advisory/cockpit/actions",
-            params={
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "role": "PORTFOLIO_MANAGER",
-            },
-            headers={"X-Correlation-ID": "corr-cockpit-house-view"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(
+                actor_id="portfolio_manager_001",
+                role="PORTFOLIO_MANAGER",
+                advisor_id=None,
+                correlation_id="corr-cockpit-house-view",
+            ),
         )
 
     assert house_view.status_code == 200
@@ -269,17 +302,66 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
     with TestClient(app) as client:
         legacy_response = client.get(
             "/advisory/cockpit/actions",
-            params={
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "role": "DPM_OWNER",
-            },
-            headers={"X-Correlation-ID": "corr-cockpit-house-view-legacy"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(
+                actor_id="portfolio_manager_001",
+                role="DPM_OWNER",
+                advisor_id=None,
+                correlation_id="corr-cockpit-house-view-legacy",
+            ),
         )
 
-    assert legacy_response.status_code == 422
-    legacy_error = legacy_response.json()["detail"][0]
-    assert legacy_error["loc"] == ["query", "role"]
-    assert legacy_error["type"] == "literal_error"
+    assert legacy_response.status_code == 403
+    assert legacy_response.json()["detail"] == "ADVISOR_COCKPIT_ROLE_NOT_AUTHORIZED"
+
+
+def test_advisor_cockpit_api_rejects_untrusted_caller_query_impersonation(
+    cockpit_repository: InMemoryProposalRepository,
+) -> None:
+    _ = cockpit_repository
+    with TestClient(app) as client:
+        missing_principal = client.get(
+            "/advisory/cockpit/actions",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+        )
+        role_spoof = client.get(
+            "/advisory/cockpit/actions",
+            params={
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "role": "COMPLIANCE_REVIEWER",
+            },
+            headers=_cockpit_headers(),
+        )
+        advisor_spoof = client.get(
+            "/advisory/cockpit/snapshot",
+            params={
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "advisor_id": "advisor_sg_999",
+            },
+            headers=_cockpit_headers(),
+        )
+
+    assert missing_principal.status_code == 401
+    assert missing_principal.json()["detail"] == "ADVISOR_COCKPIT_PRINCIPAL_REQUIRED"
+    assert role_spoof.status_code == 422
+    assert "UNSUPPORTED_QUERY_PARAMETER: role" in role_spoof.json()["detail"]
+    assert advisor_spoof.status_code == 422
+    assert "UNSUPPORTED_QUERY_PARAMETER: advisor_id" in advisor_spoof.json()["detail"]
+
+
+def test_advisor_cockpit_api_rejects_portfolio_scope_mismatch(
+    cockpit_repository: InMemoryProposalRepository,
+) -> None:
+    _ = cockpit_repository
+    with TestClient(app) as client:
+        response = client.get(
+            "/advisory/cockpit/actions",
+            params={"portfolio_id": "PB_SG_OTHER_001"},
+            headers=_cockpit_headers(portfolio_id="PB_SG_GLOBAL_BAL_001"),
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "ADVISOR_COCKPIT_SCOPE_FORBIDDEN"
 
 
 def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
@@ -289,33 +371,48 @@ def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
     with TestClient(app) as client:
         actions = client.get(
             "/advisory/cockpit/actions",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(),
         ).json()
         action_id = actions["items"][0]["action_item_id"]
         body = {"action_item_version": 1, "acknowledged_by": "advisor_sg_001"}
         first = client.post(
             f"/advisory/cockpit/actions/{action_id}/acknowledgements",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
             json=body,
-            headers={"Idempotency-Key": "ack-api-001", "X-Correlation-ID": "corr-ack-api"},
+            headers=_cockpit_headers(
+                capability="advisory.advisor_cockpit.acknowledge",
+                correlation_id="corr-ack-api",
+                idempotency_key="ack-api-001",
+            ),
         )
         replay = client.post(
             f"/advisory/cockpit/actions/{action_id}/acknowledgements",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
             json=body,
-            headers={"Idempotency-Key": "ack-api-001", "X-Correlation-ID": "corr-ack-api"},
+            headers=_cockpit_headers(
+                capability="advisory.advisor_cockpit.acknowledge",
+                correlation_id="corr-ack-api",
+                idempotency_key="ack-api-001",
+            ),
         )
         stale = client.post(
             f"/advisory/cockpit/actions/{action_id}/acknowledgements",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
             json={"action_item_version": 99, "acknowledged_by": "advisor_sg_001"},
-            headers={"Idempotency-Key": "ack-api-stale"},
+            headers=_cockpit_headers(
+                capability="advisory.advisor_cockpit.acknowledge",
+                idempotency_key="ack-api-stale",
+            ),
         )
         blank_actor = client.post(
             f"/advisory/cockpit/actions/{action_id}/acknowledgements",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
             json={"action_item_version": 1, "acknowledged_by": "   "},
-            headers={"Idempotency-Key": "ack-api-blank-actor"},
+            headers=_cockpit_headers(
+                capability="advisory.advisor_cockpit.acknowledge",
+                idempotency_key="ack-api-blank-actor",
+            ),
         )
 
     assert first.status_code == 200
@@ -327,6 +424,31 @@ def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
     assert blank_actor.status_code == 422
 
 
+def test_advisor_cockpit_api_rejects_acknowledgement_actor_impersonation(
+    cockpit_repository: InMemoryProposalRepository,
+) -> None:
+    with TestClient(app) as client:
+        actions = client.get(
+            "/advisory/cockpit/actions",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(),
+        ).json()
+        action_id = actions["items"][0]["action_item_id"]
+        response = client.post(
+            f"/advisory/cockpit/actions/{action_id}/acknowledgements",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            json={"action_item_version": 1, "acknowledged_by": "advisor_sg_999"},
+            headers=_cockpit_headers(
+                capability="advisory.advisor_cockpit.acknowledge",
+                idempotency_key="ack-api-impersonation",
+            ),
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "ADVISOR_COCKPIT_ACTOR_MISMATCH"
+    assert cockpit_repository.get_cockpit_acknowledgement(action_item_id=action_id) is None
+
+
 def test_advisor_cockpit_api_rejects_oversized_route_inputs(
     cockpit_repository: InMemoryProposalRepository,
 ) -> None:
@@ -335,22 +457,31 @@ def test_advisor_cockpit_api_rejects_oversized_route_inputs(
     with TestClient(app) as client:
         actions = client.get(
             "/advisory/cockpit/actions",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(),
         ).json()
         action_id = actions["items"][0]["action_item_id"]
         oversized_query = client.get(
             "/advisory/cockpit/actions",
             params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": oversized_ref},
+            headers=_cockpit_headers(),
         )
         oversized_cursor = client.get(
             "/advisory/cockpit/preparation-packets",
             params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "cursor": oversized_ref},
+            headers=_cockpit_headers(),
         )
-        oversized_path = client.get(f"/advisory/cockpit/actions/{oversized_ref}")
+        oversized_path = client.get(
+            f"/advisory/cockpit/actions/{oversized_ref}",
+            headers=_cockpit_headers(),
+        )
         oversized_header = client.post(
             f"/advisory/cockpit/actions/{action_id}/acknowledgements",
-            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
-            headers={"Idempotency-Key": oversized_ref},
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+            headers=_cockpit_headers(
+                capability="advisory.advisor_cockpit.acknowledge",
+                idempotency_key=oversized_ref,
+            ),
             json={"action_item_version": 1, "acknowledged_by": "advisor_sg_001"},
         )
 
@@ -388,13 +519,27 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
     emitted_owner_values = action_schema["properties"]["owner_role"]["enum"]
     assert "PORTFOLIO_MANAGER" in emitted_owner_values
     assert "DPM_OWNER" not in emitted_owner_values
-    role_parameter = next(
-        parameter for parameter in action_operation["parameters"] if parameter["name"] == "role"
+    action_parameters = action_operation["parameters"]
+    assert not any(
+        parameter["name"] == "role" and parameter["in"] == "query"
+        for parameter in action_parameters
     )
-    assert "legacy caller alias" not in role_parameter["description"]
-    assert "portfolio-management owned actions" in role_parameter["description"]
-    assert "DPM_OWNER" not in role_parameter["schema"]["enum"]
-    assert "PORTFOLIO_MANAGER" in role_parameter["schema"]["enum"]
+    assert not any(
+        parameter["name"] == "advisor_id" and parameter["in"] == "query"
+        for parameter in action_parameters
+    )
+    assert any(
+        parameter["name"] == "X-Role" and parameter["in"] == "header"
+        for parameter in action_parameters
+    )
+    assert any(
+        parameter["name"] == "X-Authorized-Advisor-Id" and parameter["in"] == "header"
+        for parameter in action_parameters
+    )
+    assert any(
+        parameter["name"] == "X-Authorized-Portfolio-Id" and parameter["in"] == "header"
+        for parameter in action_parameters
+    )
     assert preparation_operation["summary"] == "List Advisor Cockpit Preparation Packets"
     assert "Gateway and Workbench must render these packets" in preparation_operation["description"]
     assert "calendar" in preparation_operation["description"]
@@ -406,16 +551,16 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
         for parameter in preparation_operation["parameters"]
     )
     assert any(
-        parameter["name"] == "advisor_id"
-        and parameter["in"] == "query"
-        and _max_length(parameter["schema"]) == 160
-        for parameter in action_operation["parameters"]
-    )
-    assert any(
         parameter["name"] == "limit"
         and parameter["in"] == "query"
         and parameter["schema"]["maximum"] == 100
         for parameter in action_operation["parameters"]
+    )
+    assert action_operation["responses"]["401"]["description"] == (
+        "Trusted Advisor Cockpit principal is missing or invalid."
+    )
+    assert action_operation["responses"]["403"]["description"] == (
+        "Trusted Advisor Cockpit principal lacks the required role, capability, or scope."
     )
     assert "Gateway publication" in supportability_operation["description"]
     assert "active data-product posture" in supportability_operation["description"]
