@@ -76,3 +76,22 @@ python scripts\trust_telemetry_freshness.py write `
   --repository-commit-sha <reviewed-commit-sha> `
   --validation-run-id <ci-run-or-local-evidence-id>
 ```
+
+## CI runtime certification
+
+Committed snapshots preserve the historical observation and can remain truthfully stale. A
+governed CI run emits current, derived snapshots without rewriting that history:
+
+```powershell
+python scripts\trust_telemetry_freshness.py certify `
+  --reference-time-utc <ci-evaluation-time> `
+  --repository-commit-sha <full-40-character-sha> `
+  --validation-run-id <non-local-ci-run-id>
+```
+
+Output is written to `output/trust-telemetry/runtime/`. Certification fails unless each product has
+complete evidence, passed data quality, materialized lineage, non-empty evidence references, and
+governed validation lanes. Each output preserves the source fixture observation while binding the
+new certification event to the immutable repository SHA and CI run. This proves current contract
+and implementation-evidence posture; it does not grant advisory approval, compliance, suitability,
+client-publication, or external-communication authority.
