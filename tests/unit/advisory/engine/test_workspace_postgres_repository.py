@@ -147,6 +147,26 @@ def test_workspace_postgres_repository_rolls_back_on_partial_save_failure() -> N
     assert connection.closed is True
 
 
+def test_workspace_postgres_repository_rolls_back_saved_version_conflicts() -> None:
+    connection = _Connection(fail_statement="INSERT INTO advisory_workspace_saved_versions")
+    repository = PostgresWorkspaceSessionRepository(
+        connect=lambda: connection,
+        apply_migrations=False,
+    )
+
+    with pytest.raises(RuntimeError, match="workspace persistence failed"):
+        repository.save(_workspace_session())
+
+    assert connection.commits == 0
+    assert connection.rollbacks == 1
+    assert any(
+        "INSERT INTO advisory_workspace_sessions" in sql for sql, _args in connection.executed
+    )
+    assert any(
+        "INSERT INTO advisory_workspace_saved_versions" in sql for sql, _args in connection.executed
+    )
+
+
 def test_workspace_postgres_repository_reset_removes_child_tables_first() -> None:
     connection = _Connection()
     repository = PostgresWorkspaceSessionRepository(
