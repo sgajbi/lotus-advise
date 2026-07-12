@@ -359,6 +359,18 @@ Proposal workflow events and approval history are indexed for the supported hot 
 These support single-proposal history/replay and batched Advisor Cockpit/source-loader reads.
 Validate query shape and retention evidence before adding broader lifecycle-history indexes.
 
+## Advisory Record Lifecycle
+
+`src/core/record_lifecycle/advisory_records.py` defines the governed record-family retention and
+purge decision boundary for proposal versions, lifecycle events, approvals, policy evaluations,
+report requests, and advisory copilot packet/run/review records. Operators must treat purge output
+as a decision record until a repository-owned purge/tombstone workflow applies it. Legal hold always
+blocks purge, dependency references block purge, unexpired records block purge, and prior tombstones
+return idempotent refusal. Authorized eligible records require tombstone audit evidence with hashed
+record, actor, and idempotency references. Corrections append compensating records; do not rewrite
+historical evidence. Jurisdiction-specific durations require approved bank policy input and must not
+be added as application constants.
+
 ## Proposal Lifecycle Integrity
 
 The proposal migration namespace validates lifecycle relational integrity before recording

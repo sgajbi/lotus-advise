@@ -478,18 +478,24 @@ Important validation expectations:
    in `contracts/data-governance/advisory-evidence-telemetry-field-inventory.v1.json` with purpose,
    classification, owner, allowed consumers, retention/purge, masking, and projection decisions.
    High-cardinality identifiers and business evidence must not become metric labels,
-10. advisory workflow changes should be validated against canonical upstream posture,
-11. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-12. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+10. Advisory record lifecycle purge decisions are governed by
+   `src/core/record_lifecycle/advisory_records.py`: proposal versions, lifecycle events,
+   approvals, policy evaluations, report requests, and advisory copilot packet/run/review records
+   have explicit retention classes, owner, legal-hold behavior, dependency refusal, append-only
+   correction posture, and sanitized purge/hold audit evidence. Do not add jurisdiction-specific
+   retention periods without approved bank policy input,
+11. advisory workflow changes should be validated against canonical upstream posture,
+12. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+13. `make demo-certification-live` is the repo-native app-level live certification command; it writes
    machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-13. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
+14. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
    trust, echo, or imply tenant-specific entitlement policy unless a future slice adds an explicit
    authoritative entitlement port and contract tests,
-14. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness,
-15. HTTP boundary changes should run focused API tests covering host/origin policy, approved
+15. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness,
+16. HTTP boundary changes should run focused API tests covering host/origin policy, approved
     security headers, validation-error responses, and enterprise denial responses before broader
     merge-gate validation.
 
