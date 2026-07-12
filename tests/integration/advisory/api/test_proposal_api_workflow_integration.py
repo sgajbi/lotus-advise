@@ -186,6 +186,7 @@ def test_proposal_submit_and_support_endpoints() -> None:
                 "expected_state": "DRAFT",
                 "reason": {"comment": "integration submit"},
             },
+            headers={"Idempotency-Key": "integration-proposal-submit-transition-1"},
         )
         approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
         lineage = client.get(f"/advisory/proposals/{proposal_id}/lineage")
@@ -1167,7 +1168,17 @@ def test_proposal_post_not_found_matrix(path: str, expected_detail: str) -> None
     )
 
     with TestClient(app) as client:
-        response = client.post(path, json=payload)
+        response = client.post(
+            path,
+            json=payload,
+            headers={
+                "Idempotency-Key": (
+                    "integration-proposal-missing-transition"
+                    if path.endswith("/transitions")
+                    else "integration-proposal-missing-approval"
+                )
+            },
+        )
 
     assert response.status_code == 404
     assert response.json()["detail"] == expected_detail
