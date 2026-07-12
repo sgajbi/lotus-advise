@@ -9,6 +9,7 @@ from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
 )
+from src.core.proposals.exceptions import ProposalStateConflictError
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
@@ -26,9 +27,10 @@ from src.infrastructure.proposals.postgres import PostgresProposalRepository
 
 
 class _FakeCursor:
-    def __init__(self, row=None, rows=None):
+    def __init__(self, row=None, rows=None, rowcount: int = 0):
         self._row = row
         self._rows = rows or []
+        self.rowcount = rowcount
 
     def fetchone(self):
         return self._row
@@ -54,6 +56,7 @@ class _FakeConnection:
         self.schema_migrations = {}
         self.executed_sql = []
         self.executed_args = []
+        self.rollback_count = 0
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
@@ -389,6 +392,8 @@ class _FakeConnection:
                 "source_workspace_id": args[12],
             }
             return _FakeCursor()
+        if sql.startswith("UPDATE proposal_records SET"):
+            return self._execute_update_proposal_records(args)
         if "FROM proposal_records WHERE proposal_id = %s" in sql and "ORDER BY" not in sql:
             return _FakeCursor(self.proposals.get(args[0]))
         if "FROM proposal_records" in sql and "ORDER BY created_at DESC, proposal_id DESC" in sql:
@@ -560,10 +565,40 @@ class _FakeConnection:
             return _FakeCursor(rows=rows)
         raise AssertionError(f"Unhandled SQL in fake connection: {sql}")
 
+    def _execute_update_proposal_records(self, args):
+        proposal_id = args[12]
+        expected_current_state = args[13]
+        expected_current_version_no = args[14]
+        current = self.proposals.get(proposal_id)
+        if (
+            current is None
+            or current["current_state"] != expected_current_state
+            or current["current_version_no"] != expected_current_version_no
+        ):
+            return _FakeCursor(rowcount=0)
+        current.update(
+            {
+                "portfolio_id": args[0],
+                "mandate_id": args[1],
+                "jurisdiction": args[2],
+                "created_by": args[3],
+                "created_at": args[4],
+                "last_event_at": args[5],
+                "current_state": args[6],
+                "current_version_no": args[7],
+                "title": args[8],
+                "advisor_notes": args[9],
+                "lifecycle_origin": args[10],
+                "source_workspace_id": args[11],
+            }
+        )
+        return _FakeCursor(rowcount=1)
+
     def commit(self):
         return None
 
     def rollback(self):
+        self.rollback_count += 1
         return None
 
     def close(self):
@@ -1518,6 +1553,19 @@ def test_postgres_repository_events_and_approvals_are_replay_safe_and_immutable(
 def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch):
     repository, _ = _build_repository(monkeypatch)
     now = datetime.now(timezone.utc)
+    initial = ProposalRecord(
+        proposal_id="pp_002",
+        portfolio_id="pf_repo",
+        mandate_id="mandate_1",
+        jurisdiction="SG",
+        created_by="advisor_a",
+        created_at=now,
+        last_event_at=now,
+        current_state="DRAFT",
+        current_version_no=1,
+        title="Needs Risk Signoff",
+        advisor_notes="priority",
+    )
     proposal = ProposalRecord(
         proposal_id="pp_002",
         portfolio_id="pf_repo",
@@ -1553,7 +1601,14 @@ def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch)
         related_version_no=1,
     )
 
-    result = repository.transition_proposal(proposal=proposal, event=event, approval=approval)
+    repository.create_proposal(initial)
+    result = repository.transition_proposal(
+        proposal=proposal,
+        event=event,
+        approval=approval,
+        expected_current_state="DRAFT",
+        expected_current_version_no=1,
+    )
     assert result.proposal.proposal_id == "pp_002"
     assert result.event.event_id == "pwe_010"
     assert result.approval is not None
@@ -1577,6 +1632,68 @@ def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch)
         stored_approval.approval_id
         for stored_approval in repository.list_approvals(proposal_id="pp_002")
     ] == ["pap_010"]
+
+
+def test_postgres_repository_transition_rejects_stale_expected_state(monkeypatch):
+    repository, connection = _build_repository(monkeypatch)
+    now = datetime.now(timezone.utc)
+    initial = ProposalRecord(
+        proposal_id="pp_stale_transition",
+        portfolio_id="pf_repo",
+        mandate_id="mandate_1",
+        jurisdiction="SG",
+        created_by="advisor_a",
+        created_at=now,
+        last_event_at=now,
+        current_state="DRAFT",
+        current_version_no=1,
+        title="Stale transition",
+        advisor_notes=None,
+    )
+    proposal = initial.model_copy(
+        update={
+            "current_state": "RISK_REVIEW",
+            "last_event_at": now + timedelta(seconds=1),
+        }
+    )
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_stale_transition",
+        proposal_id=initial.proposal_id,
+        event_type="SUBMITTED_FOR_RISK_REVIEW",
+        from_state="DRAFT",
+        to_state="RISK_REVIEW",
+        actor_id="advisor_a",
+        occurred_at=proposal.last_event_at,
+        reason_json={"comment": "submitted"},
+        related_version_no=1,
+    )
+    approval = ProposalApprovalRecordData(
+        approval_id="pap_stale_transition",
+        proposal_id=initial.proposal_id,
+        approval_type="RISK",
+        approved=True,
+        actor_id="risk_1",
+        occurred_at=proposal.last_event_at,
+        details_json={"ticket_id": "risk-stale"},
+        related_version_no=1,
+    )
+
+    repository.create_proposal(initial)
+
+    with pytest.raises(ProposalStateConflictError) as exc_info:
+        repository.transition_proposal(
+            proposal=proposal,
+            event=event,
+            approval=approval,
+            expected_current_state="COMPLIANCE_REVIEW",
+            expected_current_version_no=1,
+        )
+
+    assert str(exc_info.value) == "STATE_CONFLICT: proposal aggregate changed during transition"
+    assert connection.rollback_count == 1
+    assert repository.get_proposal(proposal_id=initial.proposal_id) == initial
+    assert repository.list_events(proposal_id=initial.proposal_id) == []
+    assert repository.list_approvals(proposal_id=initial.proposal_id) == []
 
 
 def test_import_psycopg_returns_driver_and_row_factory(monkeypatch):

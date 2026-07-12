@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional, cast
 
+from src.core.proposals.contract_types import ProposalWorkflowState
 from src.core.proposals.models import ProposalRecord
 from src.infrastructure.proposals.postgres_mappers import to_proposal
 
@@ -231,10 +232,61 @@ def upsert_proposal(*, connection: Any, proposal: ProposalRecord) -> None:
     )
 
 
+def update_proposal_if_current(
+    *,
+    connection: Any,
+    proposal: ProposalRecord,
+    expected_current_state: ProposalWorkflowState,
+    expected_current_version_no: int,
+) -> bool:
+    query = """
+        UPDATE proposal_records
+        SET
+            portfolio_id=%s,
+            mandate_id=%s,
+            jurisdiction=%s,
+            created_by=%s,
+            created_at=%s,
+            last_event_at=%s,
+            current_state=%s,
+            current_version_no=%s,
+            title=%s,
+            advisor_notes=%s,
+            lifecycle_origin=%s,
+            source_workspace_id=%s
+        WHERE
+            proposal_id=%s
+            AND current_state=%s
+            AND current_version_no=%s
+    """
+    cursor = connection.execute(
+        query,
+        (
+            proposal.portfolio_id,
+            proposal.mandate_id,
+            proposal.jurisdiction,
+            proposal.created_by,
+            proposal.created_at.isoformat(),
+            proposal.last_event_at.isoformat(),
+            proposal.current_state,
+            proposal.current_version_no,
+            proposal.title,
+            proposal.advisor_notes,
+            proposal.lifecycle_origin,
+            proposal.source_workspace_id,
+            proposal.proposal_id,
+            expected_current_state,
+            expected_current_version_no,
+        ),
+    )
+    return cursor.rowcount == 1
+
+
 __all__ = [
     "create_proposal",
     "get_proposal",
     "list_proposals",
     "update_proposal",
+    "update_proposal_if_current",
     "upsert_proposal",
 ]

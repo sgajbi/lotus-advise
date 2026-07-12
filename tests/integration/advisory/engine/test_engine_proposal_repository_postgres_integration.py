@@ -1,10 +1,13 @@
 import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
+from threading import Barrier
 
 import pytest
 
+from src.core.proposals.exceptions import ProposalStateConflictError
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
@@ -703,6 +706,103 @@ def test_live_postgres_lifecycle_identity_replay_and_conflict_contract(
     assert repository.get_version(proposal_id=proposal_id, version_no=1) == version
     assert repository.list_events(proposal_id=proposal_id) == [event]
     assert repository.list_approvals(proposal_id=proposal_id) == [approval]
+
+
+@pytest.mark.skipif(
+    not _DSN,
+    reason="Live Postgres DSN required for concurrent lifecycle transition checks.",
+)
+def test_live_postgres_transition_compare_and_set_allows_one_approval_winner(
+    repository: PostgresProposalRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    proposal_id = f"pp-{uuid.uuid4().hex}"
+    repository.create_proposal(
+        ProposalRecord(
+            proposal_id=proposal_id,
+            portfolio_id="pf-concurrent-transition",
+            mandate_id="mandate-concurrent-transition",
+            jurisdiction="SG",
+            created_by="advisor-concurrent-transition",
+            created_at=now,
+            last_event_at=now,
+            current_state="RISK_REVIEW",
+            current_version_no=1,
+            title="Concurrent transition proposal",
+            advisor_notes=None,
+        )
+    )
+    _create_version(repository=repository, proposal_id=proposal_id, version_no=1, now=now)
+    barrier = Barrier(2)
+    repositories = [PostgresProposalRepository(dsn=_DSN), PostgresProposalRepository(dsn=_DSN)]
+
+    def _attempt_transition(index: int) -> tuple[str, str]:
+        local_repository = repositories[index - 1]
+        event = ProposalWorkflowEventRecord(
+            event_id=f"pwe-{uuid.uuid4().hex}",
+            proposal_id=proposal_id,
+            event_type="RISK_APPROVED",
+            from_state="RISK_REVIEW",
+            to_state="AWAITING_CLIENT_CONSENT",
+            actor_id=f"risk-concurrent-{index}",
+            occurred_at=now + timedelta(seconds=index),
+            reason_json={"comment": f"risk approval {index}"},
+            related_version_no=1,
+        )
+        approval = ProposalApprovalRecordData(
+            approval_id=f"pap-{uuid.uuid4().hex}",
+            proposal_id=proposal_id,
+            approval_type="RISK",
+            approved=True,
+            actor_id=f"risk-concurrent-{index}",
+            occurred_at=event.occurred_at,
+            details_json={"ticket_id": f"risk-concurrent-{index}"},
+            related_version_no=1,
+        )
+        updated_proposal = ProposalRecord(
+            proposal_id=proposal_id,
+            portfolio_id="pf-concurrent-transition",
+            mandate_id="mandate-concurrent-transition",
+            jurisdiction="SG",
+            created_by="advisor-concurrent-transition",
+            created_at=now,
+            last_event_at=event.occurred_at,
+            current_state="AWAITING_CLIENT_CONSENT",
+            current_version_no=1,
+            title="Concurrent transition proposal",
+            advisor_notes=None,
+        )
+        barrier.wait(timeout=10)
+        try:
+            result = local_repository.transition_proposal(
+                proposal=updated_proposal,
+                event=event,
+                approval=approval,
+                expected_current_state="RISK_REVIEW",
+                expected_current_version_no=1,
+            )
+        except ProposalStateConflictError as exc:
+            return ("conflict", str(exc))
+        assert result.approval is not None
+        return ("success", result.event.event_id)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(_attempt_transition, i) for i in (1, 2)]
+        results = [future.result() for future in futures]
+
+    assert [status for status, _ in results].count("success") == 1
+    assert [status for status, _ in results].count("conflict") == 1
+    stored_proposal = repository.get_proposal(proposal_id=proposal_id)
+    assert stored_proposal is not None
+    assert stored_proposal.current_state == "AWAITING_CLIENT_CONSENT"
+    stored_events = repository.list_events(proposal_id=proposal_id)
+    assert len(stored_events) == 1
+    assert stored_events[0].event_id == next(
+        value for status, value in results if status == "success"
+    )
+    stored_approvals = repository.list_approvals(proposal_id=proposal_id)
+    assert len(stored_approvals) == 1
+    assert stored_approvals[0].actor_id == stored_events[0].actor_id
 
 
 def test_live_postgres_update_proposal_contract(

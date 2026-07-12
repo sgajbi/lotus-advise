@@ -6,6 +6,8 @@ from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
 )
+from src.core.proposals.contract_types import ProposalWorkflowState
+from src.core.proposals.exceptions import ProposalStateConflictError
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
@@ -353,8 +355,23 @@ class InMemoryProposalRepository(ProposalRepository):
         proposal: ProposalRecord,
         event: ProposalWorkflowEventRecord,
         approval: Optional[ProposalApprovalRecordData],
+        expected_current_state: Optional[ProposalWorkflowState] = None,
+        expected_current_version_no: Optional[int] = None,
     ) -> ProposalTransitionResult:
         with self._lock:
+            current = self._proposals.get(proposal.proposal_id)
+            if (
+                expected_current_state is not None
+                and expected_current_version_no is not None
+                and (
+                    current is None
+                    or current.current_state != expected_current_state
+                    or current.current_version_no != expected_current_version_no
+                )
+            ):
+                raise ProposalStateConflictError(
+                    "STATE_CONFLICT: proposal aggregate changed during transition"
+                )
             self._events.setdefault(event.proposal_id, []).append(copy_record(event))
             if approval is not None:
                 self._approvals.setdefault(approval.proposal_id, []).append(copy_record(approval))
