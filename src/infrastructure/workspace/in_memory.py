@@ -5,19 +5,15 @@ from typing import OrderedDict as OrderedDictType
 
 from src.core.workspace.errors import WorkspaceNotFoundError
 from src.core.workspace.session_models import WorkspaceSession
-
-DEFAULT_WORKSPACE_SESSION_CACHE_SIZE = 500
-
-
-def _validate_workspace_session_cache_size(max_size: int) -> int:
-    if isinstance(max_size, bool) or not isinstance(max_size, int) or max_size < 1:
-        raise ValueError("WORKSPACE_SESSION_CACHE_SIZE_INVALID")
-    return max_size
+from src.infrastructure.workspace.session_cache_limits import (
+    DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
+    validate_workspace_session_cache_size,
+)
 
 
 class InMemoryWorkspaceSessionRepository:
     def __init__(self, *, max_size: int = DEFAULT_WORKSPACE_SESSION_CACHE_SIZE) -> None:
-        self.max_size = _validate_workspace_session_cache_size(max_size)
+        self.max_size = validate_workspace_session_cache_size(max_size)
         self._sessions: OrderedDictType[str, WorkspaceSession] = OrderedDict()
 
     def save(self, session: WorkspaceSession) -> None:
@@ -26,7 +22,7 @@ class InMemoryWorkspaceSessionRepository:
         self._evict_over_capacity()
 
     def resize(self, max_size: int) -> None:
-        self.max_size = _validate_workspace_session_cache_size(max_size)
+        self.max_size = validate_workspace_session_cache_size(max_size)
         self._evict_over_capacity()
 
     def _evict_over_capacity(self) -> None:

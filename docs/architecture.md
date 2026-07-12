@@ -24,15 +24,16 @@ The advisory workspace routes are thin HTTP adapters over `WorkspaceApplicationS
   save, replay, resume, compare, and lifecycle-handoff use cases.
 - `src/core/workspace/ports.py` defines the workspace session repository, source-context resolver,
   proposal evaluator, and proposal lifecycle ports.
-- `src/infrastructure/workspace` contains the current Lotus Core source-context resolver and the
-  in-memory workspace session repository adapter.
+- `src/infrastructure/workspace` contains the current Lotus Core source-context resolver, the
+  process-local workspace session adapter, and the Postgres workspace session repository adapter.
 - `src/infrastructure/postgres_migrations/workspace` contains the durable workspace state schema
   foundation for sessions, saved versions, audit events, and idempotency evidence.
 - `src/runtime/workspace_application.py` composes the process-local application service.
 
 This is an internal design-modularity boundary. It does not create a separate deployable workspace
-service. Durable workspace repository wiring, recovery proof, and broader idempotency controls
-remain staged backlog work until the workspace Postgres adapter is composed at runtime.
+service. A durable workspace repository adapter exists, but runtime composition, recovery proof,
+and broader idempotency controls remain staged backlog work until the workspace Postgres adapter is
+guarded and composed at runtime.
 
 ## Current Quality Posture
 

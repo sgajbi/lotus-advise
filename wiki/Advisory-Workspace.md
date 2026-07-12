@@ -34,10 +34,11 @@ Workspace API routes delegate workflow behavior to the Advise workspace applicat
 | Repository, source-context, evaluator, and lifecycle ports | `src/core/workspace/ports.py` |
 | Lotus Core source-context adapter | `src/infrastructure/workspace/lotus_core_context.py` |
 | Process-local workspace session adapter | `src/infrastructure/workspace/in_memory.py` |
+| Durable workspace session adapter | `src/infrastructure/workspace/postgres.py` |
 | Durable workspace schema foundation | `src/infrastructure/postgres_migrations/workspace/0001_workspace_state.sql` |
 
 This is a design-modularity improvement inside one Advise backend service. It is not a new runtime
-service split. Durable workspace repository wiring, restart recovery, and scale-out proof remain
+service split. Durable workspace runtime wiring, restart recovery, and scale-out proof remain
 staged work; the current runtime still composes the process-local workspace session adapter.
 
 ## AI Support

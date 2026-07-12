@@ -352,8 +352,9 @@ Boundary rules:
     details. This is an internal design-modularity boundary; durable workspace persistence,
     recovery, and broader idempotency controls remain separately governed backlog work. A dedicated
     `workspace` Postgres migration namespace now defines the durable schema foundation for sessions,
-    saved versions, events, and idempotency evidence, but runtime composition still uses the
-    process-local adapter until the durable workspace repository is wired and proven.
+    saved versions, events, and idempotency evidence, and `src/infrastructure/workspace/postgres.py`
+    contains the durable repository adapter. Runtime composition still uses the process-local
+    adapter until the durable workspace repository is guarded and proven.
 
 ## Repo-Native Commands
 
