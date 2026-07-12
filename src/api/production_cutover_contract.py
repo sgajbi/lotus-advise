@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
@@ -7,7 +8,7 @@ from typing import Any
 from src.api.proposals.runtime import policy_postgres_dsn, proposal_postgres_dsn
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 
-CUTOVER_MIGRATION_NAMESPACES = ("proposals", "advisory_copilot", "policy_packs")
+CUTOVER_MIGRATION_NAMESPACES = ("proposals", "advisory_copilot", "policy_packs", "workspace")
 
 
 def validate_production_cutover_contract(*, check_migrations: bool) -> None:
@@ -38,6 +39,8 @@ def validate_cutover_migrations_applied() -> None:
 def cutover_namespace_dsn(*, namespace: str) -> str:
     if namespace == "policy_packs":
         return policy_postgres_dsn()
+    if namespace == "workspace":
+        return os.getenv("WORKSPACE_POSTGRES_DSN", "").strip() or proposal_postgres_dsn()
     return proposal_postgres_dsn()
 
 

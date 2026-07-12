@@ -161,6 +161,35 @@ def test_policy_pack_migration_enforces_one_active_version_per_pack() -> None:
     assert "policy_pack_id, policy_version" not in sql
 
 
+def test_workspace_migration_namespace_declares_durable_state_tables() -> None:
+    migration_path = (
+        Path("src")
+        / "infrastructure"
+        / "postgres_migrations"
+        / "workspace"
+        / "0001_workspace_state.sql"
+    )
+    sql = " ".join(migration_path.read_text(encoding="utf-8").split())
+
+    for table_name in (
+        "advisory_workspace_sessions",
+        "advisory_workspace_saved_versions",
+        "advisory_workspace_events",
+        "advisory_workspace_idempotency",
+    ):
+        assert f"CREATE TABLE IF NOT EXISTS {table_name}" in sql
+
+    assert "workspace_id TEXT PRIMARY KEY" in sql
+    assert "PRIMARY KEY (workspace_id, workspace_version_id)" in sql
+    assert "UNIQUE (workspace_id, version_no)" in sql
+    assert "latest_evaluation_request_hash" in sql
+    assert "lifecycle_proposal_id" in sql
+    assert "retention_status TEXT NOT NULL DEFAULT 'ACTIVE'" in sql
+    assert "idx_advisory_workspace_sessions_lifecycle_link" in sql
+    assert "idx_advisory_workspace_saved_versions_lookup" in sql
+    assert "idx_advisory_workspace_events_lookup" in sql
+
+
 def test_proposal_migrations_index_lifecycle_history_read_paths() -> None:
     migration_path = (
         Path("src")

@@ -355,6 +355,7 @@ def _migration_runner_targets() -> set[str]:
             proposals_dsn="postgres://proposal",
             advisory_copilot_dsn="postgres://copilot",
             policy_packs_dsn="postgres://policy",
+            workspace_dsn="postgres://workspace",
         )
     }
 

@@ -36,16 +36,20 @@ def test_cutover_contract_checks_migrations_when_requested(monkeypatch):
     assert called == ["runtime", "migrations"]
 
 
-def test_cutover_contract_includes_copilot_persistence_migrations():
+def test_cutover_contract_includes_persistence_migration_namespaces():
     assert "proposals" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
     assert "advisory_copilot" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
     assert "policy_packs" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
+    assert "workspace" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
     assert production_cutover_contract.expected_migration_versions(
         namespace="advisory_copilot"
     ) == ["0001", "0002", "0003"]
     assert production_cutover_contract.expected_migration_versions(namespace="policy_packs") == [
         "0001",
         "0002",
+    ]
+    assert production_cutover_contract.expected_migration_versions(namespace="workspace") == [
+        "0001"
     ]
 
 
@@ -68,6 +72,27 @@ def test_cutover_contract_uses_policy_dsn_for_policy_namespace(monkeypatch):
     assert (
         production_cutover_contract.cutover_namespace_dsn(namespace="proposals")
         == "postgres://proposal"
+    )
+
+
+def test_cutover_contract_uses_workspace_dsn_or_proposal_fallback(monkeypatch):
+    monkeypatch.setattr(
+        production_cutover_contract,
+        "proposal_postgres_dsn",
+        lambda: "postgres://proposal",
+    )
+    monkeypatch.delenv("WORKSPACE_POSTGRES_DSN", raising=False)
+
+    assert (
+        production_cutover_contract.cutover_namespace_dsn(namespace="workspace")
+        == "postgres://proposal"
+    )
+
+    monkeypatch.setenv("WORKSPACE_POSTGRES_DSN", "postgres://workspace")
+
+    assert (
+        production_cutover_contract.cutover_namespace_dsn(namespace="workspace")
+        == "postgres://workspace"
     )
 
 
