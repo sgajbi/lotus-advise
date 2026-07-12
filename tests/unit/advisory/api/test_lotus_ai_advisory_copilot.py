@@ -63,6 +63,29 @@ class _FakeClient:
         return response
 
 
+class _SequencedClient:
+    def __init__(  # noqa: ANN002, ANN003
+        self, outcomes: list[_FakeResponse | Exception], *args, **kwargs
+    ) -> None:
+        self._outcomes = outcomes
+        self.requests: list[dict[str, object]] = []
+
+    def __enter__(self) -> "_SequencedClient":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:  # noqa: ANN001
+        return False
+
+    def post(self, url: str, json: dict[str, object]) -> _FakeResponse:
+        self.requests.append({"url": url, "json": json})
+        if not self._outcomes:
+            raise AssertionError("unexpected extra request")
+        outcome = self._outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+
 def _packet() -> CopilotEvidencePacket:
     source_ref = CopilotSourceRef(
         source_system="lotus-advise",
@@ -186,6 +209,28 @@ def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_onl
         "deletion_policy": "DELETE_WITH_ADVISE_RETENTION_OR_LEGAL_HOLD",
         "payload_minimization": "TOKENIZED_IDENTIFIERS_CLASSIFIED_EVIDENCE_ONLY",
         "source_ref_policy": "GROUNDING_REFERENCES_RETAINED_IN_CONTEXT_SOURCE_REFS",
+    }
+    assert payload["runtime_budget_controls"]["contract_version"] == (
+        "advisory-copilot-runtime-budget.v1"
+    )
+    assert payload["runtime_budget_controls"]["config_ref"] == (
+        "contracts/advisory-copilot/runtime-budget.v1.json"
+    )
+    assert payload["runtime_budget_controls"]["deadline_ms"] == 10000
+    assert payload["runtime_budget_controls"]["retry_policy"]["max_attempts"] == 2
+    assert (
+        payload["runtime_budget_controls"]["retry_policy"]["retry_provider_validation_errors"]
+        is False
+    )
+    assert payload["runtime_budget_controls"]["token_budget"] == {
+        "max_prompt_tokens": 8000,
+        "max_completion_tokens": 1200,
+        "max_total_tokens": 9200,
+    }
+    assert payload["runtime_budget_controls"]["cost_budget"] == {
+        "max_chargeable_cost_units": 50000,
+        "pricing_source": "lotus-ai-provider-configuration",
+        "application_defined_provider_pricing": False,
     }
     assert payload["supportability"]["client_ready_publication"] == "BLOCKED"
     assert "trade_or_order_action" in payload["supportability"]["unsupported_claims"]
@@ -1157,7 +1202,227 @@ def test_generate_advisory_copilot_masks_transport_failure(
     )
 
     assert response.status == "UNAVAILABLE"
-    assert response.lineage["fallback_reason"] == "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE"
+    assert response.lineage["fallback_reason"] == "COPILOT_AI_RETRY_BUDGET_EXHAUSTED"
+
+
+def test_generate_advisory_copilot_retries_retryable_transport_failure_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    client = _SequencedClient(
+        [
+            httpx.ReadTimeout("timeout should not leak"),
+            _FakeResponse(
+                200,
+                {
+                    "execution": {
+                        "status": "COMPLETED",
+                        "result": {
+                            "provider_id": "lotus-ai",
+                            "model_version": "lotus-ai-governed-model.v1",
+                            "structured_output": {
+                                "state": "REVIEW_REQUIRED",
+                                "sections": [
+                                    {
+                                        "section_key": "POLICY_POSTURE",
+                                        "title": "Policy posture",
+                                        "text": "Policy evaluation requires compliance review.",
+                                        "claims": [_grounded_claim()],
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                    "workflow_pack_run": {"run_id": "packrun_copilot_retry"},
+                },
+            ),
+        ]
+    )
+
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_AI_ADVISORY_COPILOT_RETRY_BACKOFF_MS", "1")
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: client,
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "REVIEW_REQUIRED"
+    assert len(client.requests) == 2
+    telemetry = response.lineage["runtime_budget_telemetry"]
+    assert telemetry["contract_version"] == "advisory-copilot-runtime-budget.v1"
+    assert telemetry["attempt_count"] == 2
+    assert telemetry["max_attempts"] == 2
+    assert telemetry["last_error_type"] == "ReadTimeout"
+    assert telemetry["retry_exhausted"] is False
+    assert telemetry["fallback_reason"] is None
+    assert telemetry["input_token_estimate"] > 0
+    assert telemetry["output_token_estimate"] > 0
+    assert telemetry["max_chargeable_cost_units"] == 50000
+
+
+def test_generate_advisory_copilot_fails_closed_when_retry_budget_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _SequencedClient(
+        [
+            httpx.ReadTimeout("first timeout should not leak"),
+            httpx.ReadTimeout("second timeout should not leak"),
+        ]
+    )
+
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai.dev.lotus")
+    monkeypatch.setenv("LOTUS_AI_ADVISORY_COPILOT_RETRY_BACKOFF_MS", "1")
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: client,
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert response.sections == ()
+    assert len(client.requests) == 2
+    assert response.lineage["fallback_reason"] == "COPILOT_AI_RETRY_BUDGET_EXHAUSTED"
+    telemetry = response.lineage["runtime_budget_telemetry"]
+    assert telemetry["attempt_count"] == 2
+    assert telemetry["retry_exhausted"] is True
+    assert telemetry["last_error_type"] == "ReadTimeout"
+    assert "timeout should not leak" not in str(response.lineage)
+
+
+def test_generate_advisory_copilot_does_not_retry_provider_status_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    client = _SequencedClient(
+        [
+            _FakeResponse(429, {"detail": "WORKFLOW_PACK_RATE_LIMITED"}),
+            _FakeResponse(200, {"unexpected": "retry"}),
+        ]
+    )
+
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: client,
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert len(client.requests) == 1
+    assert response.lineage["fallback_reason"] == "WORKFLOW_PACK_RATE_LIMITED"
+    telemetry = response.lineage["runtime_budget_telemetry"]
+    assert telemetry["attempt_count"] == 1
+    assert telemetry["retry_exhausted"] is False
+    assert telemetry["fallback_reason"] == "WORKFLOW_PACK_RATE_LIMITED"
+
+
+def test_generate_advisory_copilot_fails_closed_when_input_budget_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called = False
+
+    def _client(*args, **kwargs):  # noqa: ANN002, ANN003
+        nonlocal called
+        called = True
+        return _FakeClient(*args, **kwargs)
+
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai.dev.lotus")
+    monkeypatch.setenv("LOTUS_AI_ADVISORY_COPILOT_MAX_INPUT_CHARACTERS", "1")
+    monkeypatch.setattr("src.integrations.lotus_ai.advisory_copilot.httpx.Client", _client)
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert called is False
+    assert response.status == "UNAVAILABLE"
+    assert response.lineage["fallback_reason"] == "COPILOT_AI_INPUT_BUDGET_EXHAUSTED"
+    telemetry = response.lineage["runtime_budget_telemetry"]
+    assert telemetry["attempt_count"] == 0
+    assert telemetry["input_character_count"] > 1
+    assert telemetry["fallback_reason"] == "COPILOT_AI_INPUT_BUDGET_EXHAUSTED"
+
+
+def test_generate_advisory_copilot_fails_closed_when_output_budget_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    client = _SequencedClient(
+        [
+            _FakeResponse(
+                200,
+                {
+                    "execution": {
+                        "status": "COMPLETED",
+                        "result": {
+                            "provider_id": "lotus-ai",
+                            "model_version": "lotus-ai-governed-model.v1",
+                            "structured_output": {
+                                "state": "REVIEW_REQUIRED",
+                                "sections": [
+                                    {
+                                        "section_key": "POLICY_POSTURE",
+                                        "title": "Policy posture",
+                                        "text": "Policy evaluation requires compliance review.",
+                                        "claims": [_grounded_claim()],
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                },
+            )
+        ]
+    )
+
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_AI_ADVISORY_COPILOT_MAX_OUTPUT_CHARACTERS", "1")
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: client,
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert response.sections == ()
+    assert response.lineage["fallback_reason"] == "COPILOT_AI_OUTPUT_BUDGET_EXHAUSTED"
+    telemetry = response.lineage["runtime_budget_telemetry"]
+    assert telemetry["attempt_count"] == 1
+    assert telemetry["output_character_count"] > 1
+    assert telemetry["fallback_reason"] == "COPILOT_AI_OUTPUT_BUDGET_EXHAUSTED"
 
 
 def test_generate_advisory_copilot_masks_invalid_lotus_ai_json(
@@ -1186,3 +1451,7 @@ def test_generate_advisory_copilot_masks_invalid_lotus_ai_json(
 
     assert response.status == "UNAVAILABLE"
     assert response.lineage["fallback_reason"] == "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE"
+    telemetry = response.lineage["runtime_budget_telemetry"]
+    assert telemetry["attempt_count"] == 1
+    assert telemetry["last_error_type"] == "ValueError"
+    assert telemetry["fallback_reason"] == "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE"

@@ -101,6 +101,13 @@ When a budget is breached:
    owner before increasing limits,
 5. record live smoke evidence against the generated smoke plan before claiming recovery.
 
+Advisory copilot `lotus-ai` calls carry the governed runtime budget contract in
+`contracts/advisory-copilot/runtime-budget.v1.json`. Stable unavailable reasons such as
+`COPILOT_AI_INPUT_BUDGET_EXHAUSTED`, `COPILOT_AI_OUTPUT_BUDGET_EXHAUSTED`,
+`COPILOT_AI_CONCURRENCY_BUDGET_EXHAUSTED`, and `COPILOT_AI_RETRY_BUDGET_EXHAUSTED` are operator
+diagnostics, not model output. Do not raise limits until the source evidence size, workflow-pack
+usage, provider status, and bounded lineage telemetry explain the breach.
+
 ## Advisory Supportability Metrics
 
 `GET /platform/capabilities` publishes the implemented feature key

@@ -129,12 +129,15 @@ Boundary rules that matter:
    `scripts/advisory_copilot_evaluation_gate.py`, pass the executable safety-abuse corpus backed by
    `contracts/advisory-copilot/safety-abuse-corpus.v1.json` and
    `scripts/advisory_copilot_safety_gate.py`, satisfy the AI data-boundary contract in
-   `contracts/advisory-copilot/ai-data-boundary.v1.json`, and pass claim-level source grounding
+   `contracts/advisory-copilot/ai-data-boundary.v1.json`, satisfy the runtime budget contract in
+   `contracts/advisory-copilot/runtime-budget.v1.json`, and pass claim-level source grounding
    before it can remain review-ready. Missing, retired, mismatched, or environment-incompatible
    model identity returns a stable unavailable posture; failed evaluation or safety evidence
    quarantines output as unsupported or guardrail-rejected. Outbound AI payloads use tokenized
    portfolio/proposal/source identifiers and explicit no-training, retention, residency, and
-   deletion controls. Review actions bind reviewer authority to trusted `X-Actor-Id`, `X-Role`,
+   deletion controls; retry, timeout, token, payload, cost, and concurrency budget breaches return
+   stable unavailable posture with bounded lineage telemetry. Review actions bind reviewer
+   authority to trusted `X-Actor-Id`, `X-Role`,
    `X-Tenant-Id`,
    `X-Legal-Entity-Code`, `X-Correlation-Id`, service-identity, capability, proposal, and
    portfolio headers. Request-body `actor_id` is only a compatibility echo; mismatches, missing

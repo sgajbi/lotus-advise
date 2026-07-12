@@ -218,13 +218,17 @@ Current repository posture:
    `src/core/advisory_copilot/guardrails.py` using
    `contracts/advisory-copilot/safety-abuse-corpus.v1.json`, then satisfy AI data-boundary
    minimization in `src/core/advisory_copilot/ai_data_boundary.py` and
-   `contracts/advisory-copilot/ai-data-boundary.v1.json`, and then pass claim-level source
-   grounding before it can remain review-ready. Unknown, retired, mismatched, or
+   `contracts/advisory-copilot/ai-data-boundary.v1.json`, then satisfy runtime budget enforcement
+   in `src/core/advisory_copilot/runtime_budget.py` and
+   `contracts/advisory-copilot/runtime-budget.v1.json`, and then pass claim-level source grounding
+   before it can remain review-ready. Unknown, retired, mismatched, or
    environment-incompatible `lotus-ai` model identity returns a stable unavailable posture before
    completed output can be persisted; failed evaluation evidence quarantines output as unsupported,
    while prompt-injection, forbidden-action, client-ready, or sensitive-output evidence returns a
    stable guardrail-rejected posture. Outbound AI payloads carry tokenized portfolio/proposal/source
-   identifiers and explicit no-training, retention, residency, and deletion controls; grounding
+   identifiers and explicit no-training, retention, residency, and deletion controls; retry,
+   timeout, token, payload, cost, and concurrency budget breaches return stable unavailable posture
+   with bounded lineage telemetry; grounding
    references remain in the workflow context because generated claims must cite stable source refs.
    Each provider claim must cite source refs from the input evidence packet and align to the output
    section; missing, duplicate, unknown, or mismatched citations are persisted as unsupported or
