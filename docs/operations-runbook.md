@@ -223,6 +223,12 @@ record. A partial write failure must roll back all four records. Operators shoul
 proposal id, version number, event id, idempotency key, request hash, correlation id, and failed
 operation when investigating create failures; do not manually insert missing lifecycle rows.
 
+Memo create writes use the same adapter-owned unit-of-work posture for the memo record, optional
+memo-create idempotency record, and initial memo lifecycle event. A partial write failure must roll
+back the memo, idempotency, and event evidence together. Operators should preserve the memo id,
+proposal id, proposal version number, event id, idempotency key when supplied, request hash, and
+failed operation; do not repair memo lifecycle gaps by inserting isolated rows.
+
 Proposal transition writes use an adapter-owned compare-and-set boundary on the proposal aggregate
 state and current version. When two callers race from the same lifecycle state, the first committed
 transition wins and a stale writer fails closed with

@@ -39,14 +39,18 @@ MEMO_COLUMNS = """
 
 
 def create_memo(*, connect: ConnectionFactory, memo: ProposalMemoRecord) -> None:
+    with closing(connect()) as connection:
+        insert_memo(connection=connection, memo=memo)
+        connection.commit()
+
+
+def insert_memo(*, connection: Any, memo: ProposalMemoRecord) -> None:
     query = f"""
         INSERT INTO proposal_memos (
             {MEMO_COLUMNS}
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-    with closing(connect()) as connection:
-        connection.execute(query, _memo_params(memo))
-        connection.commit()
+    connection.execute(query, _memo_params(memo))
 
 
 def get_memo(*, connect: ConnectionFactory, memo_id: str) -> Optional[ProposalMemoRecord]:
@@ -121,6 +125,12 @@ def list_memos_for_proposals(
 
 
 def append_memo_event(*, connect: ConnectionFactory, event: ProposalMemoEventRecord) -> None:
+    with closing(connect()) as connection:
+        insert_memo_event(connection=connection, event=event)
+        connection.commit()
+
+
+def insert_memo_event(*, connection: Any, event: ProposalMemoEventRecord) -> None:
     query = """
         INSERT INTO proposal_memo_events (
             event_id,
@@ -134,21 +144,19 @@ def append_memo_event(*, connect: ConnectionFactory, event: ProposalMemoEventRec
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (event_id) DO NOTHING
     """
-    with closing(connect()) as connection:
-        connection.execute(
-            query,
-            (
-                event.event_id,
-                event.memo_id,
-                event.proposal_id,
-                event.proposal_version_no,
-                event.event_type,
-                event.actor_id,
-                event.occurred_at.isoformat(),
-                json_dump(event.reason_json),
-            ),
-        )
-        connection.commit()
+    connection.execute(
+        query,
+        (
+            event.event_id,
+            event.memo_id,
+            event.proposal_id,
+            event.proposal_version_no,
+            event.event_type,
+            event.actor_id,
+            event.occurred_at.isoformat(),
+            json_dump(event.reason_json),
+        ),
+    )
 
 
 def list_memo_events(
@@ -204,6 +212,8 @@ __all__ = [
     "create_memo",
     "get_memo",
     "get_memo_by_proposal_version",
+    "insert_memo",
+    "insert_memo_event",
     "list_memo_events",
     "list_memos",
     "list_memos_for_proposals",

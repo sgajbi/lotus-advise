@@ -190,15 +190,17 @@ def _create_memo_result(
         request_hash=request_hash,
         reason=reason,
     )
-    repository.create_memo(memo_record)
-    _save_memo_idempotency(
-        repository=repository,
+    idempotency = _optional_idempotency_record(
         idempotency_key=idempotency_key,
         request_hash=request_hash,
         memo=memo_record,
         created_at=created_at,
     )
-    repository.append_memo_event(event)
+    repository.create_memo_with_idempotency_event(
+        memo=memo_record,
+        idempotency=idempotency,
+        event=event,
+    )
     return ProposalMemoPersistenceResult(
         memo=memo_record,
         created=True,
@@ -224,6 +226,23 @@ def _save_memo_idempotency(
                 created_at=created_at,
             )
         )
+
+
+def _optional_idempotency_record(
+    *,
+    idempotency_key: str | None,
+    request_hash: str,
+    memo: ProposalMemoRecord,
+    created_at: datetime,
+) -> ProposalMemoIdempotencyRecord | None:
+    if not idempotency_key:
+        return None
+    return _idempotency_record(
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        memo=memo,
+        created_at=created_at,
+    )
 
 
 def _find_replayed_memo(

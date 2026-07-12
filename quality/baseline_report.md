@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-07-12T02:36:37.890428+00:00`
+- Generated At: `2026-07-12T02:49:50.234689+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `1028`
 - Packages: `40`
 - Modules: `988`
-- Total Python lines: `175529`
+- Total Python lines: `175982`
 
 ## Largest Files
 
@@ -21,7 +21,7 @@
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2560 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2547 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 2449 |
-| 6 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1888 |
+| 6 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1978 |
 | 7 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1833 |
 | 8 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
 | 9 | `scripts/quality_baseline_report.py` | 1615 |
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `4710`
-- Radon complexity rank inventory: `A=4614, B=96`
+- Radon analyzed block inventory: `4730`
+- Radon complexity rank inventory: `A=4632, B=98`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -121,7 +121,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=5214, missing=5164, covered=50, coverage=1.0%`
+- Interrogate docstring inventory: `total=5226, missing=5176, covered=50, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

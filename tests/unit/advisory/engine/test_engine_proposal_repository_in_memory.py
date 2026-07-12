@@ -8,6 +8,7 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
+    ProposalMemoEventRecord,
     ProposalMemoIdempotencyRecord,
     ProposalMemoRecord,
     ProposalRecord,
@@ -470,6 +471,60 @@ def test_in_memory_repository_atomic_proposal_create_commits_all_records():
     assert repo.get_version(proposal_id=proposal.proposal_id, version_no=1) == version
     assert repo.list_events(proposal_id=proposal.proposal_id) == [event]
     assert repo.get_idempotency(idempotency_key=idempotency.idempotency_key) == idempotency
+
+
+def test_in_memory_repository_atomic_memo_create_commits_all_records():
+    repo = InMemoryProposalRepository()
+    now = _now()
+    memo = ProposalMemoRecord(
+        memo_id="memo_repo_atomic_create",
+        proposal_id="pp_repo_atomic_memo",
+        proposal_version_no=1,
+        proposal_version_id="ppv_repo_atomic_memo",
+        artifact_id="pa_repo_atomic_memo",
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="DRAFT",
+        created_by="advisor_atomic_memo",
+        created_at=now,
+        source_input_hash="sha256:memo-atomic-source",
+        memo_hash="sha256:memo-atomic",
+        memo_json={"memo_id": "memo_repo_atomic_create", "status": "BLOCKED"},
+        projection_json={"client_ready_publication": "BLOCKED"},
+        review_events_json=[],
+        report_package_events_json=[],
+        archive_refs_json=[],
+        ai_refs_json=[],
+        replay_metadata_json={"proposal_artifact_hash": "sha256:memo-atomic-artifact"},
+    )
+    idempotency = ProposalMemoIdempotencyRecord(
+        idempotency_key="memo-repo-atomic-idem",
+        request_hash="sha256:memo-atomic-request",
+        memo_id=memo.memo_id,
+        proposal_id=memo.proposal_id,
+        proposal_version_no=memo.proposal_version_no,
+        created_at=now,
+    )
+    event = ProposalMemoEventRecord(
+        event_id="pme_repo_atomic_create",
+        memo_id=memo.memo_id,
+        proposal_id=memo.proposal_id,
+        proposal_version_no=memo.proposal_version_no,
+        event_type="MEMO_DRAFT_CREATED",
+        actor_id=memo.created_by,
+        occurred_at=now,
+        reason_json={"memo_hash": memo.memo_hash},
+    )
+
+    repo.create_memo_with_idempotency_event(
+        memo=memo,
+        idempotency=idempotency,
+        event=event,
+    )
+
+    assert repo.get_memo(memo_id=memo.memo_id) == memo
+    assert repo.get_memo_idempotency(idempotency_key=idempotency.idempotency_key) == idempotency
+    assert repo.list_memo_events(memo_id=memo.memo_id) == [event]
 
 
 def test_repository_list_proposals_ignores_unknown_cursor() -> None:

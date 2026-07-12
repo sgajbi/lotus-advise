@@ -308,28 +308,32 @@ Boundary rules:
    initial proposal aggregate, immutable version 1, `CREATED` workflow event, and proposal-create
    idempotency record writes; callers must not recreate the multi-write sequence in services,
    routers, async glue, or scripts,
-15. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
-16. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
-17. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
+15. memo-create persistence must use the repository port's atomic unit-of-work boundary for memo
+   record, optional memo-create idempotency record, and initial memo lifecycle event writes; review,
+   report-package, archive, and AI lineage event commands remain separate append-only workflow
+   commands,
+16. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
+17. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
+18. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
    the handoff envelope and retains proposal, suitability, approval, publication, and execution
    authority until a later certified realization slice implements those controls,
-18. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
+19. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
    missing, malformed, over-length, or control-character-bearing; do not reintroduce synthetic
    production defaults such as a hardcoded tenant or service actor,
-19. policy-control write routes must resolve `PolicyControlPrincipal` at the API boundary before
+20. policy-control write routes must resolve `PolicyControlPrincipal` at the API boundary before
     application commands run; do not pass caller-supplied actor strings into policy-pack or
     evaluation state transitions unless they have been bound to the trusted principal and
     authorized proposal, portfolio, tenant, and legal-entity scope,
-20. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
+21. outbound `lotus-report` calls must require source-derived as-of date, reporting currency, and
    jurisdiction/booking-center metadata; current-date, USD, and SG fallbacks are not production
    source truth,
-21. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
+22. unavailable `lotus-risk` authority must always carry degraded evidence with a stable reason
    code; do not allow `risk_authority="unavailable"` with `degraded=false`.
-22. advisor memo and policy sign-off report packages must not project archive-ready status from
+23. advisor memo and policy sign-off report packages must not project archive-ready status from
     accepted, running, missing-status, malformed-status, or failed status lookups; terminal
     readiness requires `lotus-report` archive evidence and all non-terminal status must preserve
     the report job id for operator recovery.
-23. external service adapters for `lotus-core`, `lotus-risk`, `lotus-report`, and `lotus-ai`
+24. external service adapters for `lotus-core`, `lotus-risk`, `lotus-report`, and `lotus-ai`
     must keep versioned consumer-contract fixtures under
     `tests/fixtures/external-adapter-contracts/` and pass `make external-adapter-contracts`.
     The lane must cover valid responses, malformed JSON, missing fields, portfolio/as-of identity

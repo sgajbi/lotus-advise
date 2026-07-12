@@ -12,6 +12,9 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
+    ProposalMemoEventRecord,
+    ProposalMemoIdempotencyRecord,
+    ProposalMemoRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
     ProposalVersionRecord,
@@ -19,6 +22,7 @@ from src.core.proposals.models import (
 )
 from src.infrastructure.proposals import (
     postgres_idempotency,
+    postgres_memos,
     postgres_records,
     postgres_versions,
     postgres_workflow_events,
@@ -282,6 +286,85 @@ def test_live_postgres_atomic_proposal_create_rolls_back_partial_writes(
     assert repository.get_version(proposal_id=proposal.proposal_id, version_no=1) is None
     assert repository.list_events(proposal_id=proposal.proposal_id) == []
     assert repository.get_idempotency(idempotency_key=idempotency.idempotency_key) is None
+
+
+def test_live_postgres_atomic_memo_create_contract(
+    repository: PostgresProposalRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    suffix = uuid.uuid4().hex
+    version = _create_proposal_version_for_memo(
+        repository=repository,
+        now=now,
+        suffix=suffix,
+    )
+    memo, idempotency, event = _memo_create_records(
+        now=now,
+        suffix=suffix,
+        version=version,
+    )
+
+    repository.create_memo_with_idempotency_event(
+        memo=memo,
+        idempotency=idempotency,
+        event=event,
+    )
+
+    assert repository.get_memo(memo_id=memo.memo_id) == memo
+    assert (
+        repository.get_memo_idempotency(idempotency_key=idempotency.idempotency_key) == idempotency
+    )
+    assert repository.list_memo_events(memo_id=memo.memo_id) == [event]
+
+
+@pytest.mark.skipif(
+    not _DSN,
+    reason="Live Postgres DSN required for memo transaction rollback fault injection.",
+)
+@pytest.mark.parametrize(
+    ("module", "function_name"),
+    [
+        (postgres_memos, "insert_memo"),
+        (postgres_idempotency, "insert_memo_idempotency"),
+        (postgres_memos, "insert_memo_event"),
+    ],
+)
+def test_live_postgres_atomic_memo_create_rolls_back_partial_writes(
+    repository: PostgresProposalRepository,
+    monkeypatch: pytest.MonkeyPatch,
+    module,
+    function_name: str,
+) -> None:
+    original = getattr(module, function_name)
+
+    def fail_after_write(*args, **kwargs):
+        original(*args, **kwargs)
+        raise RuntimeError(f"fault injected after {function_name}")
+
+    monkeypatch.setattr(module, function_name, fail_after_write)
+    now = datetime.now(timezone.utc)
+    suffix = uuid.uuid4().hex
+    version = _create_proposal_version_for_memo(
+        repository=repository,
+        now=now,
+        suffix=suffix,
+    )
+    memo, idempotency, event = _memo_create_records(
+        now=now,
+        suffix=suffix,
+        version=version,
+    )
+
+    with pytest.raises(RuntimeError, match=f"fault injected after {function_name}"):
+        repository.create_memo_with_idempotency_event(
+            memo=memo,
+            idempotency=idempotency,
+            event=event,
+        )
+
+    assert repository.get_memo(memo_id=memo.memo_id) is None
+    assert repository.get_memo_idempotency(idempotency_key=idempotency.idempotency_key) is None
+    assert repository.list_memo_events(memo_id=memo.memo_id) == []
 
 
 def test_live_postgres_simulation_idempotency_roundtrip_contract(
@@ -922,9 +1005,9 @@ def test_live_postgres_update_proposal_contract(
 def _reset_tables(repository: PostgresProposalRepository) -> None:
     with closing(repository._connect()) as connection:  # noqa: SLF001
         connection.execute(
-            "TRUNCATE TABLE proposal_approvals, proposal_workflow_events, "
-            "proposal_versions, proposal_records, proposal_async_operations, "
-            "proposal_idempotency CASCADE"
+            "TRUNCATE TABLE proposal_memo_events, proposal_memo_idempotency, proposal_memos, "
+            "proposal_approvals, proposal_workflow_events, proposal_versions, proposal_records, "
+            "proposal_async_operations, proposal_idempotency CASCADE"
         )
         connection.commit()
 
@@ -1013,6 +1096,89 @@ def _proposal_create_records(
         created_at=now,
     )
     return proposal, version, event, idempotency
+
+
+def _create_proposal_version_for_memo(
+    *,
+    repository: PostgresProposalRepository,
+    now: datetime,
+    suffix: str,
+) -> ProposalVersionRecord:
+    proposal_id = f"pp-memo-{suffix}"
+    repository.create_proposal(
+        ProposalRecord(
+            proposal_id=proposal_id,
+            portfolio_id="pf-atomic-memo",
+            mandate_id="mandate-atomic-memo",
+            jurisdiction="SG",
+            created_by="advisor-atomic-memo",
+            created_at=now,
+            last_event_at=now,
+            current_state="DRAFT",
+            current_version_no=1,
+            title="Atomic memo create",
+            advisor_notes=None,
+        )
+    )
+    return _create_version(
+        repository=repository,
+        proposal_id=proposal_id,
+        version_no=1,
+        now=now,
+        proposal_version_id=f"ppv-memo-{suffix}",
+    )
+
+
+def _memo_create_records(
+    *,
+    now: datetime,
+    suffix: str,
+    version: ProposalVersionRecord,
+) -> tuple[
+    ProposalMemoRecord,
+    ProposalMemoIdempotencyRecord,
+    ProposalMemoEventRecord,
+]:
+    memo = ProposalMemoRecord(
+        memo_id=f"memo-{suffix}",
+        proposal_id=version.proposal_id,
+        proposal_version_no=version.version_no,
+        proposal_version_id=version.proposal_version_id,
+        artifact_id=f"pa-memo-{suffix}",
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="DRAFT",
+        created_by="advisor-atomic-memo",
+        created_at=now,
+        source_input_hash=f"sha256:memo-source-{suffix}",
+        memo_hash=f"sha256:memo-{suffix}",
+        memo_json={"memo_id": f"memo-{suffix}", "status": "BLOCKED"},
+        projection_json={"client_ready_publication": "BLOCKED"},
+        review_events_json=[],
+        report_package_events_json=[],
+        archive_refs_json=[],
+        ai_refs_json=[],
+        replay_metadata_json={"proposal_artifact_hash": version.artifact_hash},
+    )
+    idempotency = ProposalMemoIdempotencyRecord(
+        idempotency_key=f"memo-idem-{suffix}",
+        request_hash=f"sha256:memo-request-{suffix}",
+        memo_id=memo.memo_id,
+        proposal_id=memo.proposal_id,
+        proposal_version_no=memo.proposal_version_no,
+        created_at=now,
+    )
+    event = ProposalMemoEventRecord(
+        event_id=f"pme-{suffix}",
+        memo_id=memo.memo_id,
+        proposal_id=memo.proposal_id,
+        proposal_version_no=memo.proposal_version_no,
+        event_type="MEMO_DRAFT_CREATED",
+        actor_id=memo.created_by,
+        occurred_at=now,
+        reason_json={"memo_hash": memo.memo_hash},
+    )
+    return memo, idempotency, event
 
 
 def _assert_statement_fails(connection, query: str, args: tuple[object, ...]) -> None:
