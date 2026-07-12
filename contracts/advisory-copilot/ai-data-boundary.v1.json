@@ -1,0 +1,46 @@
+{
+  "schema_version": "lotus.advise.advisory-copilot-ai-data-boundary.v1",
+  "contract_version": "advisory-copilot-ai-data-boundary.v1",
+  "approved_provider_id": "lotus-ai",
+  "provider_terms": {
+    "training_allowed": false,
+    "provider_retention_policy": "NO_TRAINING_ZERO_PROVIDER_RETENTION",
+    "residency": "SG",
+    "deletion_policy": "DELETE_WITH_ADVISE_RETENTION_OR_LEGAL_HOLD"
+  },
+  "payload_minimization": {
+    "identifier_strategy": "TOKENIZED_IDENTIFIERS_CLASSIFIED_EVIDENCE_ONLY",
+    "portfolio_id": "tokenized",
+    "proposal_id": "tokenized",
+    "source_id": "tokenized_in_payload",
+    "source_ref_policy": "GROUNDING_REFERENCES_RETAINED_IN_CONTEXT_SOURCE_REFS",
+    "raw_prompt": "forbidden",
+    "raw_provider_payload": "forbidden"
+  },
+  "field_classes": {
+    "copilot_evidence_packet.contract_version": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.evidence_packet_hash": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.action_family": "INTERNAL_SUPPORTABILITY",
+    "copilot_evidence_packet.portfolio_ref": "ADVISOR_USE_SUMMARY",
+    "copilot_evidence_packet.proposal_ref": "ADVISOR_USE_SUMMARY",
+    "copilot_evidence_packet.retention_class": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.client_ready_publication": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.sections.section_key": "INTERNAL_SUPPORTABILITY",
+    "copilot_evidence_packet.sections.title": "ADVISOR_USE_SUMMARY",
+    "copilot_evidence_packet.sections.evidence_class": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.sections.summary_items": "ADVISOR_USE_SUMMARY",
+    "copilot_evidence_packet.sections.source_refs.source_system": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.sections.source_refs.source_type": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.sections.source_refs.source_ref_token": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.sections.source_refs.content_hash": "MODEL_RISK_AUDIT",
+    "copilot_evidence_packet.sections.source_refs.access_class": "MODEL_RISK_AUDIT",
+    "copilot_request.action_family": "INTERNAL_SUPPORTABILITY",
+    "copilot_request.audience": "INTERNAL_SUPPORTABILITY",
+    "copilot_request.requested_outputs": "INTERNAL_SUPPORTABILITY",
+    "copilot_request.requested_by": "INTERNAL_SUPPORTABILITY",
+    "copilot_request.reason": "INTERNAL_SUPPORTABILITY",
+    "model_risk_controls": "MODEL_RISK_AUDIT",
+    "ai_data_controls": "MODEL_RISK_AUDIT",
+    "supportability": "INTERNAL_SUPPORTABILITY"
+  }
+}

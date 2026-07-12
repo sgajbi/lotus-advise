@@ -24,6 +24,12 @@ This document records the current security hardening baseline for Lotus Advise.
   `output/advisory-copilot/safety-evidence.json`, and fails when indirect prompt injection,
   obfuscated forbidden actions, sensitive output, client-ready publication claims, or safe
   advisor-review text drift from expected posture.
+- Advisory-copilot AI data minimization is governed by
+  `contracts/advisory-copilot/ai-data-boundary.v1.json` and executable code in
+  `src/core/advisory_copilot/ai_data_boundary.py`. Outbound workflow-pack payloads carry tokenized
+  portfolio/proposal/source identifiers, classified evidence fields, and explicit provider
+  no-training, zero-provider-retention, Singapore residency, and deletion-policy controls; stable
+  grounding refs remain in workflow context only so generated claims can cite source evidence.
 - Downstream `lotus-report` and `lotus-ai` requests require bounded trusted actor and tenant
   identity; missing or malformed values fail closed before HTTP submission.
 - Downstream report requests require source-derived as-of date, reporting currency, and
