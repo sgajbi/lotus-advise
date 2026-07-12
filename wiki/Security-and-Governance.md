@@ -143,8 +143,9 @@ Advise applies AI data-boundary minimization through
 `contracts/advisory-copilot/ai-data-boundary.v1.json`. Outbound workflow-pack payloads use
 tokenized portfolio, proposal, and source identifiers, preserve classified evidence fields only,
 and carry explicit provider no-training, zero-provider-retention, Singapore residency, and deletion
-policy controls. Stable source refs remain in workflow context for claim grounding; raw prompts and
-raw provider payloads remain forbidden from payloads, logs, traces, and durable records.
+policy controls. Stable source refs remain in workflow context for claim grounding; unredacted AI
+instructions and provider content remain forbidden from payloads, logs, traces, and durable
+records.
 
 Advisory copilot review writes derive authority from trusted reviewer headers before application
 state transitions. Supported reviewer roles are `ADVISORY_SUPERVISOR`, `COMPLIANCE_REVIEWER`, and

@@ -118,8 +118,8 @@ by resetting attempts or mutating the original payload.
 
 Control audit evidence is intentionally sanitized: operation, correlation, proposal, actor, service
 identity, idempotency key, and reason values are hashed, and payload mutation is always reported as
-not allowed. Do not add arbitrary SQL, raw payload editing, request-body actor authority, or
-lifecycle-invariant bypasses to async-operation support tooling.
+not allowed. Do not add arbitrary SQL, unredacted request-content editing, request-body actor
+authority, or lifecycle-invariant bypasses to async-operation support tooling.
 
 ## SLO And Capacity Budgets
 
