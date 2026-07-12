@@ -57,7 +57,7 @@ def workspace_session_from_rows(
 ) -> WorkspaceSession:
     payload = cast(dict[str, Any], json_load(session_row["session_json"]))
     payload["saved_versions"] = [json_load(row["saved_version_json"]) for row in saved_version_rows]
-    session = WorkspaceSession.model_validate(payload)
+    session = cast(WorkspaceSession, WorkspaceSession.model_validate(payload))
     refresh_saved_version_metadata(session)
     return session
 
