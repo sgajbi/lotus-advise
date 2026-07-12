@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-11T14:08:40.228712+00:00",
+  "generatedAt": "2026-07-12T02:59:43.464241+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -12937,9 +12937,9 @@
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "header",
-      "required": false,
+      "required": true,
       "type": "string",
-      "description": "Optional idempotency key for replay-safe transition writes. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
+      "description": "Required idempotency key for replay-safe transition writes. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
       "example": "proposal-transition-idem-001",
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
@@ -12961,9 +12961,9 @@
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "header",
-      "required": false,
+      "required": true,
       "type": "string",
-      "description": "Optional idempotency key for replay-safe approval writes. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
+      "description": "Required idempotency key for replay-safe approval writes. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
       "example": "proposal-approval-idem-001",
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
@@ -13057,9 +13057,9 @@
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "header",
-      "required": false,
+      "required": true,
       "type": "string",
-      "description": "Optional idempotency key for replay-safe narrative review writes. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
+      "description": "Required idempotency key for replay-safe narrative review writes. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
       "example": "proposal-narrative-review-idem-001",
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
@@ -27887,7 +27887,7 @@
           {
             "name": "Idempotency-Key",
             "location": "header",
-            "required": false,
+            "required": true,
             "type": "string",
             "semanticId": "lotus.idempotency_key",
             "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
@@ -28062,7 +28062,7 @@
           {
             "name": "Idempotency-Key",
             "location": "header",
-            "required": false,
+            "required": true,
             "type": "string",
             "semanticId": "lotus.idempotency_key",
             "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
@@ -29978,7 +29978,7 @@
           {
             "name": "Idempotency-Key",
             "location": "header",
-            "required": false,
+            "required": true,
             "type": "string",
             "semanticId": "lotus.idempotency_key",
             "attributeRef": "#/attributeCatalog/lotus.idempotency_key"

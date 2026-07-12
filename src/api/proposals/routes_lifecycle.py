@@ -3,6 +3,7 @@ from fastapi import Depends, status
 import src.api.proposals.router as shared
 from src.api.proposals.errors import run_proposal_operation
 from src.api.proposals.lifecycle_parameters import (
+    ProposalApprovalIdempotencyKeyHeader,
     ProposalCreateCorrelationIdHeader,
     ProposalCreatedByFilterQuery,
     ProposalCreatedFromFilterQuery,
@@ -12,11 +13,10 @@ from src.api.proposals.lifecycle_parameters import (
     ProposalIncludeEvidenceQuery,
     ProposalListCursorQuery,
     ProposalListLimitQuery,
+    ProposalNarrativeReviewIdempotencyKeyHeader,
     ProposalNarrativeVersionNoPath,
-    ProposalOptionalApprovalIdempotencyKeyHeader,
-    ProposalOptionalNarrativeReviewIdempotencyKeyHeader,
-    ProposalOptionalTransitionIdempotencyKeyHeader,
     ProposalPortfolioIdFilterQuery,
+    ProposalTransitionIdempotencyKeyHeader,
     ProposalVersionCorrelationIdHeader,
     ProposalVersionIncludeEvidenceQuery,
     ProposalVersionNoPath,
@@ -194,7 +194,7 @@ def create_proposal_version(
 def transition_proposal_state(
     proposal_id: ProposalIdPath,
     payload: ProposalStateTransitionRequest,
-    idempotency_key: ProposalOptionalTransitionIdempotencyKeyHeader = None,
+    idempotency_key: ProposalTransitionIdempotencyKeyHeader,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
@@ -222,7 +222,7 @@ def transition_proposal_state(
 def record_proposal_approval(
     proposal_id: ProposalIdPath,
     payload: ProposalApprovalRequest,
-    idempotency_key: ProposalOptionalApprovalIdempotencyKeyHeader = None,
+    idempotency_key: ProposalApprovalIdempotencyKeyHeader,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
@@ -305,7 +305,7 @@ def review_proposal_narrative(
     proposal_id: ProposalIdPath,
     version_no: ProposalNarrativeVersionNoPath,
     payload: ProposalNarrativeReviewRequest,
-    idempotency_key: ProposalOptionalNarrativeReviewIdempotencyKeyHeader = None,
+    idempotency_key: ProposalNarrativeReviewIdempotencyKeyHeader,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalNarrativeReviewResponse:
     shared._assert_lifecycle_enabled()

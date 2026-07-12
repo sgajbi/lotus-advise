@@ -142,6 +142,7 @@ def _promote_to_execution_ready(
             "reason": {"comment": "needs compliance"},
             "related_version_no": related_version_no,
         },
+        headers={"Idempotency-Key": f"promote-{route}-submit-{proposal_id}"},
     )
     assert submitted.status_code == 200
 
@@ -155,6 +156,7 @@ def _promote_to_execution_ready(
             "details": {"comment": "ok"},
             "related_version_no": related_version_no,
         },
+        headers={"Idempotency-Key": f"promote-{route}-approval-{proposal_id}"},
     )
     assert first_approval.status_code == 200
 
@@ -168,6 +170,7 @@ def _promote_to_execution_ready(
             "details": {"channel": "IN_PERSON"},
             "related_version_no": related_version_no,
         },
+        headers={"Idempotency-Key": f"promote-{route}-consent-{proposal_id}"},
     )
     assert consent.status_code == 200
     assert consent.json()["current_state"] == "EXECUTION_READY"
@@ -1123,6 +1126,7 @@ def test_transition_requires_expected_state_and_rejects_invalid_transition():
                 "actor_id": "advisor_1",
                 "reason": {"comment": "submit"},
             },
+            headers={"Idempotency-Key": "transition-missing-expected-state"},
         )
         assert missing_expected.status_code == 409
         assert "expected_state is required" in missing_expected.json()["detail"]
@@ -1135,9 +1139,62 @@ def test_transition_requires_expected_state_and_rejects_invalid_transition():
                 "expected_state": "DRAFT",
                 "reason": {"comment": "invalid"},
             },
+            headers={"Idempotency-Key": "transition-invalid-transition"},
         )
         assert invalid.status_code == 422
         assert invalid.json()["detail"] == "INVALID_TRANSITION"
+
+
+def test_lifecycle_mutating_routes_require_idempotency_key():
+    with TestClient(app) as client:
+        created = _create(
+            client,
+            "lifecycle-required-idempotency-create",
+            _base_create_payload_with_narrative("pf_lifecycle_required_idempotency"),
+        )
+        proposal_id = created["proposal"]["proposal_id"]
+        version_no = created["version"]["version_no"]
+
+        missing_transition_key = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_1",
+                "expected_state": "DRAFT",
+                "reason": {"comment": "submit"},
+                "related_version_no": 1,
+            },
+        )
+        missing_approval_key = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "RISK",
+                "approved": True,
+                "actor_id": "risk_user",
+                "expected_state": "RISK_REVIEW",
+                "details": {"ticket": "risk_1"},
+                "related_version_no": 1,
+            },
+        )
+        missing_review_key = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
+            json={
+                "action": "APPROVE",
+                "reviewed_by": "compliance_001",
+                "reason": "Evidence-grounded advisor-review narrative.",
+            },
+        )
+
+        proposal_after_rejections = client.get(f"/advisory/proposals/{proposal_id}")
+        approvals_after_rejections = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+
+    for response in (missing_transition_key, missing_approval_key, missing_review_key):
+        assert response.status_code == 422
+        assert response.json()["detail"][0]["loc"] == ["header", "Idempotency-Key"]
+    assert proposal_after_rejections.status_code == 200
+    assert proposal_after_rejections.json()["proposal"]["current_state"] == "DRAFT"
+    assert approvals_after_rejections.status_code == 200
+    assert approvals_after_rejections.json()["approval_count"] == 0
 
 
 def test_workflow_transitions_and_approvals_happy_path_to_executed():
@@ -1154,6 +1211,7 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
                 "reason": {"comment": "needs compliance"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "happy-compliance-submit"},
         )
         assert to_compliance.status_code == 200
         assert to_compliance.json()["current_state"] == "COMPLIANCE_REVIEW"
@@ -1168,6 +1226,7 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
                 "details": {"comment": "ok"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "happy-compliance-approval"},
         )
         assert compliance_approved.status_code == 200
         assert compliance_approved.json()["current_state"] == "AWAITING_CLIENT_CONSENT"
@@ -1183,6 +1242,7 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
                 "details": {"channel": "IN_PERSON"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "happy-client-consent"},
         )
         assert consent.status_code == 200
         assert consent.json()["current_state"] == "EXECUTION_READY"
@@ -1196,6 +1256,7 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
                 "reason": {"execution_id": "oms_123"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "happy-executed-transition"},
         )
         assert executed.status_code == 200
         assert executed.json()["current_state"] == "EXECUTED"
@@ -1215,6 +1276,7 @@ def test_workflow_transitions_happy_path_via_risk_to_execution_ready():
                 "reason": {"comment": "risk first"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "happy-risk-submit"},
         )
         assert to_risk.status_code == 200
         assert to_risk.json()["current_state"] == "RISK_REVIEW"
@@ -1229,6 +1291,7 @@ def test_workflow_transitions_happy_path_via_risk_to_execution_ready():
                 "details": {"ticket": "risk_1"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "happy-risk-approval"},
         )
         assert risk_approved.status_code == 200
         assert risk_approved.json()["current_state"] == "AWAITING_CLIENT_CONSENT"
@@ -1244,6 +1307,7 @@ def test_workflow_transitions_happy_path_via_risk_to_execution_ready():
                 "details": {"channel": "DIGITAL"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "happy-risk-client-consent"},
         )
         assert consent.status_code == 200
         assert consent.json()["current_state"] == "EXECUTION_READY"
@@ -1307,6 +1371,7 @@ def test_execution_handoff_and_status_are_auditable(monkeypatch):
                 },
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "execution-status-executed-transition"},
         )
         assert executed.status_code == 200
 
@@ -2060,6 +2125,7 @@ def test_persisted_read_surfaces_stay_aligned_on_latest_delivery_version(monkeyp
                 "reason": {"comment": "latest version delivery alignment"},
                 "related_version_no": 2,
             },
+            headers={"Idempotency-Key": "latest-version-risk-submit"},
         )
         assert submitted.status_code == 200
         risk_approved = client.post(
@@ -2072,6 +2138,7 @@ def test_persisted_read_surfaces_stay_aligned_on_latest_delivery_version(monkeyp
                 "related_version_no": 2,
                 "details": {"channel": "LATEST_VERSION_TEST"},
             },
+            headers={"Idempotency-Key": "latest-version-risk-approval"},
         )
         assert risk_approved.status_code == 200
         client_consent = client.post(
@@ -2084,6 +2151,7 @@ def test_persisted_read_surfaces_stay_aligned_on_latest_delivery_version(monkeyp
                 "related_version_no": 2,
                 "details": {"channel": "LATEST_VERSION_TEST"},
             },
+            headers={"Idempotency-Key": "latest-version-client-consent"},
         )
         assert client_consent.status_code == 200
 
@@ -2224,6 +2292,7 @@ def test_multi_version_history_keeps_latest_delivery_and_approval_scope_isolated
                 "reason": {"comment": "latest version scoping"},
                 "related_version_no": 2,
             },
+            headers={"Idempotency-Key": "version-scope-risk-submit"},
         )
         assert submitted.status_code == 200
         risk_approved = client.post(
@@ -2236,6 +2305,7 @@ def test_multi_version_history_keeps_latest_delivery_and_approval_scope_isolated
                 "related_version_no": 2,
                 "details": {"channel": "VERSION_SCOPE"},
             },
+            headers={"Idempotency-Key": "version-scope-risk-approval"},
         )
         assert risk_approved.status_code == 200
         client_consent = client.post(
@@ -2248,6 +2318,7 @@ def test_multi_version_history_keeps_latest_delivery_and_approval_scope_isolated
                 "related_version_no": 2,
                 "details": {"channel": "VERSION_SCOPE"},
             },
+            headers={"Idempotency-Key": "version-scope-client-consent"},
         )
         assert client_consent.status_code == 200
         handoff = client.post(
@@ -2634,6 +2705,7 @@ def test_workflow_rejection_path_transitions_to_rejected_terminal_state():
                 "expected_state": "DRAFT",
                 "reason": {"comment": "risk first"},
             },
+            headers={"Idempotency-Key": "rejected-risk-submit"},
         )
         assert to_risk.status_code == 200
         assert to_risk.json()["current_state"] == "RISK_REVIEW"
@@ -2647,6 +2719,7 @@ def test_workflow_rejection_path_transitions_to_rejected_terminal_state():
                 "expected_state": "RISK_REVIEW",
                 "details": {"comment": "client not suitable"},
             },
+            headers={"Idempotency-Key": "rejected-risk-rejection"},
         )
         assert rejected.status_code == 200
         assert rejected.json()["current_state"] == "REJECTED"
@@ -2660,6 +2733,7 @@ def test_workflow_rejection_path_transitions_to_rejected_terminal_state():
                 "expected_state": "REJECTED",
                 "reason": {"comment": "should fail"},
             },
+            headers={"Idempotency-Key": "rejected-invalid-transition"},
         )
         assert invalid_after_terminal.status_code == 422
         assert invalid_after_terminal.json()["detail"] == "INVALID_TRANSITION"
@@ -2679,6 +2753,7 @@ def test_approval_requires_matching_expected_state():
                 "expected_state": "RISK_REVIEW",
                 "details": {},
             },
+            headers={"Idempotency-Key": "approval-matching-state"},
         )
         assert approval.status_code == 409
         assert "STATE_CONFLICT" in approval.json()["detail"]
@@ -2742,6 +2817,7 @@ def test_transition_and_approval_not_found_and_invalid_approval_state_paths():
                 "expected_state": "DRAFT",
                 "reason": {},
             },
+            headers={"Idempotency-Key": "missing-proposal-transition"},
         )
         assert missing_transition.status_code == 404
 
@@ -2754,6 +2830,7 @@ def test_transition_and_approval_not_found_and_invalid_approval_state_paths():
                 "expected_state": "RISK_REVIEW",
                 "details": {},
             },
+            headers={"Idempotency-Key": "missing-proposal-approval"},
         )
         assert missing_approval.status_code == 404
 
@@ -2768,6 +2845,7 @@ def test_transition_and_approval_not_found_and_invalid_approval_state_paths():
                 "expected_state": "DRAFT",
                 "details": {},
             },
+            headers={"Idempotency-Key": "invalid-approval-state"},
         )
         assert invalid_state.status_code == 422
         assert invalid_state.json()["detail"] == "INVALID_APPROVAL_STATE"
@@ -2787,6 +2865,7 @@ def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
                 "reason": {"comment": "submit"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "support-submit"},
         )
         assert submit.status_code == 200
         approval = client.post(
@@ -2799,6 +2878,7 @@ def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
                 "details": {"ticket": "cmp_1"},
                 "related_version_no": 1,
             },
+            headers={"Idempotency-Key": "support-approval"},
         )
         assert approval.status_code == 200
 

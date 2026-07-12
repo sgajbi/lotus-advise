@@ -47,29 +47,29 @@ ProposalVersionCorrelationIdHeader = Annotated[
     ),
 ]
 
-ProposalOptionalTransitionIdempotencyKeyHeader = Annotated[
-    str | None,
+ProposalTransitionIdempotencyKeyHeader = Annotated[
+    str,
     Header(
         alias="Idempotency-Key",
-        description="Optional idempotency key for replay-safe transition writes.",
+        description="Required idempotency key for replay-safe transition writes.",
         examples=["proposal-transition-idem-001"],
     ),
 ]
 
-ProposalOptionalApprovalIdempotencyKeyHeader = Annotated[
-    str | None,
+ProposalApprovalIdempotencyKeyHeader = Annotated[
+    str,
     Header(
         alias="Idempotency-Key",
-        description="Optional idempotency key for replay-safe approval writes.",
+        description="Required idempotency key for replay-safe approval writes.",
         examples=["proposal-approval-idem-001"],
     ),
 ]
 
-ProposalOptionalNarrativeReviewIdempotencyKeyHeader = Annotated[
-    str | None,
+ProposalNarrativeReviewIdempotencyKeyHeader = Annotated[
+    str,
     Header(
         alias="Idempotency-Key",
-        description="Optional idempotency key for replay-safe narrative review writes.",
+        description="Required idempotency key for replay-safe narrative review writes.",
         examples=["proposal-narrative-review-idem-001"],
     ),
 ]
