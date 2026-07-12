@@ -88,6 +88,8 @@ def record_narrative_review_event(
         proposal=reviewed_proposal,
         event=event,
         approval=None,
+        expected_current_state=event.from_state,
+        expected_current_version_no=proposal.current_version_no,
     )
     return _build_response(
         proposal=result.proposal,

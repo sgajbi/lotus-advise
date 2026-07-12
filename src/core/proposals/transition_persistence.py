@@ -13,7 +13,13 @@ def persist_proposal_transition(
     proposal: ProposalRecord,
     event: ProposalWorkflowEventRecord,
 ) -> ProposalTransitionResult:
-    return repository.transition_proposal(proposal=proposal, event=event, approval=None)
+    return repository.transition_proposal(
+        proposal=proposal,
+        event=event,
+        approval=None,
+        expected_current_state=event.from_state,
+        expected_current_version_no=proposal.current_version_no,
+    )
 
 
 def persist_proposal_approval_transition(
@@ -23,4 +29,10 @@ def persist_proposal_approval_transition(
     event: ProposalWorkflowEventRecord,
     approval: ProposalApprovalRecordData,
 ) -> ProposalTransitionResult:
-    return repository.transition_proposal(proposal=proposal, event=event, approval=approval)
+    return repository.transition_proposal(
+        proposal=proposal,
+        event=event,
+        approval=approval,
+        expected_current_state=event.from_state,
+        expected_current_version_no=proposal.current_version_no,
+    )

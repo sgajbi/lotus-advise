@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from src.core.proposals.exceptions import ProposalStateConflictError
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
@@ -333,10 +334,47 @@ def test_repository_versions_and_transition_transaction_path():
         related_version_no=1,
     )
     proposal.current_state = "RISK_REVIEW"
-    result = repo.transition_proposal(proposal=proposal, event=transition_event, approval=None)
+    result = repo.transition_proposal(
+        proposal=proposal,
+        event=transition_event,
+        approval=None,
+        expected_current_state="DRAFT",
+        expected_current_version_no=1,
+    )
     assert isinstance(result, ProposalTransitionResult)
     assert result.proposal.current_state == "RISK_REVIEW"
     assert result.event.event_id == "pwe_repo_txn"
+
+
+def test_in_memory_repository_transition_rejects_stale_expected_state():
+    repo = InMemoryProposalRepository()
+    proposal = _proposal("pp_repo_stale_txn", "advisor_txn")
+    repo.create_proposal(proposal)
+    transition_event = ProposalWorkflowEventRecord(
+        event_id="pwe_repo_stale_txn",
+        proposal_id="pp_repo_stale_txn",
+        event_type="SUBMITTED_FOR_RISK_REVIEW",
+        from_state="DRAFT",
+        to_state="RISK_REVIEW",
+        actor_id="advisor_txn",
+        occurred_at=_now(),
+        reason_json={"comment": "submit"},
+        related_version_no=1,
+    )
+    stale_update = proposal.model_copy(update={"current_state": "RISK_REVIEW"})
+
+    with pytest.raises(ProposalStateConflictError) as exc_info:
+        repo.transition_proposal(
+            proposal=stale_update,
+            event=transition_event,
+            approval=None,
+            expected_current_state="COMPLIANCE_REVIEW",
+            expected_current_version_no=1,
+        )
+
+    assert str(exc_info.value) == "STATE_CONFLICT: proposal aggregate changed during transition"
+    assert repo.get_proposal(proposal_id=proposal.proposal_id) == proposal
+    assert repo.list_events(proposal_id=proposal.proposal_id) == []
 
 
 def test_repository_created_from_to_filters_and_empty_current_version():

@@ -27,4 +27,10 @@ def persist_created_proposal_version(
     event: ProposalWorkflowEventRecord,
 ) -> None:
     repository.create_version(version)
-    repository.transition_proposal(proposal=proposal, event=event, approval=None)
+    repository.transition_proposal(
+        proposal=proposal,
+        event=event,
+        approval=None,
+        expected_current_state=event.from_state,
+        expected_current_version_no=version.version_no - 1,
+    )

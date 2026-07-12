@@ -369,3 +369,11 @@ persisted content fails with `PROPOSAL_VERSION_IDENTITY_CONFLICT`,
 `PROPOSAL_WORKFLOW_EVENT_IDENTITY_CONFLICT`, or `PROPOSAL_APPROVAL_IDENTITY_CONFLICT`. Treat these
 as lifecycle evidence conflicts and preserve the proposal id, version number, event id, approval id,
 request hash, and failed operation in incident evidence.
+
+Proposal transition writes use an adapter-owned compare-and-set boundary on the proposal aggregate
+state and current version. When two callers race from the same lifecycle state, the first committed
+transition wins and a stale writer fails closed with
+`STATE_CONFLICT: proposal aggregate changed during transition`. The losing workflow event or
+approval must not be present in history. Operators should retry only after re-reading the current
+proposal state and should preserve the correlation id, idempotency key, expected state/version, and
+observed state/version in incident evidence.

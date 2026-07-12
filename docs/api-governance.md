@@ -11,7 +11,8 @@ vocabulary checks, no-alias checks, and enforced Spectral OpenAPI rules.
   legal, regulatory, OMS, order, fill, or settlement claims.
 - Supportability boundaries must be explicit when an endpoint exposes internal review, proposal,
   or advisory-copilot output.
-- Mutating workflows should define idempotency behavior and audit/lineage posture.
+- Mutating workflows should define idempotency behavior, deterministic state-conflict behavior,
+  and audit/lineage posture.
 - Correlation IDs should be accepted or propagated where API workflow tracing matters.
 
 ## Current Evidence

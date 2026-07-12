@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, Protocol
 
+from src.core.proposals.contract_types import ProposalWorkflowState
 from src.core.proposals.memo_persistence_models import (
     ProposalMemoEventRecord,
     ProposalMemoIdempotencyRecord,
@@ -123,4 +124,6 @@ class ProposalRepository(Protocol):
         proposal: ProposalRecord,
         event: ProposalWorkflowEventRecord,
         approval: Optional[ProposalApprovalRecordData],
+        expected_current_state: Optional[ProposalWorkflowState] = None,
+        expected_current_version_no: Optional[int] = None,
     ) -> ProposalTransitionResult: ...
