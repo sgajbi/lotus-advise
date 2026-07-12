@@ -171,6 +171,11 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   environment-incompatible model identity returns unavailable before completed output sections are
   accepted, and persisted run lineage includes model approval, evaluation, release, change, and
   rollback references.
+- Advisory copilot completed output also records executable evaluation-pack evidence from
+  `src/core/advisory_copilot/evaluation_gate.py` and
+  `contracts/advisory-copilot/evaluation-corpus.v1.json`. Failed evaluation posture prevents
+  review-ready output and records evaluator version, dataset id, thresholds, metrics, failure
+  reasons, and evaluation hash in lineage.
 - Advisory copilot review routes require a trusted reviewer principal at the API boundary.
   `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
   identity, `X-Capabilities`, and authorized proposal/portfolio headers drive authority,

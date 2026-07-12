@@ -309,6 +309,13 @@ def test_generate_advisory_copilot_returns_review_required_sections(
     assert response.lineage["proposal_version_id"] == "version_sg_001"
     assert response.lineage["proposal_version_no"] == 1
     assert response.lineage["fallback_reason"] is None
+    assert response.lineage["model_risk_evaluation"]["approval_posture"] == "APPROVED"
+    assert response.lineage["model_risk_evaluation"]["dataset_id"] == (
+        "advisory-copilot-evaluation-corpus.v1"
+    )
+    assert response.lineage["model_risk_evaluation"]["metrics"]["grounded_claim_ratio_bps"] == (
+        10000
+    )
 
 
 def test_generate_advisory_copilot_extracts_proposal_version_from_source_refs(
@@ -454,6 +461,11 @@ def test_generate_advisory_copilot_marks_missing_claim_refs_unsupported(
         "COPILOT_CLAIM_REFS_MISSING"
     )
     assert response.lineage["claim_grounding_summary"]["ready_for_review"] is False
+    assert response.lineage["model_risk_evaluation"]["approval_posture"] == "QUARANTINED"
+    assert (
+        "COPILOT_EVALUATION_GROUNDING_THRESHOLD_FAILED"
+        in (response.lineage["model_risk_evaluation"]["failure_reasons"])
+    )
 
 
 def test_generate_advisory_copilot_marks_unknown_source_refs_unverifiable(

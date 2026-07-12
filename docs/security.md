@@ -12,6 +12,11 @@ This document records the current security hardening baseline for Lotus Advise.
   matching `lotus-ai` provider/model lineage for the approved workflow-pack, prompt-template,
   output-schema, evaluation-pack, environment, owner, approval reference, release evidence, and
   change reference before it can become review-ready or persist completed lineage.
+- Advisory-copilot model-risk evaluation is executable through `make advisory-copilot-evaluation-gate`.
+  The gate expands the sanitized corpus in `contracts/advisory-copilot/evaluation-corpus.v1.json`
+  across all six action families, emits machine-readable evidence to
+  `output/advisory-copilot/evaluation-evidence.json`, and fails when expected-positive cases lose
+  groundedness, review posture, or guardrail safety.
 - Downstream `lotus-report` and `lotus-ai` requests require bounded trusted actor and tenant
   identity; missing or malformed values fail closed before HTTP submission.
 - Downstream report requests require source-derived as-of date, reporting currency, and
