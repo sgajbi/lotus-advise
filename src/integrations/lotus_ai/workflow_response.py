@@ -26,6 +26,20 @@ def extract_model_version(
     return optional_text(result.get("model_version"), max_length=max_length)
 
 
+def extract_provider_id(
+    result: dict[str, Any],
+    *,
+    max_length: int | None = None,
+) -> str | None:
+    return optional_text(
+        result.get("provider_id")
+        or result.get("provider")
+        or result.get("model_provider")
+        or safe_dict(result.get("model")).get("provider_id"),
+        max_length=max_length,
+    )
+
+
 def extract_error_detail(
     payload: dict[str, Any],
     *,

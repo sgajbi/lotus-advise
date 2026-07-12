@@ -7,6 +7,11 @@ This document records the current security hardening baseline for Lotus Advise.
 - Dependency health and security audit are repo-native gates.
 - API error-boundary hardening reduces the risk of leaking sensitive lower-layer details.
 - Advisory-copilot structured payload tests reject raw AI payload and sensitive unredacted inputs.
+- Advisory-copilot Lotus AI execution is fail-closed against the approved provider/model inventory
+  in `contracts/advisory-copilot/approved-model-inventory.v1.json`. Completed output must return
+  matching `lotus-ai` provider/model lineage for the approved workflow-pack, prompt-template,
+  output-schema, evaluation-pack, environment, owner, approval reference, release evidence, and
+  change reference before it can become review-ready or persist completed lineage.
 - Downstream `lotus-report` and `lotus-ai` requests require bounded trusted actor and tenant
   identity; missing or malformed values fail closed before HTTP submission.
 - Downstream report requests require source-derived as-of date, reporting currency, and

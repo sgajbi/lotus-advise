@@ -122,8 +122,12 @@ Boundary rules that matter:
    approval/waiver authority, client-ready policy publication, and external client communication
    remain gated.
 7. `AdvisoryCopilotInteractionRecord:v1` is active for governed internal advisor/reviewer copilot
-   interactions. Completed copilot output must pass claim-level source grounding, and review
-   actions bind reviewer authority to trusted `X-Actor-Id`, `X-Role`, `X-Tenant-Id`,
+   interactions. Completed copilot output must pass the Advise-owned approved provider/model
+   inventory in `contracts/advisory-copilot/approved-model-inventory.v1.json`, return matching
+   `lotus-ai` provider/model lineage, and pass claim-level source grounding before it can remain
+   review-ready. Missing, retired, mismatched, or environment-incompatible model identity returns a
+   stable unavailable posture. Review actions bind reviewer authority to trusted `X-Actor-Id`,
+   `X-Role`, `X-Tenant-Id`,
    `X-Legal-Entity-Code`, `X-Correlation-Id`, service-identity, capability, proposal, and
    portfolio headers. Request-body `actor_id` is only a compatibility echo; mismatches, missing
    scope, wrong tenant, missing capability, wrong role, self-review, and changed-actor idempotency

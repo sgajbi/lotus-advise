@@ -29,10 +29,7 @@ def build_workflow_pack_execute_request(
     return {
         "pack_id": pack_id,
         "version": version,
-        "environment": os.getenv(
-            _WORKFLOW_PACK_ENVIRONMENT,
-            _DEFAULT_WORKFLOW_PACK_ENVIRONMENT,
-        ),
+        "environment": workflow_pack_environment(),
         "caller_identity_class": _CALLER_IDENTITY_CLASS,
         "workflow_surface": workflow_surface,
         "task_request": {
@@ -52,3 +49,10 @@ def build_workflow_pack_execute_request(
             "expected_output_label": expected_output_label,
         },
     }
+
+
+def workflow_pack_environment() -> str:
+    return os.getenv(
+        _WORKFLOW_PACK_ENVIRONMENT,
+        _DEFAULT_WORKFLOW_PACK_ENVIRONMENT,
+    )
