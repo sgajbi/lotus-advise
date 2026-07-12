@@ -13,10 +13,12 @@ def persist_created_proposal(
     command_state: ProposalCreateCommandState,
     version: ProposalVersionRecord,
 ) -> None:
-    repository.create_proposal(command_state.proposal)
-    repository.create_version(version)
-    repository.append_event(command_state.created_event)
-    repository.save_idempotency(command_state.idempotency_record)
+    repository.create_proposal_with_version_event_idempotency(
+        proposal=command_state.proposal,
+        version=version,
+        event=command_state.created_event,
+        idempotency=command_state.idempotency_record,
+    )
 
 
 def persist_created_proposal_version(

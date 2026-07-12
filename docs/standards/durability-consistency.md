@@ -24,9 +24,12 @@
 ## Atomicity and Transaction Boundaries
 
 - Run/proposal persistence uses explicit transaction boundaries in repository implementations.
+- Proposal create persistence writes the proposal aggregate, immutable version 1, `CREATED`
+  workflow event, and proposal-create idempotency record in one adapter-owned unit of work.
 - Partial workflow updates must fail and surface explicit errors.
 - Evidence:
   - `src/infrastructure/proposals/postgres.py`
+  - `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py`
 
 ## As-Of and Reproducibility Semantics
 
@@ -73,4 +76,3 @@
 ## Deviations
 
 - Deviation from idempotent write semantics or durable workflow persistence requires ADR with expiry review date.
-

@@ -263,6 +263,24 @@ class InMemoryProposalRepository(ProposalRepository):
         with self._lock:
             self._proposals[proposal.proposal_id] = copy_record(proposal)
 
+    def create_proposal_with_version_event_idempotency(
+        self,
+        *,
+        proposal: ProposalRecord,
+        version: ProposalVersionRecord,
+        event: ProposalWorkflowEventRecord,
+        idempotency: ProposalIdempotencyRecord,
+    ) -> None:
+        proposal_copy = copy_record(proposal)
+        version_copy = copy_record(version)
+        event_copy = copy_record(event)
+        idempotency_copy = copy_record(idempotency)
+        with self._lock:
+            self._proposals[proposal.proposal_id] = proposal_copy
+            self._versions[(version.proposal_id, version.version_no)] = version_copy
+            self._events.setdefault(event.proposal_id, []).append(event_copy)
+            self._idempotency[idempotency.idempotency_key] = idempotency_copy
+
     def update_proposal(self, proposal: ProposalRecord) -> None:
         with self._lock:
             self._proposals[proposal.proposal_id] = copy_record(proposal)

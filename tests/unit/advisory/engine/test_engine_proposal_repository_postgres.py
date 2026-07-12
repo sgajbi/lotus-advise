@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from types import ModuleType
 
@@ -57,11 +58,14 @@ class _FakeConnection:
         self.executed_sql = []
         self.executed_args = []
         self.rollback_count = 0
+        self._transaction_snapshot = None
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
         self.executed_sql.append(sql)
         self.executed_args.append(tuple(args or ()))
+        if _is_transactional_write_sql(sql):
+            self._ensure_transaction_snapshot()
         if sql == "SELECT pg_advisory_lock(%s::bigint)":
             return _FakeCursor()
         if sql == "SELECT pg_advisory_unlock(%s::bigint)":
@@ -565,6 +569,34 @@ class _FakeConnection:
             return _FakeCursor(rows=rows)
         raise AssertionError(f"Unhandled SQL in fake connection: {sql}")
 
+    def _ensure_transaction_snapshot(self):
+        if self._transaction_snapshot is not None:
+            return
+        self._transaction_snapshot = {
+            "idempotency": deepcopy(self.idempotency),
+            "simulation_idempotency": deepcopy(self.simulation_idempotency),
+            "operations": deepcopy(self.operations),
+            "proposals": deepcopy(self.proposals),
+            "versions": deepcopy(self.versions),
+            "events": deepcopy(self.events),
+            "approvals": deepcopy(self.approvals),
+            "memos": deepcopy(self.memos),
+            "memo_idempotency": deepcopy(self.memo_idempotency),
+            "memo_events": deepcopy(self.memo_events),
+            "cockpit_acknowledgements": deepcopy(self.cockpit_acknowledgements),
+            "cockpit_acknowledgement_idempotency": deepcopy(
+                self.cockpit_acknowledgement_idempotency
+            ),
+            "schema_migrations": deepcopy(self.schema_migrations),
+        }
+
+    def _restore_transaction_snapshot(self):
+        if self._transaction_snapshot is None:
+            return
+        for field, value in self._transaction_snapshot.items():
+            setattr(self, field, value)
+        self._transaction_snapshot = None
+
     def _execute_update_proposal_records(self, args):
         proposal_id = args[12]
         expected_current_state = args[13]
@@ -595,10 +627,12 @@ class _FakeConnection:
         return _FakeCursor(rowcount=1)
 
     def commit(self):
+        self._transaction_snapshot = None
         return None
 
     def rollback(self):
         self.rollback_count += 1
+        self._restore_transaction_snapshot()
         return None
 
     def close(self):
@@ -618,8 +652,25 @@ class _NoOperationReturnedConnection(_FakeConnection):
         return super().execute(query, args)
 
 
-def _build_repository(monkeypatch):
-    connection = _FakeConnection()
+class _FailingAfterWriteConnection(_FakeConnection):
+    def __init__(self, *, fail_sql_fragment: str):
+        super().__init__()
+        self._fail_sql_fragment = fail_sql_fragment
+
+    def execute(self, query, args=None):
+        sql = " ".join(str(query).split())
+        cursor = super().execute(query, args)
+        if self._fail_sql_fragment in sql:
+            raise RuntimeError(f"fault injected after {self._fail_sql_fragment}")
+        return cursor
+
+
+def _is_transactional_write_sql(sql: str) -> bool:
+    return sql.startswith(("INSERT ", "UPDATE ", "DELETE ", "CREATE ", "ALTER "))
+
+
+def _build_repository(monkeypatch, connection=None):
+    connection = connection or _FakeConnection()
     monkeypatch.setattr(postgres_module, "find_spec", lambda _name: object())
     monkeypatch.setattr(
         PostgresProposalRepository,
@@ -1696,6 +1747,55 @@ def test_postgres_repository_transition_rejects_stale_expected_state(monkeypatch
     assert repository.list_approvals(proposal_id=initial.proposal_id) == []
 
 
+@pytest.mark.parametrize(
+    "fail_sql_fragment",
+    [
+        "INSERT INTO proposal_records",
+        "INSERT INTO proposal_versions",
+        "INSERT INTO proposal_workflow_events",
+        "INSERT INTO proposal_idempotency",
+    ],
+)
+def test_postgres_repository_atomic_proposal_create_rolls_back_partial_writes(
+    monkeypatch,
+    fail_sql_fragment,
+):
+    connection = _FailingAfterWriteConnection(fail_sql_fragment=fail_sql_fragment)
+    repository, _ = _build_repository(monkeypatch, connection=connection)
+    proposal, version, event, idempotency = _proposal_create_records()
+
+    with pytest.raises(RuntimeError, match="fault injected"):
+        repository.create_proposal_with_version_event_idempotency(
+            proposal=proposal,
+            version=version,
+            event=event,
+            idempotency=idempotency,
+        )
+
+    assert connection.rollback_count == 1
+    assert repository.get_proposal(proposal_id=proposal.proposal_id) is None
+    assert repository.get_version(proposal_id=proposal.proposal_id, version_no=1) is None
+    assert repository.list_events(proposal_id=proposal.proposal_id) == []
+    assert repository.get_idempotency(idempotency_key=idempotency.idempotency_key) is None
+
+
+def test_postgres_repository_atomic_proposal_create_commits_all_records(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    proposal, version, event, idempotency = _proposal_create_records()
+
+    repository.create_proposal_with_version_event_idempotency(
+        proposal=proposal,
+        version=version,
+        event=event,
+        idempotency=idempotency,
+    )
+
+    assert repository.get_proposal(proposal_id=proposal.proposal_id) == proposal
+    assert repository.get_version(proposal_id=proposal.proposal_id, version_no=1) == version
+    assert repository.list_events(proposal_id=proposal.proposal_id) == [event]
+    assert repository.get_idempotency(idempotency_key=idempotency.idempotency_key) == idempotency
+
+
 def test_import_psycopg_returns_driver_and_row_factory(monkeypatch):
     fake_psycopg = ModuleType("psycopg")
     fake_psycopg_rows = ModuleType("psycopg.rows")
@@ -1732,6 +1832,56 @@ def test_postgres_repository_connect_uses_dsn_and_row_factory(monkeypatch):
     assert connected == "connected"
     assert captured["dsn"] == repository._dsn
     assert captured["row_factory"] is fake_row_factory
+
+
+def _proposal_create_records():
+    now = datetime.now(timezone.utc)
+    proposal = ProposalRecord(
+        proposal_id="pp_atomic_create",
+        portfolio_id="pf_atomic_create",
+        mandate_id="mandate_atomic_create",
+        jurisdiction="SG",
+        created_by="advisor_atomic_create",
+        created_at=now,
+        last_event_at=now,
+        current_state="DRAFT",
+        current_version_no=1,
+        title="Atomic proposal create",
+        advisor_notes=None,
+    )
+    version = ProposalVersionRecord(
+        proposal_version_id="ppv_atomic_create",
+        proposal_id=proposal.proposal_id,
+        version_no=1,
+        created_at=now,
+        request_hash="sha256:atomic-request",
+        artifact_hash="sha256:atomic-artifact",
+        simulation_hash="sha256:atomic-simulation",
+        status_at_creation="READY",
+        proposal_result_json={"status": "READY"},
+        artifact_json={"artifact_id": "pa_atomic_create"},
+        evidence_bundle_json={"hashes": {"request_hash": "sha256:atomic-request"}},
+        gate_decision_json=None,
+    )
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_atomic_create",
+        proposal_id=proposal.proposal_id,
+        event_type="CREATED",
+        from_state=None,
+        to_state="DRAFT",
+        actor_id=proposal.created_by,
+        occurred_at=now,
+        reason_json={"request_hash": version.request_hash},
+        related_version_no=1,
+    )
+    idempotency = ProposalIdempotencyRecord(
+        idempotency_key="idem_atomic_create",
+        request_hash=version.request_hash,
+        proposal_id=proposal.proposal_id,
+        proposal_version_no=1,
+        created_at=now,
+    )
+    return proposal, version, event, idempotency
 
 
 def test_to_proposal_returns_none_for_missing_row():

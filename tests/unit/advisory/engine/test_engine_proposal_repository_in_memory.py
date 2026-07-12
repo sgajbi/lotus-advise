@@ -422,6 +422,56 @@ def test_repository_created_from_to_filters_and_empty_current_version():
     assert repo.get_current_version(proposal_id="pp_repo_date") is None
 
 
+def test_in_memory_repository_atomic_proposal_create_commits_all_records():
+    repo = InMemoryProposalRepository()
+    now = _now()
+    proposal = _proposal("pp_repo_atomic_create", "advisor_atomic")
+    version = ProposalVersionRecord(
+        proposal_version_id="ppv_repo_atomic_create",
+        proposal_id=proposal.proposal_id,
+        version_no=1,
+        created_at=now,
+        request_hash="sha256:req-atomic",
+        artifact_hash="sha256:artifact-atomic",
+        simulation_hash="sha256:sim-atomic",
+        status_at_creation="READY",
+        proposal_result_json={"status": "READY"},
+        artifact_json={"artifact_id": "pa_atomic"},
+        evidence_bundle_json={"hashes": {"request_hash": "sha256:req-atomic"}},
+        gate_decision_json=None,
+    )
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_repo_atomic_create",
+        proposal_id=proposal.proposal_id,
+        event_type="CREATED",
+        from_state=None,
+        to_state="DRAFT",
+        actor_id=proposal.created_by,
+        occurred_at=now,
+        reason_json={"request_hash": version.request_hash},
+        related_version_no=1,
+    )
+    idempotency = ProposalIdempotencyRecord(
+        idempotency_key="idem_repo_atomic_create",
+        request_hash=version.request_hash,
+        proposal_id=proposal.proposal_id,
+        proposal_version_no=1,
+        created_at=now,
+    )
+
+    repo.create_proposal_with_version_event_idempotency(
+        proposal=proposal,
+        version=version,
+        event=event,
+        idempotency=idempotency,
+    )
+
+    assert repo.get_proposal(proposal_id=proposal.proposal_id) == proposal
+    assert repo.get_version(proposal_id=proposal.proposal_id, version_no=1) == version
+    assert repo.list_events(proposal_id=proposal.proposal_id) == [event]
+    assert repo.get_idempotency(idempotency_key=idempotency.idempotency_key) == idempotency
+
+
 def test_repository_list_proposals_ignores_unknown_cursor() -> None:
     repo = InMemoryProposalRepository()
     first = _proposal("pp_repo_cursor_a", "advisor_cursor")

@@ -49,6 +49,12 @@ def save_proposal_idempotency(
     connect: ConnectionFactory,
     record: ProposalIdempotencyRecord,
 ) -> None:
+    with closing(connect()) as connection:
+        insert_proposal_idempotency(connection=connection, record=record)
+        connection.commit()
+
+
+def insert_proposal_idempotency(*, connection: Any, record: ProposalIdempotencyRecord) -> None:
     query = """
         INSERT INTO proposal_idempotency (
             idempotency_key,
@@ -63,18 +69,16 @@ def save_proposal_idempotency(
             proposal_version_no=excluded.proposal_version_no,
             created_at=excluded.created_at
     """
-    with closing(connect()) as connection:
-        connection.execute(
-            query,
-            (
-                record.idempotency_key,
-                record.request_hash,
-                record.proposal_id,
-                record.proposal_version_no,
-                record.created_at.isoformat(),
-            ),
-        )
-        connection.commit()
+    connection.execute(
+        query,
+        (
+            record.idempotency_key,
+            record.request_hash,
+            record.proposal_id,
+            record.proposal_version_no,
+            record.created_at.isoformat(),
+        ),
+    )
 
 
 def get_simulation_idempotency(
@@ -198,6 +202,7 @@ __all__ = [
     "get_memo_idempotency",
     "get_proposal_idempotency",
     "get_simulation_idempotency",
+    "insert_proposal_idempotency",
     "save_memo_idempotency",
     "save_proposal_idempotency",
     "save_simulation_idempotency",

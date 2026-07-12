@@ -209,6 +209,28 @@ class PostgresProposalRepository:
     def create_proposal(self, proposal: ProposalRecord) -> None:
         _records.create_proposal(connect=self._connect, proposal=proposal)
 
+    def create_proposal_with_version_event_idempotency(
+        self,
+        *,
+        proposal: ProposalRecord,
+        version: ProposalVersionRecord,
+        event: ProposalWorkflowEventRecord,
+        idempotency: ProposalIdempotencyRecord,
+    ) -> None:
+        with closing(self._connect()) as connection:
+            try:
+                _records.upsert_proposal(connection=connection, proposal=proposal)
+                _versions.insert_version(connection=connection, version=version)
+                _workflow_events.insert_event(connection=connection, event=event)
+                _idempotency.insert_proposal_idempotency(
+                    connection=connection,
+                    record=idempotency,
+                )
+            except Exception:
+                connection.rollback()
+                raise
+            connection.commit()
+
     def update_proposal(self, proposal: ProposalRecord) -> None:
         _records.update_proposal(connect=self._connect, proposal=proposal)
 
