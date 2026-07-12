@@ -26,6 +26,8 @@
 - Run/proposal persistence uses explicit transaction boundaries in repository implementations.
 - Proposal create persistence writes the proposal aggregate, immutable version 1, `CREATED`
   workflow event, and proposal-create idempotency record in one adapter-owned unit of work.
+- Memo create persistence writes the memo record, optional memo-create idempotency record, and
+  initial memo lifecycle event in one adapter-owned unit of work.
 - Partial workflow updates must fail and surface explicit errors.
 - Evidence:
   - `src/infrastructure/proposals/postgres.py`

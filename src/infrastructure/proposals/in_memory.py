@@ -111,6 +111,85 @@ class InMemoryProposalRepository(ProposalRepository):
             self._memos[memo.memo_id] = copy_record(memo)
             self._memo_by_proposal_version[proposal_version_key] = memo.memo_id
 
+    def create_memo_with_idempotency_event(
+        self,
+        *,
+        memo: ProposalMemoRecord,
+        idempotency: Optional[ProposalMemoIdempotencyRecord],
+        event: ProposalMemoEventRecord,
+    ) -> None:
+        memo_copy = copy_record(memo)
+        idempotency_copy = copy_optional(idempotency)
+        event_copy = copy_record(event)
+        with self._lock:
+            self._validate_memo_write(memo=memo, idempotency=idempotency)
+            self._store_memo_if_absent(memo=memo, memo_copy=memo_copy)
+            self._store_memo_idempotency_if_absent(
+                idempotency=idempotency,
+                idempotency_copy=idempotency_copy,
+            )
+            self._append_memo_event_if_absent(event=event, event_copy=event_copy)
+
+    def _validate_memo_write(
+        self,
+        *,
+        memo: ProposalMemoRecord,
+        idempotency: Optional[ProposalMemoIdempotencyRecord],
+    ) -> None:
+        proposal_version_key = (memo.proposal_id, memo.proposal_version_no)
+        existing_memo_id = self._memo_by_proposal_version.get(proposal_version_key)
+        if existing_memo_id is not None and existing_memo_id != memo.memo_id:
+            raise ValueError("MEMO_PROPOSAL_VERSION_CONFLICT")
+        existing_memo = self._memos.get(memo.memo_id)
+        if existing_memo is not None and existing_memo.memo_hash != memo.memo_hash:
+            raise ValueError("MEMO_HASH_CONFLICT")
+        if idempotency is not None:
+            self._validate_memo_idempotency_write(idempotency)
+
+    def _validate_memo_idempotency_write(
+        self,
+        idempotency: ProposalMemoIdempotencyRecord,
+    ) -> None:
+        existing = self._memo_idempotency.get(idempotency.idempotency_key)
+        if existing is None:
+            return
+        request_changed = existing.request_hash != idempotency.request_hash
+        memo_changed = existing.memo_id != idempotency.memo_id
+        if request_changed or memo_changed:
+            raise ValueError("MEMO_IDEMPOTENCY_KEY_CONFLICT")
+
+    def _store_memo_if_absent(
+        self,
+        *,
+        memo: ProposalMemoRecord,
+        memo_copy: ProposalMemoRecord,
+    ) -> None:
+        if memo.memo_id in self._memos:
+            return
+        proposal_version_key = (memo.proposal_id, memo.proposal_version_no)
+        self._memos[memo.memo_id] = memo_copy
+        self._memo_by_proposal_version[proposal_version_key] = memo.memo_id
+
+    def _store_memo_idempotency_if_absent(
+        self,
+        *,
+        idempotency: Optional[ProposalMemoIdempotencyRecord],
+        idempotency_copy: Optional[ProposalMemoIdempotencyRecord],
+    ) -> None:
+        if idempotency is None or idempotency_copy is None:
+            return
+        self._memo_idempotency.setdefault(idempotency.idempotency_key, idempotency_copy)
+
+    def _append_memo_event_if_absent(
+        self,
+        *,
+        event: ProposalMemoEventRecord,
+        event_copy: ProposalMemoEventRecord,
+    ) -> None:
+        events = self._memo_events.setdefault(event.memo_id, [])
+        if not any(existing.event_id == event.event_id for existing in events):
+            events.append(event_copy)
+
     def get_memo(self, *, memo_id: str) -> Optional[ProposalMemoRecord]:
         with self._lock:
             memo = self._memos.get(memo_id)

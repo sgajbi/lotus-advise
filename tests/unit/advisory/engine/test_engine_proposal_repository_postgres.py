@@ -1396,6 +1396,52 @@ def test_postgres_repository_memo_idempotency_memo_and_events_roundtrip(monkeypa
     assert any("INSERT INTO proposal_memos" in sql for sql in connection.executed_sql)
 
 
+@pytest.mark.parametrize(
+    "fail_sql_fragment",
+    [
+        "INSERT INTO proposal_memos",
+        "INSERT INTO proposal_memo_idempotency",
+        "INSERT INTO proposal_memo_events",
+    ],
+)
+def test_postgres_repository_atomic_memo_create_rolls_back_partial_writes(
+    monkeypatch,
+    fail_sql_fragment,
+):
+    connection = _FailingAfterWriteConnection(fail_sql_fragment=fail_sql_fragment)
+    repository, _ = _build_repository(monkeypatch, connection=connection)
+    memo, idempotency, event = _memo_create_records()
+
+    with pytest.raises(RuntimeError, match="fault injected"):
+        repository.create_memo_with_idempotency_event(
+            memo=memo,
+            idempotency=idempotency,
+            event=event,
+        )
+
+    assert connection.rollback_count == 1
+    assert repository.get_memo(memo_id=memo.memo_id) is None
+    assert repository.get_memo_idempotency(idempotency_key=idempotency.idempotency_key) is None
+    assert repository.list_memo_events(memo_id=memo.memo_id) == []
+
+
+def test_postgres_repository_atomic_memo_create_commits_all_records(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    memo, idempotency, event = _memo_create_records()
+
+    repository.create_memo_with_idempotency_event(
+        memo=memo,
+        idempotency=idempotency,
+        event=event,
+    )
+
+    assert repository.get_memo(memo_id=memo.memo_id) == memo
+    assert (
+        repository.get_memo_idempotency(idempotency_key=idempotency.idempotency_key) == idempotency
+    )
+    assert repository.list_memo_events(memo_id=memo.memo_id) == [event]
+
+
 def test_postgres_repository_cockpit_acknowledgement_roundtrip(monkeypatch):
     repository, connection = _build_repository(monkeypatch)
     now = datetime.now(timezone.utc)
@@ -1882,6 +1928,50 @@ def _proposal_create_records():
         created_at=now,
     )
     return proposal, version, event, idempotency
+
+
+def _memo_create_records():
+    now = datetime.now(timezone.utc)
+    memo = ProposalMemoRecord(
+        memo_id="memo_atomic_create",
+        proposal_id="pp_memo_atomic_create",
+        proposal_version_no=1,
+        proposal_version_id="ppv_memo_atomic_create",
+        artifact_id="pa_memo_atomic_create",
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="DRAFT",
+        created_by="advisor_memo_atomic",
+        created_at=now,
+        source_input_hash="sha256:memo-atomic-source",
+        memo_hash="sha256:memo-atomic",
+        memo_json={"memo_id": "memo_atomic_create", "status": "BLOCKED"},
+        projection_json={"client_ready_publication": "BLOCKED"},
+        review_events_json=[],
+        report_package_events_json=[],
+        archive_refs_json=[],
+        ai_refs_json=[],
+        replay_metadata_json={"proposal_artifact_hash": "sha256:memo-atomic-artifact"},
+    )
+    idempotency = ProposalMemoIdempotencyRecord(
+        idempotency_key="memo-atomic-idem",
+        request_hash="sha256:memo-atomic-request",
+        memo_id=memo.memo_id,
+        proposal_id=memo.proposal_id,
+        proposal_version_no=memo.proposal_version_no,
+        created_at=now,
+    )
+    event = ProposalMemoEventRecord(
+        event_id="pme_atomic_create",
+        memo_id=memo.memo_id,
+        proposal_id=memo.proposal_id,
+        proposal_version_no=memo.proposal_version_no,
+        event_type="MEMO_DRAFT_CREATED",
+        actor_id=memo.created_by,
+        occurred_at=now,
+        reason_json={"memo_hash": memo.memo_hash},
+    )
+    return memo, idempotency, event
 
 
 def test_to_proposal_returns_none_for_missing_row():

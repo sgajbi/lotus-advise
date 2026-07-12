@@ -172,6 +172,12 @@ def save_memo_idempotency(
     connect: ConnectionFactory,
     record: ProposalMemoIdempotencyRecord,
 ) -> None:
+    with closing(connect()) as connection:
+        insert_memo_idempotency(connection=connection, record=record)
+        connection.commit()
+
+
+def insert_memo_idempotency(*, connection: Any, record: ProposalMemoIdempotencyRecord) -> None:
     query = """
         INSERT INTO proposal_memo_idempotency (
             idempotency_key,
@@ -183,25 +189,24 @@ def save_memo_idempotency(
         ) VALUES (%s, %s, %s, %s, %s, %s)
         ON CONFLICT (idempotency_key) DO NOTHING
     """
-    with closing(connect()) as connection:
-        connection.execute(
-            query,
-            (
-                record.idempotency_key,
-                record.request_hash,
-                record.memo_id,
-                record.proposal_id,
-                record.proposal_version_no,
-                record.created_at.isoformat(),
-            ),
-        )
-        connection.commit()
+    connection.execute(
+        query,
+        (
+            record.idempotency_key,
+            record.request_hash,
+            record.memo_id,
+            record.proposal_id,
+            record.proposal_version_no,
+            record.created_at.isoformat(),
+        ),
+    )
 
 
 __all__ = [
     "get_memo_idempotency",
     "get_proposal_idempotency",
     "get_simulation_idempotency",
+    "insert_memo_idempotency",
     "insert_proposal_idempotency",
     "save_memo_idempotency",
     "save_proposal_idempotency",

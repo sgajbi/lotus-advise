@@ -38,6 +38,14 @@ class ProposalRepository(Protocol):
 
     def create_memo(self, memo: ProposalMemoRecord) -> None: ...
 
+    def create_memo_with_idempotency_event(
+        self,
+        *,
+        memo: ProposalMemoRecord,
+        idempotency: Optional[ProposalMemoIdempotencyRecord],
+        event: ProposalMemoEventRecord,
+    ) -> None: ...
+
     def get_memo(self, *, memo_id: str) -> Optional[ProposalMemoRecord]: ...
 
     def get_memo_by_proposal_version(

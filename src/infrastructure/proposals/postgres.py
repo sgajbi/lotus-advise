@@ -93,6 +93,27 @@ class PostgresProposalRepository:
     def create_memo(self, memo: ProposalMemoRecord) -> None:
         _memos.create_memo(connect=self._connect, memo=memo)
 
+    def create_memo_with_idempotency_event(
+        self,
+        *,
+        memo: ProposalMemoRecord,
+        idempotency: Optional[ProposalMemoIdempotencyRecord],
+        event: ProposalMemoEventRecord,
+    ) -> None:
+        with closing(self._connect()) as connection:
+            try:
+                _memos.insert_memo(connection=connection, memo=memo)
+                if idempotency is not None:
+                    _idempotency.insert_memo_idempotency(
+                        connection=connection,
+                        record=idempotency,
+                    )
+                _memos.insert_memo_event(connection=connection, event=event)
+            except Exception:
+                connection.rollback()
+                raise
+            connection.commit()
+
     def get_memo(self, *, memo_id: str) -> Optional[ProposalMemoRecord]:
         return _memos.get_memo(connect=self._connect, memo_id=memo_id)
 
