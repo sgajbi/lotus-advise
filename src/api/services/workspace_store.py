@@ -1,10 +1,14 @@
 from src.core.workspace.session_models import WorkspaceSession
-from src.infrastructure.workspace import (
-    InMemoryWorkspaceSessionRepository,
+from src.runtime.workspace_application import (
+    DEFAULT_WORKSPACE_SESSION_CACHE_SIZE as _DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
 )
-from src.runtime.workspace_application import get_workspace_session_repository
+from src.runtime.workspace_application import (
+    get_workspace_session_repository,
+    get_workspace_session_repository_class,
+)
 
-WorkspaceSessionStore = InMemoryWorkspaceSessionRepository
+DEFAULT_WORKSPACE_SESSION_CACHE_SIZE = _DEFAULT_WORKSPACE_SESSION_CACHE_SIZE
+WorkspaceSessionStore = get_workspace_session_repository_class()
 
 
 def save_workspace_session(session: WorkspaceSession) -> None:

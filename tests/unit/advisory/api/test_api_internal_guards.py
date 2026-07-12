@@ -360,7 +360,9 @@ def test_workspace_store_uses_shared_workspace_exception_types():
     source = inspect.getsource(workspace_store)
 
     assert "class WorkspaceNotFoundError" not in source
-    assert "from src.api.services.workspace_errors import WorkspaceNotFoundError" in source
+    assert "src.infrastructure.workspace" not in source
+    assert "get_workspace_session_repository" in source
+    assert "get_workspace_session_repository_class" in source
 
 
 def test_workspace_store_tests_import_shared_not_found_error():
@@ -375,14 +377,17 @@ def test_workspace_service_uses_consolidated_workspace_imports():
 
     assert "WorkspaceLifecycleHandoffUnavailableError as" not in source
     assert "from src.api.services.workspace_errors import" not in source
-    assert "workspace_store" in source
+    assert "from src.core.workspace.application import WorkspaceApplicationService" in source
+    assert "get_workspace_application_service" in source
+    assert "workspace_store" not in source
     assert "from src.api.services.workspace_store import" not in source
     assert "from src.core.workspace.versions import" not in source
-    assert "workspace_saved_versions" in source
+    assert "from src.api.services import workspace_saved_versions" not in source
+    assert "workspace_saved_versions." not in source
     assert "WorkspaceDraftActionError" not in source
-    assert "apply_workspace_draft_action_to_session" in source
+    assert "apply_workspace_draft_action_to_session" not in source
     assert "evaluate_advisory_proposal" not in source
-    assert "reevaluate_workspace_session_state" in source
+    assert "reevaluate_workspace_session_state" not in source
     assert "build_initial_workspace_context" not in source
     assert "build_workspace_session(" not in source
 

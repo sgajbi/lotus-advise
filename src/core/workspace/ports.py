@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Literal, Protocol
 
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposal_result_models import ProposalResult
-from src.core.proposals.models import ProposalCreateResponse
+from src.core.proposals.models import (
+    ProposalCreateRequest,
+    ProposalCreateResponse,
+    ProposalVersionRequest,
+)
 from src.core.workspace.draft_models import WorkspaceDraftState, WorkspaceEvaluationSummary
 from src.core.workspace.input_models import WorkspaceResolvedContext
 from src.core.workspace.session_models import WorkspaceSession, WorkspaceSessionCreateRequest
@@ -53,21 +57,21 @@ class WorkspaceProposalLifecyclePort(Protocol):
     def create_proposal(
         self,
         *,
-        payload: object,
+        payload: ProposalCreateRequest,
         idempotency_key: str,
         correlation_id: str | None,
-        lifecycle_origin: str,
+        lifecycle_origin: Literal["WORKSPACE_HANDOFF"],
         source_workspace_id: str,
-        replay_lineage: dict[str, str | int | None],
-        context_resolution_override: dict[str, object],
+        replay_lineage: dict[str, Any] | None,
+        context_resolution_override: dict[str, Any] | None,
     ) -> ProposalCreateResponse: ...
 
     def create_version(
         self,
         *,
         proposal_id: str,
-        payload: object,
+        payload: ProposalVersionRequest,
         correlation_id: str | None,
-        replay_lineage: dict[str, str | int | None],
-        context_resolution_override: dict[str, object],
+        replay_lineage: dict[str, Any] | None,
+        context_resolution_override: dict[str, Any] | None,
     ) -> ProposalCreateResponse: ...
