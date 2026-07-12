@@ -23,6 +23,21 @@ The workspace keeps exploratory drafting separate from formal proposal persisten
 - controlled lifecycle ownership
 - replay-safe support paths
 
+## Application Boundary
+
+Workspace API routes delegate workflow behavior to the Advise workspace application service.
+
+| Boundary | Current Owner |
+| --- | --- |
+| HTTP mapping and safe errors | `src/api/workspaces` |
+| Workspace use cases | `src/core/workspace/application.py` |
+| Repository, source-context, evaluator, and lifecycle ports | `src/core/workspace/ports.py` |
+| Lotus Core source-context adapter | `src/infrastructure/workspace/lotus_core_context.py` |
+| Process-local workspace session adapter | `src/infrastructure/workspace/in_memory.py` |
+
+This is a design-modularity improvement inside one Advise backend service. It is not a new runtime
+service split and it is not durable workspace persistence certification.
+
 ## AI Support
 
 The implemented AI-facing workspace integration boundary is:

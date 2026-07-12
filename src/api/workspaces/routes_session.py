@@ -1,17 +1,9 @@
 from typing import cast
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
-from src.api.services.workspace_service import (
-    apply_workspace_draft_action,
-    compare_workspace_to_saved_version,
-    create_workspace_session,
-    get_workspace_saved_version_replay,
-    get_workspace_session,
-    list_workspace_saved_versions,
-    reevaluate_workspace_session,
-    resume_workspace_version,
-    save_workspace_version,
+from src.api.workspaces.dependencies import (
+    get_workspace_application_service_dependency,
 )
 from src.api.workspaces.errors import run_workspace_operation
 from src.api.workspaces.parameters import (
@@ -34,6 +26,7 @@ from src.core.workspace.action_models import (
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
 )
+from src.core.workspace.application import WorkspaceApplicationService
 from src.core.workspace.compare_models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
@@ -53,10 +46,13 @@ from src.core.workspace.session_models import (
 router = APIRouter()
 
 
-def _resolve_workspace_or_404(workspace_id: str) -> WorkspaceSession:
+def _resolve_workspace_or_404(
+    workspace_id: str,
+    workspace_application: WorkspaceApplicationService,
+) -> WorkspaceSession:
     return cast(
         WorkspaceSession,
-        run_workspace_operation(lambda: get_workspace_session(workspace_id)),
+        run_workspace_operation(lambda: workspace_application.get_session(workspace_id)),
     )
 
 
@@ -76,9 +72,12 @@ def _resolve_workspace_or_404(workspace_id: str) -> WorkspaceSession:
 def create_workspace(
     request: WorkspaceSessionCreateRequest,
     correlation_id: WorkspaceCreateCorrelationIdHeader = None,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> WorkspaceSessionCreateResponse:
     _ = correlation_id
-    return create_workspace_session(request)
+    return workspace_application.create_session(request)
 
 
 @router.get(
@@ -94,8 +93,11 @@ def create_workspace(
 )
 def get_workspace(
     workspace_id: WorkspaceIdPath,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> WorkspaceSession:
-    return _resolve_workspace_or_404(workspace_id)
+    return _resolve_workspace_or_404(workspace_id, workspace_application)
 
 
 @router.post(
@@ -112,10 +114,15 @@ def get_workspace(
 def apply_draft_action(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceDraftActionRequest,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> WorkspaceDraftActionResponse:
     return cast(
         WorkspaceDraftActionResponse,
-        run_workspace_operation(lambda: apply_workspace_draft_action(workspace_id, request)),
+        run_workspace_operation(
+            lambda: workspace_application.apply_draft_action(workspace_id, request)
+        ),
     )
 
 
@@ -132,10 +139,13 @@ def apply_draft_action(
 )
 def evaluate_workspace(
     workspace_id: WorkspaceIdPath,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> WorkspaceSession:
     return cast(
         WorkspaceSession,
-        run_workspace_operation(lambda: reevaluate_workspace_session(workspace_id)),
+        run_workspace_operation(lambda: workspace_application.reevaluate_session(workspace_id)),
     )
 
 
@@ -153,10 +163,13 @@ def evaluate_workspace(
 def save_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceSaveRequest,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> WorkspaceSaveResponse:
     return cast(
         WorkspaceSaveResponse,
-        run_workspace_operation(lambda: save_workspace_version(workspace_id, request)),
+        run_workspace_operation(lambda: workspace_application.save_version(workspace_id, request)),
     )
 
 
@@ -173,10 +186,13 @@ def save_workspace(
 )
 def list_saved_workspace_versions(
     workspace_id: WorkspaceIdPath,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> WorkspaceSavedVersionListResponse:
     return cast(
         WorkspaceSavedVersionListResponse,
-        run_workspace_operation(lambda: list_workspace_saved_versions(workspace_id)),
+        run_workspace_operation(lambda: workspace_application.list_saved_versions(workspace_id)),
     )
 
 
@@ -194,11 +210,17 @@ def list_saved_workspace_versions(
 def get_saved_workspace_version_replay_evidence(
     workspace_id: WorkspaceIdPath,
     workspace_version_id: WorkspaceVersionIdPath,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> AdvisoryReplayEvidenceResponse:
     return cast(
         AdvisoryReplayEvidenceResponse,
         run_workspace_operation(
-            lambda: get_workspace_saved_version_replay(workspace_id, workspace_version_id)
+            lambda: workspace_application.get_saved_version_replay(
+                workspace_id,
+                workspace_version_id,
+            )
         ),
     )
 
@@ -216,10 +238,15 @@ def get_saved_workspace_version_replay_evidence(
 def resume_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceResumeRequest,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> WorkspaceSession:
     return cast(
         WorkspaceSession,
-        run_workspace_operation(lambda: resume_workspace_version(workspace_id, request)),
+        run_workspace_operation(
+            lambda: workspace_application.resume_version(workspace_id, request)
+        ),
     )
 
 
@@ -237,8 +264,13 @@ def resume_workspace(
 def compare_workspace(
     workspace_id: WorkspaceIdPath,
     request: WorkspaceCompareRequest,
+    workspace_application: WorkspaceApplicationService = Depends(
+        get_workspace_application_service_dependency
+    ),
 ) -> WorkspaceCompareResponse:
     return cast(
         WorkspaceCompareResponse,
-        run_workspace_operation(lambda: compare_workspace_to_saved_version(workspace_id, request)),
+        run_workspace_operation(
+            lambda: workspace_application.compare_to_saved_version(workspace_id, request)
+        ),
     )

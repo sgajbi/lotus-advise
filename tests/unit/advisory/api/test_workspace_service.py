@@ -100,6 +100,7 @@ def test_create_workspace_session_rejects_malformed_constructed_requests() -> No
 
 
 def test_workspace_service_replace_options_and_stateful_handoff_guard(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
     session = create_workspace_session(
         WorkspaceSessionCreateRequest.model_validate(
             {

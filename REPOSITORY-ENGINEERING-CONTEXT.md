@@ -330,6 +330,12 @@ Boundary rules:
     are not acceptable production posture. TLS termination, WAF/rate limiting, and external identity
     provider integration remain ingress/gateway responsibilities unless a later Advise issue
     deliberately moves a specific control into the service.
+25. advisory workspace routes compose through `WorkspaceApplicationService` and explicit workspace
+    ports for session persistence, Lotus Core source-context resolution, proposal evaluation, and
+    proposal lifecycle handoff. Concrete Lotus Core resolution and the current in-memory workspace
+    session store are infrastructure/runtime adapters, not route or use-case implementation
+    details. This is an internal design-modularity boundary; durable workspace persistence,
+    recovery, and broader idempotency controls remain separately governed backlog work.
 
 ## Repo-Native Commands
 
