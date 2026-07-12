@@ -17,6 +17,12 @@ from src.core.proposals.models import (
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
 )
+from src.infrastructure.proposals import (
+    postgres_idempotency,
+    postgres_records,
+    postgres_versions,
+    postgres_workflow_events,
+)
 from src.infrastructure.proposals.postgres import PostgresProposalRepository
 from tests.unit.advisory.engine.test_engine_proposal_repository_postgres import (
     _build_repository as _build_fake_repository,
@@ -208,6 +214,74 @@ def test_live_postgres_proposal_repository_parity_contract(
     assert len(listed) == 1
     assert listed[0].proposal_id == proposal_id
     assert next_cursor is None
+
+
+def test_live_postgres_atomic_proposal_create_contract(
+    repository: PostgresProposalRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    proposal, version, event, idempotency = _proposal_create_records(
+        now=now,
+        suffix=uuid.uuid4().hex,
+    )
+
+    repository.create_proposal_with_version_event_idempotency(
+        proposal=proposal,
+        version=version,
+        event=event,
+        idempotency=idempotency,
+    )
+
+    assert repository.get_proposal(proposal_id=proposal.proposal_id) == proposal
+    assert repository.get_version(proposal_id=proposal.proposal_id, version_no=1) == version
+    assert repository.list_events(proposal_id=proposal.proposal_id) == [event]
+    assert repository.get_idempotency(idempotency_key=idempotency.idempotency_key) == idempotency
+
+
+@pytest.mark.skipif(
+    not _DSN,
+    reason="Live Postgres DSN required for transaction rollback fault injection.",
+)
+@pytest.mark.parametrize(
+    ("module", "function_name"),
+    [
+        (postgres_records, "upsert_proposal"),
+        (postgres_versions, "insert_version"),
+        (postgres_workflow_events, "insert_event"),
+        (postgres_idempotency, "insert_proposal_idempotency"),
+    ],
+)
+def test_live_postgres_atomic_proposal_create_rolls_back_partial_writes(
+    repository: PostgresProposalRepository,
+    monkeypatch: pytest.MonkeyPatch,
+    module,
+    function_name: str,
+) -> None:
+    original = getattr(module, function_name)
+
+    def fail_after_write(*args, **kwargs):
+        original(*args, **kwargs)
+        raise RuntimeError(f"fault injected after {function_name}")
+
+    monkeypatch.setattr(module, function_name, fail_after_write)
+    now = datetime.now(timezone.utc)
+    proposal, version, event, idempotency = _proposal_create_records(
+        now=now,
+        suffix=uuid.uuid4().hex,
+    )
+
+    with pytest.raises(RuntimeError, match=f"fault injected after {function_name}"):
+        repository.create_proposal_with_version_event_idempotency(
+            proposal=proposal,
+            version=version,
+            event=event,
+            idempotency=idempotency,
+        )
+
+    assert repository.get_proposal(proposal_id=proposal.proposal_id) is None
+    assert repository.get_version(proposal_id=proposal.proposal_id, version_no=1) is None
+    assert repository.list_events(proposal_id=proposal.proposal_id) == []
+    assert repository.get_idempotency(idempotency_key=idempotency.idempotency_key) is None
 
 
 def test_live_postgres_simulation_idempotency_roundtrip_contract(
@@ -879,6 +953,66 @@ def _create_version(
     )
     repository.create_version(version)
     return version
+
+
+def _proposal_create_records(
+    *,
+    now: datetime,
+    suffix: str,
+) -> tuple[
+    ProposalRecord,
+    ProposalVersionRecord,
+    ProposalWorkflowEventRecord,
+    ProposalIdempotencyRecord,
+]:
+    proposal = ProposalRecord(
+        proposal_id=f"pp-{suffix}",
+        portfolio_id="pf-atomic-create",
+        mandate_id="mandate-atomic-create",
+        jurisdiction="SG",
+        created_by="advisor-atomic-create",
+        created_at=now,
+        last_event_at=now,
+        current_state="DRAFT",
+        current_version_no=1,
+        title="Atomic proposal create",
+        advisor_notes=None,
+        lifecycle_origin="WORKSPACE_HANDOFF",
+        source_workspace_id=f"aws-{suffix[:16]}",
+    )
+    version = ProposalVersionRecord(
+        proposal_version_id=f"ppv-{suffix}",
+        proposal_id=proposal.proposal_id,
+        version_no=1,
+        created_at=now,
+        request_hash=f"sha256:req-{suffix}",
+        artifact_hash=f"sha256:artifact-{suffix}",
+        simulation_hash=f"sha256:sim-{suffix}",
+        status_at_creation="READY",
+        proposal_result_json={"status": "READY"},
+        artifact_json={"artifact_id": f"pa-{suffix}"},
+        evidence_bundle_json={"hashes": {"request_hash": f"sha256:req-{suffix}"}},
+        gate_decision_json=None,
+    )
+    event = ProposalWorkflowEventRecord(
+        event_id=f"pwe-{suffix}",
+        proposal_id=proposal.proposal_id,
+        event_type="CREATED",
+        from_state=None,
+        to_state="DRAFT",
+        actor_id=proposal.created_by,
+        occurred_at=now,
+        reason_json={"request_hash": version.request_hash},
+        related_version_no=1,
+    )
+    idempotency = ProposalIdempotencyRecord(
+        idempotency_key=f"idem-{suffix}",
+        request_hash=version.request_hash,
+        proposal_id=proposal.proposal_id,
+        proposal_version_no=1,
+        created_at=now,
+    )
+    return proposal, version, event, idempotency
 
 
 def _assert_statement_fails(connection, query: str, args: tuple[object, ...]) -> None:

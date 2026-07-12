@@ -27,23 +27,30 @@ VERSION_COLUMNS = """
 
 
 def create_version(*, connect: ConnectionFactory, version: ProposalVersionRecord) -> None:
+    with closing(connect()) as connection:
+        try:
+            insert_version(connection=connection, version=version)
+        except Exception:
+            connection.rollback()
+            raise
+        connection.commit()
+
+
+def insert_version(*, connection: Any, version: ProposalVersionRecord) -> None:
     query = f"""
         INSERT INTO proposal_versions (
             {VERSION_COLUMNS}
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (proposal_id, version_no) DO NOTHING
     """
-    with closing(connect()) as connection:
-        connection.execute(query, _version_params(version))
-        existing = _get_version(
-            connection=connection,
-            proposal_id=version.proposal_id,
-            version_no=version.version_no,
-        )
-        if existing != version:
-            connection.rollback()
-            raise ValueError("PROPOSAL_VERSION_IDENTITY_CONFLICT")
-        connection.commit()
+    connection.execute(query, _version_params(version))
+    existing = _get_version(
+        connection=connection,
+        proposal_id=version.proposal_id,
+        version_no=version.version_no,
+    )
+    if existing != version:
+        raise ValueError("PROPOSAL_VERSION_IDENTITY_CONFLICT")
 
 
 def get_version(
@@ -130,5 +137,6 @@ __all__ = [
     "create_version",
     "get_current_version",
     "get_version",
+    "insert_version",
     "list_versions",
 ]

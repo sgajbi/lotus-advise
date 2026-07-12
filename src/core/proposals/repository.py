@@ -76,6 +76,15 @@ class ProposalRepository(Protocol):
 
     def create_proposal(self, proposal: ProposalRecord) -> None: ...
 
+    def create_proposal_with_version_event_idempotency(
+        self,
+        *,
+        proposal: ProposalRecord,
+        version: ProposalVersionRecord,
+        event: ProposalWorkflowEventRecord,
+        idempotency: ProposalIdempotencyRecord,
+    ) -> None: ...
+
     def update_proposal(self, proposal: ProposalRecord) -> None: ...
 
     def get_proposal(self, *, proposal_id: str) -> Optional[ProposalRecord]: ...

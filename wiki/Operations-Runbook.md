@@ -370,6 +370,12 @@ persisted content fails with `PROPOSAL_VERSION_IDENTITY_CONFLICT`,
 as lifecycle evidence conflicts and preserve the proposal id, version number, event id, approval id,
 request hash, and failed operation in incident evidence.
 
+Proposal create writes use an adapter-owned unit-of-work boundary for the initial proposal
+aggregate, immutable version 1 record, `CREATED` workflow event, and proposal-create idempotency
+record. A partial write failure must roll back all four records. Preserve the proposal id, version
+number, event id, idempotency key, request hash, correlation id, and failed operation when
+investigating create failures; do not manually insert missing lifecycle rows.
+
 Proposal transition writes use an adapter-owned compare-and-set boundary on the proposal aggregate
 state and current version. When two callers race from the same lifecycle state, the first committed
 transition wins and a stale writer fails closed with
