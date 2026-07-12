@@ -79,15 +79,7 @@ def insert_event(*, connection: Any, event: ProposalWorkflowEventRecord) -> None
         INSERT INTO proposal_workflow_events (
             {EVENT_COLUMNS}
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (event_id) DO UPDATE SET
-            proposal_id=excluded.proposal_id,
-            event_type=excluded.event_type,
-            from_state=excluded.from_state,
-            to_state=excluded.to_state,
-            actor_id=excluded.actor_id,
-            occurred_at=excluded.occurred_at,
-            reason_json=excluded.reason_json,
-            related_version_no=excluded.related_version_no
+        ON CONFLICT (event_id) DO NOTHING
     """
     connection.execute(
         query,
@@ -103,6 +95,22 @@ def insert_event(*, connection: Any, event: ProposalWorkflowEventRecord) -> None
             event.related_version_no,
         ),
     )
+    existing = _get_event(connection=connection, event_id=event.event_id)
+    if existing != event:
+        raise ValueError("PROPOSAL_WORKFLOW_EVENT_IDENTITY_CONFLICT")
+
+
+def _get_event(*, connection: Any, event_id: str) -> ProposalWorkflowEventRecord | None:
+    query = f"""
+        SELECT
+            {EVENT_COLUMNS}
+        FROM proposal_workflow_events
+        WHERE event_id = %s
+    """
+    row = connection.execute(query, (event_id,)).fetchone()
+    if row is None:
+        return None
+    return to_event(row)
 
 
 __all__ = [

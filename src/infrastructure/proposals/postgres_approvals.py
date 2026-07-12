@@ -78,14 +78,7 @@ def insert_approval(*, connection: Any, approval: ProposalApprovalRecordData) ->
         INSERT INTO proposal_approvals (
             {APPROVAL_COLUMNS}
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (approval_id) DO UPDATE SET
-            proposal_id=excluded.proposal_id,
-            approval_type=excluded.approval_type,
-            approved=excluded.approved,
-            actor_id=excluded.actor_id,
-            occurred_at=excluded.occurred_at,
-            details_json=excluded.details_json,
-            related_version_no=excluded.related_version_no
+        ON CONFLICT (approval_id) DO NOTHING
     """
     connection.execute(
         query,
@@ -100,6 +93,26 @@ def insert_approval(*, connection: Any, approval: ProposalApprovalRecordData) ->
             approval.related_version_no,
         ),
     )
+    existing = _get_approval(connection=connection, approval_id=approval.approval_id)
+    if existing != approval:
+        raise ValueError("PROPOSAL_APPROVAL_IDENTITY_CONFLICT")
+
+
+def _get_approval(
+    *,
+    connection: Any,
+    approval_id: str,
+) -> ProposalApprovalRecordData | None:
+    query = f"""
+        SELECT
+            {APPROVAL_COLUMNS}
+        FROM proposal_approvals
+        WHERE approval_id = %s
+    """
+    row = connection.execute(query, (approval_id,)).fetchone()
+    if row is None:
+        return None
+    return to_approval(row)
 
 
 __all__ = [

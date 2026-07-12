@@ -210,7 +210,9 @@ events. Do not bypass the migration by hand-editing `schema_migrations`; identif
 versions, orphan workflow events or approvals, duplicate `proposal_version_id` values, or invalid
 version/state vocabularies, remediate the owning lifecycle records, and rerun migration apply.
 
-Repository-level append-only conflict handling for repeated lifecycle event and approval identity
-is tracked separately from the schema migration. Until that repository slice lands, use database
-constraint failures and existing idempotency-key diagnostics as the operator signal for conflicting
-proposal lifecycle evidence.
+Repository-level append-only conflict handling preserves the first proposal version, workflow
+event, or approval row for a repeated identity. Exact replay is a no-op. Same identity with
+different persisted content fails with `PROPOSAL_VERSION_IDENTITY_CONFLICT`,
+`PROPOSAL_WORKFLOW_EVENT_IDENTITY_CONFLICT`, or `PROPOSAL_APPROVAL_IDENTITY_CONFLICT`. Treat these
+as lifecycle evidence conflicts and preserve the proposal id, version number, event id, approval id,
+request hash, and failed operation in incident evidence.

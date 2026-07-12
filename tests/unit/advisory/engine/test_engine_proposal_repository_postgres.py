@@ -101,6 +101,8 @@ class _FakeConnection:
             return _FakeCursor()
         if sql.startswith("CREATE INDEX") or sql.startswith("CREATE UNIQUE INDEX"):
             return _FakeCursor()
+        if sql.startswith("ALTER TABLE"):
+            return _FakeCursor()
         if "FROM schema_migrations" in sql:
             namespace = args[0]
             rows = [
@@ -454,20 +456,23 @@ class _FakeConnection:
                 rows = rows[: args[arg_index]]
             return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_versions" in sql:
-            self.versions[(args[1], args[2])] = {
-                "proposal_version_id": args[0],
-                "proposal_id": args[1],
-                "version_no": args[2],
-                "created_at": args[3],
-                "request_hash": args[4],
-                "artifact_hash": args[5],
-                "simulation_hash": args[6],
-                "status_at_creation": args[7],
-                "proposal_result_json": args[8],
-                "artifact_json": args[9],
-                "evidence_bundle_json": args[10],
-                "gate_decision_json": args[11],
-            }
+            self.versions.setdefault(
+                (args[1], args[2]),
+                {
+                    "proposal_version_id": args[0],
+                    "proposal_id": args[1],
+                    "version_no": args[2],
+                    "created_at": args[3],
+                    "request_hash": args[4],
+                    "artifact_hash": args[5],
+                    "simulation_hash": args[6],
+                    "status_at_creation": args[7],
+                    "proposal_result_json": args[8],
+                    "artifact_json": args[9],
+                    "evidence_bundle_json": args[10],
+                    "gate_decision_json": args[11],
+                },
+            )
             return _FakeCursor()
         if "FROM proposal_versions WHERE proposal_id = %s AND version_no = %s" in sql:
             return _FakeCursor(self.versions.get((args[0], args[1])))
@@ -482,18 +487,23 @@ class _FakeConnection:
             rows = sorted(rows, key=lambda row: row["version_no"], reverse=True)
             return _FakeCursor(rows[0] if rows else None)
         if "INSERT INTO proposal_workflow_events" in sql:
-            self.events[args[0]] = {
-                "event_id": args[0],
-                "proposal_id": args[1],
-                "event_type": args[2],
-                "from_state": args[3],
-                "to_state": args[4],
-                "actor_id": args[5],
-                "occurred_at": args[6],
-                "reason_json": args[7],
-                "related_version_no": args[8],
-            }
+            self.events.setdefault(
+                args[0],
+                {
+                    "event_id": args[0],
+                    "proposal_id": args[1],
+                    "event_type": args[2],
+                    "from_state": args[3],
+                    "to_state": args[4],
+                    "actor_id": args[5],
+                    "occurred_at": args[6],
+                    "reason_json": args[7],
+                    "related_version_no": args[8],
+                },
+            )
             return _FakeCursor()
+        if "FROM proposal_workflow_events" in sql and "WHERE event_id = %s" in sql:
+            return _FakeCursor(self.events.get(args[0]))
         if (
             "FROM proposal_workflow_events" in sql
             and "ORDER BY occurred_at ASC, event_id ASC" in sql
@@ -515,17 +525,22 @@ class _FakeConnection:
             )
             return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_approvals" in sql:
-            self.approvals[args[0]] = {
-                "approval_id": args[0],
-                "proposal_id": args[1],
-                "approval_type": args[2],
-                "approved": args[3],
-                "actor_id": args[4],
-                "occurred_at": args[5],
-                "details_json": args[6],
-                "related_version_no": args[7],
-            }
+            self.approvals.setdefault(
+                args[0],
+                {
+                    "approval_id": args[0],
+                    "proposal_id": args[1],
+                    "approval_type": args[2],
+                    "approved": args[3],
+                    "actor_id": args[4],
+                    "occurred_at": args[5],
+                    "details_json": args[6],
+                    "related_version_no": args[7],
+                },
+            )
             return _FakeCursor()
+        if "FROM proposal_approvals" in sql and "WHERE approval_id = %s" in sql:
+            return _FakeCursor(self.approvals.get(args[0]))
         if "FROM proposal_approvals" in sql and "ORDER BY occurred_at ASC, approval_id ASC" in sql:
             rows = [row for row in self.approvals.values() if row["proposal_id"] == args[0]]
             rows = sorted(rows, key=lambda row: (row["occurred_at"], row["approval_id"]))
@@ -1164,6 +1179,41 @@ def test_postgres_repository_version_create_get_and_current(monkeypatch):
     assert empty_current is None
 
 
+def test_postgres_repository_versions_are_replay_safe_and_immutable(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    now = datetime.now(timezone.utc)
+    version = ProposalVersionRecord(
+        proposal_version_id="ppv_immutable_001",
+        proposal_id="pp_immutable",
+        version_no=1,
+        created_at=now,
+        request_hash="sha256:immutable-request",
+        artifact_hash="sha256:immutable-artifact",
+        simulation_hash="sha256:immutable-simulation",
+        status_at_creation="READY",
+        proposal_result_json={"status": "READY"},
+        artifact_json={"artifact_id": "artifact_immutable"},
+        evidence_bundle_json={"hashes": {"artifact_hash": "sha256:immutable-artifact"}},
+        gate_decision_json=None,
+    )
+
+    repository.create_version(version)
+    repository.create_version(version)
+
+    with pytest.raises(ValueError, match="PROPOSAL_VERSION_IDENTITY_CONFLICT"):
+        repository.create_version(
+            version.model_copy(
+                update={
+                    "proposal_version_id": "ppv_immutable_drifted",
+                    "request_hash": "sha256:drifted-request",
+                }
+            )
+        )
+
+    stored = repository.get_version(proposal_id="pp_immutable", version_no=1)
+    assert stored == version
+
+
 def test_postgres_repository_memo_idempotency_memo_and_events_roundtrip(monkeypatch):
     repository, connection = _build_repository(monkeypatch)
     now = datetime.now(timezone.utc)
@@ -1408,6 +1458,61 @@ def test_postgres_repository_workflow_events_and_approvals_roundtrip(monkeypatch
         for row in repository.list_approvals_for_proposals(proposal_ids=["pp_002", "pp_001"])
     ] == ["pap_002", "pap_001"]
     assert repository.list_approvals_for_proposals(proposal_ids=[]) == []
+
+
+def test_postgres_repository_events_and_approvals_are_replay_safe_and_immutable(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    now = datetime.now(timezone.utc)
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_immutable_001",
+        proposal_id="pp_immutable",
+        event_type="CREATED",
+        from_state=None,
+        to_state="DRAFT",
+        actor_id="advisor_1",
+        occurred_at=now,
+        reason_json={"request_hash": "sha256:immutable-event"},
+        related_version_no=1,
+    )
+    approval = ProposalApprovalRecordData(
+        approval_id="pap_immutable_001",
+        proposal_id="pp_immutable",
+        approval_type="RISK",
+        approved=True,
+        actor_id="risk_officer_1",
+        occurred_at=now,
+        details_json={"request_hash": "sha256:immutable-approval"},
+        related_version_no=1,
+    )
+
+    repository.append_event(event)
+    repository.append_event(event)
+    repository.create_approval(approval)
+    repository.create_approval(approval)
+
+    with pytest.raises(ValueError, match="PROPOSAL_WORKFLOW_EVENT_IDENTITY_CONFLICT"):
+        repository.append_event(
+            event.model_copy(
+                update={
+                    "actor_id": "advisor_2",
+                    "reason_json": {"request_hash": "sha256:drifted-event"},
+                }
+            )
+        )
+    with pytest.raises(ValueError, match="PROPOSAL_APPROVAL_IDENTITY_CONFLICT"):
+        repository.create_approval(
+            approval.model_copy(
+                update={
+                    "actor_id": "risk_officer_2",
+                    "details_json": {"request_hash": "sha256:drifted-approval"},
+                }
+            )
+        )
+
+    stored_events = repository.list_events(proposal_id="pp_immutable")
+    assert stored_events == [event]
+    stored_approvals = repository.list_approvals(proposal_id="pp_immutable")
+    assert stored_approvals == [approval]
 
 
 def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch):
