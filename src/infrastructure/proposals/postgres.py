@@ -24,9 +24,7 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
 )
 from src.infrastructure.postgres_migrations import apply_postgres_migrations
-from src.infrastructure.proposals import (
-    postgres_approvals as _approvals,
-)
+from src.infrastructure.proposals import postgres_approvals as _approvals
 from src.infrastructure.proposals import (
     postgres_async_operations as _async_operations,
 )
@@ -233,11 +231,10 @@ class PostgresProposalRepository:
     def list_operations_for_control(
         self, *, as_of: datetime, limit: Optional[int] = None
     ) -> list[ProposalAsyncOperationRecord]:
-        del as_of
         return cast(
             list[ProposalAsyncOperationRecord],
             _async_operations.list_operations_for_control(connect=self._connect, limit=limit),
-        )
+        )  # noqa: E501
 
     def create_proposal(self, proposal: ProposalRecord) -> None:
         _records.create_proposal(connect=self._connect, proposal=proposal)
