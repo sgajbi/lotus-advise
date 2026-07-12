@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -14,7 +15,9 @@ from typing import Any, cast
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TELEMETRY_DIR = REPO_ROOT / "contracts" / "trust-telemetry"
 DEFAULT_REFERENCE_TIME_UTC = "2026-07-11T00:00:00Z"
+DEFAULT_RUNTIME_OUTPUT_DIR = REPO_ROOT / "output" / "trust-telemetry" / "runtime"
 STALE_BLOCK_REASON = "TRUST_TELEMETRY_STALE"
+FULL_GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 
 
 def parse_utc_timestamp(value: Any, *, field_name: str) -> datetime:
@@ -234,6 +237,84 @@ def refresh_path(
         write_json(snapshot_path, patched)
 
 
+def certified_runtime_snapshot(
+    payload: dict[str, Any],
+    *,
+    certified_at_utc: datetime,
+    repository_commit_sha: str,
+    validation_run_id: str,
+) -> dict[str, Any]:
+    if not FULL_GIT_SHA.fullmatch(repository_commit_sha):
+        raise ValueError("runtime certification requires a full lowercase Git commit SHA")
+    if not validation_run_id.strip() or validation_run_id.startswith("local"):
+        raise ValueError("runtime certification requires a non-local CI validation run id")
+    product_id = payload.get("product_id")
+    if not isinstance(product_id, str) or not product_id.startswith("lotus-advise:"):
+        raise ValueError("runtime certification requires a lotus-advise product_id")
+    if payload.get("completeness_status") != "complete":
+        raise ValueError(f"{product_id}: incomplete product evidence cannot be certified")
+    if payload.get("data_quality_status") != "quality_passed":
+        raise ValueError(f"{product_id}: failed data quality evidence cannot be certified")
+    lineage = payload.get("lineage")
+    if not isinstance(lineage, dict) or lineage.get("lineage_materialized") is not True:
+        raise ValueError(f"{product_id}: materialized lineage is required")
+    evidence_uris = lineage.get("evidence_uris")
+    if not isinstance(evidence_uris, list) or not evidence_uris:
+        raise ValueError(f"{product_id}: non-empty lineage evidence_uris are required")
+    evidence = payload.get("evidence")
+    if not isinstance(evidence, dict) or not evidence.get("validation_lanes"):
+        raise ValueError(f"{product_id}: governed validation lanes are required")
+
+    certified = deepcopy(payload)
+    certified_at = format_utc_timestamp(certified_at_utc)
+    freshness = cast(dict[str, Any], certified["freshness"])
+    freshness["observed_at_utc"] = certified_at
+    certified = expected_freshness_patch(
+        certified,
+        reference_time_utc=certified_at_utc,
+        repository_commit_sha=repository_commit_sha,
+        validation_run_id=validation_run_id,
+    )
+    metadata = certified.get("observed_trust_metadata")
+    if isinstance(metadata, dict) and "generated_at" in metadata:
+        metadata["generated_at"] = certified_at
+    certified["lineage"]["lineage_bundle_id"] = f"lineage:{product_id}:{repository_commit_sha}"
+    certified["evidence"]["source_event_id"] = (
+        f"source-event:{product_id}:ci-certification:{validation_run_id}"
+    )
+    certified["evidence"]["certification_basis"] = [
+        "repo-native trust telemetry contract validation",
+        "materialized lineage and source-safe evidence references",
+        "complete product evidence and passed data-quality posture",
+        "immutable repository commit and CI run identity",
+    ]
+    certified["evidence"]["source_fixture_observed_at_utc"] = payload.get("freshness", {}).get(
+        "observed_at_utc"
+    )
+    return certified
+
+
+def certify_runtime_path(
+    path: Path = DEFAULT_TELEMETRY_DIR,
+    *,
+    output_directory: Path = DEFAULT_RUNTIME_OUTPUT_DIR,
+    certified_at_utc: datetime,
+    repository_commit_sha: str,
+    validation_run_id: str,
+) -> None:
+    output_directory.mkdir(parents=True, exist_ok=True)
+    for existing in output_directory.glob("*.json"):
+        existing.unlink()
+    for snapshot_path in iter_snapshot_paths(path):
+        certified = certified_runtime_snapshot(
+            load_json(snapshot_path),
+            certified_at_utc=certified_at_utc,
+            repository_commit_sha=repository_commit_sha,
+            validation_run_id=validation_run_id,
+        )
+        write_json(output_directory / snapshot_path.name, certified)
+
+
 def current_commit_sha() -> str:
     configured = os.getenv("GIT_SHA")
     if configured:
@@ -255,8 +336,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "mode",
-        choices=("check", "write"),
-        help="Use check to validate committed snapshots or write to refresh derived freshness.",
+        choices=("check", "write", "certify"),
+        help=(
+            "Use check to validate committed snapshots, write to refresh derived fixture "
+            "freshness, or certify to emit current CI-backed runtime snapshots."
+        ),
     )
     parser.add_argument("--path", type=Path, default=DEFAULT_TELEMETRY_DIR)
     parser.add_argument(
@@ -264,6 +348,7 @@ def main(argv: list[str] | None = None) -> int:
         default=os.getenv("TRUST_TELEMETRY_REFERENCE_TIME_UTC", DEFAULT_REFERENCE_TIME_UTC),
     )
     parser.add_argument("--repository-commit-sha", default=current_commit_sha())
+    parser.add_argument("--output-directory", type=Path, default=DEFAULT_RUNTIME_OUTPUT_DIR)
     parser.add_argument(
         "--validation-run-id",
         default=os.getenv("CI_PIPELINE_ID", "local-trust-telemetry-freshness"),
@@ -281,6 +366,19 @@ def main(argv: list[str] | None = None) -> int:
             repository_commit_sha=args.repository_commit_sha,
             validation_run_id=args.validation_run_id,
         )
+        return 0
+    if args.mode == "certify":
+        try:
+            certify_runtime_path(
+                args.path,
+                output_directory=args.output_directory,
+                certified_at_utc=reference_time_utc,
+                repository_commit_sha=args.repository_commit_sha,
+                validation_run_id=args.validation_run_id,
+            )
+        except ValueError as exc:
+            print(exc)
+            return 1
         return 0
 
     failures = validate_path(

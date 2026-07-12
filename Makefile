@@ -1,4 +1,4 @@
-.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate docs-source-reference-gate observability-diagnostics advisory-domain-golden-regressions advisory-copilot-evaluation-gate advisory-copilot-safety-gate advisory-data-lifecycle-gate durable-state-recovery-gate external-adapter-contracts demo-assurance-gate demo-certification-live slo-capacity-gate migration-rollout-contract-gate trust-telemetry-freshness-gate dependency-lock dependency-lock-gate license-ip-inventory license-ip-gate release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-severity-regression-gate bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard architecture-boundaries complexity-regression-gate refactored-complexity-gate docs-source-reference-gate observability-diagnostics advisory-domain-golden-regressions advisory-copilot-evaluation-gate advisory-copilot-safety-gate advisory-data-lifecycle-gate durable-state-recovery-gate external-adapter-contracts demo-assurance-gate demo-certification-live slo-capacity-gate migration-rollout-contract-gate trust-telemetry-freshness-gate trust-telemetry-certify dependency-lock dependency-lock-gate license-ip-inventory license-ip-gate release-image-provenance-gate docker-labels-check format clean run verify-dependencies check-deps check-deps-strict security-audit bandit-severity-regression-gate bandit-high-severity-gate openapi-gate openapi-spectral-report no-alias-gate api-vocabulary-gate domain-data-products-gate engineering-health engineering-health-json quality-baseline quality-baseline-check migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
 SERVICE_VERSION ?= 0.1.0
 IMAGE_REPOSITORY ?= lotus-advise
@@ -90,6 +90,9 @@ domain-data-products-gate:
 
 trust-telemetry-freshness-gate:
 	python scripts/trust_telemetry_freshness.py check
+
+trust-telemetry-certify:
+	python scripts/trust_telemetry_freshness.py certify
 
 advisory-data-lifecycle-gate:
 	python scripts/advisory_data_lifecycle_inventory.py
