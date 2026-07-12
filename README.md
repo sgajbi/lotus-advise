@@ -126,11 +126,13 @@ Boundary rules that matter:
    inventory in `contracts/advisory-copilot/approved-model-inventory.v1.json`, return matching
    `lotus-ai` provider/model lineage, pass the executable evaluation gate backed by
    `contracts/advisory-copilot/evaluation-corpus.v1.json` and
-   `scripts/advisory_copilot_evaluation_gate.py`, and pass claim-level source grounding before it
-   can remain review-ready. Missing, retired, mismatched, or environment-incompatible model
-   identity returns a stable unavailable posture; failed evaluation evidence quarantines output as
-   unsupported. Review actions bind reviewer authority to trusted `X-Actor-Id`, `X-Role`,
-   `X-Tenant-Id`,
+   `scripts/advisory_copilot_evaluation_gate.py`, pass the executable safety-abuse corpus backed by
+   `contracts/advisory-copilot/safety-abuse-corpus.v1.json` and
+   `scripts/advisory_copilot_safety_gate.py`, and pass claim-level source grounding before it can
+   remain review-ready. Missing, retired, mismatched, or environment-incompatible model identity
+   returns a stable unavailable posture; failed evaluation or safety evidence quarantines output as
+   unsupported or guardrail-rejected. Review actions bind reviewer authority to trusted `X-Actor-Id`,
+   `X-Role`, `X-Tenant-Id`,
    `X-Legal-Entity-Code`, `X-Correlation-Id`, service-identity, capability, proposal, and
    portfolio headers. Request-body `actor_id` is only a compatibility echo; mismatches, missing
    scope, wrong tenant, missing capability, wrong role, self-review, and changed-actor idempotency

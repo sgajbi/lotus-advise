@@ -28,7 +28,10 @@ from src.core.advisory_copilot.evidence_packets import (
 )
 from src.core.advisory_copilot.guardrails import (
     FORBIDDEN_INTENT_REASON_CODES,
+    CopilotGuardrailPolicyInput,
     CopilotGuardrailReasonCode,
+    CopilotGuardrailSourceEvidence,
+    evaluate_copilot_guardrail_policy,
     evaluate_copilot_guardrails,
     guardrail_reason_for_intent,
 )
@@ -143,7 +146,9 @@ __all__ = [
     "CopilotEvidencePacketSection",
     "CopilotEvidenceSectionInput",
     "CopilotEvidenceSectionKey",
+    "CopilotGuardrailPolicyInput",
     "CopilotGuardrailReasonCode",
+    "CopilotGuardrailSourceEvidence",
     "CopilotLineageRef",
     "CopilotReviewPrincipal",
     "CopilotReviewAction",
@@ -161,6 +166,7 @@ __all__ = [
     "can_attempt_advisory_copilot_run_refresh",
     "canonical_json_hash",
     "copilot_source_ref_identity",
+    "evaluate_copilot_guardrail_policy",
     "evaluate_copilot_guardrails",
     "evaluate_advisory_copilot_model_risk",
     "get_copilot_action_definition",

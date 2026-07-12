@@ -17,6 +17,13 @@ This document records the current security hardening baseline for Lotus Advise.
   across all six action families, emits machine-readable evidence to
   `output/advisory-copilot/evaluation-evidence.json`, and fails when expected-positive cases lose
   groundedness, review posture, or guardrail safety.
+- Advisory-copilot safety and abuse controls are executable through `make
+  advisory-copilot-safety-gate`. The gate runs the sanitized corpus in
+  `contracts/advisory-copilot/safety-abuse-corpus.v1.json` through structured preflight and
+  postflight policy inputs, emits machine-readable evidence to
+  `output/advisory-copilot/safety-evidence.json`, and fails when indirect prompt injection,
+  obfuscated forbidden actions, sensitive output, client-ready publication claims, or safe
+  advisor-review text drift from expected posture.
 - Downstream `lotus-report` and `lotus-ai` requests require bounded trusted actor and tenant
   identity; missing or malformed values fail closed before HTTP submission.
 - Downstream report requests require source-derived as-of date, reporting currency, and

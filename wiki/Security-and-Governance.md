@@ -55,22 +55,26 @@ The highest-risk documentation and implementation drift usually appears at these
 9. advisory copilot model-risk evaluation must pass the executable corpus gate in
    `contracts/advisory-copilot/evaluation-corpus.v1.json`; failed groundedness, review posture, or
    guardrail evidence quarantines output before it can become review-ready
-10. Advisor Cockpit reads and acknowledgements must derive caller role, advisor scope, and portfolio
-   scope from trusted headers; query parameters cannot authorize role or advisor impersonation
-11. outbound report calls must preserve source-derived as-of date, reporting currency, and
+10. advisory copilot safety-abuse controls must pass the executable corpus gate in
+   `contracts/advisory-copilot/safety-abuse-corpus.v1.json`; indirect prompt injection, obfuscated
+   forbidden actions, sensitive output, and client-ready publication claims return stable
+   guardrail-rejected posture
+11. Advisor Cockpit reads and acknowledgements must derive caller role, advisor scope, and portfolio
+    scope from trusted headers; query parameters cannot authorize role or advisor impersonation
+12. outbound report calls must preserve source-derived as-of date, reporting currency, and
    jurisdiction instead of silently applying market or current-date defaults
-12. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
+13. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
    OCI metadata, accompanied by digest-bearing release evidence, SBOM, scan, signature, and
    provenance attestation, and deployed by digest
-13. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
+14. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
    current medium/low entries must match the governed baseline, and new, stale, expired, or
    worsened medium/low entries fail CI
-14. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
+15. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
     including transitive packages, must match the committed inventory and any review-required terms
     must have owner-approved expiring exceptions
-15. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
+16. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
     requirements install strategy, requirement-file hashes, and dependency inventory hash
-16. HTTP boundary posture must fail closed for unsafe production-like host/origin configuration:
+17. HTTP boundary posture must fail closed for unsafe production-like host/origin configuration:
     trusted hosts are service-owned, browser origins are deny-by-default, security headers are
     applied to API responses, and write-payload limits remain enforced at the API boundary
 
@@ -121,6 +125,14 @@ sanitized corpus in `contracts/advisory-copilot/evaluation-corpus.v1.json` acros
 families and writes evidence to `output/advisory-copilot/evaluation-evidence.json`. Runtime lineage
 records evaluator version, dataset id, thresholds, metrics, failure reasons, and evaluation hash.
 Failed evaluation posture quarantines output before it can remain review-ready.
+
+Advise also runs executable safety-abuse controls through `src/core/advisory_copilot/guardrails.py`.
+`make advisory-copilot-safety-gate` runs the sanitized corpus in
+`contracts/advisory-copilot/safety-abuse-corpus.v1.json` through typed preflight and postflight
+policy inputs and writes evidence to `output/advisory-copilot/safety-evidence.json`. Runtime
+preflight separates user instruction from source evidence; runtime postflight separates generated
+output from both. Prompt injection, obfuscated forbidden actions, sensitive output, and client-ready
+publication claims return stable guardrail reason codes before output can remain review-ready.
 
 Advisory copilot review writes derive authority from trusted reviewer headers before application
 state transitions. Supported reviewer roles are `ADVISORY_SUPERVISOR`, `COMPLIANCE_REVIEWER`, and
