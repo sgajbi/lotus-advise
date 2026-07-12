@@ -59,10 +59,14 @@ def configure_advisory_external_provider_ports() -> None:
     configure_advisory_simulation_provider(_simulate_with_lotus_core_port)
     configure_advisory_risk_enrichment_provider(_enrich_with_lotus_risk_port)
     configure_advisory_risk_dependency_state_provider(_lotus_risk_dependency_state_port)
-    configure_proposal_stateful_context_resolver(_resolve_stateful_context_with_lotus_core_port)
+    configure_advisory_stateful_context_provider_port()
     configure_proposal_narrative_draft_generator(_generate_narrative_draft_with_lotus_ai_port)
     configure_proposal_memo_ai_commentary_generator(_generate_memo_commentary_with_lotus_ai_port)
     configure_proposal_memo_report_package_requester(_request_memo_report_package_with_lotus_report)
+
+
+def configure_advisory_stateful_context_provider_port() -> None:
+    configure_proposal_stateful_context_resolver(_resolve_stateful_context_with_lotus_core_port)
 
 
 def _simulate_with_lotus_core_port(
@@ -174,4 +178,7 @@ def _request_memo_report_package_with_lotus_report(
         raise ProposalMemoReportPackageUnavailableError(str(exc)) from exc
 
 
-__all__ = ["configure_advisory_external_provider_ports"]
+__all__ = [
+    "configure_advisory_external_provider_ports",
+    "configure_advisory_stateful_context_provider_port",
+]

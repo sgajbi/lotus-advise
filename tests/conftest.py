@@ -20,6 +20,7 @@ from src.core.policy_packs import (
 )
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 from src.infrastructure.workspace.in_memory import InMemoryWorkspaceSessionRepository
+from src.runtime.advisory_provider_ports import configure_advisory_stateful_context_provider_port
 from src.runtime.workspace_application import reset_workspace_application_for_tests
 
 
@@ -122,7 +123,9 @@ def advisory_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setenv("ENVIRONMENT", "test")
     configure_advisory_simulation_provider(_simulate_with_lotus_core)
+    configure_advisory_stateful_context_provider_port()
     reset_proposal_workflow_service_for_tests()
     yield
     configure_advisory_simulation_provider(None)
+    configure_advisory_stateful_context_provider_port()
     reset_proposal_workflow_service_for_tests()
