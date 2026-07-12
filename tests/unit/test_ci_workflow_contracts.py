@@ -81,6 +81,15 @@ def test_local_ci_targets_enforce_advisory_data_lifecycle_inventory() -> None:
         assert "advisory-data-lifecycle-gate" in _makefile_target_dependencies(makefile, target)
 
 
+def test_local_ci_targets_enforce_durable_state_recovery_contract() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    for target in ("check", "ci", "ci-local"):
+        assert "durable-state-recovery-gate" in _makefile_target_dependencies(makefile, target)
+    assert "scripts/durable_state_recovery_contract.py" in makefile
+    assert "output/durable-state-recovery/recovery-drill-evidence.json" in makefile
+
+
 def test_local_ci_targets_enforce_release_image_provenance_contract() -> None:
     makefile = Path("Makefile").read_text(encoding="utf-8")
 

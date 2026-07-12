@@ -18,6 +18,8 @@
 - `make migration-smoke`: migration and runtime persistence smoke tests.
 - `make migration-rollout-contract-gate`: validates every Postgres migration namespace and SQL
   file has rollout phase, lock/online behavior, compatibility, rollback, and rehearsal metadata.
+- `make durable-state-recovery-gate`: validates durable namespace backup/restore scope, RTO/RPO,
+  replay quarantine rules, and non-production restore-drill evidence shape.
 - `make postgres-runtime-contracts-local`: local Postgres runtime contract checks.
 - `make production-profile-guardrail-negatives-local`: production-profile negative guardrail
   checks, including malformed numeric integration runtime configuration.
@@ -177,6 +179,33 @@ Operators should treat `POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT`,
 `POLICY_PACK_IDEMPOTENCY_KEY_CONFLICT`, policy event conflicts, or stale record/catalog conflicts
 as retry/diagnostic events, not as permission to patch rows manually. Preserve the idempotency key,
 request hash, evaluation or policy-pack id, event id, and failed SQL operation in incident evidence.
+
+## Durable State Recovery
+
+Durable-state recovery is governed by
+`docs/standards/advisory-durable-state-recovery.v1.json` and validated by
+`make durable-state-recovery-gate`. The gate emits
+`output/durable-state-recovery/recovery-drill-evidence.json` and fails if any migration namespace is
+missing backup scope, RTO/RPO, restore checks, replay quarantine rules, stop criteria, resume
+criteria, or escalation ownership.
+
+Advise owns recovery checks for the `proposals`, `policy_packs`, `advisory_copilot`, and
+`workspace` namespaces. Platform database operations own encrypted backup scheduling, backup
+storage retention, point-in-time restore execution, and cross-region database controls.
+
+For a non-production restore drill:
+
+1. restore the selected PostgreSQL backup or PITR point into an isolated DSN,
+2. apply `python scripts/postgres_migrate.py --target all`,
+3. run `make durable-state-recovery-gate`,
+4. run `make migration-rollout-contract-gate` and `make migration-smoke`,
+5. run `python scripts/production_cutover_check.py --check-migrations`,
+6. retain `output/durable-state-recovery/recovery-drill-evidence.json` with release evidence.
+
+Do not resume traffic if schema checksums drift, durable namespaces are missing, lifecycle or
+policy rows are orphaned, idempotency conflicts appear after restore, replay hashes drift, or
+downstream report/archive/AI lineage refs are missing. Quarantine the affected workflow and
+escalate to the namespace owner in the recovery contract.
 
 ## Policy Evaluation Replay
 

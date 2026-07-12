@@ -491,18 +491,27 @@ Important validation expectations:
    `advisory.proposals.async_operations.control` capability, active leases fail closed, retry
    exhaustion cannot be bypassed by payload or attempt mutation, and audit evidence hashes raw
    operation, correlation, proposal, actor, service identity, idempotency, and reason values,
-12. advisory workflow changes should be validated against canonical upstream posture,
-13. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
-14. `make demo-certification-live` is the repo-native app-level live certification command; it writes
+12. durable state recovery is governed by
+   `docs/standards/advisory-durable-state-recovery.v1.json` and
+   `make durable-state-recovery-gate`: the contract must match checked-in PostgreSQL migration
+   namespaces, preserve RTO 30 minutes and RPO 15 minutes, inventory owner/retention/backup scope,
+   define restore checks and replay quarantine rules, and emit
+   `output/durable-state-recovery/recovery-drill-evidence.json` for non-production restore drills.
+   Advise owns service-specific integrity/replay/quarantine evidence; platform database operations
+   own backup vendor, encrypted backup retention, point-in-time restore execution, and cross-region
+   database controls,
+13. advisory workflow changes should be validated against canonical upstream posture,
+14. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+15. `make demo-certification-live` is the repo-native app-level live certification command; it writes
    machine-readable evidence under `output/demo-certification/`, validates deterministic synthetic
    scenarios, route-safety posture, required `/platform/capabilities` feature/workflow truth, and
    domain assertions, and is wired into the scheduled/manual Postgres runtime workflow as uploaded
    evidence rather than a PR-blocking static gate,
-15. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
+16. `/platform/capabilities` is deployment-scoped informational discovery. It must not accept,
    trust, echo, or imply tenant-specific entitlement policy unless a future slice adds an explicit
    authoritative entitlement port and contract tests,
-16. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness,
-17. HTTP boundary changes should run focused API tests covering host/origin policy, approved
+17. committed quality Markdown intentionally omits volatile branch/head metadata; exact Git identity belongs to Git history and GitHub Actions run metadata, while `make quality-baseline-check` enforces non-timestamp report freshness,
+18. HTTP boundary changes should run focused API tests covering host/origin policy, approved
     security headers, validation-error responses, and enterprise denial responses before broader
     merge-gate validation.
 

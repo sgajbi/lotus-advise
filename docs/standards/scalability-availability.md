@@ -18,6 +18,9 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
 - Machine-readable SLO and capacity budget contract:
   `docs/standards/advisory-slo-capacity-budgets.v1.json`.
 - Repo-native validation gate: `make slo-capacity-gate`.
+- Machine-readable durable-state recovery contract:
+  `docs/standards/advisory-durable-state-recovery.v1.json`.
+- Repo-native recovery scope and drill-evidence gate: `make durable-state-recovery-gate`.
 
 ## Database Scalability Fundamentals
 
@@ -31,6 +34,9 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
 - Internal SLO baseline: p95 synchronous proposal API latency < 400 ms; error rate < 1%.
 - Recovery targets: RTO 30 minutes and RPO 15 minutes for persisted lotus-advise operations.
 - Backup and restore validation is required for proposal/run stores in every deployment environment.
+- Durable recovery scope covers `proposals`, `policy_packs`, `advisory_copilot`, and `workspace`
+  migration namespaces. Platform database operations own backup vendor and point-in-time restore;
+  Advise owns post-restore integrity, replay, idempotency, quarantine, and evidence checks.
 
 ## Advisory Workflow SLO And Capacity Budgets
 
