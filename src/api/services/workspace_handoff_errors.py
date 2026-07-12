@@ -1,28 +1,3 @@
-from __future__ import annotations
+from src.core.workspace.handoff_errors import run_workspace_handoff_operation
 
-from collections.abc import Callable
-from typing import TypeVar
-
-from src.api.services.workspace_errors import (
-    WORKSPACE_LIFECYCLE_HANDOFF_UNAVAILABLE_DETAIL,
-    WorkspaceEvaluationUnavailableError,
-    WorkspaceLifecycleHandoffUnavailableError,
-    safe_workspace_error_detail,
-)
-from src.core.workspace.handoff import WorkspaceHandoffError
-
-_WorkspaceHandoffOperationResult = TypeVar("_WorkspaceHandoffOperationResult")
-
-
-def run_workspace_handoff_operation(
-    operation: Callable[[], _WorkspaceHandoffOperationResult],
-) -> _WorkspaceHandoffOperationResult:
-    try:
-        return operation()
-    except (ValueError, WorkspaceEvaluationUnavailableError, WorkspaceHandoffError) as exc:
-        raise WorkspaceLifecycleHandoffUnavailableError(
-            safe_workspace_error_detail(
-                str(exc),
-                fallback=WORKSPACE_LIFECYCLE_HANDOFF_UNAVAILABLE_DETAIL,
-            )
-        ) from exc
+__all__ = ["run_workspace_handoff_operation"]

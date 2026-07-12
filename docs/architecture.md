@@ -15,6 +15,23 @@ adapter boundaries.
 - `scripts` owns repo-governance, quality, OpenAPI, dependency, migration, and runtime validation
   automation.
 
+## Advisory Workspace Application Boundary
+
+The advisory workspace routes are thin HTTP adapters over `WorkspaceApplicationService`.
+
+- `src/api/workspaces` maps request DTOs, headers, and proposal/workspace HTTP errors.
+- `src/core/workspace/application.py` owns workspace create, get, draft-action, re-evaluate,
+  save, replay, resume, compare, and lifecycle-handoff use cases.
+- `src/core/workspace/ports.py` defines the workspace session repository, source-context resolver,
+  proposal evaluator, and proposal lifecycle ports.
+- `src/infrastructure/workspace` contains the current Lotus Core source-context resolver and the
+  in-memory workspace session repository adapter.
+- `src/runtime/workspace_application.py` composes the process-local application service.
+
+This is an internal design-modularity boundary. It does not create a separate deployable workspace
+service and it does not certify durable workspace persistence; persistent workspace durability,
+recovery, and broader idempotency controls remain separate backlog items.
+
 ## Current Quality Posture
 
 - Existing gates include ruff, mypy, OpenAPI quality, no-alias, API vocabulary, data-product

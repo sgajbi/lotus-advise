@@ -1,5 +1,54 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-933
+
+- Scope: Advisory workspace application boundary
+- Pattern: Advisor workspace workflow orchestration should live behind application use cases and
+  explicit ports, while HTTP routes remain thin mapping/error boundaries.
+- Status: Hardened
+- Finding Class: Architecture, application-layer modularity, ports/adapters, behavior preservation
+- Summary: GitHub issue #379 identified that advisory workspace creation, context resolution,
+  draft re-evaluation, saved-version operations, and lifecycle handoff were orchestrated through
+  `src/api/services` helpers. The workspace slice introduces `WorkspaceApplicationService`,
+  explicit workspace ports, infrastructure adapters for Lotus Core context resolution and the
+  process-local session store, and route dependencies that compose proposal lifecycle access without
+  moving workflow orchestration back into route handlers.
+- Evidence:
+  - `src/core/workspace/application.py` owns create, get, draft-action, re-evaluate, save, replay,
+    resume, compare, and lifecycle handoff use cases.
+  - `src/core/workspace/ports.py` defines session repository, source-context resolver, proposal
+    evaluator, and proposal lifecycle ports.
+  - `src/core/workspace/evaluator.py` owns the default core proposal evaluator behind the evaluator
+    port, so application tests can use fake evaluators without importing concrete runtime paths.
+  - `src/infrastructure/workspace/lotus_core_context.py` owns the concrete Lotus Core source-context
+    resolver, and `src/infrastructure/workspace/in_memory.py` owns the current in-memory workspace
+    session adapter.
+  - `src/api/workspaces/routes_session.py` and `src/api/workspaces/routes_handoff.py` call the
+    application service through API dependencies instead of `src.api.services.workspace_service`.
+  - Focused tests prove create-session, re-evaluation, and lifecycle handoff through fake ports, and
+    architecture assertions block direct route-to-legacy-service and core-to-integration imports in
+    the workspace boundary.
+- Consequence:
+  - Workspace workflow behavior is easier to test without FastAPI, Lotus Core, or concrete proposal
+    lifecycle services. Routes are thinner, source-context and lifecycle dependencies are explicit,
+    and future durable persistence or idempotency work has a stable port boundary to implement
+    against.
+- Documentation:
+  - Updated `docs/architecture.md`, `wiki/Advisory-Workspace.md`,
+    `REPOSITORY-ENGINEERING-CONTEXT.md`, `quality/refactor_health_report.md`, and this ledger.
+    Wiki source changed, so repo-wiki check-only validation is required before merge and
+    publication is required after merge.
+- Modularity:
+  - This is internal design modularity inside `lotus-advise`. No separate workspace runtime service
+    is justified by the current workload, ownership, scaling, failure-isolation, or security
+    evidence.
+- Follow-Up:
+  - This slice does not certify durable workspace persistence or close broader workspace recovery
+    and idempotency issues. Continue to treat those as separate issue-discovery findings unless a
+    later slice implements and validates them. No platform skill change is required because the
+    backend delivery and enterprise refactor guidance already require application-layer ports,
+    design-before-runtime modularity, fake-port tests, and explicit no-runtime-split decisions.
+
 ## LA-REV-932
 
 - Scope: Advisory copilot review trusted-principal authority
