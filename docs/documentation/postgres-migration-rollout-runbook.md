@@ -7,6 +7,7 @@ Runbook for forward-only schema migration rollout for:
 - advisory proposals Postgres namespace (`proposals`)
 - advisory copilot Postgres namespace (`advisory_copilot`)
 - advisory policy pack and policy evaluation namespace (`policy_packs`)
+- advisory workspace session and saved-version namespace (`workspace`)
 
 ## Preconditions
 
@@ -17,6 +18,9 @@ Runbook for forward-only schema migration rollout for:
     migration runner uses `PROPOSAL_POSTGRES_DSN`.
   - `POLICY_POSTGRES_DSN` when policy records use a separate database. If unset, the runtime can
     share `PROPOSAL_POSTGRES_DSN`, but production manifests should inject both explicitly.
+  - `WORKSPACE_POSTGRES_DSN` when workspace state uses a separate database. If unset, migration
+    apply and cutover checks share `PROPOSAL_POSTGRES_DSN`; current runtime still uses the
+    process-local workspace adapter until durable repository wiring is enabled.
 - Application image/version to deploy is already tested in non-production.
 - A recent backup/restore point exists for every target database before production apply.
 - `make migration-rollout-contract-gate` and `make migration-smoke` have passed against a
@@ -48,6 +52,7 @@ Optional per-namespace commands:
 python scripts/postgres_migrate.py --target proposals
 python scripts/postgres_migrate.py --target advisory_copilot
 python scripts/postgres_migrate.py --target policy_packs
+python scripts/postgres_migrate.py --target workspace
 ```
 
 Production contract check (profile/env/migration readiness):
@@ -103,8 +108,9 @@ tables and rehearse with production-like row counts before production apply.
 - Policy-pack audit-event inserts must not replace a different payload for the same event id, and
   record/catalog snapshot updates are guarded by persisted event counts to avoid stale-snapshot
   overwrite.
-- `--target all` applies `proposals`, `advisory_copilot`, and `policy_packs`; production cutover
-  validation checks all three namespaces and uses the policy DSN for `policy_packs`.
+- `--target all` applies `proposals`, `advisory_copilot`, `policy_packs`, and `workspace`;
+  production cutover validation checks all four namespaces, uses the policy DSN for `policy_packs`,
+  and uses `WORKSPACE_POSTGRES_DSN` or the proposal DSN fallback for `workspace`.
 - If a checked-in migration file is modified after apply, execution fails with:
   - `POSTGRES_MIGRATION_CHECKSUM_MISMATCH:{namespace}:{version}`
 - Startup runtime guardrails fail-fast with explicit reason codes:

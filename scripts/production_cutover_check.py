@@ -14,7 +14,7 @@ def main() -> int:
     parser.add_argument(
         "--check-migrations",
         action="store_true",
-        help="Require all checked-in postgres migrations to be applied for both namespaces.",
+        help="Require all checked-in postgres migrations to be applied for cutover namespaces.",
     )
     args = parser.parse_args()
 

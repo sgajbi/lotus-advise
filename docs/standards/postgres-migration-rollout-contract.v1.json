@@ -26,6 +26,12 @@
       "dsn_env": "POLICY_POSTGRES_DSN or PROPOSAL_POSTGRES_DSN",
       "owned_store": "policy evaluation records, catalog state, audit events, and idempotency records",
       "rollout_order": 30
+    },
+    {
+      "namespace_key": "workspace",
+      "dsn_env": "WORKSPACE_POSTGRES_DSN or PROPOSAL_POSTGRES_DSN",
+      "owned_store": "advisory workspace sessions, saved versions, audit events, and idempotency evidence",
+      "rollout_order": 40
     }
   ],
   "migrations": [
@@ -511,6 +517,41 @@
         "forward_fix_required": true,
         "previous_app_version_compatible": true,
         "limitations": "corrected active-version uniqueness remains after app rollback; fix forward if operator remediation is needed"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
+      "namespace_key": "workspace",
+      "version": "0001",
+      "path": "src/infrastructure/postgres_migrations/workspace/0001_workspace_state.sql",
+      "phase": "expand",
+      "operation_class": "create_table_and_indexes",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds workspace session, saved-version, audit-event, and idempotency tables before workspace Postgres repositories receive traffic"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "short_create_table_plus_empty_index_build",
+        "online_behavior": "metadata_only_when_tables_absent; indexes build before workspace traffic",
+        "required_operator_control": "apply before enabling workspace Postgres runtime writes"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "rerun_idempotent_create_if_not_exists",
+        "quarantine_strategy": "keep workspace persistence disabled until migration verifies"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "older app versions ignore additive workspace tables while runtime remains on the process-local adapter"
       },
       "rehearsal": {
         "profile_key": "local_postgres_migration_smoke",

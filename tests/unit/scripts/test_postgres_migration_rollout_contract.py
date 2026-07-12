@@ -24,8 +24,10 @@ def test_rehearsal_evidence_includes_all_namespaces() -> None:
         "proposals",
         "advisory_copilot",
         "policy_packs",
+        "workspace",
     }
     assert any(migration["namespace_key"] == "policy_packs" for migration in evidence["migrations"])
+    assert any(migration["namespace_key"] == "workspace" for migration in evidence["migrations"])
 
 
 def test_contract_rejects_missing_migration_metadata() -> None:
@@ -72,15 +74,15 @@ def test_contract_rejects_migration_runner_missing_namespace(monkeypatch) -> Non
     monkeypatch.setattr(
         rollout_contract,
         "_migration_runner_targets",
-        lambda: {"proposals", "advisory_copilot"},
+        lambda: {"proposals", "advisory_copilot", "policy_packs"},
     )
 
     failures = validate_contract(load_contract(DEFAULT_CONTRACT_PATH))
 
     assert (
         "scripts/postgres_migrate.py --target all must cover migration directories: "
-        "targets=['advisory_copilot', 'proposals'] "
-        "actual=['advisory_copilot', 'policy_packs', 'proposals']."
+        "targets=['advisory_copilot', 'policy_packs', 'proposals'] "
+        "actual=['advisory_copilot', 'policy_packs', 'proposals', 'workspace']."
     ) in failures
 
 
@@ -91,3 +93,4 @@ def test_cli_emits_rehearsal_evidence(tmp_path: Path) -> None:
     evidence = output.read_text(encoding="utf-8")
     assert "lotus.advise.postgres-migration-rehearsal-evidence.v1" in evidence
     assert "policy_packs" in evidence
+    assert "workspace" in evidence

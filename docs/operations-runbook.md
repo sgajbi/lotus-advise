@@ -156,9 +156,11 @@ PostgreSQL schema rollout is governed by
 expand/migrate/contract phase metadata, old/new application compatibility, lock and online
 behavior, backfill checkpoint/resume/quarantine posture, rollback limits, or rehearsal evidence.
 
-`python scripts/postgres_migrate.py --target all` applies `proposals`, `advisory_copilot`, and
-`policy_packs`. `python scripts/production_cutover_check.py --check-migrations` verifies all three
-namespaces and uses `POLICY_POSTGRES_DSN` for `policy_packs` when policy storage is separate.
+`python scripts/postgres_migrate.py --target all` applies `proposals`, `advisory_copilot`,
+`policy_packs`, and `workspace`. `python scripts/production_cutover_check.py --check-migrations`
+verifies all four namespaces. The policy namespace uses `POLICY_POSTGRES_DSN` when policy storage is
+separate; the workspace namespace uses `WORKSPACE_POSTGRES_DSN` when configured and otherwise shares
+`PROPOSAL_POSTGRES_DSN` until the workspace Postgres adapter is enabled.
 
 Current index migrations are not `CREATE INDEX CONCURRENTLY`; treat them as controlled-window
 operations on production-sized tables. Keep the previous compatible app version available, retain

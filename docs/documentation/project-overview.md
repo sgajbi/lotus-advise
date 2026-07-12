@@ -153,8 +153,9 @@ Advisory persistence boundary:
   - `proposal_idempotency`
   - `proposal_simulation_idempotency`
   - `proposal_async_operations`
-- Workspace sessions and saved workspace versions remain intentionally non-durable in the current
-  runtime slice until later advisory persistence work lands.
+- Workspace sessions and saved workspace versions have a dedicated Postgres schema foundation under
+  the `workspace` migration namespace, but the current runtime still composes the in-memory
+  workspace adapter until the durable repository is wired and restart/recovery proof lands.
 - Portfolio positions, transactions, market data, risk analytics, reports, and shared AI runtime
   state are upstream-owned and excluded from the advisory database boundary.
 - External execution-provider state also remains upstream-owned; lotus-advise only records

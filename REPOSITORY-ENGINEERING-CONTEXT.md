@@ -350,7 +350,10 @@ Boundary rules:
     proposal lifecycle handoff. Concrete Lotus Core resolution and the current in-memory workspace
     session store are infrastructure/runtime adapters, not route or use-case implementation
     details. This is an internal design-modularity boundary; durable workspace persistence,
-    recovery, and broader idempotency controls remain separately governed backlog work.
+    recovery, and broader idempotency controls remain separately governed backlog work. A dedicated
+    `workspace` Postgres migration namespace now defines the durable schema foundation for sessions,
+    saved versions, events, and idempotency evidence, but runtime composition still uses the
+    process-local adapter until the durable workspace repository is wired and proven.
 
 ## Repo-Native Commands
 

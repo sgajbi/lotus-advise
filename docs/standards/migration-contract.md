@@ -3,7 +3,7 @@
 - Service: `lotus-advise`
 - Persistence mode: PostgreSQL with forward-only SQL migration packs.
 - Migration policy: versioned migrations with checksum validation and namespace-scoped locking.
-- Current namespaces: `proposals`, `advisory_copilot`, `policy_packs`.
+- Current namespaces: `proposals`, `advisory_copilot`, `policy_packs`, `workspace`.
 - Rollout policy: every migration must be represented in
   `docs/standards/postgres-migration-rollout-contract.v1.json` with explicit expand/migrate/contract
   phase, old/new application compatibility, lock and online behavior, backfill posture, rollback
@@ -19,8 +19,8 @@
 ## Apply Command
 
 - `make migration-apply` runs `python scripts/postgres_migrate.py --target all`.
-- Per-namespace runs use `--target proposals`, `--target advisory_copilot`, or
-  `--target policy_packs`.
+- Per-namespace runs use `--target proposals`, `--target advisory_copilot`,
+  `--target policy_packs`, or `--target workspace`.
 
 ## Rollback and Forward-Fix
 
