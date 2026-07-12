@@ -8,6 +8,7 @@ import pytest
 
 from scripts.trust_telemetry_freshness import (
     STALE_BLOCK_REASON,
+    certified_runtime_snapshot,
     expected_freshness_patch,
     main,
     parse_utc_timestamp,
@@ -19,6 +20,7 @@ REFERENCE_TIME = parse_utc_timestamp("2026-07-11T00:00:00Z", field_name="test")
 
 def _snapshot(*, observed_at_utc: str = "2026-07-10T12:00:00Z") -> dict[str, Any]:
     return {
+        "product_id": "lotus-advise:TestProduct:v1",
         "emitted_at_utc": observed_at_utc,
         "freshness": {
             "freshness_class": "event_driven",
@@ -29,6 +31,14 @@ def _snapshot(*, observed_at_utc: str = "2026-07-10T12:00:00Z") -> dict[str, Any
             "max_allowed_age_seconds": 86400,
         },
         "blocking": {"blocked": False},
+        "completeness_status": "complete",
+        "data_quality_status": "quality_passed",
+        "lineage": {
+            "lineage_materialized": True,
+            "lineage_bundle_id": "lineage:historical",
+            "evidence_uris": ["lotus-advise://tests/evidence"],
+        },
+        "observed_trust_metadata": {"generated_at": observed_at_utc},
         "evidence": {"correlation_id": "test", "validation_lanes": ["feature"]},
     }
 
@@ -163,3 +173,55 @@ def test_cli_writes_and_checks_snapshot_directory(tmp_path: Path) -> None:
 def test_parse_utc_timestamp_rejects_naive_time() -> None:
     with pytest.raises(ValueError, match="must include timezone"):
         parse_utc_timestamp("2026-07-11T00:00:00", field_name="test")
+
+
+def test_certified_runtime_snapshot_emits_current_commit_bound_evidence() -> None:
+    source = _snapshot(observed_at_utc="2026-05-01T00:00:00Z")
+
+    certified = certified_runtime_snapshot(
+        source,
+        certified_at_utc=REFERENCE_TIME,
+        repository_commit_sha="a" * 40,
+        validation_run_id="github-12345",
+    )
+
+    assert certified["freshness"]["freshness_state"] == "current"
+    assert certified["freshness"]["age_seconds"] == 0
+    assert certified["freshness"]["observed_at_utc"] == "2026-07-11T00:00:00Z"
+    assert certified["blocking"] == {"blocked": False}
+    assert certified["evidence"]["repository_commit_sha"] == "a" * 40
+    assert certified["evidence"]["source_fixture_observed_at_utc"] == "2026-05-01T00:00:00Z"
+    assert certified["lineage"]["lineage_bundle_id"].endswith("a" * 40)
+    assert source["freshness"]["observed_at_utc"] == "2026-05-01T00:00:00Z"
+
+
+@pytest.mark.parametrize(
+    ("sha", "run_id", "message"),
+    [
+        ("abc123", "github-1", "full lowercase Git commit SHA"),
+        ("a" * 40, "local-certification", "non-local CI validation run id"),
+    ],
+)
+def test_certified_runtime_snapshot_rejects_weak_provenance(
+    sha: str, run_id: str, message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        certified_runtime_snapshot(
+            _snapshot(),
+            certified_at_utc=REFERENCE_TIME,
+            repository_commit_sha=sha,
+            validation_run_id=run_id,
+        )
+
+
+def test_certified_runtime_snapshot_rejects_missing_lineage() -> None:
+    source = _snapshot()
+    source["lineage"]["lineage_materialized"] = False
+
+    with pytest.raises(ValueError, match="materialized lineage is required"):
+        certified_runtime_snapshot(
+            source,
+            certified_at_utc=REFERENCE_TIME,
+            repository_commit_sha="a" * 40,
+            validation_run_id="github-12345",
+        )
