@@ -16,6 +16,10 @@ from src.core.advisory_copilot import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
+from src.core.advisory_copilot.evaluation_gate import (
+    AdvisoryCopilotEvaluationResult,
+    evaluate_advisory_copilot_model_risk,
+)
 from src.core.advisory_copilot.model_governance import (
     ADVISORY_COPILOT_APPROVED_INSTRUCTION_SET,
     ADVISORY_COPILOT_EVALUATION_PACK_REF,
@@ -301,9 +305,23 @@ def _draft_from_completed_workflow_output(
         raw_sections=raw_sections,
         output_sections=sections,
     )
+    evaluation_result = evaluate_advisory_copilot_model_risk(
+        action_family=evidence_packet.action_family,
+        workflow_pack_id=workflow_pack_id_for_action(evidence_packet.action_family),
+        workflow_pack_version=workflow_pack_version_for_action(evidence_packet.action_family),
+        provider_id=provider_id,
+        model_version=model_version,
+        prompt_template_version=PROMPT_TEMPLATE_VERSION,
+        output_schema_version=OUTPUT_SCHEMA_VERSION,
+        evaluation_pack_ref=EVALUATION_PACK_REF,
+        draft_status=str(structured_output.get("state") or "REVIEW_REQUIRED"),
+        output_section_count=len(grounded_sections),
+        grounding_summary=grounding_summary,
+        guardrail_reasons=(),
+    )
     draft_status = (
         str(structured_output.get("state") or "REVIEW_REQUIRED")
-        if grounding_summary["ready_for_review"]
+        if grounding_summary["ready_for_review"] and evaluation_result.approved
         else "UNSUPPORTED"
     )
 
@@ -325,6 +343,7 @@ def _draft_from_completed_workflow_output(
             model_environment=model_environment,
             fallback_reason=None,
             claim_grounding_summary=grounding_summary,
+            model_risk_evaluation=evaluation_result,
         ),
         review_guidance=_map_string_list(structured_output.get("review_guidance")),
         guardrail_reasons=(),
@@ -480,6 +499,7 @@ def _build_lineage(
     model_approval: AdvisoryCopilotModelApproval | None = None,
     model_environment: str | None = None,
     claim_grounding_summary: dict[str, Any] | None = None,
+    model_risk_evaluation: AdvisoryCopilotEvaluationResult | None = None,
 ) -> dict[str, Any]:
     lineage: dict[str, Any] = {
         "adapter_version": ADAPTER_VERSION,
@@ -502,6 +522,8 @@ def _build_lineage(
         lineage.update(model_approval.lineage(environment=model_environment or "DEVELOPMENT"))
     if claim_grounding_summary is not None:
         lineage["claim_grounding_summary"] = claim_grounding_summary
+    if model_risk_evaluation is not None:
+        lineage["model_risk_evaluation"] = model_risk_evaluation.lineage()
     return lineage
 
 

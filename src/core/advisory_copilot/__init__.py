@@ -11,6 +11,13 @@ from src.core.advisory_copilot.claim_grounding import (
     align_copilot_output_claims_to_evidence,
     copilot_source_ref_identity,
 )
+from src.core.advisory_copilot.evaluation_gate import (
+    ADVISORY_COPILOT_EVALUATION_DATASET_ID,
+    ADVISORY_COPILOT_EVALUATOR_VERSION,
+    AdvisoryCopilotEvaluationResult,
+    AdvisoryCopilotEvaluationThresholds,
+    evaluate_advisory_copilot_model_risk,
+)
 from src.core.advisory_copilot.evidence_packets import (
     ACTION_REQUIRED_EVIDENCE_SECTIONS,
     SOURCE_EVIDENCE_SECTIONS,
@@ -103,6 +110,8 @@ __all__ = [
     "ACTION_REQUIRED_EVIDENCE_SECTIONS",
     "ADVISORY_COPILOT_APPROVED_MODEL_VERSION",
     "ADVISORY_COPILOT_APPROVED_PROVIDER_ID",
+    "ADVISORY_COPILOT_EVALUATION_DATASET_ID",
+    "ADVISORY_COPILOT_EVALUATOR_VERSION",
     "ADVISORY_COPILOT_RETIRED_MODEL_VERSION",
     "COPILOT_ACTION_CATALOG",
     "COPILOT_BUSINESS_PROJECTIONS",
@@ -113,6 +122,8 @@ __all__ = [
     "WORKFLOW_PACK_CALLER_APP",
     "WORKFLOW_PACK_EXECUTION_AUTHORITY",
     "AdvisoryCopilotEvidencePacketRecord",
+    "AdvisoryCopilotEvaluationResult",
+    "AdvisoryCopilotEvaluationThresholds",
     "AdvisoryCopilotModelApproval",
     "AdvisoryCopilotModelApprovalDecision",
     "AdvisoryCopilotRepository",
@@ -151,6 +162,7 @@ __all__ = [
     "canonical_json_hash",
     "copilot_source_ref_identity",
     "evaluate_copilot_guardrails",
+    "evaluate_advisory_copilot_model_risk",
     "get_copilot_action_definition",
     "guardrail_reason_for_intent",
     "is_terminal_review_posture",

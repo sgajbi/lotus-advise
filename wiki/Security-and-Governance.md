@@ -52,22 +52,25 @@ The highest-risk documentation and implementation drift usually appears at these
    `contracts/advisory-copilot/approved-model-inventory.v1.json`; unknown, retired, mismatched, or
    environment-incompatible model identity returns unavailable before completed output can become
    review-ready
-9. Advisor Cockpit reads and acknowledgements must derive caller role, advisor scope, and portfolio
+9. advisory copilot model-risk evaluation must pass the executable corpus gate in
+   `contracts/advisory-copilot/evaluation-corpus.v1.json`; failed groundedness, review posture, or
+   guardrail evidence quarantines output before it can become review-ready
+10. Advisor Cockpit reads and acknowledgements must derive caller role, advisor scope, and portfolio
    scope from trusted headers; query parameters cannot authorize role or advisor impersonation
-10. outbound report calls must preserve source-derived as-of date, reporting currency, and
+11. outbound report calls must preserve source-derived as-of date, reporting currency, and
    jurisdiction instead of silently applying market or current-date defaults
-11. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
+12. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
    OCI metadata, accompanied by digest-bearing release evidence, SBOM, scan, signature, and
    provenance attestation, and deployed by digest
-12. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
+13. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
    current medium/low entries must match the governed baseline, and new, stale, expired, or
    worsened medium/low entries fail CI
-13. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
+14. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
     including transitive packages, must match the committed inventory and any review-required terms
     must have owner-approved expiring exceptions
-14. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
+15. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
     requirements install strategy, requirement-file hashes, and dependency inventory hash
-15. HTTP boundary posture must fail closed for unsafe production-like host/origin configuration:
+16. HTTP boundary posture must fail closed for unsafe production-like host/origin configuration:
     trusted hosts are service-owned, browser origins are deny-by-default, security headers are
     applied to API responses, and write-payload limits remain enforced at the API boundary
 
@@ -111,6 +114,13 @@ environment, owner, approval reference, release evidence, change reference, and 
 The `lotus-ai` response must report matching provider/model identity. Missing, unknown, retired,
 mismatched, or environment-incompatible identity produces a stable unavailable posture and no
 completed output sections.
+
+Advise also runs an executable evaluation-pack gate through
+`src/core/advisory_copilot/evaluation_gate.py`. `make advisory-copilot-evaluation-gate` expands the
+sanitized corpus in `contracts/advisory-copilot/evaluation-corpus.v1.json` across all six action
+families and writes evidence to `output/advisory-copilot/evaluation-evidence.json`. Runtime lineage
+records evaluator version, dataset id, thresholds, metrics, failure reasons, and evaluation hash.
+Failed evaluation posture quarantines output before it can remain review-ready.
 
 Advisory copilot review writes derive authority from trusted reviewer headers before application
 state transitions. Supported reviewer roles are `ADVISORY_SUPERVISOR`, `COMPLIANCE_REVIEWER`, and

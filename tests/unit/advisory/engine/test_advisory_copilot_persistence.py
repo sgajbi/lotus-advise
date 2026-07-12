@@ -789,6 +789,14 @@ def _persist_run(
             "model_evaluation_result_ref": "advisory-copilot-eval-pack.v1:pass",
             "model_release_evidence_ref": "lotus-ai-release:advisory-copilot-workflow-packs:v1",
             "model_change_reference": "change:advisory-copilot-model-governance:v1",
+            "model_risk_evaluation": {
+                "approval_posture": "APPROVED",
+                "approved": True,
+                "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
+                "evaluator_version": "advisory-copilot-evaluator.v1",
+                "dataset_id": "advisory-copilot-evaluation-corpus.v1",
+                "evaluation_hash": "sha256:evaluation",
+            },
             "prompt_template_version": "advisory-copilot-prompt-template.v1",
             "output_schema_version": "advisory-copilot-output-schema.v1",
             "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
@@ -834,6 +842,10 @@ def test_persisted_copilot_run_is_replayable_and_excludes_raw_prompt() -> None:
     )
     assert result.run.lineage_json["model_change_reference"] == (
         "change:advisory-copilot-model-governance:v1"
+    )
+    assert result.run.lineage_json["model_risk_evaluation"]["approval_posture"] == "APPROVED"
+    assert result.run.lineage_json["model_risk_evaluation"]["dataset_id"] == (
+        "advisory-copilot-evaluation-corpus.v1"
     )
     assert result.run.retention_expires_at is not None
     assert result.run.retention_expires_at.year == 2033
