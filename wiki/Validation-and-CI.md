@@ -21,7 +21,7 @@ post-merge wiki publication. It names blocking commands and the evidence each la
 
 | Lane | Primary proof | What it protects |
 | --- | --- | --- |
-| Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, trust telemetry freshness, quality-baseline freshness, high-severity security, dependency-lock evidence, license/IP evidence, and unit behavior. |
+| Local fast gate | `make check` | Lint, typecheck, OpenAPI, no-alias, API vocabulary, domain data products, trust telemetry freshness, advisory data-lifecycle inventory, quality-baseline freshness, high-severity security, dependency-lock evidence, license/IP evidence, and unit behavior. |
 | Local PR-grade gate | `make ci` | Dependency health, static governance, migrations, security audit, dependency-lock evidence, license/IP evidence, release-image provenance, coverage, Docker build, Postgres runtime contracts, and production-profile guardrail negatives. |
 | Remote Feature Lane | GitHub `Remote Feature Lane` | Branch feedback for workflow lint, unit tests, dependency governance, dependency-lock evidence, license/IP evidence, Bandit severity regression, demo-assurance checks, and quality-baseline freshness. |
 | PR Merge Gate | GitHub `Pull Request Merge Gate` | Merge readiness across lint/typecheck governance, unit/integration/e2e tests, coverage, Docker build, Postgres migration smoke, production startup smoke, and production guardrail negatives. |
@@ -98,13 +98,18 @@ The current blocking posture is intentionally high-signal:
 7. `make trust-telemetry-freshness-gate`
    derives trust telemetry age and blocking posture from observed implementation evidence so stale
    snapshots cannot keep claiming current promotion posture.
-8. `make external-adapter-contracts`
+8. `make advisory-data-lifecycle-gate`
+   validates `contracts/data-governance/advisory-evidence-telemetry-field-inventory.v1.json`
+   so persisted advisory evidence, emitted telemetry, and downstream AI payload fields carry
+   classification, purpose, owner, allowed consumers, retention/purge, masking, and projection
+   decisions.
+9. `make external-adapter-contracts`
    validates the versioned consumer-contract fixture manifest for `lotus-core`, `lotus-risk`,
    `lotus-report`, and `lotus-ai`. The lane requires valid-response, malformed JSON, missing
    fields, identity/as-of mismatch, partial data, auth failure, timeout, retry or bounded
    non-retry, duplicate/idempotency, provider error mapping, and raw-payload/secret non-leakage
    evidence to reference real regression tests.
-9. `make quality-baseline-check`
+10. `make quality-baseline-check`
    blocks stale committed quality report and scorecard truth.
 10. `make migration-rollout-contract-gate`
    validates every checked-in Postgres migration has explicit namespace coverage, rollout phase,
