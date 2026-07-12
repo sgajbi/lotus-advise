@@ -39,9 +39,15 @@
 
 - Idempotency conflict behavior is explicit (same key + different payload -> conflict).
 - Workflow action conflicts are exposed through deterministic API responses.
+- Repeated proposal version, workflow event, and approval identities are append-only at repository
+  level: same persisted content is replay-safe, and same identity with different content raises an
+  explicit identity-conflict error instead of rewriting lifecycle evidence.
 - Evidence:
   - `src/core/advisory_engine.py`
   - `src/core/proposals/service.py`
+  - `src/infrastructure/proposals/postgres_versions.py`
+  - `src/infrastructure/proposals/postgres_workflow_events.py`
+  - `src/infrastructure/proposals/postgres_approvals.py`
   - `tests/unit/core/*`
 
 ## Integrity Constraints
@@ -67,5 +73,4 @@
 ## Deviations
 
 - Deviation from idempotent write semantics or durable workflow persistence requires ADR with expiry review date.
-
 
