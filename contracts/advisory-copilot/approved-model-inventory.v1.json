@@ -1,0 +1,71 @@
+{
+  "schema_version": "lotus.advise.advisory-copilot-approved-model-inventory.v1",
+  "inventory_id": "advisory-copilot-approved-model-inventory.v1",
+  "owner": "lotus-advise-and-lotus-ai",
+  "scope": "Approved provider, model, workflow-pack, environment, and change-control combinations for governed advisory copilot execution.",
+  "fail_closed": true,
+  "approved_provider_id": "lotus-ai",
+  "active_model_version": "lotus-ai-governed-model.v1",
+  "retired_model_versions": [
+    "lotus-ai-experimental-model.v2"
+  ],
+  "approved_environments": [
+    "DEVELOPMENT",
+    "LOCAL",
+    "DEV",
+    "TEST",
+    "CI",
+    "UAT",
+    "STAGING",
+    "PRODUCTION"
+  ],
+  "model_governance": {
+    "risk_tier": "MODEL_RISK_TIER_2_ADVISOR_ASSISTIVE",
+    "owner": "lotus-ai-model-risk",
+    "data_class": "ADVISORY_REVIEW_EVIDENCE",
+    "approval_reference": "MODEL-RISK-APPROVAL-ADVISORY-COPILOT-V1",
+    "evaluation_result_ref": "advisory-copilot-eval-pack.v1:pass",
+    "release_evidence_ref": "lotus-ai-release:advisory-copilot-workflow-packs:v1",
+    "change_reference": "change:advisory-copilot-model-governance:v1",
+    "rollback_reference": "rollback:advisory-copilot-model-governance:v2-to-v1",
+    "retired_model_reference": "retirement:advisory-copilot-model-governance:v2"
+  },
+  "model_risk_controls": {
+    "approved_instruction_set": "advisory-copilot-instructions.v1",
+    "prompt_template_version": "advisory-copilot-prompt-template.v1",
+    "output_schema_version": "advisory-copilot-output-schema.v1",
+    "evaluation_pack_ref": "advisory-copilot-eval-pack.v1"
+  },
+  "approved_workflow_pack_combinations": [
+    {
+      "action_family": "PROPOSAL_EXPLANATION",
+      "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+      "workflow_pack_version": "v1"
+    },
+    {
+      "action_family": "EVIDENCE_QA",
+      "workflow_pack_id": "advisory_copilot_evidence_qa.pack",
+      "workflow_pack_version": "v1"
+    },
+    {
+      "action_family": "MEETING_PREPARATION",
+      "workflow_pack_id": "advisory_copilot_meeting_preparation.pack",
+      "workflow_pack_version": "v1"
+    },
+    {
+      "action_family": "COMPLIANCE_REVIEW_SUMMARY",
+      "workflow_pack_id": "advisory_copilot_compliance_review_summary.pack",
+      "workflow_pack_version": "v1"
+    },
+    {
+      "action_family": "OPERATIONS_REPORT_HANDOFF",
+      "workflow_pack_id": "advisory_copilot_operations_report_handoff.pack",
+      "workflow_pack_version": "v1"
+    },
+    {
+      "action_family": "CLIENT_FOLLOW_UP_DRAFT",
+      "workflow_pack_id": "advisory_copilot_client_follow_up_draft.pack",
+      "workflow_pack_version": "v1"
+    }
+  ]
+}

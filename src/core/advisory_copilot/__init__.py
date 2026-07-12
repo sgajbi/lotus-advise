@@ -28,6 +28,16 @@ from src.core.advisory_copilot.guardrails import (
 from src.core.advisory_copilot.idempotency_records import (
     AdvisoryCopilotRunIdempotencyRecord,
 )
+from src.core.advisory_copilot.model_governance import (
+    ADVISORY_COPILOT_APPROVED_MODEL_VERSION,
+    ADVISORY_COPILOT_APPROVED_PROVIDER_ID,
+    ADVISORY_COPILOT_RETIRED_MODEL_VERSION,
+    AdvisoryCopilotModelApproval,
+    AdvisoryCopilotModelApprovalDecision,
+    advisory_copilot_model_approval_for_request,
+    list_advisory_copilot_model_approvals,
+    validate_advisory_copilot_model_response,
+)
 from src.core.advisory_copilot.packet_models import CopilotEvidencePacket
 from src.core.advisory_copilot.packet_persistence import (
     load_advisory_copilot_evidence_packet,
@@ -91,6 +101,9 @@ from src.core.advisory_copilot.workflow_pack import (
 
 __all__ = [
     "ACTION_REQUIRED_EVIDENCE_SECTIONS",
+    "ADVISORY_COPILOT_APPROVED_MODEL_VERSION",
+    "ADVISORY_COPILOT_APPROVED_PROVIDER_ID",
+    "ADVISORY_COPILOT_RETIRED_MODEL_VERSION",
     "COPILOT_ACTION_CATALOG",
     "COPILOT_BUSINESS_PROJECTIONS",
     "FORBIDDEN_INTENT_REASON_CODES",
@@ -100,6 +113,8 @@ __all__ = [
     "WORKFLOW_PACK_CALLER_APP",
     "WORKFLOW_PACK_EXECUTION_AUTHORITY",
     "AdvisoryCopilotEvidencePacketRecord",
+    "AdvisoryCopilotModelApproval",
+    "AdvisoryCopilotModelApprovalDecision",
     "AdvisoryCopilotRepository",
     "AdvisoryCopilotReviewRecord",
     "AdvisoryCopilotReviewResult",
@@ -128,6 +143,7 @@ __all__ = [
     "CopilotUnsupportedEvidence",
     "CopilotUnsupportedEvidenceReason",
     "align_copilot_output_claims_to_evidence",
+    "advisory_copilot_model_approval_for_request",
     "business_projection_for_action",
     "build_advisory_copilot_run_request_hash",
     "build_copilot_evidence_packet",
@@ -138,6 +154,7 @@ __all__ = [
     "get_copilot_action_definition",
     "guardrail_reason_for_intent",
     "is_terminal_review_posture",
+    "list_advisory_copilot_model_approvals",
     "list_advisory_copilot_reviews",
     "list_copilot_action_definitions",
     "load_advisory_copilot_evidence_packet",
@@ -147,6 +164,7 @@ __all__ = [
     "retention_expires_at",
     "review_posture_for_action",
     "save_advisory_copilot_evidence_packet",
+    "validate_advisory_copilot_model_response",
     "workflow_pack_id_for_action",
     "workflow_pack_version_for_action",
 ]

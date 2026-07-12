@@ -779,7 +779,16 @@ def _persist_run(
             "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
             "workflow_pack_version": "v1",
             "workflow_run_id": "packrun_copilot_001",
+            "model_provider_id": "lotus-ai",
             "model_version": "lotus-ai-governed-model.v1",
+            "model_inventory_id": "advisory-copilot.proposal_explanation.lotus-ai.v1",
+            "approved_model_provider_id": "lotus-ai",
+            "approved_model_version": "lotus-ai-governed-model.v1",
+            "model_approval_status": "APPROVED",
+            "model_approval_reference": "MODEL-RISK-APPROVAL-ADVISORY-COPILOT-V1",
+            "model_evaluation_result_ref": "advisory-copilot-eval-pack.v1:pass",
+            "model_release_evidence_ref": "lotus-ai-release:advisory-copilot-workflow-packs:v1",
+            "model_change_reference": "change:advisory-copilot-model-governance:v1",
             "prompt_template_version": "advisory-copilot-prompt-template.v1",
             "output_schema_version": "advisory-copilot-output-schema.v1",
             "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
@@ -817,6 +826,15 @@ def test_persisted_copilot_run_is_replayable_and_excludes_raw_prompt() -> None:
     assert result.run.review_posture == "REVIEW_REQUIRED"
     assert result.run.client_ready_publication == "BLOCKED"
     assert result.run.lotus_ai_workflow_run_id == "packrun_copilot_001"
+    assert result.run.lotus_ai_model_version == "lotus-ai-governed-model.v1"
+    assert result.run.lineage_json["approved_model_provider_id"] == "lotus-ai"
+    assert result.run.lineage_json["approved_model_version"] == "lotus-ai-governed-model.v1"
+    assert result.run.lineage_json["model_approval_reference"] == (
+        "MODEL-RISK-APPROVAL-ADVISORY-COPILOT-V1"
+    )
+    assert result.run.lineage_json["model_change_reference"] == (
+        "change:advisory-copilot-model-governance:v1"
+    )
     assert result.run.retention_expires_at is not None
     assert result.run.retention_expires_at.year == 2033
 

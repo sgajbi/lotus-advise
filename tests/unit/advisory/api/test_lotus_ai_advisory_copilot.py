@@ -9,6 +9,10 @@ from src.core.advisory_copilot import (
     CopilotLineageRef,
     CopilotSourceRef,
 )
+from src.core.advisory_copilot.model_governance import (
+    AdvisoryCopilotModelApproval,
+    advisory_copilot_model_approval_for_request,
+)
 from src.integrations.lotus_ai.advisory_copilot import (
     MAX_COPILOT_OUTPUT_SECTIONS,
     _build_workflow_pack_request,
@@ -105,6 +109,22 @@ def _grounded_claim(claim_id: str = "policy_posture_claim_001") -> dict[str, obj
     }
 
 
+def _model_approval() -> AdvisoryCopilotModelApproval:
+    decision = advisory_copilot_model_approval_for_request(
+        action_family="PROPOSAL_EXPLANATION",
+        environment="DEVELOPMENT",
+        workflow_pack_id="advisory_copilot_proposal_explanation.pack",
+        workflow_pack_version="v1",
+        approved_instruction_set="advisory-copilot-instructions.v1",
+        prompt_template_version="advisory-copilot-prompt-template.v1",
+        output_schema_version="advisory-copilot-output-schema.v1",
+        evaluation_pack_ref="advisory-copilot-eval-pack.v1",
+    )
+    assert decision.approved is True
+    assert decision.approval is not None
+    return decision.approval
+
+
 def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_only() -> None:
     request = _build_workflow_pack_request(
         evidence_packet=_packet(),
@@ -112,6 +132,7 @@ def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_onl
         requested_outputs=["advisor_review_summary"],
         requested_by="advisor_001",
         reason={"purpose": "advisor review"},
+        model_approval=_model_approval(),
     )
 
     task_request = request["task_request"]
@@ -137,6 +158,13 @@ def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_onl
     assert payload["model_risk_controls"]["approved_instruction_set"] == (
         "advisory-copilot-instructions.v1"
     )
+    assert payload["model_risk_controls"]["approved_provider_id"] == "lotus-ai"
+    assert payload["model_risk_controls"]["approved_model_version"] == (
+        "lotus-ai-governed-model.v1"
+    )
+    assert payload["model_risk_controls"]["approval_reference"] == (
+        "MODEL-RISK-APPROVAL-ADVISORY-COPILOT-V1"
+    )
     assert payload["supportability"]["client_ready_publication"] == "BLOCKED"
     assert "trade_or_order_action" in payload["supportability"]["unsupported_claims"]
     assert context["source_refs"] == [
@@ -160,6 +188,7 @@ def test_workflow_pack_request_bounds_outbound_advisor_context() -> None:
             "raw_prompt": "secret raw prompt should not leave advise",
             "notes": [" cited evidence only ", "x" * 1200, 7],
         },
+        model_approval=_model_approval(),
     )
 
     task_request = request["task_request"]
@@ -202,6 +231,7 @@ def test_generate_advisory_copilot_returns_review_required_sections(
                         "execution": {
                             "status": "COMPLETED",
                             "result": {
+                                "provider_id": "lotus-ai",
                                 "model_version": "lotus-ai-governed-model.v1",
                                 "structured_output": {
                                     "state": "REVIEW_REQUIRED",
@@ -264,6 +294,18 @@ def test_generate_advisory_copilot_returns_review_required_sections(
     assert response.lineage["claim_grounding_summary"]["ready_for_review"] is True
     assert response.lineage["workflow_run_id"] == "packrun_copilot_001"
     assert response.lineage["model_version"] == "lotus-ai-governed-model.v1"
+    assert response.lineage["model_provider_id"] == "lotus-ai"
+    assert response.lineage["model_inventory_id"] == (
+        "advisory-copilot.proposal_explanation.lotus-ai.v1"
+    )
+    assert response.lineage["approved_model_provider_id"] == "lotus-ai"
+    assert response.lineage["approved_model_version"] == "lotus-ai-governed-model.v1"
+    assert response.lineage["model_approval_reference"] == (
+        "MODEL-RISK-APPROVAL-ADVISORY-COPILOT-V1"
+    )
+    assert response.lineage["model_rollback_reference"] == (
+        "rollback:advisory-copilot-model-governance:v2-to-v1"
+    )
     assert response.lineage["proposal_version_id"] == "version_sg_001"
     assert response.lineage["proposal_version_no"] == 1
     assert response.lineage["fallback_reason"] is None
@@ -285,6 +327,8 @@ def test_generate_advisory_copilot_extracts_proposal_version_from_source_refs(
                         "execution": {
                             "status": "COMPLETED",
                             "result": {
+                                "provider_id": "lotus-ai",
+                                "model_version": "lotus-ai-governed-model.v1",
                                 "structured_output": {
                                     "sections": [
                                         {
@@ -375,6 +419,8 @@ def test_generate_advisory_copilot_marks_missing_claim_refs_unsupported(
                         "execution": {
                             "status": "COMPLETED",
                             "result": {
+                                "provider_id": "lotus-ai",
+                                "model_version": "lotus-ai-governed-model.v1",
                                 "structured_output": {
                                     "state": "REVIEW_REQUIRED",
                                     "sections": [
@@ -427,6 +473,8 @@ def test_generate_advisory_copilot_marks_unknown_source_refs_unverifiable(
                         "execution": {
                             "status": "COMPLETED",
                             "result": {
+                                "provider_id": "lotus-ai",
+                                "model_version": "lotus-ai-governed-model.v1",
                                 "structured_output": {
                                     "sections": [
                                         {
@@ -483,6 +531,8 @@ def test_generate_advisory_copilot_marks_duplicate_claim_ids_unverifiable(
                         "execution": {
                             "status": "COMPLETED",
                             "result": {
+                                "provider_id": "lotus-ai",
+                                "model_version": "lotus-ai-governed-model.v1",
                                 "structured_output": {
                                     "sections": [
                                         {
@@ -536,6 +586,8 @@ def test_generate_advisory_copilot_fails_closed_for_invalid_output_sections(
                         "execution": {
                             "status": "COMPLETED",
                             "result": {
+                                "provider_id": "lotus-ai",
+                                "model_version": "lotus-ai-governed-model.v1",
                                 "structured_output": {
                                     "state": "REVIEW_REQUIRED",
                                     "sections": [
@@ -586,6 +638,8 @@ def test_generate_advisory_copilot_bounds_sections_and_review_guidance(
                         "execution": {
                             "status": "COMPLETED",
                             "result": {
+                                "provider_id": "lotus-ai",
+                                "model_version": "lotus-ai-governed-model.v1",
                                 "structured_output": {
                                     "state": "REVIEW_REQUIRED",
                                     "sections": [
@@ -657,7 +711,34 @@ def test_generate_advisory_copilot_fails_closed_before_unsafe_execution(
     )
 
 
-def test_generate_advisory_copilot_rejects_unsafe_output(
+def test_generate_advisory_copilot_fails_closed_for_unapproved_model_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called = False
+
+    def _client(*args, **kwargs):  # noqa: ANN002, ANN003
+        nonlocal called
+        called = True
+        return _FakeClient(*args, **kwargs)
+
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai.dev.lotus")
+    monkeypatch.setenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", "EXPERIMENTAL_LAB")
+    monkeypatch.setattr("src.integrations.lotus_ai.advisory_copilot.httpx.Client", _client)
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert called is False
+    assert response.status == "UNAVAILABLE"
+    assert response.lineage["fallback_reason"] == "COPILOT_MODEL_ENVIRONMENT_NOT_APPROVED"
+
+
+def test_generate_advisory_copilot_fails_closed_for_missing_model_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     base_url = "http://lotus-ai.dev.lotus"
@@ -678,10 +759,118 @@ def test_generate_advisory_copilot_rejects_unsafe_output(
                                         {
                                             "section_key": "POLICY_POSTURE",
                                             "title": "Policy posture",
-                                            "text": "Ready to send to client. Raw prompt attached.",
+                                            "text": "Evidence remains under advisor review.",
                                         }
                                     ]
                                 }
+                            },
+                        },
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert response.lineage["fallback_reason"] == "COPILOT_MODEL_IDENTITY_MISSING"
+
+
+@pytest.mark.parametrize(
+    ("provider_id", "model_version", "fallback_reason"),
+    (
+        ("unapproved-provider", "lotus-ai-governed-model.v1", "COPILOT_MODEL_IDENTITY_MISMATCH"),
+        ("lotus-ai", "lotus-ai-experimental-model.v2", "COPILOT_MODEL_RETIRED"),
+    ),
+)
+def test_generate_advisory_copilot_fails_closed_for_unapproved_model_identity(
+    monkeypatch: pytest.MonkeyPatch,
+    provider_id: str,
+    model_version: str,
+    fallback_reason: str,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "provider_id": provider_id,
+                                "model_version": model_version,
+                                "structured_output": {
+                                    "sections": [
+                                        {
+                                            "section_key": "POLICY_POSTURE",
+                                            "title": "Policy posture",
+                                            "text": "Evidence remains under advisor review.",
+                                        }
+                                    ]
+                                },
+                            },
+                        },
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert response.lineage["fallback_reason"] == fallback_reason
+    assert response.lineage["model_provider_id"] == provider_id
+    assert response.lineage["model_version"] == model_version
+
+
+def test_generate_advisory_copilot_rejects_unsafe_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "provider_id": "lotus-ai",
+                                "model_version": "lotus-ai-governed-model.v1",
+                                "structured_output": {
+                                    "sections": [
+                                        {
+                                            "section_key": "POLICY_POSTURE",
+                                            "title": "Policy posture",
+                                            "text": "Ready to send to client. Raw prompt attached.",
+                                        }
+                                    ]
+                                },
                             },
                         },
                         "workflow_pack_run": {"run_id": "packrun_copilot_unsafe"},

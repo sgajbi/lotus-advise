@@ -16,6 +16,15 @@ from src.core.advisory_copilot import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
+from src.core.advisory_copilot.model_governance import (
+    ADVISORY_COPILOT_APPROVED_INSTRUCTION_SET,
+    ADVISORY_COPILOT_EVALUATION_PACK_REF,
+    ADVISORY_COPILOT_OUTPUT_SCHEMA_VERSION,
+    ADVISORY_COPILOT_PROMPT_TEMPLATE_VERSION,
+    AdvisoryCopilotModelApproval,
+    advisory_copilot_model_approval_for_request,
+    validate_advisory_copilot_model_response,
+)
 from src.integrations.lotus_ai.advisory_copilot_request import (
     build_advisory_copilot_workflow_pack_request,
     has_source_refs,
@@ -32,19 +41,21 @@ from src.integrations.lotus_ai.output_safety import (
     map_review_required_sections,
 )
 from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.workflow_request import workflow_pack_environment
 from src.integrations.lotus_ai.workflow_response import (
     extract_error_detail,
     extract_model_version,
+    extract_provider_id,
     extract_workflow_run_id,
     safe_dict,
 )
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "advisory-copilot-lotus-ai-adapter.v1"
-APPROVED_INSTRUCTION_SET = "advisory-copilot-instructions.v1"
-PROMPT_TEMPLATE_VERSION = "advisory-copilot-prompt-template.v1"
-OUTPUT_SCHEMA_VERSION = "advisory-copilot-output-schema.v1"
-EVALUATION_PACK_REF = "advisory-copilot-eval-pack.v1"
+APPROVED_INSTRUCTION_SET = ADVISORY_COPILOT_APPROVED_INSTRUCTION_SET
+PROMPT_TEMPLATE_VERSION = ADVISORY_COPILOT_PROMPT_TEMPLATE_VERSION
+OUTPUT_SCHEMA_VERSION = ADVISORY_COPILOT_OUTPUT_SCHEMA_VERSION
+EVALUATION_PACK_REF = ADVISORY_COPILOT_EVALUATION_PACK_REF
 MAX_COPILOT_OUTPUT_SECTIONS = DEFAULT_AI_OUTPUT_SECTION_LIMIT
 MAX_COPILOT_SECTION_KEY_LENGTH = DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH
 MAX_COPILOT_SECTION_TITLE_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH
@@ -81,6 +92,25 @@ def generate_advisory_copilot_draft_with_lotus_ai(
     if preflight_rejection is not None:
         return preflight_rejection
 
+    environment = workflow_pack_environment()
+    approval_decision = advisory_copilot_model_approval_for_request(
+        action_family=evidence_packet.action_family,
+        environment=environment,
+        workflow_pack_id=workflow_pack_id_for_action(evidence_packet.action_family),
+        workflow_pack_version=workflow_pack_version_for_action(evidence_packet.action_family),
+        approved_instruction_set=APPROVED_INSTRUCTION_SET,
+        prompt_template_version=PROMPT_TEMPLATE_VERSION,
+        output_schema_version=OUTPUT_SCHEMA_VERSION,
+        evaluation_pack_ref=EVALUATION_PACK_REF,
+    )
+    if not approval_decision.approved or approval_decision.approval is None:
+        return build_advisory_copilot_unavailable_draft(
+            evidence_packet=evidence_packet,
+            fallback_reason=approval_decision.code,
+            caused_by=None,
+            model_environment=environment,
+        )
+
     try:
         response_status, payload = _execute_workflow_pack(
             evidence_packet=evidence_packet,
@@ -88,18 +118,23 @@ def generate_advisory_copilot_draft_with_lotus_ai(
             requested_outputs=requested_outputs,
             requested_by=requested_by,
             reason=reason,
+            model_approval=approval_decision.approval,
         )
     except (httpx.HTTPError, ValueError, LotusAIAdvisoryCopilotUnavailableError) as exc:
         return build_advisory_copilot_unavailable_draft(
             evidence_packet=evidence_packet,
             fallback_reason="LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
             caused_by=exc,
+            model_approval=approval_decision.approval,
+            model_environment=environment,
         )
 
     return _draft_from_workflow_response(
         evidence_packet=evidence_packet,
         response_status=response_status,
         payload=payload,
+        model_approval=approval_decision.approval,
+        model_environment=environment,
     )
 
 
@@ -131,6 +166,7 @@ def _execute_workflow_pack(
     requested_outputs: list[str],
     requested_by: str,
     reason: dict[str, Any],
+    model_approval: AdvisoryCopilotModelApproval,
 ) -> tuple[int, dict[str, Any]]:
     base_url = _resolve_base_url()
     request_payload = _build_workflow_pack_request(
@@ -139,6 +175,7 @@ def _execute_workflow_pack(
         requested_outputs=requested_outputs,
         requested_by=requested_by,
         reason=reason,
+        model_approval=model_approval,
     )
     with httpx.Client(timeout=_resolve_timeout()) as client:
         response = client.post(
@@ -153,6 +190,8 @@ def _draft_from_workflow_response(
     evidence_packet: CopilotEvidencePacket,
     response_status: int,
     payload: dict[str, Any],
+    model_approval: AdvisoryCopilotModelApproval,
+    model_environment: str,
 ) -> AdvisoryCopilotAiDraft:
     if response_status != 200:
         return build_advisory_copilot_unavailable_draft(
@@ -163,6 +202,8 @@ def _draft_from_workflow_response(
                 max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
             ),
             caused_by=None,
+            model_approval=model_approval,
+            model_environment=model_environment,
         )
 
     execution = safe_dict(payload.get("execution"))
@@ -171,9 +212,29 @@ def _draft_from_workflow_response(
             evidence_packet=evidence_packet,
             fallback_reason="LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
             caused_by=None,
+            model_approval=model_approval,
+            model_environment=model_environment,
         )
 
     result = safe_dict(execution.get("result"))
+    provider_id = extract_provider_id(result, max_length=MAX_COPILOT_LINEAGE_REF_LENGTH)
+    model_version = extract_model_version(result, max_length=MAX_COPILOT_LINEAGE_REF_LENGTH)
+    response_model_decision = validate_advisory_copilot_model_response(
+        expected_approval=model_approval,
+        provider_id=provider_id,
+        model_version=model_version,
+    )
+    if not response_model_decision.approved:
+        return build_advisory_copilot_unavailable_draft(
+            evidence_packet=evidence_packet,
+            fallback_reason=response_model_decision.code,
+            caused_by=None,
+            model_approval=model_approval,
+            model_environment=model_environment,
+            provider_id=provider_id,
+            model_version=model_version,
+        )
+
     structured_output = safe_dict(result.get("structured_output"))
     raw_sections = structured_output.get("sections")
     sections = _map_sections(raw_sections)
@@ -182,6 +243,10 @@ def _draft_from_workflow_response(
             evidence_packet=evidence_packet,
             fallback_reason="LOTUS_AI_ADVISORY_COPILOT_INVALID_OUTPUT",
             caused_by=None,
+            model_approval=model_approval,
+            model_environment=model_environment,
+            provider_id=provider_id,
+            model_version=model_version,
         )
     return _draft_from_completed_workflow_output(
         evidence_packet=evidence_packet,
@@ -190,6 +255,10 @@ def _draft_from_workflow_response(
         structured_output=structured_output,
         raw_sections=raw_sections,
         sections=sections,
+        model_approval=model_approval,
+        model_environment=model_environment,
+        provider_id=provider_id,
+        model_version=model_version,
     )
 
 
@@ -201,6 +270,10 @@ def _draft_from_completed_workflow_output(
     structured_output: dict[str, Any],
     raw_sections: Any,
     sections: tuple[dict[str, Any], ...],
+    model_approval: AdvisoryCopilotModelApproval,
+    model_environment: str,
+    provider_id: str | None,
+    model_version: str | None,
 ) -> AdvisoryCopilotAiDraft:
     output_reasons = evaluate_copilot_guardrails(
         requested_intents=(),
@@ -217,10 +290,10 @@ def _draft_from_completed_workflow_output(
                 payload,
                 max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
             ),
-            model_version=extract_model_version(
-                result,
-                max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
-            ),
+            model_version=model_version,
+            provider_id=provider_id,
+            model_approval=model_approval,
+            model_environment=model_environment,
         )
 
     grounded_sections, grounding_summary = align_copilot_output_claims_to_evidence(
@@ -247,6 +320,9 @@ def _draft_from_completed_workflow_output(
                 result,
                 max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
             ),
+            provider_id=provider_id,
+            model_approval=model_approval,
+            model_environment=model_environment,
             fallback_reason=None,
             claim_grounding_summary=grounding_summary,
         ),
@@ -264,6 +340,10 @@ def build_advisory_copilot_unavailable_draft(
     evidence_packet: CopilotEvidencePacket,
     fallback_reason: str,
     caused_by: Exception | None = None,
+    model_approval: AdvisoryCopilotModelApproval | None = None,
+    model_environment: str | None = None,
+    provider_id: str | None = None,
+    model_version: str | None = None,
 ) -> AdvisoryCopilotAiDraft:
     if caused_by is not None:
         fallback_reason = fallback_reason or caused_by.__class__.__name__
@@ -273,8 +353,11 @@ def build_advisory_copilot_unavailable_draft(
         lineage=_build_lineage(
             evidence_packet=evidence_packet,
             workflow_run_id=None,
-            model_version=None,
+            model_version=model_version,
+            provider_id=provider_id,
             fallback_reason=fallback_reason,
+            model_approval=model_approval,
+            model_environment=model_environment,
         ),
         review_guidance=(
             "Advisory copilot support is unavailable; use source evidence and deterministic "
@@ -293,6 +376,9 @@ def _guardrail_rejected_draft(
     fallback_reason: str,
     workflow_run_id: str | None = None,
     model_version: str | None = None,
+    provider_id: str | None = None,
+    model_approval: AdvisoryCopilotModelApproval | None = None,
+    model_environment: str | None = None,
 ) -> AdvisoryCopilotAiDraft:
     return AdvisoryCopilotAiDraft(
         status="GUARDRAIL_REJECTED",
@@ -301,7 +387,10 @@ def _guardrail_rejected_draft(
             evidence_packet=evidence_packet,
             workflow_run_id=workflow_run_id,
             model_version=model_version,
+            provider_id=provider_id,
             fallback_reason=fallback_reason,
+            model_approval=model_approval,
+            model_environment=model_environment,
         ),
         review_guidance=(
             "The advisory copilot request was blocked by governed safety controls.",
@@ -319,6 +408,7 @@ def _build_workflow_pack_request(
     requested_outputs: list[str],
     requested_by: str,
     reason: dict[str, Any],
+    model_approval: AdvisoryCopilotModelApproval,
 ) -> dict[str, object]:
     return cast(
         dict[str, object],
@@ -333,6 +423,11 @@ def _build_workflow_pack_request(
             prompt_template_version=PROMPT_TEMPLATE_VERSION,
             output_schema_version=OUTPUT_SCHEMA_VERSION,
             evaluation_pack_ref=EVALUATION_PACK_REF,
+            approved_provider_id=model_approval.provider_id,
+            approved_model_version=model_approval.model_version,
+            approval_reference=model_approval.approval_reference,
+            change_reference=model_approval.change_reference,
+            release_evidence_ref=model_approval.release_evidence_ref,
         ),
     )
 
@@ -380,7 +475,10 @@ def _build_lineage(
     evidence_packet: CopilotEvidencePacket,
     workflow_run_id: str | None,
     model_version: str | None,
+    provider_id: str | None = None,
     fallback_reason: str | None,
+    model_approval: AdvisoryCopilotModelApproval | None = None,
+    model_environment: str | None = None,
     claim_grounding_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     lineage: dict[str, Any] = {
@@ -390,6 +488,7 @@ def _build_lineage(
         "workflow_surface": workflow_surface(evidence_packet.action_family),
         "workflow_run_id": workflow_run_id,
         "model_version": model_version,
+        "model_provider_id": provider_id,
         "approved_instruction_set": APPROVED_INSTRUCTION_SET,
         "prompt_template_version": PROMPT_TEMPLATE_VERSION,
         "output_schema_version": OUTPUT_SCHEMA_VERSION,
@@ -399,6 +498,8 @@ def _build_lineage(
         "proposal_version_no": _proposal_version_no(evidence_packet),
         "fallback_reason": fallback_reason,
     }
+    if model_approval is not None:
+        lineage.update(model_approval.lineage(environment=model_environment or "DEVELOPMENT"))
     if claim_grounding_summary is not None:
         lineage["claim_grounding_summary"] = claim_grounding_summary
     return lineage

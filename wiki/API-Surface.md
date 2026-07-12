@@ -166,6 +166,11 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   and lineage. Completed provider output remains review-ready only when every claim cites source
   refs from the input evidence packet and aligns to the output section; missing, duplicate,
   unknown, or mismatched citations are exposed as unsupported or unverifiable review posture.
+- Advisory copilot Lotus AI output also requires approved provider/model lineage from
+  `contracts/advisory-copilot/approved-model-inventory.v1.json`. Unknown, retired, mismatched, or
+  environment-incompatible model identity returns unavailable before completed output sections are
+  accepted, and persisted run lineage includes model approval, evaluation, release, change, and
+  rollback references.
 - Advisory copilot review routes require a trusted reviewer principal at the API boundary.
   `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
   identity, `X-Capabilities`, and authorized proposal/portfolio headers drive authority,

@@ -51,6 +51,11 @@ def build_advisory_copilot_workflow_pack_request(
     prompt_template_version: str,
     output_schema_version: str,
     evaluation_pack_ref: str,
+    approved_provider_id: str,
+    approved_model_version: str,
+    approval_reference: str,
+    change_reference: str,
+    release_evidence_ref: str,
 ) -> dict[str, object]:
     action_family = evidence_packet.action_family
     bounded_requested_by = bounded_text(
@@ -82,6 +87,11 @@ def build_advisory_copilot_workflow_pack_request(
                     "prompt_template_version": prompt_template_version,
                     "output_schema_version": output_schema_version,
                     "evaluation_pack_ref": evaluation_pack_ref,
+                    "approved_provider_id": approved_provider_id,
+                    "approved_model_version": approved_model_version,
+                    "approval_reference": approval_reference,
+                    "change_reference": change_reference,
+                    "release_evidence_ref": release_evidence_ref,
                 },
                 "supportability": {
                     "human_review_required": True,
