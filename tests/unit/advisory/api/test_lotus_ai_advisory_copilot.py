@@ -152,9 +152,21 @@ def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_onl
     assert "instruction" not in task_request
     assert "prompt" not in payload
     assert "instruction" not in payload
+    payload_text = str(payload)
+    assert "PB_SG_GLOBAL_BAL_001" not in payload_text
+    assert "proposal_sg_structured_note_001" not in payload_text
+    assert "policy_eval_sg_001" not in payload_text
+    assert payload["copilot_evidence_packet"]["contract_version"] == (
+        "advisory-copilot-ai-data-boundary.v1"
+    )
     assert payload["copilot_evidence_packet"]["evidence_packet_hash"] == (
         "sha256:copilot-evidence-packet-001"
     )
+    assert payload["copilot_evidence_packet"]["portfolio_ref"].startswith("tok_portfolio_")
+    assert payload["copilot_evidence_packet"]["proposal_ref"].startswith("tok_proposal_")
+    assert payload["copilot_evidence_packet"]["sections"][0]["source_refs"][0][
+        "source_ref_token"
+    ].startswith("tok_source-ref_")
     assert payload["model_risk_controls"]["approved_instruction_set"] == (
         "advisory-copilot-instructions.v1"
     )
@@ -165,6 +177,16 @@ def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_onl
     assert payload["model_risk_controls"]["approval_reference"] == (
         "MODEL-RISK-APPROVAL-ADVISORY-COPILOT-V1"
     )
+    assert payload["ai_data_controls"] == {
+        "contract_version": "advisory-copilot-ai-data-boundary.v1",
+        "approved_provider_id": "lotus-ai",
+        "training_allowed": False,
+        "provider_retention_policy": "NO_TRAINING_ZERO_PROVIDER_RETENTION",
+        "residency": "SG",
+        "deletion_policy": "DELETE_WITH_ADVISE_RETENTION_OR_LEGAL_HOLD",
+        "payload_minimization": "TOKENIZED_IDENTIFIERS_CLASSIFIED_EVIDENCE_ONLY",
+        "source_ref_policy": "GROUNDING_REFERENCES_RETAINED_IN_CONTEXT_SOURCE_REFS",
+    }
     assert payload["supportability"]["client_ready_publication"] == "BLOCKED"
     assert "trade_or_order_action" in payload["supportability"]["unsupported_claims"]
     assert context["source_refs"] == [

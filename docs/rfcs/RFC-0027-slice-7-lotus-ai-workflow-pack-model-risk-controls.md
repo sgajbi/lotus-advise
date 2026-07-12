@@ -41,7 +41,12 @@ Slice 7 implements the cross-repository AI execution boundary:
    `make advisory-copilot-safety-gate` runs
    `contracts/advisory-copilot/safety-abuse-corpus.v1.json` through typed preflight and postflight
    policy inputs and emits sanitized evidence to `output/advisory-copilot/safety-evidence.json`.
-8. The adapter fails closed:
+8. The adapter applies AI data-boundary minimization from
+   `src/core/advisory_copilot/ai_data_boundary.py` and
+   `contracts/advisory-copilot/ai-data-boundary.v1.json`; outbound payloads carry tokenized
+   portfolio/proposal/source identifiers and explicit provider no-training, retention, residency,
+   and deletion controls.
+9. The adapter fails closed:
    - unsafe requested intent or prompt-injection posture returns `GUARDRAIL_REJECTED` before calling
      `lotus-ai`,
    - unavailable, disabled, non-completed, or transport-failed `lotus-ai` returns deterministic
@@ -79,6 +84,7 @@ reference, runtime model environment, and executable model-risk evaluation postu
 | `tests/unit/advisory/engine/test_advisory_copilot_model_governance.py` | Executable approved provider/model inventory, contract alignment, environment allowlist, retired model rejection, and rollback-approved active model lineage. |
 | `tests/unit/advisory/engine/test_advisory_copilot_evaluation_gate.py` | Executable evaluation-pack gate, sanitized corpus expansion across all six action families, positive/negative posture checks, and regression failure evidence. |
 | `tests/unit/advisory/engine/test_advisory_copilot_safety_gate.py` and `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | Executable safety-abuse gate, typed guardrail policy inputs, indirect prompt injection in source evidence, whitespace/base64-obfuscated instruction attempts, forbidden output variants, sensitive output, and safe advisor-review text. |
+| `tests/unit/advisory/engine/test_advisory_copilot_ai_data_boundary.py` | AI data-boundary contract alignment, tokenized portfolio/proposal/source identifiers, unclassified evidence rejection, and provider no-training/retention/residency/deletion controls. |
 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | Durable run lineage persists approved provider/model identity, approval reference, release/evaluation/change evidence, and `lotus-ai` model version. |
 | `lotus-ai/tests/unit/test_workflow_pack_execution.py` | Registered pack execution, review-gated output, model-risk fields, and forbidden client output rejection before side effects. |
 | `lotus-ai/tests/unit/test_workflow_pack_registry.py` and route-contract tests | Registry, binding, queue-policy, supportability, runtime-status, and wiki-backed route posture for the six copilot packs. |

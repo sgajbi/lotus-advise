@@ -216,15 +216,20 @@ Current repository posture:
    evaluation gate in `src/core/advisory_copilot/evaluation_gate.py` using
    `contracts/advisory-copilot/evaluation-corpus.v1.json`, then pass structured safety policy in
    `src/core/advisory_copilot/guardrails.py` using
-   `contracts/advisory-copilot/safety-abuse-corpus.v1.json`, and then pass claim-level source
+   `contracts/advisory-copilot/safety-abuse-corpus.v1.json`, then satisfy AI data-boundary
+   minimization in `src/core/advisory_copilot/ai_data_boundary.py` and
+   `contracts/advisory-copilot/ai-data-boundary.v1.json`, and then pass claim-level source
    grounding before it can remain review-ready. Unknown, retired, mismatched, or
    environment-incompatible `lotus-ai` model identity returns a stable unavailable posture before
    completed output can be persisted; failed evaluation evidence quarantines output as unsupported,
    while prompt-injection, forbidden-action, client-ready, or sensitive-output evidence returns a
-   stable guardrail-rejected posture. Each provider claim must cite source refs from the input
-   evidence packet and align to the output section; missing, duplicate, unknown, or mismatched
-   citations are persisted as unsupported or unverifiable grounding posture rather than as
-   review-ready AI output. Copilot review actions must also bind reviewer authority to trusted
+   stable guardrail-rejected posture. Outbound AI payloads carry tokenized portfolio/proposal/source
+   identifiers and explicit no-training, retention, residency, and deletion controls; grounding
+   references remain in the workflow context because generated claims must cite stable source refs.
+   Each provider claim must cite source refs from the input evidence packet and align to the output
+   section; missing, duplicate, unknown, or mismatched citations are persisted as unsupported or
+   unverifiable grounding posture rather than as review-ready AI output. Copilot review actions must
+   also bind reviewer authority to trusted
    copilot-review headers before mutation; request-body `actor_id` is a compatibility echo only,
    while trusted principal identity drives role/capability checks, proposal/portfolio/tenant scope,
    maker-checker enforcement, audit metadata, and idempotent replay identity.

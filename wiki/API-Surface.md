@@ -181,6 +181,10 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   `contracts/advisory-copilot/safety-abuse-corpus.v1.json`. Unsafe user instruction, source
   evidence, or generated output returns stable guardrail reason codes before output is persisted or
   exposed as review-ready.
+- Advisory copilot AI data-boundary posture is governed by
+  `contracts/advisory-copilot/ai-data-boundary.v1.json`. Outbound Lotus AI payloads use tokenized
+  portfolio/proposal/source identifiers and carry provider no-training, retention, residency, and
+  deletion controls; context source refs remain available for claim grounding.
 - Advisory copilot review routes require a trusted reviewer principal at the API boundary.
   `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
   identity, `X-Capabilities`, and authorized proposal/portfolio headers drive authority,

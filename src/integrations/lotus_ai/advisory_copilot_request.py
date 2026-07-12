@@ -7,7 +7,9 @@ from src.core.advisory_copilot import (
     CopilotActionFamily,
     CopilotAudience,
     CopilotEvidencePacket,
+    advisory_copilot_ai_data_controls,
     copilot_source_ref_identity,
+    minimized_copilot_evidence_packet,
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
@@ -73,7 +75,7 @@ def build_advisory_copilot_workflow_pack_request(
             requested_by=bounded_requested_by,
             context_summary="Draft review-gated advisory copilot output from bounded evidence.",
             context_payload={
-                "copilot_evidence_packet": evidence_packet.model_dump(mode="json"),
+                "copilot_evidence_packet": minimized_copilot_evidence_packet(evidence_packet),
                 "copilot_request": {
                     "action_family": action_family,
                     "audience": audience,
@@ -93,6 +95,9 @@ def build_advisory_copilot_workflow_pack_request(
                     "change_reference": change_reference,
                     "release_evidence_ref": release_evidence_ref,
                 },
+                "ai_data_controls": advisory_copilot_ai_data_controls(
+                    approved_provider_id=approved_provider_id
+                ),
                 "supportability": {
                     "human_review_required": True,
                     "client_ready_publication": "BLOCKED",
