@@ -1,0 +1,219 @@
+{
+  "schema_version": "lotus.advise.durable-state-recovery.v1",
+  "service_name": "lotus-advise",
+  "recovery_targets": {
+    "rto_minutes": 30,
+    "rpo_minutes": 15,
+    "target_source": "docs/standards/scalability-availability.md",
+    "certification_boundary": "Repository gate validates service-owned recovery scope and drill evidence shape; platform database operations own backup vendor, storage replication, and environment restore execution."
+  },
+  "backup_owner_boundary": {
+    "service_owner": "lotus-advise",
+    "database_platform_owner": "platform-database-operations",
+    "service_owned_responsibilities": [
+      "declare durable namespaces and replay-sensitive records",
+      "keep migration targets and recovery scope aligned",
+      "define post-restore integrity, replay, and quarantine checks",
+      "record non-production restore-drill evidence before production promotion"
+    ],
+    "platform_owned_responsibilities": [
+      "managed PostgreSQL backup scheduling",
+      "backup encryption and storage retention",
+      "point-in-time restore execution",
+      "cross-region database disaster-recovery controls"
+    ]
+  },
+  "durable_namespaces": [
+    {
+      "namespace_key": "proposals",
+      "owner": "proposal-lifecycle",
+      "dsn_env": "PROPOSAL_POSTGRES_DSN",
+      "migration_target": "proposals",
+      "backup_scope": "managed-postgresql-database-or-schema-backup",
+      "retention_class": "ADVISORY_PROPOSAL_RECORD",
+      "rto_minutes": 30,
+      "rpo_minutes": 15,
+      "durable_records": [
+        "proposals",
+        "proposal_versions",
+        "proposal_workflow_events",
+        "proposal_approvals",
+        "proposal_idempotency",
+        "proposal_simulation_idempotency",
+        "proposal_async_operations",
+        "proposal_memos",
+        "proposal_memo_events",
+        "proposal_memo_idempotency",
+        "cockpit_acknowledgements",
+        "cockpit_acknowledgement_idempotency"
+      ],
+      "restore_checks": [
+        {
+          "check_key": "proposal_migration_state",
+          "command": "python scripts/production_cutover_check.py --check-migrations",
+          "evidence_path": "output/durable-state-recovery/production-cutover-check.json"
+        },
+        {
+          "check_key": "proposal_repository_contract",
+          "command": "python -m pytest tests/unit/shared/dependencies/test_runtime_persistence.py tests/unit/shared/dependencies/test_postgres_migrate_targets.py -q",
+          "evidence_path": "output/durable-state-recovery/proposal-repository-contract.txt"
+        },
+        {
+          "check_key": "proposal_replay_and_async_quarantine",
+          "command": "python -m pytest tests/unit/advisory/engine/test_engine_proposal_workflow_service.py tests/unit/advisory/engine/test_proposal_async_operation_control_plane.py -q",
+          "evidence_path": "output/durable-state-recovery/proposal-replay-async-quarantine.txt"
+        }
+      ],
+      "replay_quarantine": {
+        "safe_resume_condition": "migration checks, lifecycle integrity checks, idempotency conflict checks, async recovery, and replay evidence reads pass without hash drift",
+        "quarantine_condition": "orphan lifecycle rows, idempotency conflict, async retry exhaustion, replay hash drift, or missing downstream report/archive refs"
+      },
+      "escalation_owner": "advisory-proposal-lifecycle-oncall"
+    },
+    {
+      "namespace_key": "policy_packs",
+      "owner": "policy-pack-governance",
+      "dsn_env": "POLICY_POSTGRES_DSN",
+      "migration_target": "policy_packs",
+      "backup_scope": "managed-postgresql-database-or-schema-backup",
+      "retention_class": "ADVISORY_POLICY_RECORD",
+      "rto_minutes": 30,
+      "rpo_minutes": 15,
+      "durable_records": [
+        "policy_pack_versions",
+        "policy_pack_audit_events",
+        "policy_pack_idempotency",
+        "policy_evaluation_records",
+        "policy_evaluation_events",
+        "policy_evaluation_idempotency"
+      ],
+      "restore_checks": [
+        {
+          "check_key": "policy_migration_state",
+          "command": "python scripts/production_cutover_check.py --check-migrations",
+          "evidence_path": "output/durable-state-recovery/policy-cutover-check.json"
+        },
+        {
+          "check_key": "policy_evaluation_replay",
+          "command": "python -m pytest tests/unit/advisory/engine/test_engine_policy_evaluation_persistence.py tests/unit/advisory/api/test_api_advisory_policy_evaluations.py -q",
+          "evidence_path": "output/durable-state-recovery/policy-evaluation-replay.txt"
+        }
+      ],
+      "replay_quarantine": {
+        "safe_resume_condition": "active policy-pack uniqueness, audit-event append-only checks, idempotency mappings, and policy content hashes remain consistent",
+        "quarantine_condition": "duplicate ACTIVE policy-pack rows, policy content-hash drift, missing audit events, or stale snapshot overwrite evidence"
+      },
+      "escalation_owner": "advisory-policy-governance-oncall"
+    },
+    {
+      "namespace_key": "advisory_copilot",
+      "owner": "advisory-copilot-governance",
+      "dsn_env": "ADVISORY_COPILOT_POSTGRES_DSN",
+      "migration_target": "advisory_copilot",
+      "backup_scope": "managed-postgresql-database-or-schema-backup",
+      "retention_class": "ADVISORY_REVIEW_RECORD",
+      "rto_minutes": 30,
+      "rpo_minutes": 15,
+      "durable_records": [
+        "advisory_copilot_runs",
+        "advisory_copilot_run_events",
+        "advisory_copilot_reviews",
+        "advisory_copilot_evidence_packets"
+      ],
+      "restore_checks": [
+        {
+          "check_key": "copilot_migration_state",
+          "command": "python scripts/production_cutover_check.py --check-migrations",
+          "evidence_path": "output/durable-state-recovery/copilot-cutover-check.json"
+        },
+        {
+          "check_key": "copilot_run_review_replay",
+          "command": "python -m pytest tests/unit/advisory/engine/test_advisory_copilot_persistence.py tests/unit/advisory/api/test_api_advisory_copilot.py -q",
+          "evidence_path": "output/durable-state-recovery/copilot-run-review-replay.txt"
+        }
+      ],
+      "replay_quarantine": {
+        "safe_resume_condition": "run/review idempotency, evidence packet hashes, approved model lineage, and review audit records remain readable and unchanged",
+        "quarantine_condition": "missing evidence packet, model/evaluation/safety lineage drift, unclassified AI data, or review maker-checker inconsistency"
+      },
+      "escalation_owner": "advisory-copilot-governance-oncall"
+    },
+    {
+      "namespace_key": "workspace",
+      "owner": "advisory-workspace",
+      "dsn_env": "WORKSPACE_POSTGRES_DSN",
+      "migration_target": "workspace",
+      "backup_scope": "managed-postgresql-database-or-schema-backup",
+      "retention_class": "ADVISORY_WORKSPACE_RECORD",
+      "rto_minutes": 30,
+      "rpo_minutes": 15,
+      "durable_records": [
+        "workspace_sessions",
+        "workspace_saved_versions",
+        "workspace_handoff_records"
+      ],
+      "restore_checks": [
+        {
+          "check_key": "workspace_migration_state",
+          "command": "python scripts/production_cutover_check.py --check-migrations",
+          "evidence_path": "output/durable-state-recovery/workspace-cutover-check.json"
+        },
+        {
+          "check_key": "workspace_resume_and_handoff_replay",
+          "command": "python -m pytest tests/unit/advisory/engine/test_engine_workspace_application.py tests/unit/shared/dependencies/test_workspace_runtime_repositories.py -q",
+          "evidence_path": "output/durable-state-recovery/workspace-resume-handoff-replay.txt"
+        }
+      ],
+      "replay_quarantine": {
+        "safe_resume_condition": "sessions, saved versions, handoff records, and proposal lifecycle refs remain readable without cross-workspace leakage",
+        "quarantine_condition": "missing saved-version lineage, proposal handoff mismatch, stale workspace state, or unresolved application boundary dependency"
+      },
+      "escalation_owner": "advisory-workspace-oncall"
+    }
+  ],
+  "downstream_replay_dependencies": [
+    {
+      "dependency_key": "lotus-report",
+      "owner": "report-render-archive",
+      "quarantine_rule": "Preserve report job/archive refs after restore; do not reissue report-package requests unless idempotency and downstream status evidence prove a safe replay."
+    },
+    {
+      "dependency_key": "lotus-ai",
+      "owner": "ai-workflow-pack-governance",
+      "quarantine_rule": "Preserve copilot/model/evaluation/safety lineage after restore; do not regenerate AI output to mask missing durable evidence."
+    },
+    {
+      "dependency_key": "lotus-core",
+      "owner": "portfolio-context-source",
+      "quarantine_rule": "Re-resolve source context for new work only; historical proposal replay must use persisted Advise hashes and source refs."
+    }
+  ],
+  "restore_drill_profiles": [
+    {
+      "profile_key": "non_production_postgres_restore_drill",
+      "environment_scope": "isolated-non-production-database",
+      "restore_command": "platform-database-operations restores the selected encrypted PostgreSQL backup or PITR point into an isolated DSN; Advise then runs python scripts/postgres_migrate.py --target all",
+      "validation_commands": [
+        "make durable-state-recovery-gate",
+        "make migration-rollout-contract-gate",
+        "make migration-smoke",
+        "python scripts/production_cutover_check.py --check-migrations"
+      ],
+      "evidence_path": "output/durable-state-recovery/recovery-drill-evidence.json",
+      "stop_criteria": [
+        "schema_migrations checksum mismatch",
+        "missing durable namespace",
+        "orphan lifecycle or policy rows",
+        "idempotency conflict after restore",
+        "replay hash drift",
+        "missing downstream lineage refs"
+      ],
+      "resume_criteria": [
+        "all namespace restore checks pass",
+        "idempotency and append-only audit checks pass",
+        "replay evidence is readable without duplicate writes",
+        "quarantined downstream refs are escalated to owning service"
+      ]
+    }
+  ]
+}

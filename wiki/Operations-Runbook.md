@@ -77,6 +77,32 @@ Kubernetes readiness probes and container healthchecks should use `/health/ready
 RFP, and workflow certification must require both a ready `/health/ready` response and ready
 `/platform/capabilities` evidence for every claimed workflow.
 
+## Durable State Recovery
+
+Durable recovery scope is governed by
+`docs/standards/advisory-durable-state-recovery.v1.json` and validated by
+`make durable-state-recovery-gate`. The gate emits
+`output/durable-state-recovery/recovery-drill-evidence.json` and keeps backup/restore ownership,
+RTO/RPO, replay quarantine, stop/resume criteria, and restore checks aligned with the checked-in
+PostgreSQL migration namespaces.
+
+Advise owns post-restore integrity and replay checks for `proposals`, `policy_packs`,
+`advisory_copilot`, and `workspace`. Platform database operations own backup vendor, encrypted
+backup storage, point-in-time restore execution, and cross-region database controls.
+
+Non-production restore drills must restore a selected backup or PITR point into an isolated DSN,
+apply `python scripts/postgres_migrate.py --target all`, then run:
+
+1. `make durable-state-recovery-gate`
+2. `make migration-rollout-contract-gate`
+3. `make migration-smoke`
+4. `python scripts/production_cutover_check.py --check-migrations`
+
+Do not resume traffic when schema checksums drift, a durable namespace is missing, idempotency or
+append-only audit conflicts appear, replay hashes drift, or downstream report/archive/AI lineage
+refs are missing. Quarantine the affected workflow and escalate to the namespace owner from the
+recovery contract.
+
 ## Proposal Async Operation Controls
 
 `src/core/proposals/async_operation_control_plane.py` governs support-safe decisions for proposal
