@@ -8,11 +8,13 @@ import httpx
 from src.core.advisory_copilot import (
     CopilotAudience,
     CopilotEvidencePacket,
+    CopilotGuardrailPolicyInput,
     CopilotGuardrailReasonCode,
+    CopilotGuardrailSourceEvidence,
     CopilotLineageRef,
     CopilotSourceRef,
     align_copilot_output_claims_to_evidence,
-    evaluate_copilot_guardrails,
+    evaluate_copilot_guardrail_policy,
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
@@ -31,7 +33,6 @@ from src.core.advisory_copilot.model_governance import (
 )
 from src.integrations.lotus_ai.advisory_copilot_request import (
     build_advisory_copilot_workflow_pack_request,
-    has_source_refs,
     workflow_surface,
 )
 from src.integrations.lotus_ai.output_safety import (
@@ -148,11 +149,12 @@ def _preflight_guardrail_rejection(
     requested_intents: tuple[str, ...],
     user_instruction: str,
 ) -> AdvisoryCopilotAiDraft | None:
-    preflight_reasons = evaluate_copilot_guardrails(
-        requested_intents=requested_intents,
-        source_refs_present=has_source_refs(evidence_packet),
-        user_instruction=user_instruction,
-        output_text="",
+    preflight_reasons = evaluate_copilot_guardrail_policy(
+        CopilotGuardrailPolicyInput(
+            requested_intents=requested_intents,
+            source_evidence=_guardrail_source_evidence(evidence_packet),
+            user_instruction=user_instruction,
+        )
     )
     if not preflight_reasons:
         return None
@@ -279,11 +281,11 @@ def _draft_from_completed_workflow_output(
     provider_id: str | None,
     model_version: str | None,
 ) -> AdvisoryCopilotAiDraft:
-    output_reasons = evaluate_copilot_guardrails(
-        requested_intents=(),
-        source_refs_present=True,
-        user_instruction="",
-        output_text=" ".join(str(section.get("text", "")) for section in sections),
+    output_reasons = evaluate_copilot_guardrail_policy(
+        CopilotGuardrailPolicyInput(
+            source_evidence=_guardrail_source_evidence(evidence_packet),
+            model_output_sections=tuple(str(section.get("text", "")) for section in sections),
+        )
     )
     if output_reasons:
         return _guardrail_rejected_draft(
@@ -448,6 +450,20 @@ def _build_workflow_pack_request(
             change_reference=model_approval.change_reference,
             release_evidence_ref=model_approval.release_evidence_ref,
         ),
+    )
+
+
+def _guardrail_source_evidence(
+    evidence_packet: CopilotEvidencePacket,
+) -> tuple[CopilotGuardrailSourceEvidence, ...]:
+    return tuple(
+        CopilotGuardrailSourceEvidence(
+            section_key=section.section_key,
+            title=section.title,
+            summary_items=section.summary_items,
+            source_ref_count=len(section.source_refs),
+        )
+        for section in evidence_packet.sections
     )
 
 

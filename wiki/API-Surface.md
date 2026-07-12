@@ -176,6 +176,11 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   `contracts/advisory-copilot/evaluation-corpus.v1.json`. Failed evaluation posture prevents
   review-ready output and records evaluator version, dataset id, thresholds, metrics, failure
   reasons, and evaluation hash in lineage.
+- Advisory copilot safety-abuse posture is executable through
+  `src/core/advisory_copilot/guardrails.py` and
+  `contracts/advisory-copilot/safety-abuse-corpus.v1.json`. Unsafe user instruction, source
+  evidence, or generated output returns stable guardrail reason codes before output is persisted or
+  exposed as review-ready.
 - Advisory copilot review routes require a trusted reviewer principal at the API boundary.
   `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
   identity, `X-Capabilities`, and authorized proposal/portfolio headers drive authority,
