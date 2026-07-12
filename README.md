@@ -325,6 +325,9 @@ startup/readiness instead of falling back silently.
 - `make trust-telemetry-freshness-gate`
   validates repo-owned trust telemetry freshness and blocks stale evidence that still claims
   current promotion posture
+- `make advisory-data-lifecycle-gate`
+  validates the advisory evidence and telemetry field inventory for classification, retention,
+  masking, projection, and telemetry-label decisions
 - `make run`
   local runtime
 

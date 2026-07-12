@@ -74,6 +74,13 @@ def test_local_ci_targets_enforce_trust_telemetry_freshness() -> None:
         assert "trust-telemetry-freshness-gate" in _makefile_target_dependencies(makefile, target)
 
 
+def test_local_ci_targets_enforce_advisory_data_lifecycle_inventory() -> None:
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+
+    for target in ("check", "ci", "ci-local"):
+        assert "advisory-data-lifecycle-gate" in _makefile_target_dependencies(makefile, target)
+
+
 def test_local_ci_targets_enforce_release_image_provenance_contract() -> None:
     makefile = Path("Makefile").read_text(encoding="utf-8")
 
