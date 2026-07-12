@@ -469,6 +469,13 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     assert narrative_review_body_ref.endswith("/ProposalNarrativeReviewRequest")
     assert narrative_review_response_ref.endswith("/ProposalNarrativeReviewResponse")
     assert "Idempotency-Key" in narrative_review_parameter_names
+    assert _parameter(narrative_review, "Idempotency-Key")["required"] is True
+
+    transition = openapi["paths"]["/advisory/proposals/{proposal_id}/transitions"]["post"]
+    assert _parameter(transition, "Idempotency-Key")["required"] is True
+
+    approval = openapi["paths"]["/advisory/proposals/{proposal_id}/approvals"]["post"]
+    assert _parameter(approval, "Idempotency-Key")["required"] is True
 
     narrative_read = openapi["paths"][
         "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative"
@@ -867,3 +874,7 @@ def test_rfc0025_policy_report_package_route_is_canonical_and_error_documented()
     assert policy_ai_evidence["tags"] == ["Advisory Policy Evaluation"]
     assert "different AI evidence request" in policy_ai_evidence["responses"]["409"]["description"]
     assert "forbidden action" in policy_ai_evidence["responses"]["422"]["description"]
+
+
+def _parameter(operation: dict, name: str) -> dict:
+    return next(parameter for parameter in operation["parameters"] if parameter["name"] == name)
