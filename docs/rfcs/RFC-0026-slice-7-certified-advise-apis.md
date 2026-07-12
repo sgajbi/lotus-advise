@@ -62,6 +62,12 @@ The API slice intentionally keeps these boundaries explicit:
 8. `/platform/capabilities` remains unpromoted for advisor cockpit because product-surface and
    canonical proof are not complete yet.
 
+Current hardening note: Advisor Cockpit caller role and advisor scope are no longer accepted as
+query parameters. The route family resolves actor, role, tenant, legal entity, capabilities,
+authorized advisor scope, and authorized portfolio scope from trusted gateway/service headers before
+source loading or acknowledgement persistence. Acknowledgement writes bind `acknowledged_by` to the
+trusted actor before idempotency hashing and audit metadata are recorded.
+
 ## Acceptance Evidence
 
 | Gate | Evidence |

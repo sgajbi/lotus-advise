@@ -12,6 +12,12 @@ This document records the current security hardening baseline for Lotus Advise.
 - Downstream report requests require source-derived as-of date, reporting currency, and
   jurisdiction/booking-center metadata; missing or conflicting values fail closed before HTTP
   submission.
+- Advisor Cockpit reads and acknowledgements resolve trusted caller context from
+  `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Capabilities`,
+  `X-Authorized-Advisor-Id`, and `X-Authorized-Portfolio-Id` headers. Caller-controlled
+  `role` and `advisor_id` query parameters are rejected, requested portfolio scope must match the
+  trusted scope, and acknowledgement writes bind `acknowledged_by` to the trusted actor before
+  persistence and audit recording.
 - Bandit security findings are enforced through `make bandit-severity-regression-gate`, which is
   called by `make security-audit` and has a compatibility alias at
   `make bandit-high-severity-gate`.
@@ -32,8 +38,10 @@ This document records the current security hardening baseline for Lotus Advise.
 - The current Bandit medium baseline remains non-certifying security debt. Issue #435 tracks
   reducing or retiring the constant-owned SQL-template entries before their `2026-12-31` expiry.
 - Route-level authentication and authorization inventory remains a separate implementation-backed
-  slice. Current HTTP boundary controls add host/origin/header/payload safeguards but do not replace
-  trusted caller-context resolution for every public route.
+  slice. Current HTTP boundary controls add host/origin/header/payload safeguards, and Advisor
+  Cockpit, policy-control, and copilot-review route families now have trusted caller-context
+  resolution; remaining public route families still need implementation-backed inventory and
+  prioritization.
 - Route-specific throttling, back-pressure, and platform WAF/rate-limit policy remain owned by the
   ingress/gateway deployment contract unless a future Advise issue adds service-local quotas for a
   specific route family.
