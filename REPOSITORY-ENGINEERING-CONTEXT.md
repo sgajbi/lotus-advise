@@ -293,9 +293,11 @@ Boundary rules:
    modules must not import concrete `src.integrations` modules or provider-specific exception
    classes. API/runtime startup registers production Lotus Core simulation/context, Lotus Risk
    enrichment/dependency-state, Lotus AI narrative/memo, and Lotus Report memo package adapters
-   explicitly; tests should use deterministic port doubles. Integration modules must not import
-   `src.api.main`, read `sys.modules`, or depend on FastAPI import order to select resolver or
-   requester behavior,
+   explicitly; tests should use deterministic port doubles. Shared tests that mutate global
+   provider ports must restore the proposal stateful-context resolver through
+   `configure_advisory_stateful_context_provider_port()` so engine-level resolver overrides cannot
+   leak into API files. Integration modules must not import `src.api.main`, read `sys.modules`, or
+   depend on FastAPI import order to select resolver or requester behavior,
 10. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
 11. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
 12. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
