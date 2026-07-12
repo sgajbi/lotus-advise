@@ -351,3 +351,19 @@ Proposal workflow events and approval history are indexed for the supported hot 
 
 These support single-proposal history/replay and batched Advisor Cockpit/source-loader reads.
 Validate query shape and retention evidence before adding broader lifecycle-history indexes.
+
+## Proposal Lifecycle Integrity
+
+The proposal migration namespace validates lifecycle relational integrity before recording
+`0010_proposal_lifecycle_integrity.sql`. Treat failures from
+`ux_proposal_versions_proposal_version_id`, `fk_proposal_versions_proposal`,
+`fk_proposal_workflow_events_related_version`, `fk_proposal_approvals_related_version`, or
+`fk_proposal_idempotency_version` as data quarantine events. Do not bypass the migration by
+manually patching `schema_migrations`; remediate orphan proposal versions, orphan workflow events or
+approvals, duplicate version identifiers, or invalid version/state vocabulary and rerun migration
+apply.
+
+Repository-level append-only conflict handling for repeated lifecycle event and approval identity is
+tracked as a follow-on schema-adjacent hardening slice. Until that lands, database constraint
+failures and existing idempotency-key diagnostics are the operator signal for conflicting proposal
+lifecycle evidence.

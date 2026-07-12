@@ -208,3 +208,41 @@ def test_proposal_migrations_index_lifecycle_history_read_paths() -> None:
         "CREATE INDEX IF NOT EXISTS idx_proposal_approvals_history "
         "ON proposal_approvals (proposal_id, occurred_at ASC, approval_id ASC)"
     ) in sql
+
+
+def test_proposal_lifecycle_integrity_migration_adds_relational_guards() -> None:
+    migration_path = (
+        Path("src")
+        / "infrastructure"
+        / "postgres_migrations"
+        / "proposals"
+        / "0010_proposal_lifecycle_integrity.sql"
+    )
+    sql = " ".join(migration_path.read_text(encoding="utf-8").split())
+
+    assert "ux_proposal_versions_proposal_version_id" in sql
+    assert "ON proposal_versions (proposal_version_id)" in sql
+    for constraint_name in (
+        "fk_proposal_versions_proposal",
+        "fk_proposal_workflow_events_proposal",
+        "fk_proposal_workflow_events_related_version",
+        "fk_proposal_approvals_proposal",
+        "fk_proposal_approvals_related_version",
+        "fk_proposal_idempotency_version",
+        "fk_proposal_async_operations_proposal",
+        "ck_proposal_records_current_version_positive",
+        "ck_proposal_records_current_state",
+        "ck_proposal_versions_version_positive",
+        "ck_proposal_versions_status_at_creation",
+        "ck_proposal_workflow_events_event_type",
+        "ck_proposal_workflow_events_states",
+        "ck_proposal_approvals_type",
+    ):
+        assert f"ADD CONSTRAINT {constraint_name}" in sql
+        assert f"VALIDATE CONSTRAINT {constraint_name}" in sql
+
+    assert "FOREIGN KEY (proposal_id, related_version_no)" in sql
+    assert "REFERENCES proposal_versions (proposal_id, version_no)" in sql
+    assert "current_state IN (" in sql
+    assert "event_type IN (" in sql
+    assert "approval_type IN ('RISK', 'COMPLIANCE', 'CLIENT_CONSENT')" in sql
