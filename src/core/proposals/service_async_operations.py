@@ -3,6 +3,17 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Callable, Optional, cast
 
+from src.core.proposals.async_operation_control_plane import (
+    ASYNC_OPERATION_CONTROL_MAX_LIST_LIMIT,
+    AsyncOperationControlAction,
+    AsyncOperationControlDecision,
+    AsyncOperationControlFilters,
+    AsyncOperationControlListItem,
+    AsyncOperationControlPrincipal,
+    build_quarantined_async_operation,
+    evaluate_async_operation_control,
+    list_async_operations_for_control,
+)
 from src.core.proposals.async_operation_execution import (
     execute_create_proposal_async_operation,
     execute_create_version_async_operation,
@@ -21,6 +32,7 @@ from src.core.proposals.async_submission_commands import (
     accept_create_proposal_async_submission_command,
     accept_create_version_async_submission_command,
 )
+from src.core.proposals.exceptions import ProposalNotFoundError
 from src.core.proposals.models import (
     ProposalAsyncAcceptedResponse,
     ProposalAsyncOperationStatusResponse,
@@ -135,6 +147,68 @@ class ProposalWorkflowAsyncOperations:
                 execute_create_version_async=self.execute_create_version,
             ),
         )
+
+    def list_for_control(
+        self,
+        *,
+        filters: AsyncOperationControlFilters,
+    ) -> list[AsyncOperationControlListItem]:
+        as_of = self._utc_now()
+        operations = self._repository.list_operations_for_control(
+            as_of=as_of,
+            limit=ASYNC_OPERATION_CONTROL_MAX_LIST_LIMIT,
+        )
+        return list_async_operations_for_control(operations, filters=filters, as_of=as_of)
+
+    def evaluate_control(
+        self,
+        *,
+        operation_id: str,
+        action: AsyncOperationControlAction,
+        principal: AsyncOperationControlPrincipal,
+        idempotency_key: str,
+        reason: str,
+    ) -> AsyncOperationControlDecision:
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            raise ProposalNotFoundError("ASYNC_OPERATION_NOT_FOUND")
+        return evaluate_async_operation_control(
+            operation=operation,
+            action=action,
+            principal=principal,
+            as_of=self._utc_now(),
+            idempotency_key=idempotency_key,
+            reason=reason,
+        )
+
+    def quarantine_controlled_operation(
+        self,
+        *,
+        operation_id: str,
+        principal: AsyncOperationControlPrincipal,
+        idempotency_key: str,
+        reason: str,
+    ) -> AsyncOperationControlDecision:
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            raise ProposalNotFoundError("ASYNC_OPERATION_NOT_FOUND")
+        decision = evaluate_async_operation_control(
+            operation=operation,
+            action="QUARANTINE",
+            principal=principal,
+            as_of=self._utc_now(),
+            idempotency_key=idempotency_key,
+            reason=reason,
+        )
+        if decision.allowed and not decision.idempotent_noop:
+            self._repository.update_operation(
+                build_quarantined_async_operation(
+                    operation=operation,
+                    decision=decision,
+                    finished_at=self._utc_now(),
+                )
+            )
+        return decision
 
     def get_status(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
         return build_async_operation_status_view(

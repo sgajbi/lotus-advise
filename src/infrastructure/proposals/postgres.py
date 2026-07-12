@@ -158,9 +158,12 @@ class PostgresProposalRepository:
     def list_cockpit_acknowledgements(
         self, *, action_item_ids: list[str]
     ) -> dict[str, CockpitAcknowledgementRecord]:
-        return _cockpit_acknowledgements.list_cockpit_acknowledgements(
-            connect=self._connect,
-            action_item_ids=action_item_ids,
+        return cast(
+            dict[str, CockpitAcknowledgementRecord],
+            _cockpit_acknowledgements.list_cockpit_acknowledgements(
+                connect=self._connect,
+                action_item_ids=action_item_ids,
+            ),
         )
 
     def save_cockpit_acknowledgement_with_idempotency(
@@ -225,6 +228,15 @@ class PostgresProposalRepository:
             _async_operations.list_recoverable_operations(
                 connect=self._connect, as_of=as_of, limit=limit
             ),
+        )
+
+    def list_operations_for_control(
+        self, *, as_of: datetime, limit: Optional[int] = None
+    ) -> list[ProposalAsyncOperationRecord]:
+        del as_of
+        return cast(
+            list[ProposalAsyncOperationRecord],
+            _async_operations.list_operations_for_control(connect=self._connect, limit=limit),
         )
 
     def create_proposal(self, proposal: ProposalRecord) -> None:

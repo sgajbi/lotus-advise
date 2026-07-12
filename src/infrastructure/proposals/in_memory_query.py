@@ -255,6 +255,22 @@ def recoverable_operations(
     return copy_records(limited_records(recoverable, limit))
 
 
+def control_operations(
+    operations: Iterable[ProposalAsyncOperationRecord],
+    *,
+    limit: Optional[int],
+) -> list[ProposalAsyncOperationRecord]:
+    if non_positive_limit(limit):
+        return []
+    control_rows = [
+        operation
+        for operation in operations
+        if operation.status in {"PENDING", "RUNNING", "FAILED"}
+    ]
+    control_rows.sort(key=lambda operation: (operation.created_at, operation.operation_id))
+    return copy_records(limited_records(control_rows, limit))
+
+
 def non_positive_limit(limit: Optional[int]) -> bool:
     return limit is not None and limit <= 0
 
@@ -300,6 +316,7 @@ __all__ = [
     "copy_optional",
     "copy_record",
     "copy_records",
+    "control_operations",
     "current_version_for_proposal",
     "filtered_proposal_page",
     "ordered_approvals_for_proposals",

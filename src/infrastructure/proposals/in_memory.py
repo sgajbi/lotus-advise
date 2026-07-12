@@ -23,6 +23,7 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.repository import ProposalRepository
 from src.infrastructure.proposals.in_memory_query import (
+    control_operations,
     copy_optional,
     copy_record,
     copy_records,
@@ -337,6 +338,14 @@ class InMemoryProposalRepository(ProposalRepository):
         with self._lock:
             operations = list(self._operations.values())
         return recoverable_operations(operations, as_of=as_of, limit=limit)
+
+    def list_operations_for_control(
+        self, *, as_of: datetime, limit: Optional[int] = None
+    ) -> list[ProposalAsyncOperationRecord]:
+        del as_of
+        with self._lock:
+            operations = list(self._operations.values())
+        return control_operations(operations, limit=limit)
 
     def create_proposal(self, proposal: ProposalRecord) -> None:
         with self._lock:

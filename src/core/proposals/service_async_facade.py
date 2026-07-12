@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from typing import Optional, cast
 
+from src.core.proposals.async_operation_control_plane import (
+    AsyncOperationControlAction,
+    AsyncOperationControlDecision,
+    AsyncOperationControlFilters,
+    AsyncOperationControlListItem,
+    AsyncOperationControlPrincipal,
+)
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
@@ -125,6 +132,45 @@ class ProposalWorkflowAsyncFacadeMixin:
         return cast(
             int,
             self._proposal_async_operations().recover_pending(max_operations=max_operations),
+        )
+
+    def list_async_operations_for_control(
+        self,
+        *,
+        filters: AsyncOperationControlFilters,
+    ) -> list[AsyncOperationControlListItem]:
+        return self._proposal_async_operations().list_for_control(filters=filters)
+
+    def evaluate_async_operation_control(
+        self,
+        *,
+        operation_id: str,
+        action: AsyncOperationControlAction,
+        principal: AsyncOperationControlPrincipal,
+        idempotency_key: str,
+        reason: str,
+    ) -> AsyncOperationControlDecision:
+        return self._proposal_async_operations().evaluate_control(
+            operation_id=operation_id,
+            action=action,
+            principal=principal,
+            idempotency_key=idempotency_key,
+            reason=reason,
+        )
+
+    def quarantine_async_operation(
+        self,
+        *,
+        operation_id: str,
+        principal: AsyncOperationControlPrincipal,
+        idempotency_key: str,
+        reason: str,
+    ) -> AsyncOperationControlDecision:
+        return self._proposal_async_operations().quarantine_controlled_operation(
+            operation_id=operation_id,
+            principal=principal,
+            idempotency_key=idempotency_key,
+            reason=reason,
         )
 
     def get_async_create_submission_stats_for_tests(self) -> AsyncCreateSubmissionStats:
