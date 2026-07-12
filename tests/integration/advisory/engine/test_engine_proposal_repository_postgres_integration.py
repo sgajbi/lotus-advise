@@ -54,11 +54,6 @@ def test_live_postgres_proposal_repository_parity_contract(
         proposal_version_no=1,
         created_at=now,
     )
-    repository.save_idempotency(idempotency)
-    loaded_idempotency = repository.get_idempotency(idempotency_key=idempotency_key)
-    assert loaded_idempotency is not None
-    assert loaded_idempotency.proposal_id == proposal_id
-
     operation = ProposalAsyncOperationRecord(
         operation_id=operation_id,
         operation_type="CREATE_PROPOSAL",
@@ -81,23 +76,6 @@ def test_live_postgres_proposal_repository_parity_contract(
         error_json=None,
     )
     repository.create_operation(operation)
-    operation.status = "SUCCEEDED"
-    operation.attempt_count = 1
-    operation.started_at = now
-    operation.lease_expires_at = now + timedelta(seconds=30)
-    operation.finished_at = now + timedelta(seconds=1)
-    operation.proposal_id = proposal_id
-    operation.result_json = {"proposal_id": proposal_id}
-    repository.update_operation(operation)
-
-    loaded_operation = repository.get_operation(operation_id=operation_id)
-    assert loaded_operation is not None
-    assert loaded_operation.status == "SUCCEEDED"
-    assert loaded_operation.attempt_count == 1
-    assert loaded_operation.payload_json["idempotency_key"] == idempotency_key
-    by_correlation = repository.get_operation_by_correlation(correlation_id=correlation_id)
-    assert by_correlation is not None
-    assert by_correlation.operation_id == operation_id
 
     proposal = ProposalRecord(
         proposal_id=proposal_id,
@@ -134,6 +112,29 @@ def test_live_postgres_proposal_repository_parity_contract(
     loaded_version = repository.get_current_version(proposal_id=proposal_id)
     assert loaded_version is not None
     assert loaded_version.proposal_version_id == version_id
+
+    repository.save_idempotency(idempotency)
+    loaded_idempotency = repository.get_idempotency(idempotency_key=idempotency_key)
+    assert loaded_idempotency is not None
+    assert loaded_idempotency.proposal_id == proposal_id
+
+    operation.status = "SUCCEEDED"
+    operation.attempt_count = 1
+    operation.started_at = now
+    operation.lease_expires_at = now + timedelta(seconds=30)
+    operation.finished_at = now + timedelta(seconds=1)
+    operation.proposal_id = proposal_id
+    operation.result_json = {"proposal_id": proposal_id}
+    repository.update_operation(operation)
+
+    loaded_operation = repository.get_operation(operation_id=operation_id)
+    assert loaded_operation is not None
+    assert loaded_operation.status == "SUCCEEDED"
+    assert loaded_operation.attempt_count == 1
+    assert loaded_operation.payload_json["idempotency_key"] == idempotency_key
+    by_correlation = repository.get_operation_by_correlation(correlation_id=correlation_id)
+    assert by_correlation is not None
+    assert by_correlation.operation_id == operation_id
 
     event = ProposalWorkflowEventRecord(
         event_id=event_id,
@@ -452,6 +453,7 @@ def test_live_postgres_events_and_approvals_ordering_contract(
             advisor_notes=None,
         )
     )
+    _create_version(repository=repository, proposal_id=proposal_id, version_no=1, now=now)
     first_event = ProposalWorkflowEventRecord(
         event_id=f"pwe-{uuid.uuid4().hex}",
         proposal_id=proposal_id,
@@ -512,6 +514,8 @@ def test_live_postgres_transition_without_approval_contract(
         title="Transition without approval",
         advisor_notes=None,
     )
+    repository.create_proposal(proposal)
+    _create_version(repository=repository, proposal_id=proposal_id, version_no=1, now=now)
     event = ProposalWorkflowEventRecord(
         event_id=f"pwe-{uuid.uuid4().hex}",
         proposal_id=proposal_id,
@@ -532,6 +536,173 @@ def test_live_postgres_transition_without_approval_contract(
     event_ids = [row.event_id for row in repository.list_events(proposal_id=proposal_id)]
     assert event_ids == [event.event_id]
     assert repository.list_approvals(proposal_id=proposal_id) == []
+
+
+@pytest.mark.skipif(
+    not _DSN,
+    reason="Live Postgres DSN required for database-enforced lifecycle integrity checks.",
+)
+def test_live_postgres_lifecycle_integrity_rejects_orphans_and_duplicate_versions(
+    repository: PostgresProposalRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    proposal_id = f"pp-{uuid.uuid4().hex}"
+    version_id = f"ppv-{uuid.uuid4().hex}"
+    repository.create_proposal(
+        ProposalRecord(
+            proposal_id=proposal_id,
+            portfolio_id="pf-integrity",
+            mandate_id="mandate-integrity",
+            jurisdiction="SG",
+            created_by="advisor-integrity",
+            created_at=now,
+            last_event_at=now,
+            current_state="DRAFT",
+            current_version_no=1,
+            title="Integrity proposal",
+            advisor_notes=None,
+        )
+    )
+    version = _create_version(
+        repository=repository,
+        proposal_id=proposal_id,
+        version_no=1,
+        now=now,
+        proposal_version_id=version_id,
+    )
+
+    with closing(repository._connect()) as connection:  # noqa: SLF001
+        _assert_statement_fails(
+            connection,
+            """
+            INSERT INTO proposal_versions (
+                proposal_version_id, proposal_id, version_no, created_at, request_hash,
+                artifact_hash, simulation_hash, status_at_creation, proposal_result_json,
+                artifact_json, evidence_bundle_json, gate_decision_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                f"ppv-{uuid.uuid4().hex}",
+                "pp_missing_integrity",
+                1,
+                now.isoformat(),
+                "sha256:orphan-request",
+                "sha256:orphan-artifact",
+                "sha256:orphan-simulation",
+                "READY",
+                '{"status":"READY"}',
+                '{"artifact_id":"orphan"}',
+                '{"hashes":{"request_hash":"sha256:orphan-request"}}',
+                None,
+            ),
+        )
+        _assert_statement_fails(
+            connection,
+            """
+            INSERT INTO proposal_versions (
+                proposal_version_id, proposal_id, version_no, created_at, request_hash,
+                artifact_hash, simulation_hash, status_at_creation, proposal_result_json,
+                artifact_json, evidence_bundle_json, gate_decision_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                version.proposal_version_id,
+                proposal_id,
+                2,
+                now.isoformat(),
+                "sha256:duplicate-request",
+                "sha256:duplicate-artifact",
+                "sha256:duplicate-simulation",
+                "READY",
+                '{"status":"READY"}',
+                '{"artifact_id":"duplicate"}',
+                '{"hashes":{"request_hash":"sha256:duplicate-request"}}',
+                None,
+            ),
+        )
+        _assert_statement_fails(
+            connection,
+            """
+            INSERT INTO proposal_workflow_events (
+                event_id, proposal_id, event_type, from_state, to_state, actor_id,
+                occurred_at, reason_json, related_version_no
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                f"pwe-{uuid.uuid4().hex}",
+                proposal_id,
+                "CREATED",
+                None,
+                "DRAFT",
+                "advisor-integrity",
+                now.isoformat(),
+                '{"comment":"orphan-version"}',
+                2,
+            ),
+        )
+
+
+def test_live_postgres_lifecycle_identity_replay_and_conflict_contract(
+    repository: PostgresProposalRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    proposal_id = f"pp-{uuid.uuid4().hex}"
+    repository.create_proposal(
+        ProposalRecord(
+            proposal_id=proposal_id,
+            portfolio_id="pf-immutable",
+            mandate_id="mandate-immutable",
+            jurisdiction="SG",
+            created_by="advisor-immutable",
+            created_at=now,
+            last_event_at=now,
+            current_state="DRAFT",
+            current_version_no=1,
+            title="Immutable proposal",
+            advisor_notes=None,
+        )
+    )
+    version = _create_version(repository=repository, proposal_id=proposal_id, version_no=1, now=now)
+    event = ProposalWorkflowEventRecord(
+        event_id=f"pwe-{uuid.uuid4().hex}",
+        proposal_id=proposal_id,
+        event_type="CREATED",
+        from_state=None,
+        to_state="DRAFT",
+        actor_id="advisor-immutable",
+        occurred_at=now,
+        reason_json={"comment": "created"},
+        related_version_no=1,
+    )
+    approval = ProposalApprovalRecordData(
+        approval_id=f"pap-{uuid.uuid4().hex}",
+        proposal_id=proposal_id,
+        approval_type="RISK",
+        approved=True,
+        actor_id="risk-immutable",
+        occurred_at=now,
+        details_json={"ticket_id": "risk-immutable"},
+        related_version_no=1,
+    )
+
+    repository.create_version(version)
+    repository.append_event(event)
+    repository.append_event(event)
+    repository.create_approval(approval)
+    repository.create_approval(approval)
+
+    with pytest.raises(ValueError, match="PROPOSAL_VERSION_IDENTITY_CONFLICT"):
+        repository.create_version(
+            version.model_copy(update={"request_hash": "sha256:drifted-live-version"})
+        )
+    with pytest.raises(ValueError, match="PROPOSAL_WORKFLOW_EVENT_IDENTITY_CONFLICT"):
+        repository.append_event(event.model_copy(update={"actor_id": "advisor-drifted"}))
+    with pytest.raises(ValueError, match="PROPOSAL_APPROVAL_IDENTITY_CONFLICT"):
+        repository.create_approval(approval.model_copy(update={"actor_id": "risk-drifted"}))
+
+    assert repository.get_version(proposal_id=proposal_id, version_no=1) == version
+    assert repository.list_events(proposal_id=proposal_id) == [event]
+    assert repository.list_approvals(proposal_id=proposal_id) == [approval]
 
 
 def test_live_postgres_update_proposal_contract(
@@ -582,3 +753,39 @@ def _reset_tables(repository: PostgresProposalRepository) -> None:
             "proposal_idempotency CASCADE"
         )
         connection.commit()
+
+
+def _create_version(
+    *,
+    repository: PostgresProposalRepository,
+    proposal_id: str,
+    version_no: int,
+    now: datetime,
+    proposal_version_id: str | None = None,
+) -> ProposalVersionRecord:
+    version = ProposalVersionRecord(
+        proposal_version_id=proposal_version_id or f"ppv-{uuid.uuid4().hex}",
+        proposal_id=proposal_id,
+        version_no=version_no,
+        created_at=now,
+        request_hash=f"sha256:{uuid.uuid4().hex}",
+        artifact_hash=f"sha256:{uuid.uuid4().hex}",
+        simulation_hash=f"sha256:{uuid.uuid4().hex}",
+        status_at_creation="READY",
+        proposal_result_json={"status": "READY"},
+        artifact_json={"artifact_id": f"a-{uuid.uuid4().hex}"},
+        evidence_bundle_json={"hashes": {"request_hash": "sha256:integration"}},
+        gate_decision_json=None,
+    )
+    repository.create_version(version)
+    return version
+
+
+def _assert_statement_fails(connection, query: str, args: tuple[object, ...]) -> None:
+    try:
+        connection.execute(query, args)
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        return
+    raise AssertionError("Expected lifecycle integrity statement to fail")
