@@ -75,7 +75,10 @@ def bind_cockpit_acknowledgement_payload(
 ) -> AdvisorCockpitAcknowledgeRequest:
     if payload.acknowledged_by != principal.actor_id:
         raise ValueError(ADVISOR_COCKPIT_ACTOR_MISMATCH)
-    return payload.model_copy(update={"acknowledged_by": principal.actor_id})
+    return cast(
+        AdvisorCockpitAcknowledgeRequest,
+        payload.model_copy(update={"acknowledged_by": principal.actor_id}),
+    )
 
 
 def cockpit_acknowledgement_audit_reason(

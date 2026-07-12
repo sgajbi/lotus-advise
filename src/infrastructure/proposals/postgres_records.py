@@ -279,7 +279,7 @@ def update_proposal_if_current(
             expected_current_version_no,
         ),
     )
-    return cursor.rowcount == 1
+    return int(cursor.rowcount) == 1
 
 
 __all__ = [
