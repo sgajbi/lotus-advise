@@ -37,7 +37,7 @@ MAX_WORKSPACE_SESSION_CACHE_SIZE = 500
 
 def _workspace_application() -> WorkspaceApplicationService:
     get_workspace_session_repository().resize(MAX_WORKSPACE_SESSION_CACHE_SIZE)
-    return get_workspace_application_service()
+    return cast(WorkspaceApplicationService, get_workspace_application_service())
 
 
 def _build_simulate_request_for_workspace(session: WorkspaceSession) -> ProposalSimulateRequest:

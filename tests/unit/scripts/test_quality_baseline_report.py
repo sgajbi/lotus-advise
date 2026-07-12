@@ -254,6 +254,13 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
         "Advisor cockpit source read models delegate source projection helpers" in refactor_health
     )
     assert "Advisor cockpit service delegates repository-backed source loading" in refactor_health
+    assert "Advisory workspace routes now compose through a workspace application service" in (
+        refactor_health
+    )
+    assert "source-context, proposal-evaluator, and" in refactor_health
+    assert "proposal-lifecycle ports while keeping the current in-memory session store" in (
+        refactor_health
+    )
     assert "Policy evaluation report-package validation delegates" in refactor_health
     assert "Policy evaluation sign-off validation delegates" in refactor_health
     assert "Workspace session input-mode validation delegates" in refactor_health

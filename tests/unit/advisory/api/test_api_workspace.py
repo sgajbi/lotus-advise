@@ -17,6 +17,7 @@ from src.api.services.workspace_service import (
     reevaluate_workspace_session,
     reset_workspace_sessions_for_tests,
 )
+from src.api.workspaces.dependencies import get_workspace_application_service_dependency
 from src.core.advisory.provider_ports import (
     AdvisoryRiskEnrichmentUnavailableError as LotusRiskEnrichmentUnavailableError,
 )
@@ -32,7 +33,7 @@ from tests.shared.stateful_context_builders import (
 
 workspace_router = importlib.import_module("src.api.workspaces.router")
 workspace_routes_assistant = importlib.import_module("src.api.workspaces.routes_assistant")
-workspace_routes_session = importlib.import_module("src.api.workspaces.routes_session")
+workspace_evaluator_module = importlib.import_module("src.core.workspace.evaluator")
 workspace_service_module = importlib.import_module("src.api.services.workspace_service")
 workspace_reevaluations_module = importlib.import_module("src.api.services.workspace_reevaluations")
 
@@ -808,7 +809,7 @@ def test_workspace_service_redacts_sensitive_evaluation_context_errors(
         )
 
     monkeypatch.setattr(
-        workspace_reevaluations_module,
+        workspace_evaluator_module,
         "build_workspace_evaluation_context",
         _raise_sensitive_context_error,
     )
@@ -848,14 +849,17 @@ def test_workspace_not_found_route_errors_redact_sensitive_detail(
     def _raise_sensitive_not_found(_workspace_id: str):
         raise WorkspaceNotFoundError("Authorization Bearer token leaked from upstream")
 
-    monkeypatch.setattr(
-        workspace_routes_session,
-        "get_workspace_session",
-        _raise_sensitive_not_found,
+    app.dependency_overrides[get_workspace_application_service_dependency] = lambda: (
+        SimpleNamespace(
+            get_session=_raise_sensitive_not_found,
+        )
     )
 
-    with TestClient(app) as client:
-        response = client.get("/advisory/workspaces/aws_sensitive")
+    try:
+        with TestClient(app) as client:
+            response = client.get("/advisory/workspaces/aws_sensitive")
+    finally:
+        app.dependency_overrides.pop(get_workspace_application_service_dependency, None)
 
     assert response.status_code == 404
     assert response.json()["detail"] == "WORKSPACE_NOT_FOUND"
@@ -867,14 +871,17 @@ def test_workspace_conflict_route_errors_redact_sensitive_detail(
     def _raise_sensitive_conflict(_workspace_id: str):
         raise WorkspaceEvaluationUnavailableError("raw payload includes secret advisor context")
 
-    monkeypatch.setattr(
-        workspace_routes_session,
-        "reevaluate_workspace_session",
-        _raise_sensitive_conflict,
+    app.dependency_overrides[get_workspace_application_service_dependency] = lambda: (
+        SimpleNamespace(
+            reevaluate_session=_raise_sensitive_conflict,
+        )
     )
 
-    with TestClient(app) as client:
-        response = client.post("/advisory/workspaces/aws_sensitive/evaluate")
+    try:
+        with TestClient(app) as client:
+            response = client.post("/advisory/workspaces/aws_sensitive/evaluate")
+    finally:
+        app.dependency_overrides.pop(get_workspace_application_service_dependency, None)
 
     assert response.status_code == 409
     assert response.json()["detail"] == "WORKSPACE_CONFLICT"

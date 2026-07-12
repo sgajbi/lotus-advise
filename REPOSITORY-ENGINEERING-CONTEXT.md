@@ -234,6 +234,21 @@ Primary areas:
 7. `contracts/trust-telemetry/`
    repo-native RFC-0087 trust telemetry fixtures for governed advisory products.
 
+Repository organization rule:
+
+1. new backend files must live in the smallest meaningful owner package rather than a broad dump
+   folder,
+2. package names should describe durable domain or runtime responsibility, such as workspace
+   application, infrastructure adapters, route families, repository ports, or supportability
+   policy,
+3. implementation files must not be named for an RFC, slice, issue, or temporary campaign unless
+   the file is actually an RFC document, rollout note, tracking ledger, or contract fixture whose
+   purpose is that governance item,
+4. tests should mirror the capability/package boundary being protected and should target stable
+   ports or dependencies instead of stale helper imports,
+5. when moving behavior out of a flat service module, prefer cohesive subpackages with explicit
+   interfaces and retire compatibility wrappers only after downstream contracts are safe.
+
 ## Runtime And Integration Boundaries
 
 Runtime model:

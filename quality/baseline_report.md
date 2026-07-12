@@ -1,16 +1,16 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-07-11T18:01:49.640332+00:00`
+- Generated At: `2026-07-12T00:40:52.370782+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
 
 ## Code Size
 
-- Python files: `1010`
-- Packages: `39`
-- Modules: `971`
-- Total Python lines: `172390`
+- Python files: `1022`
+- Packages: `40`
+- Modules: `982`
+- Total Python lines: `173317`
 
 ## Largest Files
 
@@ -19,11 +19,11 @@
 | 1 | `scripts/validate_cross_service_parity_live.py` | 4010 |
 | 2 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 3863 |
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2560 |
-| 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2540 |
+| 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2547 |
 | 5 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 2449 |
 | 6 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1833 |
 | 7 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
-| 8 | `scripts/quality_baseline_report.py` | 1611 |
+| 8 | `scripts/quality_baseline_report.py` | 1615 |
 | 9 | `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` | 1517 |
 | 10 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 1516 |
 
@@ -31,15 +31,15 @@
 
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
-| 1 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 805 | 490 |
+| 1 | `render_refactor_health_report` | `scripts/quality_baseline_report.py` | 805 | 494 |
 | 2 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 58 | 489 |
 | 3 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 332 |
-| 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 92 | 297 |
+| 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 92 | 304 |
 | 5 | `validate_live_cross_service_parity` | `scripts/validate_cross_service_parity_live.py` | 3695 | 274 |
 | 6 | `_assert_persisted_read_surfaces` | `scripts/validate_cross_service_parity_live.py` | 3422 | 271 |
 | 7 | `_assert_live_policy_evaluation_flow` | `scripts/validate_cross_service_parity_live.py` | 2491 | 252 |
 | 8 | `_assert_lifecycle_and_delivery_flow` | `scripts/validate_cross_service_parity_live.py` | 1788 | 249 |
-| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1297 | 247 |
+| 9 | `render_quality_scorecard` | `scripts/quality_baseline_report.py` | 1301 | 247 |
 | 10 | `_validate_live_proposal_alternatives_paths` | `scripts/validate_cross_service_parity_live.py` | 608 | 230 |
 
 ## Complexity
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `4587`
-- Radon complexity rank inventory: `A=4497, B=90`
+- Radon analyzed block inventory: `4663`
+- Radon complexity rank inventory: `A=4572, B=91`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -121,7 +121,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=5118, missing=5068, covered=50, coverage=1.0%`
+- Interrogate docstring inventory: `total=5174, missing=5124, covered=50, coverage=1.0%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 
