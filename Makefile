@@ -113,7 +113,7 @@ quality-baseline-check:
 	python scripts/quality_baseline_report.py --output-dir quality --check
 
 migration-smoke:
-	python -m pytest tests/unit/shared/dependencies/test_runtime_persistence.py tests/unit/shared/dependencies/test_production_cutover_contract.py tests/unit/shared/dependencies/test_postgres_migrate_targets.py -q
+	python -m pytest tests/unit/shared/dependencies/test_runtime_persistence.py tests/unit/shared/dependencies/test_production_cutover_contract.py tests/unit/shared/dependencies/test_postgres_migrate_targets.py tests/unit/shared/dependencies/test_workspace_runtime_repositories.py -q
 
 migration-apply:
 	python scripts/postgres_migrate.py --target all

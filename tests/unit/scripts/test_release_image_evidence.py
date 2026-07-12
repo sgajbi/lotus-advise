@@ -54,6 +54,7 @@ def test_production_manifest_policy_requires_environment_injection() -> None:
     assert "Production compose must require LOTUS_AI_BASE_URL injection." in failures
     assert "Production compose must require PROPOSAL_POSTGRES_DSN secret injection." in failures
     assert "Production compose must require POLICY_POSTGRES_DSN secret injection." in failures
+    assert "Production compose must require WORKSPACE_POSTGRES_DSN secret injection." in failures
     assert "Production compose must healthcheck the readiness endpoint." in failures
 
 

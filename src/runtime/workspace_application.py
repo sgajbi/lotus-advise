@@ -8,8 +8,10 @@ from src.core.workspace.ports import (
     WorkspaceSessionRepository,
     WorkspaceSourceContextResolver,
 )
-
-DEFAULT_WORKSPACE_SESSION_CACHE_SIZE = 500
+from src.runtime.workspace_repositories import (
+    DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
+    build_workspace_session_repository,
+)
 
 
 def _workspace_infrastructure_module() -> Any:
@@ -28,31 +30,47 @@ def _build_workspace_source_context_resolver() -> WorkspaceSourceContextResolver
     return cast(WorkspaceSourceContextResolver, resolver_class())
 
 
-_WORKSPACE_SESSION_REPOSITORY = cast(
-    WorkspaceSessionRepository,
-    get_workspace_session_repository_class()(
-        max_size=DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
-    ),
-)
-_WORKSPACE_SOURCE_CONTEXT_RESOLVER = _build_workspace_source_context_resolver()
-_WORKSPACE_APPLICATION_SERVICE = WorkspaceApplicationService(
-    session_repository=_WORKSPACE_SESSION_REPOSITORY,
-    source_context_resolver=_WORKSPACE_SOURCE_CONTEXT_RESOLVER,
-)
+_WORKSPACE_SESSION_REPOSITORY: WorkspaceSessionRepository | None = None
+_WORKSPACE_SOURCE_CONTEXT_RESOLVER: WorkspaceSourceContextResolver | None = None
+_WORKSPACE_APPLICATION_SERVICE: WorkspaceApplicationService | None = None
+
+
+def _ensure_workspace_runtime() -> None:
+    global _WORKSPACE_APPLICATION_SERVICE
+    global _WORKSPACE_SESSION_REPOSITORY
+    global _WORKSPACE_SOURCE_CONTEXT_RESOLVER
+    if _WORKSPACE_APPLICATION_SERVICE is not None:
+        return
+    _WORKSPACE_SESSION_REPOSITORY = build_workspace_session_repository()
+    _WORKSPACE_SOURCE_CONTEXT_RESOLVER = _build_workspace_source_context_resolver()
+    _WORKSPACE_APPLICATION_SERVICE = WorkspaceApplicationService(
+        session_repository=_WORKSPACE_SESSION_REPOSITORY,
+        source_context_resolver=_WORKSPACE_SOURCE_CONTEXT_RESOLVER,
+    )
 
 
 def get_workspace_application_service() -> WorkspaceApplicationService:
-    return _WORKSPACE_APPLICATION_SERVICE
+    _ensure_workspace_runtime()
+    return cast(WorkspaceApplicationService, _WORKSPACE_APPLICATION_SERVICE)
 
 
 def get_workspace_session_repository() -> WorkspaceSessionRepository:
-    return _WORKSPACE_SESSION_REPOSITORY
+    _ensure_workspace_runtime()
+    return cast(WorkspaceSessionRepository, _WORKSPACE_SESSION_REPOSITORY)
 
 
 def get_workspace_source_context_resolver() -> WorkspaceSourceContextResolver:
-    return _WORKSPACE_SOURCE_CONTEXT_RESOLVER
+    _ensure_workspace_runtime()
+    return cast(WorkspaceSourceContextResolver, _WORKSPACE_SOURCE_CONTEXT_RESOLVER)
 
 
 def reset_workspace_application_for_tests() -> None:
-    _WORKSPACE_SESSION_REPOSITORY.reset()
-    _WORKSPACE_SESSION_REPOSITORY.resize(DEFAULT_WORKSPACE_SESSION_CACHE_SIZE)
+    global _WORKSPACE_APPLICATION_SERVICE
+    global _WORKSPACE_SESSION_REPOSITORY
+    global _WORKSPACE_SOURCE_CONTEXT_RESOLVER
+    if _WORKSPACE_SESSION_REPOSITORY is not None:
+        _WORKSPACE_SESSION_REPOSITORY.reset()
+        _WORKSPACE_SESSION_REPOSITORY.resize(DEFAULT_WORKSPACE_SESSION_CACHE_SIZE)
+    _WORKSPACE_APPLICATION_SERVICE = None
+    _WORKSPACE_SESSION_REPOSITORY = None
+    _WORKSPACE_SOURCE_CONTEXT_RESOLVER = None

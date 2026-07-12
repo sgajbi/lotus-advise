@@ -16,6 +16,12 @@ def test_postgres_env_honors_injected_ci_dsns(monkeypatch: pytest.MonkeyPatch) -
         "PROPOSAL_POSTGRES_INTEGRATION_DSN",
         "postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise_integration",
     )
+    monkeypatch.setenv(
+        "POLICY_POSTGRES_DSN", "postgresql://lotus:lotus@127.0.0.1:5432/lotus_policy"
+    )
+    monkeypatch.setenv(
+        "WORKSPACE_POSTGRES_DSN", "postgresql://lotus:lotus@127.0.0.1:5432/lotus_workspace"
+    )
 
     env = run_runtime_smoke_checks._postgres_env()
 
@@ -24,6 +30,10 @@ def test_postgres_env_honors_injected_ci_dsns(monkeypatch: pytest.MonkeyPatch) -
         env["PROPOSAL_POSTGRES_INTEGRATION_DSN"]
         == "postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise_integration"
     )
+    assert env["POLICY_POSTGRES_DSN"] == "postgresql://lotus:lotus@127.0.0.1:5432/lotus_policy"
+    assert (
+        env["WORKSPACE_POSTGRES_DSN"] == "postgresql://lotus:lotus@127.0.0.1:5432/lotus_workspace"
+    )
 
 
 def test_postgres_env_uses_integration_fallback_when_not_injected(
@@ -31,6 +41,8 @@ def test_postgres_env_uses_integration_fallback_when_not_injected(
 ) -> None:
     monkeypatch.delenv("PROPOSAL_POSTGRES_DSN", raising=False)
     monkeypatch.delenv("PROPOSAL_POSTGRES_INTEGRATION_DSN", raising=False)
+    monkeypatch.delenv("POLICY_POSTGRES_DSN", raising=False)
+    monkeypatch.delenv("WORKSPACE_POSTGRES_DSN", raising=False)
 
     env = run_runtime_smoke_checks._postgres_env()
 
@@ -39,6 +51,8 @@ def test_postgres_env_uses_integration_fallback_when_not_injected(
         == "postgresql://advise:advise@127.0.0.1:5432/advise_supportability"
     )
     assert env["PROPOSAL_POSTGRES_INTEGRATION_DSN"] == env["PROPOSAL_POSTGRES_DSN"]
+    assert env["POLICY_POSTGRES_DSN"] == env["PROPOSAL_POSTGRES_DSN"]
+    assert env["WORKSPACE_POSTGRES_DSN"] == env["PROPOSAL_POSTGRES_DSN"]
 
 
 def test_postgres_runtime_contracts_always_tears_down(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -144,6 +158,7 @@ def test_production_profile_guardrail_negatives_include_malformed_runtime_config
     calls: list[tuple[int, tuple[str, ...], str | None, str | None]] = []
     monkeypatch.delenv("LOTUS_CORE_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv("PROPOSAL_STORE_BACKEND", raising=False)
+    monkeypatch.delenv("WORKSPACE_STORE_BACKEND", raising=False)
 
     def fake_assert_guardrail_failure(
         *,
@@ -182,6 +197,18 @@ def test_production_profile_guardrail_negatives_include_malformed_runtime_config
         (
             8007,
             ("PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN",),
+            None,
+            "POSTGRES",
+        ),
+        (
+            8008,
+            ("PERSISTENCE_PROFILE_REQUIRES_WORKSPACE_POSTGRES",),
+            None,
+            "POSTGRES",
+        ),
+        (
+            8009,
+            ("PERSISTENCE_PROFILE_REQUIRES_WORKSPACE_POSTGRES_DSN",),
             None,
             "POSTGRES",
         ),

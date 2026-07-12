@@ -28,12 +28,13 @@ The advisory workspace routes are thin HTTP adapters over `WorkspaceApplicationS
   process-local workspace session adapter, and the Postgres workspace session repository adapter.
 - `src/infrastructure/postgres_migrations/workspace` contains the durable workspace state schema
   foundation for sessions, saved versions, audit events, and idempotency evidence.
-- `src/runtime/workspace_application.py` composes the process-local application service.
+- `src/runtime/workspace_application.py` composes the workspace application service through
+  governed repository runtime selection.
 
 This is an internal design-modularity boundary. It does not create a separate deployable workspace
-service. A durable workspace repository adapter exists, but runtime composition, recovery proof,
-and broader idempotency controls remain staged backlog work until the workspace Postgres adapter is
-guarded and composed at runtime.
+service. Production runtime validation requires `WORKSPACE_STORE_BACKEND=POSTGRES`; the
+process-local adapter remains a non-release/test adapter. Broader idempotency controls and live
+multi-instance recovery drills remain staged hardening work.
 
 ## Current Quality Posture
 

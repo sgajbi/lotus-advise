@@ -109,7 +109,8 @@ environment with:
 - `LOTUS_ADVISE_IMAGE_DIGEST_REF`: immutable image reference with digest from release evidence,
 - upstream service URLs (`LOTUS_CORE_BASE_URL`, `LOTUS_CORE_QUERY_BASE_URL`, `LOTUS_RISK_BASE_URL`,
   `LOTUS_REPORT_BASE_URL`, `LOTUS_AI_BASE_URL`),
-- `PROPOSAL_POSTGRES_DSN` and `POLICY_POSTGRES_DSN` from deployment secrets,
+- `PROPOSAL_POSTGRES_DSN`, `POLICY_POSTGRES_DSN`, and `WORKSPACE_POSTGRES_DSN` from deployment
+  secrets,
 - `LOTUS_ADVISE_TENANT_ID` from governed tenant configuration.
 
 Do not add `.dev.lotus`, `host-gateway`, plaintext DSNs, database passwords, local image builds, or
@@ -160,7 +161,8 @@ behavior, backfill checkpoint/resume/quarantine posture, rollback limits, or reh
 `policy_packs`, and `workspace`. `python scripts/production_cutover_check.py --check-migrations`
 verifies all four namespaces. The policy namespace uses `POLICY_POSTGRES_DSN` when policy storage is
 separate; the workspace namespace uses `WORKSPACE_POSTGRES_DSN` when configured and otherwise shares
-`PROPOSAL_POSTGRES_DSN` until the workspace Postgres adapter is enabled.
+`PROPOSAL_POSTGRES_DSN`. Production deployments must set `WORKSPACE_STORE_BACKEND=POSTGRES` and
+inject `WORKSPACE_POSTGRES_DSN` explicitly.
 
 Current index migrations are not `CREATE INDEX CONCURRENTLY`; treat them as controlled-window
 operations on production-sized tables. Keep the previous compatible app version available, retain

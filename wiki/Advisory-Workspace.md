@@ -38,8 +38,9 @@ Workspace API routes delegate workflow behavior to the Advise workspace applicat
 | Durable workspace schema foundation | `src/infrastructure/postgres_migrations/workspace/0001_workspace_state.sql` |
 
 This is a design-modularity improvement inside one Advise backend service. It is not a new runtime
-service split. Durable workspace runtime wiring, restart recovery, and scale-out proof remain
-staged work; the current runtime still composes the process-local workspace session adapter.
+service split. Production runtime validation requires `WORKSPACE_STORE_BACKEND=POSTGRES`; the
+process-local workspace session adapter remains a non-release/test adapter. Broader idempotency
+controls and live multi-instance recovery drills remain staged hardening work.
 
 ## AI Support
 

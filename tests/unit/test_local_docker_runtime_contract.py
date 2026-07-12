@@ -126,6 +126,7 @@ def test_production_compose_is_environment_neutral_and_secret_safe() -> None:
         "LOTUS_AI_BASE_URL=${LOTUS_AI_BASE_URL:?",
         "PROPOSAL_POSTGRES_DSN=${PROPOSAL_POSTGRES_DSN:?",
         "POLICY_POSTGRES_DSN=${POLICY_POSTGRES_DSN:?",
+        "WORKSPACE_POSTGRES_DSN=${WORKSPACE_POSTGRES_DSN:?",
         "http://127.0.0.1:8000/health/ready",
     )
     for fragment in required_fragments:

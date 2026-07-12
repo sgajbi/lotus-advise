@@ -237,6 +237,9 @@ def _validate_production_manifest_policy(compose_text: str) -> list[str]:
         "POLICY_POSTGRES_DSN=${POLICY_POSTGRES_DSN:?": (
             "Production compose must require POLICY_POSTGRES_DSN secret injection."
         ),
+        "WORKSPACE_POSTGRES_DSN=${WORKSPACE_POSTGRES_DSN:?": (
+            "Production compose must require WORKSPACE_POSTGRES_DSN secret injection."
+        ),
         "http://127.0.0.1:8000/health/ready": (
             "Production compose must healthcheck the readiness endpoint."
         ),

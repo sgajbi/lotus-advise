@@ -19,8 +19,8 @@ Runbook for forward-only schema migration rollout for:
   - `POLICY_POSTGRES_DSN` when policy records use a separate database. If unset, the runtime can
     share `PROPOSAL_POSTGRES_DSN`, but production manifests should inject both explicitly.
   - `WORKSPACE_POSTGRES_DSN` when workspace state uses a separate database. If unset, migration
-    apply and cutover checks share `PROPOSAL_POSTGRES_DSN`; current runtime still uses the
-    process-local workspace adapter until durable repository wiring is enabled.
+    apply and cutover checks share `PROPOSAL_POSTGRES_DSN`; production manifests should inject it
+    explicitly.
 - Application image/version to deploy is already tested in non-production.
 - A recent backup/restore point exists for every target database before production apply.
 - `make migration-rollout-contract-gate` and `make migration-smoke` have passed against a
@@ -36,7 +36,11 @@ Runbook for forward-only schema migration rollout for:
 - Startup always enforces the advisory Postgres contract.
 - Required backend settings:
   - `PROPOSAL_STORE_BACKEND=POSTGRES`
+  - `POLICY_STORE_BACKEND=POSTGRES`
+  - `WORKSPACE_STORE_BACKEND=POSTGRES`
   - `PROPOSAL_POSTGRES_DSN` must be configured
+  - `POLICY_POSTGRES_DSN` must be configured
+  - `WORKSPACE_POSTGRES_DSN` must be configured
 
 ## Migration Command
 
@@ -73,6 +77,7 @@ python scripts/production_cutover_check.py --check-migrations
 6. Start API services with advisory Postgres runtime enabled:
    - `PROPOSAL_STORE_BACKEND=POSTGRES`
    - `POLICY_STORE_BACKEND=POSTGRES`
+   - `WORKSPACE_STORE_BACKEND=POSTGRES`
 7. Run advisory smoke API checks.
 8. Shift traffic.
 
@@ -118,6 +123,8 @@ tables and rehearse with production-like row counts before production apply.
   - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
   - `PERSISTENCE_PROFILE_REQUIRES_POLICY_POSTGRES`
   - `PERSISTENCE_PROFILE_REQUIRES_POLICY_POSTGRES_DSN`
+  - `PERSISTENCE_PROFILE_REQUIRES_WORKSPACE_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_WORKSPACE_POSTGRES_DSN`
 - The production compose manifest must not contain `.dev.lotus`, `host-gateway`, committed
   plaintext DSNs, database passwords, local image builds, or mutable image tags. Use the immutable
   image digest reference from release evidence and inject environment-specific values at deploy
@@ -137,6 +144,8 @@ CI executes:
   - validates startup fails with:
     - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
     - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
+    - `PERSISTENCE_PROFILE_REQUIRES_WORKSPACE_POSTGRES`
+    - `PERSISTENCE_PROFILE_REQUIRES_WORKSPACE_POSTGRES_DSN`
     - malformed numeric integration configuration
 6. Production cutover contract check:
    - `python scripts/production_cutover_check.py --check-migrations`

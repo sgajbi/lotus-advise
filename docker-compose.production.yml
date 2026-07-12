@@ -16,6 +16,8 @@ services:
       - PROPOSAL_POSTGRES_DSN=${PROPOSAL_POSTGRES_DSN:?PROPOSAL_POSTGRES_DSN must be supplied by deployment secrets}
       - POLICY_STORE_BACKEND=POSTGRES
       - POLICY_POSTGRES_DSN=${POLICY_POSTGRES_DSN:?POLICY_POSTGRES_DSN must be supplied by deployment secrets}
+      - WORKSPACE_STORE_BACKEND=POSTGRES
+      - WORKSPACE_POSTGRES_DSN=${WORKSPACE_POSTGRES_DSN:?WORKSPACE_POSTGRES_DSN must be supplied by deployment secrets}
       - LOTUS_ADVISE_TENANT_ID=${LOTUS_ADVISE_TENANT_ID:?LOTUS_ADVISE_TENANT_ID is required}
     healthcheck:
       test:
