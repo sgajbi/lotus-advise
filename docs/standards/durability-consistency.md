@@ -47,9 +47,15 @@
 ## Integrity Constraints
 
 - Persistent stores enforce unique key constraints for run and idempotency entities.
+- Proposal lifecycle persistence validates relational ownership in PostgreSQL before new
+  lifecycle-integrity constraints are enabled: proposal versions must reference an existing
+  proposal, externally referenced `proposal_version_id` values are unique, workflow events and
+  approvals must reference the owning proposal and related version when supplied, version numbers
+  must be positive, and lifecycle state/event/approval vocabularies are bounded by named check
+  constraints.
 - Input contracts enforce schema validation at API boundary.
 - Evidence:
-  - `src/infrastructure/postgres_migrations/*`
+  - `src/infrastructure/postgres_migrations/proposals/0010_proposal_lifecycle_integrity.sql`
   - `src/core/*/models.py`
 
 ## Release-Gate Tests

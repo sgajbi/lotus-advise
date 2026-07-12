@@ -351,6 +351,41 @@
       }
     },
     {
+      "namespace_key": "proposals",
+      "version": "0010",
+      "path": "src/infrastructure/postgres_migrations/proposals/0010_proposal_lifecycle_integrity.sql",
+      "phase": "expand",
+      "operation_class": "add_constraints_and_unique_index",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "validates proposal lifecycle ownership, unique version identity, bounded workflow vocabularies, and related-version references before repository append-only hardening"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "constraint_validation_plus_unique_index_build",
+        "online_behavior": "not_concurrent; validation scans existing proposal lifecycle tables and may block conflicting writes",
+        "required_operator_control": "run during a controlled migration window after checking for orphan or duplicate proposal lifecycle records"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable",
+        "resume_strategy": "remediate_reported_constraint_or_unique_index_violation_then_rerun",
+        "quarantine_strategy": "quarantine proposal lifecycle writes if orphan records, duplicate proposal_version_id values, invalid states, or invalid related-version references are reported"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "constraints and unique index are additive; rollback requires forward data remediation rather than dropping lifecycle integrity guarantees"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
       "namespace_key": "advisory_copilot",
       "version": "0001",
       "path": "src/infrastructure/postgres_migrations/advisory_copilot/0001_copilot_run_persistence.sql",

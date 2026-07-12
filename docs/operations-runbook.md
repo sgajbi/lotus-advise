@@ -198,3 +198,19 @@ occurrence time:
 These indexes support single-proposal detail/replay reads and batched Advisor Cockpit/source-loader
 history reads. Before adding broader history indexes, validate the concrete query path and retention
 profile so proposal lifecycle storage does not accumulate unowned indexes.
+
+## Proposal Lifecycle Integrity
+
+The proposal migration namespace validates lifecycle relational integrity before the
+`0010_proposal_lifecycle_integrity.sql` migration is recorded. Operators should treat failures from
+constraints or indexes named `ux_proposal_versions_proposal_version_id`,
+`fk_proposal_versions_proposal`, `fk_proposal_workflow_events_related_version`,
+`fk_proposal_approvals_related_version`, or `fk_proposal_idempotency_version` as data quarantine
+events. Do not bypass the migration by hand-editing `schema_migrations`; identify orphan proposal
+versions, orphan workflow events or approvals, duplicate `proposal_version_id` values, or invalid
+version/state vocabularies, remediate the owning lifecycle records, and rerun migration apply.
+
+Repository-level append-only conflict handling for repeated lifecycle event and approval identity
+is tracked separately from the schema migration. Until that repository slice lands, use database
+constraint failures and existing idempotency-key diagnostics as the operator signal for conflicting
+proposal lifecycle evidence.
