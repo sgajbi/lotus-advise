@@ -1,9 +1,8 @@
+from src.core.workspace.session_models import WorkspaceSession
 from src.infrastructure.workspace import (
-    DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
     InMemoryWorkspaceSessionRepository,
 )
 from src.runtime.workspace_application import get_workspace_session_repository
-from src.core.workspace.session_models import WorkspaceSession
 
 WorkspaceSessionStore = InMemoryWorkspaceSessionRepository
 
