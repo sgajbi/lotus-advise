@@ -185,6 +185,12 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   `contracts/advisory-copilot/ai-data-boundary.v1.json`. Outbound Lotus AI payloads use tokenized
   portfolio/proposal/source identifiers and carry provider no-training, retention, residency, and
   deletion controls; context source refs remain available for claim grounding.
+- Advisory copilot runtime-budget posture is governed by
+  `contracts/advisory-copilot/runtime-budget.v1.json`. Advise enforces input/output payload,
+  token-estimate, timeout, bounded retry, per-process concurrency, and cost-budget controls before
+  output can become review-ready. Retryable transport failures are capped; provider status and
+  validation errors do not retry. Budget exhaustion returns stable unavailable posture with bounded
+  lineage telemetry for operator diagnostics.
 - Advisory copilot review routes require a trusted reviewer principal at the API boundary.
   `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
   identity, `X-Capabilities`, and authorized proposal/portfolio headers drive authority,

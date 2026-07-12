@@ -8,6 +8,7 @@ from src.core.advisory_copilot import (
     CopilotAudience,
     CopilotEvidencePacket,
     advisory_copilot_ai_data_controls,
+    advisory_copilot_runtime_budget_controls,
     copilot_source_ref_identity,
     minimized_copilot_evidence_packet,
     workflow_pack_id_for_action,
@@ -58,6 +59,7 @@ def build_advisory_copilot_workflow_pack_request(
     approval_reference: str,
     change_reference: str,
     release_evidence_ref: str,
+    runtime_budget_controls: dict[str, Any] | None = None,
 ) -> dict[str, object]:
     action_family = evidence_packet.action_family
     bounded_requested_by = bounded_text(
@@ -98,6 +100,8 @@ def build_advisory_copilot_workflow_pack_request(
                 "ai_data_controls": advisory_copilot_ai_data_controls(
                     approved_provider_id=approved_provider_id
                 ),
+                "runtime_budget_controls": runtime_budget_controls
+                or advisory_copilot_runtime_budget_controls(),
                 "supportability": {
                     "human_review_required": True,
                     "client_ready_publication": "BLOCKED",

@@ -1,0 +1,71 @@
+{
+  "schema_version": "lotus.advise.advisory-copilot-runtime-budget.v1",
+  "contract_version": "advisory-copilot-runtime-budget.v1",
+  "owner": "lotus-advise",
+  "execution_provider": "lotus-ai",
+  "deadline_ms": 10000,
+  "retry_policy": {
+    "max_attempts": 2,
+    "backoff_ms": 100,
+    "retryable_transport_errors": [
+      "ConnectError",
+      "ConnectTimeout",
+      "PoolTimeout",
+      "ReadTimeout"
+    ],
+    "retry_non_idempotent_operations": false,
+    "retry_provider_validation_errors": false
+  },
+  "token_budget": {
+    "max_prompt_tokens": 8000,
+    "max_completion_tokens": 1200,
+    "max_total_tokens": 9200,
+    "token_estimation": "bounded-character-estimate-before-request-provider-usage-after-response"
+  },
+  "payload_budget": {
+    "max_input_characters": 32000,
+    "max_output_characters": 20000
+  },
+  "cost_budget": {
+    "max_chargeable_cost_units": 50000,
+    "pricing_source": "lotus-ai-provider-configuration",
+    "application_defined_provider_pricing": false
+  },
+  "concurrency_budget": {
+    "max_concurrent_requests_per_process": 4
+  },
+  "fallback_policy": {
+    "budget_exhaustion_status": "UNAVAILABLE",
+    "publish_partial_output": false,
+    "stable_reason_codes": [
+      "COPILOT_AI_INPUT_BUDGET_EXHAUSTED",
+      "COPILOT_AI_PROMPT_TOKEN_BUDGET_EXHAUSTED",
+      "COPILOT_AI_TOTAL_TOKEN_BUDGET_EXHAUSTED",
+      "COPILOT_AI_OUTPUT_BUDGET_EXHAUSTED",
+      "COPILOT_AI_COMPLETION_TOKEN_BUDGET_EXHAUSTED",
+      "COPILOT_AI_CONCURRENCY_BUDGET_EXHAUSTED",
+      "COPILOT_AI_RETRY_BUDGET_EXHAUSTED"
+    ]
+  },
+  "telemetry_fields": [
+    "contract_version",
+    "config_ref",
+    "attempt_count",
+    "max_attempts",
+    "deadline_ms",
+    "retry_backoff_ms",
+    "retry_exhausted",
+    "fallback_reason",
+    "last_error_type",
+    "latency_ms",
+    "input_character_count",
+    "input_token_estimate",
+    "output_character_count",
+    "output_token_estimate",
+    "max_prompt_tokens",
+    "max_completion_tokens",
+    "max_total_tokens",
+    "max_chargeable_cost_units",
+    "max_concurrent_requests_per_process"
+  ]
+}

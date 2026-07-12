@@ -46,11 +46,16 @@ Slice 7 implements the cross-repository AI execution boundary:
    `contracts/advisory-copilot/ai-data-boundary.v1.json`; outbound payloads carry tokenized
    portfolio/proposal/source identifiers and explicit provider no-training, retention, residency,
    and deletion controls.
-9. The adapter fails closed:
+9. The adapter enforces runtime-budget controls from
+   `src/core/advisory_copilot/runtime_budget.py` and
+   `contracts/advisory-copilot/runtime-budget.v1.json`; outbound workflow-pack requests carry
+   deadline, retry, token, payload, cost, and concurrency budgets, while lineage records bounded
+   attempt, latency, usage-estimate, retry, fallback, and cost-budget telemetry.
+10. The adapter fails closed:
    - unsafe requested intent or prompt-injection posture returns `GUARDRAIL_REJECTED` before calling
      `lotus-ai`,
-   - unavailable, disabled, non-completed, or transport-failed `lotus-ai` returns deterministic
-     `UNAVAILABLE`,
+   - unavailable, disabled, non-completed, budget-exhausted, or transport-failed `lotus-ai` returns
+     deterministic `UNAVAILABLE`,
    - unsafe output wording returns `GUARDRAIL_REJECTED` and hides generated sections.
 
 ## Model-Risk Controls
@@ -67,24 +72,27 @@ Every Advise copilot workflow-pack request carries:
 8. approval reference: `MODEL-RISK-APPROVAL-ADVISORY-COPILOT-V1`,
 9. release evidence and change-control references,
 10. evaluator version, dataset id, thresholds, metrics, and evaluation hash,
-11. evidence-packet hash lineage.
+11. evidence-packet hash lineage,
+12. runtime-budget controls for deadline, retry, token, payload, cost, and concurrency limits.
 
 These are lineage and review controls, not client-facing product copy.
 
 Completed responses must report the same approved `lotus-ai` provider and model version. Persisted
 run lineage carries the approved model inventory id, provider/model identity, risk tier, owner,
 data class, approval reference, evaluation result, release evidence, change reference, rollback
-reference, runtime model environment, and executable model-risk evaluation posture.
+reference, runtime model environment, executable model-risk evaluation posture, and bounded
+runtime-budget telemetry.
 
 ## Tests
 
 | Test | Coverage |
 | --- | --- |
-| `tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py` | Advise adapter request shape, no raw prompt/instruction payload, Singapore tenant propagation, approved provider/model request controls, successful review-required draft, missing/mismatched/retired/environment-denied model fail-closed behavior, preflight guardrail rejection, output guardrail rejection, unavailable fallback, and transport-failure fallback. |
+| `tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py` | Advise adapter request shape, no raw prompt/instruction payload, Singapore tenant propagation, approved provider/model request controls, runtime-budget request controls, successful review-required draft, missing/mismatched/retired/environment-denied model fail-closed behavior, preflight guardrail rejection, output guardrail rejection, unavailable fallback, bounded transport retry, non-retry provider status errors, and budget-exhaustion fallback. |
 | `tests/unit/advisory/engine/test_advisory_copilot_model_governance.py` | Executable approved provider/model inventory, contract alignment, environment allowlist, retired model rejection, and rollback-approved active model lineage. |
 | `tests/unit/advisory/engine/test_advisory_copilot_evaluation_gate.py` | Executable evaluation-pack gate, sanitized corpus expansion across all six action families, positive/negative posture checks, and regression failure evidence. |
 | `tests/unit/advisory/engine/test_advisory_copilot_safety_gate.py` and `tests/unit/advisory/engine/test_engine_advisory_copilot_foundation.py` | Executable safety-abuse gate, typed guardrail policy inputs, indirect prompt injection in source evidence, whitespace/base64-obfuscated instruction attempts, forbidden output variants, sensitive output, and safe advisor-review text. |
 | `tests/unit/advisory/engine/test_advisory_copilot_ai_data_boundary.py` | AI data-boundary contract alignment, tokenized portfolio/proposal/source identifiers, unclassified evidence rejection, and provider no-training/retention/residency/deletion controls. |
+| `tests/unit/advisory/engine/test_advisory_copilot_runtime_budget.py` | Runtime-budget contract alignment, bounded token estimation, sanitized telemetry fields, retry budget, payload budget, cost-budget, and concurrency-budget controls. |
 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | Durable run lineage persists approved provider/model identity, approval reference, release/evaluation/change evidence, and `lotus-ai` model version. |
 | `lotus-ai/tests/unit/test_workflow_pack_execution.py` | Registered pack execution, review-gated output, model-risk fields, and forbidden client output rejection before side effects. |
 | `lotus-ai/tests/unit/test_workflow_pack_registry.py` and route-contract tests | Registry, binding, queue-policy, supportability, runtime-status, and wiki-backed route posture for the six copilot packs. |
