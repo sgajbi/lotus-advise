@@ -411,6 +411,9 @@ Use these commands as the primary local contract:
    `make domain-data-products-gate`
 8. trust telemetry freshness gate
    `make trust-telemetry-freshness-gate`
+   CI-backed runtime certification uses `make trust-telemetry-certify` and writes derived snapshots
+   to `output/trust-telemetry/runtime/`; it requires immutable Git/run provenance and does not
+   rewrite historical committed observations.
 9. quality evidence freshness gate
    `make quality-baseline-check`
 10. live demo certification evidence
