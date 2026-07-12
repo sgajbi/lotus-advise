@@ -135,12 +135,16 @@ def _postgres_env() -> dict[str, str]:
     )
     env["PROPOSAL_POSTGRES_DSN"] = proposal_postgres_dsn
     env["PROPOSAL_POSTGRES_INTEGRATION_DSN"] = proposal_postgres_integration_dsn
+    env["POLICY_POSTGRES_DSN"] = env.get("POLICY_POSTGRES_DSN", "").strip() or proposal_postgres_dsn
+    env["WORKSPACE_POSTGRES_DSN"] = (
+        env.get("WORKSPACE_POSTGRES_DSN", "").strip() or proposal_postgres_dsn
+    )
     return env
 
 
 def run_postgres_migration_smoke() -> None:
     env = _postgres_env()
-    _run([sys.executable, "scripts/postgres_migrate.py", "--target", "proposals"], env=env)
+    _run([sys.executable, "scripts/postgres_migrate.py", "--target", "all"], env=env)
     _run(
         [
             sys.executable,
@@ -156,7 +160,9 @@ def run_postgres_migration_smoke() -> None:
 def run_production_profile_smoke() -> None:
     env = _postgres_env()
     env["PROPOSAL_STORE_BACKEND"] = "POSTGRES"
-    _run([sys.executable, "scripts/postgres_migrate.py", "--target", "proposals"], env=env)
+    env["POLICY_STORE_BACKEND"] = "POSTGRES"
+    env["WORKSPACE_STORE_BACKEND"] = "POSTGRES"
+    _run([sys.executable, "scripts/postgres_migrate.py", "--target", "all"], env=env)
     process = _start_uvicorn(env=env, port=8002)
     try:
         _wait_for_http_ready(port=8002, paths=["/docs", "/health", "/advisory/proposals?limit=1"])
@@ -190,6 +196,29 @@ def run_production_profile_guardrail_negatives() -> None:
         env=missing_dsn_env,
         port=8007,
         expected_messages=("PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN",),
+    )
+
+    unsupported_workspace_env = os.environ.copy()
+    unsupported_workspace_env["PROPOSAL_STORE_BACKEND"] = "POSTGRES"
+    unsupported_workspace_env["PROPOSAL_POSTGRES_DSN"] = _LOCAL_PROPOSAL_POSTGRES_DSN
+    unsupported_workspace_env["POLICY_STORE_BACKEND"] = "POSTGRES"
+    unsupported_workspace_env["WORKSPACE_STORE_BACKEND"] = "IN_MEMORY"
+    _assert_guardrail_failure(
+        env=unsupported_workspace_env,
+        port=8008,
+        expected_messages=("PERSISTENCE_PROFILE_REQUIRES_WORKSPACE_POSTGRES",),
+    )
+
+    missing_workspace_dsn_env = os.environ.copy()
+    missing_workspace_dsn_env["PROPOSAL_STORE_BACKEND"] = "POSTGRES"
+    missing_workspace_dsn_env["PROPOSAL_POSTGRES_DSN"] = _LOCAL_PROPOSAL_POSTGRES_DSN
+    missing_workspace_dsn_env["POLICY_STORE_BACKEND"] = "POSTGRES"
+    missing_workspace_dsn_env["WORKSPACE_STORE_BACKEND"] = "POSTGRES"
+    missing_workspace_dsn_env.pop("WORKSPACE_POSTGRES_DSN", None)
+    _assert_guardrail_failure(
+        env=missing_workspace_dsn_env,
+        port=8009,
+        expected_messages=("PERSISTENCE_PROFILE_REQUIRES_WORKSPACE_POSTGRES_DSN",),
     )
 
 

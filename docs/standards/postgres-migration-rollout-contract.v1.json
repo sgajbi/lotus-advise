@@ -546,12 +546,12 @@
         "required": false,
         "checkpoint_strategy": "not_applicable",
         "resume_strategy": "rerun_idempotent_create_if_not_exists",
-        "quarantine_strategy": "keep workspace persistence disabled until migration verifies"
+        "quarantine_strategy": "keep workspace runtime traffic disabled until migration verifies"
       },
       "rollback": {
         "forward_fix_required": true,
         "previous_app_version_compatible": true,
-        "limitations": "older app versions ignore additive workspace tables while runtime remains on the process-local adapter"
+        "limitations": "older app versions ignore additive workspace tables; redeploy the previous compatible app only after routing workspace traffic to a compatible runtime posture"
       },
       "rehearsal": {
         "profile_key": "local_postgres_migration_smoke",

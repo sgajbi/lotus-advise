@@ -19,6 +19,8 @@ from src.core.policy_packs import (
     InMemoryPolicyPackCatalogStateStore,
 )
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
+from src.infrastructure.workspace.in_memory import InMemoryWorkspaceSessionRepository
+from src.runtime.workspace_application import reset_workspace_application_for_tests
 
 
 def _has_marker(item: pytest.Item, name: str) -> bool:
@@ -68,6 +70,8 @@ def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("PROPOSAL_POSTGRES_DSN", "postgresql://test:test@localhost:5432/proposals")
     monkeypatch.setenv("POLICY_STORE_BACKEND", "POSTGRES")
     monkeypatch.setenv("POLICY_POSTGRES_DSN", "postgresql://test:test@localhost:5432/policy")
+    monkeypatch.setenv("WORKSPACE_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv("WORKSPACE_POSTGRES_DSN", "postgresql://test:test@localhost:5432/workspace")
     monkeypatch.setattr(
         "src.runtime.proposal_repositories.PostgresProposalRepository",
         lambda **_kwargs: InMemoryProposalRepository(),
@@ -82,6 +86,14 @@ def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
         "src.runtime.policy_repositories.PostgresPolicyPackCatalogRepository",
         lambda **_kwargs: DurablePolicyPackCatalogRepository(state_store=policy_catalog_state),
     )
+    workspace_repository = InMemoryWorkspaceSessionRepository()
+    monkeypatch.setattr(
+        "src.runtime.workspace_repositories.PostgresWorkspaceSessionRepository",
+        lambda **_kwargs: workspace_repository,
+    )
+    reset_workspace_application_for_tests()
+    yield
+    reset_workspace_application_for_tests()
 
 
 @pytest.fixture(autouse=True)
