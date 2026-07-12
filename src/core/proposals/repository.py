@@ -82,6 +82,10 @@ class ProposalRepository(Protocol):
         self, *, as_of: datetime, limit: Optional[int] = None
     ) -> list[ProposalAsyncOperationRecord]: ...
 
+    def list_operations_for_control(
+        self, *, as_of: datetime, limit: Optional[int] = None
+    ) -> list[ProposalAsyncOperationRecord]: ...
+
     def create_proposal(self, proposal: ProposalRecord) -> None: ...
 
     def create_proposal_with_version_event_idempotency(

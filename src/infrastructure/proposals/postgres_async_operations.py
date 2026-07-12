@@ -185,6 +185,29 @@ def list_recoverable_operations(
     return [operation for operation in (to_operation(row) for row in rows) if operation is not None]
 
 
+def list_operations_for_control(
+    *,
+    connect: ConnectionFactory,
+    limit: Optional[int] = None,
+) -> list[ProposalAsyncOperationRecord]:
+    if limit is not None and limit <= 0:
+        return []
+    args: list[object] = []
+    query = f"""
+        SELECT
+            {ASYNC_OPERATION_COLUMNS}
+        FROM proposal_async_operations
+        WHERE status IN ('PENDING', 'RUNNING', 'FAILED')
+        ORDER BY created_at ASC, operation_id ASC
+    """
+    if limit is not None:
+        query = f"{query}\nLIMIT %s"
+        args.append(limit)
+    with closing(connect()) as connection:
+        rows = connection.execute(query, tuple(args)).fetchall()
+    return [operation for operation in (to_operation(row) for row in rows) if operation is not None]
+
+
 def _operation_params(operation: ProposalAsyncOperationRecord) -> tuple[object, ...]:
     return (
         operation.operation_id,
@@ -211,6 +234,7 @@ __all__ = [
     "get_operation",
     "get_operation_by_correlation",
     "get_operation_by_idempotency",
+    "list_operations_for_control",
     "list_recoverable_operations",
     "upsert_operation",
 ]

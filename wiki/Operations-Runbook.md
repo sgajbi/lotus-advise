@@ -77,6 +77,24 @@ Kubernetes readiness probes and container healthchecks should use `/health/ready
 RFP, and workflow certification must require both a ready `/health/ready` response and ready
 `/platform/capabilities` evidence for every claimed workflow.
 
+## Proposal Async Operation Controls
+
+`src/core/proposals/async_operation_control_plane.py` governs support-safe decisions for proposal
+async operations. The boundary classifies operations as `PENDING`, `LEASED`, `RECOVERABLE_STUCK`,
+`RETRY_EXHAUSTED`, `QUARANTINED`, `TERMINAL_FAILED`, or `TERMINAL_SUCCEEDED` using persisted
+operation state, attempt counts, and lease expiry.
+
+Only trusted operations principals with `advisory.proposals.async_operations.control` can receive
+allowed control decisions. Supported actions are `DRY_RUN`, `RETRY`, `QUARANTINE`, and
+`PAUSE_DRAIN`. Active leases block retry and quarantine so operators do not duplicate worker-owned
+execution. Retry-exhausted operations can be quarantined for support triage, but cannot be retried
+by resetting attempts or mutating the original payload.
+
+Control audit evidence is intentionally sanitized: operation, correlation, proposal, actor, service
+identity, idempotency key, and reason values are hashed, and payload mutation is always reported as
+not allowed. Do not add arbitrary SQL, raw payload editing, request-body actor authority, or
+lifecycle-invariant bypasses to async-operation support tooling.
+
 ## SLO And Capacity Budgets
 
 Endpoint, workflow, dependency, and AI cost budgets are governed by
