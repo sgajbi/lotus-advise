@@ -468,17 +468,30 @@ def test_pull_request_target_auto_merge_is_guarded_to_internal_labeled_prs() -> 
     auto_merge_section = _workflow_job_section(workflow, "queue-auto-merge")
 
     assert "pull_request_target:" in workflow
-    assert "permissions:\n  contents: write\n  pull-requests: write" in workflow
+    assert "permissions:\n  contents: read" in workflow
+    assert "contents: write" not in workflow
+    assert "pull-requests: write" not in workflow
     assert "github.event.pull_request.base.ref == 'main'" in auto_merge_section
     assert "github.event.pull_request.head.repo.fork == false" in auto_merge_section
     assert "contains(github.event.pull_request.labels.*.name, 'automerge')" in auto_merge_section
-    assert 'gh api "repos/$GITHUB_REPOSITORY/branches/main"' in auto_merge_section
-    assert 'payload.get("protected") is not True' in auto_merge_section
-    assert 'protection.get("required_status_checks")' in auto_merge_section
-    assert "main branch must require status checks before auto-merge can be queued" in (
-        auto_merge_section
-    )
+    assert "secrets.LOTUS_AUTOMERGE_TOKEN" in auto_merge_section
+    assert "github.token" not in workflow
+    assert "LOTUS_AUTOMERGE_TOKEN is required" in auto_merge_section
+    assert "Skipping auto-merge; use an authorized human or release actor" in auto_merge_section
     assert 'gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase' in (
         auto_merge_section
     )
     assert "--auto --merge" not in auto_merge_section
+
+
+def test_merged_pr_dispatches_main_releasability_on_main() -> None:
+    workflow = _workflow_text("merged-pr-main-releasability.yml")
+    dispatch_section = _workflow_job_section(workflow, "dispatch-main-releasability")
+
+    assert "pull_request_target:" in workflow
+    assert "types: [closed]" in workflow
+    assert "permissions:\n  actions: write\n  contents: read" in workflow
+    assert "github.event.pull_request.merged == true" in dispatch_section
+    assert "github.event.pull_request.base.ref == 'main'" in dispatch_section
+    assert "gh workflow run main-releasability.yml" in dispatch_section
+    assert "--ref main" in dispatch_section
