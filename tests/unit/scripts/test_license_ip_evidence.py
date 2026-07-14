@@ -77,6 +77,37 @@ def test_license_inventory_records_direct_requirement_pin(tmp_path: Path) -> Non
     assert packages["directpkg"]["version"] == "2.0.0"
 
 
+def test_license_inventory_uses_repo_relative_release_graph_paths() -> None:
+    inventory = build_license_inventory(
+        runtime_requirements=Path("requirements-prod.txt"),
+        development_requirements=Path("requirements-dev.txt"),
+        policy=_policy(),
+        commit_sha="abc123",
+        image_digest="sha256:abc123",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-11T00:00:00Z",
+        distributions=[
+            FakeDistribution(name="anyio"),
+            FakeDistribution(name="coverage"),
+            FakeDistribution(name="fastapi"),
+            FakeDistribution(name="httpx"),
+            FakeDistribution(name="orjson"),
+            FakeDistribution(name="pandas"),
+            FakeDistribution(name="pydantic"),
+            FakeDistribution(name="pydantic-settings"),
+            FakeDistribution(name="python-dotenv"),
+            FakeDistribution(name="sqlalchemy"),
+            FakeDistribution(name="structlog"),
+            FakeDistribution(name="uvicorn"),
+        ],
+    )
+
+    assert inventory["release_graphs"] == {
+        "runtime": "requirements-prod.txt",
+        "development": "requirements-dev.txt",
+    }
+
+
 def test_license_inventory_fails_stale_package_version(tmp_path: Path) -> None:
     runtime = tmp_path / "requirements-prod.txt"
     development = tmp_path / "requirements-dev.txt"

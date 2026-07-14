@@ -89,8 +89,8 @@ def build_license_inventory(
         "image_digest": image_digest,
         "generated_at_utc": generated_at_utc,
         "release_graphs": {
-            "runtime": str(runtime_requirements.as_posix()),
-            "development": str(development_requirements.as_posix()),
+            "runtime": _display_path(runtime_requirements),
+            "development": _display_path(development_requirements),
         },
         "policy": {
             "path": POLICY_PATH.as_posix(),
@@ -487,6 +487,13 @@ def _normalized_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
 
 def _git_commit_sha() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True).strip()
+
+
+def _display_path(path: Path) -> str:
+    resolved = path.resolve()
+    if resolved.is_relative_to(REPO_ROOT):
+        return resolved.relative_to(REPO_ROOT).as_posix()
+    return resolved.as_posix()
 
 
 def _build_inventory_from_args(args: argparse.Namespace) -> dict[str, Any]:
