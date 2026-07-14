@@ -2464,7 +2464,7 @@
   `GITHUB_TOKEN`, which GitHub rejected with `403 Resource not accessible by integration` after
   the `automerge` label was applied. The queue now verifies the public branch metadata reports
   `main.protected == true` and includes required status-check contexts before enabling
-  merge-commit auto-merge, preserving the internal, labeled, non-fork guard without requiring
+  rebase auto-merge, preserving the internal, labeled, non-fork guard without requiring
   unavailable administration-scope access.
 - Evidence:
   - GitHub PR auto-merge run `27775910442` reproduced the old workflow failure with

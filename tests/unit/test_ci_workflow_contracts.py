@@ -478,6 +478,7 @@ def test_pull_request_target_auto_merge_is_guarded_to_internal_labeled_prs() -> 
     assert "main branch must require status checks before auto-merge can be queued" in (
         auto_merge_section
     )
-    assert 'gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --merge' in (
+    assert 'gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase' in (
         auto_merge_section
     )
+    assert "--auto --merge" not in auto_merge_section

@@ -1240,7 +1240,7 @@ def render_refactor_health_report(context: QualityContext) -> str:
         "- CI workflow quality contracts now enforce committed quality-baseline freshness in",
         "  Feature Lane, PR Merge Gate, and Main Releasability static governance jobs.",
         "- PR auto-merge queue verification now checks protected main-branch metadata through",
-        "  a workflow-token-readable endpoint before enabling merge-commit auto-merge.",
+        "  a workflow-token-readable endpoint before enabling rebase auto-merge.",
         "- Quality baseline report rendering delegates metric formatting and Markdown sections",
         "  to focused helpers while preserving the freshness-gated report contract.",
         "- Quality baseline Radon inventory parsing delegates nested block traversal, rank",
