@@ -7,6 +7,7 @@ from scripts.license_ip_evidence import (
     LicensePolicy,
     build_license_inventory,
     validate_license_inventory,
+    validate_license_inventory_against_expected,
 )
 
 
@@ -52,6 +53,65 @@ def test_license_inventory_includes_transitive_dependency(tmp_path: Path) -> Non
     assert packages["directpkg"]["relationship"] == "direct"
     assert packages["childpkg"]["relationship"] == "transitive"
     assert packages["childpkg"]["policy_classification"] == "ALLOWED"
+
+
+def test_license_inventory_records_direct_requirement_pin(tmp_path: Path) -> None:
+    runtime = tmp_path / "requirements-prod.txt"
+    development = tmp_path / "requirements-dev.txt"
+    runtime.write_text("directpkg==2.0.0\n", encoding="utf-8")
+    development.write_text("-r requirements-prod.txt\n", encoding="utf-8")
+
+    inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(),
+        commit_sha="abc123",
+        image_digest="sha256:abc123",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-11T00:00:00Z",
+        distributions=[FakeDistribution(name="directpkg", version="1.0.0")],
+    )
+
+    packages = {package["name"]: package for package in inventory["packages"]}
+
+    assert packages["directpkg"]["version"] == "2.0.0"
+
+
+def test_license_inventory_fails_stale_package_version(tmp_path: Path) -> None:
+    runtime = tmp_path / "requirements-prod.txt"
+    development = tmp_path / "requirements-dev.txt"
+    runtime.write_text("directpkg==2.0.0\n", encoding="utf-8")
+    development.write_text("-r requirements-prod.txt\n", encoding="utf-8")
+
+    expected_inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(),
+        commit_sha="expected",
+        image_digest="expected",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-11T00:00:00Z",
+        distributions=[FakeDistribution(name="directpkg", version="2.0.0")],
+    )
+    stale_inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(),
+        commit_sha="stale",
+        image_digest="stale",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-10T00:00:00Z",
+        distributions=[FakeDistribution(name="directpkg", version="2.0.0")],
+    )
+    stale_inventory["packages"][0]["version"] = "1.0.0"
+
+    failures = validate_license_inventory_against_expected(
+        stale_inventory,
+        expected_inventory,
+        _policy(),
+    )
+
+    assert "License/IP inventory is stale. Regenerate with `make license-ip-inventory`." in failures
 
 
 def test_license_inventory_fails_missing_package_metadata(tmp_path: Path) -> None:

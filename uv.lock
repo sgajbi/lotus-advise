@@ -4,7 +4,7 @@ requires-python = ">=3.11"
 authoritative-source = "requirements"
 generated-by = "scripts/dependency_lock_evidence.py"
 license-inventory = "docs/standards/license-ip-inventory.v1.json"
-license-inventory-sha256 = "54e4093bc66fd5fb237390cdd1dc036e393b0a23caf420216629abc7f2fdcebb"
+license-inventory-sha256 = "d61c327bef7105480c083a71a28b67c97c9279383bbc7575545517ed61897466"
 
 [[requirement-files]]
 group = "development"
@@ -41,7 +41,7 @@ requirement-hashes = ["20d9452f7f9bb616dd9c6fa59c2638d3bb69f80e4dc538d5635ef4660
 
 [[package]]
 name = "anyio"
-version = "4.14.1"
+version = "4.14.2"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
@@ -140,7 +140,7 @@ requirement-hashes = ["e91f42fdc36833eb19b14a96d440f3806e500e121b6209b9e06894908
 
 [[package]]
 name = "coverage"
-version = "7.14.3"
+version = "7.15.1"
 direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
@@ -185,7 +185,7 @@ requirement-hashes = ["f2e34bb219519b1a3f889bae70eecf9ed2d2b06629a3c8ce1c8d574ef
 
 [[package]]
 name = "fastapi"
-version = "0.138.1"
+version = "0.139.0"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
@@ -257,7 +257,7 @@ requirement-hashes = ["1d7c42f54f85a9c2af00d8a5147e3625bf14d357ffba6d30ab863ddcd
 
 [[package]]
 name = "import-linter"
-version = "2.11"
+version = "2.12"
 direct = true
 groups = ["development"]
 requirement-files = ["requirements-dev.txt"]
@@ -365,7 +365,7 @@ requirement-hashes = []
 
 [[package]]
 name = "mypy"
-version = "1.20.2"
+version = "2.1.0"
 direct = true
 groups = ["development"]
 requirement-files = ["requirements-dev.txt"]
@@ -446,7 +446,7 @@ requirement-hashes = []
 
 [[package]]
 name = "pip-audit"
-version = "2.10.0"
+version = "2.10.1"
 direct = true
 groups = ["development"]
 requirement-files = ["requirements-dev.txt"]
@@ -482,7 +482,7 @@ requirement-hashes = ["ab0be69d1a1bde3794d486d613137d5d20ac87896592eeb5579dc475d
 
 [[package]]
 name = "prometheus-client"
-version = "0.24.1"
+version = "0.25.0"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
@@ -770,7 +770,7 @@ requirement-hashes = []
 
 [[package]]
 name = "typing-extensions"
-version = "4.15.0"
+version = "4.16.0"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
