@@ -1,6 +1,6 @@
 {
-  "generated_at_utc": "2026-07-14T06:07:19Z",
-  "git_commit_sha": "f50e38a2b6bd61b2b3ea7d06c5c9c7aab3dd9b1c",
+  "generated_at_utc": "2026-07-14T06:19:21Z",
+  "git_commit_sha": "4d4d3a868461f0baaed6df224f3c6ad2b298c64e",
   "image_digest": "unknown",
   "notice_file": "NOTICE.md",
   "packages": [
@@ -1559,8 +1559,8 @@
     "schema_version": "lotus.license-ip-policy.v1"
   },
   "release_graphs": {
-    "development": "C:/Users/Sandeep/projects/lotus-advise/requirements-dev.txt",
-    "runtime": "C:/Users/Sandeep/projects/lotus-advise/requirements-prod.txt"
+    "development": "requirements-dev.txt",
+    "runtime": "requirements-prod.txt"
   },
   "repository_url": "https://github.com/sgajbi/lotus-advise",
   "schema_version": "lotus.license-ip-inventory.v1",
