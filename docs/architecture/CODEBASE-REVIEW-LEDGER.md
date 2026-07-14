@@ -2462,10 +2462,11 @@
 - Summary: `.github/workflows/pr-auto-merge.yml` attempted to read
   `repos/$GITHUB_REPOSITORY/branches/main/protection` from `pull_request_target` using
   `GITHUB_TOKEN`, which GitHub rejected with `403 Resource not accessible by integration` after
-  the `automerge` label was applied. The queue now verifies the public branch metadata reports
-  `main.protected == true` and includes required status-check contexts before enabling
-  rebase auto-merge, preserving the internal, labeled, non-fork guard without requiring
-  unavailable administration-scope access.
+  the `automerge` label was applied. The queue now uses least-privilege workflow permissions,
+  preserves the internal labeled non-fork guard, requires `LOTUS_AUTOMERGE_TOKEN` before enabling
+  rebase auto-merge, and leaves manual rebase merge available when the token is absent. A separate
+  closed-PR dispatch workflow triggers `main-releasability.yml` on `main` after merge so exact-main
+  release evidence is not dependent on a `GITHUB_TOKEN` merge event.
 - Evidence:
   - GitHub PR auto-merge run `27775910442` reproduced the old workflow failure with
     `403 Resource not accessible by integration` before this workflow fix could be active on
@@ -2481,9 +2482,15 @@
   - `python -m pytest tests/unit/test_ci_workflow_contracts.py tests/unit/scripts/test_api_vocabulary_inventory.py tests/unit/scripts/test_quality_baseline_report.py -q` passed with 14 tests.
   - `python -m ruff check tests/unit/test_ci_workflow_contracts.py` passed.
   - `python -m ruff format --check tests/unit/test_ci_workflow_contracts.py` passed.
+  - Platform auto-merge releasability validator reproduced residual drift after the first rebase
+    fix: `merged-pr-dispatch.missing`, `pr-auto-merge.github-token`,
+    `pr-auto-merge.missing-lotus-token`, and `pr-auto-merge.write-permissions`.
+  - `py -3.11 -m pytest tests/unit/test_ci_workflow_contracts.py` covers the least-privilege
+    auto-merge token contract and merged-main releasability dispatch.
 - Consequence:
-  - The PR auto-merge queue can run under least-privilege workflow permissions while still refusing
-    to queue auto-merge unless `main` is protected and required status checks are configured.
+  - The PR auto-merge queue can run under least-privilege workflow permissions without using
+    `GITHUB_TOKEN` as the merge actor, while merged PRs still produce exact-main releasability
+    evidence.
 - Documentation:
   - Review ledger and generated quality reports updated. No README/wiki source change is required
     because this is internal CI workflow hardening.

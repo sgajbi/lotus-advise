@@ -170,9 +170,12 @@ gh pr checks <PR_NUMBER> --watch
 gh pr merge <PR_NUMBER> --rebase --delete-branch
 ```
 
-Auto-merge is opt-in via the `automerge` label and is only queued on protected `main` with the
-repository-approved rebase merge path.
+Auto-merge is opt-in via the `automerge` label and is queued through the repository-approved
+rebase merge path using `LOTUS_AUTOMERGE_TOKEN`. If that token is not configured, the helper warns
+and skips so an authorized human or release actor can rebase-merge the PR.
 Without the `automerge` label, PRs stay manual even after CI is green.
+Merged PRs dispatch `main-releasability.yml` on `main` through the separate closed-PR dispatch
+workflow so release evidence binds the merged mainline commit.
 
 ### 9. Sync local after merge
 
