@@ -519,7 +519,28 @@ def _normalized_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
         direct_packages,
         key=lambda package: str(package.get("name") or ""),
     )
+    transitive_packages = [
+        _normalized_transitive_package(package)
+        for package in inventory.get("packages", [])
+        if package.get("relationship") == "transitive"
+    ]
+    normalized["transitive_packages"] = sorted(
+        transitive_packages,
+        key=lambda package: str(package.get("name") or ""),
+    )
     return normalized
+
+
+def _normalized_transitive_package(package: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "name": package.get("name"),
+        "license_term": package.get("license_term"),
+        "policy_classification": package.get("policy_classification"),
+        "exception_id": package.get("exception_id"),
+        "exception_owner": package.get("exception_owner"),
+        "exception_expires_on": package.get("exception_expires_on"),
+        "metadata_available": package.get("metadata_available"),
+    }
 
 
 def _git_commit_sha() -> str:

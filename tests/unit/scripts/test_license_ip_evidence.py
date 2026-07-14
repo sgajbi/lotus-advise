@@ -215,6 +215,51 @@ def test_license_inventory_staleness_ignores_transitive_platform_metadata(
     assert failures == []
 
 
+def test_license_inventory_staleness_detects_transitive_membership_drift(
+    tmp_path: Path,
+) -> None:
+    runtime = tmp_path / "requirements-prod.txt"
+    development = tmp_path / "requirements-dev.txt"
+    runtime.write_text("directpkg==1.0.0\n", encoding="utf-8")
+    development.write_text("-r requirements-prod.txt\n", encoding="utf-8")
+
+    current_inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(),
+        commit_sha="current",
+        image_digest="current",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-12T00:00:00Z",
+        distributions=[
+            FakeDistribution(name="directpkg", requires=["childpkg>=1"]),
+            FakeDistribution(name="childpkg"),
+        ],
+    )
+    expected_inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(),
+        commit_sha="expected",
+        image_digest="expected",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-11T00:00:00Z",
+        distributions=[
+            FakeDistribution(name="directpkg", requires=["childpkg>=1", "newchild>=1"]),
+            FakeDistribution(name="childpkg"),
+            FakeDistribution(name="newchild"),
+        ],
+    )
+
+    failures = validate_license_inventory_against_expected(
+        current_inventory,
+        expected_inventory,
+        _policy(),
+    )
+
+    assert "License/IP inventory is stale. Regenerate with `make license-ip-inventory`." in failures
+
+
 def test_license_inventory_fails_missing_package_metadata(tmp_path: Path) -> None:
     runtime = tmp_path / "requirements-prod.txt"
     development = tmp_path / "requirements-dev.txt"
