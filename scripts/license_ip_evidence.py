@@ -501,13 +501,24 @@ def _normalized_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
     normalized = {
         key: value
         for key, value in inventory.items()
-        if key not in {"generated_at_utc", "git_commit_sha", "image_digest", "summary"}
+        if key
+        not in {
+            "generated_at_utc",
+            "git_commit_sha",
+            "image_digest",
+            "packages",
+            "summary",
+        }
     }
-    normalized["packages"] = sorted(
-        (dict(package) for package in inventory.get("packages", [])),
+    direct_packages = [
+        dict(package)
+        for package in inventory.get("packages", [])
+        if package.get("relationship") == "direct"
+    ]
+    normalized["direct_packages"] = sorted(
+        direct_packages,
         key=lambda package: str(package.get("name") or ""),
     )
-    normalized["summary"] = _inventory_summary(normalized["packages"])
     return normalized
 
 
