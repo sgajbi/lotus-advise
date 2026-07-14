@@ -9,17 +9,17 @@ license-inventory-sha256 = "54e4093bc66fd5fb237390cdd1dc036e393b0a23caf420216629
 [[requirement-files]]
 group = "development"
 path = "requirements-dev.txt"
-sha256 = "5981859540cc5df4319cecaebf94a4276380c86352073cbb3f86f17c50e665bc"
+sha256 = "686ddd727b038c02d51e21d44803aa314dc3a2f146b00060d8666f4f94376a64"
 
 [[requirement-files]]
 group = "install"
 path = "requirements.txt"
-sha256 = "e5c034cfef4822aba086f486a2611169bdecebb8b19b15ed30f197d47f7c664c"
+sha256 = "18c4312860c683e16682e6bff9c42c5489f43516351798dc127b4b1a2a5f2fc7"
 
 [[requirement-files]]
 group = "runtime"
 path = "requirements-prod.txt"
-sha256 = "2adf46b2d2c94885a3e04b7da38bb54147400b7c68473fbeb5585a7a0c9f38cc"
+sha256 = "dbd79ee9ca6b66bc660be5fd9155b62f409860d07071bba2845749630d9cf4b8"
 
 [[package]]
 name = "annotated-doc"
@@ -46,7 +46,7 @@ direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["bca65f3e0a51c5f915cd0bb5642626fb2cae5cf1199931af65a5da6aa7c5ad20"]
+requirement-hashes = ["9050d78a307f7c30a2cc9cb0f08fe971265451b335011f95e732536436419fa0"]
 
 [[package]]
 name = "attrs"
@@ -145,7 +145,7 @@ direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["83555c0fe2304b740289022d0302bbc8f7aad91937dd1f98f3ff00c196264a48"]
+requirement-hashes = ["3ee880b2cf06be1226e875e45480e20e03711cb5574b5664995b1f33dcb61c38"]
 
 [[package]]
 name = "cvxpy"
