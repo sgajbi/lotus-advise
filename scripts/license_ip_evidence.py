@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +30,7 @@ class RequirementRoot:
     name: str
     declared_name: str
     specifier: str
+    pinned_version: str | None
     extras: tuple[str, ...]
     dependency_group: str
     source_file: str
@@ -142,6 +144,19 @@ def validate_license_inventory(inventory: dict[str, Any], policy: LicensePolicy)
     return failures
 
 
+def validate_license_inventory_against_expected(
+    inventory: dict[str, Any],
+    expected_inventory: dict[str, Any],
+    policy: LicensePolicy,
+) -> list[str]:
+    failures = validate_license_inventory(inventory, policy)
+    if _normalized_inventory(inventory) != _normalized_inventory(expected_inventory):
+        failures.append(
+            "License/IP inventory is stale. Regenerate with `make license-ip-inventory`."
+        )
+    return failures
+
+
 def write_inventory(inventory: dict[str, Any], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
@@ -186,6 +201,7 @@ def _parse_requirement_file(
                 name=canonicalize_name(requirement.name),
                 declared_name=requirement.name,
                 specifier=str(requirement.specifier),
+                pinned_version=_exact_pinned_version(requirement),
                 extras=tuple(sorted(requirement.extras)),
                 dependency_group=dependency_group,
                 source_file=resolved.relative_to(REPO_ROOT).as_posix()
@@ -296,7 +312,7 @@ def _package_license_records(
             {
                 "name": package_name,
                 "declared_name": root.declared_name if root else package_name,
-                "version": distribution.version if distribution else None,
+                "version": _package_version(root=root, distribution=distribution),
                 "relationship": "direct" if root else "transitive",
                 "dependency_groups": sorted(graph_membership[package_name]),
                 "source_files": sorted({root.source_file}) if root else [],
@@ -309,6 +325,29 @@ def _package_license_records(
             }
         )
     return records
+
+
+def _exact_pinned_version(requirement: Requirement) -> str | None:
+    pins = [
+        str(specifier.version)
+        for specifier in SpecifierSet(str(requirement.specifier))
+        if specifier.operator == "=="
+    ]
+    if len(pins) == 1:
+        return pins[0]
+    return None
+
+
+def _package_version(
+    *,
+    root: RequirementRoot | None,
+    distribution: metadata.Distribution | None,
+) -> str | None:
+    if root and root.pinned_version:
+        return root.pinned_version
+    if distribution:
+        return distribution.version
+    return None
 
 
 def _classify_license(
@@ -432,6 +471,20 @@ def _inventory_summary(package_records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _normalized_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
+    normalized = {
+        key: value
+        for key, value in inventory.items()
+        if key not in {"generated_at_utc", "git_commit_sha", "image_digest", "summary"}
+    }
+    normalized["packages"] = sorted(
+        (dict(package) for package in inventory.get("packages", [])),
+        key=lambda package: str(package.get("name") or ""),
+    )
+    normalized["summary"] = _inventory_summary(normalized["packages"])
+    return normalized
+
+
 def _git_commit_sha() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True).strip()
 
@@ -482,7 +535,11 @@ def main() -> int:
         write_inventory(expected_inventory, REPO_ROOT / args.inventory)
     else:
         current_inventory = json.loads((REPO_ROOT / args.inventory).read_text(encoding="utf-8"))
-        failures = validate_license_inventory(current_inventory, policy)
+        failures = validate_license_inventory_against_expected(
+            current_inventory,
+            expected_inventory,
+            policy,
+        )
     for failure in failures:
         print(failure)
     return 1 if failures else 0

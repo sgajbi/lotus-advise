@@ -1,6 +1,6 @@
 {
-  "generated_at_utc": "2026-07-11T14:31:03Z",
-  "git_commit_sha": "adb72021c20cf0589f4611097e25dd7502192d12",
+  "generated_at_utc": "2026-07-14T06:07:19Z",
+  "git_commit_sha": "f50e38a2b6bd61b2b3ea7d06c5c9c7aab3dd9b1c",
   "image_digest": "unknown",
   "notice_file": "NOTICE.md",
   "packages": [
@@ -57,7 +57,7 @@
       "source_files": [
         "requirements-prod.txt"
       ],
-      "version": "4.14.1"
+      "version": "4.14.2"
     },
     {
       "declared_name": "attrs",
@@ -248,7 +248,7 @@
       "source_files": [
         "requirements-dev.txt"
       ],
-      "version": "7.14.3"
+      "version": "7.15.1"
     },
     {
       "declared_name": "cvxpy",
@@ -336,7 +336,7 @@
       "source_files": [
         "requirements-prod.txt"
       ],
-      "version": "0.138.1"
+      "version": "0.139.0"
     },
     {
       "declared_name": "filelock",
@@ -479,7 +479,7 @@
       "source_files": [
         "requirements-dev.txt"
       ],
-      "version": "2.11"
+      "version": "2.12"
     },
     {
       "declared_name": "iniconfig",
@@ -680,7 +680,7 @@
       "source_files": [
         "requirements-dev.txt"
       ],
-      "version": "1.20.2"
+      "version": "2.1.0"
     },
     {
       "declared_name": "mypy-extensions",
@@ -833,7 +833,7 @@
       "source_files": [
         "requirements-dev.txt"
       ],
-      "version": "2.10.0"
+      "version": "2.10.1"
     },
     {
       "declared_name": "pip-requirements-parser",
@@ -902,7 +902,7 @@
       "source_files": [
         "requirements-prod.txt"
       ],
-      "version": "0.24.1"
+      "version": "0.25.0"
     },
     {
       "declared_name": "prometheus-fastapi-instrumentator",
@@ -1446,7 +1446,7 @@
       "source_files": [
         "requirements-prod.txt"
       ],
-      "version": "4.15.0"
+      "version": "4.16.0"
     },
     {
       "declared_name": "typing-inspection",
