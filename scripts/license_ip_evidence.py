@@ -152,7 +152,7 @@ def validate_license_inventory(inventory: dict[str, Any], policy: LicensePolicy)
                 f"{package_name} license classification {classification} does not match "
                 f"policy-derived classification {expected_classification}"
             )
-        if _exception_id(package) != _exception_id(expected_exception or {}):
+        if _exception_evidence(package) != _exception_evidence(expected_exception or {}):
             failures.append(f"{package_name} license exception evidence is stale")
         if classification == "PROHIBITED":
             failures.append(f"{package_name} uses prohibited license {package.get('license_term')}")
@@ -182,6 +182,15 @@ def validate_license_inventory_against_expected(
         failures.append(
             "License/IP inventory is stale. Missing transitive package evidence: "
             + ", ".join(missing_transitive_packages)
+        )
+    stale_transitive_packages = _stale_expected_transitive_package_names(
+        inventory,
+        expected_inventory,
+    )
+    if stale_transitive_packages:
+        failures.append(
+            "License/IP inventory is stale. Stale transitive package evidence: "
+            + ", ".join(stale_transitive_packages)
         )
     return failures
 
@@ -463,9 +472,15 @@ def _exception_expiry(exception: dict[str, Any]) -> date:
     return date.fromisoformat(str(exception.get("expires_on") or "1970-01-01"))
 
 
-def _exception_id(exception: dict[str, Any]) -> str | None:
-    value = exception.get("exception_id") or exception.get("id")
-    return str(value) if value else None
+def _exception_evidence(exception: dict[str, Any]) -> tuple[str | None, str | None, str | None]:
+    exception_id = exception.get("exception_id") or exception.get("id")
+    owner = exception.get("exception_owner") or exception.get("owner")
+    expires_on = exception.get("exception_expires_on") or exception.get("expires_on")
+    return (
+        str(exception_id) if exception_id else None,
+        str(owner) if owner else None,
+        str(expires_on) if expires_on else None,
+    )
 
 
 def _license_term(package_metadata: metadata.PackageMetadata | None) -> str:
@@ -554,17 +569,43 @@ def _missing_expected_transitive_package_names(
     inventory: dict[str, Any],
     expected_inventory: dict[str, Any],
 ) -> list[str]:
-    current_names = {
-        str(package.get("name") or "")
-        for package in inventory.get("packages", [])
-        if package.get("relationship") == "transitive"
-    }
-    expected_names = {
-        str(package.get("name") or "")
-        for package in expected_inventory.get("packages", [])
-        if package.get("relationship") == "transitive"
-    }
+    current_names = set(_transitive_package_freshness_map(inventory))
+    expected_names = set(_transitive_package_freshness_map(expected_inventory))
     return sorted(name for name in expected_names - current_names if name)
+
+
+def _stale_expected_transitive_package_names(
+    inventory: dict[str, Any],
+    expected_inventory: dict[str, Any],
+) -> list[str]:
+    current_packages = _transitive_package_freshness_map(inventory)
+    expected_packages = _transitive_package_freshness_map(expected_inventory)
+    return sorted(
+        name
+        for name, expected_package in expected_packages.items()
+        if name in current_packages and current_packages[name] != expected_package
+    )
+
+
+def _transitive_package_freshness_map(
+    inventory: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    packages: dict[str, dict[str, Any]] = {}
+    for package in inventory.get("packages", []):
+        if package.get("relationship") != "transitive":
+            continue
+        name = str(package.get("name") or "")
+        if not name:
+            continue
+        packages[name] = {
+            "dependency_groups": sorted(
+                str(group) for group in package.get("dependency_groups", [])
+            ),
+            "exception_id": package.get("exception_id"),
+            "exception_owner": package.get("exception_owner"),
+            "exception_expires_on": package.get("exception_expires_on"),
+        }
+    return packages
 
 
 def _git_commit_sha() -> str:
