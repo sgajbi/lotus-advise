@@ -139,7 +139,21 @@ def validate_license_inventory(inventory: dict[str, Any], policy: LicensePolicy)
                 f"does not match pinned version {package.get('version')}; install requirements "
                 "before regenerating license/IP inventory."
             )
+        license_term = str(package.get("license_term") or "")
+        expected_classification, expected_exception = _classify_license(
+            package_name=package_name,
+            license_term=license_term,
+            policy=policy,
+            today=today,
+        )
         classification = str(package.get("policy_classification") or "")
+        if classification != expected_classification:
+            failures.append(
+                f"{package_name} license classification {classification} does not match "
+                f"policy-derived classification {expected_classification}"
+            )
+        if _exception_id(package) != _exception_id(expected_exception or {}):
+            failures.append(f"{package_name} license exception evidence is stale")
         if classification == "PROHIBITED":
             failures.append(f"{package_name} uses prohibited license {package.get('license_term')}")
         if classification == "REVIEW_REQUIRED":
@@ -159,6 +173,15 @@ def validate_license_inventory_against_expected(
     if _normalized_inventory(inventory) != _normalized_inventory(expected_inventory):
         failures.append(
             "License/IP inventory is stale. Regenerate with `make license-ip-inventory`."
+        )
+    missing_transitive_packages = _missing_expected_transitive_package_names(
+        inventory,
+        expected_inventory,
+    )
+    if missing_transitive_packages:
+        failures.append(
+            "License/IP inventory is stale. Missing transitive package evidence: "
+            + ", ".join(missing_transitive_packages)
         )
     return failures
 
@@ -440,6 +463,11 @@ def _exception_expiry(exception: dict[str, Any]) -> date:
     return date.fromisoformat(str(exception.get("expires_on") or "1970-01-01"))
 
 
+def _exception_id(exception: dict[str, Any]) -> str | None:
+    value = exception.get("exception_id") or exception.get("id")
+    return str(value) if value else None
+
+
 def _license_term(package_metadata: metadata.PackageMetadata | None) -> str:
     if package_metadata is None:
         return "UNKNOWN"
@@ -519,28 +547,24 @@ def _normalized_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
         direct_packages,
         key=lambda package: str(package.get("name") or ""),
     )
-    transitive_packages = [
-        _normalized_transitive_package(package)
-        for package in inventory.get("packages", [])
-        if package.get("relationship") == "transitive"
-    ]
-    normalized["transitive_packages"] = sorted(
-        transitive_packages,
-        key=lambda package: str(package.get("name") or ""),
-    )
     return normalized
 
 
-def _normalized_transitive_package(package: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "name": package.get("name"),
-        "license_term": package.get("license_term"),
-        "policy_classification": package.get("policy_classification"),
-        "exception_id": package.get("exception_id"),
-        "exception_owner": package.get("exception_owner"),
-        "exception_expires_on": package.get("exception_expires_on"),
-        "metadata_available": package.get("metadata_available"),
+def _missing_expected_transitive_package_names(
+    inventory: dict[str, Any],
+    expected_inventory: dict[str, Any],
+) -> list[str]:
+    current_names = {
+        str(package.get("name") or "")
+        for package in inventory.get("packages", [])
+        if package.get("relationship") == "transitive"
     }
+    expected_names = {
+        str(package.get("name") or "")
+        for package in expected_inventory.get("packages", [])
+        if package.get("relationship") == "transitive"
+    }
+    return sorted(name for name in expected_names - current_names if name)
 
 
 def _git_commit_sha() -> str:
