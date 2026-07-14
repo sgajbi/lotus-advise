@@ -1,6 +1,6 @@
 {
-  "generated_at_utc": "2026-07-14T06:26:11Z",
-  "git_commit_sha": "a6e7d634459a3b0303b41215123a8e828920e4a8",
+  "generated_at_utc": "2026-07-14T06:35:48Z",
+  "git_commit_sha": "ae4668d61fa6cbfc805bcca5b4ba474556184246",
   "image_digest": "unknown",
   "notice_file": "NOTICE.md",
   "packages": [
@@ -91,7 +91,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "25.4.0",
+      "installed_version": "26.1.0",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -99,7 +99,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "25.4.0"
+      "version": "26.1.0"
     },
     {
       "declared_name": "bandit",
@@ -147,7 +147,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "0.14.3",
+      "installed_version": "0.14.4",
       "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -155,7 +155,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "0.14.3"
+      "version": "0.14.4"
     },
     {
       "declared_name": "certifi",
@@ -205,7 +205,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "3.4.3",
+      "installed_version": "3.4.7",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -213,7 +213,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "3.4.3"
+      "version": "3.4.7"
     },
     {
       "declared_name": "clarabel",
@@ -325,7 +325,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "11.6.0",
+      "installed_version": "11.10.0",
       "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -333,7 +333,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "11.6.0"
+      "version": "11.10.0"
     },
     {
       "declared_name": "defusedxml",
@@ -402,7 +402,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "3.29.0",
+      "installed_version": "3.29.4",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -410,7 +410,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "3.29.0"
+      "version": "3.29.4"
     },
     {
       "declared_name": "grimp",
@@ -621,15 +621,15 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "1.3.2",
-      "license_term": "BSD 3-Clause",
+      "installed_version": "1.5.3",
+      "license_term": "BSD-3-Clause",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
       "name": "joblib",
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "1.3.2"
+      "version": "1.5.3"
     },
     {
       "declared_name": "librt",
@@ -639,7 +639,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "0.13.0",
+      "installed_version": "0.11.0",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -647,7 +647,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "0.13.0"
+      "version": "0.11.0"
     },
     {
       "declared_name": "license-expression",
@@ -693,7 +693,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "4.0.0",
+      "installed_version": "4.2.0",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -701,7 +701,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "4.0.0"
+      "version": "4.2.0"
     },
     {
       "declared_name": "markupsafe",
@@ -748,15 +748,15 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "1.1.1",
-      "license_term": "Apache 2.0",
+      "installed_version": "1.2.0",
+      "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
       "name": "msgpack",
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "1.1.1"
+      "version": "1.2.0"
     },
     {
       "declared_name": "mypy",
@@ -826,7 +826,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "1.1.1",
+      "installed_version": "1.1.3",
       "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -834,7 +834,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "1.1.1"
+      "version": "1.1.3"
     },
     {
       "declared_name": "packageurl-python",
@@ -883,7 +883,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "1.0.4",
+      "installed_version": "1.1.1",
       "license_term": "MPL-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -891,7 +891,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "1.0.4"
+      "version": "1.1.1"
     },
     {
       "declared_name": "pip",
@@ -901,7 +901,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "25.0.1",
+      "installed_version": "24.0",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -909,7 +909,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "25.0.1"
+      "version": "24.0"
     },
     {
       "declared_name": "pip-api",
@@ -975,7 +975,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "4.4.0",
+      "installed_version": "4.10.0",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -983,7 +983,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "4.4.0"
+      "version": "4.10.0"
     },
     {
       "declared_name": "pluggy",
@@ -1323,7 +1323,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "2.33.1",
+      "installed_version": "2.34.2",
       "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1331,7 +1331,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "2.33.1"
+      "version": "2.34.2"
     },
     {
       "declared_name": "requirements-parser",
@@ -1359,7 +1359,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "14.3.3",
+      "installed_version": "15.0.0",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1367,7 +1367,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "14.3.3"
+      "version": "15.0.0"
     },
     {
       "declared_name": "ruff",
@@ -1398,7 +1398,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "1.16.1",
+      "installed_version": "1.17.1",
       "license_term": "BSD-3-Clause",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1406,7 +1406,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "1.16.1"
+      "version": "1.17.1"
     },
     {
       "declared_name": "scs",
@@ -1436,7 +1436,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "82.0.0",
+      "installed_version": "65.5.0",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1444,7 +1444,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "82.0.0"
+      "version": "65.5.0"
     },
     {
       "declared_name": "six",
@@ -1585,7 +1585,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "2.4.0",
+      "installed_version": "2.4.1",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1593,7 +1593,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "2.4.0"
+      "version": "2.4.1"
     },
     {
       "declared_name": "tomli-w",
@@ -1662,7 +1662,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "2025.3",
+      "installed_version": "2026.2",
       "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1670,7 +1670,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "2025.3"
+      "version": "2026.2"
     },
     {
       "declared_name": "urllib3",
