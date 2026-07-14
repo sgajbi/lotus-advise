@@ -167,10 +167,11 @@ gh pr checks <PR_NUMBER> --watch
 ### 8. Merge after green CI
 
 ```bash
-gh pr merge <PR_NUMBER> --merge --delete-branch
+gh pr merge <PR_NUMBER> --rebase --delete-branch
 ```
 
-Auto-merge is opt-in via the `automerge` label and is only queued on protected `main`.
+Auto-merge is opt-in via the `automerge` label and is only queued on protected `main` with the
+repository-approved rebase merge path.
 Without the `automerge` label, PRs stay manual even after CI is green.
 
 ### 9. Sync local after merge
@@ -200,5 +201,5 @@ gh pr checks <PR_NUMBER>
 Manual merge (if needed):
 
 ```bash
-gh pr merge <PR_NUMBER> --merge --delete-branch
+gh pr merge <PR_NUMBER> --rebase --delete-branch
 ```
