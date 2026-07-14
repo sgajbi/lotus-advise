@@ -305,6 +305,97 @@ def test_license_inventory_staleness_allows_platform_specific_extra_transitive_p
     assert failures == []
 
 
+def test_license_inventory_staleness_detects_transitive_dependency_group_drift(
+    tmp_path: Path,
+) -> None:
+    runtime = tmp_path / "requirements-prod.txt"
+    development = tmp_path / "requirements-dev.txt"
+    runtime.write_text("directpkg==1.0.0\n", encoding="utf-8")
+    development.write_text("-r requirements-prod.txt\ndevpkg==1.0.0\n", encoding="utf-8")
+
+    current_inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(),
+        commit_sha="current",
+        image_digest="current",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-12T00:00:00Z",
+        distributions=[
+            FakeDistribution(name="directpkg"),
+            FakeDistribution(name="devpkg", requires=["childpkg>=1"]),
+            FakeDistribution(name="childpkg"),
+        ],
+    )
+    expected_inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(),
+        commit_sha="expected",
+        image_digest="expected",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-11T00:00:00Z",
+        distributions=[
+            FakeDistribution(name="directpkg", requires=["childpkg>=1"]),
+            FakeDistribution(name="devpkg", requires=["childpkg>=1"]),
+            FakeDistribution(name="childpkg"),
+        ],
+    )
+
+    failures = validate_license_inventory_against_expected(
+        current_inventory,
+        expected_inventory,
+        _policy(),
+    )
+
+    assert "License/IP inventory is stale. Stale transitive package evidence: childpkg" in failures
+
+
+def test_license_inventory_staleness_detects_transitive_exception_drift(
+    tmp_path: Path,
+) -> None:
+    runtime = tmp_path / "requirements-prod.txt"
+    development = tmp_path / "requirements-dev.txt"
+    runtime.write_text("directpkg==1.0.0\n", encoding="utf-8")
+    development.write_text("-r requirements-prod.txt\n", encoding="utf-8")
+
+    current_inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(exception_expiry="2099-01-01"),
+        commit_sha="current",
+        image_digest="current",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-12T00:00:00Z",
+        distributions=[
+            FakeDistribution(name="directpkg", requires=["reviewpkg>=1"]),
+            FakeDistribution(name="reviewpkg", license_expression="LGPL-3.0-only"),
+        ],
+    )
+    expected_inventory = build_license_inventory(
+        runtime_requirements=runtime,
+        development_requirements=development,
+        policy=_policy(exception_expiry="2100-01-01"),
+        commit_sha="expected",
+        image_digest="expected",
+        repository_url="https://github.com/sgajbi/lotus-advise",
+        generated_at_utc="2026-07-11T00:00:00Z",
+        distributions=[
+            FakeDistribution(name="directpkg", requires=["reviewpkg>=1"]),
+            FakeDistribution(name="reviewpkg", license_expression="LGPL-3.0-only"),
+        ],
+    )
+
+    failures = validate_license_inventory_against_expected(
+        current_inventory,
+        expected_inventory,
+        _policy(exception_expiry="2100-01-01"),
+    )
+
+    assert "reviewpkg license exception evidence is stale" in failures
+    assert "License/IP inventory is stale. Stale transitive package evidence: reviewpkg" in failures
+
+
 def test_license_inventory_policy_validation_detects_stale_classification(
     tmp_path: Path,
 ) -> None:
