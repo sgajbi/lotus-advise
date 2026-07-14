@@ -319,6 +319,8 @@ def test_quality_baseline_report_captures_required_quality_sections(tmp_path: Pa
     assert "PR auto-merge queue verification now checks protected main-branch metadata" in (
         refactor_health
     )
+    assert "before enabling rebase auto-merge" in refactor_health
+    assert "merge-commit auto-merge" not in refactor_health
     assert "Quality baseline report rendering delegates metric formatting" in refactor_health
     assert "Quality baseline Radon inventory parsing delegates nested block traversal" in (
         refactor_health
