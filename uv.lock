@@ -4,7 +4,7 @@ requires-python = ">=3.11"
 authoritative-source = "requirements"
 generated-by = "scripts/dependency_lock_evidence.py"
 license-inventory = "docs/standards/license-ip-inventory.v1.json"
-license-inventory-sha256 = "ce84f9cfca8fa3d610acc96baba86e1ea87055a7af1ff9b39e3599bceee24e4e"
+license-inventory-sha256 = "6c2aff2c7d648504ebc2d43c5ccf73dcb976d445302c8f5ff2f2562ad1593369"
 
 [[requirement-files]]
 group = "development"
@@ -47,6 +47,15 @@ groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
 extras = []
 requirement-hashes = ["9050d78a307f7c30a2cc9cb0f08fe971265451b335011f95e732536436419fa0"]
+
+[[package]]
+name = "ast-serialize"
+version = "0.6.0"
+direct = false
+groups = ["development"]
+requirement-files = []
+extras = []
+requirement-hashes = []
 
 [[package]]
 name = "attrs"
@@ -302,7 +311,7 @@ requirement-hashes = []
 
 [[package]]
 name = "librt"
-version = "0.8.1"
+version = "0.13.0"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -832,6 +841,6 @@ extras = []
 requirement-hashes = ["312b48ce4834462cf1bd1153fd8f235eef6d2d3f12f87b943472c91c6b0e57b5"]
 
 [summary]
-package-count = 90
+package-count = 91
 direct-package-count = 35
-transitive-package-count = 55
+transitive-package-count = 56

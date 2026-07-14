@@ -133,6 +133,12 @@ def validate_license_inventory(inventory: dict[str, Any], policy: LicensePolicy)
     today = date.today()
     for package in inventory["packages"]:
         package_name = str(package.get("name") or "")
+        if package.get("metadata_matches_requirement_pin") is False:
+            failures.append(
+                f"{package_name} installed metadata version {package.get('installed_version')} "
+                f"does not match pinned version {package.get('version')}; install requirements "
+                "before regenerating license/IP inventory."
+            )
         classification = str(package.get("policy_classification") or "")
         if classification == "PROHIBITED":
             failures.append(f"{package_name} uses prohibited license {package.get('license_term')}")
@@ -301,7 +307,13 @@ def _package_license_records(
     for package_name in sorted(graph_membership):
         distribution = distribution_index.get(package_name)
         root = root_by_name.get(package_name)
-        license_term = _license_term(distribution.metadata if distribution else None)
+        metadata_matches_pin = _metadata_matches_requirement_pin(
+            root=root,
+            distribution=distribution,
+        )
+        license_term = _license_term(
+            distribution.metadata if distribution and metadata_matches_pin else None
+        )
         classification, exception = _classify_license(
             package_name=package_name,
             license_term=license_term,
@@ -313,6 +325,7 @@ def _package_license_records(
                 "name": package_name,
                 "declared_name": root.declared_name if root else package_name,
                 "version": _package_version(root=root, distribution=distribution),
+                "installed_version": distribution.version if distribution else None,
                 "relationship": "direct" if root else "transitive",
                 "dependency_groups": sorted(graph_membership[package_name]),
                 "source_files": sorted({root.source_file}) if root else [],
@@ -321,7 +334,8 @@ def _package_license_records(
                 "exception_id": exception.get("id") if exception else None,
                 "exception_owner": exception.get("owner") if exception else None,
                 "exception_expires_on": exception.get("expires_on") if exception else None,
-                "metadata_available": distribution is not None,
+                "metadata_available": distribution is not None and metadata_matches_pin,
+                "metadata_matches_requirement_pin": metadata_matches_pin,
             }
         )
     return records
@@ -348,6 +362,18 @@ def _package_version(
     if distribution:
         return distribution.version
     return None
+
+
+def _metadata_matches_requirement_pin(
+    *,
+    root: RequirementRoot | None,
+    distribution: metadata.Distribution | None,
+) -> bool:
+    if distribution is None:
+        return False
+    if root is None or root.pinned_version is None:
+        return True
+    return distribution.version == root.pinned_version
 
 
 def _classify_license(
