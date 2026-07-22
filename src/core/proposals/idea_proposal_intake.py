@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from threading import Lock
 from typing import Any, Literal, cast
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.core.proposals.exceptions import ProposalIdempotencyConflictError
+from src.core.common.idempotency import normalize_required_idempotency_key
+from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 from src.core.proposals.idea_intake_authority import (
     IDEA_PROPOSAL_INTAKE_ACCEPT_CAPABILITY,
     IdeaProposalIntakePrincipal,
@@ -27,6 +29,9 @@ IDEA_PROPOSAL_INTAKE_CERTIFICATION_BLOCKERS = [
     "proposal_lifecycle_persistence_not_certified",
     "client_publication_authority_blocked",
 ]
+
+IDEA_PROPOSAL_INTAKE_IDEMPOTENCY_REPLAY_TTL_SECONDS = 24 * 60 * 60
+IDEA_PROPOSAL_INTAKE_IDEMPOTENCY_MAX_RECORDS = 4096
 
 IDEA_PROPOSAL_INTAKE_REQUEST_EXAMPLE: dict[str, Any] = {
     "source_system": "lotus-idea",
@@ -325,15 +330,20 @@ def process_idea_proposal_intake(
     principal: IdeaProposalIntakePrincipal,
     received_at: datetime | None = None,
 ) -> IdeaProposalIntakeResponse:
+    try:
+        normalized_idempotency_key = normalize_required_idempotency_key(idempotency_key)
+    except ValueError as exc:
+        raise ProposalValidationError(str(exc)) from exc
+
     response = acknowledge_idea_proposal_intake(
         request,
         correlation_id=correlation_id,
-        idempotency_key=idempotency_key,
+        idempotency_key=normalized_idempotency_key,
         principal=principal,
         received_at=received_at,
     )
     return _IDEMPOTENCY_REGISTRY.record(
-        idempotency_key=idempotency_key,
+        idempotency_key=normalized_idempotency_key,
         request_fingerprint=response.request_fingerprint,
         response=response,
     )
@@ -343,10 +353,24 @@ def reset_idea_proposal_intake_idempotency_for_tests() -> None:
     _IDEMPOTENCY_REGISTRY.reset()
 
 
+@dataclass(frozen=True)
+class _IdeaProposalIntakeIdempotencyRecord:
+    request_fingerprint: str
+    response: IdeaProposalIntakeResponse
+    expires_at: datetime
+
+
 class _IdeaProposalIntakeIdempotencyRegistry:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        replay_ttl_seconds: int = IDEA_PROPOSAL_INTAKE_IDEMPOTENCY_REPLAY_TTL_SECONDS,
+        max_records: int = IDEA_PROPOSAL_INTAKE_IDEMPOTENCY_MAX_RECORDS,
+    ) -> None:
         self._lock = Lock()
-        self._records: dict[str, tuple[str, IdeaProposalIntakeResponse]] = {}
+        self._records: dict[str, _IdeaProposalIntakeIdempotencyRecord] = {}
+        self._replay_ttl_seconds = replay_ttl_seconds
+        self._max_records = max_records
 
     def record(
         self,
@@ -355,30 +379,51 @@ class _IdeaProposalIntakeIdempotencyRegistry:
         request_fingerprint: str,
         response: IdeaProposalIntakeResponse,
     ) -> IdeaProposalIntakeResponse:
-        idempotency_key_hash = _safe_key_hash(idempotency_key)
+        now = _parse_received_at(response.received_at)
+        registry_key = _registry_key(
+            idempotency_key=idempotency_key,
+            trusted_scope=response.trusted_scope,
+        )
         with self._lock:
-            existing = self._records.get(idempotency_key_hash)
+            self._purge_expired(now=now)
+            existing = self._records.get(registry_key)
             if existing is None:
-                self._records[idempotency_key_hash] = (request_fingerprint, response)
+                self._records[registry_key] = _IdeaProposalIntakeIdempotencyRecord(
+                    request_fingerprint=request_fingerprint,
+                    response=response,
+                    expires_at=now + timedelta(seconds=self._replay_ttl_seconds),
+                )
+                self._enforce_record_cap()
                 return response
-            existing_fingerprint, existing_response = existing
-            if existing_fingerprint != request_fingerprint:
+            if existing.request_fingerprint != request_fingerprint:
                 raise ProposalIdempotencyConflictError("IDEA_PROPOSAL_INTAKE_IDEMPOTENCY_CONFLICT")
             return cast(
                 IdeaProposalIntakeResponse,
-                existing_response.model_copy(
+                existing.response.model_copy(
                     update={
                         "intake_status": "ACCEPTED_REPLAYED"
-                        if existing_response.intake_receipt_accepted
+                        if existing.response.intake_receipt_accepted
                         else "REJECTED",
                         "idempotency_replay": True,
                         "correlation_id": response.correlation_id,
                         "trusted_scope": response.trusted_scope,
                         "received_at": response.received_at,
-                        "outcome_reason_codes": _replay_reason_codes(existing_response),
+                        "outcome_reason_codes": _replay_reason_codes(existing.response),
                     }
                 ),
             )
+
+    def _purge_expired(self, *, now: datetime) -> None:
+        expired_keys = [
+            key for key, record in self._records.items() if record.expires_at <= now
+        ]
+        for key in expired_keys:
+            del self._records[key]
+
+    def _enforce_record_cap(self) -> None:
+        while len(self._records) > self._max_records:
+            oldest_key = next(iter(self._records))
+            del self._records[oldest_key]
 
     def reset(self) -> None:
         with self._lock:
@@ -427,6 +472,34 @@ def _safe_key_hash(idempotency_key: str) -> str:
     return f"sha256:{sha256(normalized.encode()).hexdigest()[:12]}"
 
 
+def _full_key_digest(idempotency_key: str) -> str:
+    normalized = idempotency_key.strip()
+    return f"sha256:{sha256(normalized.encode()).hexdigest()}"
+
+
+def _registry_key(*, idempotency_key: str, trusted_scope: dict[str, Any]) -> str:
+    scope_payload = json.dumps(
+        {
+            "tenant_id": trusted_scope.get("tenant_id"),
+            "legal_entity_code": trusted_scope.get("legal_entity_code"),
+            "service_identity": trusted_scope.get("service_identity"),
+            "subject": trusted_scope.get("subject"),
+            "capability": trusted_scope.get("capability"),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    scope_digest = sha256(scope_payload.encode()).hexdigest()
+    return f"{scope_digest}:{_full_key_digest(idempotency_key)}"
+
+
+def _parse_received_at(received_at: str) -> datetime:
+    parsed = datetime.fromisoformat(received_at)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
 def _trusted_scope(
     *,
     principal: IdeaProposalIntakePrincipal | None,
@@ -442,7 +515,9 @@ def _trusted_scope(
             "service_identity": "domain-only",
             "capability": IDEA_PROPOSAL_INTAKE_ACCEPT_CAPABILITY,
         }
-    metadata = principal.audit_metadata(capability=IDEA_PROPOSAL_INTAKE_ACCEPT_CAPABILITY)
+    metadata: dict[str, Any] = dict(
+        principal.audit_metadata(capability=IDEA_PROPOSAL_INTAKE_ACCEPT_CAPABILITY)
+    )
     metadata["correlation_id"] = correlation_id
     return metadata
 
