@@ -423,6 +423,17 @@ def test_nightly_postgres_demo_pack_declares_controlled_ci_fallback() -> None:
     workflow = _workflow_text("nightly-postgres-full.yml")
 
     _assert_default_ci_guardrails(workflow)
+    assert "PROPOSAL_STORE_BACKEND: POSTGRES" in workflow
+    assert "POLICY_STORE_BACKEND: POSTGRES" in workflow
+    assert "WORKSPACE_STORE_BACKEND: POSTGRES" in workflow
+    expected_dsn = "postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability"
+    assert f"PROPOSAL_POSTGRES_DSN: {expected_dsn}" in workflow
+    assert f"POLICY_POSTGRES_DSN: {expected_dsn}" in workflow
+    assert f"WORKSPACE_POSTGRES_DSN: {expected_dsn}" in workflow
+    assert "python scripts/postgres_migrate.py --target all" in workflow
+    assert "DPM_SUPPORTABILITY_POSTGRES_DSN" not in workflow
+    assert "DPM_POLICY_PACK_POSTGRES_DSN" not in workflow
+    assert "DPM_POLICY_PACK_CATALOG_BACKEND" not in workflow
     assert "ENVIRONMENT: ci" in workflow
     assert 'LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK: "true"' in workflow
     assert "python scripts/run_demo_pack_live.py \\" in workflow
