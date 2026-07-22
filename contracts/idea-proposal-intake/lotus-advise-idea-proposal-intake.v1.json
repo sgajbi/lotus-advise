@@ -10,8 +10,16 @@
   "supportability_status": "not_certified",
   "target_route": "POST /advisory/proposals/idea-intake",
   "route_existence_proven": true,
+  "runtime_intake_receipt_proven": true,
   "downstream_execution_proven": false,
   "supported_feature_promoted": false,
+  "receipt_outcomes": [
+    "ACCEPTED",
+    "ACCEPTED_REPLAYED",
+    "REJECTED"
+  ],
+  "principal_capability": "advisory.idea_proposal_intake.accept",
+  "local_dev_principal_source": "trusted_headers_until_production_idp_available",
   "certification_blockers": [
     "suitability_policy_authority_remains_lotus_advise",
     "advisory_proposal_creation_not_certified",
@@ -19,13 +27,15 @@
     "client_publication_authority_blocked"
   ],
   "non_proof_boundaries": [
-    "Proves only a live route foundation for lotus-idea conversion-intent handoff into lotus-advise.",
+    "Proves a live executable intake receipt for lotus-idea conversion-intent handoff into lotus-advise, including accepted, replayed, rejected, and idempotency-conflict behavior.",
     "Does not grant suitability, recommendation, approval, consent, execution, order, OMS, fill, settlement, or client-communication authority.",
     "Does not create orders, advisory proposal lifecycle records, suitability decisions, approvals, execution instructions, fills, settlement records, or client messages.",
     "Does not promote a supported feature, client-ready workflow, data-product certification, or downstream execution proof."
   ],
   "evidence_refs": [
     "src/api/proposals/routes_idea_intake.py",
+    "src/api/proposals/idea_intake_principal.py",
+    "src/core/proposals/idea_intake_authority.py",
     "src/core/proposals/idea_proposal_intake.py",
     "tests/unit/advisory/api/test_idea_proposal_intake_api.py"
   ]
