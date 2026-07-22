@@ -16,6 +16,7 @@ def build_operational_feature_capabilities(
             owner_service="ADVISORY",
             description="Advisory execution handoff and execution-state correlation APIs.",
             fallback_mode="NONE",
+            dependency_keys=[],
             degraded_reason=None,
         ),
         FeatureCapability(
@@ -27,6 +28,7 @@ def build_operational_feature_capabilities(
                 "Source-backed advisory supportability posture for Gateway and Workbench consumers."
             ),
             fallback_mode="NONE",
+            dependency_keys=[],
             degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
     ]

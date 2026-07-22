@@ -45,6 +45,7 @@ class IntegrationCapabilitiesResponse(BaseModel):
                         "owner_service": "ADVISORY",
                         "description": "Advisory proposal lifecycle APIs.",
                         "fallback_mode": "NONE",
+                        "dependency_keys": [],
                         "degraded_reason": None,
                     }
                 ],
