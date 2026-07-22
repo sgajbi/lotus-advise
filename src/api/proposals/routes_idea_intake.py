@@ -1,25 +1,33 @@
 from __future__ import annotations
 
-from fastapi import Request, status
+from typing import cast
+
+from fastapi import Depends, Request, status
 
 import src.api.proposals.router as shared
 from src.api.observability import correlation_id_var
-from src.api.proposals.errors import reject_unexpected_query_params
-from src.api.proposals.idea_intake_parameters import IdeaProposalIntakeCorrelationIdHeader
+from src.api.proposals.errors import reject_unexpected_query_params, run_proposal_operation
+from src.api.proposals.idea_intake_parameters import (
+    IdeaProposalIntakeCorrelationIdHeader,
+    IdeaProposalIntakeIdempotencyKeyHeader,
+)
+from src.api.proposals.idea_intake_principal import require_idea_proposal_intake_principal
 from src.api.proposals.idea_intake_responses import IDEA_PROPOSAL_INTAKE_RESPONSES
 from src.core.proposals.correlation import normalize_optional_correlation_id, resolve_correlation_id
+from src.core.proposals.idea_intake_authority import IdeaProposalIntakePrincipal
 from src.core.proposals.idea_proposal_intake import (
     IDEA_PROPOSAL_INTAKE_REQUEST_EXAMPLE,
     IdeaProposalIntakeRequest,
     IdeaProposalIntakeResponse,
-    acknowledge_idea_proposal_intake,
+    process_idea_proposal_intake,
 )
 
 _IDEA_PROPOSAL_INTAKE_DESCRIPTION = (
     "Accepts a source-safe lotus-idea conversion-intent handoff for advisory-side review. "
-    "This route proves only an Advise-owned route foundation for future proposal lifecycle "
-    "realization. It does not grant suitability, create an advisory proposal record, create "
-    "orders, authorize client publication, or promote a supported feature."
+    "This route proves an Advise-owned executable intake receipt with trusted caller scope, "
+    "idempotent replay, and bounded accepted/rejected outcomes. It does not grant suitability, "
+    "create an advisory proposal record, create orders, authorize client publication, or promote "
+    "a supported feature."
 )
 
 
@@ -28,7 +36,7 @@ _IDEA_PROPOSAL_INTAKE_DESCRIPTION = (
     response_model=IdeaProposalIntakeResponse,
     status_code=status.HTTP_202_ACCEPTED,
     tags=["Advisory Proposal Lifecycle"],
-    summary="Accept lotus-idea Proposal Intake Foundation",
+    summary="Accept lotus-idea Proposal Intake Receipt",
     description=_IDEA_PROPOSAL_INTAKE_DESCRIPTION,
     responses=IDEA_PROPOSAL_INTAKE_RESPONSES,
     openapi_extra={
@@ -40,19 +48,30 @@ _IDEA_PROPOSAL_INTAKE_DESCRIPTION = (
 def accept_idea_proposal_intake(
     request: Request,
     payload: IdeaProposalIntakeRequest,
+    idempotency_key: IdeaProposalIntakeIdempotencyKeyHeader,
     correlation_id: IdeaProposalIntakeCorrelationIdHeader = None,
+    principal: IdeaProposalIntakePrincipal = Depends(require_idea_proposal_intake_principal),
 ) -> IdeaProposalIntakeResponse:
     shared._assert_lifecycle_enabled()
     reject_unexpected_query_params(request, allowed_params=set())
-    return acknowledge_idea_proposal_intake(
-        payload,
-        correlation_id=_resolved_intake_correlation_id(correlation_id),
+    resolved_correlation_id = _resolved_intake_correlation_id(correlation_id)
+    return cast(
+        IdeaProposalIntakeResponse,
+        run_proposal_operation(
+            lambda: process_idea_proposal_intake(
+                payload,
+                correlation_id=resolved_correlation_id,
+                idempotency_key=idempotency_key,
+                principal=principal,
+            )
+        ),
     )
 
 
 def _resolved_intake_correlation_id(correlation_id: str | None) -> str:
-    return (
+    return cast(
+        str,
         normalize_optional_correlation_id(correlation_id)
         or correlation_id_var.get()
-        or resolve_correlation_id(None)
+        or resolve_correlation_id(None),
     )

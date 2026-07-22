@@ -13,3 +13,18 @@ IdeaProposalIntakeCorrelationIdHeader = Annotated[
         examples=["corr-idea-proposal-001"],
     ),
 ]
+
+IdeaProposalIntakeIdempotencyKeyHeader = Annotated[
+    str,
+    Header(
+        alias="Idempotency-Key",
+        description=(
+            "Required replay-safe key for lotus-idea conversion-intent intake. "
+            "Replays with the same request return the original receipt posture; conflicting "
+            "payloads with the same key are rejected."
+        ),
+        min_length=1,
+        max_length=160,
+        examples=["idea-intake-idem-001"],
+    ),
+]
