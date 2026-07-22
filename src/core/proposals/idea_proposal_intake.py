@@ -3,11 +3,18 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from hashlib import sha256
-from typing import Any, Literal
+from threading import Lock
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, Field, field_validator
 
-IdeaProposalIntakeStatus = Literal["ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED"]
+from src.core.proposals.exceptions import ProposalIdempotencyConflictError
+from src.core.proposals.idea_intake_authority import (
+    IDEA_PROPOSAL_INTAKE_ACCEPT_CAPABILITY,
+    IdeaProposalIntakePrincipal,
+)
+
+IdeaProposalIntakeStatus = Literal["ACCEPTED", "ACCEPTED_REPLAYED", "REJECTED"]
 IdeaProposalIntakeSupportabilityStatus = Literal["not_certified"]
 IdeaProposalIntentType = Literal[
     "REVIEW_FOR_ADVISORY_PROPOSAL",
@@ -39,12 +46,26 @@ IDEA_PROPOSAL_INTAKE_REQUEST_EXAMPLE: dict[str, Any] = {
 
 IDEA_PROPOSAL_INTAKE_RESPONSE_EXAMPLE: dict[str, Any] = {
     "intake_id": "ipi_7a1d2b3c4d5e",
-    "intake_status": "ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
+    "intake_status": "ACCEPTED",
     "supportability_status": "not_certified",
     "source_authority": "lotus-idea",
     "proposal_authority": "lotus-advise",
     "target_product": "lotus-advise:AdvisoryProposalLifecycleRecord:v1",
     "route_existence_proven": True,
+    "intake_receipt_accepted": True,
+    "idempotency_replay": False,
+    "idempotency_key_hash": "sha256:71d5d5d1fbf0",
+    "request_fingerprint": "sha256:a4e9afedc3cb",
+    "trusted_scope": {
+        "subject": "svc-lotus-idea",
+        "role": "SERVICE",
+        "tenant_id": "tenant-private-bank-sg",
+        "legal_entity_code": "SGPB",
+        "correlation_id": "corr-idea-proposal-001",
+        "service_identity": "lotus-idea",
+        "capability": IDEA_PROPOSAL_INTAKE_ACCEPT_CAPABILITY,
+    },
+    "outcome_reason_codes": ["idea_intake_receipt_accepted"],
     "proposal_record_created": False,
     "suitability_authority_granted": False,
     "order_created": False,
@@ -161,8 +182,8 @@ class IdeaProposalIntakeResponse(BaseModel):
         examples=["ipi_7a1d2b3c4d5e"],
     )
     intake_status: IdeaProposalIntakeStatus = Field(
-        description="Bounded route-foundation status; not an advisory proposal status.",
-        examples=["ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED"],
+        description="Bounded intake receipt status; not an advisory proposal status.",
+        examples=["ACCEPTED"],
     )
     supportability_status: IdeaProposalIntakeSupportabilityStatus = Field(
         description="Certification posture for this route foundation.",
@@ -183,6 +204,35 @@ class IdeaProposalIntakeResponse(BaseModel):
     route_existence_proven: bool = Field(
         description="True because this route exists and is covered by contract tests.",
         examples=[True],
+    )
+    intake_receipt_accepted: bool = Field(
+        description=(
+            "True only when Advise accepted the handoff into its bounded intake receipt layer. "
+            "This is not proposal lifecycle persistence."
+        ),
+        examples=[True],
+    )
+    idempotency_replay: bool = Field(
+        description="True when the response is a safe replay for the same idempotency key/request.",
+        examples=[False],
+    )
+    idempotency_key_hash: str = Field(
+        description="Hashed idempotency key reference; raw idempotency keys are not echoed.",
+        examples=["sha256:71d5d5d1fbf0"],
+    )
+    request_fingerprint: str = Field(
+        description="Source-safe request fingerprint used for idempotency conflict detection.",
+        examples=["sha256:a4e9afedc3cb"],
+    )
+    trusted_scope: dict[str, Any] = Field(
+        description=(
+            "Bounded trusted principal scope derived from local/dev headers. Production IdP "
+            "integration remains external to this route until available."
+        ),
+    )
+    outcome_reason_codes: list[str] = Field(
+        description="Machine-readable outcome reasons for accepted, replayed, or rejected intake.",
+        examples=[["idea_intake_receipt_accepted"]],
     )
     proposal_record_created: bool = Field(
         description="False until a later certified advisory proposal realization persists one.",
@@ -221,23 +271,37 @@ def acknowledge_idea_proposal_intake(
     request: IdeaProposalIntakeRequest,
     *,
     correlation_id: str,
+    idempotency_key: str = "domain-determinism-only",
+    principal: IdeaProposalIntakePrincipal | None = None,
     received_at: datetime | None = None,
 ) -> IdeaProposalIntakeResponse:
     timestamp = received_at or datetime.now(timezone.utc)
+    source_refs_fingerprint = _source_refs_fingerprint(request.source_refs)
+    request_fingerprint = _request_fingerprint(
+        request,
+        source_refs_fingerprint=source_refs_fingerprint,
+    )
     intake_id = _intake_id(
         idea_candidate_id=request.idea_candidate_id,
         conversion_intent_id=request.conversion_intent_id,
         intent_type=request.intent_type,
-        source_refs_fingerprint=_source_refs_fingerprint(request.source_refs),
+        source_refs_fingerprint=source_refs_fingerprint,
     )
+    accepted = request.intent_type == "REVIEW_FOR_ADVISORY_PROPOSAL"
     return IdeaProposalIntakeResponse(
         intake_id=intake_id,
-        intake_status="ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
+        intake_status="ACCEPTED" if accepted else "REJECTED",
         supportability_status="not_certified",
         source_authority="lotus-idea",
         proposal_authority="lotus-advise",
         target_product="lotus-advise:AdvisoryProposalLifecycleRecord:v1",
         route_existence_proven=True,
+        intake_receipt_accepted=accepted,
+        idempotency_replay=False,
+        idempotency_key_hash=_safe_key_hash(idempotency_key),
+        request_fingerprint=request_fingerprint,
+        trusted_scope=_trusted_scope(principal=principal, correlation_id=correlation_id),
+        outcome_reason_codes=_outcome_reason_codes(request),
         proposal_record_created=False,
         suitability_authority_granted=False,
         order_created=False,
@@ -253,6 +317,77 @@ def acknowledge_idea_proposal_intake(
     )
 
 
+def process_idea_proposal_intake(
+    request: IdeaProposalIntakeRequest,
+    *,
+    correlation_id: str,
+    idempotency_key: str,
+    principal: IdeaProposalIntakePrincipal,
+    received_at: datetime | None = None,
+) -> IdeaProposalIntakeResponse:
+    response = acknowledge_idea_proposal_intake(
+        request,
+        correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+        principal=principal,
+        received_at=received_at,
+    )
+    return _IDEMPOTENCY_REGISTRY.record(
+        idempotency_key=idempotency_key,
+        request_fingerprint=response.request_fingerprint,
+        response=response,
+    )
+
+
+def reset_idea_proposal_intake_idempotency_for_tests() -> None:
+    _IDEMPOTENCY_REGISTRY.reset()
+
+
+class _IdeaProposalIntakeIdempotencyRegistry:
+    def __init__(self) -> None:
+        self._lock = Lock()
+        self._records: dict[str, tuple[str, IdeaProposalIntakeResponse]] = {}
+
+    def record(
+        self,
+        *,
+        idempotency_key: str,
+        request_fingerprint: str,
+        response: IdeaProposalIntakeResponse,
+    ) -> IdeaProposalIntakeResponse:
+        idempotency_key_hash = _safe_key_hash(idempotency_key)
+        with self._lock:
+            existing = self._records.get(idempotency_key_hash)
+            if existing is None:
+                self._records[idempotency_key_hash] = (request_fingerprint, response)
+                return response
+            existing_fingerprint, existing_response = existing
+            if existing_fingerprint != request_fingerprint:
+                raise ProposalIdempotencyConflictError("IDEA_PROPOSAL_INTAKE_IDEMPOTENCY_CONFLICT")
+            return cast(
+                IdeaProposalIntakeResponse,
+                existing_response.model_copy(
+                    update={
+                        "intake_status": "ACCEPTED_REPLAYED"
+                        if existing_response.intake_receipt_accepted
+                        else "REJECTED",
+                        "idempotency_replay": True,
+                        "correlation_id": response.correlation_id,
+                        "trusted_scope": response.trusted_scope,
+                        "received_at": response.received_at,
+                        "outcome_reason_codes": _replay_reason_codes(existing_response),
+                    }
+                ),
+            )
+
+    def reset(self) -> None:
+        with self._lock:
+            self._records.clear()
+
+
+_IDEMPOTENCY_REGISTRY = _IdeaProposalIntakeIdempotencyRegistry()
+
+
 def _source_refs_fingerprint(source_refs: list[IdeaProposalSourceRef]) -> str:
     canonical_refs = sorted(
         (source_ref.model_dump(mode="json", exclude_none=False) for source_ref in source_refs),
@@ -265,6 +400,66 @@ def _source_refs_fingerprint(source_refs: list[IdeaProposalSourceRef]) -> str:
     )
     canonical_payload = json.dumps(canonical_refs, sort_keys=True, separators=(",", ":"))
     return sha256(canonical_payload.encode()).hexdigest()
+
+
+def _request_fingerprint(
+    request: IdeaProposalIntakeRequest,
+    *,
+    source_refs_fingerprint: str,
+) -> str:
+    canonical_payload = json.dumps(
+        {
+            "source_system": request.source_system,
+            "source_product": request.source_product,
+            "idea_candidate_id": request.idea_candidate_id,
+            "conversion_intent_id": request.conversion_intent_id,
+            "intent_type": request.intent_type,
+            "source_refs_fingerprint": source_refs_fingerprint,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return f"sha256:{sha256(canonical_payload.encode()).hexdigest()[:12]}"
+
+
+def _safe_key_hash(idempotency_key: str) -> str:
+    normalized = idempotency_key.strip()
+    return f"sha256:{sha256(normalized.encode()).hexdigest()[:12]}"
+
+
+def _trusted_scope(
+    *,
+    principal: IdeaProposalIntakePrincipal | None,
+    correlation_id: str,
+) -> dict[str, Any]:
+    if principal is None:
+        return {
+            "subject": "domain-only",
+            "role": "DOMAIN_TEST",
+            "tenant_id": "domain-only",
+            "legal_entity_code": "DOMAIN",
+            "correlation_id": correlation_id,
+            "service_identity": "domain-only",
+            "capability": IDEA_PROPOSAL_INTAKE_ACCEPT_CAPABILITY,
+        }
+    metadata = principal.audit_metadata(capability=IDEA_PROPOSAL_INTAKE_ACCEPT_CAPABILITY)
+    metadata["correlation_id"] = correlation_id
+    return metadata
+
+
+def _outcome_reason_codes(request: IdeaProposalIntakeRequest) -> list[str]:
+    if request.intent_type == "REVIEW_FOR_ADVISORY_PROPOSAL":
+        return ["idea_intake_receipt_accepted"]
+    return [
+        "advisory_proposal_creation_not_certified",
+        "idea_intake_receipt_rejected_no_proposal_created",
+    ]
+
+
+def _replay_reason_codes(response: IdeaProposalIntakeResponse) -> list[str]:
+    if response.intake_receipt_accepted:
+        return ["idea_intake_receipt_replayed"]
+    return ["idea_intake_rejection_replayed"]
 
 
 def _intake_id(
