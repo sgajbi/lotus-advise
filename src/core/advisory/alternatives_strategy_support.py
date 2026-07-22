@@ -25,19 +25,21 @@ def largest_sellable_position(
     exclude_currencies: set[str] | None = None,
 ) -> StrategyPosition | None:
     blocked_ids = set(constraints.preserve_holdings) | set(constraints.do_not_sell)
+    sellable_positions = [
+        position
+        for position in inputs.positions
+        if sellable_position_matches_constraints(
+            position=position,
+            blocked_ids=blocked_ids,
+            preferred_currency=preferred_currency,
+            exclude_currencies=exclude_currencies,
+        )
+    ]
+    if not sellable_positions:
+        return None
     return min(
-        (
-            position
-            for position in inputs.positions
-            if sellable_position_matches_constraints(
-                position=position,
-                blocked_ids=blocked_ids,
-                preferred_currency=preferred_currency,
-                exclude_currencies=exclude_currencies,
-            )
-        ),
+        sellable_positions,
         key=lambda position: (-position_rank_value(position), position.instrument_id),
-        default=None,
     )
 
 

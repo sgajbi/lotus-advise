@@ -6,7 +6,10 @@ from src.api.capabilities.degraded_reasons import (
     gated_dependency_unavailable_reason,
     lifecycle_disabled_reason,
 )
-from src.api.capabilities.dependencies import CapabilityDependencyStatus
+from src.api.capabilities.dependencies import (
+    CapabilityDependencyStatus,
+    bank_demo_proof_dependency_keys,
+)
 from src.api.capabilities.models import FeatureCapability
 
 
@@ -28,6 +31,7 @@ def build_evidence_product_feature_capabilities(
                 "publication, and canonical demo proof remain gated."
             ),
             fallback_mode="NONE",
+            dependency_keys=[],
             degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         FeatureCapability(
@@ -42,6 +46,7 @@ def build_evidence_product_feature_capabilities(
                 "communication, and full bank-demo/RFP package claims remain gated."
             ),
             fallback_mode="NONE",
+            dependency_keys=["lotus_report"],
             degraded_reason=gated_dependency_unavailable_reason(
                 enabled=lifecycle_enabled,
                 ready=dependency_status.lotus_report_ready,
@@ -59,6 +64,7 @@ def build_evidence_product_feature_capabilities(
                 "catalog audit events."
             ),
             fallback_mode="NONE",
+            dependency_keys=[],
             degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         FeatureCapability(
@@ -75,6 +81,7 @@ def build_evidence_product_feature_capabilities(
                 "gated."
             ),
             fallback_mode="NONE",
+            dependency_keys=["lotus_report"],
             degraded_reason=gated_dependency_unavailable_reason(
                 enabled=lifecycle_enabled,
                 ready=dependency_status.lotus_report_ready,
@@ -95,6 +102,7 @@ def build_evidence_product_feature_capabilities(
                 "demo/RFP package claims remain gated."
             ),
             fallback_mode="NONE",
+            dependency_keys=[],
             degraded_reason=lifecycle_disabled_reason(lifecycle_enabled=lifecycle_enabled),
         ),
         FeatureCapability(
@@ -112,6 +120,7 @@ def build_evidence_product_feature_capabilities(
                 "claims remain gated."
             ),
             fallback_mode="NONE",
+            dependency_keys=["lotus_ai"],
             degraded_reason=gated_dependency_unavailable_reason(
                 enabled=lifecycle_enabled,
                 ready=dependency_status.lotus_ai_ready,
@@ -131,6 +140,7 @@ def build_evidence_product_feature_capabilities(
                 "and OMS order lifecycle remain blocked."
             ),
             fallback_mode="NONE",
+            dependency_keys=bank_demo_proof_dependency_keys(),
             degraded_reason=dependency_status.bank_demo_degraded_reason,
         ),
     ]

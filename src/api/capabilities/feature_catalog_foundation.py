@@ -31,6 +31,7 @@ def build_foundational_feature_capabilities(
                 "lotus-advise remains the workflow and API owner."
             ),
             fallback_mode=lotus_core_fallback_mode(),
+            dependency_keys=["lotus_core"],
             degraded_reason=dependency_unavailable_reason(
                 ready=dependency_status.lotus_core_ready,
                 reason=LOTUS_CORE_DEPENDENCY_UNAVAILABLE,
@@ -43,6 +44,7 @@ def build_foundational_feature_capabilities(
             owner_service="ADVISORY",
             description="Advisory proposal lifecycle APIs.",
             fallback_mode="NONE",
+            dependency_keys=[],
             degraded_reason=None,
         ),
         FeatureCapability(
@@ -52,6 +54,7 @@ def build_foundational_feature_capabilities(
             owner_service="ADVISORY",
             description="Async advisory proposal operations.",
             fallback_mode="NONE",
+            dependency_keys=[],
             degraded_reason=None,
         ),
         FeatureCapability(
@@ -63,6 +66,7 @@ def build_foundational_feature_capabilities(
                 "Stateful advisory workspace evaluation through Lotus Core context resolution."
             ),
             fallback_mode=lotus_core_fallback_mode(),
+            dependency_keys=["lotus_core"],
             degraded_reason=dependency_unavailable_reason(
                 ready=dependency_status.lotus_core_ready,
                 reason=LOTUS_CORE_DEPENDENCY_UNAVAILABLE,
@@ -75,6 +79,7 @@ def build_foundational_feature_capabilities(
             owner_service="ADVISORY",
             description="Evidence-grounded advisory workspace rationale through Lotus AI.",
             fallback_mode="NONE",
+            dependency_keys=["lotus_ai"],
             degraded_reason=gated_dependency_unavailable_reason(
                 enabled=ai_rationale_enabled,
                 ready=dependency_status.lotus_ai_ready,
@@ -88,6 +93,7 @@ def build_foundational_feature_capabilities(
             owner_service="LOTUS_RISK",
             description="Proposal before/after concentration risk lens through lotus-risk.",
             fallback_mode="LOCAL_RISK_FALLBACK",
+            dependency_keys=["lotus_risk"],
             degraded_reason=dependency_unavailable_reason(
                 ready=dependency_status.lotus_risk_ready,
                 reason=LOTUS_RISK_DEPENDENCY_UNAVAILABLE,
@@ -102,6 +108,7 @@ def build_foundational_feature_capabilities(
                 "Advisory proposal report-request integration boundary through lotus-report."
             ),
             fallback_mode="NONE",
+            dependency_keys=["lotus_report"],
             degraded_reason=gated_dependency_unavailable_reason(
                 enabled=lifecycle_enabled,
                 ready=dependency_status.lotus_report_ready,

@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-22T08:05:04.679978+00:00",
+  "generatedAt": "2026-07-22T10:07:59.345730+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -3015,7 +3015,7 @@
       "semanticId": "lotus.dependency_keys",
       "canonicalTerm": "dependency_keys",
       "preferredName": "dependency_keys",
-      "description": "Dependency keys that materially affect workflow readiness.",
+      "description": "Dependency keys that materially affect feature or workflow readiness.",
       "example": [
         "advisory_review_context"
       ],
@@ -53490,6 +53490,14 @@
             "type": "string",
             "semanticId": "lotus.fallback_mode",
             "attributeRef": "#/attributeCatalog/lotus.fallback_mode"
+          },
+          {
+            "name": "features[].dependency_keys",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dependency_keys",
+            "attributeRef": "#/attributeCatalog/lotus.dependency_keys"
           },
           {
             "name": "features[].degraded_reason",

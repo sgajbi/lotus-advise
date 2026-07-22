@@ -201,6 +201,12 @@ def test_rfc0028_capabilities_advertise_bank_demo_proof_after_canonical_proof():
     assert "advisory_bank_demo_proof" in workflow_keys
     assert feature_by_key["advisory.bank_demo_proof"]["owner_service"] == "ADVISORY"
     assert feature_by_key["advisory.bank_demo_proof"]["enabled"] is True
+    assert feature_by_key["advisory.bank_demo_proof"]["dependency_keys"] == [
+        "lotus_core",
+        "lotus_risk",
+        "lotus_ai",
+        "lotus_report",
+    ]
     assert workflow_by_key["advisory_bank_demo_proof"]["required_features"] == [
         "advisory.proposals.lifecycle",
         "advisory.proposals.reviewed_narrative_evidence",
@@ -294,16 +300,21 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert features["advisory.proposals.simulation"]["operational_ready"] is True
     assert features["advisory.proposals.simulation"]["owner_service"] == "LOTUS_CORE"
     assert features["advisory.proposals.simulation"]["fallback_mode"] == "NONE"
+    assert features["advisory.proposals.simulation"]["dependency_keys"] == ["lotus_core"]
     assert features["advisory.proposals.risk_lens"]["operational_ready"] is True
     assert features["advisory.proposals.risk_lens"]["owner_service"] == "LOTUS_RISK"
+    assert features["advisory.proposals.risk_lens"]["dependency_keys"] == ["lotus_risk"]
     assert features["advisory.workspaces.stateful"]["operational_ready"] is True
     assert features["advisory.workspaces.stateful"]["fallback_mode"] == "NONE"
+    assert features["advisory.workspaces.stateful"]["dependency_keys"] == ["lotus_core"]
     assert features["advisory.workspaces.ai_rationale"]["operational_ready"] is False
+    assert features["advisory.workspaces.ai_rationale"]["dependency_keys"] == ["lotus_ai"]
     assert (
         features["advisory.workspaces.ai_rationale"]["degraded_reason"]
         == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
     )
     assert features["advisory.proposals.reporting"]["operational_ready"] is False
+    assert features["advisory.proposals.reporting"]["dependency_keys"] == ["lotus_report"]
     assert (
         features["advisory.proposals.reporting"]["degraded_reason"]
         == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
@@ -314,6 +325,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert features["advisory.proposals.memo_evidence_pack"]["enabled"] is True
     assert features["advisory.proposals.memo_evidence_pack"]["operational_ready"] is False
     assert features["advisory.proposals.memo_evidence_pack"]["owner_service"] == "ADVISORY"
+    assert features["advisory.proposals.memo_evidence_pack"]["dependency_keys"] == ["lotus_report"]
     assert (
         features["advisory.proposals.memo_evidence_pack"]["degraded_reason"]
         == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
@@ -321,6 +333,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert features["advisory.proposals.policy_evaluation"]["enabled"] is True
     assert features["advisory.proposals.policy_evaluation"]["operational_ready"] is False
     assert features["advisory.proposals.policy_evaluation"]["owner_service"] == "ADVISORY"
+    assert features["advisory.proposals.policy_evaluation"]["dependency_keys"] == ["lotus_report"]
     assert (
         features["advisory.proposals.policy_evaluation"]["degraded_reason"]
         == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
@@ -331,6 +344,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert features["advisory.advisory_copilot"]["enabled"] is True
     assert features["advisory.advisory_copilot"]["operational_ready"] is False
     assert features["advisory.advisory_copilot"]["owner_service"] == "ADVISORY"
+    assert features["advisory.advisory_copilot"]["dependency_keys"] == ["lotus_ai"]
     assert (
         features["advisory.advisory_copilot"]["degraded_reason"]
         == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
@@ -338,6 +352,12 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert features["advisory.bank_demo_proof"]["enabled"] is True
     assert features["advisory.bank_demo_proof"]["operational_ready"] is False
     assert features["advisory.bank_demo_proof"]["owner_service"] == "ADVISORY"
+    assert features["advisory.bank_demo_proof"]["dependency_keys"] == [
+        "lotus_core",
+        "lotus_risk",
+        "lotus_ai",
+        "lotus_report",
+    ]
     assert (
         features["advisory.bank_demo_proof"]["degraded_reason"] == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
     )

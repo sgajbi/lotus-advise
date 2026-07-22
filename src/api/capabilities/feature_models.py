@@ -27,6 +27,11 @@ class FeatureCapability(BaseModel):
         description="Fallback posture when a required upstream dependency is unavailable.",
         examples=[CONTROLLED_LOCAL_SIMULATION_FALLBACK],
     )
+    dependency_keys: list[str] = Field(
+        default_factory=list,
+        description="Dependency keys that materially affect feature or workflow readiness.",
+        examples=[["lotus_core"]],
+    )
     degraded_reason: str | None = Field(
         default=None,
         description=(
@@ -53,7 +58,7 @@ class WorkflowCapability(BaseModel):
     )
     dependency_keys: list[str] = Field(
         default_factory=list,
-        description="Dependency keys that materially affect workflow readiness.",
+        description="Dependency keys that materially affect feature or workflow readiness.",
         examples=[["lotus_core"]],
     )
     degraded_reason: str | None = Field(

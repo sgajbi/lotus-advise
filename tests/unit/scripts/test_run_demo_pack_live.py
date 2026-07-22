@@ -10,6 +10,7 @@ from scripts.run_demo_pack_live import (
     _route_safety_probe,
     _sample_path,
 )
+from src.api.capabilities.service import build_integration_capabilities
 
 
 def test_openapi_operations_inventory_counts_declared_http_methods() -> None:
@@ -104,6 +105,37 @@ def test_capability_truth_preserves_truthful_dependency_degraded_posture() -> No
 
     assert evidence["degradedRequiredFeatures"] == [capabilities["features"][0]["key"]]
     assert evidence["degradedRequiredWorkflows"] == [capabilities["workflows"][0]["workflow_key"]]
+
+
+def test_capability_truth_accepts_real_dependency_degraded_capability_payload(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.delenv("LOTUS_REPORT_BASE_URL", raising=False)
+    monkeypatch.delenv("LOTUS_AI_BASE_URL", raising=False)
+    monkeypatch.delenv("LOTUS_PERFORMANCE_BASE_URL", raising=False)
+
+    capabilities = build_integration_capabilities(consumer_system="lotus-gateway").model_dump(
+        mode="json"
+    )
+
+    evidence = _assert_capability_truth(capabilities)
+
+    assert set(evidence["degradedRequiredFeatures"]) == {
+        "advisory.advisory_copilot",
+        "advisory.bank_demo_proof",
+        "advisory.proposals.memo_evidence_pack",
+        "advisory.proposals.policy_evaluation",
+        "advisory.proposals.reporting",
+    }
+    assert set(evidence["degradedRequiredWorkflows"]) == {
+        "advisory_bank_demo_proof",
+        "advisory_copilot_interaction",
+        "advisory_policy_evaluation",
+        "advisory_proposal_memo_evidence_pack",
+        "advisory_proposal_reporting",
+    }
 
 
 def test_capability_truth_rejects_unexplained_unready_required_feature() -> None:
