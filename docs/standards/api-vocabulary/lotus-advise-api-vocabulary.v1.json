@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-07-12T03:19:14.682741+00:00",
+  "generatedAt": "2026-07-22T08:05:04.679978+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -5164,6 +5164,34 @@
       ]
     },
     {
+      "semanticId": "lotus.idempotency_key_hash",
+      "canonicalTerm": "idempotency_key_hash",
+      "preferredName": "idempotency_key_hash",
+      "description": "Hashed idempotency key reference; raw idempotency keys are not echoed.",
+      "example": "sha256:advisory-evidence",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.idempotency_replay",
+      "canonicalTerm": "idempotency_replay",
+      "preferredName": "idempotency_replay",
+      "description": "True when the response is a safe replay for the same idempotency key/request.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
       "semanticId": "lotus.impact_summary",
       "canonicalTerm": "impact_summary",
       "preferredName": "impact_summary",
@@ -5398,11 +5426,25 @@
       ]
     },
     {
+      "semanticId": "lotus.intake_receipt_accepted",
+      "canonicalTerm": "intake_receipt_accepted",
+      "preferredName": "intake_receipt_accepted",
+      "description": "True only when Advise accepted the handoff into its bounded intake receipt layer. This is not proposal lifecycle persistence.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
       "semanticId": "lotus.intake_status",
       "canonicalTerm": "intake_status",
       "preferredName": "intake_status",
-      "description": "Bounded route-foundation status; not an advisory proposal status.",
-      "example": "ROUTE_FOUNDATION_ACCEPTED_NOT_CERTIFIED",
+      "description": "Bounded intake receipt status; not an advisory proposal status.",
+      "example": "ACCEPTED",
       "type": "string",
       "locations": [
         "body"
@@ -7084,6 +7126,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.outcome_reason_codes",
+      "canonicalTerm": "outcome_reason_codes",
+      "preferredName": "outcome_reason_codes",
+      "description": "Machine-readable outcome reasons for accepted, replayed, or rejected intake.",
+      "example": [
+        "ADVISORY_REVIEW_REQUIRED"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -9173,6 +9231,20 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.request_fingerprint",
+      "canonicalTerm": "request_fingerprint",
+      "preferredName": "request_fingerprint",
+      "description": "Source-safe request fingerprint used for idempotency conflict detection.",
+      "example": "advisory_review_context",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -11921,6 +11993,23 @@
       ],
       "observedTypes": [
         "ProposalArtifactTradesAndFunding"
+      ]
+    },
+    {
+      "semanticId": "lotus.trusted_scope",
+      "canonicalTerm": "trusted_scope",
+      "preferredName": "trusted_scope",
+      "description": "Bounded trusted principal scope derived from local/dev headers. Production IdP integration remains external to this route until available.",
+      "example": {
+        "source_system": "lotus-advise",
+        "business_context": "trusted_scope_contract"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -16090,16 +16179,124 @@
       "attributeRef": "#/attributeCatalog/lotus.cursor"
     },
     {
+      "name": "idempotency_key",
+      "kind": "request_option",
+      "location": "header",
+      "required": true,
+      "type": "string",
+      "description": "Required replay-safe key for lotus-idea conversion-intent intake. Replays with the same request return the original receipt posture; conflicting payloads with the same key are rejected. Idempotency keys are replay-safe client request identifiers. They are trimmed before replay lookup and must be at most 128 visible characters without control characters.",
+      "example": "idea-intake-idem-001",
+      "allowedValues": [],
+      "semanticId": "lotus.idempotency_key",
+      "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+    },
+    {
       "name": "x_correlation_id",
       "kind": "request_option",
       "location": "header",
       "required": false,
       "type": "string",
-      "description": "Optional source-safe correlation id supplied by lotus-idea.",
-      "example": "corr-idea-proposal-001",
+      "description": "Canonical x correlation id used by lotus-advise APIs.",
+      "example": "x_correlation_001",
       "allowedValues": [],
       "semanticId": "lotus.x_correlation_id",
       "attributeRef": "#/attributeCatalog/lotus.x_correlation_id"
+    },
+    {
+      "name": "x_actor_id",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "string",
+      "description": "Canonical x actor id used by lotus-advise APIs.",
+      "example": "x_actor_001",
+      "allowedValues": [],
+      "semanticId": "lotus.x_actor_id",
+      "attributeRef": "#/attributeCatalog/lotus.x_actor_id"
+    },
+    {
+      "name": "x_role",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "string",
+      "description": "Canonical x role used by lotus-advise APIs.",
+      "example": "advisory_review_context",
+      "allowedValues": [],
+      "semanticId": "lotus.x_role",
+      "attributeRef": "#/attributeCatalog/lotus.x_role"
+    },
+    {
+      "name": "x_tenant_id",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "string",
+      "description": "Canonical x tenant id used by lotus-advise APIs.",
+      "example": "x_tenant_001",
+      "allowedValues": [],
+      "semanticId": "lotus.x_tenant_id",
+      "attributeRef": "#/attributeCatalog/lotus.x_tenant_id"
+    },
+    {
+      "name": "x_legal_entity_code",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "string",
+      "description": "Canonical x legal entity code used by lotus-advise APIs.",
+      "example": "ADVISORY_REVIEW_REQUIRED",
+      "allowedValues": [],
+      "semanticId": "lotus.x_legal_entity_code",
+      "attributeRef": "#/attributeCatalog/lotus.x_legal_entity_code"
+    },
+    {
+      "name": "x_service_identity",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "string",
+      "description": "Canonical x service identity used by lotus-advise APIs.",
+      "example": "advisory_review_context",
+      "allowedValues": [],
+      "semanticId": "lotus.x_service_identity",
+      "attributeRef": "#/attributeCatalog/lotus.x_service_identity"
+    },
+    {
+      "name": "authorization",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "string",
+      "description": "Canonical authorization used by lotus-advise APIs.",
+      "example": "advisory_review_context",
+      "allowedValues": [],
+      "semanticId": "lotus.authorization",
+      "attributeRef": "#/attributeCatalog/lotus.authorization"
+    },
+    {
+      "name": "x_capabilities",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "string",
+      "description": "Canonical x capabilities used by lotus-advise APIs.",
+      "example": "advisory_review_context",
+      "allowedValues": [],
+      "semanticId": "lotus.x_capabilities",
+      "attributeRef": "#/attributeCatalog/lotus.x_capabilities"
+    },
+    {
+      "name": "x_principal_status",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "string",
+      "description": "Canonical x principal status used by lotus-advise APIs.",
+      "example": "advisory_review_context",
+      "allowedValues": [],
+      "semanticId": "lotus.x_principal_status",
+      "attributeRef": "#/attributeCatalog/lotus.x_principal_status"
     },
     {
       "name": "idempotency_key",
@@ -48167,9 +48364,17 @@
       "method": "POST",
       "path": "/advisory/proposals/idea-intake",
       "operationId": "accept_idea_proposal_intake_advisory_proposals_idea_intake_post",
-      "summary": "Accept lotus-idea Proposal Intake Foundation",
+      "summary": "Accept lotus-idea Proposal Intake Receipt",
       "request": {
         "fields": [
+          {
+            "name": "Idempotency-Key",
+            "location": "header",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.idempotency_key",
+            "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+          },
           {
             "name": "X-Correlation-Id",
             "location": "header",
@@ -48177,6 +48382,70 @@
             "type": "string",
             "semanticId": "lotus.x_correlation_id",
             "attributeRef": "#/attributeCatalog/lotus.x_correlation_id"
+          },
+          {
+            "name": "X-Actor-Id",
+            "location": "header",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.x_actor_id",
+            "attributeRef": "#/attributeCatalog/lotus.x_actor_id"
+          },
+          {
+            "name": "X-Role",
+            "location": "header",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.x_role",
+            "attributeRef": "#/attributeCatalog/lotus.x_role"
+          },
+          {
+            "name": "X-Tenant-Id",
+            "location": "header",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.x_tenant_id",
+            "attributeRef": "#/attributeCatalog/lotus.x_tenant_id"
+          },
+          {
+            "name": "X-Legal-Entity-Code",
+            "location": "header",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.x_legal_entity_code",
+            "attributeRef": "#/attributeCatalog/lotus.x_legal_entity_code"
+          },
+          {
+            "name": "X-Service-Identity",
+            "location": "header",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.x_service_identity",
+            "attributeRef": "#/attributeCatalog/lotus.x_service_identity"
+          },
+          {
+            "name": "Authorization",
+            "location": "header",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.authorization",
+            "attributeRef": "#/attributeCatalog/lotus.authorization"
+          },
+          {
+            "name": "X-Capabilities",
+            "location": "header",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.x_capabilities",
+            "attributeRef": "#/attributeCatalog/lotus.x_capabilities"
+          },
+          {
+            "name": "X-Principal-Status",
+            "location": "header",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.x_principal_status",
+            "attributeRef": "#/attributeCatalog/lotus.x_principal_status"
           },
           {
             "name": "source_system",
@@ -48317,6 +48586,54 @@
             "type": "boolean",
             "semanticId": "lotus.route_existence_proven",
             "attributeRef": "#/attributeCatalog/lotus.route_existence_proven"
+          },
+          {
+            "name": "intake_receipt_accepted",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.intake_receipt_accepted",
+            "attributeRef": "#/attributeCatalog/lotus.intake_receipt_accepted"
+          },
+          {
+            "name": "idempotency_replay",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.idempotency_replay",
+            "attributeRef": "#/attributeCatalog/lotus.idempotency_replay"
+          },
+          {
+            "name": "idempotency_key_hash",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.idempotency_key_hash",
+            "attributeRef": "#/attributeCatalog/lotus.idempotency_key_hash"
+          },
+          {
+            "name": "request_fingerprint",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.request_fingerprint",
+            "attributeRef": "#/attributeCatalog/lotus.request_fingerprint"
+          },
+          {
+            "name": "trusted_scope",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.trusted_scope",
+            "attributeRef": "#/attributeCatalog/lotus.trusted_scope"
+          },
+          {
+            "name": "outcome_reason_codes",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.outcome_reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.outcome_reason_codes"
           },
           {
             "name": "proposal_record_created",

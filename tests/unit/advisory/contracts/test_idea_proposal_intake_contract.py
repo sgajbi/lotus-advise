@@ -31,6 +31,7 @@ def test_idea_proposal_intake_contract_preserves_advise_authority_boundary() -> 
     assert contract["lifecycle_status"] == "implemented"
     assert contract["supportability_status"] == "not_certified"
     assert contract["route_existence_proven"] is True
+    assert contract["runtime_intake_receipt_proven"] is True
     assert contract["downstream_execution_proven"] is False
     assert contract["supported_feature_promoted"] is False
 
@@ -39,7 +40,7 @@ def test_idea_proposal_intake_contract_keeps_non_proof_boundaries_and_blockers()
     contract = _contract()
     boundaries = " ".join(contract["non_proof_boundaries"])
 
-    assert "Proves only a live route foundation" in boundaries
+    assert "Proves a live executable intake receipt" in boundaries
     assert "Does not grant suitability" in boundaries
     assert "Does not create orders" in boundaries
     assert "Does not promote a supported feature" in boundaries
@@ -47,6 +48,8 @@ def test_idea_proposal_intake_contract_keeps_non_proof_boundaries_and_blockers()
     assert "advise_live_contract_proof_missing" not in contract["certification_blockers"]
     assert {
         "src/api/proposals/routes_idea_intake.py",
+        "src/api/proposals/idea_intake_principal.py",
+        "src/core/proposals/idea_intake_authority.py",
         "src/core/proposals/idea_proposal_intake.py",
         "tests/unit/advisory/api/test_idea_proposal_intake_api.py",
     }.issubset(set(contract["evidence_refs"]))
