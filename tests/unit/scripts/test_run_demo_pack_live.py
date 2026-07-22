@@ -52,6 +52,45 @@ def test_sample_path_uses_deterministic_demo_parameters() -> None:
     )
 
 
+def test_lifecycle_demo_scenarios_send_idempotency_keys(monkeypatch) -> None:
+    calls: list[dict[str, object]] = []
+
+    def fake_run_scenario(_client, **kwargs):
+        calls.append(kwargs)
+        name = kwargs["name"]
+        if name == "20_advisory_proposal_persist_create.json":
+            return {"proposal": {"proposal_id": "proposal-demo", "current_state": "DRAFT"}}
+        if name == "21_advisory_proposal_new_version.json":
+            return {"proposal": {"current_version_no": 2}}
+        if name == "22_advisory_proposal_transition_to_compliance.json":
+            return {"current_state": "COMPLIANCE_REVIEW"}
+        if name == "24_advisory_proposal_approval_compliance.json":
+            return {"current_state": "AWAITING_CLIENT_CONSENT"}
+        if name == "23_advisory_proposal_approval_client_consent.json":
+            return {"current_state": "EXECUTION_READY"}
+        if name == "25_advisory_proposal_transition_executed.json":
+            return {"current_state": "EXECUTED"}
+        if name == "list_proposals":
+            return {"items": [{"proposal_id": "proposal-demo"}]}
+        raise AssertionError(f"unexpected scenario {name}")
+
+    monkeypatch.setattr(demo_pack, "_run_scenario", fake_run_scenario)
+    evidence = {"scenarios": [], "domainAssertions": []}
+
+    demo_pack._certify_lifecycle_scenarios(object(), evidence)
+
+    post_calls_after_create = [
+        call
+        for call in calls
+        if call["method"] == "POST" and call["name"] != "20_advisory_proposal_persist_create.json"
+    ]
+    assert post_calls_after_create
+    for call in post_calls_after_create:
+        headers = call.get("headers")
+        assert isinstance(headers, dict)
+        assert str(headers["Idempotency-Key"]).startswith("live-demo-lifecycle-")
+
+
 def test_capability_truth_accepts_required_ready_features_and_workflows() -> None:
     capabilities = {
         "features": [

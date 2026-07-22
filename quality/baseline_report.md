@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-07-22T10:18:31.685374+00:00`
+- Generated At: `2026-07-22T10:35:35.152906+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `baseline/report-only`
@@ -10,7 +10,7 @@
 - Python files: `1052`
 - Packages: `41`
 - Modules: `1011`
-- Total Python lines: `183247`
+- Total Python lines: `183298`
 
 ## Largest Files
 
@@ -121,7 +121,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=5438, missing=5387, covered=51, coverage=0.9%`
+- Interrogate docstring inventory: `total=5439, missing=5388, covered=51, coverage=0.9%`
 - Interrogate remains report-only until public API and module ownership thresholds
   are classified.
 

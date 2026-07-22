@@ -100,6 +100,11 @@ def _run_scenario(
     return {}
 
 
+def _demo_idempotency_key(prefix: str, scenario_name: str) -> str:
+    normalized_name = scenario_name.removesuffix(".json").replace("_", "-")
+    return f"{prefix}-{normalized_name}-{uuid.uuid4().hex[:8]}"
+
+
 def _utc_now() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -406,6 +411,12 @@ def _certify_lifecycle_scenarios(client: httpx.Client, evidence: dict[str, Any])
         path=f"/advisory/proposals/{proposal_id}/versions",
         expected_http=200,
         payload_file="21_advisory_proposal_new_version.json",
+        headers={
+            "Idempotency-Key": _demo_idempotency_key(
+                "live-demo-lifecycle",
+                "21_advisory_proposal_new_version.json",
+            )
+        },
     )
     _assert(version["proposal"]["current_version_no"] == 2, "21: version increment failed")
     evidence["scenarios"].append(
@@ -447,6 +458,7 @@ def _certify_lifecycle_scenarios(client: httpx.Client, evidence: dict[str, Any])
             path=f"/advisory/proposals/{proposal_id}/{endpoint}",
             expected_http=200,
             payload_file=file_name,
+            headers={"Idempotency-Key": _demo_idempotency_key("live-demo-lifecycle", file_name)},
         )
         _assert(body["current_state"] == expected_state, f"{file_name}: unexpected state")
         _record_state_scenario(
