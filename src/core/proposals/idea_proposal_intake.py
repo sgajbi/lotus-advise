@@ -414,9 +414,7 @@ class _IdeaProposalIntakeIdempotencyRegistry:
             )
 
     def _purge_expired(self, *, now: datetime) -> None:
-        expired_keys = [
-            key for key, record in self._records.items() if record.expires_at <= now
-        ]
+        expired_keys = [key for key, record in self._records.items() if record.expires_at <= now]
         for key in expired_keys:
             del self._records[key]
 
