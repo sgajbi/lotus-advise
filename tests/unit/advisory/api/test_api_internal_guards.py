@@ -290,12 +290,15 @@ def test_lifecycle_routes_use_shared_parameter_contracts():
 def test_idea_intake_route_uses_shared_response_and_parameter_contracts():
     source = inspect.getsource(routes_idea_intake)
 
-    assert "from fastapi import Request, status" in source
+    assert "from fastapi import Depends, Request, status" in source
     assert "responses=IDEA_PROPOSAL_INTAKE_RESPONSES" in source
     assert "Header(" not in source
     assert "Path(" not in source
     assert "Query(" not in source
     assert "IdeaProposalIntakeCorrelationIdHeader" in source
+    assert "IdeaProposalIntakeIdempotencyKeyHeader" in source
+    assert "require_idea_proposal_intake_principal" in source
+    assert "Depends(require_idea_proposal_intake_principal)" in source
     assert "reject_unexpected_query_params(" in source
 
 
