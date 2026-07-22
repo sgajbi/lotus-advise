@@ -155,6 +155,71 @@ def test_idea_proposal_intake_route_replays_same_idempotency_key_and_payload() -
     assert second_body["correlation_id"] == "corr-second"
 
 
+def test_idea_proposal_intake_route_normalizes_idempotency_key() -> None:
+    with TestClient(app) as client:
+        first = client.post(
+            "/advisory/proposals/idea-intake",
+            json=_payload(),
+            headers=_headers(
+                correlation_id="corr-normalized-first",
+                idempotency_key="  idea-intake-idem-normalized  ",
+            ),
+        )
+        second = client.post(
+            "/advisory/proposals/idea-intake",
+            json=_payload(),
+            headers=_headers(
+                correlation_id="corr-normalized-second",
+                idempotency_key="idea-intake-idem-normalized",
+            ),
+        )
+
+    assert first.status_code == 202
+    assert second.status_code == 202
+    assert second.json()["idempotency_replay"] is True
+    assert second.json()["intake_status"] == "ACCEPTED_REPLAYED"
+
+
+def test_idea_proposal_intake_route_rejects_invalid_idempotency_keys() -> None:
+    invalid_keys = ["   ", "x" * 129]
+
+    with TestClient(app) as client:
+        responses = [
+            client.post(
+                "/advisory/proposals/idea-intake",
+                json=_payload(),
+                headers=_headers(idempotency_key=invalid_key),
+            )
+            for invalid_key in invalid_keys
+        ]
+
+    assert [response.status_code for response in responses] == [422, 422]
+
+
+def test_idea_proposal_intake_idempotency_is_namespaced_by_trusted_scope() -> None:
+    with TestClient(app) as client:
+        first = client.post(
+            "/advisory/proposals/idea-intake",
+            json=_payload(),
+            headers=_headers(idempotency_key="idea-intake-idem-shared-scope"),
+        )
+        second_headers = _headers(idempotency_key="idea-intake-idem-shared-scope")
+        second_headers["X-Tenant-Id"] = "tenant-private-bank-hk"
+        second_headers["X-Legal-Entity-Code"] = "HKPB"
+        second = client.post(
+            "/advisory/proposals/idea-intake",
+            json=_payload(),
+            headers=second_headers,
+        )
+
+    assert first.status_code == 202
+    assert second.status_code == 202
+    assert first.json()["idempotency_replay"] is False
+    assert second.json()["idempotency_replay"] is False
+    assert second.json()["trusted_scope"]["tenant_id"] == "tenant-private-bank-hk"
+    assert second.json()["trusted_scope"]["legal_entity_code"] == "HKPB"
+
+
 def test_idea_proposal_intake_route_rejects_conflicting_idempotency_replay() -> None:
     changed_payload = _payload()
     changed_payload["conversion_intent_id"] = "conversion_intent_changed"

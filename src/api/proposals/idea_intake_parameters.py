@@ -4,6 +4,8 @@ from typing import Annotated
 
 from fastapi import Header
 
+from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
+
 IdeaProposalIntakeCorrelationIdHeader = Annotated[
     str | None,
     Header(
@@ -24,7 +26,7 @@ IdeaProposalIntakeIdempotencyKeyHeader = Annotated[
             "payloads with the same key are rejected."
         ),
         min_length=1,
-        max_length=160,
+        max_length=MAX_IDEMPOTENCY_KEY_LENGTH,
         examples=["idea-intake-idem-001"],
     ),
 ]
