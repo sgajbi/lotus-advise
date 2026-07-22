@@ -4,7 +4,7 @@ requires-python = ">=3.11"
 authoritative-source = "requirements"
 generated-by = "scripts/dependency_lock_evidence.py"
 license-inventory = "docs/standards/license-ip-inventory.v1.json"
-license-inventory-sha256 = "744d5adae3add2cef90a63ca9c78d0751874459673d6645949dea29c0d2986ff"
+license-inventory-sha256 = "7c430c29afa03ca1561d1d0172f9b2084180af6e708f5a0f2269dcb52e06631a"
 
 [[requirement-files]]
 group = "development"
@@ -95,7 +95,7 @@ requirement-hashes = []
 
 [[package]]
 name = "certifi"
-version = "2026.6.17"
+version = "2026.7.22"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
@@ -104,7 +104,7 @@ requirement-hashes = ["87d958ce29e9a872bef136d459f259e67931622a31b7b1c3798212b44
 
 [[package]]
 name = "cffi"
-version = "2.0.0"
+version = "2.1.0"
 direct = false
 groups = ["development", "runtime"]
 requirement-files = []
@@ -113,7 +113,7 @@ requirement-hashes = []
 
 [[package]]
 name = "charset-normalizer"
-version = "3.4.7"
+version = "3.4.9"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -149,7 +149,7 @@ requirement-hashes = ["e91f42fdc36833eb19b14a96d440f3806e500e121b6209b9e06894908
 
 [[package]]
 name = "coverage"
-version = "7.15.1"
+version = "7.15.2"
 direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
@@ -167,7 +167,7 @@ requirement-hashes = ["df8dd023ac0faaae841405b1c5db3c13cf5a589182bae110224faab68
 
 [[package]]
 name = "cyclonedx-python-lib"
-version = "11.10.0"
+version = "11.11.0"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -194,7 +194,7 @@ requirement-hashes = ["f2e34bb219519b1a3f889bae70eecf9ed2d2b06629a3c8ce1c8d574ef
 
 [[package]]
 name = "fastapi"
-version = "0.139.0"
+version = "0.139.2"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
@@ -203,7 +203,7 @@ requirement-hashes = ["a9c967e2c4c9ba669e8c7803091a7a99c9a9aa584ab84e183018894b9
 
 [[package]]
 name = "filelock"
-version = "3.29.4"
+version = "3.32.0"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -212,7 +212,7 @@ requirement-hashes = []
 
 [[package]]
 name = "grimp"
-version = "3.14"
+version = "3.15"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -230,7 +230,7 @@ requirement-hashes = ["4f7d7473e75b0a7452ff07f4250d3c311fc1697b616fcf21b77edd68f
 
 [[package]]
 name = "highspy"
-version = "1.14.0"
+version = "1.15.1"
 direct = false
 groups = ["development", "runtime"]
 requirement-files = []
@@ -311,7 +311,7 @@ requirement-hashes = []
 
 [[package]]
 name = "librt"
-version = "0.11.0"
+version = "0.13.0"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -365,7 +365,7 @@ requirement-hashes = []
 
 [[package]]
 name = "msgpack"
-version = "1.2.0"
+version = "1.2.1"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -473,7 +473,7 @@ requirement-hashes = []
 
 [[package]]
 name = "platformdirs"
-version = "4.10.0"
+version = "4.11.0"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -644,7 +644,7 @@ requirement-hashes = []
 
 [[package]]
 name = "requirements-parser"
-version = "0.13.0"
+version = "0.13.1"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -662,7 +662,7 @@ requirement-hashes = []
 
 [[package]]
 name = "ruff"
-version = "0.15.21"
+version = "0.15.22"
 direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
@@ -743,7 +743,7 @@ requirement-hashes = []
 
 [[package]]
 name = "stevedore"
-version = "5.8.0"
+version = "5.9.0"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -797,7 +797,7 @@ requirement-hashes = []
 
 [[package]]
 name = "tzdata"
-version = "2026.2"
+version = "2026.3"
 direct = false
 groups = ["development", "runtime"]
 requirement-files = []
