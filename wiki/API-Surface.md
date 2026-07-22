@@ -62,10 +62,12 @@ hash lineage. `lotus-gateway` exposes product-facing reviewed-narrative posture 
 canonical advisory routes, and `lotus-workbench` renders the Gateway-backed advisor-use proposal
 narrative posture. Client-ready publication remains gated.
 
-`POST /advisory/proposals/idea-intake` is a source-safe route foundation for `lotus-idea`
-conversion-intent handoff. It returns HTTP 202 with route-existence proof and explicit blockers.
-It does not create proposal lifecycle records, run suitability, grant advisory approval, create
-orders, authorize client publication, certify a data product, or promote a supported feature.
+`POST /advisory/proposals/idea-intake` is a source-safe executable intake receipt for `lotus-idea`
+conversion-intent handoff. It returns HTTP 202 with accepted, replayed, or rejected receipt posture,
+requires `Idempotency-Key`, and derives bounded trusted scope from local/dev caller headers. It
+detects conflicting idempotency replays with HTTP 409. It does not create proposal lifecycle
+records, run suitability, grant advisory approval, create orders, authorize client publication, bind
+production IdP claims, certify a data product, or promote a supported feature.
 
 ## Advisory Operations And Support
 

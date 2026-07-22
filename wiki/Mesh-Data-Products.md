@@ -30,10 +30,12 @@ not promoted here.
 - Approved downstream consumers: `lotus-gateway`, `lotus-idea`
 - Lotus Idea boundary: consumes lifecycle posture as opportunity-intelligence input; advisory
   workflow state and proposal-event truth remain source-owned by `lotus-advise`.
-- Lotus Idea route foundation: `POST /advisory/proposals/idea-intake` accepts source-safe
-  conversion-intent handoff and proves route existence only. Supportability remains
-  `not_certified`; proposal persistence, suitability, client publication, and supported-feature
-  promotion remain blocked until certified runtime evidence exists.
+- Lotus Idea intake receipt: `POST /advisory/proposals/idea-intake` accepts source-safe
+  conversion-intent handoff and proves executable receipt behavior, including trusted local/dev
+  caller scope, idempotency conflict detection, replay, and accepted/rejected outcomes.
+  Supportability remains `not_certified`; production IdP binding, proposal persistence,
+  suitability, client publication, and supported-feature promotion remain blocked until certified
+  runtime evidence exists.
 
 - Product ID: `lotus-advise:TacticalHouseViewAffectedCohort:v1`
 - Product role: source-owned affected-cohort evaluation for bank-authored tactical house-view instructions and caller-supplied source-backed candidate portfolios

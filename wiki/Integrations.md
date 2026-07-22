@@ -151,15 +151,17 @@ Boundary rule:
 Current governed usage includes:
 
 - downstream consumption of Advise data-product posture as opportunity-intelligence evidence
-- source-safe proposal-intake route foundation through `POST /advisory/proposals/idea-intake`
+- source-safe proposal-intake receipt through `POST /advisory/proposals/idea-intake`
 
 Boundary rule:
 
 - `lotus-idea` owns idea candidates and conversion-intent evidence
 - `lotus-advise` owns advisory proposal lifecycle, suitability, approval, and client-publication
   authority
-- the current route proves only route existence and remains `not_certified`; it does not persist
-  proposal records, create orders, certify data-product realization, or promote a supported feature
+- the current route proves executable intake receipt behavior and remains `not_certified`; it uses
+  trusted local/dev caller headers for bounded scope and idempotency, but it does not persist
+  proposal records, create orders, certify data-product realization, bind production IdP claims, or
+  promote a supported feature
 
 ## `lotus-report`
 
