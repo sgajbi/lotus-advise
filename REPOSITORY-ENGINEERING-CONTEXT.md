@@ -206,10 +206,11 @@ Current repository posture:
 16. execution handoff, status, and delivery projections carry explicit ownership-boundary evidence
    so advisory posture cannot be confused with downstream execution system-of-record truth,
 17. `POST /advisory/proposals/idea-intake` is implemented as a source-safe `lotus-idea`
-   conversion-intent route foundation. It is not certified as proposal realization, does not
-   persist proposal lifecycle records, does not run suitability, does not authorize client
-   publication, and must not be listed as a supported feature until the downstream realization
-   blockers are closed with runtime evidence,
+   conversion-intent intake receipt. It proves trusted local/dev caller scope, idempotency
+   conflict detection, safe replay, and bounded accepted/rejected outcomes. It is not certified as
+   proposal realization, does not persist proposal lifecycle records, does not run suitability,
+   does not authorize client publication, and must not be listed as a supported feature until the
+   downstream realization blockers are closed with runtime evidence,
 18. completed advisory copilot output must pass the Advise-owned approved provider/model inventory
    in `src/core/advisory_copilot/model_governance.py` and
    `contracts/advisory-copilot/approved-model-inventory.v1.json`, then pass the executable
@@ -337,9 +338,10 @@ Boundary rules:
    commands,
 16. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
 17. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions,
-18. `lotus-idea` proposal-intake route foundation must remain source-safe: Advise acknowledges only
-   the handoff envelope and retains proposal, suitability, approval, publication, and execution
-   authority until a later certified realization slice implements those controls,
+18. `lotus-idea` proposal-intake receipt must remain source-safe: Advise acknowledges only the
+   handoff envelope through trusted local/dev caller headers and retains proposal, suitability,
+   approval, publication, and execution authority until a later certified realization slice
+   implements production IdP binding, persistence, and those controls,
 19. outbound `lotus-report` and `lotus-ai` calls must fail closed when tenant or actor identity is
    missing, malformed, over-length, or control-character-bearing; do not reintroduce synthetic
    production defaults such as a hardcoded tenant or service actor,

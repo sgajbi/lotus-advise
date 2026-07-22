@@ -58,9 +58,9 @@ It is responsible for:
   review-ready without raw provider payload retention
 - source-owned tactical house-view affected cohorts from bank-authored house-view instructions and
   caller-supplied source-backed candidate portfolios
-- source-safe `lotus-idea` proposal-intake route foundation for future opportunity-to-advisory
-  realization, without proposal creation, suitability authority, client publication, or supported
-  feature promotion
+- source-safe `lotus-idea` proposal-intake receipt for future opportunity-to-advisory realization,
+  with trusted local/dev caller scope and idempotent accepted/replayed/rejected outcomes, without
+  proposal creation, suitability authority, client publication, or supported feature promotion
 
 It does not own discretionary management workflows, portfolio source data, risk methodology,
 performance methodology, reporting ownership, or downstream execution ownership.
@@ -179,11 +179,13 @@ Boundary rules that matter:
    `lotus-platform/thought-leadership/linkedin/drafts/LI-2026-05-28-043-demo-proof-should-show-the-boundary.md`.
    Current proof capture also validates ready `/platform/capabilities` runtime evidence and blocks
    stale proof reuse when `advisory.bank_demo_proof` or `advisory_bank_demo_proof` is missing.
-9. The `lotus-idea` advisory proposal intake route foundation is implemented at
+9. The `lotus-idea` advisory proposal intake receipt is implemented at
    `POST /advisory/proposals/idea-intake` with contract evidence under
-   `contracts/idea-proposal-intake/`. It proves route existence only. It does not create advisory
-   proposal records, grant suitability authority, authorize client publication, create orders,
-   certify a data product, or promote a supported feature.
+   `contracts/idea-proposal-intake/`. It proves an executable handoff receipt with trusted
+   local/dev caller headers, idempotency conflict detection, safe replay, and bounded
+   accepted/rejected outcomes. It does not create advisory proposal records, grant suitability
+   authority, authorize client publication, create orders, certify a data product, or promote a
+   supported feature.
 
 ## Architecture At A Glance
 
@@ -195,7 +197,7 @@ Main runtime surfaces come from [src/api/main.py](src/api/main.py):
 - advisory proposal lifecycle
   create, version, transition, approval, delivery, execution, async, and support routes under
   `/advisory/proposals/*`
-  plus the source-safe `POST /advisory/proposals/idea-intake` route foundation for `lotus-idea`
+  plus the source-safe `POST /advisory/proposals/idea-intake` intake receipt for `lotus-idea`
   conversion-intent handoff
 - advisory workspace
   iterative draft, save, resume, compare, rationale, and lifecycle handoff under
