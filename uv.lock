@@ -4,22 +4,22 @@ requires-python = ">=3.11"
 authoritative-source = "requirements"
 generated-by = "scripts/dependency_lock_evidence.py"
 license-inventory = "docs/standards/license-ip-inventory.v1.json"
-license-inventory-sha256 = "ad547e011f869516fb4ca48a16d73a7528fb244a480a4f57b3884b2f8ebea025"
+license-inventory-sha256 = "bf5ca46a331eda293b0ab2b4d7b2e0315dfff517bcd8fa41f6ba11d509705289"
 
 [[requirement-files]]
 group = "development"
 path = "requirements-dev.txt"
-sha256 = "2c3f80f51703c653ea15e4c110f31c0fcc376dda2645fd0a2d644c410ed64869"
+sha256 = "1e0a24f7302ef981b906cfc2f33caf819a0e4d6896f3a3cfe122be4b601bed4b"
 
 [[requirement-files]]
 group = "install"
 path = "requirements.txt"
-sha256 = "e9e50ed9441e54f429003b9e11199e76a266db4efbebab8ae6cd03f39b975e68"
+sha256 = "4ded10cce3145ca83d4e789bac3615f6b07dec85dbc994224b2efa2099c3760b"
 
 [[requirement-files]]
 group = "runtime"
 path = "requirements-prod.txt"
-sha256 = "b89acaff2f1d19e3a8b22500d7a7ec85c3bf2287691efbd891d80390fbefb794"
+sha256 = "3d07e0f7c7f957d9cb961e1077dbb90702ad2b7bd7eaf2be3096ba028a44ba08"
 
 [[package]]
 name = "annotated-doc"
@@ -50,7 +50,7 @@ requirement-hashes = ["9050d78a307f7c30a2cc9cb0f08fe971265451b335011f95e73253643
 
 [[package]]
 name = "ast-serialize"
-version = "0.6.0"
+version = "0.8.0"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -104,7 +104,7 @@ requirement-hashes = ["87d958ce29e9a872bef136d459f259e67931622a31b7b1c3798212b44
 
 [[package]]
 name = "cffi"
-version = "2.1.0"
+version = "2.1.1"
 direct = false
 groups = ["development", "runtime"]
 requirement-files = []
@@ -149,12 +149,12 @@ requirement-hashes = ["e91f42fdc36833eb19b14a96d440f3806e500e121b6209b9e06894908
 
 [[package]]
 name = "coverage"
-version = "7.15.2"
+version = "7.15.4"
 direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["919ec3bc46d15586e16d2c21db3ef76d97c91de145755337775d656effdf19b2"]
+requirement-hashes = ["3d793b1dc614ad386ec357d9e29fb9e79287742671b001ab22e6e0b5d64905f9"]
 
 [[package]]
 name = "cvxpy"
@@ -311,7 +311,7 @@ requirement-hashes = []
 
 [[package]]
 name = "librt"
-version = "0.13.0"
+version = "0.15.0"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -419,12 +419,12 @@ requirement-hashes = []
 
 [[package]]
 name = "packaging"
-version = "26.2"
+version = "26.3"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["b8170d9797c77a7857f3789ba265c666ec5cc053c0c64debd000eb84a6e7b184"]
+requirement-hashes = ["3d1607c198cec0803d7af335860b94bde2be171b7a50ea3a98a759bb2af2ac7a"]
 
 [[package]]
 name = "pathspec"
@@ -473,7 +473,7 @@ requirement-hashes = []
 
 [[package]]
 name = "platformdirs"
-version = "4.11.0"
+version = "4.11.1"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -662,12 +662,12 @@ requirement-hashes = []
 
 [[package]]
 name = "ruff"
-version = "0.16.1"
+version = "0.16.2"
 direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["085e05932aea8979922cbca58218a7e221e07ddf3983f26cca9ea8c0dc1ba730"]
+requirement-hashes = ["eb6349b44f3108ccbe98d77ff5711fcb8d9e213353dd4d9908c0242c0bd654e6"]
 
 [[package]]
 name = "scipy"
@@ -734,12 +734,12 @@ requirement-hashes = []
 
 [[package]]
 name = "starlette"
-version = "1.3.1"
-direct = false
-groups = ["development", "runtime"]
-requirement-files = []
+version = "1.6.0"
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
 extras = []
-requirement-hashes = []
+requirement-hashes = ["c7b32c25b11590581a85a3b4d7432700a5b7795bef3d209174dfdaa10e08654c"]
 
 [[package]]
 name = "stevedore"
@@ -815,12 +815,12 @@ requirement-hashes = []
 
 [[package]]
 name = "uvicorn"
-version = "0.52.0"
+version = "0.52.1"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["de023cb8c247e55ce5ba1656f61001ddc38b0f455a1d215ea7c5ddb093c2efe5"]
+requirement-hashes = ["65ab748b9684893a739aba8793711da6a83d4a82fe60cec22f1827a471a96c7e"]
 
 [[package]]
 name = "vulture"
@@ -842,5 +842,5 @@ requirement-hashes = ["312b48ce4834462cf1bd1153fd8f235eef6d2d3f12f87b943472c91c6
 
 [summary]
 package-count = 91
-direct-package-count = 35
-transitive-package-count = 56
+direct-package-count = 36
+transitive-package-count = 55
