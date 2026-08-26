@@ -29637,6 +29637,32 @@
     unavailable posture. #491 retains named scenario-analysis work; Gateway/Workbench projection is
     downstream and must not infer unavailable evidence.
 
+### Update — Core BenchmarkAssignment:v1 Mapping
+
+- Status: Current-state benchmark evidence hardened; mandate-limit producer work remains open in #554.
+- Summary: `src/integrations/lotus_core/benchmark_assignment.py` is the only Core route owner for
+  `/integration/portfolios/{portfolio_id}/benchmark-assignment`. Its anti-corruption boundary
+  validates the Core product/version, requested portfolio and as-of identity, and effective date
+  range before Advise projects an effective benchmark. The additive response now preserves Core's
+  assignment source/status/version/recorded time, contract/policy identifiers, and product runtime
+  proof metadata (content hash, source references/lineage, quality, reconciliation, freshness). A
+  missing date, 404, transport failure, malformed response, identity mismatch, or
+  degraded source maps to a stable unavailable or partial posture and can never become an inferred
+  benchmark.
+- Evidence: Focused integration-adapter, projection/OpenAPI/replay, and orchestration tests cover
+  successful source mapping, source freshness degradation, 404, malformed payload, portfolio/as-of
+  mismatch, effective-range mismatch, current-versus-simulated separation, and strict contract
+  fields. Full repository gates remain required before merge.
+- Compatibility: Additive `ProposalReviewEvidence:v1` fields only; immutable proposal result
+  persistence/replay remains schema-compatible and requires no migration. No benchmark return,
+  risk, mandate-limit, materiality, suitability, compliance, approval, execution, Gateway, or
+  Workbench decision is calculated or changed by this mapping.
+- Documentation: Supported features, RFC-0082 family mapping, advisory know-how, and repo-local
+  wiki truth now describe the live benchmark adapter and the still-unavailable mandate boundary.
+  Wiki source changed; parity check is required before merge and publication is required after merge.
+- Follow-Up: #554 remains open for a source-owned mandate-limit observation producer. Do not parse
+  generic `rule_results` or create another Core benchmark route outside this adapter.
+
 ## LA-REV-930-MEMO-REPORT-PACKAGE-DATE-BOUNDARY
 
 - Scope: Reviewed proposal memo to Lotus Report report-package request mapping and unavailable error

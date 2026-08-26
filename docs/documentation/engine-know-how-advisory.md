@@ -167,14 +167,16 @@ Persistence note:
 
 `ProposalResult.proposal_review_evidence` is an additive, versioned envelope for downstream review
 consumers. It separates requested benchmark/mandate context from effective source-owned evidence
-for the current and simulated states. Advise does not currently consume Core's existing
-benchmark-assignment route, and no source-owned mandate-limit observation contract is mapped into
-this envelope. The projection therefore remains `UNAVAILABLE` with null effective values and stable
-reason codes. Advise must not parse generic `rule_results`, calculate benchmark or limit outcomes,
-or turn a requested selector into an applied source fact. A future adapter/producer mapping must
-provide authoritative references and effective as-of dates before this posture can become ready;
-the Core route is an explicit revisit point rather than permission to leave the unavailable posture
-unexamined.
+for the current and simulated states. The Core `BenchmarkAssignment:v1` adapter maps only the
+current proposal state's effective benchmark. It validates the response product/version, portfolio,
+as-of date, and effective range, then preserves Core's effective ID, effective range, assignment
+source/status/version/recorded time, contract and policy identifiers, and product-runtime proof
+metadata (hash, references, lineage, quality, reconciliation, and freshness). A 404,
+transport failure, malformed response, requested-context mismatch, or degraded source is exposed as
+typed `UNAVAILABLE` or `PARTIAL`; it never becomes an inferred benchmark. No source-owned
+mandate-limit observation contract is mapped, so both mandate states remain `UNAVAILABLE`. Advise
+must not parse generic `rule_results`, calculate benchmark or limit outcomes, or turn a requested
+selector into an applied source fact.
 
 ## Pipeline (`run_proposal_simulation`)
 

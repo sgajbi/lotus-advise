@@ -1,9 +1,14 @@
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from src.core.advisory import orchestration
+from src.core.advisory.benchmark_assignment_evidence import (
+    BenchmarkAssignmentEvidenceResolution,
+    BenchmarkAssignmentSourceEvidence,
+)
 from src.core.advisory.provider_ports import (
     AdvisoryRiskEnrichmentUnavailableError as LotusRiskEnrichmentUnavailableError,
 )
@@ -102,6 +107,93 @@ def test_evaluate_advisory_proposal_records_authoritative_core_and_policy_contex
     }
     assert result.explanation["advisory_policy_context"] == policy_context
     assert result.proposal_decision_summary is not None
+
+
+def test_evaluate_advisory_proposal_maps_current_core_benchmark_evidence_without_simulating_limits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _request()
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        orchestration,
+        "simulate_with_lotus_core",
+        lambda **kwargs: _local_result(request, request_hash=kwargs["request_hash"]),
+    )
+    monkeypatch.setattr(
+        orchestration,
+        "enrich_with_lotus_risk",
+        lambda **kwargs: kwargs["proposal_result"],
+    )
+    monkeypatch.setattr(
+        orchestration,
+        "resolve_advisory_benchmark_assignment_evidence",
+        lambda **kwargs: (
+            captured.update(kwargs)
+            or BenchmarkAssignmentEvidenceResolution(
+                source_evidence=BenchmarkAssignmentSourceEvidence(
+                    effective_benchmark_id="BM_GLOBAL_BALANCED",
+                    effective_as_of_date="2026-03-25",
+                    effective_from_date="2026-01-01",
+                    effective_to_date=None,
+                    assignment_source="benchmark_policy_engine",
+                    assignment_status="active",
+                    assignment_recorded_at=datetime(2026, 3, 25, 9, 15, tzinfo=UTC),
+                    assignment_version=3,
+                    assignment_policy_pack_id="policy_pb_v1",
+                    assignment_source_system="mandate-booking-system",
+                    assignment_contract_version="rfc_062_v1",
+                    source_product_name="BenchmarkAssignment",
+                    source_product_version="v1",
+                    source_tenant_id="tenant_sg",
+                    source_generated_at=datetime(2026, 3, 25, 9, 16, tzinfo=UTC),
+                    source_restatement_version="v1",
+                    source_reconciliation_status="RECONCILED",
+                    source_data_quality_status="COMPLETE",
+                    source_latest_evidence_at=datetime(2026, 3, 25, 9, 14, tzinfo=UTC),
+                    source_batch_fingerprint="batch_20260325_0001",
+                    source_snapshot_id="snapshot_554",
+                    source_content_hash=(
+                        "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                    ),
+                    source_references=("lotus-core://benchmark/pf_orchestration/2026-03-25",),
+                    source_lineage={
+                        "source_owner": "lotus-core",
+                        "source_product": "BenchmarkAssignment",
+                    },
+                    source_evidence_current=True,
+                    source_freshness_status="CURRENT",
+                    source_policy_version="policy-v1",
+                    supportability="READY",
+                )
+            )
+        ),
+    )
+
+    result = orchestration.evaluate_advisory_proposal(
+        request=request,
+        request_hash="sha256:orch-benchmark",
+        idempotency_key="orch-idem",
+        correlation_id="corr-orch",
+        requested_as_of_date="2026-03-25",
+        requested_reporting_currency="USD",
+        policy_context={"benchmark_id": "BM_REQUESTED", "mandate_id": "MANDATE_1"},
+    )
+
+    assert captured == {
+        "portfolio_id": "pf_orchestration",
+        "requested_as_of_date": "2026-03-25",
+        "requested_reporting_currency": "USD",
+        "policy_context": {"benchmark_id": "BM_REQUESTED", "mandate_id": "MANDATE_1"},
+        "correlation_id": "corr-orch",
+    }
+    assert result.proposal_review_evidence.benchmark_assignment.effective_benchmark_id == (
+        "BM_GLOBAL_BALANCED"
+    )
+    assert result.proposal_review_evidence.current_mandate_limits.supportability == "UNAVAILABLE"
+    assert result.proposal_review_evidence.simulated_mandate_limits.supportability == "UNAVAILABLE"
+
+    replayed = ProposalResult.model_validate(result.model_dump(mode="json"))
+    assert replayed.proposal_review_evidence == result.proposal_review_evidence
 
 
 def test_evaluate_advisory_proposal_records_invalid_risk_configuration_reason(

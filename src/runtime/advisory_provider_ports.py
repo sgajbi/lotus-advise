@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from src.core.advisory.benchmark_assignment_evidence import (
+    BenchmarkAssignmentEvidenceResolution,
+)
 from src.core.advisory.narrative_ai_ports import (
     ProposalNarrativeDraftResponse,
     ProposalNarrativeDraftUnavailableError,
@@ -12,6 +15,7 @@ from src.core.advisory.provider_ports import (
     AdvisoryProviderDependencyState,
     AdvisoryRiskEnrichmentUnavailableError,
     AdvisorySimulationUnavailableError,
+    configure_advisory_benchmark_assignment_evidence_provider,
     configure_advisory_risk_dependency_state_provider,
     configure_advisory_risk_enrichment_provider,
     configure_advisory_simulation_provider,
@@ -38,10 +42,16 @@ from src.integrations.lotus_ai import (
     generate_proposal_memo_commentary_with_lotus_ai,
     generate_proposal_narrative_draft_with_lotus_ai,
 )
-from src.integrations.lotus_core import (
+from src.integrations.lotus_core.benchmark_assignment import (
+    LotusCoreBenchmarkAssignmentUnavailableError,
+    fetch_benchmark_assignment_with_lotus_core,
+)
+from src.integrations.lotus_core.context_resolution import (
     LotusCoreContextResolutionError,
-    LotusCoreSimulationUnavailableError,
     resolve_lotus_core_advisory_context,
+)
+from src.integrations.lotus_core.simulation import (
+    LotusCoreSimulationUnavailableError,
     simulate_with_lotus_core,
 )
 from src.integrations.lotus_report import (
@@ -59,6 +69,9 @@ def configure_advisory_external_provider_ports() -> None:
     configure_advisory_simulation_provider(_simulate_with_lotus_core_port)
     configure_advisory_risk_enrichment_provider(_enrich_with_lotus_risk_port)
     configure_advisory_risk_dependency_state_provider(_lotus_risk_dependency_state_port)
+    configure_advisory_benchmark_assignment_evidence_provider(
+        _resolve_benchmark_assignment_evidence_with_lotus_core_port
+    )
     configure_advisory_stateful_context_provider_port()
     configure_proposal_narrative_draft_generator(_generate_narrative_draft_with_lotus_ai_port)
     configure_proposal_memo_ai_commentary_generator(_generate_memo_commentary_with_lotus_ai_port)
@@ -116,6 +129,27 @@ def _lotus_risk_dependency_state_port() -> AdvisoryProviderDependencyState:
         configured=bool(dependency_state.configured),
         degraded_reason=dependency_state.degraded_reason,
     )
+
+
+def _resolve_benchmark_assignment_evidence_with_lotus_core_port(
+    portfolio_id: str,
+    requested_as_of_date: str,
+    requested_reporting_currency: str | None,
+    policy_context: dict[str, object] | None,
+    correlation_id: str,
+) -> BenchmarkAssignmentEvidenceResolution:
+    try:
+        return BenchmarkAssignmentEvidenceResolution(
+            source_evidence=fetch_benchmark_assignment_with_lotus_core(
+                portfolio_id=portfolio_id,
+                as_of_date=requested_as_of_date,
+                reporting_currency=requested_reporting_currency,
+                policy_context=policy_context,
+                correlation_id=correlation_id,
+            )
+        )
+    except LotusCoreBenchmarkAssignmentUnavailableError as exc:
+        return BenchmarkAssignmentEvidenceResolution.unavailable(exc.reason_code)
 
 
 def _resolve_stateful_context_with_lotus_core_port(

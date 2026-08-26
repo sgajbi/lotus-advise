@@ -629,6 +629,15 @@ Important validation expectations:
     and content-hash provenance; new or resolved fingerprints, scanner/parser failures, and
     baseline/policy integrity drift fail closed. This is CI/developer evidence only and does not
     change runtime, API, persistence, migration, or data-model contracts.
+23. current-state proposal-review benchmark evidence is composed only through the Core
+    `BenchmarkAssignment:v1` anti-corruption adapter. It validates source product/version,
+    requested portfolio/as-of identity, and effective range, then preserves source-owned assignment
+    source/status/version/recorded time, contract and policy identifiers, and product runtime proof
+    metadata (hash, references, lineage, quality, reconciliation, and freshness) in the additive
+    proposal evidence contract. Missing, rejected, malformed, mismatched, or degraded source evidence must
+    remain typed unavailable or partial; Advise must not infer a benchmark or treat generic rules as
+    a mandate-limit producer. Mandate-limit observations remain explicitly unavailable until their
+    authoritative producer is mapped.
 
 ## Standards And RFCs That Govern This Repository
 

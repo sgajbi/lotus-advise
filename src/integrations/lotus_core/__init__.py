@@ -12,6 +12,10 @@ _EXPORTS: Final[dict[str, tuple[str, str]]] = {
         "src.integrations.lotus_core.context_resolution",
         "LotusCoreContextResolutionError",
     ),
+    "LotusCoreBenchmarkAssignmentUnavailableError": (
+        "src.integrations.lotus_core.benchmark_assignment",
+        "LotusCoreBenchmarkAssignmentUnavailableError",
+    ),
     "LotusCoreAdvisoryContextResolver": (
         "src.integrations.lotus_core.context_resolution",
         "LotusCoreAdvisoryContextResolver",
@@ -35,6 +39,10 @@ _EXPORTS: Final[dict[str, tuple[str, str]]] = {
     "get_lotus_core_advisory_context_resolver_for_tests": (
         "src.integrations.lotus_core.context_resolution",
         "get_lotus_core_advisory_context_resolver_for_tests",
+    ),
+    "fetch_benchmark_assignment_with_lotus_core": (
+        "src.integrations.lotus_core.benchmark_assignment",
+        "fetch_benchmark_assignment_with_lotus_core",
     ),
     "lotus_core_fallback_mode": (
         "src.integrations.lotus_core.adapter",
