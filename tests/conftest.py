@@ -9,7 +9,11 @@ from pathlib import Path
 import pytest
 
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
-from src.core.advisory.provider_ports import configure_advisory_simulation_provider
+from src.core.advisory.benchmark_assignment_evidence import BenchmarkAssignmentEvidenceResolution
+from src.core.advisory.provider_ports import (
+    configure_advisory_benchmark_assignment_evidence_provider,
+    configure_advisory_simulation_provider,
+)
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import CashBalance, EngineOptions, PortfolioSnapshot
 from src.core.policy_packs import (
@@ -123,9 +127,15 @@ def advisory_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setenv("ENVIRONMENT", "test")
     configure_advisory_simulation_provider(_simulate_with_lotus_core)
+    configure_advisory_benchmark_assignment_evidence_provider(
+        lambda *_args: BenchmarkAssignmentEvidenceResolution.unavailable(
+            "BENCHMARK_EVIDENCE_SOURCE_UNAVAILABLE"
+        )
+    )
     configure_advisory_stateful_context_provider_port()
     reset_proposal_workflow_service_for_tests()
     yield
     configure_advisory_simulation_provider(None)
+    configure_advisory_benchmark_assignment_evidence_provider(None)
     configure_advisory_stateful_context_provider_port()
     reset_proposal_workflow_service_for_tests()

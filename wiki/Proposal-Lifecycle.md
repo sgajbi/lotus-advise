@@ -119,22 +119,23 @@ Proposal simulation and immutable lifecycle-version responses also carry the add
 `proposal_review_evidence` envelope. It keeps the requested benchmark and mandate identifiers and
 requested as-of context separate from effective source evidence:
 
-- `benchmark_assignment` contains requested/effective identifiers, requested/effective as-of dates,
-  source references, and supportability.
+- `benchmark_assignment` maps Core `BenchmarkAssignment:v1` for the current proposal state. It
+  carries requested/effective identifiers and dates, effective range, assignment source/status/version and
+  recorded time, contract/policy identifiers, product-runtime proof metadata (deterministic hash,
+  references, lineage, quality, reconciliation, freshness), and supportability.
 - `current_mandate_limits` and `simulated_mandate_limits` are separate state projections with typed
   observations, units, thresholds, outcomes, severity, and source references when an authoritative
   producer supplies them.
-- Advise does not currently consume Core's existing benchmark-assignment route, and no mapped
-  source-owned mandate-limit observation contract is available to this envelope. The contract
-  therefore returns `UNAVAILABLE`, null effective values, empty observations, and stable reason
-  codes rather than promoting a selector or interpreting generic `rule_results` as mandate evidence.
+- The Core adapter validates product/version, portfolio identity, requested as-of date, and effective
+  range before publishing benchmark evidence. A missing, rejected, malformed, mismatched, or
+  degraded Core response remains typed `UNAVAILABLE` or `PARTIAL`; it is never substituted with a
+  requested selector. No mapped source-owned mandate-limit observation contract is available, so
+  both mandate states retain empty observations and stable `UNAVAILABLE` reason codes rather than
+  interpreting generic `rule_results` as mandate evidence.
 
 This is an explicit capability boundary, not a positive benchmark/limit claim. Advise does not
-calculate benchmark returns, limit breaches, materiality, or acceptability. A future adapter/producer
-mapping must supply source authority, effective dates, and stable references before the envelope can
-move beyond the unavailable posture. The existing Core route is a named revisit point; Advise must
-not silently leave the published unavailable posture in place after adding that route to its Core
-client.
+calculate benchmark returns, limit breaches, materiality, or acceptability. The benchmark adapter is
+source composition only; mandate-limit observations still require an authoritative producer mapping.
 
 ### Memo report-package source-date handoff
 

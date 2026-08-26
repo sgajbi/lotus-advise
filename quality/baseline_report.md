@@ -7,7 +7,7 @@
 
 ## Code Size
 
-- Python files: `1098`
+- Python files: `1103`
 - Packages: `42`
 - Modules: `1056`
 - Total Python lines: `199043`
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `5025`
-- Radon complexity rank inventory: `A=4891, B=134`
+- Radon analyzed block inventory: `5051`
+- Radon complexity rank inventory: `A=4917, B=134`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
