@@ -80,6 +80,18 @@ from scripts.live_workspace_flow import (  # noqa: E402
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest, ProposedTrade
 
+#: Core's enterprise middleware requires a nonblank `X-Tenant-Id` on the reporting
+#: routes this journey reads and answers 401 `TENANT_CONTEXT_REQUIRED` without one.
+#: The value is the governed query tenant for the canonical dataset, recorded in
+#: lotus-platform `context/contracts/canonical-front-office-demo-data-contract.json`
+#: as `tenant_id` -- deliberately distinct from `workbench_caller_tenant_id`, which
+#: is the Workbench caller and not the query scope. It is read from the governed
+#: contract rather than chosen here, and overridable so a different governed dataset
+#: can be certified without editing this harness. Nothing mints a tenant: an empty
+#: value is refused below rather than being sent as an absent claim.
+_CORE_TENANT_HEADER = "X-Tenant-Id"
+_DEFAULT_CORE_TENANT_ID = "default"
+
 _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
 _DEFAULT_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
 _DEFAULT_CORE_CONTROL_BASE_URL = "http://core-control.dev.lotus"
@@ -175,6 +187,45 @@ def _utc_iso_after(*, seconds: int = 0) -> str:
     return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
 
 
+def _core_tenant_id() -> str:
+    """The admitted tenant for Core reads, refused rather than defaulted when blank.
+
+    An empty override is a configuration mistake, and sending a blank tenant would
+    reach Core as an absent claim and fail there with a less specific message. Fail
+    here, where the cause is visible.
+    """
+
+    tenant_id = os.environ.get("LOTUS_PARITY_CORE_TENANT_ID", _DEFAULT_CORE_TENANT_ID).strip()
+    _assert(
+        bool(tenant_id),
+        "LOTUS_PARITY_CORE_TENANT_ID is set but blank. Core requires a nonblank "
+        "X-Tenant-Id; this harness does not mint or default one when the override is "
+        "present and empty.",
+    )
+    return tenant_id
+
+
+def _with_core_tenant(url: str, headers: dict[str, str] | None) -> dict[str, str] | None:
+    """Attach the admitted tenant to Core requests, and to nothing else.
+
+    Deliberately not a default header on the shared client: the same client talks to
+    Advise and Risk, and sending a tenant to a service that cannot honour it makes the
+    response look scoped when it is not. That is the defect this repository has asked
+    lotus-gateway not to introduce (#624), and a harness should not model the thing it
+    certifies incorrectly.
+    """
+
+    core_bases = (
+        os.environ.get("LOTUS_CORE_QUERY_BASE_URL", _DEFAULT_CORE_QUERY_BASE_URL).rstrip("/"),
+        os.environ.get("LOTUS_CORE_BASE_URL", _DEFAULT_CORE_CONTROL_BASE_URL).rstrip("/"),
+    )
+    if not url.startswith(core_bases):
+        return headers
+    merged = dict(headers or {})
+    merged.setdefault(_CORE_TENANT_HEADER, _core_tenant_id())
+    return merged
+
+
 def _request_json(
     client: httpx.Client,
     *,
@@ -184,7 +235,7 @@ def _request_json(
     json_body: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    response = client.request(method, url, json=json_body, headers=headers)
+    response = client.request(method, url, json=json_body, headers=_with_core_tenant(url, headers))
     _assert(
         response.status_code == expected_status,
         (
@@ -806,11 +857,21 @@ def _select_scenarios(
     examined: list[tuple[str, str]] = []
 
     for portfolio_id in candidates:
-        as_of_date, reporting_currency = _resolve_latest_portfolio_context(
-            client,
-            core_query_base_url=core_query_base_url,
-            portfolio_id=portfolio_id,
-        )
+        try:
+            as_of_date, reporting_currency = _resolve_latest_portfolio_context(
+                client,
+                core_query_base_url=core_query_base_url,
+                portfolio_id=portfolio_id,
+            )
+        except LiveParityValidationError as exc:
+            # A candidate Core does not hold is not a failure of this journey; it is a
+            # candidate. Only absence is tolerated -- anything else (a 401, a 5xx, a
+            # malformed body) is a real boundary and must still stop the run, or this
+            # would swallow the tenant-admission failure that this same change fixed.
+            if "not found" not in str(exc):
+                raise
+            examined.append((portfolio_id, "absent_from_dataset"))
+            continue
         simulate = _simulate_stateful_noop(
             client,
             advise_base_url=advise_base_url,
@@ -854,7 +915,9 @@ def _select_scenarios(
 
     raise LiveParityValidationError(
         "Could not find both complete and degraded issuer-coverage parity scenarios from seeded "
-        f"portfolios. examined={examined}"
+        f"portfolios. examined={examined} "
+        "(candidates marked absent_from_dataset were not present in Core and were skipped; "
+        "set LOTUS_PARITY_PORTFOLIOS to certify against a different governed dataset)"
     )
 
 

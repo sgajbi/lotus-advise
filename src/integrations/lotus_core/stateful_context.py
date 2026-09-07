@@ -308,6 +308,7 @@ def _fetch_stateful_context_source_payloads(
             base_url=base_url,
             path=_PORTFOLIO_PATH.format(portfolio_id=stateful_input.portfolio_id),
             error_code="LOTUS_CORE_STATEFUL_PORTFOLIO_UNAVAILABLE",
+            headers=core_snapshot_headers(tenant_id=tenant_id),
         )
         positions_payload = _request_json(
             client,
@@ -318,6 +319,7 @@ def _fetch_stateful_context_source_payloads(
                 as_of=resolved_as_of,
             ),
             error_code="LOTUS_CORE_STATEFUL_POSITIONS_UNAVAILABLE",
+            headers=core_snapshot_headers(tenant_id=tenant_id),
         )
         cash_payload = _request_json(
             client,
@@ -328,6 +330,7 @@ def _fetch_stateful_context_source_payloads(
                 as_of=resolved_as_of,
             ),
             error_code="LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE",
+            headers=core_snapshot_headers(tenant_id=tenant_id),
         )
         enrichment_result = _fetch_instrument_enrichment_bulk_with_diagnostics(
             client,
