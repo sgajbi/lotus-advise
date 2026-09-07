@@ -14,6 +14,20 @@ from typing import Any, Literal, NoReturn, cast
 
 import httpx
 
+from scripts.live_parity_core_tenant import (
+    LiveParityHttpError,
+    LiveParityValidationError,
+)
+from scripts.live_parity_core_tenant import (
+    request_json as _request_json,
+)
+from scripts.live_parity_core_tenant import (
+    set_resolved_core_base_urls as _set_resolved_core_base_urls,
+)
+from scripts.live_parity_core_tenant import (
+    with_core_tenant as _with_core_tenant,
+)
+
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -119,10 +133,6 @@ _WARM_CACHE_TOLERANCE_MULTIPLIER = 1.75
 _WARM_CACHE_TOLERANCE_ABSOLUTE_MS = 125.0
 
 
-class LiveParityValidationError(RuntimeError):
-    pass
-
-
 def _raise_live_error(message: str) -> NoReturn:
     raise LiveParityValidationError(message)
 
@@ -174,28 +184,9 @@ class LiveParityResult:
     restricted_product_alternatives: LiveProposalAlternativesSnapshot
 
 
-class LiveParityHttpError(LiveParityValidationError):
-    """A non-expected HTTP status, carrying the status itself.
-
-    The status has to travel with the error. Classifying a failure by searching its
-    message for a phrase means a 401 whose body says a tenant was not found reads as
-    a missing portfolio -- which would skip the candidate and continue past the exact
-    admission boundary this harness exists to surface.
-    """
-
-    def __init__(self, message: str, *, status_code: int) -> None:
-        super().__init__(message)
-        self.status_code = status_code
-
-
 def _assert(condition: bool, message: str) -> None:
     if not condition:
         raise LiveParityValidationError(message)
-
-
-def _assert_status(response: Any, *, expected_status: int, message: str) -> None:
-    if response.status_code != expected_status:
-        raise LiveParityHttpError(message, status_code=response.status_code)
 
 
 def _decimal(value: Any) -> Decimal:
@@ -204,90 +195,6 @@ def _decimal(value: Any) -> Decimal:
 
 def _utc_iso_after(*, seconds: int = 0) -> str:
     return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
-
-
-#: The Core base URLs this run actually resolved. Populated once at entry from the
-#: same values the requests are built with, because a caller may supply them
-#: explicitly rather than through the environment -- re-reading the environment here
-#: would match a different URL than the one being requested, and silently attach no
-#: tenant. The environment defaults remain the fallback for direct callers of the
-#: lower-level helpers.
-_RESOLVED_CORE_BASE_URLS: tuple[str, ...] = ()
-
-
-def _resolved_core_base_urls() -> tuple[str, ...]:
-    if _RESOLVED_CORE_BASE_URLS:
-        return _RESOLVED_CORE_BASE_URLS
-    return (
-        os.environ.get("LOTUS_CORE_QUERY_BASE_URL", _DEFAULT_CORE_QUERY_BASE_URL).rstrip("/"),
-        os.environ.get("LOTUS_CORE_BASE_URL", _DEFAULT_CORE_CONTROL_BASE_URL).rstrip("/"),
-    )
-
-
-def _set_resolved_core_base_urls(*, core_query_base_url: str, core_control_base_url: str) -> None:
-    global _RESOLVED_CORE_BASE_URLS
-    _RESOLVED_CORE_BASE_URLS = (
-        core_query_base_url.rstrip("/"),
-        core_control_base_url.rstrip("/"),
-    )
-
-
-def _core_tenant_id() -> str:
-    """The admitted tenant for Core reads, refused rather than defaulted when blank.
-
-    An empty override is a configuration mistake, and sending a blank tenant would
-    reach Core as an absent claim and fail there with a less specific message. Fail
-    here, where the cause is visible.
-    """
-
-    tenant_id = os.environ.get("LOTUS_PARITY_CORE_TENANT_ID", _DEFAULT_CORE_TENANT_ID).strip()
-    _assert(
-        bool(tenant_id),
-        "LOTUS_PARITY_CORE_TENANT_ID is set but blank. Core requires a nonblank "
-        "X-Tenant-Id; this harness does not mint or default one when the override is "
-        "present and empty.",
-    )
-    return tenant_id
-
-
-def _with_core_tenant(url: str, headers: dict[str, str] | None) -> dict[str, str] | None:
-    """Attach the admitted tenant to Core requests, and to nothing else.
-
-    Deliberately not a default header on the shared client: the same client talks to
-    Advise and Risk, and sending a tenant to a service that cannot honour it makes the
-    response look scoped when it is not. That is the defect this repository has asked
-    lotus-gateway not to introduce (#624), and a harness should not model the thing it
-    certifies incorrectly.
-    """
-
-    if not url.startswith(_resolved_core_base_urls()):
-        return headers
-    merged = dict(headers or {})
-    merged.setdefault(_CORE_TENANT_HEADER, _core_tenant_id())
-    return merged
-
-
-def _request_json(
-    client: httpx.Client,
-    *,
-    method: str,
-    url: str,
-    expected_status: int,
-    json_body: dict[str, Any] | None = None,
-    headers: dict[str, str] | None = None,
-) -> dict[str, Any]:
-    response = client.request(method, url, json=json_body, headers=_with_core_tenant(url, headers))
-    _assert_status(
-        response,
-        expected_status=expected_status,
-        message=(
-            f"{method} {url}: expected HTTP {expected_status}, "
-            f"got {response.status_code}, body={response.text}"
-        ),
-    )
-    payload = cast(dict[str, Any], response.json())
-    _assert(isinstance(payload, dict), f"{method} {url}: expected JSON object payload")
-    return payload
 
 
 def _extract_live_decision_snapshot(
