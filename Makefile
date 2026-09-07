@@ -306,7 +306,14 @@ release-image-provenance-gate:
 	python scripts/release_image_evidence.py static-check
 
 docker-up:
-	docker-compose up -d --build
+	LOTUS_BUILD_COMMIT_SHA=$(GIT_SHA) \
+	  LOTUS_BUILD_GIT_BRANCH=$(GIT_BRANCH) \
+	  LOTUS_BUILD_REPO_URL=$(REPO_URL) \
+	  LOTUS_BUILD_VERSION=$(SERVICE_VERSION) \
+	  LOTUS_BUILD_TIMESTAMP=$(BUILD_TIMESTAMP) \
+	  LOTUS_CI_PIPELINE_ID=$(CI_PIPELINE_ID) \
+	  LOTUS_IMAGE_DIGEST=$(IMAGE_DIGEST) \
+	  docker-compose up -d --build
 
 docker-down:
 	docker-compose down

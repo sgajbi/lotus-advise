@@ -108,8 +108,12 @@ Targeted checks run for this proof hardening:
 4. `python -m ruff check src/core/advisor_cockpit/action_factory.py src/core/advisor_cockpit/service.py tests/unit/advisory/engine/test_engine_advisor_cockpit_action_factory.py`
 5. `python -m pytest tests/unit/advisory/engine/test_engine_advisor_cockpit_action_factory.py tests/unit/advisory/engine/test_engine_advisor_cockpit_source_read_model.py tests/unit/advisory/engine/test_engine_advisor_cockpit_service.py -q`
 6. `python -m mypy src/core/advisor_cockpit/action_factory.py src/core/advisor_cockpit/source_read_model.py src/core/advisor_cockpit/service.py`
-7. `docker compose up -d --build` in `lotus-advise` before rerunning live validation after Advise
-   source changes.
+7. `make docker-up` in `lotus-advise` before rerunning live validation after Advise
+   source changes. Use the make target rather than `docker compose up -d --build` directly:
+   the target exports the build provenance the compose file forwards, so `/version` on the
+   running service reports the commit it was built from. A plain compose build takes the
+   `unknown` ARG defaults, and live evidence gathered against it cannot be attributed to any
+   revision.
 
 ## Closure Posture
 
