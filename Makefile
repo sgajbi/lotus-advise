@@ -4,6 +4,8 @@ SERVICE_VERSION ?= 0.1.0
 IMAGE_REPOSITORY ?= lotus-advise
 GIT_SHA ?= $(shell git rev-parse --verify HEAD 2>/dev/null || echo local)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo local)
+GIT_TREE_STATE := $(shell git status --porcelain 2>/dev/null | grep -q . && echo dirty || echo clean)
+BUILD_COMMIT_SHA := $(GIT_SHA)$(if $(filter dirty,$(GIT_TREE_STATE)),-dirty,)
 REPO_URL ?= https://github.com/sgajbi/lotus-advise
 BUILD_TIMESTAMP ?= $(shell python -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z'))")
 CI_PIPELINE_ID ?= local
@@ -288,7 +290,7 @@ production-profile-guardrail-negatives-local:
 
 docker-build:
 	docker build \
-		--build-arg LOTUS_BUILD_COMMIT_SHA=$(GIT_SHA) \
+		--build-arg LOTUS_BUILD_COMMIT_SHA=$(BUILD_COMMIT_SHA) \
 		--build-arg LOTUS_BUILD_GIT_BRANCH=$(GIT_BRANCH) \
 		--build-arg LOTUS_BUILD_REPO_URL=$(REPO_URL) \
 		--build-arg LOTUS_BUILD_VERSION=$(SERVICE_VERSION) \
@@ -306,14 +308,14 @@ release-image-provenance-gate:
 	python scripts/release_image_evidence.py static-check
 
 docker-up:
-	LOTUS_BUILD_COMMIT_SHA=$(GIT_SHA) \
+	LOTUS_BUILD_COMMIT_SHA=$(BUILD_COMMIT_SHA) \
 	  LOTUS_BUILD_GIT_BRANCH=$(GIT_BRANCH) \
 	  LOTUS_BUILD_REPO_URL=$(REPO_URL) \
 	  LOTUS_BUILD_VERSION=$(SERVICE_VERSION) \
 	  LOTUS_BUILD_TIMESTAMP=$(BUILD_TIMESTAMP) \
 	  LOTUS_CI_PIPELINE_ID=$(CI_PIPELINE_ID) \
 	  LOTUS_IMAGE_DIGEST=$(IMAGE_DIGEST) \
-	  docker-compose up -d --build
+	  docker compose up -d --build
 
 docker-down:
-	docker-compose down
+	docker compose down

@@ -480,6 +480,13 @@ Use these commands as the primary local contract:
    `make ci-local`
 5. Docker parity
    `make ci-local-docker`
+   Local runtime bring-up is `make docker-up`, and it must be used rather than
+   `docker compose up -d --build` directly. The target exports the build arguments the
+   compose file forwards, so `/version` on the running service reports the commit it was
+   built from; a tree with uncommitted changes is stamped `<sha>-dirty` rather than
+   claiming that commit. A plain compose build takes the `unknown` argument defaults, and
+   live evidence gathered against such a runtime cannot be attributed to any revision.
+   `make docker-down` tears it down.
 6. run locally
    `make run`
 7. repo-native domain product gate
