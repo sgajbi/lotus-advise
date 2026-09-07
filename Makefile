@@ -4,6 +4,10 @@ SERVICE_VERSION ?= 0.1.0
 IMAGE_REPOSITORY ?= lotus-advise
 GIT_SHA ?= $(shell git rev-parse --verify HEAD 2>/dev/null || echo local)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo local)
+# Quote a value for safe interpolation into a recipe. The value becomes data,
+# never syntax: git accepts branch names containing `;`, `$`, backticks and
+# quotes, and an unquoted expansion would let any of them change the command.
+shellquote = '$(subst ','"'"',$(1))'
 GIT_TREE_STATE := $(shell git status --porcelain 2>/dev/null | grep -q . && echo dirty || echo clean)
 BUILD_COMMIT_SHA := $(GIT_SHA)$(if $(filter dirty,$(GIT_TREE_STATE)),-dirty,)
 REPO_URL ?= https://github.com/sgajbi/lotus-advise
@@ -290,31 +294,31 @@ production-profile-guardrail-negatives-local:
 
 docker-build:
 	docker build \
-		--build-arg LOTUS_BUILD_COMMIT_SHA=$(BUILD_COMMIT_SHA) \
-		--build-arg LOTUS_BUILD_GIT_BRANCH=$(GIT_BRANCH) \
-		--build-arg LOTUS_BUILD_REPO_URL=$(REPO_URL) \
-		--build-arg LOTUS_BUILD_VERSION=$(SERVICE_VERSION) \
-		--build-arg LOTUS_BUILD_TIMESTAMP=$(BUILD_TIMESTAMP) \
-		--build-arg LOTUS_CI_PIPELINE_ID=$(CI_PIPELINE_ID) \
-		--build-arg LOTUS_IMAGE_DIGEST=$(IMAGE_DIGEST) \
+		--build-arg LOTUS_BUILD_COMMIT_SHA=$(call shellquote,$(BUILD_COMMIT_SHA)) \
+		--build-arg LOTUS_BUILD_GIT_BRANCH=$(call shellquote,$(GIT_BRANCH)) \
+		--build-arg LOTUS_BUILD_REPO_URL=$(call shellquote,$(REPO_URL)) \
+		--build-arg LOTUS_BUILD_VERSION=$(call shellquote,$(SERVICE_VERSION)) \
+		--build-arg LOTUS_BUILD_TIMESTAMP=$(call shellquote,$(BUILD_TIMESTAMP)) \
+		--build-arg LOTUS_CI_PIPELINE_ID=$(call shellquote,$(CI_PIPELINE_ID)) \
+		--build-arg LOTUS_IMAGE_DIGEST=$(call shellquote,$(IMAGE_DIGEST)) \
 		-t $(IMAGE_TAG) \
 		-t lotus-advise:ci-test .
 	$(MAKE) docker-labels-check
 
 docker-labels-check:
-	python scripts/release_image_evidence.py image-label-check --image-ref $(IMAGE_TAG) --expected-commit $(GIT_SHA) --expected-repo-url $(REPO_URL) --expected-ci-run-id $(CI_PIPELINE_ID)
+	python scripts/release_image_evidence.py image-label-check --image-ref $(IMAGE_TAG) --expected-commit $(call shellquote,$(BUILD_COMMIT_SHA)) --expected-repo-url $(REPO_URL) --expected-ci-run-id $(CI_PIPELINE_ID)
 
 release-image-provenance-gate:
 	python scripts/release_image_evidence.py static-check
 
 docker-up:
-	LOTUS_BUILD_COMMIT_SHA=$(BUILD_COMMIT_SHA) \
-	  LOTUS_BUILD_GIT_BRANCH=$(GIT_BRANCH) \
-	  LOTUS_BUILD_REPO_URL=$(REPO_URL) \
-	  LOTUS_BUILD_VERSION=$(SERVICE_VERSION) \
-	  LOTUS_BUILD_TIMESTAMP=$(BUILD_TIMESTAMP) \
-	  LOTUS_CI_PIPELINE_ID=$(CI_PIPELINE_ID) \
-	  LOTUS_IMAGE_DIGEST=$(IMAGE_DIGEST) \
+	LOTUS_BUILD_COMMIT_SHA=$(call shellquote,$(BUILD_COMMIT_SHA)) \
+	  LOTUS_BUILD_GIT_BRANCH=$(call shellquote,$(GIT_BRANCH)) \
+	  LOTUS_BUILD_REPO_URL=$(call shellquote,$(REPO_URL)) \
+	  LOTUS_BUILD_VERSION=$(call shellquote,$(SERVICE_VERSION)) \
+	  LOTUS_BUILD_TIMESTAMP=$(call shellquote,$(BUILD_TIMESTAMP)) \
+	  LOTUS_CI_PIPELINE_ID=$(call shellquote,$(CI_PIPELINE_ID)) \
+	  LOTUS_IMAGE_DIGEST=$(call shellquote,$(IMAGE_DIGEST)) \
 	  docker compose up -d --build
 
 docker-down:
