@@ -174,9 +174,28 @@ class LiveParityResult:
     restricted_product_alternatives: LiveProposalAlternativesSnapshot
 
 
+class LiveParityHttpError(LiveParityValidationError):
+    """A non-expected HTTP status, carrying the status itself.
+
+    The status has to travel with the error. Classifying a failure by searching its
+    message for a phrase means a 401 whose body says a tenant was not found reads as
+    a missing portfolio -- which would skip the candidate and continue past the exact
+    admission boundary this harness exists to surface.
+    """
+
+    def __init__(self, message: str, *, status_code: int) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
 def _assert(condition: bool, message: str) -> None:
     if not condition:
         raise LiveParityValidationError(message)
+
+
+def _assert_status(response: Any, *, expected_status: int, message: str) -> None:
+    if response.status_code != expected_status:
+        raise LiveParityHttpError(message, status_code=response.status_code)
 
 
 def _decimal(value: Any) -> Decimal:
@@ -185,6 +204,32 @@ def _decimal(value: Any) -> Decimal:
 
 def _utc_iso_after(*, seconds: int = 0) -> str:
     return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
+
+
+#: The Core base URLs this run actually resolved. Populated once at entry from the
+#: same values the requests are built with, because a caller may supply them
+#: explicitly rather than through the environment -- re-reading the environment here
+#: would match a different URL than the one being requested, and silently attach no
+#: tenant. The environment defaults remain the fallback for direct callers of the
+#: lower-level helpers.
+_RESOLVED_CORE_BASE_URLS: tuple[str, ...] = ()
+
+
+def _resolved_core_base_urls() -> tuple[str, ...]:
+    if _RESOLVED_CORE_BASE_URLS:
+        return _RESOLVED_CORE_BASE_URLS
+    return (
+        os.environ.get("LOTUS_CORE_QUERY_BASE_URL", _DEFAULT_CORE_QUERY_BASE_URL).rstrip("/"),
+        os.environ.get("LOTUS_CORE_BASE_URL", _DEFAULT_CORE_CONTROL_BASE_URL).rstrip("/"),
+    )
+
+
+def _set_resolved_core_base_urls(*, core_query_base_url: str, core_control_base_url: str) -> None:
+    global _RESOLVED_CORE_BASE_URLS
+    _RESOLVED_CORE_BASE_URLS = (
+        core_query_base_url.rstrip("/"),
+        core_control_base_url.rstrip("/"),
+    )
 
 
 def _core_tenant_id() -> str:
@@ -215,11 +260,7 @@ def _with_core_tenant(url: str, headers: dict[str, str] | None) -> dict[str, str
     certifies incorrectly.
     """
 
-    core_bases = (
-        os.environ.get("LOTUS_CORE_QUERY_BASE_URL", _DEFAULT_CORE_QUERY_BASE_URL).rstrip("/"),
-        os.environ.get("LOTUS_CORE_BASE_URL", _DEFAULT_CORE_CONTROL_BASE_URL).rstrip("/"),
-    )
-    if not url.startswith(core_bases):
+    if not url.startswith(_resolved_core_base_urls()):
         return headers
     merged = dict(headers or {})
     merged.setdefault(_CORE_TENANT_HEADER, _core_tenant_id())
@@ -236,9 +277,10 @@ def _request_json(
     headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     response = client.request(method, url, json=json_body, headers=_with_core_tenant(url, headers))
-    _assert(
-        response.status_code == expected_status,
-        (
+    _assert_status(
+        response,
+        expected_status=expected_status,
+        message=(
             f"{method} {url}: expected HTTP {expected_status}, "
             f"got {response.status_code}, body={response.text}"
         ),
@@ -555,9 +597,11 @@ def _query_live_positions(
     portfolio_id: str,
     as_of_date: str,
 ) -> list[dict[str, Any]]:
+    positions_url = f"{core_query_base_url}/portfolios/{portfolio_id}/positions"
     response = client.get(
-        f"{core_query_base_url}/portfolios/{portfolio_id}/positions",
+        positions_url,
         params={"as_of_date": as_of_date},
+        headers=_with_core_tenant(positions_url, None),
     )
     _assert(
         response.status_code == 200,
@@ -863,12 +907,14 @@ def _select_scenarios(
                 core_query_base_url=core_query_base_url,
                 portfolio_id=portfolio_id,
             )
-        except LiveParityValidationError as exc:
+        except LiveParityHttpError as exc:
             # A candidate Core does not hold is not a failure of this journey; it is a
-            # candidate. Only absence is tolerated -- anything else (a 401, a 5xx, a
-            # malformed body) is a real boundary and must still stop the run, or this
-            # would swallow the tenant-admission failure that this same change fixed.
-            if "not found" not in str(exc):
+            # candidate. Classified by status, never by a phrase in the message: a 401
+            # whose body says a tenant was not found would satisfy a substring test and
+            # skip past the exact admission boundary this harness exists to surface.
+            # Anything that is not a 404 -- a 401, a 5xx, a malformed body -- still
+            # stops the run.
+            if exc.status_code != 404:
                 raise
             examined.append((portfolio_id, "absent_from_dataset"))
             continue
@@ -2159,6 +2205,16 @@ def validate_live_cross_service_parity(
             "LOTUS_PARITY_PORTFOLIOS", ",".join(_DEFAULT_PORTFOLIO_CANDIDATES)
         ).split(",")
         if value.strip()
+    )
+    resolved_core_query = base_url(
+        core_query_base_url, "LOTUS_CORE_QUERY_BASE_URL", _DEFAULT_CORE_QUERY_BASE_URL
+    )
+    resolved_core_control = base_url(
+        core_control_base_url, "LOTUS_CORE_BASE_URL", _DEFAULT_CORE_CONTROL_BASE_URL
+    )
+    _set_resolved_core_base_urls(
+        core_query_base_url=resolved_core_query,
+        core_control_base_url=resolved_core_control,
     )
     return run_live_parity(
         sys.modules[__name__],
