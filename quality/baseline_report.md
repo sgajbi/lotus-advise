@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-09-07T13:13:11.263840+00:00`
+- Generated At: `2026-09-07T13:40:01.841105+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `calibrated-regression`
@@ -10,7 +10,7 @@
 - Python files: `1113`
 - Packages: `42`
 - Modules: `1071`
-- Total Python lines: `206041`
+- Total Python lines: `206067`
 
 ## Largest Files
 
@@ -21,7 +21,7 @@
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2691 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2569 |
 | 5 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 2294 |
-| 6 | `scripts/validate_cross_service_parity_live.py` | 2181 |
+| 6 | `scripts/validate_cross_service_parity_live.py` | 2180 |
 | 7 | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1989 |
 | 8 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1907 |
 | 9 | `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` | 1760 |
@@ -127,7 +127,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=5928, missing=5722, covered=206, coverage=3.5%`
+- Interrogate docstring inventory: `total=5929, missing=5722, covered=207, coverage=3.5%`
 - Interrogate documentation coverage trend is hard-gated by `make quality-trend-gate`;
   absolute public API and module-ownership thresholds remain report-only until
   classified.
