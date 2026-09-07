@@ -3,6 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        LOTUS_BUILD_COMMIT_SHA: ${LOTUS_BUILD_COMMIT_SHA:-unknown}
+        LOTUS_BUILD_GIT_BRANCH: ${LOTUS_BUILD_GIT_BRANCH:-unknown}
+        LOTUS_BUILD_REPO_URL: ${LOTUS_BUILD_REPO_URL:-https://github.com/sgajbi/lotus-advise}
+        LOTUS_BUILD_VERSION: ${LOTUS_BUILD_VERSION:-0.1.0}
+        LOTUS_BUILD_TIMESTAMP: ${LOTUS_BUILD_TIMESTAMP:-unknown}
+        LOTUS_CI_PIPELINE_ID: ${LOTUS_CI_PIPELINE_ID:-local}
+        LOTUS_IMAGE_DIGEST: ${LOTUS_IMAGE_DIGEST:-unknown}
     image: lotus-advise:latest
     init: true
     restart: unless-stopped

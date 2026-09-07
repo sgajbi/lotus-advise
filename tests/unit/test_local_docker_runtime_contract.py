@@ -220,3 +220,57 @@ def test_only_local_compose_supplies_canonical_dev_tenant_fixture() -> None:
     assert "LOTUS_ADVISE_TENANT_ID=${LOTUS_ADVISE_TENANT_ID:-tenant-sg-001}" in local_compose
     assert "LOTUS_ADVISE_TENANT_ID=${LOTUS_ADVISE_TENANT_ID:-" not in production_compose
     assert "LOTUS_ADVISE_TENANT_ID=${LOTUS_ADVISE_TENANT_ID:?" in production_compose
+
+
+def test_compose_build_carries_the_same_provenance_as_the_make_build() -> None:
+    """A compose-built image must be able to say which commit it is.
+
+    Every component of this chain was individually correct and the composition
+    lost the fact. The Dockerfile declares `ARG LOTUS_BUILD_COMMIT_SHA=unknown`
+    and converts it to an `ENV`; `/version` reads that environment variable;
+    `make docker-build` passes `--build-arg`. `docker-compose.yml` declared
+    `build:` with no `args:`, so a compose build took the defaults and the
+    running service reported `git_commit_sha: "unknown"` -- truthfully.
+
+    That mattered because `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
+    directs `docker compose up -d --build` before live validation, so the
+    documented route to producing evidence was the route that made the evidence
+    unattributable. A journey proven against that runtime could not be said to
+    have passed against any particular revision.
+
+    Both paths are pinned here so they cannot drift into stating different
+    things about one commit.
+    """
+
+    provenance_args = (
+        "LOTUS_BUILD_COMMIT_SHA",
+        "LOTUS_BUILD_GIT_BRANCH",
+        "LOTUS_BUILD_REPO_URL",
+        "LOTUS_BUILD_VERSION",
+        "LOTUS_BUILD_TIMESTAMP",
+        "LOTUS_CI_PIPELINE_ID",
+        "LOTUS_IMAGE_DIGEST",
+    )
+
+    compose_text = Path("docker-compose.yml").read_text(encoding="utf-8")
+    dockerfile_text = Path("Dockerfile").read_text(encoding="utf-8")
+    makefile_text = Path("Makefile").read_text(encoding="utf-8")
+
+    for name in provenance_args:
+        assert f"ARG {name}" in dockerfile_text, f"{name} is not a build argument of the image"
+        assert f'{name}="${{{name}}}"' in dockerfile_text, (
+            f"{name} is accepted as a build argument but never becomes an environment variable, "
+            f"so /version cannot read it"
+        )
+        assert f"{name}: ${{{name}:-" in compose_text, (
+            f"the compose build does not forward {name}, so a compose-built image takes the "
+            f"ARG default and cannot state its own provenance"
+        )
+        assert f"--build-arg {name}=" in makefile_text, f"make docker-build no longer passes {name}"
+
+    docker_up = makefile_text.split("docker-up:", 1)[1].split("\n\n", 1)[0]
+    for name in provenance_args:
+        assert f"{name}=$(" in docker_up, (
+            f"`make docker-up` does not export {name}, so the documented bring-up produces an "
+            f"image with unknown provenance even though the compose file forwards it"
+        )
