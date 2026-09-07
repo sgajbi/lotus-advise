@@ -14,20 +14,6 @@ from typing import Any, Literal, NoReturn, cast
 
 import httpx
 
-from scripts.live_parity_core_tenant import (
-    LiveParityHttpError,
-    LiveParityValidationError,
-)
-from scripts.live_parity_core_tenant import (
-    request_json as _request_json,
-)
-from scripts.live_parity_core_tenant import (
-    set_resolved_core_base_urls as _set_resolved_core_base_urls,
-)
-from scripts.live_parity_core_tenant import (
-    with_core_tenant as _with_core_tenant,
-)
-
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -44,6 +30,19 @@ from scripts.live_memo_flow import (  # noqa: E402
 from scripts.live_narrative_flow import (  # noqa: E402
     LiveNarrativeFlowPrimitives,
     assert_live_proposal_narrative_flow,
+)
+from scripts.live_parity_core_tenant import (  # noqa: E402
+    LiveParityHttpError,
+    LiveParityValidationError,
+)
+from scripts.live_parity_core_tenant import (
+    request_json as _request_json,
+)
+from scripts.live_parity_core_tenant import (
+    set_resolved_core_base_urls as _set_resolved_core_base_urls,
+)
+from scripts.live_parity_core_tenant import (
+    with_core_tenant as _with_core_tenant,
 )
 from scripts.live_policy_evaluation_flow import (  # noqa: E402
     LivePolicyEvaluationPrimitives,

@@ -13,17 +13,26 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
-#: The governed query tenant for the canonical dataset, recorded in lotus-platform
-#: `context/contracts/canonical-front-office-demo-data-contract.json` as `tenant_id`
-#: — deliberately distinct from `workbench_caller_tenant_id`, which is the Workbench
-#: caller and not the query scope. Read from the governed contract rather than chosen
-#: here, and overridable so a different governed dataset can be certified without
-#: editing this harness. Nothing mints a tenant: a blank override is refused.
+#: The tenant that owns the canonical seeded portfolio at source, published by
+#: lotus-platform `context/contracts/canonical-front-office-demo-data-contract.json`
+#: (contract 1.2.0) as `portfolio.source_tenant_id`, whose `source_tenant_authority`
+#: names lotus-core's own seed constant.
+#:
+#: Deliberately NOT `dpm_command_center.tenant_id`, which an earlier revision of this
+#: harness used. That field is the DPM command-centre query scope, and the contract
+#: states the rule directly: read `portfolio.source_tenant_id` for the tenant that owns
+#: the seeded portfolio, and never read caller admission as provenance "even while the
+#: two values are equal". Picking the wrong field happened to work only because the
+#: route it was tested against applies no tenant predicate at all (lotus-core#1102).
+#:
+#: Overridable so a different governed dataset can be certified without editing this
+#: harness. Nothing mints a tenant: a blank override is refused.
 CORE_TENANT_HEADER = "X-Tenant-Id"
-DEFAULT_CORE_TENANT_ID = "default"
+DEFAULT_CORE_TENANT_ID = "tenant-sg"
 
 DEFAULT_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
 DEFAULT_CORE_CONTROL_BASE_URL = "http://core-control.dev.lotus"
@@ -90,6 +99,24 @@ def core_tenant_id() -> str:
     return tenant_id
 
 
+def _is_same_service(url: str, base_url: str) -> bool:
+    """Whether `url` belongs to the service rooted at `base_url`.
+
+    A plain prefix test is wrong here: with Core at `http://gateway/core`, the
+    string `http://gateway/core-risk/...` starts with it, so Risk would be handed a
+    tenant and its response would look scoped in certification evidence. Compare the
+    origin, then require the path to end at a segment boundary.
+    """
+
+    target, base = urlsplit(url), urlsplit(base_url)
+    if (target.scheme, target.netloc) != (base.scheme, base.netloc):
+        return False
+    base_path = base.path.rstrip("/")
+    if not base_path:
+        return True
+    return target.path == base_path or target.path.startswith(f"{base_path}/")
+
+
 def with_core_tenant(url: str, headers: dict[str, str] | None) -> dict[str, str] | None:
     """Attach the admitted tenant to Core requests, and to nothing else.
 
@@ -100,7 +127,7 @@ def with_core_tenant(url: str, headers: dict[str, str] | None) -> dict[str, str]
     certifies incorrectly.
     """
 
-    if not url.startswith(resolved_core_base_urls()):
+    if not any(_is_same_service(url, base) for base in resolved_core_base_urls()):
         return headers
     merged = dict(headers or {})
     merged.setdefault(CORE_TENANT_HEADER, core_tenant_id())
