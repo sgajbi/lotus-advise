@@ -81,11 +81,8 @@ class PolicyEvaluationRecord(BaseModel):
         # resolves no principal and filters by no tenant -- `portfolio_id` is optional
         # and defaults to None -- so any caller reaching it would otherwise enumerate
         # every tenant's admitted identifier. Adding a scope to what is stored must not
-        # widen what an unscoped read returns.
-        #
-        # Excluded on the model rather than per route: four response models embed this
-        # record, and fixing the one that was reported is how the last review round's
-        # `.env` finding recurred five more times.
+        # widen what an unscoped read returns. Excluded on the model rather than per
+        # route, because four response models embed this record.
         #
         # Persistence is unaffected. `snapshot()` re-adds it explicitly for the durable
         # column, which the loader treats as authoritative -- so the value is stored and
