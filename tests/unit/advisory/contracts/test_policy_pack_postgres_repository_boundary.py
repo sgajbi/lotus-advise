@@ -7,6 +7,7 @@ from src.core.proposals.exceptions import ProposalIdempotencyConflictError
 from src.infrastructure.policy_packs.postgres_state import (
     PostgresPolicyEvaluationStateStore,
     PostgresPolicyPackCatalogStateStore,
+    _records_snapshot,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -118,6 +119,11 @@ def test_policy_evaluation_postgres_snapshot_loads_durable_rows() -> None:
             "FROM policy_evaluation_records": [
                 {
                     "evaluation_id": "pev_txn_001",
+                    # The column, not the JSON, is authoritative for the admitted
+                    # tenant: an old binary during a mixed-version deploy rewrites
+                    # `record_json` without the field it does not know, and the column
+                    # survives because the upsert never updates it.
+                    "tenant_id": "tenant-sg",
                     "record_json": _json_text(
                         _policy_evaluation_snapshot()["records"]["pev_txn_001"]
                     ),
@@ -339,3 +345,35 @@ def _policy_pack_catalog_snapshot() -> dict:
             }
         ],
     }
+
+
+def test_an_old_binary_cannot_erase_the_admitted_tenant() -> None:
+    """The durable column outlives a `record_json` written by a version without the field.
+
+    The rollout contract declares old/new application versions supported for migration
+    0003. During that wave an old binary loads a record written by this version, drops
+    the `tenant_id` its model does not know, and its next snapshot save rewrites
+    `record_json` without it. The column survives, because the upsert never lists
+    `tenant_id` in its DO UPDATE SET.
+
+    So hydration reads the column rather than the JSON. Without that the admitted
+    tenant would become `None` for every record an old binary touched, producing
+    tenant conflicts and a row disagreeing with itself -- and the contract's
+    coexistence guarantee would be a claim rather than a property.
+
+    Raised in review of #624.
+    """
+
+    old_binary_record = _json_text({"evaluation_id": "pev_mixed", "proposal_id": "pp_1"})
+    rows = [
+        {
+            "evaluation_id": "pev_mixed",
+            "tenant_id": "tenant-sg",
+            "record_json": old_binary_record,
+        }
+    ]
+
+    hydrated = _records_snapshot(rows)
+
+    assert "tenant_id" not in json.loads(old_binary_record), "fixture does not reproduce the case"
+    assert hydrated["pev_mixed"]["tenant_id"] == "tenant-sg"

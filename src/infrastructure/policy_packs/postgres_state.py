@@ -19,7 +19,7 @@ class PostgresPolicyEvaluationStateStore:
         with closing(self._connect()) as connection:
             record_rows = connection.execute(
                 """
-                SELECT evaluation_id, record_json
+                SELECT evaluation_id, tenant_id, record_json
                 FROM policy_evaluation_records
                 ORDER BY generated_at ASC, evaluation_id ASC
                 """
@@ -135,7 +135,25 @@ class PostgresPolicyPackCatalogStateStore:
 
 
 def _records_snapshot(rows: list[Any]) -> dict[str, dict[str, Any]]:
-    return {str(row["evaluation_id"]): json.loads(row["record_json"]) for row in rows}
+    """Hydrate records, with the SQL column authoritative for the admitted tenant.
+
+    `record_json` cannot be trusted for this field during a mixed-version deploy. An
+    old binary loading a record written by this version silently drops `tenant_id` --
+    its model does not know the field -- and its next snapshot save rewrites
+    `record_json` without it. The column survives, because the upsert never includes
+    `tenant_id` in its DO UPDATE SET, so reading the column back is what makes the
+    contract's old/new coexistence guarantee true rather than merely claimed.
+
+    It is also the column the tenant-scoped reads will query, so read and query agree
+    on one source instead of two that can drift.
+    """
+
+    records = {}
+    for row in rows:
+        record = json.loads(row["record_json"])
+        record["tenant_id"] = row["tenant_id"]
+        records[str(row["evaluation_id"])] = record
+    return records
 
 
 def _events_snapshot(rows: list[Any]) -> dict[str, list[dict[str, Any]]]:
@@ -155,6 +173,7 @@ def _upsert_policy_evaluation_record(
             proposal_id,
             proposal_version_id,
             portfolio_id,
+            tenant_id,
             policy_pack_id,
             policy_version,
             generated_at,
@@ -163,11 +182,18 @@ def _upsert_policy_evaluation_record(
             policy_content_hash,
             evaluation_hash,
             record_json
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (evaluation_id) DO UPDATE SET
             evaluation_status=excluded.evaluation_status,
             record_json=excluded.record_json
         WHERE policy_evaluation_records.evaluation_hash = excluded.evaluation_hash
+          -- `tenant_id` is not in the SET list above, so without this an upsert from a
+          -- second tenant would replace `record_json` while leaving the column holding
+          -- the first tenant's id: the row would then disagree with itself, and the
+          -- column is what the scoped reads will query. Refuse the write instead --
+          -- no row updates, and `_raise_if_no_rows` turns that into the existing
+          -- conflict error.
+          AND policy_evaluation_records.tenant_id IS NOT DISTINCT FROM excluded.tenant_id
           AND (
               SELECT COUNT(*)
               FROM policy_evaluation_audit_events
@@ -179,6 +205,7 @@ def _upsert_policy_evaluation_record(
             record["proposal_id"],
             record["proposal_version_id"],
             record["portfolio_id"],
+            record.get("tenant_id"),
             record["policy_pack_id"],
             record["policy_version"],
             record["generated_at"],
