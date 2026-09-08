@@ -137,15 +137,11 @@ class PostgresPolicyPackCatalogStateStore:
 def _records_snapshot(rows: list[Any]) -> dict[str, dict[str, Any]]:
     """Hydrate records, with the SQL column authoritative for the admitted tenant.
 
-    `record_json` cannot be trusted for this field during a mixed-version deploy. An
-    old binary loading a record written by this version silently drops `tenant_id` --
-    its model does not know the field -- and its next snapshot save rewrites
-    `record_json` without it. The column survives, because the upsert never includes
-    `tenant_id` in its DO UPDATE SET, so reading the column back is what makes the
-    contract's old/new coexistence guarantee true rather than merely claimed.
-
-    It is also the column the tenant-scoped reads will query, so read and query agree
-    on one source instead of two that can drift.
+    `record_json` cannot be trusted for this field: during the migration 0003 deploy
+    wave an old binary rewrites it without the `tenant_id` its model does not know,
+    while the column survives because the upsert never lists it in DO UPDATE SET. The
+    scoped reads query the column too, so read and query agree on one source. Proved by
+    `test_an_old_binary_cannot_erase_the_admitted_tenant`.
     """
 
     records = {}
