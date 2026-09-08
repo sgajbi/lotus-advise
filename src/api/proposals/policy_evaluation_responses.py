@@ -28,11 +28,13 @@ POLICY_EVALUATION_CREATE_RESPONSES = {
 }
 
 POLICY_REVIEW_QUEUE_RESPONSES = {
-    status.HTTP_200_OK: {"description": "Policy review queue returned."}
+    **POLICY_CONTROL_AUTH_RESPONSES,
+    status.HTTP_200_OK: {"description": "Policy review queue returned."},
 }
 
 POLICY_EVALUATION_READ_RESPONSES = {
-    status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."}
+    **POLICY_CONTROL_AUTH_RESPONSES,
+    status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."},
 }
 
 POLICY_EVALUATION_EVENT_RESPONSES = {

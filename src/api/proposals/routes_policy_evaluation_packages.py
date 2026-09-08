@@ -31,6 +31,7 @@ from src.core.policy_packs import (
     PolicyEvaluationReportPackageRequest,
     PolicyEvaluationReportPackageResponse,
 )
+from src.core.policy_packs.application_service import PolicyEvidenceApplicationService
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 from src.core.proposals.identifiers import new_report_request_id
 from src.runtime.policy_evaluation_clients import (
@@ -119,12 +120,10 @@ def _request_policy_report_package_with_telemetry(
     principal: PolicyControlPrincipal,
 ) -> PolicyEvaluationReportPackageResponse:
     service = shared.get_policy_evidence_application_service()
-    record = service.get_policy_evaluation_record(evaluation_id=evaluation_id)
-    lineage = service.get_policy_evaluation_lineage(evaluation_id=evaluation_id)
-    assert_policy_evaluation_record_scope(
+    _assert_policy_evaluation_access(
+        service=service,
+        evaluation_id=evaluation_id,
         principal=principal,
-        record=record,
-        lineage=lineage,
     )
     trusted_payload = payload.model_copy(
         update={
@@ -139,6 +138,7 @@ def _request_policy_report_package_with_telemetry(
     try:
         response = service.request_policy_evaluation_report_package(
             evaluation_id=evaluation_id,
+            tenant_id=principal.tenant_id,
             payload=trusted_payload,
             report_request_id=new_report_request_id(),
             report_client=get_policy_report_package_client(),
@@ -180,12 +180,10 @@ def _request_policy_ai_evidence_with_telemetry(
     principal: PolicyControlPrincipal,
 ) -> PolicyEvaluationAiEvidenceResponse:
     service = shared.get_policy_evidence_application_service()
-    record = service.get_policy_evaluation_record(evaluation_id=evaluation_id)
-    lineage = service.get_policy_evaluation_lineage(evaluation_id=evaluation_id)
-    assert_policy_evaluation_record_scope(
+    _assert_policy_evaluation_access(
+        service=service,
+        evaluation_id=evaluation_id,
         principal=principal,
-        record=record,
-        lineage=lineage,
     )
     trusted_payload = payload.model_copy(
         update={
@@ -200,6 +198,7 @@ def _request_policy_ai_evidence_with_telemetry(
     try:
         response = service.request_policy_evaluation_ai_evidence(
             evaluation_id=evaluation_id,
+            tenant_id=principal.tenant_id,
             payload=trusted_payload,
             ai_client=get_policy_ai_evidence_client(),
             idempotency_key=idempotency_key,
@@ -222,6 +221,27 @@ def _request_policy_ai_evidence_with_telemetry(
         dependency="lotus_ai",
     )
     return response
+
+
+def _assert_policy_evaluation_access(
+    *,
+    service: PolicyEvidenceApplicationService,
+    evaluation_id: str,
+    principal: PolicyControlPrincipal,
+) -> None:
+    record = service.get_policy_evaluation_record(
+        evaluation_id=evaluation_id,
+        tenant_id=principal.tenant_id,
+    )
+    lineage = service.get_policy_evaluation_lineage(
+        evaluation_id=evaluation_id,
+        tenant_id=principal.tenant_id,
+    )
+    assert_policy_evaluation_record_scope(
+        principal=principal,
+        record=record,
+        lineage=lineage,
+    )
 
 
 def _record_policy_package_operation(

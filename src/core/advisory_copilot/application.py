@@ -45,6 +45,7 @@ from src.core.common.idempotency import (
     normalize_required_idempotency_key,
 )
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
+from src.core.proposals.models import ProposalRecord
 from src.core.proposals.repository import ProposalRepository
 
 
@@ -74,6 +75,7 @@ class PolicyEvaluationLoader(Protocol):
     def __call__(
         self,
         *,
+        tenant_id: str,
         evaluation_status: str | None = None,
         portfolio_id: str | None = None,
     ) -> Sequence[PolicyEvaluationRecord]: ...
@@ -122,17 +124,18 @@ class AdvisoryCopilotApplicationService:
         self,
         *,
         payload: AdvisoryCopilotProposalVersionEvidenceRequest,
+        tenant_id: str,
+        proposal: ProposalRecord,
         proposal_repository: ProposalRepository,
         correlation_id: str | None,
     ) -> AdvisoryCopilotEvidencePacketResponse:
-        proposal = proposal_repository.get_proposal(proposal_id=payload.proposal_id)
-        if proposal is None:
-            raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
         return save_proposal_version_advisory_copilot_evidence_packet(
             repository=self._repository,
             proposal_repository=proposal_repository,
+            proposal=proposal,
             payload=payload,
             policy_evaluations=self._policy_evaluation_loader(
+                tenant_id=tenant_id,
                 evaluation_status=None,
                 portfolio_id=proposal.portfolio_id,
             ),

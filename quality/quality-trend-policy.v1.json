@@ -1,6 +1,6 @@
 {
   "schema_version": "lotus.advise.quality-trend-policy.v1",
-  "policy_version": "lotus-advise-quality-trend.v1+eaf02e7dad45",
+  "policy_version": "lotus-advise-quality-trend.v1+5f1bb5323cb5",
   "report_path": "quality/baseline_report.md",
   "metrics": [
     {
@@ -75,6 +75,15 @@
         "reason": "Reviewed #621 tenant admission at the Core benchmark seam: production +107 lines, tests +487. The production half carries the admission refusal before I/O, the X-Tenant-Id transport, the echo-integrity check and the reconciliation/data-quality statuses. The test half is deliberately the larger part and is not shallow bulk: seven review findings on this PR were that declared coverage did not execute, so these lines are what make the consumer-contract lane run what it names -- admitted, unscoped, undecodable-body, Core-refusal, timeout and one-attempt cases, each asserting the outbound call, plus a serialized provider fixture parsed through the adapter's own response model. Bound to the measured head content so any further Python change invalidates it, and expiring so the allowance cannot become the steady state.",
         "approver": "sgajbi",
         "expires_on": "2026-10-07"
+      },
+      {
+        "metric": "total_python_lines",
+        "base_sha": "ff2ac4286c6ef032c5abc8ad1f86efb560679325",
+        "head_python_content_fingerprint": "629548edd6db02ed98793ebb6f3cfc3083543731c624c9dc5515b5b04f73a0b0",
+        "allowed_delta": 853,
+        "reason": "Reviewed #624 tenant-scoped policy-evaluation closure: +157 production lines carry admitted tenant authority through API, application, repository, snapshot and PostgreSQL boundaries; scope idempotency without changing historical hashes or receipts; quarantine unattributable rows before hydration; and enforce proposal/portfolio ownership before Copilot source assembly. +696 tests provide discriminating unit, HTTP, migration, restart, contention and real PostgreSQL isolation proof for the complete contract and both review-found security defects. This revision-bound exception does not relax the 200-line steady-state threshold, complexity, coverage, security, typing, contract or assertion gates.",
+        "approver": "sgajbi",
+        "expires_on": "2026-09-23"
       }
     ]
   }

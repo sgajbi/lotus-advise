@@ -15,9 +15,16 @@ import src.api.proposals.router as proposals_router
 import src.api.proposals.routes_advisory_copilot as copilot_routes
 from src.api.main import app
 from src.api.proposals.copilot_errors import raise_copilot_http_exception
+from src.api.proposals.policy_control_principal import (
+    POLICY_CONTROL_SCOPE_FORBIDDEN,
+    POLICY_CONTROL_SCOPE_REQUIRED,
+    POLICY_EVALUATION_READ_CAPABILITY,
+    PolicyControlPrincipal,
+)
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotEvidencePacketCreateRequest,
+    AdvisoryCopilotProposalVersionEvidenceRequest,
 )
 from src.core.advisory_copilot.api_response_models import (
     AdvisoryCopilotRunPage,
@@ -55,6 +62,41 @@ def _copilot_review_headers(
         "X-Authorized-Portfolio-Id": portfolio_id,
         "X-Authorized-Proposal-Id": proposal_id,
     }
+
+
+def _policy_evaluation_read_headers(
+    *,
+    proposal_id: str | None = "proposal_sg_structured_note_001",
+    portfolio_id: str | None = "PB_SG_GLOBAL_BAL_001",
+) -> dict[str, str]:
+    headers = {
+        "X-Actor-Id": "advisor_123",
+        "X-Role": "ADVISOR",
+        "X-Tenant-Id": "tenant_sg_001",
+        "X-Legal-Entity-Code": "SGPB",
+        "X-Correlation-ID": "corr_policy_read_001",
+        "X-Service-Identity": "lotus-workbench",
+        "X-Capabilities": POLICY_EVALUATION_READ_CAPABILITY,
+    }
+    if proposal_id is not None:
+        headers["X-Authorized-Proposal-Id"] = proposal_id
+    if portfolio_id is not None:
+        headers["X-Authorized-Portfolio-Id"] = portfolio_id
+    return headers
+
+
+def _policy_evaluation_read_principal() -> PolicyControlPrincipal:
+    return PolicyControlPrincipal(
+        actor_id="advisor_123",
+        role="ADVISOR",
+        tenant_id="tenant_sg_001",
+        legal_entity_code="SGPB",
+        correlation_id="corr_policy_read_001",
+        service_identity="lotus-workbench",
+        capabilities=frozenset({POLICY_EVALUATION_READ_CAPABILITY}),
+        authorized_proposal_id="proposal_sg_structured_note_001",
+        authorized_portfolio_id="PB_SG_GLOBAL_BAL_001",
+    )
 
 
 @pytest.fixture()
@@ -223,7 +265,10 @@ def test_advisory_copilot_evidence_packet_from_proposal_version_is_source_owned(
                 "created_by": "advisor_123",
                 "reason": {"business_reason": "Prepare advisor copilot review."},
             },
-            headers={"X-Correlation-ID": "corr_projection_001"},
+            headers={
+                **_policy_evaluation_read_headers(),
+                "X-Correlation-ID": "corr_projection_001",
+            },
         )
 
     assert response.status_code == 201
@@ -242,6 +287,60 @@ def test_advisory_copilot_evidence_packet_from_proposal_version_is_source_owned(
     }
     assert "raw prompt" not in str(payload).lower()
     assert payload["record"]["reason_json"]["source_projection"] == "PROPOSAL_VERSION"
+
+
+@pytest.mark.parametrize(
+    ("proposal_scope", "portfolio_scope", "expected_detail"),
+    [
+        (None, "PB_SG_GLOBAL_BAL_001", POLICY_CONTROL_SCOPE_REQUIRED),
+        ("proposal_other", "PB_SG_GLOBAL_BAL_001", POLICY_CONTROL_SCOPE_FORBIDDEN),
+        ("proposal_sg_structured_note_001", None, POLICY_CONTROL_SCOPE_REQUIRED),
+        ("proposal_sg_structured_note_001", "PB_OTHER", POLICY_CONTROL_SCOPE_FORBIDDEN),
+    ],
+)
+def test_proposal_version_copilot_packet_refuses_unowned_source_scope_without_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+    proposal_scope: str | None,
+    portfolio_scope: str | None,
+    expected_detail: str,
+) -> None:
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    monkeypatch.setattr(proposals_router.runtime, "build_repository", lambda: proposal_repository)
+    reset_proposal_workflow_service_for_tests()
+    loader_calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        copilot_dependencies,
+        "list_policy_evaluation_records",
+        lambda **kwargs: loader_calls.append(kwargs),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            json={
+                "evidence_packet_id": "copilot_scope_guard_packet",
+                "proposal_id": "proposal_sg_structured_note_001",
+                "proposal_version_no": 1,
+                "action_family": "PROPOSAL_EXPLANATION",
+                "audience": "ADVISOR",
+                "created_by": "advisor_123",
+                "reason": {"business_reason": "Prepare advisor review."},
+            },
+            headers=_policy_evaluation_read_headers(
+                proposal_id=proposal_scope,
+                portfolio_id=portfolio_scope,
+            ),
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == expected_detail
+    assert loader_calls == []
+    assert (
+        copilot_repository.get_evidence_packet(evidence_packet_id="copilot_scope_guard_packet")
+        is None
+    )
 
 
 def test_proposal_version_copilot_packet_preserves_version_lineage_for_every_action(
@@ -270,6 +369,7 @@ def test_proposal_version_copilot_packet_preserves_version_lineage_for_every_act
                 "created_by": "advisor_123",
                 "reason": {"business_reason": "Prepare advisor meeting."},
             },
+            headers=_policy_evaluation_read_headers(),
         )
 
     assert response.status_code == 201
@@ -311,6 +411,7 @@ def test_proposal_version_copilot_packet_refreshes_same_projection_when_hash_cha
         first = client.post(
             "/advisory/copilot/evidence-packets/from-proposal-version",
             json=request,
+            headers=_policy_evaluation_read_headers(),
         )
         policy_record = policy_record.model_copy(
             update={
@@ -321,6 +422,7 @@ def test_proposal_version_copilot_packet_refreshes_same_projection_when_hash_cha
         second = client.post(
             "/advisory/copilot/evidence-packets/from-proposal-version",
             json=request,
+            headers=_policy_evaluation_read_headers(),
         )
 
     assert first.status_code == 201
@@ -671,6 +773,14 @@ def test_advisory_copilot_openapi_is_action_specific() -> None:
     assert "/advisory/copilot/supportability" in paths
     assert "/advisory/copilot/prompt" not in paths
     assert "Advisory Copilot" in {tag["name"] for tag in schema["tags"]}
+    projection = paths["/advisory/copilot/evidence-packets/from-proposal-version"]["post"]
+    assert {"401", "403"} <= set(projection["responses"])
+    assert {
+        "X-Tenant-Id",
+        "X-Capabilities",
+        "X-Authorized-Proposal-Id",
+        "X-Authorized-Portfolio-Id",
+    } <= {parameter["name"] for parameter in projection["parameters"]}
 
     copilot_contract = {
         "paths": {
@@ -851,6 +961,15 @@ def test_advisory_copilot_route_errors_keep_contract_specific_status_codes() -> 
             raise ValueError("COPILOT_REVIEW_INVALID")
 
     service = _FailingService()
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    projection_request = AdvisoryCopilotProposalVersionEvidenceRequest(
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_no=1,
+        action_family="PROPOSAL_EXPLANATION",
+        audience="ADVISOR",
+        created_by="advisor_123",
+    )
 
     route_calls = [
         (
@@ -860,7 +979,12 @@ def test_advisory_copilot_route_errors_keep_contract_specific_status_codes() -> 
         ),
         (
             copilot_routes.create_advisory_copilot_evidence_packet_from_proposal_version,
-            {"payload": object(), "service": service, "proposal_repository": object()},
+            {
+                "payload": projection_request,
+                "service": service,
+                "proposal_repository": proposal_repository,
+                "principal": _policy_evaluation_read_principal(),
+            },
             422,
         ),
         (

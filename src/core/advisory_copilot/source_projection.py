@@ -12,37 +12,37 @@ from src.core.advisory_copilot.source_projection_sections import (
 )
 from src.core.advisory_copilot.type_models import CopilotActionFamily, CopilotAudience
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
+from src.core.proposals.models import ProposalRecord
 from src.core.proposals.repository import ProposalRepository
 
 
 def build_proposal_version_copilot_evidence_packet(
     *,
     repository: ProposalRepository,
+    proposal: ProposalRecord,
     evidence_packet_id: str | None,
     action_family: CopilotActionFamily,
-    proposal_id: str,
     proposal_version_no: int,
     audience: CopilotAudience,
     policy_evaluations: list[PolicyEvaluationRecord],
 ) -> CopilotEvidencePacket:
-    proposal = repository.get_proposal(proposal_id=proposal_id)
     version = repository.get_version(
-        proposal_id=proposal_id,
+        proposal_id=proposal.proposal_id,
         version_no=proposal_version_no,
     )
-    if proposal is None or version is None:
+    if version is None:
         raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
 
-    memos = repository.list_memos(proposal_id=proposal_id)
+    memos = repository.list_memos(proposal_id=proposal.proposal_id)
     memo = repository.get_memo_by_proposal_version(
-        proposal_id=proposal_id,
+        proposal_id=proposal.proposal_id,
         proposal_version_no=proposal_version_no,
     )
-    approvals = repository.list_approvals(proposal_id=proposal_id)
-    events = repository.list_events(proposal_id=proposal_id)
+    approvals = repository.list_approvals(proposal_id=proposal.proposal_id)
+    events = repository.list_events(proposal_id=proposal.proposal_id)
     matching_policy = _policy_evaluations_for_version(
         policy_evaluations=policy_evaluations,
-        proposal_id=proposal_id,
+        proposal_id=proposal.proposal_id,
         proposal_version_id=version.proposal_version_id,
     )
     source_sections = build_proposal_version_source_sections(
@@ -62,7 +62,7 @@ def build_proposal_version_copilot_evidence_packet(
         if evidence_packet_id
         else default_proposal_version_packet_id(
             action_family=action_family,
-            proposal_id=proposal_id,
+            proposal_id=proposal.proposal_id,
             version_no=proposal_version_no,
         )
     )

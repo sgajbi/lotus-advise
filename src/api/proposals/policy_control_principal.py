@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Annotated, Any, NoReturn
 
-from fastapi import Header, status
+from fastapi import Depends, Header, status
 
 from src.api.proposals.errors import raise_policy_control_http_exception
 from src.api.proposals.principal import (
@@ -17,6 +17,7 @@ from src.api.proposals.principal import (
 POLICY_PACK_VALIDATE_CAPABILITY = "advisory.policy_pack.validate"
 POLICY_PACK_ACTIVATE_CAPABILITY = "advisory.policy_pack.activate"
 POLICY_EVALUATION_FINALIZE_CAPABILITY = "advisory.policy_evaluation.finalize"
+POLICY_EVALUATION_READ_CAPABILITY = "advisory.policy_evaluation.read"
 POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY = "advisory.policy_evaluation.review_event"
 POLICY_EVALUATION_SIGN_OFF_CAPABILITY = "advisory.policy_evaluation.sign_off"
 POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY = "advisory.policy_evaluation.report_package"
@@ -67,10 +68,8 @@ class PolicyControlPrincipal:
         }
 
 
-def resolve_policy_control_principal(
+def _policy_control_headers(
     *,
-    required_capability: str,
-    authorized_roles: Iterable[str],
     x_actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
     x_role: Annotated[str | None, Header(alias="X-Role")] = None,
     x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
@@ -80,253 +79,128 @@ def resolve_policy_control_principal(
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
     x_capabilities: Annotated[str | None, Header(alias="X-Capabilities")] = None,
     x_principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
+) -> ProposalPrincipalHeaders:
+    return ProposalPrincipalHeaders(
+        actor_id=x_actor_id,
+        role=x_role,
+        tenant_id=x_tenant_id,
+        legal_entity_code=x_legal_entity_code,
+        correlation_id=x_correlation_id,
+        service_identity=x_service_identity,
+        authorization=authorization,
+        capabilities=x_capabilities,
+        principal_status=x_principal_status,
+    )
+
+
+def _scoped_policy_control_headers(
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_policy_control_headers)],
     x_authorized_proposal_id: Annotated[
         str | None, Header(alias="X-Authorized-Proposal-Id")
     ] = None,
     x_authorized_portfolio_id: Annotated[
         str | None, Header(alias="X-Authorized-Portfolio-Id")
     ] = None,
+) -> ProposalPrincipalHeaders:
+    return replace(
+        headers,
+        authorized_proposal_id=x_authorized_proposal_id,
+        authorized_portfolio_id=x_authorized_portfolio_id,
+    )
+
+
+def _resolve_policy_control_principal(
+    *,
+    headers: ProposalPrincipalHeaders,
+    required_capability: str,
+    authorized_roles: Iterable[str],
 ) -> PolicyControlPrincipal:
     return resolve_proposal_principal(
         required_capability=required_capability,
         authorized_roles=authorized_roles,
         errors=_PRINCIPAL_ERRORS,
         principal_factory=_build_policy_control_principal,
-        headers=ProposalPrincipalHeaders(
-            actor_id=x_actor_id,
-            role=x_role,
-            tenant_id=x_tenant_id,
-            legal_entity_code=x_legal_entity_code,
-            correlation_id=x_correlation_id,
-            service_identity=x_service_identity,
-            authorization=authorization,
-            capabilities=x_capabilities,
-            principal_status=x_principal_status,
-            authorized_proposal_id=x_authorized_proposal_id,
-            authorized_portfolio_id=x_authorized_portfolio_id,
-        ),
+        headers=headers,
     )
 
 
 def require_policy_pack_validation_principal(
-    x_actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    x_role: Annotated[str | None, Header(alias="X-Role")] = None,
-    x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    x_legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
-    x_correlation_id: Annotated[str | None, Header(alias="X-Correlation-Id")] = None,
-    x_service_identity: Annotated[str | None, Header(alias="X-Service-Identity")] = None,
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-    x_capabilities: Annotated[str | None, Header(alias="X-Capabilities")] = None,
-    x_principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_policy_control_headers)],
 ) -> PolicyControlPrincipal:
-    return resolve_policy_control_principal(
+    return _resolve_policy_control_principal(
+        headers=headers,
         required_capability=POLICY_PACK_VALIDATE_CAPABILITY,
         authorized_roles=(POLICY_STEWARD_ROLE,),
-        x_actor_id=x_actor_id,
-        x_role=x_role,
-        x_tenant_id=x_tenant_id,
-        x_legal_entity_code=x_legal_entity_code,
-        x_correlation_id=x_correlation_id,
-        x_service_identity=x_service_identity,
-        authorization=authorization,
-        x_capabilities=x_capabilities,
-        x_principal_status=x_principal_status,
     )
 
 
 def require_policy_pack_activation_principal(
-    x_actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    x_role: Annotated[str | None, Header(alias="X-Role")] = None,
-    x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    x_legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
-    x_correlation_id: Annotated[str | None, Header(alias="X-Correlation-Id")] = None,
-    x_service_identity: Annotated[str | None, Header(alias="X-Service-Identity")] = None,
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-    x_capabilities: Annotated[str | None, Header(alias="X-Capabilities")] = None,
-    x_principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_policy_control_headers)],
 ) -> PolicyControlPrincipal:
-    return resolve_policy_control_principal(
+    return _resolve_policy_control_principal(
+        headers=headers,
         required_capability=POLICY_PACK_ACTIVATE_CAPABILITY,
         authorized_roles=(POLICY_CHECKER_ROLE,),
-        x_actor_id=x_actor_id,
-        x_role=x_role,
-        x_tenant_id=x_tenant_id,
-        x_legal_entity_code=x_legal_entity_code,
-        x_correlation_id=x_correlation_id,
-        x_service_identity=x_service_identity,
-        authorization=authorization,
-        x_capabilities=x_capabilities,
-        x_principal_status=x_principal_status,
     )
 
 
 def require_policy_evaluation_finalize_principal(
-    x_actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    x_role: Annotated[str | None, Header(alias="X-Role")] = None,
-    x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    x_legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
-    x_correlation_id: Annotated[str | None, Header(alias="X-Correlation-Id")] = None,
-    x_service_identity: Annotated[str | None, Header(alias="X-Service-Identity")] = None,
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-    x_capabilities: Annotated[str | None, Header(alias="X-Capabilities")] = None,
-    x_principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
-    x_authorized_proposal_id: Annotated[
-        str | None, Header(alias="X-Authorized-Proposal-Id")
-    ] = None,
-    x_authorized_portfolio_id: Annotated[
-        str | None, Header(alias="X-Authorized-Portfolio-Id")
-    ] = None,
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_scoped_policy_control_headers)],
 ) -> PolicyControlPrincipal:
-    return resolve_policy_control_principal(
+    return _resolve_policy_control_principal(
+        headers=headers,
         required_capability=POLICY_EVALUATION_FINALIZE_CAPABILITY,
         authorized_roles=(ADVISOR_ROLE,),
-        x_actor_id=x_actor_id,
-        x_role=x_role,
-        x_tenant_id=x_tenant_id,
-        x_legal_entity_code=x_legal_entity_code,
-        x_correlation_id=x_correlation_id,
-        x_service_identity=x_service_identity,
-        authorization=authorization,
-        x_capabilities=x_capabilities,
-        x_principal_status=x_principal_status,
-        x_authorized_proposal_id=x_authorized_proposal_id,
-        x_authorized_portfolio_id=x_authorized_portfolio_id,
+    )
+
+
+def require_policy_evaluation_read_principal(
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_scoped_policy_control_headers)],
+) -> PolicyControlPrincipal:
+    return _resolve_policy_control_principal(
+        headers=headers,
+        required_capability=POLICY_EVALUATION_READ_CAPABILITY,
+        authorized_roles=(ADVISOR_ROLE, COMPLIANCE_REVIEWER_ROLE, POLICY_CHECKER_ROLE),
     )
 
 
 def require_policy_evaluation_review_principal(
-    x_actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    x_role: Annotated[str | None, Header(alias="X-Role")] = None,
-    x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    x_legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
-    x_correlation_id: Annotated[str | None, Header(alias="X-Correlation-Id")] = None,
-    x_service_identity: Annotated[str | None, Header(alias="X-Service-Identity")] = None,
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-    x_capabilities: Annotated[str | None, Header(alias="X-Capabilities")] = None,
-    x_principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
-    x_authorized_proposal_id: Annotated[
-        str | None, Header(alias="X-Authorized-Proposal-Id")
-    ] = None,
-    x_authorized_portfolio_id: Annotated[
-        str | None, Header(alias="X-Authorized-Portfolio-Id")
-    ] = None,
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_scoped_policy_control_headers)],
 ) -> PolicyControlPrincipal:
-    return resolve_policy_control_principal(
+    return _resolve_policy_control_principal(
+        headers=headers,
         required_capability=POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
         authorized_roles=(COMPLIANCE_REVIEWER_ROLE, POLICY_STEWARD_ROLE),
-        x_actor_id=x_actor_id,
-        x_role=x_role,
-        x_tenant_id=x_tenant_id,
-        x_legal_entity_code=x_legal_entity_code,
-        x_correlation_id=x_correlation_id,
-        x_service_identity=x_service_identity,
-        authorization=authorization,
-        x_capabilities=x_capabilities,
-        x_principal_status=x_principal_status,
-        x_authorized_proposal_id=x_authorized_proposal_id,
-        x_authorized_portfolio_id=x_authorized_portfolio_id,
     )
 
 
 def require_policy_evaluation_sign_off_principal(
-    x_actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    x_role: Annotated[str | None, Header(alias="X-Role")] = None,
-    x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    x_legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
-    x_correlation_id: Annotated[str | None, Header(alias="X-Correlation-Id")] = None,
-    x_service_identity: Annotated[str | None, Header(alias="X-Service-Identity")] = None,
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-    x_capabilities: Annotated[str | None, Header(alias="X-Capabilities")] = None,
-    x_principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
-    x_authorized_proposal_id: Annotated[
-        str | None, Header(alias="X-Authorized-Proposal-Id")
-    ] = None,
-    x_authorized_portfolio_id: Annotated[
-        str | None, Header(alias="X-Authorized-Portfolio-Id")
-    ] = None,
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_scoped_policy_control_headers)],
 ) -> PolicyControlPrincipal:
-    return resolve_policy_control_principal(
+    return _resolve_policy_control_principal(
+        headers=headers,
         required_capability=POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
         authorized_roles=(POLICY_CHECKER_ROLE,),
-        x_actor_id=x_actor_id,
-        x_role=x_role,
-        x_tenant_id=x_tenant_id,
-        x_legal_entity_code=x_legal_entity_code,
-        x_correlation_id=x_correlation_id,
-        x_service_identity=x_service_identity,
-        authorization=authorization,
-        x_capabilities=x_capabilities,
-        x_principal_status=x_principal_status,
-        x_authorized_proposal_id=x_authorized_proposal_id,
-        x_authorized_portfolio_id=x_authorized_portfolio_id,
     )
 
 
 def require_policy_evaluation_report_package_principal(
-    x_actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    x_role: Annotated[str | None, Header(alias="X-Role")] = None,
-    x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    x_legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
-    x_correlation_id: Annotated[str | None, Header(alias="X-Correlation-Id")] = None,
-    x_service_identity: Annotated[str | None, Header(alias="X-Service-Identity")] = None,
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-    x_capabilities: Annotated[str | None, Header(alias="X-Capabilities")] = None,
-    x_principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
-    x_authorized_proposal_id: Annotated[
-        str | None, Header(alias="X-Authorized-Proposal-Id")
-    ] = None,
-    x_authorized_portfolio_id: Annotated[
-        str | None, Header(alias="X-Authorized-Portfolio-Id")
-    ] = None,
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_scoped_policy_control_headers)],
 ) -> PolicyControlPrincipal:
-    return resolve_policy_control_principal(
+    return _resolve_policy_control_principal(
+        headers=headers,
         required_capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
         authorized_roles=(POLICY_CHECKER_ROLE,),
-        x_actor_id=x_actor_id,
-        x_role=x_role,
-        x_tenant_id=x_tenant_id,
-        x_legal_entity_code=x_legal_entity_code,
-        x_correlation_id=x_correlation_id,
-        x_service_identity=x_service_identity,
-        authorization=authorization,
-        x_capabilities=x_capabilities,
-        x_principal_status=x_principal_status,
-        x_authorized_proposal_id=x_authorized_proposal_id,
-        x_authorized_portfolio_id=x_authorized_portfolio_id,
     )
 
 
 def require_policy_evaluation_ai_evidence_principal(
-    x_actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    x_role: Annotated[str | None, Header(alias="X-Role")] = None,
-    x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    x_legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
-    x_correlation_id: Annotated[str | None, Header(alias="X-Correlation-Id")] = None,
-    x_service_identity: Annotated[str | None, Header(alias="X-Service-Identity")] = None,
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-    x_capabilities: Annotated[str | None, Header(alias="X-Capabilities")] = None,
-    x_principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
-    x_authorized_proposal_id: Annotated[
-        str | None, Header(alias="X-Authorized-Proposal-Id")
-    ] = None,
-    x_authorized_portfolio_id: Annotated[
-        str | None, Header(alias="X-Authorized-Portfolio-Id")
-    ] = None,
+    headers: Annotated[ProposalPrincipalHeaders, Depends(_scoped_policy_control_headers)],
 ) -> PolicyControlPrincipal:
-    return resolve_policy_control_principal(
+    return _resolve_policy_control_principal(
+        headers=headers,
         required_capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
         authorized_roles=(POLICY_CHECKER_ROLE, COMPLIANCE_REVIEWER_ROLE),
-        x_actor_id=x_actor_id,
-        x_role=x_role,
-        x_tenant_id=x_tenant_id,
-        x_legal_entity_code=x_legal_entity_code,
-        x_correlation_id=x_correlation_id,
-        x_service_identity=x_service_identity,
-        authorization=authorization,
-        x_capabilities=x_capabilities,
-        x_principal_status=x_principal_status,
-        x_authorized_proposal_id=x_authorized_proposal_id,
-        x_authorized_portfolio_id=x_authorized_portfolio_id,
     )
 
 
@@ -380,6 +254,20 @@ def assert_policy_evaluation_create_scope(
         _raise_authz(POLICY_CONTROL_SCOPE_FORBIDDEN)
 
 
+def assert_policy_evaluation_proposal_scope(
+    *,
+    principal: PolicyControlPrincipal,
+    proposal_id: str,
+    portfolio_id: str | None = None,
+) -> None:
+    _require_scope(principal.authorized_proposal_id)
+    _require_scope(principal.authorized_portfolio_id)
+    if principal.authorized_proposal_id != proposal_id:
+        _raise_authz(POLICY_CONTROL_SCOPE_FORBIDDEN)
+    if portfolio_id is not None and principal.authorized_portfolio_id != portfolio_id:
+        _raise_authz(POLICY_CONTROL_SCOPE_FORBIDDEN)
+
+
 def assert_policy_evaluation_record_scope(
     *,
     principal: PolicyControlPrincipal,
@@ -396,8 +284,23 @@ def assert_policy_evaluation_record_scope(
         principal=principal,
         legal_entity_code=_legal_entity_from_record(record),
     )
-    tenant_id = _tenant_from_lineage(lineage)
-    if tenant_id is not None and tenant_id != principal.tenant_id:
+    _assert_policy_evaluation_tenant_scope(
+        principal=principal,
+        record=record,
+        lineage=lineage,
+    )
+
+
+def _assert_policy_evaluation_tenant_scope(
+    *, principal: PolicyControlPrincipal, record: Any, lineage: Any | None
+) -> None:
+    stored_tenant = getattr(record, "tenant_id", None)
+    if not isinstance(stored_tenant, str) or not stored_tenant.strip():
+        _raise_authz(POLICY_CONTROL_SCOPE_FORBIDDEN)
+    if stored_tenant != principal.tenant_id:
+        _raise_authz(POLICY_CONTROL_SCOPE_FORBIDDEN)
+    lineage_tenant = _tenant_from_lineage(lineage)
+    if lineage_tenant not in (None, stored_tenant):
         _raise_authz(POLICY_CONTROL_SCOPE_FORBIDDEN)
 
 
@@ -497,6 +400,7 @@ __all__ = [
     "POLICY_CONTROL_SCOPE_REQUIRED",
     "POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY",
     "POLICY_EVALUATION_FINALIZE_CAPABILITY",
+    "POLICY_EVALUATION_READ_CAPABILITY",
     "POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY",
     "POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY",
     "POLICY_EVALUATION_SIGN_OFF_CAPABILITY",
@@ -505,12 +409,14 @@ __all__ = [
     "POLICY_STEWARD_ROLE",
     "PolicyControlPrincipal",
     "assert_policy_evaluation_create_scope",
+    "assert_policy_evaluation_proposal_scope",
     "assert_policy_evaluation_record_scope",
     "assert_policy_pack_scope",
     "bind_policy_control_actor",
     "policy_control_audit_reason",
     "require_policy_evaluation_ai_evidence_principal",
     "require_policy_evaluation_finalize_principal",
+    "require_policy_evaluation_read_principal",
     "require_policy_evaluation_report_package_principal",
     "require_policy_evaluation_review_principal",
     "require_policy_evaluation_sign_off_principal",

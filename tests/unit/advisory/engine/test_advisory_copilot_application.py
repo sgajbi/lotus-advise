@@ -340,6 +340,15 @@ def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:
     )
 
 
+def _proposal(
+    repository: InMemoryProposalRepository,
+    proposal_id: str = "proposal_sg_structured_note_001",
+) -> ProposalRecord:
+    proposal = repository.get_proposal(proposal_id=proposal_id)
+    assert proposal is not None
+    return proposal
+
+
 def _policy_evaluation() -> PolicyEvaluationRecord:
     return PolicyEvaluationRecord(
         evaluation_id="policy_eval_sg_001",
@@ -429,6 +438,8 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
     )
 
     response = service.create_proposal_version_evidence_packet(
+        tenant_id="tenant_sg_001",
+        proposal=_proposal(proposal_repository),
         payload=AdvisoryCopilotProposalVersionEvidenceRequest(
             proposal_id="proposal_sg_structured_note_001",
             proposal_version_no=1,
@@ -441,7 +452,13 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
         correlation_id="  corr_projection_001  ",
     )
 
-    assert loader_calls == [{"evaluation_status": None, "portfolio_id": "PB_SG_GLOBAL_BAL_001"}]
+    assert loader_calls == [
+        {
+            "tenant_id": "tenant_sg_001",
+            "evaluation_status": None,
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        }
+    ]
     assert response.evidence_packet.portfolio_id == "PB_SG_GLOBAL_BAL_001"
     assert response.evidence_packet.client_ready_publication == "BLOCKED"
     assert {section.section_key for section in response.evidence_packet.sections} >= {
@@ -462,18 +479,21 @@ def test_copilot_proposal_projection_persistence_has_focused_owner() -> None:
     application_source = Path("src/core/advisory_copilot/application.py").read_text(
         encoding="utf-8"
     )
+    proposal = _proposal(proposal_repository)
+    payload = AdvisoryCopilotProposalVersionEvidenceRequest(
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_no=1,
+        action_family="PROPOSAL_EXPLANATION",
+        audience="ADVISOR",
+        created_by="advisor_123",
+        reason={"business_reason": "Prepare advisor copilot review."},
+    )
 
     response = save_proposal_version_advisory_copilot_evidence_packet(
         repository=copilot_repository,
         proposal_repository=proposal_repository,
-        payload=AdvisoryCopilotProposalVersionEvidenceRequest(
-            proposal_id="proposal_sg_structured_note_001",
-            proposal_version_no=1,
-            action_family="PROPOSAL_EXPLANATION",
-            audience="ADVISOR",
-            created_by="advisor_123",
-            reason={"business_reason": "Prepare advisor copilot review."},
-        ),
+        proposal=proposal,
+        payload=payload,
         policy_evaluations=(_policy_evaluation(),),
         correlation_id="corr_projection_owner_001",
     )
@@ -483,6 +503,15 @@ def test_copilot_proposal_projection_persistence_has_focused_owner() -> None:
     assert response.evidence_packet.proposal_id == "proposal_sg_structured_note_001"
     assert "build_proposal_version_copilot_evidence_packet" not in application_source
     assert '"source_projection": "PROPOSAL_VERSION"' not in application_source
+    with pytest.raises(ValueError, match="COPILOT_PROPOSAL_VERSION_NOT_FOUND"):
+        save_proposal_version_advisory_copilot_evidence_packet(
+            repository=copilot_repository,
+            proposal_repository=proposal_repository,
+            proposal=proposal.model_copy(update={"proposal_id": "proposal_other"}),
+            payload=payload,
+            policy_evaluations=(_policy_evaluation(),),
+            correlation_id="corr_projection_mismatch_001",
+        )
 
 
 def test_application_service_bounds_source_projection_evidence_text() -> None:
@@ -574,6 +603,8 @@ def test_application_service_bounds_source_projection_evidence_text() -> None:
     )
 
     response = service.create_proposal_version_evidence_packet(
+        tenant_id="tenant_sg_001",
+        proposal=_proposal(proposal_repository, proposal_id),
         payload=AdvisoryCopilotProposalVersionEvidenceRequest(
             proposal_id=proposal_id,
             proposal_version_no=1,

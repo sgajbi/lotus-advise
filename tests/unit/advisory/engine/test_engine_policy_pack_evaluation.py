@@ -14,6 +14,9 @@ from src.core.policy_packs.evaluation_result_builders import source_refs_for_rul
 from src.core.policy_packs.evaluation_review_rules import artifact_section
 from src.core.policy_packs.evaluation_source_rules import section
 from src.core.proposals.exceptions import ProposalValidationError
+from tests.unit.advisory.engine.policy_evaluation_fixtures import (
+    _base_evidence_bundle as _persistence_evidence_bundle,
+)
 
 SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
 
@@ -23,75 +26,20 @@ def setup_function() -> None:
 
 
 def _base_evidence_bundle() -> dict:
-    return {
-        "context_resolution": {
-            "input_mode": "stateful",
-            "resolution_source": "LOTUS_CORE",
-            "resolved_context": {
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "as_of": "2026-05-14",
-            },
-            "advisory_policy_context": {
-                "context_source": "LOTUS_CORE",
-                "household_id": "HH-PB-001",
-                "jurisdiction": "SG",
-                "client_classification": "ACCREDITED_INVESTOR",
-                "booking_center_code": "SG",
-                "legal_entity_code": "REFERENCE",
-                "account_id": "ACCT-PB-001",
-                "time_horizon": "5Y",
-                "liquidity_need": "MEDIUM",
-                "mandate_id": "MANDATE-BALANCED-001",
-                "objectives": ["capital_preservation", "balanced_growth"],
-                "restrictions": ["no_single_name_above_10pct"],
-            },
-        },
-        "inputs": {
-            "portfolio_snapshot": {
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "positions": [{"instrument_id": "US_EQ_ETF", "quantity": "100"}],
-                "cash_balances": [{"currency": "USD", "amount": "50000"}],
-            },
-            "market_data_snapshot": {
-                "prices": [{"instrument_id": "US_EQ_ETF", "price": "100", "currency": "USD"}],
-                "fx_rates": [{"pair": "USD/SGD", "rate": "1.35"}],
-            },
-            "shelf_entries": [
-                {
-                    "instrument_id": "US_EQ_ETF",
-                    "eligibility": {"jurisdictions": ["SG"]},
-                    "target_market": {"client_segments": ["ACCREDITED_INVESTOR"]},
-                    "complexity": "NON_COMPLEX",
-                    "private_asset": False,
-                    "structured_product": False,
-                }
-            ],
-            "proposed_trades": [{"instrument_id": "US_EQ_ETF", "side": "BUY"}],
-        },
-        "risk_lens": {
-            "source_service": "lotus-risk",
-            "single_position_concentration": {"top_position_weight_current": "0.10"},
-            "issuer_concentration": {"hhi_current": "1200"},
-            "drawdown": {"max_drawdown_1y": "0.08"},
-            "var": {"var_95_1m": "0.04"},
-            "stress": {"equity_down_20": "-0.09"},
-            "liquidity_risk": {"days_to_liquidate": "3"},
-            "private_asset_risk": {"private_asset_weight": "0.00"},
-            "climate_geopolitical_risk": {"status": "not_material"},
-        },
-        "artifact": {
-            "assumptions_and_limits": {
-                "costs_and_fees": {"included": True, "notes": "Estimated costs captured."},
-                "tax": {"included": True, "notes": "Tax review captured."},
-                "execution": {"included": True, "notes": "Execution frictions captured."},
-            },
-            "disclosures": {
-                "risk_disclaimer": "Risk disclosure captured.",
-                "product_docs": [{"instrument_id": "US_EQ_ETF", "doc_ref": "Factsheet"}],
-            },
-        },
-        "conflict_evidence": {"material_conflict": False, "review_ref": "conflict-review-001"},
-    }
+    evidence = _persistence_evidence_bundle()
+    context = evidence["context_resolution"]
+    context.update(
+        input_mode="stateful",
+        resolution_source="LOTUS_CORE",
+        resolved_context={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "as_of": "2026-05-14"},
+    )
+    context["advisory_policy_context"]["context_source"] = "LOTUS_CORE"
+    limits = evidence["artifact"]["assumptions_and_limits"]
+    limits["costs_and_fees"]["notes"] = "Estimated costs captured."
+    limits["tax"]["notes"] = "Tax review captured."
+    limits["execution"]["notes"] = "Execution frictions captured."
+    evidence["artifact"]["disclosures"]["risk_disclaimer"] = "Risk disclosure captured."
+    return evidence
 
 
 def _activate_sg_policy_pack() -> None:

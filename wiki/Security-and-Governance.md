@@ -48,35 +48,38 @@ The highest-risk documentation and implementation drift usually appears at these
 7. advisory copilot review routes must authorize a trusted reviewer principal before state
    mutation; body `actor_id` is only a compatibility echo and cannot satisfy role, capability,
    maker-checker, tenant, proposal, portfolio, or idempotency replay authority on its own
-8. advisory copilot Lotus AI execution must match the approved provider/model inventory in
+8. proposal-version copilot evidence assembly must require a trusted policy-read principal and
+   verify authorized proposal and portfolio scope against the loaded proposal before reading its
+   versions, memos, approvals, events, or policy-evaluation evidence
+9. advisory copilot Lotus AI execution must match the approved provider/model inventory in
    `contracts/advisory-copilot/approved-model-inventory.v1.json`; unknown, retired, mismatched, or
    environment-incompatible model identity returns unavailable before completed output can become
    review-ready
-9. advisory copilot model-risk evaluation must pass the executable corpus gate in
+10. advisory copilot model-risk evaluation must pass the executable corpus gate in
    `contracts/advisory-copilot/evaluation-corpus.v1.json`; failed groundedness, review posture, or
    guardrail evidence quarantines output before it can become review-ready
-10. advisory copilot safety-abuse controls must pass the executable corpus gate in
+11. advisory copilot safety-abuse controls must pass the executable corpus gate in
    `contracts/advisory-copilot/safety-abuse-corpus.v1.json`; indirect prompt injection, obfuscated
    forbidden actions, sensitive output, and client-ready publication claims return stable
    guardrail-rejected posture
-11. advisory copilot AI data-boundary controls must use
+12. advisory copilot AI data-boundary controls must use
    `contracts/advisory-copilot/ai-data-boundary.v1.json`; outbound payloads carry tokenized
    identifiers, classified evidence fields, and provider no-training, retention, residency, and
    deletion controls
-12. Advisor Cockpit reads and acknowledgements must derive caller role, advisor scope, and portfolio
+13. Advisor Cockpit reads and acknowledgements must derive caller role, advisor scope, and portfolio
     scope from trusted headers; query parameters cannot authorize role or advisor impersonation
-13. outbound report calls must preserve source-derived as-of date, reporting currency, and
+14. outbound report calls must preserve source-derived as-of date, reporting currency, and
    jurisdiction instead of silently applying market or current-date defaults
-14. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
+15. release images must be built and pushed by CI only, tagged by Git SHA, labelled with support-safe
    OCI metadata, accompanied by digest-bearing release evidence, SBOM, scan, signature, and
    provenance attestation, and deployed by digest
-15. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
+16. Bandit findings must pass `make bandit-severity-regression-gate`: high findings are blocked,
    current medium/low entries must match the governed baseline, and new, stale, expired, or
    worsened medium/low entries fail CI
-16. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
+17. dependency license/IP posture must pass `make license-ip-gate`: runtime and development graphs,
     including transitive packages, must match the committed inventory and any review-required terms
     must have owner-approved expiring exceptions
-17. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
+18. dependency lock posture must pass `make dependency-lock-gate`: `uv.lock` must match the
     requirements install strategy, requirement-file hashes, and dependency inventory hash
 18. HTTP boundary posture must fail closed for unsafe production-like host/origin configuration:
     trusted hosts are service-owned, browser origins are deny-by-default, security headers are
@@ -98,13 +101,19 @@ append-only acknowledgement audit evidence. Read routes require
 
 ## Policy-Control Principal Governance
 
-Policy-pack validation/activation and policy-evaluation finalization, review-event, sign-off,
+Policy-pack validation/activation and policy-evaluation reads, finalization, review-event, sign-off,
 report-package, and AI-evidence writes derive authority from trusted policy-control headers:
 `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service identity,
 route capability, and evaluation-scoped proposal/portfolio authorization. Supported roles are
 domain-specific: `POLICY_STEWARD` validates packs and can record review events,
 `POLICY_CHECKER` activates packs and records sign-off/report-package commands, `ADVISOR` finalizes
 evaluations, and `COMPLIANCE_REVIEWER` records review and AI-evidence requests where allowed.
+
+Evaluation detail, review queue, replay, lineage, diagnostics, sign-off package, workflow, and
+proposal-version Copilot projection require `advisory.policy_evaluation.read`. Advise applies the
+admitted tenant in the route, service, repository, and SQL query before loading records, events, or
+idempotency state. Foreign scope is indistinguishable from absence; records and idempotency rows
+without attributable stored tenant authority are quarantined rather than guessed or replayed.
 
 Request-body actor fields remain for compatibility with existing consumers, but they are not an
 identity source. Advise rejects body/header actor mismatches, missing/expired principals, wrong

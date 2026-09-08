@@ -17,10 +17,11 @@ _RUNBOOK_REF = "wiki/Operations-Runbook.md#policy-evaluation-diagnostics"
 def get_policy_evaluation_diagnostics(
     *,
     evaluation_id: str,
+    tenant_id: str,
 ) -> PolicyEvaluationDiagnosticsResponse:
-    record = get_policy_evaluation_record(evaluation_id=evaluation_id)
-    events = list_policy_evaluation_events(evaluation_id=evaluation_id)
-    workflow = get_policy_evaluation_workflow(evaluation_id=evaluation_id)
+    record = get_policy_evaluation_record(evaluation_id=evaluation_id, tenant_id=tenant_id)
+    events = list_policy_evaluation_events(evaluation_id=evaluation_id, tenant_id=tenant_id)
+    workflow = get_policy_evaluation_workflow(evaluation_id=evaluation_id, tenant_id=tenant_id)
     latest_review = _latest_event(events, "POLICY_EVALUATION_REVIEW_RECORDED")
     latest_sign_off = _latest_event(events, "POLICY_EVALUATION_SIGN_OFF_RECORDED")
     latest_report = _latest_event(events, "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED")

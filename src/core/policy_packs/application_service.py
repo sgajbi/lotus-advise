@@ -117,6 +117,7 @@ class PolicyEvidenceApplicationService:
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         event_type: PolicyEvaluationReviewEventType,
         actor_id: str,
         reason: dict[str, Any],
@@ -124,6 +125,7 @@ class PolicyEvidenceApplicationService:
     ) -> PolicyEvaluationAuditEvent:
         return append_policy_evaluation_event(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             event_type=event_type,
             actor_id=actor_id,
             reason=reason,
@@ -131,53 +133,62 @@ class PolicyEvidenceApplicationService:
         )
 
     def get_policy_evaluation_review_queue(
-        self, *, evaluation_status: str | None, portfolio_id: str | None
+        self, *, tenant_id: str, evaluation_status: str | None, portfolio_id: str | None
     ) -> PolicyEvaluationReviewQueueResponse:
         return get_policy_evaluation_review_queue(
+            tenant_id=tenant_id,
             evaluation_status=evaluation_status,
             portfolio_id=portfolio_id,
         )
 
-    def get_policy_evaluation_record(self, *, evaluation_id: str) -> PolicyEvaluationRecord:
-        return get_policy_evaluation_record(evaluation_id=evaluation_id)
+    def get_policy_evaluation_record(
+        self, *, evaluation_id: str, tenant_id: str
+    ) -> PolicyEvaluationRecord:
+        return get_policy_evaluation_record(evaluation_id=evaluation_id, tenant_id=tenant_id)
 
     def replay_policy_evaluation_record(
-        self, *, evaluation_id: str, evidence_bundle: dict[str, Any] | None
+        self, *, evaluation_id: str, tenant_id: str, evidence_bundle: dict[str, Any] | None
     ) -> PolicyEvaluationReplayResponse:
         return replay_policy_evaluation_record(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             evidence_bundle=evidence_bundle,
         )
 
     def get_policy_evaluation_lineage(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationLineageResponse:
-        return get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+        return get_policy_evaluation_lineage(evaluation_id=evaluation_id, tenant_id=tenant_id)
 
     def get_policy_evaluation_diagnostics(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationDiagnosticsResponse:
-        return get_policy_evaluation_diagnostics(evaluation_id=evaluation_id)
+        return get_policy_evaluation_diagnostics(evaluation_id=evaluation_id, tenant_id=tenant_id)
 
     def get_policy_evaluation_sign_off_package(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationSignOffPackageResponse:
-        return get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
+        return get_policy_evaluation_sign_off_package(
+            evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
+        )
 
     def get_policy_evaluation_workflow(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationWorkflowResponse:
-        return get_policy_evaluation_workflow(evaluation_id=evaluation_id)
+        return get_policy_evaluation_workflow(evaluation_id=evaluation_id, tenant_id=tenant_id)
 
     def record_policy_evaluation_sign_off_decision(
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         payload: PolicyEvaluationSignOffDecisionRequest,
         idempotency_key: str,
     ) -> PolicyEvaluationSignOffDecisionResponse:
         return record_policy_evaluation_sign_off_decision(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             payload=payload,
             idempotency_key=idempotency_key,
         )
@@ -186,6 +197,7 @@ class PolicyEvidenceApplicationService:
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         payload: PolicyEvaluationReportPackageRequest,
         report_request_id: str,
         report_client: PolicyReportPackageClient,
@@ -193,6 +205,7 @@ class PolicyEvidenceApplicationService:
     ) -> PolicyEvaluationReportPackageResponse:
         return request_policy_evaluation_report_package(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             payload=payload,
             report_request_id=report_request_id,
             report_client=report_client,
@@ -203,12 +216,14 @@ class PolicyEvidenceApplicationService:
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         payload: PolicyEvaluationAiEvidenceRequest,
         ai_client: PolicyAiEvidenceClient,
         idempotency_key: str,
     ) -> PolicyEvaluationAiEvidenceResponse:
         return request_policy_evaluation_ai_evidence(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             payload=payload,
             ai_client=ai_client,
             idempotency_key=idempotency_key,

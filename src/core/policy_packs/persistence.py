@@ -64,11 +64,7 @@ def finalize_policy_evaluation_record(
 def finalize_policy_evaluation_request(
     request: PolicyEvaluationFinalizationRequest,
 ) -> PolicyEvaluationPersistenceResult:
-    """Finalize from an already-assembled request.
-
-    The idempotency key is normalised here, not at the builder above, so both entry
-    points share one behaviour.
-    """
+    """Finalize an assembled request after shared idempotency-key normalization."""
 
     normalised = replace(
         request, idempotency_key=require_proposal_idempotency_key(request.idempotency_key)
@@ -76,45 +72,67 @@ def finalize_policy_evaluation_request(
     return _repository().finalize_policy_evaluation_record(normalised)
 
 
-def get_policy_evaluation_record(*, evaluation_id: str) -> PolicyEvaluationRecord:
-    return _repository().get_policy_evaluation_record(evaluation_id=evaluation_id)
+def get_policy_evaluation_record(*, evaluation_id: str, tenant_id: str) -> PolicyEvaluationRecord:
+    return _repository().get_policy_evaluation_record(
+        evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
+    )
 
 
 def list_policy_evaluation_records(
-    *, evaluation_status: str | None = None, portfolio_id: str | None = None
+    *, tenant_id: str, evaluation_status: str | None = None, portfolio_id: str | None = None
 ) -> list[PolicyEvaluationRecord]:
     return _repository().list_policy_evaluation_records(
+        tenant_id=tenant_id,
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
     )
 
 
-def list_policy_evaluation_events(*, evaluation_id: str) -> list[PolicyEvaluationAuditEvent]:
-    return _repository().list_policy_evaluation_events(evaluation_id=evaluation_id)
+def list_policy_evaluation_events(
+    *, evaluation_id: str, tenant_id: str
+) -> list[PolicyEvaluationAuditEvent]:
+    return _repository().list_policy_evaluation_events(
+        evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
+    )
 
 
-def get_policy_evaluation_lineage(*, evaluation_id: str) -> PolicyEvaluationLineageResponse:
-    return _repository().get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+def get_policy_evaluation_lineage(
+    *, evaluation_id: str, tenant_id: str
+) -> PolicyEvaluationLineageResponse:
+    return _repository().get_policy_evaluation_lineage(
+        evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
+    )
 
 
 def get_policy_evaluation_review_queue(
-    *, evaluation_status: str | None = "PENDING_REVIEW", portfolio_id: str | None = None
+    *,
+    tenant_id: str,
+    evaluation_status: str | None = "PENDING_REVIEW",
+    portfolio_id: str | None = None,
 ) -> PolicyEvaluationReviewQueueResponse:
     return _repository().get_policy_evaluation_review_queue(
+        tenant_id=tenant_id,
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
     )
 
 
 def get_policy_evaluation_sign_off_package(
-    *, evaluation_id: str
+    *, evaluation_id: str, tenant_id: str
 ) -> PolicyEvaluationSignOffPackageResponse:
-    return _repository().get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
+    return _repository().get_policy_evaluation_sign_off_package(
+        evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
+    )
 
 
 def append_policy_evaluation_event(
     *,
     evaluation_id: str,
+    tenant_id: str,
     event_type: PolicyEvaluationEventType,
     actor_id: str,
     reason: dict[str, Any],
@@ -124,6 +142,7 @@ def append_policy_evaluation_event(
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     return _repository().append_policy_evaluation_event(
         evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
         event_type=event_type,
         actor_id=actor_id,
         reason=reason,
@@ -133,10 +152,11 @@ def append_policy_evaluation_event(
 
 
 def replay_policy_evaluation_record(
-    *, evaluation_id: str, evidence_bundle: dict[str, Any] | None = None
+    *, evaluation_id: str, tenant_id: str, evidence_bundle: dict[str, Any] | None = None
 ) -> PolicyEvaluationReplayResponse:
     return _repository().replay_policy_evaluation_record(
         evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
         evidence_bundle=evidence_bundle,
     )
 

@@ -114,7 +114,12 @@ Boundary rules that matter:
 6. `AdvisoryPolicyEvaluationRecord:v1` is an active advisor/compliance policy evidence product for
    RFC-0025. Runtime catalog, activation, audit, idempotency, and evaluation state is backed by
    policy repository ports and the `policy_packs` Postgres migration namespace with
-   adapter-transactional record/catalog, audit-event, and immutable idempotency writes. The generic
+   adapter-transactional record/catalog, audit-event, and immutable tenant-scoped idempotency
+   writes. Independent tenants may reuse a raw key; unattributable legacy rows remain quarantined.
+   Evaluation reads, replay, queue, lineage, diagnostics, sign-off packages, workflow, and
+   proposal-version Copilot projection require an admitted tenant plus
+   `advisory.policy_evaluation.read`; storage queries scope records, events, and idempotency state
+   before hydration. The generic
    policy-evaluation event API is review-only; sign-off, report/archive, AI-evidence, and
    finalization events are recorded only by their specialized Advise commands with event-authority
    contract checks. Policy validation, activation, evaluation finalization, review event,

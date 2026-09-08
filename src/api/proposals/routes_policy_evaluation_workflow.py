@@ -11,6 +11,7 @@ from src.api.proposals.policy_control_principal import (
     assert_policy_evaluation_record_scope,
     bind_policy_control_actor,
     policy_control_audit_reason,
+    require_policy_evaluation_read_principal,
     require_policy_evaluation_sign_off_principal,
 )
 from src.api.proposals.policy_evaluation_parameters import (
@@ -44,12 +45,14 @@ from src.core.proposals.exceptions import ProposalIdempotencyConflictError, Prop
 )
 def read_policy_evaluation_workflow(
     evaluation_id: PolicyEvaluationIdPath,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
 ) -> PolicyEvaluationWorkflowResponse:
     return cast(
         PolicyEvaluationWorkflowResponse,
         run_proposal_operation(
             lambda: shared.get_policy_evidence_application_service().get_policy_evaluation_workflow(
-                evaluation_id=evaluation_id
+                evaluation_id=evaluation_id,
+                tenant_id=principal.tenant_id,
             )
         ),
     )
@@ -97,8 +100,14 @@ def _record_policy_sign_off_decision_with_telemetry(
     principal: PolicyControlPrincipal,
 ) -> PolicyEvaluationSignOffDecisionResponse:
     service = shared.get_policy_evidence_application_service()
-    record = service.get_policy_evaluation_record(evaluation_id=evaluation_id)
-    lineage = service.get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+    record = service.get_policy_evaluation_record(
+        evaluation_id=evaluation_id,
+        tenant_id=principal.tenant_id,
+    )
+    lineage = service.get_policy_evaluation_lineage(
+        evaluation_id=evaluation_id,
+        tenant_id=principal.tenant_id,
+    )
     assert_policy_evaluation_record_scope(
         principal=principal,
         record=record,
@@ -117,6 +126,7 @@ def _record_policy_sign_off_decision_with_telemetry(
     try:
         response = service.record_policy_evaluation_sign_off_decision(
             evaluation_id=evaluation_id,
+            tenant_id=principal.tenant_id,
             payload=trusted_payload,
             idempotency_key=idempotency_key,
         )

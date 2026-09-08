@@ -109,7 +109,9 @@ tables and rehearse with production-like row counts before production apply.
 - Policy-pack state writes are transactional at the repository adapter boundary. Record/catalog
   state, audit events, and idempotency mappings must commit together or roll back together.
 - Policy-pack idempotency mappings are immutable request-hash decisions. Reusing a key with a
-  different request hash is a conflict, not an update.
+  different request hash within the same admitted tenant is a conflict, not an update. Migration
+  `policy_packs:0004` partitions raw keys by tenant; unattributable historical rows remain
+  quarantined and their hashes/receipts are not rewritten.
 - Policy-pack audit-event inserts must not replace a different payload for the same event id, and
   record/catalog snapshot updates are guarded by persisted event counts to avoid stale-snapshot
   overwrite.
@@ -134,6 +136,10 @@ tables and rehearse with production-like row counts before production apply.
   deployment wave, prove all pre-0013 pods are drained, and only then enable reconciliation writes.
   Disable the flag before rollback. Once any later realization outcome exists, pre-0013 pods must
   not serve realization reads or original-intake replays.
+- Policy migrations `0003` and `0004` are writer-cutover migrations. Drain pre-`0003` writers before
+  accepting tenant-bearing evaluations and pre-`0004` writers before replacing the global conflict
+  target. After `0004`, rollback below that writer version is unsupported; keep writes drained and
+  fix forward.
 
 ## CI Smoke Checks
 
@@ -143,6 +149,7 @@ CI executes:
 2. `python scripts/postgres_migrate.py --target all`
 3. Live Postgres integration tests:
    - `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py`
+   - `tests/integration/advisory/engine/test_policy_evaluation_postgres_tenant_isolation.py`
 4. Advisory Postgres startup smoke:
    - starts API with advisory Postgres backend.
 5. Runtime guardrail negatives:

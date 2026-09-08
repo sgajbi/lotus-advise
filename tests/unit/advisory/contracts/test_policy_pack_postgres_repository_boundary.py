@@ -142,6 +142,7 @@ def test_policy_evaluation_postgres_snapshot_loads_durable_rows() -> None:
             ],
             "FROM policy_evaluation_idempotency": [
                 {
+                    "tenant_id": "tenant-sg",
                     "idempotency_key": "idem_txn_001",
                     "request_hash": "sha256:request",
                     "evaluation_id": "pev_txn_001",
@@ -152,12 +153,17 @@ def test_policy_evaluation_postgres_snapshot_loads_durable_rows() -> None:
     )
     store = PostgresPolicyEvaluationStateStore(connect=lambda: connection)
 
-    snapshot = store.load_snapshot()
+    snapshot = store.load_snapshot(tenant_id="tenant-sg")
 
     assert snapshot["records"]["pev_txn_001"]["proposal_id"] == "pp_txn_001"
     assert snapshot["events"]["pev_txn_001"][0]["event_id"] == "peev_000001"
     assert snapshot["idempotency"][0]["idempotency_key"] == "idem_txn_001"
+    assert snapshot["idempotency"][0]["tenant_id"] == "tenant-sg"
     assert snapshot["identity_index"] == []
+    evaluation_queries = [statement for statement, _args in connection.executed]
+    assert len(evaluation_queries) == 3
+    assert all("IS NULL" not in statement for statement in evaluation_queries)
+    assert all(args == ("tenant-sg",) for _statement, args in connection.executed)
     assert connection.closed is True
 
 
@@ -302,6 +308,7 @@ def _policy_evaluation_snapshot() -> dict:
         "events": {"pev_txn_001": [event]},
         "idempotency": [
             {
+                "tenant_id": "tenant-sg",
                 "idempotency_key": "idem_txn_001",
                 "request_hash": "sha256:request",
                 "evaluation_id": "pev_txn_001",

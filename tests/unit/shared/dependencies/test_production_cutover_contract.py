@@ -48,6 +48,7 @@ def test_cutover_contract_includes_persistence_migration_namespaces():
         "0001",
         "0002",
         "0003",
+        "0004",
     ]
     assert production_cutover_contract.expected_migration_versions(namespace="workspace") == [
         "0001"

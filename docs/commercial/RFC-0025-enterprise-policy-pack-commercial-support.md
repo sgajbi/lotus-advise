@@ -93,13 +93,23 @@ Create a policy evaluation for a proposal version:
 curl -X POST "http://advise.dev.lotus/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: policy-evaluation-demo-001" \
-  --data '{"policy_pack_id":"GLOBAL_PRIVATE_BANKING_BASELINE","requested_by":"advisor-demo"}'
+  -H "X-Actor-Id: advisor-demo" -H "X-Role: ADVISOR" \
+  -H "X-Tenant-Id: tenant-sg-001" -H "X-Legal-Entity-Code: SGPB" \
+  -H "X-Correlation-Id: corr-policy-demo-001" -H "X-Service-Identity: lotus-gateway" \
+  -H "X-Capabilities: advisory.policy_evaluation.finalize" \
+  -H "X-Authorized-Proposal-Id: {proposal_id}" \
+  -H "X-Authorized-Portfolio-Id: PB_SG_GLOBAL_BAL_001" \
+  --data '{"policy_pack_id":"GLOBAL_PRIVATE_BANKING_BASELINE","created_by":"advisor-demo","evidence_bundle":{"...":"source-owned proposal evidence"}}'
 ```
 
 Read the review queue:
 
 ```bash
-curl "http://advise.dev.lotus/advisory/policy-evaluations/review-queue?portfolio_id=PB_SG_GLOBAL_BAL_001"
+curl "http://advise.dev.lotus/advisory/policy-evaluations/review-queue?portfolio_id=PB_SG_GLOBAL_BAL_001" \
+  -H "X-Actor-Id: advisor-demo" -H "X-Role: ADVISOR" \
+  -H "X-Tenant-Id: tenant-sg-001" -H "X-Legal-Entity-Code: SGPB" \
+  -H "X-Correlation-Id: corr-policy-read-001" -H "X-Service-Identity: lotus-gateway" \
+  -H "X-Capabilities: advisory.policy_evaluation.read"
 ```
 
 Record a bounded sign-off decision with exact source-hash validation:
@@ -108,7 +118,13 @@ Record a bounded sign-off decision with exact source-hash validation:
 curl -X POST "http://advise.dev.lotus/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: policy-signoff-demo-001" \
-  --data '{"action":"REQUEST_MORE_EVIDENCE","source_evaluation_hash":"sha256:...","reviewer_id":"compliance-demo","reason":"Cost evidence requires desk confirmation"}'
+  -H "X-Actor-Id: policy-checker-demo" -H "X-Role: POLICY_CHECKER" \
+  -H "X-Tenant-Id: tenant-sg-001" -H "X-Legal-Entity-Code: SGPB" \
+  -H "X-Correlation-Id: corr-policy-signoff-001" -H "X-Service-Identity: lotus-gateway" \
+  -H "X-Capabilities: advisory.policy_evaluation.sign_off" \
+  -H "X-Authorized-Proposal-Id: {proposal_id}" \
+  -H "X-Authorized-Portfolio-Id: PB_SG_GLOBAL_BAL_001" \
+  --data '{"actor_id":"policy-checker-demo","decision":"REQUEST_MORE_EVIDENCE","source_evaluation_hash":"sha256:...","reason":{"purpose":"Cost evidence requires desk confirmation"}}'
 ```
 
 Request bounded AI policy-evidence summary:
@@ -117,7 +133,13 @@ Request bounded AI policy-evidence summary:
 curl -X POST "http://advise.dev.lotus/advisory/policy-evaluations/{evaluation_id}/ai-evidence" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: policy-ai-demo-001" \
-  --data '{"source_evaluation_hash":"sha256:...","requested_by":"advisor-demo"}'
+  -H "X-Actor-Id: compliance-demo" -H "X-Role: COMPLIANCE_REVIEWER" \
+  -H "X-Tenant-Id: tenant-sg-001" -H "X-Legal-Entity-Code: SGPB" \
+  -H "X-Correlation-Id: corr-policy-ai-001" -H "X-Service-Identity: lotus-gateway" \
+  -H "X-Capabilities: advisory.policy_evaluation.ai_evidence" \
+  -H "X-Authorized-Proposal-Id: {proposal_id}" \
+  -H "X-Authorized-Portfolio-Id: PB_SG_GLOBAL_BAL_001" \
+  --data '{"source_evaluation_hash":"sha256:...","requested_by":"compliance-demo"}'
 ```
 
 ## Architecture Flow
