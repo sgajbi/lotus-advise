@@ -353,16 +353,17 @@ def _policy_pack_catalog_snapshot() -> dict:
 def test_an_old_binary_cannot_erase_the_admitted_tenant() -> None:
     """The durable column outlives a `record_json` written by a version without the field.
 
-    The rollout contract declares old/new application versions supported for migration
-    0003. During that wave an old binary loads a record written by this version, drops
-    the `tenant_id` its model does not know, and its next snapshot save rewrites
+    The rollout contract requires pre-0003 *writers* to be drained, because an old
+    INSERT omits the column and no later process can attribute that row. Old *readers*
+    stay permitted, and that is this case: one loads a record written by this version,
+    drops the `tenant_id` its model does not know, and its next snapshot save rewrites
     `record_json` without it. The column survives, because the upsert never lists
     `tenant_id` in its DO UPDATE SET.
 
     So hydration reads the column rather than the JSON. Without that the admitted
     tenant would become `None` for every record an old binary touched, producing
     tenant conflicts and a row disagreeing with itself -- and the contract's
-    coexistence guarantee would be a claim rather than a property.
+    reader-coexistence guarantee would be a claim rather than a property.
 
     Raised in review of #624.
     """

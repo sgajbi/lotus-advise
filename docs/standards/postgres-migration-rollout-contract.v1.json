@@ -674,9 +674,10 @@
       "phase": "expand",
       "operation_class": "add_nullable_column",
       "compatibility_window": {
-        "old_and_new_application_versions_supported": true,
+        "old_and_new_application_versions_supported": false,
         "minimum_rollout_window": "one_full_deploy_wave",
-        "consumer_contract": "adds the admitted tenant to the policy evaluation record so the evaluation reads can be tenant-scoped; the column is nullable and unread by application versions that predate it, so both versions run against the same schema"
+        "write_activation_control": "Apply 0003, then drain every pre-0003 writer before accepting policy-evaluation finalizations. A pre-0003 binary finalizes through its old INSERT, which omits tenant_id, so the row is stored NULL after the migration; the tenant is taken from the admitted principal at write time and cannot be reconstructed later, and the tenant-scoped reads refuse an unrecorded tenant.",
+        "consumer_contract": "adds the admitted tenant to the policy evaluation record so the evaluation reads can be tenant-scoped. Readers may be mixed: the column is nullable and unread by application versions that predate it. Writers may not, which is why mixed-version support is declared false -- an old writer inserts a row that no later process can attribute"
       },
       "lock_behavior": {
         "transaction_scope": "single_namespace_transaction",
