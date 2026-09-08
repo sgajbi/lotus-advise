@@ -60,6 +60,28 @@
       "source_boundary": "trusted-principal"
     },
     {
+      "field_path": "policy_evaluation_records.tenant_id",
+      "purpose": "Bind a policy evaluation record to the tenant it was admitted under, so the evaluation reads can be tenant-scoped without deriving the tenant from portfolio_id at read time.",
+      "classification": "OPERATIONAL_AUDIT",
+      "owner": "advisory-policy",
+      "allowed_consumers": [
+        "authorized-advisor",
+        "supervisor",
+        "compliance",
+        "operator"
+      ],
+      "retention_policy": "ADVISORY_REVIEW_RECORD",
+      "purge_policy": "retain_audit_scope_until_record_purge_or_legal_hold_release",
+      "masking": "omit_from_metrics_labels",
+      "stores": [
+        "postgres"
+      ],
+      "telemetry_label_allowed": false,
+      "api_projection_allowed": false,
+      "downstream_payload_allowed": false,
+      "source_boundary": "trusted-principal"
+    },
+    {
       "field_path": "advisory_copilot_runs.created_by",
       "purpose": "Audit the actor that requested a copilot run.",
       "classification": "OPERATIONAL_AUDIT",

@@ -198,7 +198,7 @@ def _finalize(**overrides: Any) -> PolicyEvaluationPersistenceResult:
         "policy_pack_id": "GLOBAL_PRIVATE_BANKING_BASELINE",
         "policy_version": "2026.05",
         "created_by": "advisor_1",
-        "tenant_id": "tenant-test",
+        "tenant_id": "tenant_sg_001",
     }
     arguments.update(overrides)
     return finalize_policy_evaluation_record(**arguments)
