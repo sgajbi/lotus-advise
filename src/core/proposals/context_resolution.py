@@ -21,7 +21,18 @@ from src.core.proposals.models import (
 
 
 class ProposalContextResolutionError(Exception):
-    pass
+    """A proposal's context could not be resolved.
+
+    `str(exc)` stays the stable public reason code, because callers and the HTTP
+    surface are contracted to it. `underlying_reason` carries the more specific cause
+    for operators, and is deliberately not part of the message: widening the public
+    code would change a contract, while discarding the cause entirely is what made
+    this class of failure undiagnosable.
+    """
+
+    def __init__(self, message: str, *, underlying_reason: str | None = None) -> None:
+        super().__init__(message)
+        self.underlying_reason = underlying_reason
 
 
 @dataclass(frozen=True)
@@ -333,8 +344,14 @@ def _resolve_stateful_input(
     try:
         resolved = resolve_proposal_stateful_context(stateful_input)
     except ProposalStatefulContextResolutionUnavailableError as exc:
+        # The specific cause is computed two frames down -- the resolver was never
+        # configured, Core returned a non-dict, or Core's payload failed validation --
+        # and was discarded here. Four distinct conditions reached an operator as one
+        # code, in a 422 body and a log line that carried neither. Diagnosing the
+        # boundary required reading the source rather than the runtime.
         raise ProposalContextResolutionError(
-            "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+            "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE",
+            underlying_reason=str(exc) or None,
         ) from exc
 
     resolved_context = ProposalResolvedContext.model_validate(
