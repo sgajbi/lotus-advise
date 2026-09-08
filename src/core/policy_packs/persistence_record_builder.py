@@ -23,6 +23,12 @@ def build_policy_evaluation_record(
     proposal_id: str,
     proposal_version_id: str,
     created_by: str,
+    # Required and without a default. The admitted tenant already exists at every call
+    # site -- `PolicyControlPrincipal.tenant_id` is resolved, checked and used in audit
+    # metadata -- and simply never reached the persisted record. A default here would
+    # let a new caller keep that gap, and required-not-defaulted is what finds the call
+    # sites instead of preserving the omission behind a plausible value.
+    tenant_id: str,
     source_evidence_hash: str,
     policy_content_hash: str,
     idempotency_key: str,
@@ -62,6 +68,7 @@ def build_policy_evaluation_record(
         proposal_id=proposal_id,
         proposal_version_id=proposal_version_id,
         portfolio_id=portfolio_id,
+        tenant_id=tenant_id,
         policy_pack_id=evaluation.policy_pack.policy_pack_id,
         policy_version=evaluation.policy_pack.policy_version,
         generated_at=generated_at.isoformat(),

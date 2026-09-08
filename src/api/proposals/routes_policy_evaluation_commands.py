@@ -34,6 +34,7 @@ from src.core.policy_packs import (
     PolicyEvaluationEventRequest,
     PolicyEvaluationPersistenceResult,
 )
+from src.core.policy_packs.repositories import PolicyEvaluationFinalizationRequest
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 
 _POLICY_EVALUATION_REPAIR_INTENT_KEY = "system_repair_intent"
@@ -148,15 +149,21 @@ def _create_or_replay_policy_evaluation_with_telemetry(
         )
         response = (
             shared.get_policy_evidence_application_service().finalize_policy_evaluation_record(
-                evidence_bundle=evidence_bundle,
-                policy_pack_id=payload.policy_pack_id,
-                policy_version=payload.policy_version,
-                proposal_id=proposal_id,
-                proposal_version_id=proposal_version_id,
-                created_by=bind_policy_control_actor(payload.created_by, principal),
-                idempotency_key=idempotency_key,
-                reason=reason,
-                observed_trace_id=trace_id_var.get() or None,
+                PolicyEvaluationFinalizationRequest(
+                    evidence_bundle=evidence_bundle,
+                    policy_pack_id=payload.policy_pack_id,
+                    policy_version=payload.policy_version,
+                    proposal_id=proposal_id,
+                    proposal_version_id=proposal_version_id,
+                    created_by=bind_policy_control_actor(payload.created_by, principal),
+                    # From the principal, not from the payload: a caller-asserted tenant
+                    # partitions the record by a claim rather than by admitted authority,
+                    # and the record would then look scoped without being so.
+                    tenant_id=principal.tenant_id,
+                    idempotency_key=idempotency_key,
+                    reason=reason,
+                    observed_trace_id=trace_id_var.get() or None,
+                )
             )
         )
     except ProposalIdempotencyConflictError:

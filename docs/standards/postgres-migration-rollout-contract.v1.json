@@ -668,6 +668,41 @@
       }
     },
     {
+      "namespace_key": "policy_packs",
+      "version": "0003",
+      "path": "src/infrastructure/postgres_migrations/policy_packs/0003_policy_evaluation_tenant.sql",
+      "phase": "expand",
+      "operation_class": "add_nullable_column",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": true,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "consumer_contract": "adds the admitted tenant to the policy evaluation record so the evaluation reads can be tenant-scoped; the column is nullable and unread by application versions that predate it, so both versions run against the same schema"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "brief_metadata_only",
+        "online_behavior": "ADD COLUMN with no default and no rewrite; PostgreSQL takes a brief ACCESS EXCLUSIVE lock for the catalog change and does not rewrite the table",
+        "required_operator_control": "none beyond normal deploy windowing"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "not_applicable_no_backfill",
+        "resume_strategy": "not_applicable_no_backfill",
+        "quarantine_strategy": "rows written before this column exist stay NULL and are refused by tenant-scoped reads rather than attributed; backfilling would substitute a guess for a fact and make a historical row indistinguishable from a genuine submission"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": true,
+        "limitations": "the column remains after an application rollback and is simply unread; dropping it would discard admitted authority already captured, so fix forward"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
       "namespace_key": "workspace",
       "version": "0001",
       "path": "src/infrastructure/postgres_migrations/workspace/0001_workspace_state.sql",

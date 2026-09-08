@@ -75,6 +75,32 @@ class PolicyEvaluationRecord(BaseModel):
         description="Portfolio identifier from the evaluated source evidence.",
         examples=["PB_SG_GLOBAL_BAL_001"],
     )
+    tenant_id: str | None = Field(
+        default=None,
+        # Excluded from serialisation, so it reaches no response body. The review queue
+        # resolves no principal and filters by no tenant -- `portfolio_id` is optional
+        # and defaults to None -- so any caller reaching it would otherwise enumerate
+        # every tenant's admitted identifier. Adding a scope to what is stored must not
+        # widen what an unscoped read returns.
+        #
+        # Excluded on the model rather than per route: four response models embed this
+        # record, and fixing the one that was reported is how the last review round's
+        # `.env` finding recurred five more times.
+        #
+        # Persistence is unaffected. `snapshot()` re-adds it explicitly for the durable
+        # column, which the loader treats as authoritative -- so the value is stored and
+        # queryable while remaining invisible to callers until the reads are scoped
+        # under #624 slice 2.
+        exclude=True,
+        description=(
+            "Tenant the evaluation was admitted under, captured from the admitted principal "
+            "at write time. Null only on records written before the field existed: that is "
+            "an unrecorded value rather than an absent one, and the two are kept "
+            "distinguishable because an absent tenant can be replayed faithfully while an "
+            "unrecorded one cannot be replayed at all."
+        ),
+        examples=["tenant-sg"],
+    )
     policy_pack_id: str = Field(
         description="Policy pack identifier used for the evaluation.",
         examples=["SG_PRIVATE_BANKING_REFERENCE"],
