@@ -32,10 +32,10 @@ _CLIENT_READY_PUBLICATION = CLIENT_READY_PUBLICATION_POSTURE
 
 
 def get_policy_evaluation_workflow(
-    *, evaluation_id: str, now: datetime | None = None
+    *, evaluation_id: str, tenant_id: str, now: datetime | None = None
 ) -> PolicyEvaluationWorkflowResponse:
-    record = get_policy_evaluation_record(evaluation_id=evaluation_id)
-    events = list_policy_evaluation_events(evaluation_id=evaluation_id)
+    record = get_policy_evaluation_record(evaluation_id=evaluation_id, tenant_id=tenant_id)
+    events = list_policy_evaluation_events(evaluation_id=evaluation_id, tenant_id=tenant_id)
     return build_policy_evaluation_workflow_projection(
         record=record,
         events=events,
@@ -47,17 +47,21 @@ def get_policy_evaluation_workflow(
 def record_policy_evaluation_sign_off_decision(
     *,
     evaluation_id: str,
+    tenant_id: str,
     payload: PolicyEvaluationSignOffDecisionRequest,
     idempotency_key: str | None = None,
     now: datetime | None = None,
 ) -> PolicyEvaluationSignOffDecisionResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     decision_time = now or datetime.now(UTC)
-    record = get_policy_evaluation_record(evaluation_id=evaluation_id)
+    record = get_policy_evaluation_record(evaluation_id=evaluation_id, tenant_id=tenant_id)
     if payload.source_evaluation_hash != record.evaluation_hash:
         raise ProposalValidationError("POLICY_EVALUATION_SIGN_OFF_HASH_MISMATCH")
 
-    existing_events = list_policy_evaluation_events(evaluation_id=evaluation_id)
+    existing_events = list_policy_evaluation_events(
+        evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
+    )
     before = build_policy_evaluation_workflow_projection(
         record=record,
         events=existing_events,
@@ -73,6 +77,7 @@ def record_policy_evaluation_sign_off_decision(
     )
     event = append_policy_evaluation_event(
         evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
         event_type=event_type,
         actor_id=payload.actor_id,
         idempotency_key=idempotency_key,

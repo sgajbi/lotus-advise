@@ -40,11 +40,19 @@ from src.core.tactical_house_view import (
     TacticalHouseViewSourceRef,
     TacticalHouseViewSupportability,
     build_tactical_house_view_affected_cohort,
+    clear_tactical_house_view_affected_cohorts_for_tests,
 )
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 NOW = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
 REPO_ROOT = Path(__file__).resolve().parents[4]
+
+
+@pytest.fixture(autouse=True)
+def _isolate_tactical_house_view_store():
+    clear_tactical_house_view_affected_cohorts_for_tests()
+    yield
+    clear_tactical_house_view_affected_cohorts_for_tests()
 
 
 def test_cockpit_service_delegates_source_loading_to_focused_module() -> None:
@@ -250,7 +258,7 @@ def _service(monkeypatch: pytest.MonkeyPatch) -> AdvisorCockpitService:
 def _caller(
     role: str = "ADVISOR", advisor_id: str | None = "advisor_sg_001"
 ) -> CockpitCallerContext:
-    return CockpitCallerContext(advisor_id=advisor_id, role=role)
+    return CockpitCallerContext(tenant_id="tenant_sg_001", advisor_id=advisor_id, role=role)
 
 
 def _principal() -> AdvisorCockpitPrincipal:

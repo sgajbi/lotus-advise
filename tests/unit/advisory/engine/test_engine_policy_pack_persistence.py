@@ -35,6 +35,10 @@ from src.core.policy_packs.persistence_store import (
 )
 from src.core.policy_packs.receipt_identity import build_policy_evaluation_receipt_identity
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
+from tests.unit.advisory.engine.policy_evaluation_fixtures import (
+    _base_evidence_bundle,
+    _trusted_reason,
+)
 
 SOURCE_ROOT = Path(__file__).resolve().parents[4] / "src" / "core" / "policy_packs"
 
@@ -117,73 +121,6 @@ def test_policy_evaluation_persistence_store_stays_focused() -> None:
     assert "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT" in store
 
 
-def _base_evidence_bundle() -> dict:
-    return {
-        "context_resolution": {
-            "as_of_date": "2026-05-26",
-            "advisory_policy_context": {
-                "household_id": "HH-PB-001",
-                "jurisdiction": "SG",
-                "client_classification": "ACCREDITED_INVESTOR",
-                "booking_center_code": "SG",
-                "legal_entity_code": "REFERENCE",
-                "account_id": "ACCT-PB-001",
-                "time_horizon": "5Y",
-                "liquidity_need": "MEDIUM",
-                "mandate_id": "MANDATE-BALANCED-001",
-                "objectives": ["capital_preservation", "balanced_growth"],
-                "restrictions": ["no_single_name_above_10pct"],
-            },
-        },
-        "inputs": {
-            "portfolio_snapshot": {
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "as_of_date": "2026-05-26",
-                "positions": [{"instrument_id": "US_EQ_ETF", "quantity": "100"}],
-                "cash_balances": [{"currency": "USD", "amount": "50000"}],
-            },
-            "market_data_snapshot": {
-                "as_of_date": "2026-05-26",
-                "prices": [{"instrument_id": "US_EQ_ETF", "price": "100", "currency": "USD"}],
-                "fx_rates": [{"pair": "USD/SGD", "rate": "1.35"}],
-            },
-            "shelf_entries": [
-                {
-                    "instrument_id": "US_EQ_ETF",
-                    "eligibility": {"jurisdictions": ["SG"]},
-                    "target_market": {"client_segments": ["ACCREDITED_INVESTOR"]},
-                    "complexity": "NON_COMPLEX",
-                    "private_asset": False,
-                    "structured_product": False,
-                }
-            ],
-            "proposed_trades": [{"instrument_id": "US_EQ_ETF", "side": "BUY"}],
-        },
-        "risk_lens": {
-            "source_service": "lotus-risk",
-            "single_position_concentration": {"top_position_weight_current": "0.10"},
-            "issuer_concentration": {"hhi_current": "1200"},
-            "drawdown": {"max_drawdown_1y": "0.08"},
-            "var": {"var_95_1m": "0.04"},
-            "stress": {"equity_down_20": "-0.09"},
-            "liquidity_risk": {"days_to_liquidate": "3"},
-            "private_asset_risk": {"private_asset_weight": "0.00"},
-            "climate_geopolitical_risk": {"status": "not_material"},
-        },
-        "artifact": {
-            "assumptions_and_limits": {
-                "costs_and_fees": {"included": True},
-                "tax": {"included": True},
-                "execution": {"included": True},
-            },
-            "disclosures": {
-                "product_docs": [{"instrument_id": "US_EQ_ETF", "doc_ref": "Factsheet"}],
-            },
-        },
-        "conflict_evidence": {"material_conflict": False, "review_ref": "conflict-review-001"},
-    }
-
-
 def _finalize(**overrides: Any) -> PolicyEvaluationPersistenceResult:
     """Finalize with the values these tests share, overriding what a case varies.
 
@@ -202,27 +139,6 @@ def _finalize(**overrides: Any) -> PolicyEvaluationPersistenceResult:
     }
     arguments.update(overrides)
     return finalize_policy_evaluation_record(**arguments)
-
-
-def _trusted_reason(
-    purpose: str,
-    *,
-    correlation_id: str = "corr-policy-evaluation-test",
-    trace_id: str = "trace-policy-evaluation-test",
-) -> dict[str, Any]:
-    return {
-        "purpose": purpose,
-        "trusted_principal": {
-            "subject": "advisor_1",
-            "role": "ADVISOR",
-            "tenant_id": "tenant_sg_001",
-            "legal_entity_code": "REFERENCE",
-            "correlation_id": correlation_id,
-            "trace_id": trace_id,
-            "service_identity": "lotus-gateway",
-            "capability": "advisory.policy_evaluation.finalize",
-        },
-    }
 
 
 def _activate_sg_policy_pack() -> None:
@@ -400,6 +316,7 @@ def test_policy_evaluation_repository_port_survives_reinstantiation() -> None:
     )
     review = append_policy_evaluation_event(
         evaluation_id=created.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
         idempotency_key="policy-eval-restart-review",
@@ -409,10 +326,15 @@ def test_policy_evaluation_repository_port_survives_reinstantiation() -> None:
     configure_policy_evaluation_repository(
         DurablePolicyEvaluationRepository(state_store=state_store)
     )
-    reloaded = get_policy_evaluation_record(evaluation_id=created.record.evaluation_id)
-    events = list_policy_evaluation_events(evaluation_id=created.record.evaluation_id)
+    reloaded = get_policy_evaluation_record(
+        evaluation_id=created.record.evaluation_id, tenant_id="tenant_sg_001"
+    )
+    events = list_policy_evaluation_events(
+        evaluation_id=created.record.evaluation_id, tenant_id="tenant_sg_001"
+    )
     replayed_review = append_policy_evaluation_event(
         evaluation_id=created.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
         idempotency_key="policy-eval-restart-review",
@@ -476,7 +398,7 @@ def test_policy_evaluation_idempotency_repairs_trusted_legal_entity_gap_once() -
         idempotency_key="policy-eval-legal-repair",
         reason=_trusted_legal_entity_repair_reason("trusted legal entity repair proof"),
     )
-    records = list_policy_evaluation_records()
+    records = list_policy_evaluation_records(tenant_id="tenant_sg_001")
 
     assert blocked.record.evaluation_status == "BLOCKED"
     assert "legal_entity_code" in blocked.record.source_gaps
@@ -499,16 +421,33 @@ def test_policy_evaluation_idempotency_repairs_trusted_legal_entity_gap_once() -
 
 
 @pytest.mark.parametrize(
-    ("trusted_principal_override", "created_by"),
+    ("trusted_principal_override", "created_by", "error_type", "error_code"),
     [
-        ({"subject": "advisor_2"}, "advisor_2"),
-        ({"tenant_id": "tenant_hk_001"}, "advisor_1"),
-        ({"service_identity": "lotus-gateway-shadow"}, "advisor_1"),
+        (
+            {"subject": "advisor_2"},
+            "advisor_2",
+            ProposalIdempotencyConflictError,
+            "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT",
+        ),
+        (
+            {"tenant_id": "tenant_hk_001"},
+            "advisor_1",
+            ProposalValidationError,
+            "POLICY_EVALUATION_TENANT_PRINCIPAL_MISMATCH",
+        ),
+        (
+            {"service_identity": "lotus-gateway-shadow"},
+            "advisor_1",
+            ProposalIdempotencyConflictError,
+            "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT",
+        ),
     ],
 )
 def test_policy_evaluation_legal_entity_repair_rejects_trusted_principal_drift(
     trusted_principal_override: dict[str, str],
     created_by: str,
+    error_type: type[Exception],
+    error_code: str,
 ) -> None:
     _activate_sg_policy_pack()
     state_store = InMemoryPolicyEvaluationStateStore()
@@ -535,7 +474,7 @@ def test_policy_evaluation_legal_entity_repair_rejects_trusted_principal_drift(
         **trusted_principal_override,
     }
 
-    with pytest.raises(ProposalIdempotencyConflictError):
+    with pytest.raises(error_type) as refusal:
         _finalize(
             evidence_bundle=repaired_evidence,
             policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
@@ -545,6 +484,7 @@ def test_policy_evaluation_legal_entity_repair_rejects_trusted_principal_drift(
             idempotency_key="policy-eval-legal-repair-principal",
             reason=repair_reason,
         )
+    assert str(refusal.value) == error_code
 
 
 def test_policy_evaluation_idempotency_replays_legacy_correlation_sensitive_hash() -> None:
@@ -580,7 +520,7 @@ def test_policy_evaluation_idempotency_replays_legacy_correlation_sensitive_hash
             "reason": legacy_reason,
         }
     )
-    snapshot = state_store.load_snapshot()
+    snapshot = state_store.load_snapshot(tenant_id="tenant_sg_001")
     snapshot["idempotency"][0]["request_hash"] = legacy_hash
     state_store.save_snapshot(snapshot)
 
@@ -632,7 +572,7 @@ def test_policy_evaluation_idempotency_rejects_legacy_correlation_scope_drift() 
             "reason": legacy_reason,
         }
     )
-    snapshot = state_store.load_snapshot()
+    snapshot = state_store.load_snapshot(tenant_id="tenant_sg_001")
     snapshot["idempotency"][0]["request_hash"] = legacy_hash
     state_store.save_snapshot(snapshot)
 
@@ -656,7 +596,9 @@ def test_policy_evaluation_legacy_replay_helpers_reject_incomplete_context() -> 
         idempotency_key="policy-eval-legacy-helper",
         reason=_trusted_reason("legacy helper proof"),
     )
-    event = list_policy_evaluation_events(evaluation_id=created.record.evaluation_id)[0]
+    event = list_policy_evaluation_events(
+        evaluation_id=created.record.evaluation_id, tenant_id="tenant_sg_001"
+    )[0]
 
     assert (
         _matching_legacy_replay(
@@ -841,7 +783,9 @@ def test_policy_evaluation_event_stable_replay_rejects_requested_evaluation_id_d
         idempotency_key="policy-eval-legacy-eval-id",
         reason=_trusted_reason("legacy evaluation id proof"),
     )
-    event = list_policy_evaluation_events(evaluation_id=created.record.evaluation_id)[0]
+    event = list_policy_evaluation_events(
+        evaluation_id=created.record.evaluation_id, tenant_id="tenant_sg_001"
+    )[0]
 
     assert not _matches_event_stable_replay(
         record=created.record,
@@ -856,13 +800,18 @@ def test_policy_evaluation_event_stable_replay_rejects_requested_evaluation_id_d
 
 
 def test_policy_evaluation_receipt_identity_fails_closed_without_trusted_principal() -> None:
-    with pytest.raises(ProposalValidationError, match="TRUSTED_PRINCIPAL_REQUIRED"):
+    from src.core.policy_packs.persistence import _repository
+
+    before = _repository().snapshot()
+    with pytest.raises(ProposalValidationError) as refusal:
         _finalize(
             proposal_id="pp_policy_no_principal",
             proposal_version_id="ppv_policy_no_principal",
             idempotency_key="policy-eval-no-principal",
             reason={"purpose": "missing principal"},
         )
+    assert str(refusal.value) == "POLICY_EVALUATION_TRUSTED_PRINCIPAL_REQUIRED"
+    assert _repository().snapshot() == before
 
 
 def test_policy_evaluation_receipt_identity_fails_closed_without_trace() -> None:
@@ -1010,6 +959,7 @@ def test_policy_evaluation_review_events_are_append_only_without_mutating_final_
 
     review = append_policy_evaluation_event(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
         idempotency_key="  policy-eval-review-event  ",
@@ -1017,12 +967,15 @@ def test_policy_evaluation_review_events_are_append_only_without_mutating_final_
     )
     review_replay = append_policy_evaluation_event(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
         idempotency_key="policy-eval-review-event",
         reason={"review_action": "REQUEST_MORE_EVIDENCE"},
     )
-    stored = get_policy_evaluation_record(evaluation_id=persisted.record.evaluation_id)
+    stored = get_policy_evaluation_record(
+        evaluation_id=persisted.record.evaluation_id, tenant_id="tenant_sg_001"
+    )
 
     assert review.event_id == "peev_000002"
     assert review_replay.event_id == review.event_id
@@ -1050,6 +1003,7 @@ def test_policy_evaluation_event_idempotency_ignores_volatile_nested_trusted_pri
 
     review = append_policy_evaluation_event(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
         idempotency_key="policy-eval-review-event-stable-reason",
@@ -1057,6 +1011,7 @@ def test_policy_evaluation_event_idempotency_ignores_volatile_nested_trusted_pri
     )
     review_replay = append_policy_evaluation_event(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
         idempotency_key="policy-eval-review-event-stable-reason",
@@ -1074,6 +1029,7 @@ def test_policy_evaluation_event_idempotency_ignores_volatile_nested_trusted_pri
     with pytest.raises(ProposalIdempotencyConflictError, match="POLICY_EVALUATION"):
         append_policy_evaluation_event(
             evaluation_id=persisted.record.evaluation_id,
+            tenant_id="tenant_sg_001",
             event_type="POLICY_EVALUATION_REVIEW_RECORDED",
             actor_id="compliance_1",
             idempotency_key="policy-eval-review-event-stable-reason",
@@ -1110,6 +1066,7 @@ def test_policy_evaluation_event_idempotency_replays_legacy_volatile_event_hash(
     }
     review = append_policy_evaluation_event(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
         idempotency_key="policy-eval-review-event-legacy-hash",
@@ -1124,7 +1081,7 @@ def test_policy_evaluation_event_idempotency_replays_legacy_volatile_event_hash(
             "evaluation_hash": persisted.record.evaluation_hash,
         }
     )
-    snapshot = state_store.load_snapshot()
+    snapshot = state_store.load_snapshot(tenant_id="tenant_sg_001")
     for item in snapshot["idempotency"]:
         if item["idempotency_key"] == "policy-eval-review-event-legacy-hash":
             item["request_hash"] = legacy_hash
@@ -1143,6 +1100,7 @@ def test_policy_evaluation_event_idempotency_replays_legacy_volatile_event_hash(
 
     replayed = append_policy_evaluation_event(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
         idempotency_key="policy-eval-review-event-legacy-hash",
@@ -1155,7 +1113,9 @@ def test_policy_evaluation_event_idempotency_replays_legacy_volatile_event_hash(
             ),
         },
     )
-    stored_events = list_policy_evaluation_events(evaluation_id=persisted.record.evaluation_id)
+    stored_events = list_policy_evaluation_events(
+        evaluation_id=persisted.record.evaluation_id, tenant_id="tenant_sg_001"
+    )
 
     assert replayed.event_id == review.event_id
     assert len(stored_events) == 2
@@ -1220,13 +1180,16 @@ def test_policy_evaluation_privileged_events_require_specialized_command_authori
         with pytest.raises(ProposalValidationError, match=expected_error):
             append_policy_evaluation_event(
                 evaluation_id=persisted.record.evaluation_id,
+                tenant_id="tenant_sg_001",
                 event_type=event_type,
                 actor_id="spoofed_actor",
                 reason=reason,
                 idempotency_key=f"policy-eval-forged-{event_type.lower()}",
             )
 
-    events = list_policy_evaluation_events(evaluation_id=persisted.record.evaluation_id)
+    events = list_policy_evaluation_events(
+        evaluation_id=persisted.record.evaluation_id, tenant_id="tenant_sg_001"
+    )
     assert [event.event_type for event in events] == ["POLICY_EVALUATION_FINALIZED"]
 
 
@@ -1241,12 +1204,14 @@ def test_policy_evaluation_replay_compares_policy_source_and_evaluation_hashes()
     )
     matching = replay_policy_evaluation_record(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         evidence_bundle=deepcopy(evidence),
     )
     changed_evidence = deepcopy(evidence)
     changed_evidence["inputs"]["market_data_snapshot"]["fx_rates"][0]["rate"] = "1.36"
     changed = replay_policy_evaluation_record(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         evidence_bundle=changed_evidence,
     )
 
@@ -1298,12 +1263,14 @@ def test_policy_evaluation_replay_allows_superseded_policy_version() -> None:
 
     matching = replay_policy_evaluation_record(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         evidence_bundle=deepcopy(evidence),
     )
     changed_evidence = deepcopy(evidence)
     changed_evidence["risk_lens"]["var"]["var_95_1m"] = "0.07"
     changed = replay_policy_evaluation_record(
         evaluation_id=persisted.record.evaluation_id,
+        tenant_id="tenant_sg_001",
         evidence_bundle=changed_evidence,
     )
 
@@ -1383,14 +1350,19 @@ def test_policy_evaluation_record_listing_filters_orders_and_returns_copies() ->
         reason=_trusted_reason("record listing pending"),
     )
 
-    all_records = list_policy_evaluation_records()
+    all_records = list_policy_evaluation_records(tenant_id="tenant_sg_001")
     filtered_records = list_policy_evaluation_records(
+        tenant_id="tenant_sg_001",
         evaluation_status="PENDING_REVIEW",
         portfolio_id="PB_SG_GLOBAL_BAL_001",
     )
-    portfolio_records = list_policy_evaluation_records(portfolio_id="PB_SG_GLOBAL_BAL_001")
+    portfolio_records = list_policy_evaluation_records(
+        tenant_id="tenant_sg_001", portfolio_id="PB_SG_GLOBAL_BAL_001"
+    )
     all_records[0].portfolio_id = "MUTATED_RETURNED_COPY"
-    reloaded_first = get_policy_evaluation_record(evaluation_id=first.record.evaluation_id)
+    reloaded_first = get_policy_evaluation_record(
+        evaluation_id=first.record.evaluation_id, tenant_id="tenant_sg_001"
+    )
 
     assert [record.evaluation_id for record in all_records] == [
         first.record.evaluation_id,
@@ -1428,7 +1400,7 @@ def test_two_tenants_reaching_one_evaluation_identity_are_refused():
         proposal_version_id="ppv_tenant_collision",
         tenant_id="tenant-a",
         idempotency_key="tenant-collision-a",
-        reason=_trusted_reason("first tenant"),
+        reason=_trusted_reason("first tenant", tenant_id="tenant-a"),
     )
 
     # Same identity tuple, a different admitted tenant, and a different idempotency
@@ -1439,5 +1411,5 @@ def test_two_tenants_reaching_one_evaluation_identity_are_refused():
             proposal_version_id="ppv_tenant_collision",
             tenant_id="tenant-b",
             idempotency_key="tenant-collision-b",
-            reason=_trusted_reason("second tenant"),
+            reason=_trusted_reason("second tenant", tenant_id="tenant-b"),
         )

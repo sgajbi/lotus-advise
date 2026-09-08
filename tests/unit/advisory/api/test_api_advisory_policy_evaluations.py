@@ -20,6 +20,7 @@ from src.api.proposals.policy_control_principal import (
     POLICY_CONTROL_SCOPE_REQUIRED,
     POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
     POLICY_EVALUATION_FINALIZE_CAPABILITY,
+    POLICY_EVALUATION_READ_CAPABILITY,
     POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
     POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
     POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
@@ -288,6 +289,15 @@ def _policy_evaluation_create_headers(
     )
 
 
+def _policy_evaluation_read_headers(*, tenant_id: str = "tenant_sg_001") -> dict[str, str]:
+    return _policy_headers(
+        actor_id="advisor_1",
+        role=ADVISOR_ROLE,
+        capability=POLICY_EVALUATION_READ_CAPABILITY,
+        tenant_id=tenant_id,
+    )
+
+
 def _policy_review_headers(*, proposal_id: str, idempotency_key: str) -> dict[str, str]:
     return _policy_headers(
         actor_id="compliance_1",
@@ -453,6 +463,52 @@ def test_policy_evaluation_control_routes_bind_trusted_principal_and_scope() -> 
         )
         assert review_spoof.status_code == 403
         assert review_spoof.json()["detail"] == POLICY_CONTROL_ACTOR_MISMATCH
+
+
+def test_policy_evaluation_reads_refuse_missing_authority_before_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = proposals_router.get_policy_evidence_application_service()
+    queried = False
+
+    def _unexpected_query(**_: object) -> None:
+        nonlocal queried
+        queried = True
+
+    monkeypatch.setattr(service, "get_policy_evaluation_review_queue", _unexpected_query)
+    with TestClient(app) as client:
+        response = client.get("/advisory/policy-evaluations/review-queue")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == POLICY_CONTROL_PRINCIPAL_REQUIRED
+    assert queried is False
+
+
+def test_foreign_tenant_cannot_read_or_compare_an_evaluation() -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals/pp_policy_owner/versions/ppv_policy_owner/policy-evaluations",
+            json=_create_payload(),
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_owner",
+                idempotency_key="api-policy-owner",
+            ),
+        )
+        evaluation_id = created.json()["record"]["evaluation_id"]
+        foreign = _policy_evaluation_read_headers(tenant_id="tenant_hk_002")
+        for suffix in ("", "/lineage", "/diagnostics", "/sign-off-package", "/workflow"):
+            refused = client.get(
+                f"/advisory/policy-evaluations/{evaluation_id}{suffix}", headers=foreign
+            )
+            assert refused.status_code == 404
+            assert refused.json()["detail"] == "POLICY_EVALUATION_RECORD_NOT_FOUND"
+        replay = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/replay",
+            json={"evidence_bundle": _base_evidence_bundle()},
+            headers=foreign,
+        )
+        assert replay.status_code == 404
+        assert replay.json()["detail"] == "POLICY_EVALUATION_RECORD_NOT_FOUND"
 
 
 def test_policy_sign_off_maker_checker_uses_trusted_principal_identity() -> None:
@@ -667,7 +723,10 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         )
         assert drift.status_code == 409
 
-        read = client.get(f"/advisory/policy-evaluations/{evaluation_id}")
+        read = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert read.status_code == 200
         read_body = read.json()
         assert read_body["evaluation_hash"].startswith("sha256:")
@@ -693,6 +752,7 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         replay = client.post(
             f"/advisory/policy-evaluations/{evaluation_id}/replay",
             json={"evidence_bundle": _base_evidence_bundle()},
+            headers=_policy_evaluation_read_headers(),
         )
         assert replay.status_code == 200
         assert replay.json()["hash_comparison"]["evaluation_hash_matches"] is True
@@ -702,6 +762,7 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         changed = client.post(
             f"/advisory/policy-evaluations/{evaluation_id}/replay",
             json={"evidence_bundle": changed_evidence},
+            headers=_policy_evaluation_read_headers(),
         )
         assert changed.status_code == 200
         assert changed.json()["hash_comparison"]["source_evidence_hash_matches"] is False
@@ -721,7 +782,10 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         assert review.status_code == 200
         assert review.json()["event_type"] == "POLICY_EVALUATION_REVIEW_RECORDED"
 
-        lineage = client.get(f"/advisory/policy-evaluations/{evaluation_id}/lineage")
+        lineage = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}/lineage",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert lineage.status_code == 200
         lineage_body = lineage.json()
         assert [event["event_type"] for event in lineage_body["audit_events"]] == [
@@ -730,7 +794,10 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         ]
         assert lineage_body["lineage_posture"]["client_ready_publication"] == "BLOCKED"
 
-        sign_off = client.get(f"/advisory/policy-evaluations/{evaluation_id}/sign-off-package")
+        sign_off = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert sign_off.status_code == 200
         sign_off_body = sign_off.json()
         assert sign_off_body["evaluation"]["evaluation_id"] == evaluation_id
@@ -797,13 +864,19 @@ def test_generic_policy_evaluation_event_api_rejects_privileged_event_types() ->
             )
             assert response.status_code == 422
 
-        lineage = client.get(f"/advisory/policy-evaluations/{evaluation_id}/lineage")
+        lineage = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}/lineage",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert lineage.status_code == 200
         assert [event["event_type"] for event in lineage.json()["audit_events"]] == [
             "POLICY_EVALUATION_FINALIZED"
         ]
 
-        workflow = client.get(f"/advisory/policy-evaluations/{evaluation_id}/workflow")
+        workflow = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}/workflow",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert workflow.status_code == 200
         workflow_body = workflow.json()
         assert workflow_body["sign_off_status"] != "SIGNED_OFF"
@@ -839,7 +912,10 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
         record = created.json()["record"]
         evaluation_id = record["evaluation_id"]
 
-        workflow = client.get(f"/advisory/policy-evaluations/{evaluation_id}/workflow")
+        workflow = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}/workflow",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert workflow.status_code == 200
         workflow_body = workflow.json()
         assert workflow_body["sign_off_status"] == "PENDING_REVIEW"
@@ -1106,7 +1182,10 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
         assert conflict.json()["detail"] == "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT"
         assert len(captured_requests) == 1
 
-        lineage = client.get(f"/advisory/policy-evaluations/{evaluation_id}/lineage")
+        lineage = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}/lineage",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert lineage.status_code == 200
         event_types = [event["event_type"] for event in lineage.json()["audit_events"]]
         assert event_types[-1] == "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED"
@@ -1327,7 +1406,10 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy() ->
         assert conflict.json()["detail"] == "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT"
         assert len(captured_requests) == 1
 
-        lineage = client.get(f"/advisory/policy-evaluations/{record['evaluation_id']}/lineage")
+        lineage = client.get(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/lineage",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert lineage.status_code == 200
         assert lineage.json()["audit_events"][-1]["event_type"] == (
             "POLICY_EVALUATION_AI_EVIDENCE_RECORDED"
@@ -1553,7 +1635,10 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
         record = created.json()["record"]
         evaluation_id = record["evaluation_id"]
 
-        no_report = client.get(f"/advisory/policy-evaluations/{evaluation_id}/diagnostics")
+        no_report = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}/diagnostics",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert no_report.status_code == 200
         no_report_body = no_report.json()
         assert no_report_body["sign_off_status"] == "PENDING_REVIEW"
@@ -1600,7 +1685,10 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
         )
         assert ai_event.status_code == 422
 
-        diagnostics = client.get(f"/advisory/policy-evaluations/{evaluation_id}/diagnostics")
+        diagnostics = client.get(
+            f"/advisory/policy-evaluations/{evaluation_id}/diagnostics",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert diagnostics.status_code == 200
         body = diagnostics.json()
         assert body["latest_events"]["report_package"] is None
@@ -1614,7 +1702,10 @@ def test_policy_evaluation_diagnostics_project_safe_operator_posture() -> None:
 
 def test_policy_evaluation_diagnostics_returns_not_found_for_unknown_record() -> None:
     with TestClient(app) as client:
-        response = client.get("/advisory/policy-evaluations/pev_missing/diagnostics")
+        response = client.get(
+            "/advisory/policy-evaluations/pev_missing/diagnostics",
+            headers=_policy_evaluation_read_headers(),
+        )
 
     assert response.status_code == 404
     assert response.json()["detail"] == "POLICY_EVALUATION_RECORD_NOT_FOUND"
@@ -1651,7 +1742,22 @@ def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
         assert other_created.status_code == 200
         other_evaluation_id = other_created.json()["record"]["evaluation_id"]
 
-        queue = client.get("/advisory/policy-evaluations/review-queue")
+        foreign_created = client.post(
+            "/advisory/proposals/pp_policy_queue_hk/versions/ppv_policy_queue_hk/policy-evaluations",
+            json=_sg_pending_payload(),
+            headers=_policy_evaluation_create_headers(
+                proposal_id="pp_policy_queue_hk",
+                idempotency_key="api-policy-eval-queue-001",
+                tenant_id="tenant_hk_002",
+            ),
+        )
+        assert foreign_created.status_code == 200
+        foreign_evaluation_id = foreign_created.json()["record"]["evaluation_id"]
+
+        queue = client.get(
+            "/advisory/policy-evaluations/review-queue",
+            headers=_policy_evaluation_read_headers(),
+        )
         assert queue.status_code == 200
         queue_body = queue.json()
         assert [item["evaluation_id"] for item in queue_body["items"]] == [
@@ -1665,8 +1771,17 @@ def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
         )
         assert queue_body["queue_posture"]["client_ready_publication"] == "BLOCKED"
 
+        foreign_queue = client.get(
+            "/advisory/policy-evaluations/review-queue",
+            headers=_policy_evaluation_read_headers(tenant_id="tenant_hk_002"),
+        )
+        assert [item["evaluation_id"] for item in foreign_queue.json()["items"]] == [
+            foreign_evaluation_id
+        ]
+
         portfolio_queue = client.get(
             "/advisory/policy-evaluations/review-queue",
+            headers=_policy_evaluation_read_headers(),
             params={
                 "evaluation_status": "PENDING_REVIEW",
                 "portfolio_id": "PB_SG_GLOBAL_BAL_001",
@@ -1679,6 +1794,7 @@ def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
 
         ready_queue = client.get(
             "/advisory/policy-evaluations/review-queue",
+            headers=_policy_evaluation_read_headers(),
             params={"evaluation_status": "READY"},
         )
         assert ready_queue.status_code == 200
@@ -1727,6 +1843,11 @@ def test_policy_evaluation_openapi_registers_certified_advise_routes() -> None:
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/ai-evidence" in paths
+    read_operation = paths["/advisory/policy-evaluations/{evaluation_id}"]["get"]
+    assert {"401", "403", "404"} <= set(read_operation["responses"])
+    assert {"X-Tenant-Id", "X-Capabilities"} <= {
+        parameter["name"] for parameter in read_operation["parameters"]
+    }
     assert (
         paths[create_path]["post"]["responses"]["422"]["description"]
         == (POLICY_EVALUATION_CREATE_RESPONSES[422]["description"])

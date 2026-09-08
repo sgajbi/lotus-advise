@@ -704,6 +704,43 @@
       }
     },
     {
+      "namespace_key": "policy_packs",
+      "version": "0004",
+      "path": "src/infrastructure/postgres_migrations/policy_packs/0004_policy_evaluation_tenant_idempotency.sql",
+      "phase": "expand",
+      "operation_class": "add_nullable_column_backfill_and_replace_unique_key",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": false,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "write_activation_control": "Keep 0003's writer cutover in force. Drain pre-0004 policy-evaluation writers before applying 0004 because their global ON CONFLICT target no longer exists after tenant partitioning.",
+        "consumer_contract": "partitions caller-supplied policy-evaluation idempotency keys by the admitted tenant while preserving existing request hashes, evaluation ids, event ids and receipts"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "bounded_table_update_and_unique_index_build",
+        "online_behavior": "backfills attributable rows from their referenced evaluation, replaces the global primary key, then creates a tenant-key unique index with NULLS NOT DISTINCT",
+        "required_operator_control": "drain policy-evaluation writers and preflight duplicate tenant/key pairs before apply"
+      },
+      "backfill": {
+        "required": true,
+        "checkpoint_strategy": "single joined update from policy_evaluation_records before replacing uniqueness",
+        "resume_strategy": "idempotent rerun; only NULL idempotency tenants with attributable records are updated",
+        "quarantine_strategy": "idempotency rows whose referenced evaluation has no admitted tenant remain NULL and are not matched to a tenant-scoped request"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": false,
+        "previous_version_recovery_control": "Do not roll policy-evaluation writers back below 0004 after migration. Keep writes drained, retain the tenant-scoped key and deploy a forward fix; a pre-0004 writer requires the removed global conflict target.",
+        "limitations": "restoring global raw-key uniqueness would reject valid independent-tenant work; preserve the scoped key and fix forward"
+      },
+      "rehearsal": {
+        "profile_key": "local_postgres_migration_smoke",
+        "command": "make migration-rollout-contract-gate && make migration-smoke",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_postgres_smoke"
+      }
+    },
+    {
       "namespace_key": "workspace",
       "version": "0001",
       "path": "src/infrastructure/postgres_migrations/workspace/0001_workspace_state.sql",

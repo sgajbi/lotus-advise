@@ -219,6 +219,14 @@ Operators should treat `POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT`,
 as retry/diagnostic events, not as permission to patch rows manually. Preserve the idempotency key,
 request hash, evaluation or policy-pack id, event id, and failed SQL operation in incident evidence.
 
+Policy migrations `0003` and `0004` require a writer cutover. Drain pre-`0003` writers before
+tenant-bearing evaluations are accepted, then drain pre-`0004` writers before replacing global
+idempotency-key uniqueness. Do not roll writers back below `0004` after migration; keep writes
+drained and fix forward. Migration `0004` backfills only attributable idempotency rows, preserves
+their hashes and receipts, and leaves unknown-tenant rows quarantined. Required CI proves owner
+upserts, cross-tenant refusal without row/JSON mutation, independent-connection same-key use, and
+restart-safe scoped reads against PostgreSQL.
+
 ## Durable State Recovery
 
 Durable-state recovery is governed by
@@ -254,6 +262,10 @@ compare retained `SUPERSEDED` or `DISABLED` versions, but it must not substitute
 version. Operators should inspect `hash_comparison.policy_activation_state` and
 `hash_comparison.replay_reason_code` to distinguish exact match, source/evaluation drift, missing
 retained definition, or content-hash drift.
+
+Every evaluation read and replay must carry an admitted policy-control principal with
+`advisory.policy_evaluation.read`. Foreign tenant scope returns the normal not-found posture;
+missing authority returns 401/403 before record, event, or idempotency queries execute.
 
 ## Proposal History Reads
 

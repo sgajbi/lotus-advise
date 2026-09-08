@@ -210,17 +210,21 @@ policy workflow command, report/archive events from the report-package command, 
 events from the bounded AI-evidence command so source hashes, maker-checker posture, downstream
 references, redaction, lineage, idempotency, and client-ready blocked posture remain validated.
 
-Policy-control writes must carry trusted principal headers before Advise records catalog or
-evaluation state:
+Policy-control reads and writes must carry trusted principal headers before Advise queries or
+records evaluation state:
 
 1. `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, and `X-Correlation-Id`
 2. `X-Service-Identity` or `Authorization`
 3. `X-Capabilities` containing the route capability, for example
    `advisory.policy_pack.validate`, `advisory.policy_pack.activate`,
+   `advisory.policy_evaluation.read`,
    `advisory.policy_evaluation.finalize`, `advisory.policy_evaluation.review_event`,
    `advisory.policy_evaluation.sign_off`, `advisory.policy_evaluation.report_package`, or
    `advisory.policy_evaluation.ai_evidence`
 4. `X-Authorized-Proposal-Id` and `X-Authorized-Portfolio-Id` for evaluation-scoped writes
+
+Evaluation reads use the admitted tenant before loading records, events, or idempotency state.
+Foreign records return not found; missing authority returns 401/403 before query execution.
 
 Body actor fields are compatibility echoes only. A mismatch with `X-Actor-Id`, a missing/expired
 principal, wrong role, missing capability, missing scope, or cross-scope proposal, portfolio, tenant,
@@ -394,6 +398,11 @@ Operators should treat `POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT`,
 `POLICY_PACK_IDEMPOTENCY_KEY_CONFLICT`, policy event conflicts, or stale record/catalog conflicts
 as retry/diagnostic events, not as permission to patch rows manually. Preserve the idempotency key,
 request hash, evaluation or policy-pack id, event id, and failed SQL operation in incident evidence.
+
+Policy migrations `0003` and `0004` require pre-version writers to be drained. `0004` replaces
+global raw-key uniqueness with tenant-scoped uniqueness, preserves attributable historical
+hashes/receipts, and quarantines unknown-tenant rows. Do not roll writers back below `0004`; keep
+writes drained and fix forward.
 
 Use the full runbook in `docs/documentation/postgres-migration-rollout-runbook.md` for rollout,
 smoke, and fix-forward guidance.

@@ -185,13 +185,20 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   Sign-off, report/archive, AI-evidence, and finalization events are owned by their specialized
   workflow, report-package, AI-evidence, and finalize commands and must not be manufactured through
   the generic event API.
-- Policy-control write routes require a trusted Advise principal at the API boundary. Validation,
+- Policy-control routes require a trusted Advise principal at the API boundary. Evaluation detail,
+  review queue, replay, lineage, diagnostics, sign-off package, workflow, and proposal-version
+  Copilot projection require `advisory.policy_evaluation.read`; `X-Tenant-Id` scopes records,
+  events, and idempotency state before hydration, and foreign records return the same 404 posture as
+  missing records. Validation,
   activation, finalization, review-event, sign-off, report-package, and AI-evidence commands use
   `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Correlation-Id`, service
   identity, `X-Capabilities`, and, for evaluation-scoped writes, authorized proposal and portfolio
   headers. Body actor fields such as `requested_by`, `activated_by`, `created_by`, and `actor_id`
   are compatibility echoes; mismatch returns stable 403 policy-control errors and no state
   mutation.
+- Policy-evaluation idempotency keys are unique within the admitted tenant, not globally. Separate
+  tenants may reuse the same raw key for their own evaluations; historical request hashes and
+  receipts remain unchanged, and rows without attributable tenant authority stay quarantined.
 - Policy-evaluation workflow responses expose `metadata.as_of_date`, `metadata.scope_identity`, and
   replay metadata from the Advise-produced receipt identity. The as-of date must come from explicit
   source evidence, not request dates or clocks. Tenant, service, observed correlation, and observed
@@ -232,6 +239,9 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   identity, `X-Capabilities`, and authorized proposal/portfolio headers drive authority,
   maker-checker, audit metadata, and idempotency. Body `actor_id` is a compatibility echo only and
   cannot grant or widen review authority.
+- Proposal-version evidence packet creation separately requires the policy-evaluation read
+  capability plus matching authorized proposal and portfolio headers; both scopes are checked
+  against the loaded proposal before any packet source is assembled or saved.
 - `contracts/idea-proposal-intake/lotus-advise-idea-proposal-intake.v1.json` is the current
   source-safe `lotus-idea` proposal-intake contract. Its supportability status is
   `not_certified`, and remaining blockers include Advise suitability authority and client

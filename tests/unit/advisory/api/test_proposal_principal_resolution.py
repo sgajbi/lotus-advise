@@ -21,8 +21,27 @@ from src.api.proposals.policy_control_principal import (
     POLICY_STEWARD_ROLE,
     require_policy_pack_validation_principal,
 )
+from src.api.proposals.principal import ProposalPrincipalHeaders
 
 _PrincipalDependency = Callable[..., object]
+
+
+def _invoke_dependency(dependency: _PrincipalDependency, **headers: str | None) -> object:
+    if dependency is not require_policy_pack_validation_principal:
+        return dependency(**headers)
+    return dependency(
+        headers=ProposalPrincipalHeaders(
+            actor_id=headers.get("x_actor_id"),
+            role=headers.get("x_role"),
+            tenant_id=headers.get("x_tenant_id"),
+            legal_entity_code=headers.get("x_legal_entity_code"),
+            correlation_id=headers.get("x_correlation_id"),
+            service_identity=headers.get("x_service_identity"),
+            authorization=headers.get("authorization"),
+            capabilities=headers.get("x_capabilities"),
+            principal_status=headers.get("x_principal_status"),
+        )
+    )
 
 
 @pytest.mark.parametrize(
@@ -87,7 +106,7 @@ def test_shared_principal_resolution_preserves_typed_surface_contracts(
     elif dependency is require_idea_proposal_realization_reader:
         principal_kwargs.update(x_authorized_portfolio_id=" portfolio-001 ")
 
-    principal = dependency(**principal_kwargs)
+    principal = _invoke_dependency(dependency, **principal_kwargs)
 
     assert principal.actor_id == "actor-001"
     assert principal.role == role
@@ -155,7 +174,8 @@ def test_shared_principal_resolution_rejects_inactive_principals_consistently(
     detail: str,
 ) -> None:
     with pytest.raises(HTTPException) as error:
-        dependency(
+        _invoke_dependency(
+            dependency,
             x_actor_id="actor-001",
             x_role=role,
             x_tenant_id="tenant-001",
@@ -213,7 +233,8 @@ def test_shared_principal_resolution_requires_service_identity(
     detail: str,
 ) -> None:
     with pytest.raises(HTTPException) as error:
-        dependency(
+        _invoke_dependency(
+            dependency,
             x_actor_id="actor-001",
             x_role=role,
             x_tenant_id="tenant-001",

@@ -223,9 +223,12 @@ def _request_payload(
     if reporting_currency is not None and reporting_currency.strip():
         payload["reporting_currency"] = reporting_currency.strip()
     core_policy_context = _core_policy_context(policy_context)
-    # Core documents policy_context as governance metadata and echoes its tenant
-    # into response lineage. It is populated from the admitted tenant rather than
-    # from policy content, so the body cannot disagree with the authority header.
+    # Populated from the admitted tenant, never from policy content. Core does not
+    # merely echo this into lineage: since lotus-core#1101 it validates the assertion
+    # and answers a governed 403 `qcp_tenant_scope_forbidden` before source I/O when
+    # the body disagrees with the authority header. Confirmed against the running
+    # Core, which carries #1101. So sourcing this from policy content would not be a
+    # harmless echo -- it would turn a caller's own metadata into a refusal.
     core_policy_context["tenant_id"] = admitted_tenant_id
     payload["policy_context"] = core_policy_context
     return payload
@@ -327,30 +330,12 @@ def _validate_requested_tenant(
     *,
     requested_tenant_id: str,
 ) -> None:
-    """Echo integrity only. This is NOT tenant attribution, and must not be read as it.
+    """Require the tenant returned after Core validates header/body scope.
 
-    Core builds this field as
-    `tenant_id=request.policy_context.tenant_id if request.policy_context else None`,
-    so the tenant in the response is the tenant this service put in the request.
-    Comparing them compares our own input with itself. It can catch something
-    rewriting the payload between here and Core, which is worth a little, and it
-    can catch nothing about whether the assignment belongs to this tenant, which
-    is what an earlier version of this docstring claimed.
-
-    The authority that actually constrains this read is `X-Tenant-Id`, which
-    Core's shared middleware enforces before the route executes. Independent
-    tenant attribution for BenchmarkAssignment:v1 would have to come from Core's
-    own store; it does not exist today and is raised upstream rather than
-    simulated here.
-
-    A missing echo is refused. `_request_payload` now sends the admitted tenant
-    on every request, so a response that echoes nothing did not answer the
-    request we made: it is stale, from an incompatible Core revision, or in
-    breach of the documented echo. None of those is a response to accept and
-    report READY over. An earlier revision here tolerated `None`, which was
-    right when a request could legitimately carry no policy context and became
-    wrong the moment one always does -- the two changes were made together and
-    the relaxation outlived its reason."""
+    Core #1101 refuses disagreement before source I/O. This response check catches
+    incompatible or corrupted success payloads; it does not prove that a matching
+    tenant has a benchmark assignment, mandate, or scenario record.
+    """
 
     if response.tenant_id != requested_tenant_id:
         raise LotusCoreBenchmarkAssignmentUnavailableError(

@@ -130,9 +130,13 @@ Current repository posture:
    composed through policy repository ports and backed by the `policy_packs` Postgres migration
    namespace for records, audit events, activation state, and idempotency maps. Policy-pack
    PostgreSQL state writes are adapter-transactional across record/catalog state,
-   audit events, and idempotency mappings; idempotency mappings are immutable request-hash
-   decisions, audit-event conflicts must fail closed, and stale snapshots must not overwrite newer
-   event-backed state. Completed
+   audit events, and tenant-scoped idempotency mappings; independent tenants may reuse a raw key,
+   while historical hashes/receipts are preserved and unattributable rows remain quarantined.
+   Evaluation detail, queue, replay, lineage, diagnostics, sign-off package, workflow, and
+   proposal-version Copilot source reads require `advisory.policy_evaluation.read` and scope durable
+   records, events, and idempotency rows by the admitted tenant before hydration. Idempotency
+   mappings are immutable request-hash decisions, audit-event conflicts must fail closed, and stale
+   snapshots must not overwrite newer event-backed state. Completed
    approval/waiver authority, completed sign-off authority, client-ready policy publication,
    external client communication, and full RFC-0028 bank-demo/RFP package claims remain gated,
    and the generic policy-evaluation event API is review-only: sign-off, report/archive,

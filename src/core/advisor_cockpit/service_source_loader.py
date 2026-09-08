@@ -44,6 +44,7 @@ def load_advisor_cockpit_source_read_model(
         AdvisorCockpitSourceBatch(
             proposals=proposals,
             policy_evaluations=list_policy_evaluations(
+                tenant_id=caller_context.tenant_id,
                 evaluation_status=None,
                 portfolio_id=portfolio_id,
             )[:source_limit],

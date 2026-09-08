@@ -1,9 +1,13 @@
 from typing import cast
 
-from fastapi import status
+from fastapi import Depends, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import run_proposal_operation
+from src.api.proposals.policy_control_principal import (
+    PolicyControlPrincipal,
+    require_policy_evaluation_read_principal,
+)
 from src.api.proposals.policy_evaluation_parameters import (
     PolicyEvaluationIdPath,
     PolicyEvaluationPortfolioIdQuery,
@@ -31,19 +35,21 @@ from src.core.policy_packs import (
     tags=["Advisory Policy Evaluation"],
     summary="Read Policy Review Queue",
     description=(
-        "Returns finalized policy evaluation records filtered by aggregate policy posture. This is "
-        "the Advise source queue for later Gateway and Workbench review surfaces, not a "
-        "client-ready release queue."
+        "Returns finalized policy evaluation records for the admitted principal's tenant, filtered "
+        "by aggregate policy posture. This is the Advise source queue for later Gateway and "
+        "Workbench review surfaces, not a client-ready release queue."
     ),
     responses=POLICY_REVIEW_QUEUE_RESPONSES,
 )
 def read_policy_review_queue(
     evaluation_status: PolicyEvaluationStatusQuery = "PENDING_REVIEW",
     portfolio_id: PolicyEvaluationPortfolioIdQuery = None,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
 ) -> PolicyEvaluationReviewQueueResponse:
     return shared.get_policy_evidence_application_service().get_policy_evaluation_review_queue(
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
+        tenant_id=principal.tenant_id,
     )
 
 
@@ -62,12 +68,14 @@ def read_policy_review_queue(
 )
 def read_policy_evaluation(
     evaluation_id: PolicyEvaluationIdPath,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
 ) -> PolicyEvaluationRecord:
     return cast(
         PolicyEvaluationRecord,
         run_proposal_operation(
             lambda: shared.get_policy_evidence_application_service().get_policy_evaluation_record(
-                evaluation_id=evaluation_id
+                evaluation_id=evaluation_id,
+                tenant_id=principal.tenant_id,
             )
         ),
     )
@@ -89,6 +97,7 @@ def read_policy_evaluation(
 def replay_policy_evaluation(
     evaluation_id: PolicyEvaluationIdPath,
     payload: PolicyEvaluationReplayRequest,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
 ) -> PolicyEvaluationReplayResponse:
     service = shared.get_policy_evidence_application_service()
     return cast(
@@ -96,6 +105,7 @@ def replay_policy_evaluation(
         run_proposal_operation(
             lambda: service.replay_policy_evaluation_record(
                 evaluation_id=evaluation_id,
+                tenant_id=principal.tenant_id,
                 evidence_bundle=payload.evidence_bundle,
             )
         ),
@@ -116,12 +126,14 @@ def replay_policy_evaluation(
 )
 def read_policy_evaluation_lineage(
     evaluation_id: PolicyEvaluationIdPath,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
 ) -> PolicyEvaluationLineageResponse:
     return cast(
         PolicyEvaluationLineageResponse,
         run_proposal_operation(
             lambda: shared.get_policy_evidence_application_service().get_policy_evaluation_lineage(
-                evaluation_id=evaluation_id
+                evaluation_id=evaluation_id,
+                tenant_id=principal.tenant_id,
             )
         ),
     )
@@ -142,12 +154,16 @@ def read_policy_evaluation_lineage(
 )
 def read_policy_evaluation_diagnostics(
     evaluation_id: PolicyEvaluationIdPath,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
 ) -> PolicyEvaluationDiagnosticsResponse:
     service = shared.get_policy_evidence_application_service()
     return cast(
         PolicyEvaluationDiagnosticsResponse,
         run_proposal_operation(
-            lambda: service.get_policy_evaluation_diagnostics(evaluation_id=evaluation_id)
+            lambda: service.get_policy_evaluation_diagnostics(
+                evaluation_id=evaluation_id,
+                tenant_id=principal.tenant_id,
+            )
         ),
     )
 
@@ -167,12 +183,16 @@ def read_policy_evaluation_diagnostics(
 )
 def read_policy_sign_off_package(
     evaluation_id: PolicyEvaluationIdPath,
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
 ) -> PolicyEvaluationSignOffPackageResponse:
     service = shared.get_policy_evidence_application_service()
     return cast(
         PolicyEvaluationSignOffPackageResponse,
         run_proposal_operation(
-            lambda: service.get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
+            lambda: service.get_policy_evaluation_sign_off_package(
+                evaluation_id=evaluation_id,
+                tenant_id=principal.tenant_id,
+            )
         ),
     )
 

@@ -1,16 +1,16 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-09-08T13:38:26.103587+00:00`
+- Generated At: `2026-09-09T00:10:21.285791+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `calibrated-regression`
 
 ## Code Size
 
-- Python files: `1115`
+- Python files: `1119`
 - Packages: `42`
-- Modules: `1073`
-- Total Python lines: `206449`
+- Modules: `1077`
+- Total Python lines: `207302`
 
 ## Largest Files
 
@@ -24,7 +24,7 @@
 | 6 | `scripts/validate_cross_service_parity_live.py` | 2180 |
 | 7 | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1989 |
 | 8 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1907 |
-| 9 | `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` | 1760 |
+| 9 | `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` | 1881 |
 | 10 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
 
 ## Largest Functions And Maintainability Hotspots
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `5150`
-- Radon complexity rank inventory: `A=5019, B=131`
+- Radon analyzed block inventory: `5162`
+- Radon complexity rank inventory: `A=5031, B=131`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -127,7 +127,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=5932, missing=5721, covered=211, coverage=3.6%`
+- Interrogate docstring inventory: `total=5943, missing=5731, covered=212, coverage=3.6%`
 - Interrogate documentation coverage trend is hard-gated by `make quality-trend-gate`;
   absolute public API and module-ownership thresholds remain report-only until
   classified.

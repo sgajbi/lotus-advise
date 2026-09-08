@@ -28,6 +28,12 @@ from src.api.proposals.copilot_parameters import (
 from src.api.proposals.copilot_review_principal import (
     require_advisory_copilot_review_principal,
 )
+from src.api.proposals.policy_control_principal import (
+    PolicyControlPrincipal,
+    assert_policy_evaluation_proposal_scope,
+    require_policy_evaluation_read_principal,
+)
+from src.api.proposals.policy_evaluation_responses import POLICY_CONTROL_AUTH_RESPONSES
 from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -91,25 +97,59 @@ def create_advisory_copilot_evidence_packet(
         "proposal, memo, policy evaluation, advisor cockpit, report-readiness, and handoff "
         "records. This endpoint is the Workbench-safe projection path: callers request a "
         "proposal/version/action family, while Advise owns evidence selection, unsupported "
-        "evidence, source refs, redaction, hashes, and lineage."
+        "evidence, source refs, redaction, hashes, and lineage. A trusted policy-read principal "
+        "must authorize both the requested proposal and its stored portfolio before source data "
+        "is assembled."
     ),
-    responses=ADVISORY_COPILOT_RESPONSES,
+    responses={**ADVISORY_COPILOT_RESPONSES, **POLICY_CONTROL_AUTH_RESPONSES},
 )
 def create_advisory_copilot_evidence_packet_from_proposal_version(
     payload: AdvisoryCopilotProposalVersionEvidenceRequest,
     correlation_id: AdvisoryCopilotCorrelationIdHeader = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
     proposal_repository: ProposalRepository = Depends(get_advisory_proposal_repository),
+    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
 ) -> AdvisoryCopilotEvidencePacketResponse:
     return cast(
         AdvisoryCopilotEvidencePacketResponse,
         run_copilot_operation(
-            lambda: service.create_proposal_version_evidence_packet(
+            lambda: _create_proposal_version_evidence_packet(
                 payload=payload,
+                principal=principal,
+                service=service,
                 proposal_repository=proposal_repository,
                 correlation_id=correlation_id,
             )
         ),
+    )
+
+
+def _create_proposal_version_evidence_packet(
+    *,
+    payload: AdvisoryCopilotProposalVersionEvidenceRequest,
+    principal: PolicyControlPrincipal,
+    service: AdvisoryCopilotApplicationService,
+    proposal_repository: ProposalRepository,
+    correlation_id: str | None,
+) -> AdvisoryCopilotEvidencePacketResponse:
+    assert_policy_evaluation_proposal_scope(
+        principal=principal,
+        proposal_id=payload.proposal_id,
+    )
+    proposal = proposal_repository.get_proposal(proposal_id=payload.proposal_id)
+    if proposal is None:
+        raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
+    assert_policy_evaluation_proposal_scope(
+        principal=principal,
+        proposal_id=proposal.proposal_id,
+        portfolio_id=proposal.portfolio_id,
+    )
+    return service.create_proposal_version_evidence_packet(
+        payload=payload,
+        tenant_id=principal.tenant_id,
+        proposal=proposal,
+        proposal_repository=proposal_repository,
+        correlation_id=correlation_id,
     )
 
 

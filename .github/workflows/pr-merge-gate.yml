@@ -257,6 +257,10 @@ jobs:
           PROPOSAL_POSTGRES_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
           PROPOSAL_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
         run: python scripts/run_runtime_smoke_checks.py postgres-migration-smoke
+      - name: Prove policy tenant isolation in Postgres
+        env:
+          POLICY_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
+        run: python -m pytest -q tests/integration/advisory/engine/test_policy_evaluation_postgres_tenant_isolation.py
 
   production-profile-smoke:
     name: PR Merge Gate / Production Profile Startup Smoke

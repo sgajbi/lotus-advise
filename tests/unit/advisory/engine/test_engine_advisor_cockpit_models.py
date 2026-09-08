@@ -292,6 +292,7 @@ def test_advisor_cockpit_snapshot_uses_server_side_caller_context() -> None:
     snapshot = AdvisorCockpitOperatingSnapshot(
         snapshot_id="cockpit_snapshot_sg_001",
         caller_context=CockpitCallerContext(
+            tenant_id="tenant_sg_001",
             advisor_id="advisor_sg_001",
             role="ADVISOR",
             demo_context=True,
@@ -358,7 +359,7 @@ def test_advisor_cockpit_snapshot_rejects_invalid_action_counts() -> None:
     with pytest.raises(ValidationError, match="action counts cannot be negative"):
         AdvisorCockpitOperatingSnapshot(
             snapshot_id="cockpit_snapshot_sg_001",
-            caller_context=CockpitCallerContext(role="ADVISOR"),
+            caller_context=CockpitCallerContext(tenant_id="tenant_sg_001", role="ADVISOR"),
             as_of="2026-05-27T08:00:00+00:00",
             action_counts={"status.PENDING_REVIEW": -1},
         )

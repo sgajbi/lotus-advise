@@ -37,31 +37,40 @@ _SUPPORTED_OUTPUT_FORMATS = frozenset({"pdf", "json"})
 def request_policy_evaluation_report_package(
     *,
     evaluation_id: str,
+    tenant_id: str,
     payload: PolicyEvaluationReportPackageRequest,
     report_request_id: str,
     report_client: PolicyReportPackageClient,
     idempotency_key: str | None = None,
 ) -> PolicyEvaluationReportPackageResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    record = get_policy_evaluation_record(evaluation_id=evaluation_id)
-    _validate_report_request(record=record, payload=payload)
+    record = get_policy_evaluation_record(evaluation_id=evaluation_id, tenant_id=tenant_id)
+    _validate_report_request(record=record, payload=payload, tenant_id=tenant_id)
 
     request_hash = _request_hash(record=record, payload=payload)
     if idempotency_key:
         replayed_event = _find_replayed_report_event(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
         if replayed_event is not None:
             return PolicyEvaluationReportPackageResponse(
-                evaluation=get_policy_evaluation_record(evaluation_id=evaluation_id),
+                evaluation=get_policy_evaluation_record(
+                    evaluation_id=evaluation_id,
+                    tenant_id=tenant_id,
+                ),
                 report_package_event=replayed_event,
                 report=_report_response_from_event(record=record, event=replayed_event),
                 replayed=True,
             )
 
-    sign_off_package = _build_policy_sign_off_package(record=record, payload=payload)
+    sign_off_package = _build_policy_sign_off_package(
+        record=record,
+        payload=payload,
+        tenant_id=tenant_id,
+    )
     report = report_client.request_policy_sign_off_report_package(
         request={
             "report_request_id": report_request_id,
@@ -76,6 +85,7 @@ def request_policy_evaluation_report_package(
     )
     event = append_policy_evaluation_event(
         evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
         event_type="POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED",
         actor_id=payload.requested_by,
         idempotency_key=idempotency_key,
@@ -106,7 +116,7 @@ def request_policy_evaluation_report_package(
         },
     )
     return PolicyEvaluationReportPackageResponse(
-        evaluation=get_policy_evaluation_record(evaluation_id=evaluation_id),
+        evaluation=get_policy_evaluation_record(evaluation_id=evaluation_id, tenant_id=tenant_id),
         report_package_event=event,
         report=report,
         replayed=False,
@@ -114,13 +124,19 @@ def request_policy_evaluation_report_package(
 
 
 def _validate_report_request(
-    *, record: PolicyEvaluationRecord, payload: PolicyEvaluationReportPackageRequest
+    *,
+    record: PolicyEvaluationRecord,
+    payload: PolicyEvaluationReportPackageRequest,
+    tenant_id: str,
 ) -> None:
     _validate_report_request_hash(record=record, payload=payload)
     _validate_report_client_ready_boundary(payload=payload)
     _validate_report_output_formats(payload=payload)
 
-    workflow = get_policy_evaluation_workflow(evaluation_id=record.evaluation_id)
+    workflow = get_policy_evaluation_workflow(
+        evaluation_id=record.evaluation_id,
+        tenant_id=tenant_id,
+    )
     _validate_report_workflow_ready(workflow=workflow)
 
 
@@ -161,9 +177,9 @@ def _validate_report_workflow_ready(*, workflow: Any) -> None:
 
 
 def _find_replayed_report_event(
-    *, evaluation_id: str, idempotency_key: str, request_hash: str
+    *, evaluation_id: str, tenant_id: str, idempotency_key: str, request_hash: str
 ) -> PolicyEvaluationAuditEvent | None:
-    for event in list_policy_evaluation_events(evaluation_id=evaluation_id):
+    for event in list_policy_evaluation_events(evaluation_id=evaluation_id, tenant_id=tenant_id):
         if event.idempotency_key != idempotency_key:
             continue
         prior_hash = event.reason_json.get("policy_report_package_request_hash")
@@ -174,10 +190,19 @@ def _find_replayed_report_event(
 
 
 def _build_policy_sign_off_package(
-    *, record: PolicyEvaluationRecord, payload: PolicyEvaluationReportPackageRequest
+    *,
+    record: PolicyEvaluationRecord,
+    payload: PolicyEvaluationReportPackageRequest,
+    tenant_id: str,
 ) -> dict[str, Any]:
-    workflow = get_policy_evaluation_workflow(evaluation_id=record.evaluation_id)
-    events = list_policy_evaluation_events(evaluation_id=record.evaluation_id)
+    workflow = get_policy_evaluation_workflow(
+        evaluation_id=record.evaluation_id,
+        tenant_id=tenant_id,
+    )
+    events = list_policy_evaluation_events(
+        evaluation_id=record.evaluation_id,
+        tenant_id=tenant_id,
+    )
     return {
         "package_type": "ADVISORY_POLICY_SIGN_OFF_PACKAGE",
         "package_status": "SIGNED_OFF_SOURCE_PACKAGE",

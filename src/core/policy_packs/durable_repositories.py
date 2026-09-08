@@ -29,7 +29,7 @@ from src.core.policy_packs.repositories import PolicyEvaluationFinalizationReque
 
 
 class PolicyEvaluationStateStore(Protocol):
-    def load_snapshot(self) -> dict[str, Any]: ...
+    def load_snapshot(self, *, tenant_id: str) -> dict[str, Any]: ...
 
     def save_snapshot(self, snapshot: dict[str, Any]) -> None: ...
 
@@ -44,7 +44,8 @@ class InMemoryPolicyEvaluationStateStore:
     def __init__(self) -> None:
         self._snapshot: dict[str, Any] = {}
 
-    def load_snapshot(self) -> dict[str, Any]:
+    def load_snapshot(self, *, tenant_id: str) -> dict[str, Any]:
+        del tenant_id
         return deepcopy(self._snapshot)
 
     def save_snapshot(self, snapshot: dict[str, Any]) -> None:
@@ -69,60 +70,76 @@ class DurablePolicyEvaluationRepository:
     def finalize_policy_evaluation_record(
         self, request: PolicyEvaluationFinalizationRequest
     ) -> PolicyEvaluationPersistenceResult:
-        store = self._load_store()
+        store = self._load_store(tenant_id=request.tenant_id)
         result = store.finalize_policy_evaluation_record(request)
         self._save_store(store)
         return result
 
-    def get_policy_evaluation_record(self, *, evaluation_id: str) -> PolicyEvaluationRecord:
-        return self._load_store().get_policy_evaluation_record(evaluation_id=evaluation_id)
+    def get_policy_evaluation_record(
+        self, *, evaluation_id: str, tenant_id: str
+    ) -> PolicyEvaluationRecord:
+        return self._load_store(tenant_id=tenant_id).get_policy_evaluation_record(
+            evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
+        )
 
     def list_policy_evaluation_records(
-        self, *, evaluation_status: str | None, portfolio_id: str | None
+        self, *, tenant_id: str, evaluation_status: str | None, portfolio_id: str | None
     ) -> list[PolicyEvaluationRecord]:
-        return self._load_store().list_policy_evaluation_records(
+        return self._load_store(tenant_id=tenant_id).list_policy_evaluation_records(
+            tenant_id=tenant_id,
             evaluation_status=evaluation_status,
             portfolio_id=portfolio_id,
         )
 
     def list_policy_evaluation_events(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> list[PolicyEvaluationAuditEvent]:
-        return self._load_store().list_policy_evaluation_events(evaluation_id=evaluation_id)
+        return self._load_store(tenant_id=tenant_id).list_policy_evaluation_events(
+            evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
+        )
 
     def get_policy_evaluation_lineage(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationLineageResponse:
-        return self._load_store().get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+        return self._load_store(tenant_id=tenant_id).get_policy_evaluation_lineage(
+            evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
+        )
 
     def get_policy_evaluation_review_queue(
-        self, *, evaluation_status: str | None, portfolio_id: str | None
+        self, *, tenant_id: str, evaluation_status: str | None, portfolio_id: str | None
     ) -> PolicyEvaluationReviewQueueResponse:
-        return self._load_store().get_policy_evaluation_review_queue(
+        return self._load_store(tenant_id=tenant_id).get_policy_evaluation_review_queue(
+            tenant_id=tenant_id,
             evaluation_status=evaluation_status,
             portfolio_id=portfolio_id,
         )
 
     def get_policy_evaluation_sign_off_package(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationSignOffPackageResponse:
-        return self._load_store().get_policy_evaluation_sign_off_package(
-            evaluation_id=evaluation_id
+        return self._load_store(tenant_id=tenant_id).get_policy_evaluation_sign_off_package(
+            evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
         )
 
     def append_policy_evaluation_event(
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         event_type: PolicyEvaluationEventType,
         actor_id: str,
         reason: dict[str, Any],
         idempotency_key: str | None,
         authority: PolicyEvaluationEventAuthority | None = None,
     ) -> PolicyEvaluationAuditEvent:
-        store = self._load_store()
+        store = self._load_store(tenant_id=tenant_id)
         event = store.append_policy_evaluation_event(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             event_type=event_type,
             actor_id=actor_id,
             reason=reason,
@@ -136,15 +153,19 @@ class DurablePolicyEvaluationRepository:
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         evidence_bundle: dict[str, Any] | None,
     ) -> PolicyEvaluationReplayResponse:
-        return self._load_store().replay_policy_evaluation_record(
+        return self._load_store(tenant_id=tenant_id).replay_policy_evaluation_record(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             evidence_bundle=evidence_bundle,
         )
 
-    def _load_store(self) -> PolicyEvaluationRecordStore:
-        return PolicyEvaluationRecordStore.from_snapshot(self._state_store.load_snapshot())
+    def _load_store(self, *, tenant_id: str) -> PolicyEvaluationRecordStore:
+        return PolicyEvaluationRecordStore.from_snapshot(
+            self._state_store.load_snapshot(tenant_id=tenant_id)
+        )
 
     def _save_store(self, store: PolicyEvaluationRecordStore) -> None:
         self._state_store.save_snapshot(store.snapshot())

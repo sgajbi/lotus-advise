@@ -15,28 +15,36 @@ class PostgresPolicyEvaluationStateStore:
     def __init__(self, *, connect: ConnectionFactory) -> None:
         self._connect = connect
 
-    def load_snapshot(self) -> dict[str, Any]:
+    def load_snapshot(self, *, tenant_id: str) -> dict[str, Any]:
         with closing(self._connect()) as connection:
             record_rows = connection.execute(
                 """
                 SELECT evaluation_id, tenant_id, record_json
                 FROM policy_evaluation_records
+                WHERE tenant_id = %s
                 ORDER BY generated_at ASC, evaluation_id ASC
-                """
+                """,
+                (tenant_id,),
             ).fetchall()
             event_rows = connection.execute(
                 """
-                SELECT evaluation_id, event_json
-                FROM policy_evaluation_audit_events
-                ORDER BY evaluation_id ASC, occurred_at ASC, event_id ASC
-                """
+                SELECT event.evaluation_id, event.event_json
+                FROM policy_evaluation_audit_events AS event
+                JOIN policy_evaluation_records AS record
+                  ON record.evaluation_id = event.evaluation_id
+                WHERE record.tenant_id = %s
+                ORDER BY event.evaluation_id ASC, event.occurred_at ASC, event.event_id ASC
+                """,
+                (tenant_id,),
             ).fetchall()
             idempotency_rows = connection.execute(
                 """
-                SELECT idempotency_key, request_hash, evaluation_id, event_id
+                SELECT tenant_id, idempotency_key, request_hash, evaluation_id, event_id
                 FROM policy_evaluation_idempotency
+                WHERE tenant_id = %s
                 ORDER BY idempotency_key ASC
-                """
+                """,
+                (tenant_id,),
             ).fetchall()
         return {
             "records": _records_snapshot(record_rows),
@@ -135,14 +143,7 @@ class PostgresPolicyPackCatalogStateStore:
 
 
 def _records_snapshot(rows: list[Any]) -> dict[str, dict[str, Any]]:
-    """Hydrate records, with the SQL column authoritative for the admitted tenant.
-
-    `record_json` cannot be trusted for this field: during the migration 0003 deploy
-    wave an old binary rewrites it without the `tenant_id` its model does not know,
-    while the column survives because the upsert never lists it in DO UPDATE SET. The
-    scoped reads query the column too, so read and query agree on one source. Proved by
-    `test_an_old_binary_cannot_erase_the_admitted_tenant`.
-    """
+    """Hydrate with the durable tenant column authoritative over legacy JSON."""
 
     records = {}
     for row in rows:
@@ -254,13 +255,14 @@ def _upsert_policy_evaluation_idempotency(
     cursor = connection.execute(
         """
         INSERT INTO policy_evaluation_idempotency (
+            tenant_id,
             idempotency_key,
             request_hash,
             evaluation_id,
             event_id,
             created_at
-        ) VALUES (%s, %s, %s, %s, %s)
-        ON CONFLICT (idempotency_key) DO UPDATE SET
+        ) VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (tenant_id, idempotency_key) DO UPDATE SET
             request_hash=excluded.request_hash,
             evaluation_id=excluded.evaluation_id,
             event_id=excluded.event_id
@@ -277,6 +279,7 @@ def _upsert_policy_evaluation_idempotency(
             WHERE old_record.evaluation_id = policy_evaluation_idempotency.evaluation_id
               AND old_record.evaluation_status = 'BLOCKED'
               AND new_record.evaluation_status <> 'BLOCKED'
+              AND old_record.tenant_id IS NOT DISTINCT FROM new_record.tenant_id
               AND old_record.proposal_id = new_record.proposal_id
               AND old_record.proposal_version_id = new_record.proposal_version_id
               AND old_record.portfolio_id = new_record.portfolio_id
@@ -309,6 +312,7 @@ def _upsert_policy_evaluation_idempotency(
         )
         """,
         (
+            idempotency.get("tenant_id"),
             idempotency["idempotency_key"],
             idempotency["request_hash"],
             idempotency["evaluation_id"],

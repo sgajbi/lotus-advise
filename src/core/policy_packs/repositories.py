@@ -27,17 +27,7 @@ from src.core.policy_packs.projection_models import (
 
 @dataclass(frozen=True)
 class PolicyEvaluationFinalizationRequest:
-    """Everything needed to finalize one policy evaluation record.
-
-    One object rather than eleven keyword parameters repeated at every
-    implementation of the protocol below. The repeated signature was duplication
-    the code-health gate reported once the tenant made it twelve parameters -- and
-    the gate was right that the parameter list, not the delegation, was the smell.
-
-    Frozen because a finalization request is a description of one submission: a
-    frame that could edit it in flight could change what gets recorded from what
-    was admitted.
-    """
+    """Immutable submission boundary shared by policy-evaluation repositories."""
 
     evidence_bundle: dict[str, Any]
     policy_pack_id: str
@@ -56,32 +46,35 @@ class PolicyEvaluationRepository(Protocol):
         self, request: PolicyEvaluationFinalizationRequest
     ) -> PolicyEvaluationPersistenceResult: ...
 
-    def get_policy_evaluation_record(self, *, evaluation_id: str) -> PolicyEvaluationRecord: ...
+    def get_policy_evaluation_record(
+        self, *, evaluation_id: str, tenant_id: str
+    ) -> PolicyEvaluationRecord: ...
 
     def list_policy_evaluation_records(
-        self, *, evaluation_status: str | None, portfolio_id: str | None
+        self, *, tenant_id: str, evaluation_status: str | None, portfolio_id: str | None
     ) -> list[PolicyEvaluationRecord]: ...
 
     def list_policy_evaluation_events(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> list[PolicyEvaluationAuditEvent]: ...
 
     def get_policy_evaluation_lineage(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationLineageResponse: ...
 
     def get_policy_evaluation_review_queue(
-        self, *, evaluation_status: str | None, portfolio_id: str | None
+        self, *, tenant_id: str, evaluation_status: str | None, portfolio_id: str | None
     ) -> PolicyEvaluationReviewQueueResponse: ...
 
     def get_policy_evaluation_sign_off_package(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationSignOffPackageResponse: ...
 
     def append_policy_evaluation_event(
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         event_type: PolicyEvaluationEventType,
         actor_id: str,
         reason: dict[str, Any],
@@ -93,6 +86,7 @@ class PolicyEvaluationRepository(Protocol):
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         evidence_bundle: dict[str, Any] | None,
     ) -> PolicyEvaluationReplayResponse: ...
 

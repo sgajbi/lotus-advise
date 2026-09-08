@@ -19,6 +19,11 @@ _normalize_optional_business_text = cockpit_validation.normalize_optional_busine
 
 
 class CockpitCallerContext(BaseModel):
+    tenant_id: str = Field(
+        max_length=_COCKPIT_IDENTIFIER_MAX_LENGTH,
+        description="Admitted tenant scope used for every tenant-owned source read.",
+        examples=["tenant_sg_001"],
+    )
     advisor_id: str | None = Field(
         default=None,
         max_length=_COCKPIT_IDENTIFIER_MAX_LENGTH,
@@ -47,7 +52,7 @@ class CockpitCallerContext(BaseModel):
         examples=[True],
     )
 
-    @field_validator("advisor_id", "desk_id", "coverage_team_id")
+    @field_validator("tenant_id", "advisor_id", "desk_id", "coverage_team_id")
     @classmethod
     def _caller_refs_must_be_bounded(cls, value: str | None) -> str | None:
         return _normalize_optional_identifier(value, field_name="caller context")

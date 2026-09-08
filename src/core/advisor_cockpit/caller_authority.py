@@ -49,6 +49,7 @@ def cockpit_caller_context_from_principal(
     principal: AdvisorCockpitPrincipal,
 ) -> CockpitCallerContext:
     return CockpitCallerContext(
+        tenant_id=principal.tenant_id,
         advisor_id=_advisor_scope_for_context(principal),
         role=cast(AdvisorCockpitCallerRole, principal.role),
     )

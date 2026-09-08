@@ -354,8 +354,14 @@ def _record_policy_evaluation_event_with_telemetry(
     principal: PolicyControlPrincipal,
 ) -> PolicyEvaluationAuditEvent:
     service = shared.get_policy_evidence_application_service()
-    record = service.get_policy_evaluation_record(evaluation_id=evaluation_id)
-    lineage = service.get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+    record = service.get_policy_evaluation_record(
+        evaluation_id=evaluation_id,
+        tenant_id=principal.tenant_id,
+    )
+    lineage = service.get_policy_evaluation_lineage(
+        evaluation_id=evaluation_id,
+        tenant_id=principal.tenant_id,
+    )
     assert_policy_evaluation_record_scope(
         principal=principal,
         record=record,
@@ -364,6 +370,7 @@ def _record_policy_evaluation_event_with_telemetry(
     try:
         response = service.append_policy_evaluation_event(
             evaluation_id=evaluation_id,
+            tenant_id=principal.tenant_id,
             event_type=payload.event_type,
             actor_id=bind_policy_control_actor(payload.actor_id, principal),
             reason=policy_control_audit_reason(

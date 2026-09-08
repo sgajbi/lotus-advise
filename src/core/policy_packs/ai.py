@@ -61,12 +61,13 @@ _FORBIDDEN_ACTION_FRAGMENTS = (
 def request_policy_evaluation_ai_evidence(
     *,
     evaluation_id: str,
+    tenant_id: str,
     payload: PolicyEvaluationAiEvidenceRequest,
     ai_client: PolicyAiEvidenceClient,
     idempotency_key: str | None = None,
 ) -> PolicyEvaluationAiEvidenceResponse:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
-    record = get_policy_evaluation_record(evaluation_id=evaluation_id)
+    record = get_policy_evaluation_record(evaluation_id=evaluation_id, tenant_id=tenant_id)
     _validate_ai_request(record=record, payload=payload)
     requested_actions = _normalize_requested_actions(payload.requested_actions)
     request_hash = _request_hash(
@@ -77,12 +78,16 @@ def request_policy_evaluation_ai_evidence(
     if idempotency_key:
         replayed_event = _find_replayed_ai_event(
             evaluation_id=evaluation_id,
+            tenant_id=tenant_id,
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
         if replayed_event is not None:
             return PolicyEvaluationAiEvidenceResponse(
-                evaluation=get_policy_evaluation_record(evaluation_id=evaluation_id),
+                evaluation=get_policy_evaluation_record(
+                    evaluation_id=evaluation_id,
+                    tenant_id=tenant_id,
+                ),
                 ai_event=replayed_event,
                 policy_evidence=_policy_evidence_from_event(replayed_event),
                 replayed=True,
@@ -91,6 +96,7 @@ def request_policy_evaluation_ai_evidence(
     evidence_packet = _build_policy_ai_evidence_packet(
         record=record,
         requested_actions=requested_actions,
+        tenant_id=tenant_id,
     )
     try:
         draft = ai_client.generate_policy_evidence_summary(
@@ -128,6 +134,7 @@ def request_policy_evaluation_ai_evidence(
     }
     event = append_policy_evaluation_event(
         evaluation_id=evaluation_id,
+        tenant_id=tenant_id,
         event_type="POLICY_EVALUATION_AI_EVIDENCE_RECORDED",
         actor_id=payload.requested_by,
         idempotency_key=idempotency_key,
@@ -135,7 +142,7 @@ def request_policy_evaluation_ai_evidence(
         reason=reason,
     )
     return PolicyEvaluationAiEvidenceResponse(
-        evaluation=get_policy_evaluation_record(evaluation_id=evaluation_id),
+        evaluation=get_policy_evaluation_record(evaluation_id=evaluation_id, tenant_id=tenant_id),
         ai_event=event,
         policy_evidence=_policy_evidence_from_event(event),
         replayed=False,
@@ -192,9 +199,9 @@ def _contains_forbidden_action_fragment(action: str) -> bool:
 
 
 def _find_replayed_ai_event(
-    *, evaluation_id: str, idempotency_key: str, request_hash: str
+    *, evaluation_id: str, tenant_id: str, idempotency_key: str, request_hash: str
 ) -> PolicyEvaluationAuditEvent | None:
-    for event in list_policy_evaluation_events(evaluation_id=evaluation_id):
+    for event in list_policy_evaluation_events(evaluation_id=evaluation_id, tenant_id=tenant_id):
         if event.idempotency_key != idempotency_key:
             continue
         prior_hash = event.reason_json.get("policy_ai_request_hash")
@@ -205,10 +212,16 @@ def _find_replayed_ai_event(
 
 
 def _build_policy_ai_evidence_packet(
-    *, record: PolicyEvaluationRecord, requested_actions: list[str]
+    *, record: PolicyEvaluationRecord, requested_actions: list[str], tenant_id: str
 ) -> dict[str, Any]:
-    workflow = get_policy_evaluation_workflow(evaluation_id=record.evaluation_id)
-    events = list_policy_evaluation_events(evaluation_id=record.evaluation_id)
+    workflow = get_policy_evaluation_workflow(
+        evaluation_id=record.evaluation_id,
+        tenant_id=tenant_id,
+    )
+    events = list_policy_evaluation_events(
+        evaluation_id=record.evaluation_id,
+        tenant_id=tenant_id,
+    )
     return {
         "packet_type": "ADVISORY_POLICY_AI_EVIDENCE_PACKET",
         "packet_version": _AI_CONTRACT_VERSION,

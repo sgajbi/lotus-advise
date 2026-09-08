@@ -77,12 +77,9 @@ class PolicyEvaluationRecord(BaseModel):
     )
     tenant_id: str | None = Field(
         default=None,
-        # Excluded so it reaches no response body: the review queue resolves no
-        # principal and filters by no tenant, so adding a scope to what is stored must
-        # not widen what an unscoped read returns. On the model rather than per route,
-        # because four response models embed this record; `snapshot()` re-adds it for
-        # the durable column. Both halves are asserted by
-        # `test_the_record_carries_the_admitted_tenant_without_serialising_it`.
+        # Tenant is an internal authorization key, not response data. Every evaluation
+        # route resolves a principal and scopes storage by this field; `snapshot()`
+        # re-adds it for the durable column while response serialization excludes it.
         exclude=True,
         description=(
             "Tenant the evaluation was admitted under, captured from the admitted principal "

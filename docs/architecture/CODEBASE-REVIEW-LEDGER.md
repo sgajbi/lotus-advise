@@ -29808,3 +29808,53 @@
   truth. No product API or platform-wide context change is required.
 - Follow-Up: #495 remains the owning quality-gate issue; no actionable rebase-provenance work is
   left only in chat.
+
+## LA-REV-624-POLICY-EVALUATION-TENANT-OWNERSHIP
+
+- Scope: Cycle 5 tenant isolation for policy-evaluation reads, commands, replay, durable state,
+  PostgreSQL idempotency, and the proposal-version Advisory Copilot entry point.
+- Pattern: Evaluation identifiers and caller-provided idempotency keys are not tenant authority.
+  Every read and mutation must admit a trusted principal, query by stored tenant before hydration,
+  refuse unattributable legacy rows, and preserve owner state on rejected access.
+- Status: Hardened on draft PR #631; reviewed quality-growth approval, another latest-head review,
+  merge, exact-main validation, downstream Gateway adoption, and wiki publication remain gates.
+- Finding Class: Authorization, tenant isolation, persistence integrity, API contracts, migration
+  safety, duplication, and CI fitness functions.
+- Summary: A dedicated `advisory.policy_evaluation.read` capability now protects the review queue,
+  detail, replay, lineage, diagnostics, sign-off package, workflow, and proposal-version Copilot
+  surfaces. Tenant scope flows through application and repository ports. In-memory idempotency is
+  tenant-keyed; PostgreSQL migration 0004 adds tenant-key uniqueness while quarantining NULL-owned
+  rows before hydration. Finalization refuses missing or mismatched trusted-tenant authority before
+  replay, index, or write paths. Proposal-version Copilot assembly now requires matching proposal
+  and portfolio authority before reading source records and uses the same validated proposal during
+  packet construction. Shared principal-header parsing and package scope loading remove eight
+  duplicate fingerprints discovered by the gate.
+- Evidence:
+  - Exact refusal tests assert missing-principal, missing-tenant, principal/request mismatch,
+    foreign-record, and NULL-record codes with unchanged state; owned replay and independent
+    same-key tenants remain positive cases.
+  - PostgreSQL integration proof covers owner re-save, foreign upsert refusal with unchanged JSON
+    and idempotency evidence after restart, concurrent same-key writes by separate tenants, and
+    malformed NULL-owned record/event rows plus unattributable idempotency excluded before
+    hydration.
+  - Local validation: 2,964 unit passes with only the deliberate absent-exception assertion
+    deselected; that assertion fails exactly while the policy still has four entries. Integration
+    has 57 passes/17 environment skips and E2E has 12 passes/3 live-runtime skips. Real PostgreSQL
+    has 12 passes across randomized seeds 11, 29, and 47; mypy is clean across 669 files; OpenAPI plus
+    13 lifecycle contract tests and Spectral pass; migration smoke 24 passes; architecture 4 kept,
+    0 broken; Radon A=5031/B=131, worst B/10; duplicate gate 24 reviewed, 0 new.
+  - Regenerated API vocabulary and quality baseline report current contract and static-analysis
+    truth. Python growth is +853 versus `origin/main`, split +157 production and +696 tests; the
+    +200 policy remains enforced and no exception is claimed without explicit review approval.
+- Compatibility: Existing evaluation identifiers, status transitions, hashes, receipts, and
+  authorized owner behavior remain stable. The intentional contract change is fail-closed
+  principal/capability enforcement and tenant-scoped reads/idempotency; Gateway consumers must
+  forward the standard principal headers and read capability. Migration 0003 writer cutover and
+  pre-0004 drain remain required.
+- Documentation decision: README, repository context, operations and migration runbooks, RFC-0025,
+  OpenAPI vocabulary, rollout contract, and wiki source are updated. No central platform context
+  change is needed; post-merge wiki publication and parity verification are required.
+- Follow-Up: #624 retains downstream Gateway/Workbench adoption; Gateway #758/#760 own forwarding
+  and consumer behavior. #632 owns broader Copilot packet/run tenant authority found by the
+  same-pattern scan. #554 remains source-producer work, and #557 cannot claim an attributable
+  canonical replay until lotus-core #1107 supplies exact image provenance.

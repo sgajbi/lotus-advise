@@ -13,6 +13,7 @@ from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,
 )
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
+from src.core.proposals.models import ProposalRecord
 from src.core.proposals.repository import ProposalRepository
 
 
@@ -20,15 +21,18 @@ def save_proposal_version_advisory_copilot_evidence_packet(
     *,
     repository: AdvisoryCopilotRepository,
     proposal_repository: ProposalRepository,
+    proposal: ProposalRecord,
     payload: AdvisoryCopilotProposalVersionEvidenceRequest,
     policy_evaluations: Sequence[PolicyEvaluationRecord],
     correlation_id: str | None,
 ) -> AdvisoryCopilotEvidencePacketResponse:
+    if proposal.proposal_id != payload.proposal_id:
+        raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
     packet = build_proposal_version_copilot_evidence_packet(
         repository=proposal_repository,
+        proposal=proposal,
         evidence_packet_id=payload.evidence_packet_id,
         action_family=payload.action_family,
-        proposal_id=payload.proposal_id,
         proposal_version_no=payload.proposal_version_no,
         audience=payload.audience,
         policy_evaluations=list(policy_evaluations),

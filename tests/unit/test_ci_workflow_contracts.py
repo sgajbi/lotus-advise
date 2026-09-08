@@ -677,6 +677,12 @@ def test_pr_and_main_runtime_jobs_are_parallelized_without_renaming_required_che
                 assert "needs: [exact-revision-assertion]" in job_section
             else:
                 assert "needs: [lint-typecheck-governance]" not in job_section
+            if job_id == "postgres-migration-smoke":
+                assert "POLICY_POSTGRES_INTEGRATION_DSN:" in job_section
+                assert (
+                    "tests/integration/advisory/engine/"
+                    "test_policy_evaluation_postgres_tenant_isolation.py" in job_section
+                )
 
         docker_section = _workflow_job_section(workflow, "docker-build")
         assert (

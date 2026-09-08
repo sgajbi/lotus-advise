@@ -45,6 +45,7 @@ from src.core.policy_packs.supportability import (
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
+    ProposalValidationError,
 )
 
 _PERSISTENCE_CONTRACT_VERSION = POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION
@@ -68,7 +69,10 @@ class PolicyEvaluationRecordStore:
             for evaluation_id, events in snapshot.get("events", {}).items()
         }
         store._idempotency = {
-            str(item["idempotency_key"]): (
+            (
+                _snapshot_idempotency_tenant(item, records=store._records),
+                str(item["idempotency_key"]),
+            ): (
                 str(item["request_hash"]),
                 str(item["evaluation_id"]),
                 str(item["event_id"]),
@@ -81,7 +85,7 @@ class PolicyEvaluationRecordStore:
     def reset(self) -> None:
         self._records: dict[str, PolicyEvaluationRecord] = {}
         self._events: dict[str, list[PolicyEvaluationAuditEvent]] = {}
-        self._idempotency: dict[str, tuple[str, str, str]] = {}
+        self._idempotency: dict[tuple[str | None, str], tuple[str, str, str]] = {}
         self._identity_index: dict[tuple[str, str, str, str, str], str] = {}
 
     def snapshot(self) -> dict[str, Any]:
@@ -98,12 +102,13 @@ class PolicyEvaluationRecordStore:
             },
             "idempotency": [
                 {
+                    "tenant_id": tenant_id,
                     "idempotency_key": idempotency_key,
                     "request_hash": request_hash,
                     "evaluation_id": evaluation_id,
                     "event_id": event_id,
                 }
-                for idempotency_key, (
+                for (tenant_id, idempotency_key), (
                     request_hash,
                     evaluation_id,
                     event_id,
@@ -121,6 +126,7 @@ class PolicyEvaluationRecordStore:
     def finalize_policy_evaluation_record(
         self, request: PolicyEvaluationFinalizationRequest
     ) -> PolicyEvaluationPersistenceResult:
+        _assert_finalization_tenant_authority(request)
         evidence_bundle = request.evidence_bundle
         policy_pack_id = request.policy_pack_id
         policy_version = request.policy_version
@@ -144,6 +150,7 @@ class PolicyEvaluationRecordStore:
             }
         )
         replayed = self._find_replayed_event(
+            tenant_id=tenant_id,
             idempotency_key=idempotency_key,
             request_hash=request_hash,
             proposal_id=proposal_id,
@@ -157,6 +164,7 @@ class PolicyEvaluationRecordStore:
         )
         if replayed is not None:
             _, record = replayed
+            _assert_replay_ownership(stored=record.tenant_id, presented=tenant_id)
             return PolicyEvaluationPersistenceResult(
                 record=deepcopy(record),
                 created=False,
@@ -173,18 +181,15 @@ class PolicyEvaluationRecordStore:
         )
         existing_id = self._identity_index.get(identity)
         if existing_id is not None:
-            record = self._load_record(existing_id)
-            # The evaluation identity is derived from proposal, version, pack, policy
-            # version and evidence hash -- deliberately not the tenant, so that adding
-            # the tenant did not move any historical `evaluation_id`. The consequence
-            # is that two admitted tenants can reach the same identity, and returning
-            # the stored record would hand the first tenant's evaluation to the second.
-            # Refused rather than reconciled: a shared identity across tenants is a
-            # collision to surface, not a replay to serve.
+            record = self._load_record_unscoped(existing_id)
             if record.tenant_id != tenant_id:
                 raise ProposalIdempotencyConflictError("POLICY_EVALUATION_TENANT_IDENTITY_CONFLICT")
             event = self._events[existing_id][0]
-            self._idempotency[idempotency_key] = (request_hash, existing_id, event.event_id)
+            self._idempotency[(tenant_id, idempotency_key)] = (
+                request_hash,
+                existing_id,
+                event.event_id,
+            )
             return PolicyEvaluationPersistenceResult(
                 record=deepcopy(record),
                 created=False,
@@ -232,7 +237,7 @@ class PolicyEvaluationRecordStore:
         self._records[record.evaluation_id] = record
         self._events[record.evaluation_id] = [event]
         self._identity_index[identity] = record.evaluation_id
-        self._idempotency[idempotency_key] = (
+        self._idempotency[(tenant_id, idempotency_key)] = (
             request_hash,
             record.evaluation_id,
             event.event_id,
@@ -244,16 +249,19 @@ class PolicyEvaluationRecordStore:
             audit_event=deepcopy(event),
         )
 
-    def get_policy_evaluation_record(self, *, evaluation_id: str) -> PolicyEvaluationRecord:
-        return deepcopy(self._load_record(evaluation_id))
+    def get_policy_evaluation_record(
+        self, *, evaluation_id: str, tenant_id: str
+    ) -> PolicyEvaluationRecord:
+        return deepcopy(self._load_record(evaluation_id, tenant_id=tenant_id))
 
     def list_policy_evaluation_records(
-        self, *, evaluation_status: str | None, portfolio_id: str | None
+        self, *, tenant_id: str, evaluation_status: str | None, portfolio_id: str | None
     ) -> list[PolicyEvaluationRecord]:
         return _copied_policy_evaluation_records(
             _ordered_policy_evaluation_records(
                 _filtered_policy_evaluation_records(
                     self._records.values(),
+                    tenant_id=tenant_id,
                     evaluation_status=evaluation_status,
                     portfolio_id=portfolio_id,
                 )
@@ -261,35 +269,36 @@ class PolicyEvaluationRecordStore:
         )
 
     def list_policy_evaluation_events(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> list[PolicyEvaluationAuditEvent]:
-        self._load_record(evaluation_id)
+        self._load_record(evaluation_id, tenant_id=tenant_id)
         return [deepcopy(event) for event in self._events[evaluation_id]]
 
     def get_policy_evaluation_lineage(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationLineageResponse:
-        record = self._load_record(evaluation_id)
+        record = self._load_record(evaluation_id, tenant_id=tenant_id)
         return build_policy_evaluation_lineage_response(
             record=record,
             audit_events=self._events[evaluation_id],
         )
 
     def get_policy_evaluation_review_queue(
-        self, *, evaluation_status: str | None, portfolio_id: str | None
+        self, *, tenant_id: str, evaluation_status: str | None, portfolio_id: str | None
     ) -> PolicyEvaluationReviewQueueResponse:
         return PolicyEvaluationReviewQueueResponse(
             items=self.list_policy_evaluation_records(
                 evaluation_status=evaluation_status,
                 portfolio_id=portfolio_id,
+                tenant_id=tenant_id,
             ),
             queue_posture=policy_evaluation_api_posture(),
         )
 
     def get_policy_evaluation_sign_off_package(
-        self, *, evaluation_id: str
+        self, *, evaluation_id: str, tenant_id: str
     ) -> PolicyEvaluationSignOffPackageResponse:
-        record = self._load_record(evaluation_id)
+        record = self._load_record(evaluation_id, tenant_id=tenant_id)
         lineage = build_policy_evaluation_lineage_response(
             record=record,
             audit_events=self._events[evaluation_id],
@@ -304,13 +313,14 @@ class PolicyEvaluationRecordStore:
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         event_type: PolicyEvaluationEventType,
         actor_id: str,
         reason: dict[str, Any],
         idempotency_key: str | None,
         authority: PolicyEvaluationEventAuthority | None = None,
     ) -> PolicyEvaluationAuditEvent:
-        record = self._load_record(evaluation_id)
+        record = self._load_record(evaluation_id, tenant_id=tenant_id)
         validate_policy_evaluation_event_authority(
             event_type=event_type,
             reason=reason,
@@ -328,6 +338,7 @@ class PolicyEvaluationRecordStore:
         )
         if idempotency_key:
             replayed = self._find_replayed_event(
+                tenant_id=tenant_id,
                 idempotency_key=idempotency_key,
                 request_hash=request_hash,
                 event_type=event_type,
@@ -349,22 +360,33 @@ class PolicyEvaluationRecordStore:
         self._events[evaluation_id].append(event)
         attach_policy_evaluation_event(record=record, event=event)
         if idempotency_key:
-            self._idempotency[idempotency_key] = (request_hash, evaluation_id, event.event_id)
+            self._idempotency[(tenant_id, idempotency_key)] = (
+                request_hash,
+                evaluation_id,
+                event.event_id,
+            )
         return deepcopy(event)
 
     def replay_policy_evaluation_record(
         self,
         *,
         evaluation_id: str,
+        tenant_id: str,
         evidence_bundle: dict[str, Any] | None,
     ) -> PolicyEvaluationReplayResponse:
-        record = self._load_record(evaluation_id)
+        record = self._load_record(evaluation_id, tenant_id=tenant_id)
         return build_policy_evaluation_replay_response(
             record=record,
             evidence_bundle=evidence_bundle,
         )
 
-    def _load_record(self, evaluation_id: str) -> PolicyEvaluationRecord:
+    def _load_record(self, evaluation_id: str, *, tenant_id: str) -> PolicyEvaluationRecord:
+        record = self._load_record_unscoped(evaluation_id)
+        if record.tenant_id != tenant_id:
+            raise ProposalNotFoundError("POLICY_EVALUATION_RECORD_NOT_FOUND")
+        return record
+
+    def _load_record_unscoped(self, evaluation_id: str) -> PolicyEvaluationRecord:
         record = self._records.get(evaluation_id)
         if record is None:
             raise ProposalNotFoundError("POLICY_EVALUATION_RECORD_NOT_FOUND")
@@ -401,6 +423,7 @@ class PolicyEvaluationRecordStore:
     def _find_replayed_event(
         self,
         *,
+        tenant_id: str,
         idempotency_key: str,
         request_hash: str,
         event_type: PolicyEvaluationEventType | None = None,
@@ -416,7 +439,7 @@ class PolicyEvaluationRecordStore:
         evidence_bundle: dict[str, Any] | None = None,
         reason: dict[str, Any] | None = None,
     ) -> tuple[PolicyEvaluationAuditEvent, PolicyEvaluationRecord] | None:
-        stored = self._idempotency.get(idempotency_key)
+        stored = self._idempotency.get((tenant_id, idempotency_key))
         if stored is None:
             return None
         stored_hash, stored_evaluation_id, event_id = stored
@@ -461,7 +484,7 @@ class PolicyEvaluationRecordStore:
         evaluation_id: str,
         event_id: str,
     ) -> tuple[PolicyEvaluationRecord, PolicyEvaluationAuditEvent]:
-        record = self._load_record(evaluation_id)
+        record = self._load_record_unscoped(evaluation_id)
         event = next(event for event in self._events[evaluation_id] if event.event_id == event_id)
         return record, event
 
@@ -469,10 +492,12 @@ class PolicyEvaluationRecordStore:
 def _filtered_policy_evaluation_records(
     records: Iterable[PolicyEvaluationRecord],
     *,
+    tenant_id: str,
     evaluation_status: str | None,
     portfolio_id: str | None,
 ) -> list[PolicyEvaluationRecord]:
     filters = _policy_evaluation_record_filters(
+        tenant_id=tenant_id,
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
     )
@@ -481,10 +506,13 @@ def _filtered_policy_evaluation_records(
 
 def _policy_evaluation_record_filters(
     *,
+    tenant_id: str,
     evaluation_status: str | None,
     portfolio_id: str | None,
 ) -> tuple[Callable[[PolicyEvaluationRecord], bool], ...]:
-    filters: list[Callable[[PolicyEvaluationRecord], bool]] = []
+    filters: list[Callable[[PolicyEvaluationRecord], bool]] = [
+        lambda record: record.tenant_id == tenant_id
+    ]
     if evaluation_status:
         filters.append(lambda record: record.evaluation_status == evaluation_status)
     if portfolio_id:
@@ -522,6 +550,16 @@ def _identity_index_from_snapshot(
             )
         ] = str(item["evaluation_id"])
     return index
+
+
+def _snapshot_idempotency_tenant(
+    item: dict[str, Any], *, records: dict[str, PolicyEvaluationRecord]
+) -> str | None:
+    if "tenant_id" in item:
+        value = item["tenant_id"]
+        return str(value) if value is not None else None
+    record = records.get(str(item["evaluation_id"]))
+    return record.tenant_id if record is not None else None
 
 
 def _trusted_principal_from_reason(reason: dict[str, Any]) -> dict[str, Any]:
@@ -918,6 +956,26 @@ def _repair_changes_only_missing_legal_entity(
         return False
     policy_context.pop("legal_entity_code", None)
     return hash_canonical_payload(comparable) == record.source_evidence_hash
+
+
+def _assert_finalization_tenant_authority(request: PolicyEvaluationFinalizationRequest) -> None:
+    principal = request.reason.get("trusted_principal")
+    if not isinstance(principal, dict):
+        raise ProposalValidationError("POLICY_EVALUATION_TRUSTED_PRINCIPAL_REQUIRED")
+    trusted_tenant = principal.get("tenant_id")
+    if not isinstance(trusted_tenant, str) or not trusted_tenant.strip():
+        raise ProposalValidationError("POLICY_EVALUATION_TRUSTED_TENANT_REQUIRED")
+    if trusted_tenant.strip() != request.tenant_id:
+        raise ProposalValidationError("POLICY_EVALUATION_TENANT_PRINCIPAL_MISMATCH")
+
+
+def _assert_replay_ownership(*, stored: str | None, presented: str) -> None:
+    """Refuse foreign and unattributable replay records without mutating them."""
+
+    if stored is None:
+        raise ProposalIdempotencyConflictError("POLICY_EVALUATION_TENANT_UNATTRIBUTABLE_RECORD")
+    if stored != presented:
+        raise ProposalIdempotencyConflictError("POLICY_EVALUATION_TENANT_IDENTITY_CONFLICT")
 
 
 def _portfolio_id_from_evidence(evidence_bundle: dict[str, Any]) -> str | None:
