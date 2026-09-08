@@ -15,6 +15,7 @@ DEFAULT_INVENTORY_PATH = (
 EXPECTED_SCHEMA_VERSION = "lotus.advise.advisory-evidence-telemetry-field-inventory.v1"
 REQUIRED_FIELD_PATHS = frozenset(
     {
+        "policy_evaluation_records.tenant_id",
         "advisory_copilot_runs.portfolio_id",
         "advisory_copilot_runs.proposal_id",
         "advisory_copilot_runs.tenant_id",
