@@ -121,8 +121,6 @@ class PolicyEvaluationRecordStore:
     def finalize_policy_evaluation_record(
         self, request: PolicyEvaluationFinalizationRequest
     ) -> PolicyEvaluationPersistenceResult:
-        # Unpacked once rather than threaded as eleven parameters; the tenant is a
-        # field of the request, which has no default for it either.
         evidence_bundle = request.evidence_bundle
         policy_pack_id = request.policy_pack_id
         policy_version = request.policy_version

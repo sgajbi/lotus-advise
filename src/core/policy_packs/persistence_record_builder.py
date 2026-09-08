@@ -23,11 +23,8 @@ def build_policy_evaluation_record(
     proposal_id: str,
     proposal_version_id: str,
     created_by: str,
-    # Required and without a default. The admitted tenant already exists at every call
-    # site -- `PolicyControlPrincipal.tenant_id` is resolved, checked and used in audit
-    # metadata -- and simply never reached the persisted record. A default here would
-    # let a new caller keep that gap, and required-not-defaulted is what finds the call
-    # sites instead of preserving the omission behind a plausible value.
+    # Required and undefaulted, so a new caller cannot reintroduce the gap; proved by
+    # `test_the_write_path_requires_a_tenant_rather_than_defaulting_one`.
     tenant_id: str,
     source_evidence_hash: str,
     policy_content_hash: str,

@@ -43,10 +43,8 @@ def finalize_policy_evaluation_record(
     reason: dict[str, Any] | None = None,
     observed_trace_id: str | None = None,
 ) -> PolicyEvaluationPersistenceResult:
-    # The one place the request object is assembled from loose arguments. This function
-    # stays keyword-taking because it is the caller-facing entry point; every layer
-    # beneath it takes the object, which is what stopped their signatures from being
-    # copies of each other.
+    # The one place loose arguments become the request object; every layer beneath
+    # takes the object, which is what stopped their signatures being copies.
     return finalize_policy_evaluation_request(
         PolicyEvaluationFinalizationRequest(
             evidence_bundle=evidence_bundle,
