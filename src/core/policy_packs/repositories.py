@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Protocol
 
 from src.core.policy_packs.catalog_models import (
@@ -25,35 +24,19 @@ from src.core.policy_packs.projection_models import (
 )
 
 
-@dataclass(frozen=True)
-class PolicyEvaluationFinalizationRequest:
-    """Everything needed to finalize one policy evaluation record.
-
-    One object rather than eleven keyword parameters repeated at every
-    implementation of the protocol below. The repeated signature was duplication
-    the code-health gate reported once the tenant made it twelve parameters -- and
-    the gate was right that the parameter list, not the delegation, was the smell.
-
-    Frozen because a finalization request is a description of one submission: a
-    frame that could edit it in flight could change what gets recorded from what
-    was admitted.
-    """
-
-    evidence_bundle: dict[str, Any]
-    policy_pack_id: str
-    policy_version: str
-    proposal_id: str
-    proposal_version_id: str
-    created_by: str
-    tenant_id: str
-    idempotency_key: str
-    reason: dict[str, Any]
-    observed_trace_id: str | None = None
-
-
 class PolicyEvaluationRepository(Protocol):
     def finalize_policy_evaluation_record(
-        self, request: PolicyEvaluationFinalizationRequest
+        self,
+        *,
+        evidence_bundle: dict[str, Any],
+        policy_pack_id: str,
+        policy_version: str,
+        proposal_id: str,
+        proposal_version_id: str,
+        created_by: str,
+        idempotency_key: str,
+        reason: dict[str, Any],
+        observed_trace_id: str | None = None,
     ) -> PolicyEvaluationPersistenceResult: ...
 
     def get_policy_evaluation_record(self, *, evaluation_id: str) -> PolicyEvaluationRecord: ...

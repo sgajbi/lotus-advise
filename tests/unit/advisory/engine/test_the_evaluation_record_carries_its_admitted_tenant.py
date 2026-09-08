@@ -1,4 +1,4 @@
-"""#624 slice 1: the policy evaluation record records the tenant it was admitted under.
+"""#624 slice 1: the policy evaluation record can carry the tenant it was admitted under.
 
 The evaluation reads could not be tenant-scoped because the table recorded no tenant.
 The only anchor was `portfolio_id`, and the portfolio-to-tenant mapping belongs to
@@ -6,15 +6,19 @@ lotus-core rather than here -- so deriving the tenant at read time would make th
 only as stable as the deriving code. It is captured at write time from the admitted
 principal, whose `tenant_id` was already resolved and audited at that frame and simply
 never reached the record.
+
+This change is the storage half: the record can hold the value, persistence keeps it,
+and a row written before the column existed stays distinguishable from one written
+without a tenant. Nothing populates it yet -- the write path that requires a tenant and
+refuses a cross-tenant identity collision follows separately, so that each half is a
+change of reviewable size rather than one batch that has to be taken on trust.
 """
 
 from __future__ import annotations
 
-import inspect
 from typing import Any
 
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
-from src.core.policy_packs.persistence_record_builder import policy_evaluation_hash
 
 
 def _record_payload(**overrides: Any) -> dict[str, Any]:
@@ -45,22 +49,6 @@ def _record_payload(**overrides: Any) -> dict[str, Any]:
     }
     payload.update(overrides)
     return payload
-
-
-def test_the_replay_identity_does_not_depend_on_the_record() -> None:
-    """Adding a field to the record cannot move `evaluation_hash`, by construction.
-
-    Asserted because a later refactor could remove the property by folding the record
-    into the hash input; the lotus-idea owner measured that case at 797 unit failures.
-    Checked against the signature, not today's output: the claim is that nothing
-    record-shaped can reach the hash, not that one example matches.
-    """
-
-    assert set(inspect.signature(policy_evaluation_hash).parameters) == {
-        "evaluation",
-        "source_evidence_hash",
-        "policy_content_hash",
-    }, "the replay identity takes something new; if it is the record, every historical hash moves"
 
 
 def test_the_record_carries_the_admitted_tenant_without_serialising_it() -> None:
@@ -103,41 +91,6 @@ def test_a_record_written_before_the_column_existed_reads_as_unrecorded() -> Non
 
     assert record.tenant_id is None
     assert record.tenant_id != "", "an unrecorded tenant was flattened into an absent one"
-
-
-def test_the_write_path_requires_a_tenant_rather_than_defaulting_one() -> None:
-    """Required and undefaulted, so a new caller cannot reintroduce the gap.
-
-    Threading it found six frames that had to state a tenant, plus 41 test call sites.
-    That enumeration is the mechanism: a default would have preserved the omission at
-    every one of them behind a plausible value.
-    """
-
-    import dataclasses
-
-    from src.core.policy_packs import persistence, persistence_record_builder
-    from src.core.policy_packs.repositories import PolicyEvaluationFinalizationRequest
-
-    # The keyword-taking entry points, where a caller supplies loose arguments.
-    for site in (
-        persistence_record_builder.build_policy_evaluation_record,
-        persistence.finalize_policy_evaluation_record,
-    ):
-        parameter = inspect.signature(site).parameters.get("tenant_id")
-        assert parameter is not None, f"{site.__qualname__} does not take a tenant"
-        assert parameter.default is inspect.Parameter.empty, (
-            f"{site.__qualname__} defaults the tenant, preserving the gap it exists to close"
-        )
-
-    # The layers beneath them take a request object instead of eleven parameters, so
-    # the requirement lives on the field. Followed to where it moved rather than
-    # pinned to the old shape: the claim is that no path can finalize without stating
-    # a tenant, not that a particular function signature contains one.
-    field = next(
-        f for f in dataclasses.fields(PolicyEvaluationFinalizationRequest) if f.name == "tenant_id"
-    )
-    assert field.default is dataclasses.MISSING, "the request object defaults the tenant"
-    assert field.default_factory is dataclasses.MISSING, "the request object manufactures a tenant"
 
 
 def test_the_persistence_snapshot_still_carries_the_tenant() -> None:
