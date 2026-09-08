@@ -169,7 +169,6 @@ def _create_policy_evaluation(*, material_conflict: bool = False):
         proposal_id="pp_policy_workflow",
         proposal_version_id="ppv_policy_workflow",
         created_by="advisor_1",
-        tenant_id="tenant-test",
         idempotency_key=f"policy-workflow-{material_conflict}",
         reason=_trusted_reason("workflow projection"),
     ).record

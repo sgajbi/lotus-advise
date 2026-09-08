@@ -183,13 +183,6 @@ def _upsert_policy_evaluation_record(
             evaluation_status=excluded.evaluation_status,
             record_json=excluded.record_json
         WHERE policy_evaluation_records.evaluation_hash = excluded.evaluation_hash
-          -- `tenant_id` is not in the SET list above, so without this an upsert from a
-          -- second tenant would replace `record_json` while leaving the column holding
-          -- the first tenant's id: the row would then disagree with itself, and the
-          -- column is what the scoped reads will query. Refuse the write instead --
-          -- no row updates, and `_raise_if_no_rows` turns that into the existing
-          -- conflict error.
-          AND policy_evaluation_records.tenant_id IS NOT DISTINCT FROM excluded.tenant_id
           AND (
               SELECT COUNT(*)
               FROM policy_evaluation_audit_events

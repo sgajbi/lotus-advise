@@ -37,7 +37,6 @@ from src.core.policy_packs.receipt_identity import (
     receipt_identity_from_record,
     replay_safe_reason,
 )
-from src.core.policy_packs.repositories import PolicyEvaluationFinalizationRequest
 from src.core.policy_packs.supportability import (
     POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION,
     policy_sign_off_package_posture,
@@ -119,18 +118,18 @@ class PolicyEvaluationRecordStore:
         }
 
     def finalize_policy_evaluation_record(
-        self, request: PolicyEvaluationFinalizationRequest
+        self,
+        *,
+        evidence_bundle: dict[str, Any],
+        policy_pack_id: str,
+        policy_version: str,
+        proposal_id: str,
+        proposal_version_id: str,
+        created_by: str,
+        idempotency_key: str,
+        reason: dict[str, Any],
+        observed_trace_id: str | None = None,
     ) -> PolicyEvaluationPersistenceResult:
-        evidence_bundle = request.evidence_bundle
-        policy_pack_id = request.policy_pack_id
-        policy_version = request.policy_version
-        proposal_id = request.proposal_id
-        proposal_version_id = request.proposal_version_id
-        created_by = request.created_by
-        tenant_id = request.tenant_id
-        idempotency_key = request.idempotency_key
-        reason = request.reason
-        observed_trace_id = request.observed_trace_id
         source_evidence_hash = hash_canonical_payload(evidence_bundle)
         request_hash = hash_canonical_payload(
             {
@@ -174,15 +173,6 @@ class PolicyEvaluationRecordStore:
         existing_id = self._identity_index.get(identity)
         if existing_id is not None:
             record = self._load_record(existing_id)
-            # The evaluation identity is derived from proposal, version, pack, policy
-            # version and evidence hash -- deliberately not the tenant, so that adding
-            # the tenant did not move any historical `evaluation_id`. The consequence
-            # is that two admitted tenants can reach the same identity, and returning
-            # the stored record would hand the first tenant's evaluation to the second.
-            # Refused rather than reconciled: a shared identity across tenants is a
-            # collision to surface, not a replay to serve.
-            if record.tenant_id != tenant_id:
-                raise ProposalIdempotencyConflictError("POLICY_EVALUATION_TENANT_IDENTITY_CONFLICT")
             event = self._events[existing_id][0]
             self._idempotency[idempotency_key] = (request_hash, existing_id, event.event_id)
             return PolicyEvaluationPersistenceResult(
@@ -207,7 +197,6 @@ class PolicyEvaluationRecordStore:
             proposal_id=proposal_id,
             proposal_version_id=proposal_version_id,
             created_by=created_by,
-            tenant_id=tenant_id,
             source_evidence_hash=source_evidence_hash,
             policy_content_hash=detail.policy_pack.content_hash,
             idempotency_key=idempotency_key,
