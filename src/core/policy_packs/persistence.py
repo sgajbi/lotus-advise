@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from src.core.common.idempotency import normalize_optional_idempotency_key
@@ -17,7 +18,10 @@ from src.core.policy_packs.projection_models import (
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,
 )
-from src.core.policy_packs.repositories import PolicyEvaluationRepository
+from src.core.policy_packs.repositories import (
+    PolicyEvaluationFinalizationRequest,
+    PolicyEvaluationRepository,
+)
 from src.core.policy_packs.supportability import (
     POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION,
 )
@@ -34,22 +38,42 @@ def finalize_policy_evaluation_record(
     proposal_id: str,
     proposal_version_id: str,
     created_by: str,
+    tenant_id: str,
     idempotency_key: str,
     reason: dict[str, Any] | None = None,
     observed_trace_id: str | None = None,
 ) -> PolicyEvaluationPersistenceResult:
-    idempotency_key = require_proposal_idempotency_key(idempotency_key)
-    return _repository().finalize_policy_evaluation_record(
-        evidence_bundle=evidence_bundle,
-        policy_pack_id=policy_pack_id,
-        policy_version=policy_version,
-        proposal_id=proposal_id,
-        proposal_version_id=proposal_version_id,
-        created_by=created_by,
-        idempotency_key=idempotency_key,
-        reason=reason or {},
-        observed_trace_id=observed_trace_id,
+    # The one place loose arguments become the request object; every layer beneath
+    # takes the object, which is what stopped their signatures being copies.
+    return finalize_policy_evaluation_request(
+        PolicyEvaluationFinalizationRequest(
+            evidence_bundle=evidence_bundle,
+            policy_pack_id=policy_pack_id,
+            policy_version=policy_version,
+            proposal_id=proposal_id,
+            proposal_version_id=proposal_version_id,
+            created_by=created_by,
+            tenant_id=tenant_id,
+            idempotency_key=idempotency_key,
+            reason=reason or {},
+            observed_trace_id=observed_trace_id,
+        )
     )
+
+
+def finalize_policy_evaluation_request(
+    request: PolicyEvaluationFinalizationRequest,
+) -> PolicyEvaluationPersistenceResult:
+    """Finalize from an already-assembled request.
+
+    The idempotency key is normalised here, not at the builder above, so both entry
+    points share one behaviour.
+    """
+
+    normalised = replace(
+        request, idempotency_key=require_proposal_idempotency_key(request.idempotency_key)
+    )
+    return _repository().finalize_policy_evaluation_record(normalised)
 
 
 def get_policy_evaluation_record(*, evaluation_id: str) -> PolicyEvaluationRecord:

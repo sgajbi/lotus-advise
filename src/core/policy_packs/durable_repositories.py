@@ -25,6 +25,7 @@ from src.core.policy_packs.projection_models import (
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffPackageResponse,
 )
+from src.core.policy_packs.repositories import PolicyEvaluationFinalizationRequest
 
 
 class PolicyEvaluationStateStore(Protocol):
@@ -66,30 +67,10 @@ class DurablePolicyEvaluationRepository:
         self._state_store = state_store
 
     def finalize_policy_evaluation_record(
-        self,
-        *,
-        evidence_bundle: dict[str, Any],
-        policy_pack_id: str,
-        policy_version: str,
-        proposal_id: str,
-        proposal_version_id: str,
-        created_by: str,
-        idempotency_key: str,
-        reason: dict[str, Any],
-        observed_trace_id: str | None = None,
+        self, request: PolicyEvaluationFinalizationRequest
     ) -> PolicyEvaluationPersistenceResult:
         store = self._load_store()
-        result = store.finalize_policy_evaluation_record(
-            evidence_bundle=evidence_bundle,
-            policy_pack_id=policy_pack_id,
-            policy_version=policy_version,
-            proposal_id=proposal_id,
-            proposal_version_id=proposal_version_id,
-            created_by=created_by,
-            idempotency_key=idempotency_key,
-            reason=reason,
-            observed_trace_id=observed_trace_id,
-        )
+        result = store.finalize_policy_evaluation_record(request)
         self._save_store(store)
         return result
 

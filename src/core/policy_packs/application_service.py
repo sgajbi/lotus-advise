@@ -22,7 +22,7 @@ from src.core.policy_packs.catalog_models import (
 from src.core.policy_packs.diagnostics import get_policy_evaluation_diagnostics
 from src.core.policy_packs.persistence import (
     append_policy_evaluation_event,
-    finalize_policy_evaluation_record,
+    finalize_policy_evaluation_request,
     get_policy_evaluation_lineage,
     get_policy_evaluation_record,
     get_policy_evaluation_review_queue,
@@ -48,6 +48,7 @@ from src.core.policy_packs.reporting_models import (
     PolicyEvaluationReportPackageRequest,
     PolicyEvaluationReportPackageResponse,
 )
+from src.core.policy_packs.repositories import PolicyEvaluationFinalizationRequest
 from src.core.policy_packs.workflow import (
     get_policy_evaluation_workflow,
     record_policy_evaluation_sign_off_decision,
@@ -108,29 +109,9 @@ class PolicyEvidenceApplicationService:
         )
 
     def finalize_policy_evaluation_record(
-        self,
-        *,
-        evidence_bundle: dict[str, Any],
-        policy_pack_id: str,
-        policy_version: str,
-        proposal_id: str,
-        proposal_version_id: str,
-        created_by: str,
-        idempotency_key: str,
-        reason: dict[str, Any],
-        observed_trace_id: str | None = None,
+        self, request: PolicyEvaluationFinalizationRequest
     ) -> PolicyEvaluationPersistenceResult:
-        return finalize_policy_evaluation_record(
-            evidence_bundle=evidence_bundle,
-            policy_pack_id=policy_pack_id,
-            policy_version=policy_version,
-            proposal_id=proposal_id,
-            proposal_version_id=proposal_version_id,
-            created_by=created_by,
-            idempotency_key=idempotency_key,
-            reason=reason,
-            observed_trace_id=observed_trace_id,
-        )
+        return finalize_policy_evaluation_request(request)
 
     def append_policy_evaluation_event(
         self,
