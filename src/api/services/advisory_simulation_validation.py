@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import cast
 
 from src.api.services.advisory_simulation_errors import simulation_validation_exception
@@ -15,6 +16,8 @@ from src.core.proposals.simulation_gate import (
     ProposalSimulationGateError,
     validate_proposal_simulation_enabled,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_simulation_idempotency_key(idempotency_key: str) -> str:
@@ -37,4 +40,15 @@ def resolve_simulation_input(
     try:
         return resolve_simulation_request(request)
     except ProposalContextResolutionError as exc:
+        if exc.underlying_reason:
+            # Logged here rather than in `src.core` so the line carries the request's
+            # correlation context, and at WARNING because the caller already has a 422:
+            # this exists so the refusal can be attributed, not to announce it twice.
+            logger.warning(
+                "proposal.context_resolution_refused",
+                extra={
+                    "public_reason": str(exc),
+                    "underlying_reason": exc.underlying_reason,
+                },
+            )
         raise simulation_validation_exception(str(exc)) from exc
