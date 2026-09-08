@@ -183,6 +183,12 @@ def _upsert_policy_evaluation_record(
             evaluation_status=excluded.evaluation_status,
             record_json=excluded.record_json
         WHERE policy_evaluation_records.evaluation_hash = excluded.evaluation_hash
+          -- The storage-layer half of the cross-tenant refusal reasoned about in
+          -- `persistence_store.finalize_policy_evaluation_record`. `tenant_id` is not
+          -- in the SET list, so without this a second tenant's upsert would rewrite
+          -- `record_json` and leave the column disagreeing with it. No rows update,
+          -- and `_raise_if_no_rows` raises the existing conflict.
+          AND policy_evaluation_records.tenant_id IS NOT DISTINCT FROM excluded.tenant_id
           AND (
               SELECT COUNT(*)
               FROM policy_evaluation_audit_events

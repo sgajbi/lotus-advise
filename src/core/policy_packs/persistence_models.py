@@ -77,24 +77,16 @@ class PolicyEvaluationRecord(BaseModel):
     )
     tenant_id: str | None = Field(
         default=None,
-        # Excluded from serialisation, so it reaches no response body. The review queue
-        # resolves no principal and filters by no tenant -- `portfolio_id` is optional
-        # and defaults to None -- so any caller reaching it would otherwise enumerate
-        # every tenant's admitted identifier. Adding a scope to what is stored must not
-        # widen what an unscoped read returns. Excluded on the model rather than per
-        # route, because four response models embed this record.
-        #
-        # Persistence is unaffected. `snapshot()` re-adds it explicitly for the durable
-        # column, which the loader treats as authoritative -- so the value is stored and
-        # queryable while remaining invisible to callers until the reads are scoped
-        # under #624 slice 2.
+        # Excluded so it reaches no response body: the review queue resolves no
+        # principal and filters by no tenant, so adding a scope to what is stored must
+        # not widen what an unscoped read returns. On the model rather than per route,
+        # because four response models embed this record; `snapshot()` re-adds it for
+        # the durable column. Both halves are asserted by
+        # `test_the_record_carries_the_admitted_tenant_without_serialising_it`.
         exclude=True,
         description=(
             "Tenant the evaluation was admitted under, captured from the admitted principal "
-            "at write time. Null only on records written before the field existed: that is "
-            "an unrecorded value rather than an absent one, and the two are kept "
-            "distinguishable because an absent tenant can be replayed faithfully while an "
-            "unrecorded one cannot be replayed at all."
+            "at write time. Null means unrecorded rather than absent."
         ),
         examples=["tenant-sg"],
     )
