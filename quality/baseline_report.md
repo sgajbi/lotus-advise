@@ -1,16 +1,16 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-09-09T00:10:21.285791+00:00`
+- Generated At: `2026-09-13T09:54:15.066677+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `calibrated-regression`
 
 ## Code Size
 
-- Python files: `1119`
+- Python files: `1124`
 - Packages: `42`
-- Modules: `1077`
-- Total Python lines: `207302`
+- Modules: `1082`
+- Total Python lines: `210253`
 
 ## Largest Files
 
@@ -20,10 +20,10 @@
 | 2 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 2763 |
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2691 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2569 |
-| 5 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 2294 |
-| 6 | `scripts/validate_cross_service_parity_live.py` | 2180 |
-| 7 | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1989 |
-| 8 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 1907 |
+| 5 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 2366 |
+| 6 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 2294 |
+| 7 | `scripts/validate_cross_service_parity_live.py` | 2180 |
+| 8 | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1989 |
 | 9 | `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` | 1881 |
 | 10 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
 
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `5162`
-- Radon complexity rank inventory: `A=5031, B=131`
+- Radon analyzed block inventory: `5211`
+- Radon complexity rank inventory: `A=5073, B=138`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -127,7 +127,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=5943, missing=5731, covered=212, coverage=3.6%`
+- Interrogate docstring inventory: `total=5991, missing=5776, covered=215, coverage=3.6%`
 - Interrogate documentation coverage trend is hard-gated by `make quality-trend-gate`;
   absolute public API and module-ownership thresholds remain report-only until
   classified.

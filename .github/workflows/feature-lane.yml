@@ -69,6 +69,8 @@ jobs:
           QUALITY_BASE_REF: origin/main
           QUALITY_HEAD_REF: HEAD
         run: make quality-trend-gate
+      - name: CI Lane Parity Gate
+        run: make ci-lane-parity-gate
       - name: Upload Quality Trend Evidence
         if: always()
         uses: actions/upload-artifact@v7

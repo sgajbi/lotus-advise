@@ -1,0 +1,13 @@
+{
+  "schema_version": "lotus.advise.dependency-freshness-policy.v1",
+  "exceptions": [
+    {
+      "package": "anyio",
+      "pinned_version": "4.14.2",
+      "latest_version": "4.15.1",
+      "owner": "sgajbi",
+      "reason": "Deliberate compatibility cap pending a warnings-as-errors retest of the Starlette TestClient behavior recorded in lotus-gateway#704; this exception suppresses only exact freshness drift and never pip-audit or pip check failures.",
+      "expires_on": "2026-10-13"
+    }
+  ]
+}

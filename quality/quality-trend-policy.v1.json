@@ -1,6 +1,6 @@
 {
   "schema_version": "lotus.advise.quality-trend-policy.v1",
-  "policy_version": "lotus-advise-quality-trend.v1+5f1bb5323cb5",
+  "policy_version": "lotus-advise-quality-trend.v1+20b415dbe959",
   "report_path": "quality/baseline_report.md",
   "metrics": [
     {
@@ -42,15 +42,6 @@
     "entries": [
       {
         "metric": "total_python_lines",
-        "base_sha": "e879984ed78262ff2dc97bb7f345e1209fe53103",
-        "head_python_content_fingerprint": "55dcb2c263e7186b2f521bf92b93cebdaa1f261dce02e67f5503b4b6c1df0839",
-        "allowed_delta": 775,
-        "reason": "Reviewed #584 split: the original +587 production / +664 test batch is not approved as one change. This Core BenchmarkAssignment:v1 adapter is production +313 lines, tests +259 lines, and +8 policy-review test lines; the #495 rebase-mainline provenance correction adds net +55 CI-gate implementation and +140 regression-test lines. The ProposalReviewEvidence consumer remains a separate #554 follow-up.",
-        "approver": "sgajbi",
-        "expires_on": "2026-09-09"
-      },
-      {
-        "metric": "total_python_lines",
         "base_sha": "4337fb939bc9d675a49e640678b01fbc40f9fd9d",
         "head_python_content_fingerprint": "ccb54de1d9425bf81107e9f98f7c085b20c74c2a863226b07339d465ac28325c",
         "allowed_delta": 2024,
@@ -84,6 +75,24 @@
         "reason": "Reviewed #624 tenant-scoped policy-evaluation closure: +157 production lines carry admitted tenant authority through API, application, repository, snapshot and PostgreSQL boundaries; scope idempotency without changing historical hashes or receipts; quarantine unattributable rows before hydration; and enforce proposal/portfolio ownership before Copilot source assembly. +696 tests provide discriminating unit, HTTP, migration, restart, contention and real PostgreSQL isolation proof for the complete contract and both review-found security defects. This revision-bound exception does not relax the 200-line steady-state threshold, complexity, coverage, security, typing, contract or assertion gates.",
         "approver": "sgajbi",
         "expires_on": "2026-09-23"
+      },
+      {
+        "metric": "total_python_lines",
+        "base_sha": "01cc655db1de2d2b07529a2f70d559d0abb8e287",
+        "head_python_content_fingerprint": "9e0300a87d428bf990a9ce25387dc577aaeb4502d2a12242a5d6567885e27f43",
+        "allowed_delta": 2951,
+        "reason": "Reviewed Cycle 6 #632/#628/#601/#590 closure: tenant-owned Copilot packets, runs, replay and review now carry admitted authority through API, application, PostgreSQL persistence and migration boundaries; real PostgreSQL isolation, rollback/restart and competing-reviewer proof, strict dependency freshness exception handling, exact per-revision main dispatch/audit, and lane-parity checks add implementation and discriminating evidence rather than shallow bulk. The exact measured allowance does not relax coverage, security, typing, ownership, or durable-write controls.",
+        "approver": "sgajbi",
+        "expires_on": "2026-10-13"
+      },
+      {
+        "metric": "radon_b_ranked_blocks",
+        "base_sha": "01cc655db1de2d2b07529a2f70d559d0abb8e287",
+        "head_python_content_fingerprint": "9e0300a87d428bf990a9ce25387dc577aaeb4502d2a12242a5d6567885e27f43",
+        "allowed_delta": 7,
+        "reason": "Reviewed Cycle 6 #628/#601/#590 control parsing and fail-closed classification add three bounded B-ranked functions. Their scope is restricted to dependency-exception matching and main-gate/parity evidence classification; the worst complexity remains 10 and this exact-content exception expires for follow-up simplification.",
+        "approver": "sgajbi",
+        "expires_on": "2026-10-13"
       }
     ]
   }

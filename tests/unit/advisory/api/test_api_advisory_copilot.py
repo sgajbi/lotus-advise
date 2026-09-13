@@ -15,9 +15,13 @@ import src.api.proposals.router as proposals_router
 import src.api.proposals.routes_advisory_copilot as copilot_routes
 from src.api.main import app
 from src.api.proposals.copilot_errors import raise_copilot_http_exception
+from src.api.proposals.copilot_review_principal import (
+    require_advisory_copilot_action_principal,
+    require_advisory_copilot_packet_principal,
+    require_advisory_copilot_policy_read_principal,
+    require_advisory_copilot_read_principal,
+)
 from src.api.proposals.policy_control_principal import (
-    POLICY_CONTROL_SCOPE_FORBIDDEN,
-    POLICY_CONTROL_SCOPE_REQUIRED,
     POLICY_EVALUATION_READ_CAPABILITY,
     PolicyControlPrincipal,
 )
@@ -31,6 +35,11 @@ from src.core.advisory_copilot.api_response_models import (
     AdvisoryCopilotSupportabilityResponse,
 )
 from src.core.advisory_copilot.records import AdvisoryCopilotRunRecord
+from src.core.advisory_copilot.review_authority import (
+    COPILOT_RESOURCE_SCOPE_FORBIDDEN,
+    COPILOT_RESOURCE_SCOPE_REQUIRED,
+    CopilotCallerPrincipal,
+)
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
@@ -39,6 +48,24 @@ from src.integrations.lotus_ai import AdvisoryCopilotAiDraft
 from src.runtime import advisory_copilot_repositories
 
 NOW = datetime(2026, 5, 28, 9, 0, tzinfo=UTC)
+
+
+def _copilot_principal(
+    *,
+    proposal_id: str | None = "proposal_sg_structured_note_001",
+    portfolio_id: str | None = "PB_SG_GLOBAL_BAL_001",
+) -> CopilotCallerPrincipal:
+    return CopilotCallerPrincipal(
+        actor_id="advisor_123",
+        role="ADVISOR",
+        tenant_id="tenant-sg-001",
+        legal_entity_code="SGPB",
+        correlation_id="corr_copilot_001",
+        service_identity="lotus-workbench",
+        capabilities=frozenset(),
+        authorized_proposal_id=proposal_id,
+        authorized_portfolio_id=portfolio_id,
+    )
 
 
 def _copilot_review_headers(
@@ -61,6 +88,26 @@ def _copilot_review_headers(
         "X-Capabilities": "advisory.copilot.review",
         "X-Authorized-Portfolio-Id": portfolio_id,
         "X-Authorized-Proposal-Id": proposal_id,
+    }
+
+
+def _copilot_caller_headers(
+    *,
+    tenant_id: str = "tenant-sg-001",
+    capability: str,
+    proposal_id: str = "proposal_sg_structured_note_001",
+    portfolio_id: str = "PB_SG_GLOBAL_BAL_001",
+) -> dict[str, str]:
+    return {
+        "X-Actor-Id": "advisor_123",
+        "X-Role": "ADVISOR",
+        "X-Tenant-Id": tenant_id,
+        "X-Legal-Entity-Code": "SGPB",
+        "X-Correlation-Id": "corr_copilot_caller_001",
+        "X-Service-Identity": "lotus-gateway",
+        "X-Capabilities": capability,
+        "X-Authorized-Proposal-Id": proposal_id,
+        "X-Authorized-Portfolio-Id": portfolio_id,
     }
 
 
@@ -106,9 +153,23 @@ def copilot_repository(monkeypatch: pytest.MonkeyPatch) -> InMemoryAdvisoryCopil
     app.dependency_overrides[copilot_dependencies.get_advisory_copilot_repository] = lambda: (
         repository
     )
+    for dependency in (
+        require_advisory_copilot_action_principal,
+        require_advisory_copilot_packet_principal,
+        require_advisory_copilot_policy_read_principal,
+        require_advisory_copilot_read_principal,
+    ):
+        app.dependency_overrides[dependency] = _copilot_principal
     monkeypatch.setattr(proposals_router.runtime, "build_repository", InMemoryProposalRepository)
     yield repository
     app.dependency_overrides.pop(copilot_dependencies.get_advisory_copilot_repository, None)
+    for dependency in (
+        require_advisory_copilot_action_principal,
+        require_advisory_copilot_packet_principal,
+        require_advisory_copilot_policy_read_principal,
+        require_advisory_copilot_read_principal,
+    ):
+        app.dependency_overrides.pop(dependency, None)
     reset_proposal_workflow_service_for_tests()
     copilot_dependencies.reset_advisory_copilot_repository_for_tests()
 
@@ -239,6 +300,58 @@ def test_advisory_copilot_evidence_packet_create_and_read(
     }
 
 
+def test_advisory_copilot_packet_and_read_routes_require_headers_and_hide_foreign_records(
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    _ = copilot_repository
+    for dependency in (
+        require_advisory_copilot_action_principal,
+        require_advisory_copilot_packet_principal,
+        require_advisory_copilot_policy_read_principal,
+        require_advisory_copilot_read_principal,
+    ):
+        app.dependency_overrides.pop(dependency, None)
+
+    with TestClient(app) as client:
+        missing_principal = client.post(
+            "/advisory/copilot/evidence-packets", json=_evidence_packet_payload()
+        )
+        created = client.post(
+            "/advisory/copilot/evidence-packets",
+            json=_evidence_packet_payload(),
+            headers=_copilot_caller_headers(capability="advisory.copilot.packet"),
+        )
+        foreign = client.get(
+            "/advisory/copilot/evidence-packets/copilot_packet_pb_sg_001",
+            headers=_copilot_caller_headers(
+                tenant_id="tenant-hk-001", capability="advisory.copilot.read"
+            ),
+        )
+        absent = client.get(
+            "/advisory/copilot/evidence-packets/copilot_packet_absent",
+            headers=_copilot_caller_headers(
+                tenant_id="tenant-hk-001", capability="advisory.copilot.read"
+            ),
+        )
+        out_of_scope = client.get(
+            "/advisory/copilot/evidence-packets/copilot_packet_pb_sg_001",
+            headers=_copilot_caller_headers(
+                capability="advisory.copilot.read",
+                proposal_id="proposal-not-authorized",
+            ),
+        )
+
+    assert missing_principal.status_code == 401
+    assert missing_principal.json()["detail"] == "COPILOT_CALLER_PRINCIPAL_REQUIRED"
+    assert created.status_code == 201
+    assert foreign.status_code == absent.status_code == 404
+    assert (
+        foreign.json()["detail"] == absent.json()["detail"] == "COPILOT_EVIDENCE_PACKET_NOT_FOUND"
+    )
+    assert out_of_scope.status_code == absent.status_code
+    assert out_of_scope.json()["detail"] == absent.json()["detail"]
+
+
 def test_advisory_copilot_evidence_packet_from_proposal_version_is_source_owned(
     monkeypatch: pytest.MonkeyPatch,
     copilot_repository: InMemoryAdvisoryCopilotRepository,
@@ -289,13 +402,64 @@ def test_advisory_copilot_evidence_packet_from_proposal_version_is_source_owned(
     assert payload["record"]["reason_json"]["source_projection"] == "PROPOSAL_VERSION"
 
 
+def test_proposal_version_packet_uses_registered_policy_principal_dependency(
+    monkeypatch: pytest.MonkeyPatch,
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    monkeypatch.setattr(proposals_router.runtime, "build_repository", lambda: proposal_repository)
+    reset_proposal_workflow_service_for_tests()
+    monkeypatch.setattr(
+        copilot_dependencies,
+        "list_policy_evaluation_records",
+        lambda **_: [_policy_evaluation()],
+    )
+    app.dependency_overrides.pop(require_advisory_copilot_policy_read_principal, None)
+    request = {
+        "proposal_id": "proposal_sg_structured_note_001",
+        "proposal_version_no": 1,
+        "action_family": "PROPOSAL_EXPLANATION",
+        "audience": "ADVISOR",
+        "created_by": "advisor_123",
+        "reason": {"business_reason": "Registered dependency proof."},
+    }
+
+    with TestClient(app) as client:
+        accepted = client.post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            json=request,
+            headers=_policy_evaluation_read_headers(),
+        )
+        refused = client.post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            json={**request, "evidence_packet_id": "refused-registered-policy-principal"},
+            headers={
+                **_policy_evaluation_read_headers(),
+                "X-Capabilities": "advisory.copilot.read",
+            },
+        )
+
+    assert accepted.status_code == 201
+    assert accepted.json()["record"]["tenant_id"] == "tenant_sg_001"
+    assert refused.status_code == 403
+    assert refused.json()["detail"] == "COPILOT_CALLER_CAPABILITY_REQUIRED"
+    assert (
+        copilot_repository.get_evidence_packet(
+            tenant_id="tenant_sg_001",
+            evidence_packet_id="refused-registered-policy-principal",
+        )
+        is None
+    )
+
+
 @pytest.mark.parametrize(
     ("proposal_scope", "portfolio_scope", "expected_detail"),
     [
-        (None, "PB_SG_GLOBAL_BAL_001", POLICY_CONTROL_SCOPE_REQUIRED),
-        ("proposal_other", "PB_SG_GLOBAL_BAL_001", POLICY_CONTROL_SCOPE_FORBIDDEN),
-        ("proposal_sg_structured_note_001", None, POLICY_CONTROL_SCOPE_REQUIRED),
-        ("proposal_sg_structured_note_001", "PB_OTHER", POLICY_CONTROL_SCOPE_FORBIDDEN),
+        (None, "PB_SG_GLOBAL_BAL_001", COPILOT_RESOURCE_SCOPE_REQUIRED),
+        ("proposal_other", "PB_SG_GLOBAL_BAL_001", COPILOT_RESOURCE_SCOPE_FORBIDDEN),
+        ("proposal_sg_structured_note_001", None, COPILOT_RESOURCE_SCOPE_REQUIRED),
+        ("proposal_sg_structured_note_001", "PB_OTHER", COPILOT_RESOURCE_SCOPE_FORBIDDEN),
     ],
 )
 def test_proposal_version_copilot_packet_refuses_unowned_source_scope_without_mutation(
@@ -314,6 +478,12 @@ def test_proposal_version_copilot_packet_refuses_unowned_source_scope_without_mu
         copilot_dependencies,
         "list_policy_evaluation_records",
         lambda **kwargs: loader_calls.append(kwargs),
+    )
+    app.dependency_overrides[require_advisory_copilot_policy_read_principal] = lambda: (
+        _copilot_principal(
+            proposal_id=proposal_scope,
+            portfolio_id=portfolio_scope,
+        )
     )
 
     with TestClient(app) as client:
@@ -338,9 +508,70 @@ def test_proposal_version_copilot_packet_refuses_unowned_source_scope_without_mu
     assert response.json()["detail"] == expected_detail
     assert loader_calls == []
     assert (
-        copilot_repository.get_evidence_packet(evidence_packet_id="copilot_scope_guard_packet")
+        copilot_repository.get_evidence_packet(
+            tenant_id="tenant-sg-001", evidence_packet_id="copilot_scope_guard_packet"
+        )
         is None
     )
+
+
+def test_proposal_version_copilot_packet_refuses_unowned_absent_proposal_before_lookup(
+    monkeypatch: pytest.MonkeyPatch,
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    monkeypatch.setattr(proposals_router.runtime, "build_repository", lambda: proposal_repository)
+    reset_proposal_workflow_service_for_tests()
+    app.dependency_overrides[require_advisory_copilot_policy_read_principal] = lambda: (
+        _copilot_principal(
+            proposal_id="proposal_sg_structured_note_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+        )
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            json={
+                "evidence_packet_id": "copilot_unowned_absent_packet",
+                "proposal_id": "proposal_not_authorized_or_present",
+                "proposal_version_no": 1,
+                "action_family": "PROPOSAL_EXPLANATION",
+                "audience": "ADVISOR",
+                "created_by": "advisor_123",
+                "reason": {"business_reason": "Prepare advisor review."},
+            },
+            headers=_policy_evaluation_read_headers(),
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == COPILOT_RESOURCE_SCOPE_FORBIDDEN
+    assert (
+        copilot_repository.get_evidence_packet(
+            tenant_id="tenant-sg-001",
+            evidence_packet_id="copilot_unowned_absent_packet",
+        )
+        is None
+    )
+
+
+def test_advisory_supervisor_can_read_copilot_state_before_review() -> None:
+    principal = require_advisory_copilot_read_principal(
+        x_actor_id="supervisor_123",
+        x_role="ADVISORY_SUPERVISOR",
+        x_tenant_id="tenant-sg-001",
+        x_legal_entity_code="SGPB",
+        x_correlation_id="corr_supervisor_read_001",
+        x_service_identity="lotus-workbench",
+        authorization=None,
+        x_capabilities="advisory.copilot.read",
+        x_principal_status=None,
+        x_authorized_proposal_id="proposal_sg_structured_note_001",
+        x_authorized_portfolio_id="PB_SG_GLOBAL_BAL_001",
+    )
+
+    assert principal.role == "ADVISORY_SUPERVISOR"
 
 
 def test_proposal_version_copilot_packet_preserves_version_lineage_for_every_action(
@@ -743,7 +974,7 @@ def test_advisory_copilot_review_requires_authorized_trusted_principal(
     assert missing_auth.json()["detail"] == "COPILOT_REVIEW_PRINCIPAL_REQUIRED"
     assert wrong_role.status_code == 403
     assert wrong_role.json()["detail"] == "COPILOT_REVIEW_ROLE_NOT_AUTHORIZED"
-    assert wrong_scope.status_code == 422
+    assert wrong_scope.status_code == 403
     assert wrong_scope.json()["detail"] == "COPILOT_REVIEW_SCOPE_FORBIDDEN"
     assert self_review.status_code == 422
     assert self_review.json()["detail"] == "COPILOT_REVIEW_MAKER_CHECKER_VIOLATION"
@@ -1048,3 +1279,11 @@ def test_advisory_copilot_error_mapper_redacts_trace_and_correlation_details() -
 
         assert exc.value.status_code == 422
         assert exc.value.detail == "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
+
+
+def test_advisory_copilot_error_mapper_marks_missing_principal_unauthenticated() -> None:
+    with pytest.raises(HTTPException) as exc:
+        raise_copilot_http_exception(ValueError("COPILOT_REVIEW_PRINCIPAL_REQUIRED"))
+
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "COPILOT_REVIEW_PRINCIPAL_REQUIRED"

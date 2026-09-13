@@ -196,18 +196,29 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     policy = _policy()
     entries = policy["exceptions"]["entries"]
 
-    assert len(entries) == 5
-    exceptions_by_base = {entry["base_sha"]: entry for entry in entries}
-    benchmark_exception = exceptions_by_base["e879984ed78262ff2dc97bb7f345e1209fe53103"]
-    tenant_admission_exception = exceptions_by_base["b4bf26da45ed920868c9585c74697e2e3a6770c3"]
-    realization_exception = exceptions_by_base["4337fb939bc9d675a49e640678b01fbc40f9fd9d"]
-    proposal_outcome_exception = exceptions_by_base["8b4bb56e2657d0dfe26168e141e3632a66dc1f26"]
-    tenant_scope_exception = exceptions_by_base["ff2ac4286c6ef032c5abc8ad1f86efb560679325"]
-    assert all(entry["metric"] == "total_python_lines" for entry in entries)
+    assert len(entries) == 6
+    exceptions_by_identity = {(entry["metric"], entry["base_sha"]): entry for entry in entries}
+    tenant_admission_exception = exceptions_by_identity[
+        ("total_python_lines", "b4bf26da45ed920868c9585c74697e2e3a6770c3")
+    ]
+    realization_exception = exceptions_by_identity[
+        ("total_python_lines", "4337fb939bc9d675a49e640678b01fbc40f9fd9d")
+    ]
+    proposal_outcome_exception = exceptions_by_identity[
+        ("total_python_lines", "8b4bb56e2657d0dfe26168e141e3632a66dc1f26")
+    ]
+    tenant_scope_exception = exceptions_by_identity[
+        ("total_python_lines", "ff2ac4286c6ef032c5abc8ad1f86efb560679325")
+    ]
+    cycle_six_growth_exception = exceptions_by_identity[
+        ("total_python_lines", "01cc655db1de2d2b07529a2f70d559d0abb8e287")
+    ]
+    cycle_six_complexity_exception = exceptions_by_identity[
+        ("radon_b_ranked_blocks", "01cc655db1de2d2b07529a2f70d559d0abb8e287")
+    ]
+    assert sum(entry["metric"] == "total_python_lines" for entry in entries) == 5
     assert all(len(entry["head_python_content_fingerprint"]) == 64 for entry in entries)
     assert all(entry["approver"] == "sgajbi" for entry in entries)
-    assert "production +313 lines" in benchmark_exception["reason"]
-    assert "tests +259 lines" in benchmark_exception["reason"]
     assert realization_exception["allowed_delta"] == 2024
     assert "+993 net production lines" in realization_exception["reason"]
     assert "+1031 net test lines" in realization_exception["reason"]
@@ -232,6 +243,10 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     assert "+157 production" in tenant_scope_exception["reason"]
     assert "+696 tests" in tenant_scope_exception["reason"]
     assert "#624" in tenant_scope_exception["reason"]
+    assert cycle_six_growth_exception["allowed_delta"] == 2951
+    assert "#632/#628/#601/#590" in cycle_six_growth_exception["reason"]
+    assert cycle_six_complexity_exception["allowed_delta"] == 7
+    assert "three bounded B-ranked functions" in cycle_six_complexity_exception["reason"]
     total_lines = next(
         metric for metric in policy["metrics"] if metric["name"] == "total_python_lines"
     )

@@ -14,8 +14,9 @@ Runbook for forward-only schema migration rollout for:
 - PostgreSQL is reachable and healthy.
 - Runtime DSNs are configured:
   - `PROPOSAL_POSTGRES_DSN`
-  - `ADVISORY_COPILOT_POSTGRES_DSN` when copilot runs use a separate database. If unset, the
-    migration runner uses `PROPOSAL_POSTGRES_DSN`.
+- `ADVISORY_COPILOT_POSTGRES_DSN` when copilot runs use a separate database. If unset, the
+  migration runner uses `PROPOSAL_POSTGRES_DSN`.
+
   - `POLICY_POSTGRES_DSN` when policy records use a separate database. If unset, the runtime can
     share `PROPOSAL_POSTGRES_DSN`, but production manifests should inject both explicitly.
   - `WORKSPACE_POSTGRES_DSN` when workspace state uses a separate database. If unset, migration
@@ -29,6 +30,29 @@ Runbook for forward-only schema migration rollout for:
   - `docker-compose.production.yml`
   - rendered with `LOTUS_ADVISE_IMAGE_DIGEST_REF` from release evidence and DSNs from deployment
     secrets, not committed plaintext credentials.
+
+### Advisory Copilot tenant ownership migration
+
+`advisory_copilot:0004` introduces immutable admitted tenant ownership for evidence packets,
+idempotency claims, reviews, and newly written runs. It intentionally does not infer ownership for
+historical rows: readers scope packets, reviews, and idempotency by tenant, and scope runs by
+`admitted_tenant_id` before JSON hydration. The migration replaces the global run request-hash
+index with a tenant/request-hash index and partitions raw idempotency keys by tenant, so an exact
+key can be reused independently by separate legal tenants while same-tenant changed requests still
+conflict.
+
+Run the real-database isolation proof after applying the migration from the `lotus-advise`
+repository root:
+
+```bash
+ADVISORY_COPILOT_POSTGRES_INTEGRATION_DSN="$ADVISORY_COPILOT_POSTGRES_DSN" \
+  python -m pytest tests/integration/advisory/engine/test_advisory_copilot_postgres_tenant_isolation.py -q
+```
+
+```powershell
+$env:ADVISORY_COPILOT_POSTGRES_INTEGRATION_DSN = $env:ADVISORY_COPILOT_POSTGRES_DSN
+python -m pytest tests/integration/advisory/engine/test_advisory_copilot_postgres_tenant_isolation.py -q
+```
 
 ## Runtime Contract
 
@@ -72,14 +96,21 @@ python scripts/production_cutover_check.py --check-migrations
 2. Confirm backup/restore evidence and preflight duplicate scans required by the rollout contract.
 3. Run `make migration-rollout-contract-gate` and retain
    `output/postgres-migration-rollout-rehearsal.json`.
-4. Apply migrations (`scripts/postgres_migrate.py`).
-5. Validate production contract (`scripts/production_cutover_check.py --check-migrations`).
-6. Start API services with advisory Postgres runtime enabled:
+4. Drain all pre-`advisory_copilot:0004` Copilot writers and verify no old replica can accept
+   traffic. This is a contract migration: do not roll a pre-0004 writer back into service after
+   the migration begins.
+5. Apply migrations (`scripts/postgres_migrate.py`).
+6. Run the real PostgreSQL Copilot tenant-isolation proof above. It includes two tenants sharing
+   raw idempotency keys, restart replay, a database-injected review-update failure that proves the
+   review row rolls back with its run posture, and competing terminal reviewers on independent
+   connections. Do not replace this review-transition proof with run-creation contention.
+7. Validate production contract (`scripts/production_cutover_check.py --check-migrations`).
+8. Start API services with advisory Postgres runtime enabled:
    - `PROPOSAL_STORE_BACKEND=POSTGRES`
    - `POLICY_STORE_BACKEND=POSTGRES`
    - `WORKSPACE_STORE_BACKEND=POSTGRES`
-7. Run advisory smoke API checks.
-8. Shift traffic.
+9. Run advisory smoke API checks.
+10. Shift traffic.
 
 Do not start app replicas with Postgres backend enabled before migrations have completed.
 
@@ -96,7 +127,8 @@ Non-trivial migrations must declare their phase in
   behavior.
 - `contract`: removal or tightening after old versions and stale consumers are drained.
 
-Current migrations are expand-phase migrations. Existing index migrations use normal PostgreSQL
+Current migrations are expand-phase migrations except `advisory_copilot:0004`, which is a
+writer-drain contract migration because it replaces global Copilot ownership assumptions. Existing index migrations use normal PostgreSQL
 `CREATE INDEX`/`CREATE UNIQUE INDEX`, not `CONCURRENTLY`; schedule controlled windows for large
 tables and rehearse with production-like row counts before production apply.
 

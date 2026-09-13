@@ -514,3 +514,9 @@ transition wins and a stale writer fails closed with
 approval must not be present in history. Operators should retry only after re-reading the current
 proposal state and should preserve the correlation id, idempotency key, expected state/version, and
 observed state/version in incident evidence.
+## Copilot review transition proof
+
+For an `advisory_copilot` rollout, run the documented real PostgreSQL integration proof before
+claiming review durability. It verifies tenant-scoped lifecycle state and raw-key reuse, injected
+review-update rollback, restarted exact retry, and competing terminal reviewers on independent
+connections. Run-creation contention alone is not evidence for a review transition.

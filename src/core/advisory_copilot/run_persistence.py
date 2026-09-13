@@ -17,7 +17,6 @@ from src.core.advisory_copilot.run_lineage import (
     DEFAULT_EVALUATION_PACK_REF,
     DEFAULT_OUTPUT_SCHEMA_VERSION,
     DEFAULT_PROMPT_TEMPLATE_VERSION,
-    DEFAULT_TENANT_ID,
     optional_lineage_text,
     stable_copilot_record_id,
 )
@@ -52,9 +51,9 @@ def persist_advisory_copilot_run(
     review_guidance: tuple[str, ...],
     guardrail_reasons: tuple[str, ...],
     correlation_id: str,
+    tenant_id: str,
     idempotency_key: str | None = None,
     caller_app: str = DEFAULT_CALLER_APP,
-    tenant_id: str = DEFAULT_TENANT_ID,
     requested_intents: tuple[str, ...] = (),
     user_instruction: str = "",
     created_at: datetime | None = None,
@@ -76,6 +75,7 @@ def persist_advisory_copilot_run(
         repository=repository,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        tenant_id=tenant_id,
     )
     review_posture = review_posture_from_draft_status(draft_status)
     output_json = [dict(section) for section in output_sections]
@@ -110,6 +110,7 @@ def persist_advisory_copilot_run(
             idempotency_key=idempotency_key,
             request_hash=request_hash,
             run_id=run.run_id,
+            tenant_id=tenant_id,
             now=now,
         ),
     )
@@ -133,15 +134,18 @@ def _existing_run_for_idempotency(
     repository: AdvisoryCopilotRepository,
     idempotency_key: str | None,
     request_hash: str,
+    tenant_id: str,
 ) -> AdvisoryCopilotRunRecord | None:
     if not idempotency_key:
         return None
-    existing_idempotency = repository.get_run_idempotency(idempotency_key=idempotency_key)
+    existing_idempotency = repository.get_run_idempotency(
+        tenant_id=tenant_id, idempotency_key=idempotency_key
+    )
     if existing_idempotency is None:
         return None
     if existing_idempotency.request_hash != request_hash:
         raise ValueError("COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT")
-    existing_run = repository.get_run(run_id=existing_idempotency.run_id)
+    existing_run = repository.get_run(tenant_id=tenant_id, run_id=existing_idempotency.run_id)
     if existing_run is None:
         raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
     return existing_run
@@ -166,7 +170,10 @@ def _build_run_record(
     now: datetime,
 ) -> AdvisoryCopilotRunRecord:
     return AdvisoryCopilotRunRecord(
-        run_id=stable_copilot_record_id(prefix="copilot_run", value=request_hash),
+        run_id=stable_copilot_record_id(
+            prefix="copilot_run",
+            value=canonical_json_hash({"tenant_id": tenant_id, "request_hash": request_hash}),
+        ),
         action_family=evidence_packet.action_family,
         audience=audience,
         portfolio_id=evidence_packet.portfolio_id,
@@ -257,11 +264,13 @@ def _run_idempotency_record(
     idempotency_key: str | None,
     request_hash: str,
     run_id: str,
+    tenant_id: str,
     now: datetime,
 ) -> AdvisoryCopilotRunIdempotencyRecord | None:
     if not idempotency_key:
         return None
     return AdvisoryCopilotRunIdempotencyRecord(
+        tenant_id=tenant_id,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
         run_id=run_id,

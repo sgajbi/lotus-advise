@@ -598,6 +598,43 @@
       }
     },
     {
+      "namespace_key": "advisory_copilot",
+      "version": "0004",
+      "path": "src/infrastructure/postgres_migrations/advisory_copilot/0004_tenant_owned_copilot_lifecycle.sql",
+      "phase": "contract",
+      "operation_class": "create_unique_index",
+      "compatibility_window": {
+        "old_and_new_application_versions_supported": false,
+        "minimum_rollout_window": "one_full_deploy_wave",
+        "write_activation_control": "Drain every pre-0004 Advisory Copilot writer before applying 0004. The migration replaces global request-hash and idempotency uniqueness, and an older binary cannot supply admitted_tenant_id or target the tenant-scoped idempotency key.",
+        "consumer_contract": "records immutable admitted tenant ownership for packets, runs, replay idempotency, and reviews; foreign and unattributable historical rows are not hydrated or reassigned"
+      },
+      "lock_behavior": {
+        "transaction_scope": "single_namespace_transaction",
+        "lock_profile": "brief_catalog_locks_plus_blocking_index_rebuild",
+        "online_behavior": "ADD COLUMN uses brief catalog locks; unique-index replacement is not concurrent and must run in a controlled window after writer drain",
+        "required_operator_control": "preflight duplicate tenant/idempotency pairs, drain Copilot writers, and retain the real-PostgreSQL tenant-isolation proof before re-enabling traffic"
+      },
+      "backfill": {
+        "required": false,
+        "checkpoint_strategy": "verify historical rows retain NULL admitted_tenant_id and are absent from tenant-scoped reads",
+        "resume_strategy": "forward-fix a failed migration with writers still drained; do not infer ownership from legacy tenant defaults",
+        "quarantine_strategy": "packets, reviews, idempotency claims, and runs without an admitted tenant remain unreadable through tenant-scoped APIs"
+      },
+      "rollback": {
+        "forward_fix_required": true,
+        "previous_app_version_compatible": false,
+        "previous_version_recovery_control": "Do not restore a pre-0004 Copilot writer after the global uniqueness targets are removed; keep traffic drained and deploy a compatible forward fix.",
+        "limitations": "restoring global keys would either reject valid independent-tenant replay or expose rows with guessed ownership"
+      },
+      "rehearsal": {
+        "profile_key": "real_postgres_tenant_isolation",
+        "command": "make migration-rollout-contract-gate && ADVISORY_COPILOT_POSTGRES_INTEGRATION_DSN=... python -m pytest tests/integration/advisory/engine/test_advisory_copilot_postgres_tenant_isolation.py -q",
+        "output_path": "output/postgres-migration-rollout-rehearsal.json",
+        "evidence_kind": "static_contract_plus_real_postgres_tenant_isolation"
+      }
+    },
+    {
       "namespace_key": "policy_packs",
       "version": "0001",
       "path": "src/infrastructure/postgres_migrations/policy_packs/0001_policy_pack_state.sql",

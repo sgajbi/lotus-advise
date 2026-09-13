@@ -45,9 +45,10 @@ The highest-risk documentation and implementation drift usually appears at these
 6. policy-control write routes must authorize an Advise `PolicyControlPrincipal` before state
    mutation; body actor fields are compatibility echoes and cannot satisfy role, capability,
    maker-checker, tenant, legal-entity, proposal, or portfolio scope on their own
-7. advisory copilot review routes must authorize a trusted reviewer principal before state
-   mutation; body `actor_id` is only a compatibility echo and cannot satisfy role, capability,
-   maker-checker, tenant, proposal, portfolio, or idempotency replay authority on its own
+7. advisory copilot packet, action, run-read, replay, and review routes must authorize one typed
+   trusted caller principal before record assembly, hydration, or state mutation; body actor fields
+   are compatibility echoes and cannot satisfy role, capability, maker-checker, tenant, proposal,
+   portfolio, or idempotency replay authority on their own
 8. proposal-version copilot evidence assembly must require a trusted policy-read principal and
    verify authorized proposal and portfolio scope against the loaded proposal before reading its
    versions, memos, approvals, events, or policy-evaluation evidence
@@ -130,6 +131,19 @@ trace id. This is a local/dev trusted-header control; production identity-provid
 token-claim binding remains a separately tracked platform/gateway dependency.
 
 ## Advisory Copilot Review Principal Governance
+
+Advisory copilot packet creation requires `advisory.copilot.packet`, action execution requires
+`advisory.copilot.action`, and packet/run/history reads require `advisory.copilot.read`; the
+proposal-version projection retains `advisory.policy_evaluation.read`. Each route derives the same
+typed caller receipt from `X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`,
+`X-Correlation-Id`, `X-Service-Identity`, `X-Capabilities`, and authorized proposal/portfolio
+headers. Advise persists that admitted tenant and trusted receipt with packets, runs, idempotency,
+and reviews. SQL applies tenant predicates before hydration; a foreign packet or run returns the
+same not-found result as an absent record. Raw idempotency keys may repeat across tenants, but a
+changed request within one admitted tenant remains a conflict. Historical packet, review,
+idempotency, and run rows without admitted tenant ownership are quarantined rather than backfilled
+from an old default. Gateway and Workbench must forward this receipt unchanged and must not invent
+tenant, role, capability, or resource scope.
 
 Advisory copilot action execution is model-governed before output can become review-ready. Advise
 uses `src/core/advisory_copilot/model_governance.py` and

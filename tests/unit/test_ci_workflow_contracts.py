@@ -21,10 +21,11 @@ def _assert_default_ci_guardrails(
     workflow: str,
     *,
     concurrency_group: str = "group: ${{ github.workflow }}-${{ github.ref }}",
+    cancel_in_progress: bool = True,
 ) -> None:
     assert "concurrency:" in workflow
     assert concurrency_group in workflow
-    assert "cancel-in-progress: true" in workflow
+    assert f"cancel-in-progress: {str(cancel_in_progress).lower()}" in workflow
     assert "permissions:\n  contents: read" in workflow
 
 
@@ -645,7 +646,11 @@ def test_pr_and_main_runtime_jobs_are_parallelized_without_renaming_required_che
             if workflow_name == "main-releasability.yml"
             else "group: ${{ github.workflow }}-${{ github.ref }}"
         )
-        _assert_default_ci_guardrails(workflow, concurrency_group=concurrency_group)
+        _assert_default_ci_guardrails(
+            workflow,
+            concurrency_group=concurrency_group,
+            cancel_in_progress=workflow_name != "main-releasability.yml",
+        )
         _assert_governance_job_runs_baseline_freshness(workflow, "lint-typecheck-governance")
         _assert_governance_job_runs_trust_telemetry_freshness(workflow, "lint-typecheck-governance")
         _assert_governance_job_runs_demo_assurance_checks(workflow, "lint-typecheck-governance")
@@ -878,8 +883,16 @@ def test_merged_pr_dispatches_main_releasability_on_main() -> None:
     assert "permissions:\n  actions: write\n  contents: write" in workflow
     assert "github.event.pull_request.merged == true" in dispatch_section
     assert "github.event.pull_request.base.ref == 'main'" in dispatch_section
+    assert "actions/checkout@v7" in dispatch_section
+    assert "fetch-depth: 0" in dispatch_section
+    assert "github.event.pull_request.base.sha" in dispatch_section
+    assert "github.event.pull_request.commits" in dispatch_section
+    assert 'git rev-list --reverse "$BASE_SHA..$MERGE_COMMIT_SHA"' in dispatch_section
+    assert "Merge methods changed" in dispatch_section
+    assert '"false,false,true"' in dispatch_section
+    assert "revision_count" in dispatch_section
     assert "gh workflow run main-releasability.yml" in dispatch_section
-    assert 'dispatch_ref="main-releasability-${MERGE_COMMIT_SHA}"' in dispatch_section
+    assert 'dispatch_ref="main-releasability-${revision}"' in dispatch_section
     assert (
         'existing_ref_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$dispatch_ref"'
         in dispatch_section
@@ -888,7 +901,7 @@ def test_merged_pr_dispatches_main_releasability_on_main() -> None:
     assert 'gh api "repos/$GITHUB_REPOSITORY/git/refs"' in dispatch_section
     assert '--ref "$dispatch_ref"' in dispatch_section
     assert "github.event.pull_request.merge_commit_sha" in dispatch_section
-    assert '-f expected_sha="$MERGE_COMMIT_SHA"' in dispatch_section
+    assert '-f expected_sha="$revision"' in dispatch_section
     assert '-f triggering_pr="$PR_NUMBER"' in dispatch_section
 
 
@@ -913,5 +926,24 @@ def test_main_releasability_uses_dispatcher_without_duplicate_push_trigger() -> 
     assert "git fetch --no-tags origin main:refs/remotes/origin/main" in workflow
     assert 'git merge-base --is-ancestor "$EXPECTED_SHA" origin/main' in workflow
     assert "refusing to label this run as mainline release evidence" in workflow
+    assert "cancel-in-progress: false" in workflow
+    assert "fetch-depth: 2" in workflow
+    assert "Enforce changed source coverage floor for exact main revision" in workflow
+    assert "if: inputs.expected_sha != ''" in workflow
+    assert '--base-ref "${{ inputs.expected_sha }}^"' in workflow
+    assert '--head-ref "${{ inputs.expected_sha }}"' in workflow
+    assert "Record changed coverage skip for unbound operator dispatch" in workflow
+    assert "main-releasability-changed-coverage-gate-evidence" in workflow
     assert "push:" not in trigger_section
     assert 'branches: ["main"]' not in trigger_section
+
+
+def test_main_gate_coverage_audit_is_scheduled_and_fails_closed() -> None:
+    workflow = _workflow_text("main-gate-coverage-audit.yml")
+
+    assert "schedule:" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "actions: read" in workflow
+    assert "contents: read" in workflow
+    assert "fetch-depth: 0" in workflow
+    assert "python scripts/audit_main_gate_coverage.py --fail-on-gap" in workflow

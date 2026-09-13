@@ -1,6 +1,6 @@
 {
-  "generated_at_utc": "2026-08-28T14:44:06Z",
-  "git_commit_sha": "9348cde8f8a6e5ac00164d1ef6dcdc88a4f34e6e",
+  "generated_at_utc": "2026-09-13T05:59:46Z",
+  "git_commit_sha": "833009ab4d7902fcabdf75c7dce66b26bf29d5e3",
   "image_digest": "unknown",
   "notice_file": "NOTICE.md",
   "packages": [
@@ -73,7 +73,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "0.8.0",
+      "installed_version": "0.11.1",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -81,7 +81,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "0.8.0"
+      "version": "0.11.1"
     },
     {
       "declared_name": "attrs",
@@ -256,6 +256,25 @@
       "version": "8.5.0"
     },
     {
+      "declared_name": "cloudpickle",
+      "dependency_groups": [
+        "development",
+        "runtime"
+      ],
+      "exception_expires_on": null,
+      "exception_id": null,
+      "exception_owner": null,
+      "installed_version": "3.1.2",
+      "license_term": "BSD-3-Clause",
+      "metadata_available": true,
+      "metadata_matches_requirement_pin": true,
+      "name": "cloudpickle",
+      "policy_classification": "ALLOWED",
+      "relationship": "transitive",
+      "source_files": [],
+      "version": "3.1.2"
+    },
+    {
       "declared_name": "colorama",
       "dependency_groups": [
         "development",
@@ -284,7 +303,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "7.15.4",
+      "installed_version": "7.16.0",
       "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -294,7 +313,7 @@
       "source_files": [
         "requirements-dev.txt"
       ],
-      "version": "7.15.4"
+      "version": "7.16.0"
     },
     {
       "declared_name": "cvxpy",
@@ -402,7 +421,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "3.32.4",
+      "installed_version": "3.32.6",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -410,7 +429,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "3.32.4"
+      "version": "3.32.6"
     },
     {
       "declared_name": "grimp",
@@ -420,7 +439,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "3.16",
+      "installed_version": "3.17",
       "license_term": "BSD 2-Clause License",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -428,7 +447,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "3.16"
+      "version": "3.17"
     },
     {
       "declared_name": "h11",
@@ -659,7 +678,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "1.5.3",
+      "installed_version": "1.6.0",
       "license_term": "BSD-3-Clause",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -667,7 +686,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "1.5.3"
+      "version": "1.6.0"
     },
     {
       "declared_name": "librt",
@@ -957,7 +976,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "0.0.34",
+      "installed_version": "0.0.35",
       "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -965,7 +984,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "0.0.34"
+      "version": "0.0.35"
     },
     {
       "declared_name": "pip-audit",
@@ -1013,7 +1032,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "4.11.5",
+      "installed_version": "4.11.8",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1021,7 +1040,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "4.11.5"
+      "version": "4.11.8"
     },
     {
       "declared_name": "pluggy",
@@ -1094,7 +1113,7 @@
       "exception_expires_on": "2027-12-31",
       "exception_id": "LA-LIC-001",
       "exception_owner": "Lotus platform engineering",
-      "installed_version": "3.3.4",
+      "installed_version": "3.3.5",
       "license_term": "LGPL-3.0-only",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1104,7 +1123,7 @@
       "source_files": [
         "requirements-prod.txt"
       ],
-      "version": "3.3.4"
+      "version": "3.3.5"
     },
     {
       "declared_name": "psycopg-binary",
@@ -1115,7 +1134,7 @@
       "exception_expires_on": "2027-12-31",
       "exception_id": "LA-LIC-002",
       "exception_owner": "Lotus platform engineering",
-      "installed_version": "3.3.4",
+      "installed_version": "3.3.5",
       "license_term": "LGPL-3.0-only",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1123,7 +1142,7 @@
       "policy_classification": "APPROVED_EXCEPTION",
       "relationship": "transitive",
       "source_files": [],
-      "version": "3.3.4"
+      "version": "3.3.5"
     },
     {
       "declared_name": "py",
@@ -1415,7 +1434,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "0.16.5",
+      "installed_version": "0.16.7",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1425,7 +1444,7 @@
       "source_files": [
         "requirements-dev.txt"
       ],
-      "version": "0.16.5"
+      "version": "0.16.7"
     },
     {
       "declared_name": "scipy",
@@ -1455,7 +1474,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "3.2.11",
+      "installed_version": "3.3.1",
       "license_term": "MIT",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1463,7 +1482,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "3.2.11"
+      "version": "3.3.1"
     },
     {
       "declared_name": "setuptools",
@@ -1720,7 +1739,7 @@
       "exception_expires_on": null,
       "exception_id": null,
       "exception_owner": null,
-      "installed_version": "2026.3",
+      "installed_version": "2026.4",
       "license_term": "Apache-2.0",
       "metadata_available": true,
       "metadata_matches_requirement_pin": true,
@@ -1728,7 +1747,7 @@
       "policy_classification": "ALLOWED",
       "relationship": "transitive",
       "source_files": [],
-      "version": "2026.3"
+      "version": "2026.4"
     },
     {
       "declared_name": "urllib3",
@@ -1823,11 +1842,11 @@
   "service_name": "lotus-advise",
   "summary": {
     "classifications": {
-      "ALLOWED": 92,
+      "ALLOWED": 93,
       "APPROVED_EXCEPTION": 2
     },
     "direct_package_count": 37,
-    "package_count": 94,
-    "transitive_package_count": 57
+    "package_count": 95,
+    "transitive_package_count": 58
   }
 }

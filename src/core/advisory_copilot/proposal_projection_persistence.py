@@ -9,9 +9,11 @@ from src.core.advisory_copilot.api_response_models import AdvisoryCopilotEvidenc
 from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
 from src.core.advisory_copilot.packet_persistence import save_advisory_copilot_evidence_packet
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
+from src.core.advisory_copilot.review_authority import CopilotCallerPrincipal
 from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.structured_payload import MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS
 from src.core.policy_packs.persistence_models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalRecord
 from src.core.proposals.repository import ProposalRepository
@@ -23,11 +25,15 @@ def save_proposal_version_advisory_copilot_evidence_packet(
     proposal_repository: ProposalRepository,
     proposal: ProposalRecord,
     payload: AdvisoryCopilotProposalVersionEvidenceRequest,
+    principal: CopilotCallerPrincipal,
+    tenant_id: str,
     policy_evaluations: Sequence[PolicyEvaluationRecord],
     correlation_id: str | None,
 ) -> AdvisoryCopilotEvidencePacketResponse:
     if proposal.proposal_id != payload.proposal_id:
         raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
+    if len(payload.reason) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS - 4:
+        raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
     packet = build_proposal_version_copilot_evidence_packet(
         repository=proposal_repository,
         proposal=proposal,
@@ -41,12 +47,14 @@ def save_proposal_version_advisory_copilot_evidence_packet(
         repository=repository,
         evidence_packet=packet,
         audience=payload.audience,
-        created_by=payload.created_by,
+        tenant_id=tenant_id,
+        created_by=principal.actor_id,
         reason={
             **payload.reason,
             "source_projection": "PROPOSAL_VERSION",
             "proposal_id": payload.proposal_id,
             "proposal_version_no": payload.proposal_version_no,
+            "trusted_principal": principal.audit_metadata(),
         },
         correlation_id=resolve_advisory_copilot_correlation_id(
             correlation_id,

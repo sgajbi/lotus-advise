@@ -26,14 +26,12 @@ from src.api.proposals.copilot_parameters import (
     AdvisoryCopilotRunLimitQuery,
 )
 from src.api.proposals.copilot_review_principal import (
+    require_advisory_copilot_action_principal,
+    require_advisory_copilot_packet_principal,
+    require_advisory_copilot_policy_read_principal,
+    require_advisory_copilot_read_principal,
     require_advisory_copilot_review_principal,
 )
-from src.api.proposals.policy_control_principal import (
-    PolicyControlPrincipal,
-    assert_policy_evaluation_proposal_scope,
-    require_policy_evaluation_read_principal,
-)
-from src.api.proposals.policy_evaluation_responses import POLICY_CONTROL_AUTH_RESPONSES
 from src.core.advisory_copilot.api_request_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -50,7 +48,12 @@ from src.core.advisory_copilot.api_response_models import (
 from src.core.advisory_copilot.application import (
     AdvisoryCopilotApplicationService,
 )
-from src.core.advisory_copilot.review_authority import CopilotReviewPrincipal
+from src.core.advisory_copilot.review_authority import (
+    CopilotCallerPrincipal,
+    CopilotReviewPrincipal,
+    validate_copilot_proposal_scope,
+    validate_copilot_resource_authority,
+)
 from src.core.advisory_copilot.supportability import (
     build_advisory_copilot_supportability_response,
 )
@@ -73,6 +76,7 @@ from src.core.proposals.repository import ProposalRepository
 def create_advisory_copilot_evidence_packet(
     payload: AdvisoryCopilotEvidencePacketCreateRequest,
     correlation_id: AdvisoryCopilotCorrelationIdHeader = None,
+    principal: CopilotCallerPrincipal = Depends(require_advisory_copilot_packet_principal),
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
     return cast(
@@ -80,6 +84,7 @@ def create_advisory_copilot_evidence_packet(
         run_copilot_operation(
             lambda: service.create_evidence_packet(
                 payload=payload,
+                principal=principal,
                 correlation_id=correlation_id,
             )
         ),
@@ -101,14 +106,14 @@ def create_advisory_copilot_evidence_packet(
         "must authorize both the requested proposal and its stored portfolio before source data "
         "is assembled."
     ),
-    responses={**ADVISORY_COPILOT_RESPONSES, **POLICY_CONTROL_AUTH_RESPONSES},
+    responses=ADVISORY_COPILOT_RESPONSES,
 )
 def create_advisory_copilot_evidence_packet_from_proposal_version(
     payload: AdvisoryCopilotProposalVersionEvidenceRequest,
     correlation_id: AdvisoryCopilotCorrelationIdHeader = None,
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
     proposal_repository: ProposalRepository = Depends(get_advisory_proposal_repository),
-    principal: PolicyControlPrincipal = Depends(require_policy_evaluation_read_principal),
+    principal: CopilotCallerPrincipal = Depends(require_advisory_copilot_policy_read_principal),
 ) -> AdvisoryCopilotEvidencePacketResponse:
     return cast(
         AdvisoryCopilotEvidencePacketResponse,
@@ -127,26 +132,26 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
 def _create_proposal_version_evidence_packet(
     *,
     payload: AdvisoryCopilotProposalVersionEvidenceRequest,
-    principal: PolicyControlPrincipal,
+    principal: CopilotCallerPrincipal,
     service: AdvisoryCopilotApplicationService,
     proposal_repository: ProposalRepository,
     correlation_id: str | None,
 ) -> AdvisoryCopilotEvidencePacketResponse:
-    assert_policy_evaluation_proposal_scope(
-        principal=principal,
-        proposal_id=payload.proposal_id,
-    )
+    validate_copilot_proposal_scope(principal=principal, proposal_id=payload.proposal_id)
     proposal = proposal_repository.get_proposal(proposal_id=payload.proposal_id)
     if proposal is None:
         raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
-    assert_policy_evaluation_proposal_scope(
+    validate_copilot_resource_authority(
         principal=principal,
-        proposal_id=proposal.proposal_id,
+        tenant_id=principal.tenant_id,
         portfolio_id=proposal.portfolio_id,
+        proposal_id=proposal.proposal_id,
     )
+    if payload.created_by != principal.actor_id:
+        raise ValueError("COPILOT_CALLER_ACTOR_MISMATCH")
     return service.create_proposal_version_evidence_packet(
         payload=payload,
-        tenant_id=principal.tenant_id,
+        principal=principal,
         proposal=proposal,
         proposal_repository=proposal_repository,
         correlation_id=correlation_id,
@@ -164,12 +169,15 @@ def _create_proposal_version_evidence_packet(
 )
 def get_advisory_copilot_evidence_packet(
     evidence_packet_id: AdvisoryCopilotEvidencePacketIdPath,
+    principal: CopilotCallerPrincipal = Depends(require_advisory_copilot_read_principal),
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
     return cast(
         AdvisoryCopilotEvidencePacketResponse,
         run_copilot_operation(
-            lambda: service.get_evidence_packet(evidence_packet_id=evidence_packet_id)
+            lambda: service.get_evidence_packet(
+                evidence_packet_id=evidence_packet_id, principal=principal
+            )
         ),
     )
 
@@ -191,6 +199,7 @@ def run_advisory_copilot_action(
     payload: AdvisoryCopilotActionRequest,
     idempotency_key: AdvisoryCopilotOptionalIdempotencyKeyHeader = None,
     correlation_id: AdvisoryCopilotCorrelationIdHeader = None,
+    principal: CopilotCallerPrincipal = Depends(require_advisory_copilot_action_principal),
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
     return cast(
@@ -198,6 +207,7 @@ def run_advisory_copilot_action(
         run_copilot_operation(
             lambda: service.run_action(
                 payload=payload,
+                principal=principal,
                 correlation_id=correlation_id,
                 idempotency_key=idempotency_key,
             )
@@ -216,11 +226,12 @@ def run_advisory_copilot_action(
 )
 def get_advisory_copilot_run(
     run_id: AdvisoryCopilotRunIdPath,
+    principal: CopilotCallerPrincipal = Depends(require_advisory_copilot_read_principal),
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
     return cast(
         AdvisoryCopilotRunResponse,
-        run_copilot_operation(lambda: service.get_run(run_id=run_id)),
+        run_copilot_operation(lambda: service.get_run(run_id=run_id, principal=principal)),
     )
 
 
@@ -293,16 +304,54 @@ def list_proposal_version_copilot_runs(
     version_id: AdvisoryCopilotProposalVersionIdPath,
     limit: AdvisoryCopilotRunLimitQuery = 25,
     cursor: AdvisoryCopilotRunCursorQuery = None,
+    principal: CopilotCallerPrincipal = Depends(require_advisory_copilot_read_principal),
     service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
+    proposal_repository: ProposalRepository = Depends(get_advisory_proposal_repository),
 ) -> AdvisoryCopilotRunPage:
     return cast(
         AdvisoryCopilotRunPage,
         run_copilot_operation(
-            lambda: service.list_proposal_version_runs(
+            lambda: _list_proposal_version_copilot_runs(
                 proposal_id=proposal_id,
                 version_id=version_id,
+                principal=principal,
+                service=service,
+                proposal_repository=proposal_repository,
                 limit=limit,
                 cursor=cursor,
             )
         ),
+    )
+
+
+def _list_proposal_version_copilot_runs(
+    *,
+    proposal_id: str,
+    version_id: str,
+    principal: CopilotCallerPrincipal,
+    service: AdvisoryCopilotApplicationService,
+    proposal_repository: ProposalRepository,
+    limit: int | None,
+    cursor: str | None,
+) -> AdvisoryCopilotRunPage:
+    validate_copilot_proposal_scope(principal=principal, proposal_id=proposal_id)
+    proposal = proposal_repository.get_proposal(proposal_id=proposal_id)
+    proposal_portfolio_id = (
+        proposal.portfolio_id if proposal is not None else principal.authorized_portfolio_id
+    )
+    if proposal_portfolio_id is None:
+        raise ValueError("COPILOT_RESOURCE_SCOPE_REQUIRED")
+    validate_copilot_resource_authority(
+        principal=principal,
+        tenant_id=principal.tenant_id,
+        portfolio_id=proposal_portfolio_id,
+        proposal_id=proposal_id,
+    )
+    return service.list_proposal_version_runs(
+        proposal_id=proposal_id,
+        version_id=version_id,
+        proposal_portfolio_id=proposal_portfolio_id,
+        principal=principal,
+        limit=limit,
+        cursor=cursor,
     )

@@ -567,6 +567,9 @@ Important validation expectations:
    Vulnerability-aware dependency health remains blocking in PR and main lanes; strict
    `--fail-on-outdated` freshness runs in the nightly/manual `Dependency Maintenance` workflow so
    an unrelated upstream release cannot invalidate a feature PR or exact-main evidence,
+   with only exact package/pin/latest-version, owner/reason, unexpired exceptions in
+   `quality/dependency-freshness-policy.v1.json`; an exception never suppresses package-health or
+   vulnerability evidence,
    while routine Dependabot version-update PRs are paused with
    `open-pull-requests-limit: 0` so dependency suggestions are handled through deliberate
    repo-native refresh, security review, and PR validation instead of noisy bot branches. The API
@@ -680,7 +683,12 @@ Important validation expectations:
     hunks produce failed machine-readable evidence rather than an empty 100% measurement. Manual
     dispatches log and resolve the event-aware comparison refs before running the trend gate so
     missing pull-request fields cannot silently produce an unbound quality comparison.
-21. CI-local Docker execution is isolated from the product runtime: `make ci-local-docker`,
+21. Rebase-merged PRs dispatch Main Releasability for every revision in the exact merged
+    base/head range; range/count/ancestry disagreement fails before dispatch. The scheduled
+    main-gate coverage audit treats missing, cancelled, pending, and unqueryable runs as unknown,
+    and `make ci-lane-parity-gate` ensures the selected controls stay in both aggregate targets
+    and their applicable Feature, PR, and Main workflow lanes without duplicating expensive work.
+22. CI-local Docker execution is isolated from the product runtime: `make ci-local-docker`,
     `make ci-local-docker-down`, and `scripts/run_runtime_smoke_checks.py` use the same
     checkout-specific `CI_LOCAL_COMPOSE_PROJECT` identity, derived from the absolute checkout path
     unless an orchestrator supplies an explicit, unique CI-owned override. Cleanup must remain

@@ -1,0 +1,15 @@
+{
+  "schema_version": "lotus.advise.ci-lane-parity.v1",
+  "aggregate_targets": ["check", "ci", "ci-local"],
+  "lanes": {
+    "feature": ".github/workflows/feature-lane.yml",
+    "pr": ".github/workflows/pr-merge-gate.yml",
+    "main": ".github/workflows/main-releasability.yml"
+  },
+  "controls": [
+    {"target": "quality-trend-gate", "lane_signals": {"feature": ["make quality-trend-gate"], "pr": ["make quality-trend-gate"], "main": ["make quality-trend-gate"]}},
+    {"target": "advisory-data-lifecycle-gate", "lane_signals": {"feature": ["tests/unit", "make test-unit"], "pr": ["tests/unit"], "main": ["tests/unit"]}},
+    {"target": "external-adapter-contracts", "lane_signals": {"feature": ["tests/unit", "make test-unit"], "pr": ["tests/unit"], "main": ["tests/unit"]}},
+    {"target": "changed-coverage-gate", "lane_signals": {"pr": ["scripts/changed_coverage_gate.py"], "main": ["scripts/changed_coverage_gate.py"]}}
+  ]
+}

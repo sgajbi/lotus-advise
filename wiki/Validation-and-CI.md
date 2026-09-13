@@ -94,6 +94,14 @@ is explicitly a reviewed compatibility declaration because it has no separate ru
 The artifact publishes pairings only; approval requirements and gate reasons remain separate
 runtime evidence fields.
 
+Strict dependency freshness is deliberately owned by the scheduled/manual `Dependency
+Maintenance` workflow through `make check-deps-strict`. Its reviewed exception policy is
+`quality/dependency-freshness-policy.v1.json`: an exception applies only when the normalized
+package name, installed pin, and current upstream version all match exactly. It must also name an
+owner, reason, and future expiry. An expired, malformed, or no-longer-observed exception fails
+closed; it cannot suppress `pip check` or vulnerability-audit failures. This keeps a
+short-lived compatibility decision narrow without silently admitting later dependency drift.
+
 The same fast static lanes also run `make quality-trend-gate`. This gate compares the committed
 `quality/baseline_report.md` metrics at the merge base of the supplied base/head revisions and the
 exact head revision, then writes `output/quality-trend-gate.json`. The versioned policy allows at most 200 additional Python lines;
@@ -125,6 +133,14 @@ merge-base SHA, selected comparison SHA, and `comparison_base_source`. The gate 
 effective ref and fallback state at the decision boundary, so failed revision or baseline reads
 preserve truthful fallback provenance as well as successful comparisons. The gate is CI/developer
 evidence only and does not change runtime, API, persistence, migration, or data-model behavior.
+
+After a rebase merge, the closed-PR dispatcher enumerates the exact `base..merged` revision range
+and dispatches Main Releasability once for every revision. It refuses missing ancestry, a
+non-rebase merge method, or a range/count mismatch. The scheduled `Main Gate Coverage Audit`
+separately treats missing, cancelled, pending, or unqueryable per-revision runs as unknown rather
+than green. `make ci-lane-parity-gate` verifies that the aggregate local controls remain represented
+by executable evidence in Feature, PR, and Main lanes; it checks wiring only and does not duplicate
+the expensive underlying gates.
 
 ## Lane Map
 

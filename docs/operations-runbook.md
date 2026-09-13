@@ -8,10 +8,22 @@
 - `make ci-local`: local PR Merge Gate subset without Docker, including quality-baseline
   freshness.
 - `make quality-baseline`: regenerate report-only quality artifacts in `quality/`.
+- `make check-deps-strict`: run scheduled-maintenance-style direct dependency freshness, `pip
+  check`, and vulnerability evidence. The only permitted deferral is an exact reviewed record in
+  `quality/dependency-freshness-policy.v1.json`; matching package, installed pin, latest upstream
+  version, owner/reason, and unexpired date are all required, and audit/check failures remain
+  blocking.
+- `make ci-lane-parity-gate`: verify quality, lifecycle, external-adapter, and changed-coverage
+  controls remain transitive local aggregate prerequisites and have executable Feature/PR/Main
+  lane evidence. This is a wiring check, not a replacement for the underlying controls.
 - GitHub `Pull Request Merge Gate` manual dispatches use the selected checkout SHA as the quality
   head and `origin/main` as the comparison base. The workflow logs and resolves both revisions,
   runs changed-source coverage, and fails closed when a ref is unavailable; do not treat a manual
   run with an empty pull-request context as equivalent to PR-triggered evidence.
+- The closed-PR dispatcher enumerates every rebase-merged revision in the exact
+  `base..merged` range and refuses partial dispatch. The daily `Main Gate Coverage Audit` fails
+  when a recent revision has no verdict-bearing Main Releasability evidence or its run state is
+  unknown; a cancelled or pending run is never evidence of release acceptance.
 - `make engineering-health`: regenerate the structural engineering-health baseline.
 - `make ci-local-docker` and `make ci-local-docker-down`: run and clean up the CI-local Compose
   project. By default, both targets derive the same checkout-specific project identity, so `down

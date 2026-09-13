@@ -83,6 +83,8 @@ jobs:
           QUALITY_BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main' }}
           QUALITY_HEAD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: make quality-trend-gate
+      - name: CI Lane Parity Gate
+        run: make ci-lane-parity-gate
       - name: Upload Quality Trend Evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -261,6 +263,10 @@ jobs:
         env:
           POLICY_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
         run: python -m pytest -q tests/integration/advisory/engine/test_policy_evaluation_postgres_tenant_isolation.py
+      - name: Prove Copilot tenant isolation, contention, and replay in Postgres
+        env:
+          ADVISORY_COPILOT_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
+        run: python -m pytest -q tests/integration/advisory/engine/test_advisory_copilot_postgres_tenant_isolation.py
 
   production-profile-smoke:
     name: PR Merge Gate / Production Profile Startup Smoke

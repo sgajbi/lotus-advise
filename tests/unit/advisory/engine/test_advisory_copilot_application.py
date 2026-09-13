@@ -28,11 +28,15 @@ from src.core.advisory_copilot.api_validation import (
     normalize_optional_copilot_identifier,
     normalize_required_copilot_identifier,
 )
-from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
+from src.core.advisory_copilot.application import (
+    AdvisoryCopilotApplicationService,
+    _with_caller_authority,
+)
 from src.core.advisory_copilot.correlation import resolve_advisory_copilot_correlation_id
 from src.core.advisory_copilot.proposal_projection_persistence import (
     save_proposal_version_advisory_copilot_evidence_packet,
 )
+from src.core.advisory_copilot.review_authority import CopilotCallerPrincipal
 from src.core.advisory_copilot.supportability import (
     build_advisory_copilot_supportability_response,
 )
@@ -43,6 +47,26 @@ from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 from src.integrations.lotus_ai import AdvisoryCopilotAiDraft
 
 NOW = datetime(2026, 5, 28, 9, 0, tzinfo=UTC)
+
+
+def _copilot_principal(
+    *,
+    portfolio_id: str = "PB_SG_GLOBAL_BAL_001",
+    proposal_id: str = "proposal_sg_structured_note_001",
+) -> CopilotCallerPrincipal:
+    return CopilotCallerPrincipal(
+        actor_id="advisor_123",
+        role="ADVISOR",
+        tenant_id="tenant_sg_001",
+        legal_entity_code="SGPB",
+        correlation_id="corr_principal_001",
+        service_identity="lotus-gateway",
+        capabilities=frozenset(
+            {"advisory.copilot.packet", "advisory.copilot.action", "advisory.copilot.read"}
+        ),
+        authorized_proposal_id=proposal_id,
+        authorized_portfolio_id=portfolio_id,
+    )
 
 
 def test_copilot_action_request_normalizes_and_bounds_advisor_input() -> None:
@@ -438,7 +462,7 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
     )
 
     response = service.create_proposal_version_evidence_packet(
-        tenant_id="tenant_sg_001",
+        principal=_copilot_principal(),
         proposal=_proposal(proposal_repository),
         payload=AdvisoryCopilotProposalVersionEvidenceRequest(
             proposal_id="proposal_sg_structured_note_001",
@@ -471,6 +495,154 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
     assert response.record.correlation_id == "corr_projection_001"
     assert response.record.created_by == "advisor_123"
 
+    with pytest.raises(ValueError, match="COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE"):
+        service.create_proposal_version_evidence_packet(
+            principal=_copilot_principal(),
+            proposal=_proposal(proposal_repository),
+            payload=AdvisoryCopilotProposalVersionEvidenceRequest(
+                proposal_id="proposal_sg_structured_note_001",
+                proposal_version_no=1,
+                action_family="PROPOSAL_EXPLANATION",
+                audience="ADVISOR",
+                created_by="advisor_123",
+                reason={f"reason_{index}": "bounded" for index in range(61)},
+            ),
+            proposal_repository=proposal_repository,
+            correlation_id=None,
+        )
+
+
+def test_application_service_rejects_actor_mismatch_before_projection_or_action() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    with pytest.raises(ValueError, match="COPILOT_CALLER_ACTOR_MISMATCH"):
+        service.create_proposal_version_evidence_packet(
+            principal=_copilot_principal(),
+            proposal=_proposal(proposal_repository),
+            payload=AdvisoryCopilotProposalVersionEvidenceRequest(
+                proposal_id="proposal_sg_structured_note_001",
+                proposal_version_no=1,
+                action_family="PROPOSAL_EXPLANATION",
+                audience="ADVISOR",
+                created_by="other-advisor",
+            ),
+            proposal_repository=proposal_repository,
+            correlation_id=None,
+        )
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_PACKET_NOT_FOUND"):
+        service.run_action(
+            payload=AdvisoryCopilotActionRequest(
+                evidence_packet_id="copilot_packet_missing",
+                audience="ADVISOR",
+                requested_outputs=("advisor_review_summary",),
+                requested_by="advisor_123",
+            ),
+            principal=_copilot_principal(),
+            idempotency_key=None,
+            correlation_id=None,
+        )
+    service.create_evidence_packet(
+        payload=_evidence_packet_request(), principal=_copilot_principal(), correlation_id=None
+    )
+    with pytest.raises(ValueError, match="COPILOT_CALLER_ACTOR_MISMATCH"):
+        service.run_action(
+            payload=AdvisoryCopilotActionRequest(
+                evidence_packet_id="copilot_packet_pb_sg_001",
+                audience="ADVISOR",
+                requested_outputs=("advisor_review_summary",),
+                requested_by="other-advisor",
+            ),
+            principal=_copilot_principal(),
+            idempotency_key=None,
+            correlation_id=None,
+        )
+
+
+def test_application_service_rejects_mismatched_packet_actor_and_reserved_audit_capacity() -> None:
+    service = AdvisoryCopilotApplicationService(
+        repository=InMemoryAdvisoryCopilotRepository(),
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    with pytest.raises(ValueError, match="COPILOT_CALLER_ACTOR_MISMATCH"):
+        service.create_evidence_packet(
+            payload=_evidence_packet_request().model_copy(update={"created_by": "other-advisor"}),
+            principal=_copilot_principal(),
+            correlation_id=None,
+        )
+    with pytest.raises(ValueError, match="COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE"):
+        _with_caller_authority(
+            {f"reason_{index}": "bounded" for index in range(64)},
+            principal=_copilot_principal(),
+        )
+
+
+def test_application_service_hides_out_of_scope_evidence_packets_before_deserialization() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    generated: list[str] = []
+
+    def guarded_generator(**kwargs: Any) -> AdvisoryCopilotAiDraft:
+        generated.append("called")
+        return _draft_generator(**kwargs)
+
+    service = AdvisoryCopilotApplicationService(
+        repository=repository,
+        draft_generator=guarded_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    service.create_evidence_packet(
+        payload=_evidence_packet_request(),
+        principal=_copilot_principal(),
+        correlation_id=None,
+    )
+    run = service.run_action(
+        payload=AdvisoryCopilotActionRequest(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            audience="ADVISOR",
+            requested_outputs=("advisor_review_summary",),
+            requested_by="advisor_123",
+        ),
+        principal=_copilot_principal(),
+        idempotency_key=None,
+        correlation_id=None,
+    ).run
+    out_of_scope = _copilot_principal(proposal_id="proposal_not_authorized")
+
+    assert (
+        repository.get_evidence_packet_for_authorized_scope(
+            tenant_id=out_of_scope.tenant_id,
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            authorized_portfolio_id=out_of_scope.authorized_portfolio_id,
+            authorized_proposal_id=out_of_scope.authorized_proposal_id,
+        )
+        is None
+    )
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_PACKET_NOT_FOUND"):
+        service.get_evidence_packet(
+            evidence_packet_id="copilot_packet_pb_sg_001", principal=out_of_scope
+        )
+    with pytest.raises(ValueError, match="COPILOT_RUN_NOT_FOUND"):
+        service.get_run(run_id=run.run_id, principal=out_of_scope)
+    with pytest.raises(ValueError, match="COPILOT_EVIDENCE_PACKET_NOT_FOUND"):
+        service.run_action(
+            payload=AdvisoryCopilotActionRequest(
+                evidence_packet_id="copilot_packet_pb_sg_001",
+                audience="ADVISOR",
+                requested_outputs=("advisor_review_summary",),
+                requested_by="advisor_123",
+            ),
+            principal=out_of_scope,
+            idempotency_key=None,
+            correlation_id=None,
+        )
+    assert generated == ["called"]
+
 
 def test_copilot_proposal_projection_persistence_has_focused_owner() -> None:
     copilot_repository = InMemoryAdvisoryCopilotRepository()
@@ -494,6 +666,8 @@ def test_copilot_proposal_projection_persistence_has_focused_owner() -> None:
         proposal_repository=proposal_repository,
         proposal=proposal,
         payload=payload,
+        principal=_copilot_principal(),
+        tenant_id="tenant_sg_001",
         policy_evaluations=(_policy_evaluation(),),
         correlation_id="corr_projection_owner_001",
     )
@@ -509,6 +683,8 @@ def test_copilot_proposal_projection_persistence_has_focused_owner() -> None:
             proposal_repository=proposal_repository,
             proposal=proposal.model_copy(update={"proposal_id": "proposal_other"}),
             payload=payload,
+            principal=_copilot_principal(),
+            tenant_id="tenant_sg_001",
             policy_evaluations=(_policy_evaluation(),),
             correlation_id="corr_projection_mismatch_001",
         )
@@ -603,7 +779,9 @@ def test_application_service_bounds_source_projection_evidence_text() -> None:
     )
 
     response = service.create_proposal_version_evidence_packet(
-        tenant_id="tenant_sg_001",
+        principal=_copilot_principal(
+            portfolio_id=f"PB_SG_GLOBAL_BAL_{'001_' * 30}", proposal_id=proposal_id
+        ),
         proposal=_proposal(proposal_repository, proposal_id),
         payload=AdvisoryCopilotProposalVersionEvidenceRequest(
             proposal_id=proposal_id,
@@ -645,6 +823,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
     )
     service.create_evidence_packet(
         payload=_evidence_packet_request(),
+        principal=_copilot_principal(),
         correlation_id="corr_packet_001",
     )
 
@@ -660,6 +839,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
         ),
         idempotency_key="  copilot-action-idem-001  ",
         correlation_id="  corr_action_001  ",
+        principal=_copilot_principal(),
     )
     replay = service.run_action(
         payload=AdvisoryCopilotActionRequest(
@@ -673,6 +853,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
         ),
         idempotency_key="copilot-action-idem-001",
         correlation_id=None,
+        principal=_copilot_principal(),
     )
     with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT"):
         service.run_action(
@@ -687,6 +868,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
             ),
             idempotency_key="copilot-action-idem-001",
             correlation_id=None,
+            principal=_copilot_principal(),
         )
 
     assert draft_calls[0]["requested_intents"] == ("explain_policy_posture",)
@@ -715,6 +897,7 @@ def test_application_service_uses_deterministic_correlation_fallback_for_blank_v
     packet = service.create_evidence_packet(
         payload=_evidence_packet_request(),
         correlation_id="   ",
+        principal=_copilot_principal(),
     )
     run = service.run_action(
         payload=AdvisoryCopilotActionRequest(
@@ -726,10 +909,11 @@ def test_application_service_uses_deterministic_correlation_fallback_for_blank_v
         ),
         idempotency_key=None,
         correlation_id="   ",
+        principal=_copilot_principal(),
     )
 
-    assert packet.record.correlation_id == "corr-copilot_packet_pb_sg_001"
-    assert run.run.correlation_id == "corr-copilot_packet_pb_sg_001"
+    assert packet.record.correlation_id == "corr_principal_001"
+    assert run.run.correlation_id == "corr_principal_001"
 
 
 def test_application_service_bounds_generated_correlation_fallback() -> None:
@@ -753,10 +937,10 @@ def test_application_service_bounds_generated_correlation_fallback() -> None:
             reason={"business_reason": "Prepare advisor review."},
         ),
         correlation_id="   ",
+        principal=_copilot_principal(),
     )
 
-    assert response.record.correlation_id.startswith("corr-")
-    assert len(response.record.correlation_id) <= 128
+    assert response.record.correlation_id == "corr_principal_001"
 
 
 def test_application_service_rejects_invalid_copilot_run_page_size() -> None:
@@ -770,8 +954,54 @@ def test_application_service_rejects_invalid_copilot_run_page_size() -> None:
         service.list_proposal_version_runs(
             proposal_id="proposal_sg_structured_note_001",
             version_id="version_sg_001",
+            proposal_portfolio_id="PB_SG_GLOBAL_BAL_001",
             limit=0,
             cursor=None,
+            principal=_copilot_principal(),
+        )
+
+
+def test_application_service_refuses_unowned_proposal_runs_before_repository_query() -> None:
+    class _NoListRepository(InMemoryAdvisoryCopilotRepository):
+        def list_runs_for_proposal_version(self, **_: Any) -> tuple[list[Any], str | None]:
+            raise AssertionError("proposal run query must not happen for an unowned proposal")
+
+    service = AdvisoryCopilotApplicationService(
+        repository=_NoListRepository(),
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+
+    with pytest.raises(ValueError, match="COPILOT_RESOURCE_SCOPE_FORBIDDEN"):
+        service.list_proposal_version_runs(
+            proposal_id="proposal_not_authorized_or_present",
+            version_id="version_sg_001",
+            proposal_portfolio_id="PB_SG_GLOBAL_BAL_001",
+            limit=None,
+            cursor=None,
+            principal=_copilot_principal(),
+        )
+
+
+def test_application_service_refuses_unowned_portfolio_runs_before_repository_query() -> None:
+    class _NoListRepository(InMemoryAdvisoryCopilotRepository):
+        def list_runs_for_proposal_version(self, **_: Any) -> tuple[list[Any], str | None]:
+            raise AssertionError("proposal run query must not happen for an unowned portfolio")
+
+    service = AdvisoryCopilotApplicationService(
+        repository=_NoListRepository(),
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+
+    with pytest.raises(ValueError, match="COPILOT_RESOURCE_SCOPE_FORBIDDEN"):
+        service.list_proposal_version_runs(
+            proposal_id="proposal_sg_structured_note_001",
+            version_id="version_sg_001",
+            proposal_portfolio_id="PB_HK_UNAUTHORIZED_001",
+            limit=None,
+            cursor=None,
+            principal=_copilot_principal(),
         )
 
 
@@ -810,6 +1040,7 @@ def test_application_service_refreshes_retryable_unavailable_copilot_run() -> No
     service.create_evidence_packet(
         payload=_evidence_packet_request(),
         correlation_id="corr_packet_001",
+        principal=_copilot_principal(),
     )
     request = AdvisoryCopilotActionRequest(
         evidence_packet_id="copilot_packet_pb_sg_001",
@@ -825,16 +1056,19 @@ def test_application_service_refreshes_retryable_unavailable_copilot_run() -> No
         payload=request,
         idempotency_key="copilot-action-idem-refresh",
         correlation_id="corr_action_001",
+        principal=_copilot_principal(),
     )
     refreshed = service.run_action(
         payload=request,
         idempotency_key="copilot-action-idem-refresh",
         correlation_id="corr_action_002",
+        principal=_copilot_principal(),
     )
     replay = service.run_action(
         payload=request,
         idempotency_key="copilot-action-idem-refresh",
         correlation_id="corr_action_003",
+        principal=_copilot_principal(),
     )
 
     assert unavailable.run.review_posture == "UNAVAILABLE"
