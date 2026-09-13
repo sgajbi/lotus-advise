@@ -57,6 +57,30 @@ def test_workflow_pack_authenticated_headers_bind_declared_lotus_advise_caller()
     assert workflow_pack_authenticated_headers() == {"X-Caller-App": "lotus-advise"}
 
 
+def test_workflow_pack_request_uses_explicit_admitted_tenant_over_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "configured-tenant-a")
+
+    request = build_workflow_pack_execute_request(
+        pack_id="advisory_copilot_proposal_explanation.pack",
+        version="v1",
+        workflow_surface="advisory-copilot-proposal-explanation",
+        task_id="explain.v1",
+        correlation_id="correlation-tenant-b",
+        requested_by="advisor_001",
+        context_summary="Draft advisor-use explanation from governed evidence.",
+        context_payload={},
+        source_refs=[],
+        expected_output_label="EXPLANATION_ONLY",
+        tenant_id="admitted-tenant-b",
+    )
+
+    caller = request["task_request"]["caller"]
+    assert isinstance(caller, dict)
+    assert caller["tenant_id"] == "admitted-tenant-b"
+
+
 def test_build_workflow_pack_execute_request_requires_trusted_tenant(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

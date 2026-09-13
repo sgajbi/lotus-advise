@@ -24,7 +24,18 @@ def resolve_lotus_ai_base_url(
 
 
 def resolve_lotus_ai_tenant_id() -> str:
-    normalized = _configured_lotus_ai_tenant_id()
+    return require_lotus_ai_tenant_id(_configured_lotus_ai_tenant_id())
+
+
+def require_lotus_ai_tenant_id(tenant_id: str) -> str:
+    """Return a bounded tenant value supplied by an admitted caller or configuration.
+
+    Callers with an admitted principal must pass that principal's tenant explicitly.  The
+    environment resolver remains only for workflow surfaces that do not have a request-bound
+    authority object.
+    """
+
+    normalized = tenant_id.strip() if isinstance(tenant_id, str) else ""
     if _is_supported_lotus_ai_tenant_id(normalized):
         return normalized
     raise LotusAITenantIdentityError("LOTUS_AI_TENANT_ID_UNAVAILABLE")

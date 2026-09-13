@@ -1,16 +1,20 @@
 import json
+import sys
 from datetime import date
 from pathlib import Path
 
 import pytest
 
 from scripts.dependency_health_check import (
+    CheckResult,
     _filter_outdated_to_requirements,
     _latest_python_compatible_version_from_releases,
     _parse_requirements_file,
     _venv_python,
     apply_freshness_exceptions,
     load_freshness_exceptions,
+    main,
+    parse_pip_audit_vulnerabilities,
 )
 
 
@@ -152,3 +156,80 @@ def test_freshness_exception_fails_closed_when_expired_or_the_drift_changes(tmp_
     policy_path.write_text(json.dumps(policy), encoding="utf-8")
     with pytest.raises(ValueError, match="Expired dependency freshness exception"):
         load_freshness_exceptions(policy_path, today=date(2026, 9, 13))
+
+
+def test_pip_audit_parser_retains_nested_advisories_with_dependency_identity() -> None:
+    vulnerabilities = parse_pip_audit_vulnerabilities(
+        json.dumps(
+            {
+                "dependencies": [
+                    {
+                        "name": "anyio",
+                        "version": "4.14.2",
+                        "vulns": [{"id": "CVE-2026-0001", "fix_versions": ["4.15.1"]}],
+                    }
+                ],
+                "fixes": [],
+            }
+        )
+    )
+
+    assert vulnerabilities == [
+        {
+            "dependency": "anyio",
+            "version": "4.14.2",
+            "vulnerability": {"id": "CVE-2026-0001", "fix_versions": ["4.15.1"]},
+        }
+    ]
+
+
+@pytest.mark.parametrize("arguments", [[], ["--fail-on-outdated"]])
+def test_security_audit_and_check_deps_strict_fail_closed_for_nested_advisory(
+    monkeypatch: pytest.MonkeyPatch,
+    arguments: list[str],
+) -> None:
+    """Exercise the script entry point used by security-audit and check-deps-strict."""
+
+    audit_output = json.dumps(
+        {
+            "dependencies": [
+                {
+                    "name": "anyio",
+                    "version": "4.14.2",
+                    "vulns": [{"id": "CVE-2026-0001"}],
+                }
+            ]
+        }
+    )
+
+    def _run(command: list[str], **_: object) -> CheckResult:
+        if command[-2:] == ["pip", "check"]:
+            return CheckResult(command, 0, "No broken requirements found.", "")
+        if "pip_audit" in command:
+            return CheckResult(command, 1, audit_output, "vulnerabilities found")
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr("scripts.dependency_health_check.venv.EnvBuilder.create", lambda *_: None)
+    monkeypatch.setattr(
+        "scripts.dependency_health_check._install_requirement_files",
+        lambda **_: None,
+    )
+    monkeypatch.setattr("scripts.dependency_health_check._run", _run)
+    monkeypatch.setattr(sys, "argv", ["dependency_health_check.py", *arguments])
+
+    assert main() == 1
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        "{",
+        json.dumps({"vulns": []}),
+        json.dumps({"dependencies": [{"name": "anyio"}]}),
+        json.dumps({"dependencies": [], "fixes": "not-a-list"}),
+        json.dumps({"dependencies": [], "unexpected": []}),
+    ],
+)
+def test_pip_audit_parser_rejects_malformed_or_unsupported_results(stdout: str) -> None:
+    with pytest.raises(ValueError):
+        parse_pip_audit_vulnerabilities(stdout)

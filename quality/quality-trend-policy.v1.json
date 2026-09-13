@@ -1,6 +1,6 @@
 {
   "schema_version": "lotus.advise.quality-trend-policy.v1",
-  "policy_version": "lotus-advise-quality-trend.v1+20b415dbe959",
+  "policy_version": "lotus-advise-quality-trend.v1+9cbe5bbfc1fe",
   "report_path": "quality/baseline_report.md",
   "metrics": [
     {
@@ -91,6 +91,15 @@
         "head_python_content_fingerprint": "9e0300a87d428bf990a9ce25387dc577aaeb4502d2a12242a5d6567885e27f43",
         "allowed_delta": 7,
         "reason": "Reviewed Cycle 6 #628/#601/#590 control parsing and fail-closed classification add three bounded B-ranked functions. Their scope is restricted to dependency-exception matching and main-gate/parity evidence classification; the worst complexity remains 10 and this exact-content exception expires for follow-up simplification.",
+        "approver": "sgajbi",
+        "expires_on": "2026-10-13"
+      },
+      {
+        "metric": "total_python_lines",
+        "base_sha": "33a988b1ab20b046feb567427c80ea06552020fa",
+        "head_python_content_fingerprint": "94afa2fc230993a8aeb863f51953aee936c1fd0e22d9b8a527c21d1ceb0601cb",
+        "allowed_delta": 929,
+        "reason": "Reviewed Cycle 6 corrective follow-up for #632/#628/#590: +929 measured Python lines add principal-bound Copilot outbound tenant propagation and model-context receipt separation; pip-audit producer-schema fail-closed handling; executable CI parity semantics; and focused registered HTTP, adapter, dependency and mutation regressions. The parity evidence proves that comments, echoes, independent matrix expansion, Python -c/-m arguments, dry-run Make including MAKEFLAGS, pytest collection/filter modes, option-value paths, and changed-coverage skip receipts cannot masquerade as an executed control. The allowance is bound to this exact measured Python content and merge base, expires deliberately, and does not relax the 200-line steady-state threshold, security, typing, coverage, ownership, PostgreSQL or workflow controls.",
         "approver": "sgajbi",
         "expires_on": "2026-10-13"
       }

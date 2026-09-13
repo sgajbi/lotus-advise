@@ -17,7 +17,9 @@ from src.integrations.lotus_ai.advisory_copilot import (
     MAX_COPILOT_OUTPUT_SECTIONS,
     _build_workflow_pack_request,
     build_advisory_copilot_unavailable_draft,
-    generate_advisory_copilot_draft_with_lotus_ai,
+)
+from src.integrations.lotus_ai.advisory_copilot import (
+    generate_advisory_copilot_draft_with_lotus_ai as _generate_advisory_copilot_draft_with_lotus_ai,
 )
 
 
@@ -28,6 +30,15 @@ class _FakeResponse:
 
     def json(self) -> dict[str, object]:
         return self._payload
+
+
+def generate_advisory_copilot_draft_with_lotus_ai(**kwargs: object):
+    """Keep pre-existing adapter cases explicit about the admitted test tenant."""
+
+    return _generate_advisory_copilot_draft_with_lotus_ai(
+        tenant_id="tenant-sg-001",
+        **kwargs,
+    )
 
 
 class _InvalidJsonResponse:
@@ -169,6 +180,7 @@ def test_workflow_pack_request_sends_evidence_packet_and_model_risk_controls_onl
         requested_outputs=["advisor_review_summary"],
         requested_by="advisor_001",
         reason={"purpose": "advisor review"},
+        tenant_id="tenant-sg-001",
         model_approval=_model_approval(),
     )
 
@@ -269,6 +281,7 @@ def test_workflow_pack_request_bounds_outbound_advisor_context() -> None:
             "raw_prompt": "secret raw prompt should not leave advise",
             "notes": [" cited evidence only ", "x" * 1200, 7],
         },
+        tenant_id="tenant-sg-001",
         model_approval=_model_approval(),
     )
 
@@ -1177,12 +1190,13 @@ def test_generate_advisory_copilot_preserves_missing_tenant_identity_reason(
     monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
     monkeypatch.setattr("src.integrations.lotus_ai.advisory_copilot.httpx.Client", _client)
 
-    response = generate_advisory_copilot_draft_with_lotus_ai(
+    response = _generate_advisory_copilot_draft_with_lotus_ai(
         evidence_packet=_packet(),
         audience="ADVISOR",
         requested_outputs=["advisor_review_summary"],
         requested_by="advisor_001",
         reason={"purpose": "advisor review"},
+        tenant_id="",
     )
 
     assert called is False

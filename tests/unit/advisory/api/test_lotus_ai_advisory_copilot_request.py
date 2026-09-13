@@ -110,3 +110,15 @@ def test_safe_reason_removes_raw_material_keys_after_normalization() -> None:
     )
 
     assert reason == {"purpose": "advisor review"}
+
+
+def test_safe_reason_excludes_local_audit_receipt_fields_from_model_context() -> None:
+    reason = safe_reason(
+        {
+            "purpose": "advisor review",
+            "trusted_principal": {"tenant_id": "tenant-b", "actor_id": "advisor-b"},
+            "review_authorization": {"maker_checker_satisfied": True},
+        }
+    )
+
+    assert reason == {"purpose": "advisor review"}

@@ -72,6 +72,7 @@ class AdvisoryCopilotDraftGenerator(Protocol):
         requested_outputs: list[str],
         requested_by: str,
         reason: dict[str, Any],
+        tenant_id: str,
         requested_intents: tuple[str, ...] = (),
         user_instruction: str = "",
     ) -> AdvisoryCopilotDraft: ...
@@ -190,6 +191,9 @@ class AdvisoryCopilotApplicationService:
             raise ValueError("COPILOT_CALLER_ACTOR_MISMATCH")
         evidence_packet = CopilotEvidencePacket.model_validate(packet_record.packet_json)
         authorized_reason = _with_caller_authority(payload.reason, principal=principal)
+        # The complete receipt participates in local audit and replay hashing.  It is not model
+        # context: the workflow adapter receives only the caller-supplied bounded business reason.
+        model_reason = dict(payload.reason)
         if idempotency_key:
             request_hash = build_advisory_copilot_run_request_hash(
                 evidence_packet=evidence_packet,
@@ -213,7 +217,8 @@ class AdvisoryCopilotApplicationService:
             audience=payload.audience,
             requested_outputs=list(payload.requested_outputs),
             requested_by=principal.actor_id,
-            reason=authorized_reason,
+            reason=model_reason,
+            tenant_id=principal.tenant_id,
             requested_intents=payload.requested_intents,
             user_instruction=payload.user_instruction,
         )
