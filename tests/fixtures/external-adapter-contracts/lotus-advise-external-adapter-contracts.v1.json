@@ -486,7 +486,9 @@
           "case_id": "no_raw_payload_or_secret",
           "expected_behavior": "removes raw prompt/provider material and blocks unsafe output",
           "test_references": [
+            "tests/unit/advisory/api/test_api_advisory_copilot.py::test_registered_action_principal_binds_admitted_tenant_to_ai_and_excludes_audit_receipt",
             "tests/unit/advisory/api/test_lotus_ai_advisory_copilot_request.py::test_safe_reason_removes_raw_prompt_material_and_bounds_values",
+            "tests/unit/advisory/api/test_lotus_ai_advisory_copilot_request.py::test_safe_reason_excludes_local_audit_receipt_fields_from_model_context",
             "tests/unit/advisory/api/test_lotus_ai_advisory_copilot.py::test_generate_advisory_copilot_rejects_unsafe_output",
             "tests/unit/advisory/api/test_lotus_ai_workflow_response.py::test_optional_text_can_bound_copilot_lineage_without_leaking_long_provider_text"
           ]

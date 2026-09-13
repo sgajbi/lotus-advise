@@ -196,7 +196,7 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     policy = _policy()
     entries = policy["exceptions"]["entries"]
 
-    assert len(entries) == 6
+    assert len(entries) == 7
     exceptions_by_identity = {(entry["metric"], entry["base_sha"]): entry for entry in entries}
     tenant_admission_exception = exceptions_by_identity[
         ("total_python_lines", "b4bf26da45ed920868c9585c74697e2e3a6770c3")
@@ -216,7 +216,10 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     cycle_six_complexity_exception = exceptions_by_identity[
         ("radon_b_ranked_blocks", "01cc655db1de2d2b07529a2f70d559d0abb8e287")
     ]
-    assert sum(entry["metric"] == "total_python_lines" for entry in entries) == 5
+    cycle_six_follow_up_exception = exceptions_by_identity[
+        ("total_python_lines", "33a988b1ab20b046feb567427c80ea06552020fa")
+    ]
+    assert sum(entry["metric"] == "total_python_lines" for entry in entries) == 6
     assert all(len(entry["head_python_content_fingerprint"]) == 64 for entry in entries)
     assert all(entry["approver"] == "sgajbi" for entry in entries)
     assert realization_exception["allowed_delta"] == 2024
@@ -247,6 +250,8 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     assert "#632/#628/#601/#590" in cycle_six_growth_exception["reason"]
     assert cycle_six_complexity_exception["allowed_delta"] == 7
     assert "three bounded B-ranked functions" in cycle_six_complexity_exception["reason"]
+    assert cycle_six_follow_up_exception["allowed_delta"] == 929
+    assert "#632/#628/#590" in cycle_six_follow_up_exception["reason"]
     total_lines = next(
         metric for metric in policy["metrics"] if metric["name"] == "total_python_lines"
     )

@@ -3,7 +3,10 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_tenant_id
+from src.integrations.lotus_ai.runtime_config import (
+    require_lotus_ai_tenant_id,
+    resolve_lotus_ai_tenant_id,
+)
 
 _WORKFLOW_PACK_ENVIRONMENT = "LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT"
 _DEFAULT_WORKFLOW_PACK_ENVIRONMENT = "DEVELOPMENT"
@@ -27,7 +30,11 @@ def build_workflow_pack_execute_request(
     expected_output_label: str,
     input_mode: str = _DEFAULT_INPUT_MODE,
     idempotency_key: str | None = None,
+    tenant_id: str | None = None,
 ) -> dict[str, object]:
+    caller_tenant_id = (
+        resolve_lotus_ai_tenant_id() if tenant_id is None else require_lotus_ai_tenant_id(tenant_id)
+    )
     request: dict[str, object] = {
         "pack_id": pack_id,
         "version": version,
@@ -41,7 +48,7 @@ def build_workflow_pack_execute_request(
                 "caller_app": _CALLER_APP,
                 "correlation_id": correlation_id,
                 "requested_by": requested_by,
-                "tenant_id": resolve_lotus_ai_tenant_id(),
+                "tenant_id": caller_tenant_id,
             },
             "context": {
                 "summary": context_summary,

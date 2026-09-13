@@ -269,6 +269,10 @@ Current repository posture:
    timeout, token, payload, cost, and concurrency budget breaches return stable unavailable posture
    with bounded lineage telemetry; grounding
    references remain in the workflow context because generated claims must cite stable source refs.
+   The admitted Copilot principal's tenant is carried as a typed workflow caller-envelope value;
+   it is never resolved from `LOTUS_ADVISE_TENANT_ID` for that request. Its complete bounded
+   principal receipt remains local in the durable audit/replay summary and is excluded from model
+   context, which receives only allowed business reason fields.
    Each provider claim must cite source refs from the input evidence packet and align to the output
    section; missing, duplicate, unknown, or mismatched citations are persisted as unsupported or
    unverifiable grounding posture rather than as review-ready AI output. Copilot review actions must
@@ -568,8 +572,8 @@ Important validation expectations:
    `--fail-on-outdated` freshness runs in the nightly/manual `Dependency Maintenance` workflow so
    an unrelated upstream release cannot invalidate a feature PR or exact-main evidence,
    with only exact package/pin/latest-version, owner/reason, unexpired exceptions in
-   `quality/dependency-freshness-policy.v1.json`; an exception never suppresses package-health or
-   vulnerability evidence,
+   `quality/dependency-freshness-policy.v1.json`; an exception never suppresses package-health,
+   `pip check`, scanner-error, malformed-scanner-output, or vulnerability evidence,
    while routine Dependabot version-update PRs are paused with
    `open-pull-requests-limit: 0` so dependency suggestions are handled through deliberate
    repo-native refresh, security review, and PR validation instead of noisy bot branches. The API
@@ -686,8 +690,10 @@ Important validation expectations:
 21. Rebase-merged PRs dispatch Main Releasability for every revision in the exact merged
     base/head range; range/count/ancestry disagreement fails before dispatch. The scheduled
     main-gate coverage audit treats missing, cancelled, pending, and unqueryable runs as unknown,
-    and `make ci-lane-parity-gate` ensures the selected controls stay in both aggregate targets
-    and their applicable Feature, PR, and Main workflow lanes without duplicating expensive work.
+   and `make ci-lane-parity-gate` ensures the selected controls stay in both aggregate targets
+   and their applicable Feature, PR, and Main workflow lanes without duplicating expensive work;
+   it evaluates executable `run` commands (including matrix-fed pytest paths), so comments and
+   `echo` text are not control evidence.
 22. CI-local Docker execution is isolated from the product runtime: `make ci-local-docker`,
     `make ci-local-docker-down`, and `scripts/run_runtime_smoke_checks.py` use the same
     checkout-specific `CI_LOCAL_COMPOSE_PROJECT` identity, derived from the absolute checkout path

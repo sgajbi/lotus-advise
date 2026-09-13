@@ -39,6 +39,7 @@ _RAW_REASON_KEYS = frozenset(
         "system_instruction",
     }
 )
+_AUDIT_RECEIPT_REASON_KEYS = frozenset({"trusted_principal", "review_authorization"})
 SafeReasonScalar = bool | int | None
 
 
@@ -49,6 +50,7 @@ def build_advisory_copilot_workflow_pack_request(
     requested_outputs: list[str],
     requested_by: str,
     reason: dict[str, Any],
+    tenant_id: str,
     adapter_version: str,
     approved_instruction_set: str,
     prompt_template_version: str,
@@ -115,6 +117,7 @@ def build_advisory_copilot_workflow_pack_request(
             },
             source_refs=source_refs(evidence_packet),
             expected_output_label="EXPLANATION_ONLY",
+            tenant_id=tenant_id,
         ),
     )
 
@@ -189,7 +192,11 @@ def _safe_reason_item(
 
 def _safe_reason_key(key: Any) -> str | None:
     key_text = bounded_text(str(key), max_length=MAX_COPILOT_REASON_KEY_LENGTH)
-    if not key_text or key_text.strip().lower() in _RAW_REASON_KEYS:
+    if (
+        not key_text
+        or key_text.strip().lower() in _RAW_REASON_KEYS
+        or key_text.strip().lower() in _AUDIT_RECEIPT_REASON_KEYS
+    ):
         return None
     return key_text
 

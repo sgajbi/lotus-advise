@@ -36,6 +36,8 @@ from src.core.advisory_copilot.api_response_models import (
 )
 from src.core.advisory_copilot.records import AdvisoryCopilotRunRecord
 from src.core.advisory_copilot.review_authority import (
+    COPILOT_ACTION_CAPABILITY,
+    COPILOT_PACKET_CAPABILITY,
     COPILOT_RESOURCE_SCOPE_FORBIDDEN,
     COPILOT_RESOURCE_SCOPE_REQUIRED,
     CopilotCallerPrincipal,
@@ -207,6 +209,165 @@ def _evidence_packet_payload() -> dict[str, Any]:
 def _opaque_cursor_payload(**payload: object) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return base64.urlsafe_b64encode(encoded).decode("ascii").rstrip("=")
+
+
+def _completed_copilot_workflow_response() -> dict[str, object]:
+    return {
+        "execution": {
+            "status": "COMPLETED",
+            "result": {
+                "provider_id": "lotus-ai",
+                "model_version": "lotus-ai-governed-model.v1",
+                "structured_output": {
+                    "state": "REVIEW_REQUIRED",
+                    "sections": [
+                        {
+                            "section_key": "POLICY_POSTURE",
+                            "title": "Policy posture",
+                            "text": "Evidence remains under advisor review.",
+                            "claims": [
+                                {
+                                    "claim_id": "policy_posture_claim_001",
+                                    "claim_text": "Evidence remains under advisor review.",
+                                    "source_refs": [
+                                        "lotus-advise:POLICY_EVALUATION:policy_eval_sg_001:"
+                                        "sha256:policy-evaluation"
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                    "review_guidance": ["Review against cited evidence."],
+                },
+            },
+        },
+        "workflow_pack_run": {"run_id": "packrun_route_tenant_b_001"},
+    }
+
+
+def test_registered_action_principal_binds_admitted_tenant_to_ai_and_excludes_audit_receipt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise the registered HTTP dependency through the real Copilot adapter boundary."""
+
+    repository = InMemoryAdvisoryCopilotRepository()
+    captured_requests: list[dict[str, object]] = []
+
+    class _CapturedClient:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> "_CapturedClient":
+            return self
+
+        def __exit__(self, *args: object) -> bool:
+            return False
+
+        def post(
+            self,
+            url: str,
+            json: dict[str, object],
+            headers: dict[str, str] | None = None,
+        ) -> object:
+            captured_requests.append({"url": url, "json": json, "headers": headers})
+
+            class _Response:
+                status_code = 200
+
+                @staticmethod
+                def json() -> dict[str, object]:
+                    return _completed_copilot_workflow_response()
+
+            return _Response()
+
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai.test")
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "configured-tenant-a")
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        _CapturedClient,
+    )
+    app.dependency_overrides[copilot_dependencies.get_advisory_copilot_repository] = lambda: (
+        repository
+    )
+    tenant_b_packet_headers = _copilot_caller_headers(
+        tenant_id="admitted-tenant-b",
+        capability=COPILOT_PACKET_CAPABILITY,
+    )
+    tenant_b_action_headers = _copilot_caller_headers(
+        tenant_id="admitted-tenant-b",
+        capability=COPILOT_ACTION_CAPABILITY,
+    )
+    tenant_b_action_headers["Idempotency-Key"] = "copilot-route-tenant-b-001"
+    tenant_a_action_headers = _copilot_caller_headers(
+        tenant_id="configured-tenant-a",
+        capability=COPILOT_ACTION_CAPABILITY,
+    )
+    tenant_a_action_headers["Idempotency-Key"] = "copilot-route-tenant-a-001"
+    try:
+        with TestClient(app) as client:
+            packet = client.post(
+                "/advisory/copilot/evidence-packets",
+                json=_evidence_packet_payload(),
+                headers=tenant_b_packet_headers,
+            )
+            assert packet.status_code == 201
+            action_payload = {
+                "evidence_packet_id": "copilot_packet_pb_sg_001",
+                "audience": "ADVISOR",
+                "requested_outputs": ["advisor_review_summary"],
+                "requested_by": "advisor_123",
+                "reason": {"business_reason": "Prepare advisor review."},
+                "requested_intents": ["explain_policy_posture"],
+                "user_instruction": "Summarize governed evidence for internal review.",
+            }
+            created = client.post(
+                "/advisory/copilot/actions",
+                json=action_payload,
+                headers=tenant_b_action_headers,
+            )
+            replay = client.post(
+                "/advisory/copilot/actions",
+                json=action_payload,
+                headers=tenant_b_action_headers,
+            )
+            refused = client.post(
+                "/advisory/copilot/actions",
+                json=action_payload,
+                headers=tenant_a_action_headers,
+            )
+    finally:
+        app.dependency_overrides.pop(copilot_dependencies.get_advisory_copilot_repository, None)
+        copilot_dependencies.reset_advisory_copilot_repository_for_tests()
+
+    assert created.status_code == 200
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert refused.status_code == 404
+    assert refused.json()["detail"] == "COPILOT_EVIDENCE_PACKET_NOT_FOUND"
+    assert len(captured_requests) == 1
+    request = captured_requests[0]["json"]
+    assert isinstance(request, dict)
+    task_request = request["task_request"]
+    assert isinstance(task_request, dict)
+    caller = task_request["caller"]
+    context = task_request["context"]
+    assert isinstance(caller, dict)
+    assert isinstance(context, dict)
+    assert caller["tenant_id"] == "admitted-tenant-b"
+    assert caller["requested_by"] == "advisor_123"
+    assert "configured-tenant-a" not in str(request)
+    assert "trusted_principal" not in str(request)
+    persisted = repository.get_run_for_authorized_scope(
+        tenant_id="admitted-tenant-b",
+        run_id=created.json()["run"]["run_id"],
+        authorized_portfolio_id="PB_SG_GLOBAL_BAL_001",
+        authorized_proposal_id="proposal_sg_structured_note_001",
+    )
+    assert persisted is not None
+    assert (
+        persisted.request_summary_json["reason"]["trusted_principal"]["tenant_id"]
+        == "admitted-tenant-b"
+    )
 
 
 def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:

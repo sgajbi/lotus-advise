@@ -118,6 +118,7 @@ def generate_advisory_copilot_draft_with_lotus_ai(
     requested_outputs: list[str],
     requested_by: str,
     reason: dict[str, Any],
+    tenant_id: str,
     requested_intents: tuple[str, ...] = (),
     user_instruction: str = "",
 ) -> AdvisoryCopilotAiDraft:
@@ -155,6 +156,7 @@ def generate_advisory_copilot_draft_with_lotus_ai(
             requested_outputs=requested_outputs,
             requested_by=requested_by,
             reason=reason,
+            tenant_id=tenant_id,
             model_approval=approval_decision.approval,
         )
     except LotusAITenantIdentityError as exc:
@@ -224,6 +226,7 @@ def _execute_workflow_pack(
     requested_outputs: list[str],
     requested_by: str,
     reason: dict[str, Any],
+    tenant_id: str,
     model_approval: AdvisoryCopilotModelApproval,
 ) -> _WorkflowPackExecutionResult:
     runtime_budget = _resolve_runtime_budget()
@@ -234,6 +237,7 @@ def _execute_workflow_pack(
         requested_outputs=requested_outputs,
         requested_by=requested_by,
         reason=reason,
+        tenant_id=tenant_id,
         model_approval=model_approval,
         runtime_budget=runtime_budget,
     )
@@ -647,6 +651,7 @@ def _build_workflow_pack_request(
     requested_outputs: list[str],
     requested_by: str,
     reason: dict[str, Any],
+    tenant_id: str,
     model_approval: AdvisoryCopilotModelApproval,
     runtime_budget: AdvisoryCopilotRuntimeBudget | None = None,
 ) -> dict[str, object]:
@@ -658,6 +663,7 @@ def _build_workflow_pack_request(
             requested_outputs=requested_outputs,
             requested_by=requested_by,
             reason=reason,
+            tenant_id=tenant_id,
             adapter_version=ADAPTER_VERSION,
             approved_instruction_set=APPROVED_INSTRUCTION_SET,
             prompt_template_version=PROMPT_TEMPLATE_VERSION,

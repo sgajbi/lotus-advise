@@ -232,14 +232,18 @@ Current implemented usage:
 
 - workspace-rationale integration boundary
 - proposal narrative, proposal memo, policy-evidence, advisory-copilot, and workspace-rationale
-  workflow-pack calls use the same trusted tenant envelope
+  workflow-pack calls carry a trusted tenant envelope
 
 Boundary rule:
 
 - AI may assist with grounded rationale generation
 - AI must not become the authority for suitability, approvals, trade generation, or proposal alternatives
-- AI workflow-pack calls require `LOTUS_ADVISE_TENANT_ID`; unsafe or absent tenant identity fails
-  closed before HTTP submission
+- non-Copilot AI workflow-pack calls require `LOTUS_ADVISE_TENANT_ID`; unsafe or absent tenant
+  identity fails closed before HTTP submission
+- an Advisory Copilot action instead carries the tenant admitted by its route principal through the
+  generator and workflow-request builder. Its configured environment tenant cannot override that
+  request, and the bounded principal audit receipt stays in Advise persistence/replay hashing rather
+  than in the model context
 - app-local Compose supplies the canonical developer tenant fixture `tenant-sg-001` only for
   standalone and Workbench-orchestrated local startup; production Compose requires deployment-owned
   tenant configuration

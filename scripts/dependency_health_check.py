@@ -299,6 +299,64 @@ def _install_requirement_files(
             raise SystemExit(result.return_code)
 
 
+def parse_pip_audit_vulnerabilities(stdout: str) -> list[dict[str, object]]:
+    """Parse the documented pip-audit dependency rows and retain their owning dependency.
+
+    pip-audit has emitted both a top-level dependency list and a ``dependencies`` envelope.
+    Both are supported producer shapes; every other shape, including the obsolete top-level
+    ``vulns`` object, is rejected rather than interpreted as a clean scan.
+    """
+
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError("pip-audit returned malformed JSON.") from exc
+    if isinstance(payload, list):
+        dependencies = payload
+    elif (
+        isinstance(payload, dict)
+        and "dependencies" in payload
+        and set(payload).issubset({"dependencies", "fixes"})
+    ):
+        dependencies = payload["dependencies"]
+        fixes = payload.get("fixes", [])
+        if not isinstance(fixes, list) or any(not isinstance(item, dict) for item in fixes):
+            raise ValueError("pip-audit fixes must be a list of objects.")
+    else:
+        raise ValueError("pip-audit returned an unsupported JSON schema.")
+    if not isinstance(dependencies, list):
+        raise ValueError("pip-audit dependencies must be a list.")
+
+    vulnerabilities: list[dict[str, object]] = []
+    for index, dependency in enumerate(dependencies):
+        if not isinstance(dependency, dict):
+            raise ValueError(f"pip-audit dependencies[{index}] must be an object.")
+        dependency_name = dependency.get("name")
+        dependency_version = dependency.get("version")
+        dependency_vulnerabilities = dependency.get("vulns")
+        if (
+            not isinstance(dependency_name, str)
+            or not dependency_name.strip()
+            or not isinstance(dependency_version, str)
+            or not dependency_version.strip()
+            or not isinstance(dependency_vulnerabilities, list)
+        ):
+            raise ValueError(
+                f"pip-audit dependencies[{index}] must contain name, version, and vulns."
+            )
+        for vulnerability in dependency_vulnerabilities:
+            if not isinstance(vulnerability, dict):
+                raise ValueError("pip-audit vulnerability entries must be objects.")
+            vulnerabilities.append(
+                {
+                    "dependency": dependency_name,
+                    "version": dependency_version,
+                    "vulnerability": vulnerability,
+                }
+            )
+    return vulnerabilities
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Dependency health checks for local and CI use")
     parser.add_argument(
@@ -379,19 +437,15 @@ def main() -> int:
                 cwd=repo_root,
                 env=env,
             )
-            if audit.return_code != 0 and not audit.stdout:
+            if not audit.stdout:
                 _print_section("pip-audit stderr", audit.stderr)
-                return audit.return_code
-
-            vulnerabilities = []
-            if audit.stdout:
-                try:
-                    payload = json.loads(audit.stdout)
-                    vulnerabilities = payload.get("vulns", [])
-                except json.JSONDecodeError:
-                    _print_section("pip-audit output", audit.stdout)
-                    _print_section("pip-audit stderr", audit.stderr)
-                    return 1
+                return audit.return_code or 1
+            try:
+                vulnerabilities = parse_pip_audit_vulnerabilities(audit.stdout)
+            except ValueError:
+                _print_section("pip-audit output", audit.stdout)
+                _print_section("pip-audit stderr", audit.stderr)
+                return 1
 
             _print_section(
                 "Vulnerability Summary",
@@ -400,6 +454,9 @@ def main() -> int:
             if vulnerabilities:
                 _print_section("Vulnerabilities", json.dumps(vulnerabilities, indent=2))
                 return 1
+            if audit.return_code != 0:
+                _print_section("pip-audit stderr", audit.stderr)
+                return audit.return_code or 1
 
         outdated = _run(
             [str(python_bin), "-m", "pip", "list", "--outdated", "--format=json"],
@@ -418,7 +475,7 @@ def main() -> int:
             outdated_rows,
             python_version=args.target_python_version,
         )
-        applied_exceptions: list[dict[str, str]] = []
+        applied_exceptions: list[dict[str, object]] = []
         if args.fail_on_outdated:
             freshness_exceptions = load_freshness_exceptions(
                 (repo_root / args.freshness_policy).resolve()
