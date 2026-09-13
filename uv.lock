@@ -4,7 +4,7 @@ requires-python = ">=3.11"
 authoritative-source = "requirements"
 generated-by = "scripts/dependency_lock_evidence.py"
 license-inventory = "docs/standards/license-ip-inventory.v1.json"
-license-inventory-sha256 = "e7ab7c298205209e05a30a3e9835d0af3cd7b92d7c5d3496e70e3e5f98c4972d"
+license-inventory-sha256 = "97656e510a1d34497b85e1c1c7cdde24ac6f4dc462a0aa4294d774d9828789f8"
 
 [[requirement-files]]
 group = "development"
@@ -14,12 +14,12 @@ sha256 = "8c9d71cd05b83215571d6271ffbf73ec969ac8482a39afb6be79332e42a14cf7"
 [[requirement-files]]
 group = "install"
 path = "requirements.txt"
-sha256 = "04506915d3916ca00dcfbdf5249b618113598b59b8d793661e4ae80905ceb573"
+sha256 = "58f394bc7bbf57c6a97856f99150bccb37a2926f89e93faebfccd2fecc069d7d"
 
 [[requirement-files]]
 group = "runtime"
 path = "requirements-prod.txt"
-sha256 = "b48dc3442af6cbe6abb6222596786137b7bf2983d044e11d96eb164fe1470fa9"
+sha256 = "c89a8635c08153d785e17170dc21a84ff4706d07588f4ceaae879a927869f344"
 
 [[package]]
 name = "annotated-doc"
@@ -636,11 +636,11 @@ requirement-hashes = ["183f2817951fe2a55422543eaca7ad22b764fcadb1445aa92c078e4a8
 [[package]]
 name = "pyyaml"
 version = "6.0.3"
-direct = false
-groups = ["development"]
-requirement-files = []
+direct = true
+groups = ["development", "install", "runtime"]
+requirement-files = ["requirements-prod.txt", "requirements.txt"]
 extras = []
-requirement-hashes = []
+requirement-hashes = ["475992191448d37ffe397dd001f845e0eed353c292e2599f8e36c6f5b95b63cb"]
 
 [[package]]
 name = "qdldl"
@@ -878,5 +878,5 @@ requirement-hashes = ["312b48ce4834462cf1bd1153fd8f235eef6d2d3f12f87b943472c91c6
 
 [summary]
 package-count = 95
-direct-package-count = 37
-transitive-package-count = 58
+direct-package-count = 38
+transitive-package-count = 57

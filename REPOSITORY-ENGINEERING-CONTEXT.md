@@ -691,9 +691,11 @@ Important validation expectations:
     base/head range; range/count/ancestry disagreement fails before dispatch. The scheduled
     main-gate coverage audit treats missing, cancelled, pending, and unqueryable runs as unknown,
    and `make ci-lane-parity-gate` ensures the selected controls stay in both aggregate targets
-   and their applicable Feature, PR, and Main workflow lanes without duplicating expensive work;
-   it evaluates executable `run` commands (including matrix-fed pytest paths), so comments and
-   `echo` text are not control evidence.
+   and their applicable Feature, PR, and Main workflow lanes without duplicating expensive work.
+   It parses each control step with its owning job/step condition, inherited environment, and
+   matrix paths; only bounded direct command forms count. Comments, `echo`, false conditions,
+   shell short-circuit lists, non-executing `MAKEFLAGS`, pytest display/filter modes, and a
+   changed-coverage skip receipt cannot stand in for an executed control.
 22. CI-local Docker execution is isolated from the product runtime: `make ci-local-docker`,
     `make ci-local-docker-down`, and `scripts/run_runtime_smoke_checks.py` use the same
     checkout-specific `CI_LOCAL_COMPOSE_PROJECT` identity, derived from the absolute checkout path

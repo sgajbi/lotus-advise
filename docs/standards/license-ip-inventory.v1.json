@@ -1,6 +1,6 @@
 {
-  "generated_at_utc": "2026-09-13T05:59:46Z",
-  "git_commit_sha": "833009ab4d7902fcabdf75c7dce66b26bf29d5e3",
+  "generated_at_utc": "2026-09-13T12:33:55Z",
+  "git_commit_sha": "919020f21ae4b31ac061646e440a06639288abd5",
   "image_digest": "unknown",
   "notice_file": "NOTICE.md",
   "packages": [
@@ -1316,9 +1316,10 @@
       "version": "7.1.0"
     },
     {
-      "declared_name": "pyyaml",
+      "declared_name": "PyYAML",
       "dependency_groups": [
-        "development"
+        "development",
+        "runtime"
       ],
       "exception_expires_on": null,
       "exception_id": null,
@@ -1329,8 +1330,10 @@
       "metadata_matches_requirement_pin": true,
       "name": "pyyaml",
       "policy_classification": "ALLOWED",
-      "relationship": "transitive",
-      "source_files": [],
+      "relationship": "direct",
+      "source_files": [
+        "requirements-prod.txt"
+      ],
       "version": "6.0.3"
     },
     {
@@ -1845,8 +1848,8 @@
       "ALLOWED": 93,
       "APPROVED_EXCEPTION": 2
     },
-    "direct_package_count": 37,
+    "direct_package_count": 38,
     "package_count": 95,
-    "transitive_package_count": 58
+    "transitive_package_count": 57
   }
 }

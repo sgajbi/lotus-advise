@@ -6,37 +6,19 @@ import argparse
 import json
 import re
 import shlex
+from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 _SCHEMA_VERSION = "lotus.advise.ci-lane-parity.v1"
 _TARGET = re.compile(r"^(?P<target>[A-Za-z0-9_-]+):(?P<dependencies>.*)$")
-_RUN_STEP = re.compile(r"^(?P<indent>\s*)(?:-\s+)?run:\s*(?P<value>.*)$")
-_MATRIX_PATH = re.compile(r"^\s*path:\s*(?P<value>tests/[A-Za-z0-9_/-]+)\s*$")
 _GITHUB_EXPRESSION = re.compile(r"\$\{\{.*?\}\}")
 _PYTHON_INTERPRETERS = frozenset({"python", "python3", "python3.11"})
-_PYTEST_NON_EXECUTING_OR_FILTERING_OPTIONS = frozenset(
-    {
-        "--collect-only",
-        "--co",
-        "--help",
-        "-h",
-        "--version",
-        "--fixtures",
-        "--markers",
-        "--setup-only",
-        "--setup-plan",
-        "--last-failed",
-        "--lf",
-        "-k",
-        "--keyword",
-        "-m",
-        "--mark",
-        "--ignore",
-        "--deselect",
-    }
-)
-_PYTEST_OPTIONS_WITH_VALUE = frozenset(
+_PYTEST_SUPPORTED_FLAGS = frozenset({"-q", "--quiet"})
+_PYTEST_SUPPORTED_VALUE_OPTIONS = frozenset(
     {
         "--capture",
         "--color",
@@ -44,12 +26,8 @@ _PYTEST_OPTIONS_WITH_VALUE = frozenset(
         "--cov",
         "--cov-config",
         "--cov-report",
-        "--deselect",
         "--durations",
-        "--ignore",
         "--junitxml",
-        "--keyword",
-        "--mark",
         "--maxfail",
         "--rootdir",
         "--tb",
@@ -58,7 +36,22 @@ _PYTEST_OPTIONS_WITH_VALUE = frozenset(
 _CHANGED_COVERAGE_REQUIRED_OPTIONS = frozenset(
     {"--base-ref", "--head-ref", "--coverage-data", "--policy", "--output"}
 )
-_NONEXECUTING_MAKEFLAGS = ("--dry-run", "--just-print", "--recon", "--touch", "--question")
+_NONEXECUTING_MAKEFLAGS = frozenset(
+    {"--dry-run", "--just-print", "--recon", "--touch", "--question"}
+)
+_NONEXECUTING_MAKEFLAG_SHORT_FORMS = frozenset({"n", "t", "q"})
+_SHELL_CONTROL_OPERATORS = frozenset({"&&", "||", ";", "|", "&"})
+
+
+@dataclass(frozen=True)
+class WorkflowStep:
+    """One parsed executable workflow step and the context that owns it."""
+
+    job_name: str
+    run: str
+    condition: object | None
+    environment: Mapping[str, str] | None
+    matrix_paths: frozenset[str]
 
 
 def _make_dependencies(path: Path) -> dict[str, set[str]]:
@@ -94,72 +87,104 @@ def load_policy(path: Path) -> dict[str, Any]:
     return policy
 
 
-def _workflow_run_scripts(path: Path) -> list[str]:
-    """Extract YAML ``run`` step bodies, excluding comments and metadata fields."""
+def _string_mapping(value: object) -> dict[str, str] | None:
+    """Return a conservative workflow environment mapping.
 
-    lines = path.read_text(encoding="utf-8").splitlines()
-    scripts: list[str] = []
-    index = 0
-    while index < len(lines):
-        match = _RUN_STEP.match(lines[index])
-        if match is None or lines[index].lstrip().startswith("#"):
-            index += 1
+    GitHub Actions accepts values beyond strings, but an unknown environment shape cannot be
+    executable evidence.  The parity gate therefore refuses it rather than silently dropping a
+    value such as ``MAKEFLAGS``.
+    """
+
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        return None
+    result: dict[str, str] = {}
+    for key, item in value.items():
+        if not isinstance(key, str) or not isinstance(item, (str, int, float, bool)):
+            return None
+        result[key] = str(item)
+    return result
+
+
+def _matrix_paths(job: Mapping[str, object]) -> frozenset[str]:
+    """Collect only effective test paths owned by this job's declared matrix."""
+
+    strategy = job.get("strategy")
+    if not isinstance(strategy, Mapping):
+        return frozenset()
+    matrix = strategy.get("matrix")
+    if not isinstance(matrix, Mapping):
+        return frozenset()
+    values: set[str] = set()
+    path_value = matrix.get("path")
+    path_values = path_value if isinstance(path_value, list) else [path_value]
+    values.update(
+        value for value in path_values if isinstance(value, str) and value.startswith("tests/")
+    )
+    include = matrix.get("include")
+    if isinstance(include, list):
+        values.update(
+            value
+            for item in include
+            if isinstance(item, Mapping)
+            for value in [item.get("path")]
+            if isinstance(value, str) and value.startswith("tests/")
+        )
+    exclude = matrix.get("exclude")
+    if isinstance(exclude, list):
+        excluded_paths = {
+            value
+            for item in exclude
+            if isinstance(item, Mapping)
+            for value in [item.get("path")]
+            if isinstance(value, str) and value.startswith("tests/")
+        }
+        values.difference_update(excluded_paths)
+    return frozenset(values)
+
+
+def _workflow_steps(path: Path) -> list[WorkflowStep]:
+    """Parse executable steps with their owning job, conditions, environment and matrix."""
+
+    try:
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"CI lane parity workflow is not valid YAML: {path}") from exc
+    if not isinstance(document, Mapping) or not isinstance(document.get("jobs"), Mapping):
+        raise ValueError(f"CI lane parity workflow has no jobs mapping: {path}")
+    root_environment = _string_mapping(document.get("env"))
+    if root_environment is None:
+        return []
+    result: list[WorkflowStep] = []
+    for job_name, job_value in document["jobs"].items():
+        if not isinstance(job_name, str) or not isinstance(job_value, Mapping):
             continue
-        value = match["value"].strip()
-        if value and value not in {"|", ">", "|-", ">-", "|+", ">+"}:
-            scripts.append(value)
-            index += 1
+        job_environment = _string_mapping(job_value.get("env"))
+        if job_environment is None:
             continue
-        indentation = len(match["indent"])
-        block_lines: list[str] = []
-        index += 1
-        while index < len(lines):
-            candidate = lines[index]
-            if candidate.strip() and len(candidate) - len(candidate.lstrip()) <= indentation:
-                break
-            block_lines.append(candidate[indentation + 2 :])
-            index += 1
-        scripts.append("\n".join(block_lines))
-    return scripts
-
-
-def _workflow_matrix_paths(path: Path) -> set[str]:
-    return {
-        match["value"]
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if (match := _MATRIX_PATH.match(line)) is not None and not line.lstrip().startswith("#")
-    }
-
-
-def _shell_commands(script: str) -> list[tuple[str, ...]]:
-    commands: list[tuple[str, ...]] = []
-    current = ""
-    for line in script.splitlines():
-        candidate = line.strip()
-        if not candidate or candidate.startswith("#"):
+        job_condition = job_value.get("if")
+        matrix_paths = _matrix_paths(job_value)
+        steps = job_value.get("steps")
+        if not isinstance(steps, list):
             continue
-        current = f"{current} {candidate}".strip()
-        if current.endswith("\\"):
-            current = current[:-1].rstrip()
-            continue
-        for fragment in re.split(r"\s*(?:&&|\|\||;)\s*", _normalize_github_expressions(current)):
-            try:
-                tokens = tuple(shlex.split(fragment, comments=True, posix=True))
-            except ValueError:
+        for step in steps:
+            if not isinstance(step, Mapping) or not isinstance(step.get("run"), str):
                 continue
-            if tokens:
-                commands.append(tokens)
-        current = ""
-    if current:
-        try:
-            tokens = tuple(
-                shlex.split(_normalize_github_expressions(current), comments=True, posix=True)
+            step_environment = _string_mapping(step.get("env"))
+            environment = None
+            if step_environment is not None:
+                environment = root_environment | job_environment | step_environment
+            result.append(
+                WorkflowStep(
+                    job_name=job_name,
+                    run=step["run"],
+                    condition=(job_condition, step.get("if")),
+                    environment=environment,
+                    matrix_paths=matrix_paths,
+                )
             )
-        except ValueError:
-            tokens = ()
-        if tokens:
-            commands.append(tokens)
-    return commands
+    return result
 
 
 def _normalize_github_expressions(command: str) -> str:
@@ -171,16 +196,96 @@ def _normalize_github_expressions(command: str) -> str:
     )
 
 
-def _workflow_has_nonexecuting_makeflags(path: Path) -> bool:
-    """Fail closed when a workflow supplies a Make no-op mode through ``MAKEFLAGS``."""
+def _condition_may_execute(condition: object | None) -> bool:
+    """Reject explicit-false conditions; do not guess at dynamic expressions."""
 
-    contents = path.read_text(encoding="utf-8")
-    if "MAKEFLAGS" not in contents:
+    if isinstance(condition, tuple):
+        return all(_condition_may_execute(value) for value in condition)
+    if condition is None:
+        return True
+    if isinstance(condition, bool):
+        return condition
+    if not isinstance(condition, str):
         return False
-    normalized = contents.lower()
-    return any(option in normalized for option in _NONEXECUTING_MAKEFLAGS) or bool(
-        re.search(r"makeflags[^\n]*(?:^|\s)-[a-z]*[ntq][a-z]*", normalized)
+    expression = condition.strip().lower()
+    if expression.startswith("${{") and expression.endswith("}}"):
+        expression = expression[3:-2].strip()
+    false_literals = {"false", "0", "null", "none"}
+    if expression in false_literals:
+        return False
+    literal_values = {"false": False, "true": True, "0": False, "1": True}
+    disjunctions = expression.split("||")
+    conjunctions = [disjunction.split("&&") for disjunction in disjunctions]
+    if all(term.strip() in literal_values for conjunction in conjunctions for term in conjunction):
+        return any(
+            all(literal_values[term.strip()] for term in conjunction)
+            for conjunction in conjunctions
+        )
+    # A conjunction with a literal false operand is statically false.  We deliberately do not
+    # evaluate general GitHub expressions or conditions containing disjunctions as shell-like
+    # program text: those are runtime semantics, not parity evidence parsing.
+    return not (
+        "||" not in expression
+        and any(term.strip() in false_literals for term in expression.split("&&"))
     )
+
+
+def _commands_in_step(step: WorkflowStep) -> list[tuple[str, ...]]:
+    """Extract direct command lines, refusing shell-control expressions as evidence.
+
+    This deliberately supports command tokenization, continuations, and GitHub expression
+    normalization only.  It is not a shell interpreter: short-circuiting, pipelines, and command
+    lists are ambiguous evidence and cannot prove a blocking control ran.
+    """
+
+    if not _condition_may_execute(step.condition) or step.environment is None:
+        return []
+    commands: list[tuple[str, ...]] = []
+    current = ""
+    for line in step.run.splitlines():
+        candidate = line.strip()
+        if not candidate or candidate.startswith("#"):
+            continue
+        current = f"{current} {candidate}".strip()
+        if current.endswith("\\"):
+            current = current[:-1].rstrip()
+            continue
+        try:
+            lexer = shlex.shlex(
+                _normalize_github_expressions(current), posix=True, punctuation_chars="|&;"
+            )
+            lexer.whitespace_split = True
+            lexer.commenters = "#"
+            tokens = tuple(lexer)
+        except ValueError:
+            tokens = ()
+        if tokens and not any(token in _SHELL_CONTROL_OPERATORS for token in tokens):
+            commands.append(tokens)
+        current = ""
+    return commands
+
+
+def _makeflags_may_execute(environment: Mapping[str, str]) -> bool:
+    """Reject documented Make no-op flags in the environment owning a control step."""
+
+    makeflags = environment.get("MAKEFLAGS")
+    if makeflags is None:
+        return True
+    if "${{" in makeflags:
+        return False
+    try:
+        flags = shlex.split(makeflags, comments=True, posix=True)
+    except ValueError:
+        return False
+    for flag in flags:
+        if flag in _NONEXECUTING_MAKEFLAGS:
+            return False
+        compact = flag[1:] if flag.startswith("-") and not flag.startswith("--") else flag
+        if not flag.startswith("--") and any(
+            character in _NONEXECUTING_MAKEFLAG_SHORT_FORMS for character in compact
+        ):
+            return False
+    return True
 
 
 def _executes_python_script(command: tuple[str, ...], signal: str) -> bool:
@@ -198,6 +303,19 @@ def _executes_python_script(command: tuple[str, ...], signal: str) -> bool:
     if len(command) <= command_index or command[command_index] not in _PYTHON_INTERPRETERS:
         return False
     return len(command) > command_index + 1 and command[command_index + 1] == signal
+
+
+def _python_script_arguments(command: tuple[str, ...]) -> tuple[str, ...] | None:
+    """Return arguments after a supported Python script invocation."""
+
+    command_index = 2 if command[:2] == ("uv", "run") else 0
+    if (
+        len(command) <= command_index + 1
+        or command[command_index] not in _PYTHON_INTERPRETERS
+        or command[command_index + 1].startswith("-")
+    ):
+        return None
+    return command[command_index + 2 :]
 
 
 def _pytest_program_index(command: tuple[str, ...]) -> int | None:
@@ -223,22 +341,37 @@ def _pytest_program_index(command: tuple[str, ...]) -> int | None:
     return None
 
 
-def _pytest_collection_targets(arguments: tuple[str, ...]) -> set[str]:
-    """Return positional pytest collection targets, excluding option values."""
+def _pytest_collection_targets(arguments: tuple[str, ...]) -> set[str] | None:
+    """Return collection targets for the bounded supported pytest option grammar.
+
+    An unknown option is not interpreted as a harmless flag.  It could select no tests, display
+    cached data, or otherwise change collection, so it is refused as executable evidence.
+    """
 
     targets: set[str] = set()
-    skip_next = False
-    for argument in arguments:
-        if skip_next:
-            skip_next = False
-            continue
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
         if argument == "--":
+            return None
+        if argument in _PYTEST_SUPPORTED_FLAGS:
+            index += 1
             continue
         if argument.startswith("-"):
-            if "=" not in argument and argument in _PYTEST_OPTIONS_WITH_VALUE:
-                skip_next = True
+            option, separator, value = argument.partition("=")
+            if option not in _PYTEST_SUPPORTED_VALUE_OPTIONS:
+                return None
+            if separator:
+                if not value and option != "--cov-report":
+                    return None
+                index += 1
+                continue
+            if index + 1 >= len(arguments) or arguments[index + 1].startswith("-"):
+                return None
+            index += 2
             continue
         targets.add(argument)
+        index += 1
     return targets
 
 
@@ -249,17 +382,8 @@ def _executes_pytest_signal(command: tuple[str, ...], signal: str) -> bool:
     if pytest_index is None:
         return False
     arguments = command[pytest_index + 1 :]
-    if signal not in _pytest_collection_targets(arguments):
-        return False
-    return not any(
-        argument in _PYTEST_NON_EXECUTING_OR_FILTERING_OPTIONS
-        or any(
-            argument.startswith(f"{option}=")
-            for option in _PYTEST_NON_EXECUTING_OR_FILTERING_OPTIONS
-            if option.startswith("--")
-        )
-        for argument in arguments
-    )
+    targets = _pytest_collection_targets(arguments)
+    return targets is not None and signal in targets
 
 
 def _executes_changed_coverage_gate(command: tuple[str, ...]) -> bool:
@@ -267,38 +391,68 @@ def _executes_changed_coverage_gate(command: tuple[str, ...]) -> bool:
 
     if not _executes_python_script(command, "scripts/changed_coverage_gate.py"):
         return False
-    options = set(command[2:])
-    return "--skip-reason" not in options and _CHANGED_COVERAGE_REQUIRED_OPTIONS <= options
+    arguments = _python_script_arguments(command)
+    if arguments is None:
+        return False
+    values: dict[str, str] = {}
+    allowed_options = _CHANGED_COVERAGE_REQUIRED_OPTIONS | {"--skip-reason"}
+    index = 0
+    while index < len(arguments):
+        option, separator, value = arguments[index].partition("=")
+        if option not in allowed_options:
+            return False
+        if separator:
+            if not value:
+                return False
+        else:
+            if index + 1 >= len(arguments) or arguments[index + 1].startswith("--"):
+                return False
+            value = arguments[index + 1]
+            index += 1
+        if option == "--skip-reason" or option in values:
+            return False
+        values[option] = value
+        index += 1
+    return _CHANGED_COVERAGE_REQUIRED_OPTIONS <= values.keys()
 
 
 def _signal_has_executable_evidence(signal: str, *, path: Path) -> bool:
-    commands = [
-        command for script in _workflow_run_scripts(path) for command in _shell_commands(script)
-    ]
+    steps = _workflow_steps(path)
     signal_tokens = tuple(shlex.split(signal, comments=True, posix=True))
     if not signal_tokens:
         return False
     if signal_tokens[0] == "make":
-        return not _workflow_has_nonexecuting_makeflags(path) and any(
-            command == signal_tokens for command in commands
+        return any(
+            step.environment is not None
+            and _makeflags_may_execute(step.environment)
+            and any(command == signal_tokens for command in _commands_in_step(step))
+            for step in steps
         )
     if signal.startswith("scripts/"):
         if signal == "scripts/changed_coverage_gate.py":
-            return any(_executes_changed_coverage_gate(command) for command in commands)
-        return any(_executes_python_script(command, signal) for command in commands)
+            return any(
+                _executes_changed_coverage_gate(command)
+                for step in steps
+                for command in _commands_in_step(step)
+            )
+        return any(
+            _executes_python_script(command, signal)
+            for step in steps
+            for command in _commands_in_step(step)
+        )
     if signal.startswith("tests/"):
-        pytest_commands = [
-            command for command in commands if _pytest_program_index(command) is not None
-        ]
         return any(
             _executes_pytest_signal(command, signal)
-            or (
-                signal in _workflow_matrix_paths(path)
-                and _executes_pytest_signal(command, "matrix.path")
-            )
-            for command in pytest_commands
+            or (signal in step.matrix_paths and _executes_pytest_signal(command, "matrix.path"))
+            for step in steps
+            for command in _commands_in_step(step)
+            if _pytest_program_index(command) is not None
         )
-    return any(command[: len(signal_tokens)] == signal_tokens for command in commands)
+    return any(
+        command[: len(signal_tokens)] == signal_tokens
+        for step in steps
+        for command in _commands_in_step(step)
+    )
 
 
 def evaluate(*, repo_root: Path, policy: dict[str, Any], makefile: Path) -> list[str]:
