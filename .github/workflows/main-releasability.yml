@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ inputs.expected_sha || github.sha }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -109,6 +109,8 @@ jobs:
           QUALITY_BASE_REF: HEAD^
           QUALITY_HEAD_REF: HEAD
         run: make quality-trend-gate
+      - name: CI Lane Parity Gate
+        run: make ci-lane-parity-gate
       - name: Upload Quality Trend Evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -211,6 +213,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -227,6 +231,29 @@ jobs:
         run: |
           python -m coverage combine coverage-data
           python -m coverage report --fail-under=97
+      - name: Enforce changed source coverage floor for exact main revision
+        if: inputs.expected_sha != ''
+        run: |
+          python scripts/changed_coverage_gate.py \
+            --base-ref "${{ inputs.expected_sha }}^" \
+            --head-ref "${{ inputs.expected_sha }}" \
+            --coverage-data .coverage \
+            --policy quality/quality-policy.v1.json \
+            --output output/changed-coverage-gate.json
+      - name: Record changed coverage skip for unbound operator dispatch
+        if: inputs.expected_sha == ''
+        run: |
+          python scripts/changed_coverage_gate.py \
+            --policy quality/quality-policy.v1.json \
+            --output output/changed-coverage-gate.json \
+            --skip-reason "An operator dispatch without expected_sha has no attributable main revision base"
+      - name: Upload changed coverage evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: main-releasability-changed-coverage-gate-evidence
+          path: output/changed-coverage-gate.json
+          if-no-files-found: error
 
   postgres-migration-smoke:
     name: Main Releasability / Postgres Migration Smoke
@@ -264,6 +291,10 @@ jobs:
         env:
           POLICY_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
         run: python -m pytest -q tests/integration/advisory/engine/test_policy_evaluation_postgres_tenant_isolation.py
+      - name: Prove Copilot tenant isolation, contention, and replay in Postgres
+        env:
+          ADVISORY_COPILOT_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
+        run: python -m pytest -q tests/integration/advisory/engine/test_advisory_copilot_postgres_tenant_isolation.py
 
   production-profile-smoke:
     name: Main Releasability / Production Profile Startup Smoke

@@ -53,6 +53,12 @@ class AdvisoryCopilotEvidencePacketRecord(BaseModel):
         min_length=1,
         max_length=COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH,
     )
+    tenant_id: str = Field(
+        description="Immutable tenant admitted when the evidence packet was created.",
+        examples=["tenant-sg-001"],
+        min_length=1,
+        max_length=COPILOT_PACKET_RECORD_IDENTIFIER_MAX_LENGTH,
+    )
     created_by: str = Field(
         description="Actor that created or rebuilt the evidence packet.",
         examples=["advisor_123"],
@@ -83,6 +89,7 @@ class AdvisoryCopilotEvidencePacketRecord(BaseModel):
         "evidence_packet_id",
         "evidence_packet_hash",
         "portfolio_id",
+        "tenant_id",
         "created_by",
         "correlation_id",
     )

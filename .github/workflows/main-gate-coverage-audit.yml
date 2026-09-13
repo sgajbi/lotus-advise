@@ -1,0 +1,27 @@
+name: Main Gate Coverage Audit
+
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  audit-main-gate-coverage:
+    name: Audit Main Releasability Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Fail closed on missing mainline releasability evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/audit_main_gate_coverage.py --fail-on-gap

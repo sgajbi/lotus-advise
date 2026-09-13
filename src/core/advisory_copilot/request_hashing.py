@@ -52,9 +52,31 @@ def build_advisory_copilot_run_request_summary(
         "evidence_packet_hash": evidence_packet.evidence_packet_hash,
         "requested_outputs": list(requested_outputs),
         "requested_by": requested_by,
-        "reason": reason,
+        "reason": stable_copilot_reason(reason),
         "requested_intents": list(requested_intents),
         "user_instruction_hash": optional_user_instruction_hash(user_instruction),
+    }
+
+
+def stable_copilot_reason(reason: dict[str, Any]) -> dict[str, Any]:
+    """Return the authority-stable portion of a Copilot request or review reason."""
+    trusted_principal = reason.get("trusted_principal")
+    if not isinstance(trusted_principal, dict):
+        return reason
+    return {
+        **reason,
+        "trusted_principal": {
+            key: trusted_principal.get(key)
+            for key in (
+                "subject",
+                "role",
+                "tenant_id",
+                "legal_entity_code",
+                "service_identity",
+                "authorized_proposal_id",
+                "authorized_portfolio_id",
+            )
+        },
     }
 
 

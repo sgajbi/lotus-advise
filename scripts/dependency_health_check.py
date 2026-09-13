@@ -11,6 +11,7 @@ import urllib.parse
 import urllib.request
 import venv
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Iterable
 
@@ -18,6 +19,7 @@ from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
 _WINDOWS_DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
+_FRESHNESS_POLICY_SCHEMA_VERSION = "lotus.advise.dependency-freshness-policy.v1"
 
 
 @dataclass
@@ -179,6 +181,99 @@ def _filter_outdated_to_python_compatible_latest(
     return filtered_rows
 
 
+def _non_empty_string(value: object, *, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"Dependency freshness policy field {field} must be a non-empty string.")
+    return value.strip()
+
+
+def load_freshness_exceptions(
+    path: Path, *, today: date | None = None
+) -> dict[str, dict[str, str]]:
+    try:
+        policy = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Dependency freshness policy is unreadable: {path}") from exc
+    if (
+        not isinstance(policy, dict)
+        or policy.get("schema_version") != _FRESHNESS_POLICY_SCHEMA_VERSION
+    ):
+        raise ValueError("Dependency freshness policy has an unsupported schema_version.")
+    entries = policy.get("exceptions")
+    if not isinstance(entries, list):
+        raise ValueError("Dependency freshness policy exceptions must be a list.")
+
+    current_date = today or date.today()
+    exceptions: dict[str, dict[str, str]] = {}
+    for index, raw_entry in enumerate(entries):
+        if not isinstance(raw_entry, dict):
+            raise ValueError("Each dependency freshness exception must be an object.")
+        package = _normalize_package_name(
+            _non_empty_string(raw_entry.get("package"), field=f"exceptions[{index}].package")
+        )
+        if package in exceptions:
+            raise ValueError(f"Duplicate dependency freshness exception package: {package}")
+        entry = {
+            "package": package,
+            "pinned_version": _non_empty_string(
+                raw_entry.get("pinned_version"), field=f"exceptions[{index}].pinned_version"
+            ),
+            "latest_version": _non_empty_string(
+                raw_entry.get("latest_version"), field=f"exceptions[{index}].latest_version"
+            ),
+            "owner": _non_empty_string(raw_entry.get("owner"), field=f"exceptions[{index}].owner"),
+            "reason": _non_empty_string(
+                raw_entry.get("reason"), field=f"exceptions[{index}].reason"
+            ),
+            "expires_on": _non_empty_string(
+                raw_entry.get("expires_on"), field=f"exceptions[{index}].expires_on"
+            ),
+        }
+        try:
+            expiry = date.fromisoformat(entry["expires_on"])
+        except ValueError as exc:
+            raise ValueError(
+                f"Dependency freshness exception {package} expires_on is not an ISO date."
+            ) from exc
+        if expiry < current_date:
+            raise ValueError(
+                f"Expired dependency freshness exception for {package}: {entry['expires_on']}"
+            )
+        exceptions[package] = entry
+    return exceptions
+
+
+def apply_freshness_exceptions(
+    outdated_rows: Iterable[dict[str, str]],
+    *,
+    exceptions: dict[str, dict[str, str]],
+) -> tuple[list[dict[str, str]], list[dict[str, object]]]:
+    remaining: list[dict[str, str]] = []
+    applied: list[dict[str, object]] = []
+    used_packages: set[str] = set()
+    for row in outdated_rows:
+        package = _normalize_package_name(row.get("name", ""))
+        exception = exceptions.get(package)
+        if exception is None:
+            remaining.append(row)
+            continue
+        if (
+            row.get("version") != exception["pinned_version"]
+            or row.get("latest_version") != exception["latest_version"]
+        ):
+            remaining.append(row)
+            continue
+        used_packages.add(package)
+        applied.append({**row, "exception": exception})
+    stale_packages = sorted(set(exceptions) - used_packages)
+    if stale_packages:
+        raise ValueError(
+            "Dependency freshness exceptions must match a current direct dependency drift: "
+            f"{', '.join(stale_packages)}"
+        )
+    return remaining, applied
+
+
 def _install_requirement_files(
     *,
     python_bin: Path,
@@ -241,6 +336,11 @@ def main() -> int:
         help=(
             "Skip vulnerability audit and only run project-scoped pip check plus outdated reporting"
         ),
+    )
+    parser.add_argument(
+        "--freshness-policy",
+        default="quality/dependency-freshness-policy.v1.json",
+        help="Reviewed, expiring exact-version exceptions for deliberate direct-dependency pins.",
     )
     args = parser.parse_args()
 
@@ -318,6 +418,15 @@ def main() -> int:
             outdated_rows,
             python_version=args.target_python_version,
         )
+        applied_exceptions: list[dict[str, str]] = []
+        if args.fail_on_outdated:
+            freshness_exceptions = load_freshness_exceptions(
+                (repo_root / args.freshness_policy).resolve()
+            )
+            outdated_rows, applied_exceptions = apply_freshness_exceptions(
+                outdated_rows,
+                exceptions=freshness_exceptions,
+            )
 
         _print_section(
             "Outdated Summary",
@@ -325,6 +434,11 @@ def main() -> int:
         )
         if outdated_rows:
             _print_section("Outdated Packages", json.dumps(outdated_rows, indent=2))
+        if applied_exceptions:
+            _print_section(
+                "Reviewed Freshness Exceptions",
+                json.dumps(applied_exceptions, indent=2),
+            )
 
         if args.fail_on_outdated and outdated_rows:
             return 2

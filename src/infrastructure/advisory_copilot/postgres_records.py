@@ -97,6 +97,7 @@ def evidence_packet_from_row(row: dict[str, Any]) -> AdvisoryCopilotEvidencePack
         audience=row["audience"],
         portfolio_id=row["portfolio_id"],
         proposal_id=row["proposal_id"],
+        tenant_id=row["tenant_id"],
         created_by=row["created_by"],
         created_at=datetime.fromisoformat(row["created_at"]),
         correlation_id=row["correlation_id"],
@@ -109,6 +110,7 @@ def review_from_row(row: dict[str, Any]) -> AdvisoryCopilotReviewRecord:
     return AdvisoryCopilotReviewRecord(
         review_id=row["review_id"],
         run_id=row["run_id"],
+        tenant_id=row["tenant_id"],
         schema_version=row["schema_version"],
         action=row["action"],
         previous_posture=row["previous_posture"],

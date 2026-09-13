@@ -11,14 +11,19 @@ def resolve_advisory_copilot_run_replay(
     repository: AdvisoryCopilotRepository,
     idempotency_key: str | None,
     request_hash: str,
+    tenant_id: str,
 ) -> AdvisoryCopilotRunRecord | None:
     if not idempotency_key:
         return None
-    existing_idempotency = repository.get_run_idempotency(idempotency_key=idempotency_key)
+    existing_idempotency = repository.get_run_idempotency(
+        tenant_id=tenant_id, idempotency_key=idempotency_key
+    )
     if existing_idempotency is None:
         return None
     _ensure_matching_request_hash(existing_idempotency, request_hash=request_hash)
-    existing_run = _load_idempotent_run(repository, existing_idempotency=existing_idempotency)
+    existing_run = _load_idempotent_run(
+        repository, tenant_id=tenant_id, existing_idempotency=existing_idempotency
+    )
     if _should_refresh_idempotent_run(existing_run):
         return None
     return existing_run
@@ -35,10 +40,11 @@ def _ensure_matching_request_hash(
 
 def _load_idempotent_run(
     repository: AdvisoryCopilotRepository,
+    tenant_id: str,
     *,
     existing_idempotency: AdvisoryCopilotRunIdempotencyRecord,
 ) -> AdvisoryCopilotRunRecord:
-    existing_run = repository.get_run(run_id=existing_idempotency.run_id)
+    existing_run = repository.get_run(tenant_id=tenant_id, run_id=existing_idempotency.run_id)
     if existing_run is None:
         raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
     return existing_run

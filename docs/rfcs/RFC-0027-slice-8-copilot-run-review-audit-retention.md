@@ -21,8 +21,11 @@ Implemented capability:
    request hash, and correlation id.
 3. `persist_advisory_copilot_run` creates replay-safe run records without storing raw prompts,
    provider responses, unsafe raw output, or unrestricted source payloads.
-4. `record_advisory_copilot_review` applies idempotent review actions, prevents non-idempotent
-   mutation after terminal postures, and preserves audit lineage separately from proposal approval.
+4. `record_advisory_copilot_review` applies idempotent review actions through one guarded durable
+   transition: the review record and run posture commit together, the persisted pre-transition
+   posture and timestamp fence stale writers, an interrupted update rolls both back, and an exact
+   retry can reconcile only the matching historical idempotency record. It prevents non-idempotent
+   mutation after terminal postures and preserves audit lineage separately from proposal approval.
 5. `InMemoryAdvisoryCopilotRepository` supports fast unit and service testing.
 6. `PostgresAdvisoryCopilotRepository` and migration namespace `advisory_copilot` provide the
    production persistence path.

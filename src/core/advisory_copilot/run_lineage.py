@@ -4,7 +4,6 @@ import hashlib
 from typing import Any
 
 DEFAULT_CALLER_APP = "lotus-advise"
-DEFAULT_TENANT_ID = "tenant-sg-001"
 DEFAULT_PROMPT_TEMPLATE_VERSION = "advisory-copilot-prompt-template.v1"
 DEFAULT_OUTPUT_SCHEMA_VERSION = "advisory-copilot-output-schema.v1"
 DEFAULT_EVALUATION_PACK_REF = "advisory-copilot-eval-pack.v1"

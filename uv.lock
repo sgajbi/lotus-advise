@@ -4,22 +4,22 @@ requires-python = ">=3.11"
 authoritative-source = "requirements"
 generated-by = "scripts/dependency_lock_evidence.py"
 license-inventory = "docs/standards/license-ip-inventory.v1.json"
-license-inventory-sha256 = "e2f38ce50cb7543827674dac5fb00a5415c92ff12a9a976ee514ce0806ffc888"
+license-inventory-sha256 = "e7ab7c298205209e05a30a3e9835d0af3cd7b92d7c5d3496e70e3e5f98c4972d"
 
 [[requirement-files]]
 group = "development"
 path = "requirements-dev.txt"
-sha256 = "d0a1926551495f17adf24a60a101c2ecdc933cfae34111f3f1aa319af28a5eff"
+sha256 = "8c9d71cd05b83215571d6271ffbf73ec969ac8482a39afb6be79332e42a14cf7"
 
 [[requirement-files]]
 group = "install"
 path = "requirements.txt"
-sha256 = "ac1655034e0c41bf7456e05cfd8c2eaa3c6e7ba458bb72ebec45663a3f799a69"
+sha256 = "04506915d3916ca00dcfbdf5249b618113598b59b8d793661e4ae80905ceb573"
 
 [[requirement-files]]
 group = "runtime"
 path = "requirements-prod.txt"
-sha256 = "19eb08d43c8e0c66549af8fa26539d70ed39d0dc77dd769320216309337878e8"
+sha256 = "b48dc3442af6cbe6abb6222596786137b7bf2983d044e11d96eb164fe1470fa9"
 
 [[package]]
 name = "annotated-doc"
@@ -50,7 +50,7 @@ requirement-hashes = ["9050d78a307f7c30a2cc9cb0f08fe971265451b335011f95e73253643
 
 [[package]]
 name = "ast-serialize"
-version = "0.8.0"
+version = "0.11.1"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -139,6 +139,15 @@ extras = []
 requirement-hashes = ["fd92772b8e9b092abcf4192503b3a93b6e398532ee244471b437c15c8f2afbe0"]
 
 [[package]]
+name = "cloudpickle"
+version = "3.1.2"
+direct = false
+groups = ["development", "runtime"]
+requirement-files = []
+extras = []
+requirement-hashes = []
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 direct = true
@@ -149,12 +158,12 @@ requirement-hashes = ["e91f42fdc36833eb19b14a96d440f3806e500e121b6209b9e06894908
 
 [[package]]
 name = "coverage"
-version = "7.15.4"
+version = "7.16.0"
 direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["3d793b1dc614ad386ec357d9e29fb9e79287742671b001ab22e6e0b5d64905f9"]
+requirement-hashes = ["2c1df0556116c219c0ac4859bee5649ebd6476cf2a24af23fb7b767c1e8ff19b"]
 
 [[package]]
 name = "cvxpy"
@@ -203,7 +212,7 @@ requirement-hashes = ["0f940ebfb8bf2679f96c96fe73fc7937362c493ff2666e33833d6975a
 
 [[package]]
 name = "filelock"
-version = "3.32.4"
+version = "3.32.6"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -212,7 +221,7 @@ requirement-hashes = []
 
 [[package]]
 name = "grimp"
-version = "3.16"
+version = "3.17"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -320,7 +329,7 @@ requirement-hashes = []
 
 [[package]]
 name = "joblib"
-version = "1.5.3"
+version = "1.6.0"
 direct = false
 groups = ["development", "runtime"]
 requirement-files = []
@@ -464,7 +473,7 @@ requirement-hashes = []
 
 [[package]]
 name = "pip-api"
-version = "0.0.34"
+version = "0.0.35"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -491,7 +500,7 @@ requirement-hashes = []
 
 [[package]]
 name = "platformdirs"
-version = "4.11.5"
+version = "4.11.8"
 direct = false
 groups = ["development"]
 requirement-files = []
@@ -527,16 +536,16 @@ requirement-hashes = ["4f68753c40e7988af0e1f94fb451149e0641056b3e64dbd2480177597
 
 [[package]]
 name = "psycopg"
-version = "3.3.4"
+version = "3.3.5"
 direct = true
 groups = ["development", "install", "runtime"]
 requirement-files = ["requirements-prod.txt", "requirements.txt"]
 extras = ["binary"]
-requirement-hashes = ["c05318a4715a56706e92af64930ae4ba66b7971862c965c0230b4fd4a2bd6aaa"]
+requirement-hashes = ["0c19a5232cc97f52ff46fe256d741d015156787e64095e76c82003ba7d9dc06a"]
 
 [[package]]
 name = "psycopg-binary"
-version = "3.3.4"
+version = "3.3.5"
 direct = false
 groups = ["development", "runtime"]
 requirement-files = []
@@ -680,12 +689,12 @@ requirement-hashes = []
 
 [[package]]
 name = "ruff"
-version = "0.16.5"
+version = "0.16.7"
 direct = true
 groups = ["development", "install"]
 requirement-files = ["requirements-dev.txt", "requirements.txt"]
 extras = []
-requirement-hashes = ["a143e34e96fefdf8ff5ede54aab272cd930ce45e3ac5f924777b7b8c9c499d09"]
+requirement-hashes = ["be9ffa0efb49c506032296eaa4fb8c2cefd8012e652206788446a1d1532a02ac"]
 
 [[package]]
 name = "scipy"
@@ -698,7 +707,7 @@ requirement-hashes = []
 
 [[package]]
 name = "scs"
-version = "3.2.11"
+version = "3.3.1"
 direct = false
 groups = ["development", "runtime"]
 requirement-files = []
@@ -824,7 +833,7 @@ requirement-hashes = []
 
 [[package]]
 name = "tzdata"
-version = "2026.3"
+version = "2026.4"
 direct = false
 groups = ["development", "runtime"]
 requirement-files = []
@@ -868,6 +877,6 @@ extras = []
 requirement-hashes = ["312b48ce4834462cf1bd1153fd8f235eef6d2d3f12f87b943472c91c6b0e57b5"]
 
 [summary]
-package-count = 94
+package-count = 95
 direct-package-count = 37
-transitive-package-count = 57
+transitive-package-count = 58

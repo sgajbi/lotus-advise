@@ -14,6 +14,11 @@ from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
 
 
 class AdvisoryCopilotRunIdempotencyRecord(BaseModel):
+    tenant_id: str = Field(
+        description="Immutable tenant that owns this raw idempotency key mapping.",
+        min_length=1,
+        max_length=COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH,
+    )
     idempotency_key: str = Field(
         description="Idempotency key for a copilot action request.",
         min_length=1,
@@ -31,7 +36,7 @@ class AdvisoryCopilotRunIdempotencyRecord(BaseModel):
     )
     created_at: datetime = Field(description="UTC timestamp when the mapping was created.")
 
-    @field_validator("idempotency_key", "request_hash", "run_id")
+    @field_validator("tenant_id", "idempotency_key", "request_hash", "run_id")
     @classmethod
     def _normalize_required_idempotency_text(cls, value: str) -> str:
         return cast(

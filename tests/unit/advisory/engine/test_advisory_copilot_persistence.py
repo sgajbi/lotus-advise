@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import json
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -73,7 +74,10 @@ from src.core.advisory_copilot.request_hashing import (
     canonical_json_hash,
 )
 from src.core.advisory_copilot.retention_policy import retention_expires_at
-from src.core.advisory_copilot.review_authority import CopilotReviewPrincipal
+from src.core.advisory_copilot.review_authority import (
+    CopilotReviewPrincipal,
+    copilot_review_audit_reason,
+)
 from src.core.advisory_copilot.review_persistence import (
     list_advisory_copilot_reviews as focused_list_advisory_copilot_reviews,
 )
@@ -93,7 +97,6 @@ from src.core.advisory_copilot.run_lineage import (
     DEFAULT_EVALUATION_PACK_REF,
     DEFAULT_OUTPUT_SCHEMA_VERSION,
     DEFAULT_PROMPT_TEMPLATE_VERSION,
-    DEFAULT_TENANT_ID,
     optional_lineage_text,
     stable_copilot_record_id,
 )
@@ -145,6 +148,7 @@ _RUN_COLUMNS = (
     "created_by",
     "caller_app",
     "tenant_id",
+    "admitted_tenant_id",
     "correlation_id",
     "idempotency_key",
     "created_at",
@@ -172,6 +176,7 @@ _EVIDENCE_PACKET_COLUMNS = (
     "audience",
     "portfolio_id",
     "proposal_id",
+    "tenant_id",
     "created_by",
     "created_at",
     "correlation_id",
@@ -187,6 +192,7 @@ _REVIEW_COLUMNS = (
     "action",
     "previous_posture",
     "new_posture",
+    "tenant_id",
     "actor_id",
     "occurred_at",
     "reason_json",
@@ -366,6 +372,39 @@ def test_advisory_copilot_run_request_hashing_has_focused_owner() -> None:
         requested_intents=("explain_policy_posture",),
         user_instruction="Summarize the advisory evidence for internal review.",
     ).startswith("sha256:")
+    stable_reason = {
+        "business_reason": "Prepare advisor review.",
+        "trusted_principal": {
+            "subject": "advisor_123",
+            "role": "ADVISOR",
+            "tenant_id": "tenant_sg_001",
+            "legal_entity_code": "SGPB",
+            "service_identity": "lotus-gateway",
+            "correlation_id": "corr-one",
+            "capabilities": ["advisory.copilot.action"],
+        },
+    }
+    volatile_reason = stable_reason | {
+        "trusted_principal": stable_reason["trusted_principal"]
+        | {"correlation_id": "corr-two", "capabilities": ["advisory.copilot.action", "unrelated"]}
+    }
+    assert build_advisory_copilot_run_request_hash(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=("advisor_review_summary",),
+        requested_by="advisor_123",
+        reason=stable_reason,
+        requested_intents=(),
+        user_instruction="",
+    ) == build_advisory_copilot_run_request_hash(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=("advisor_review_summary",),
+        requested_by="advisor_123",
+        reason=volatile_reason,
+        requested_intents=(),
+        user_instruction="",
+    )
 
 
 def test_advisory_copilot_retention_policy_has_focused_owner() -> None:
@@ -410,7 +449,6 @@ def test_advisory_copilot_run_lineage_defaults_have_focused_owner() -> None:
     assert "def _stable_id" not in service_source
     assert "def _optional_str" not in service_source
     assert DEFAULT_CALLER_APP == "lotus-advise"
-    assert DEFAULT_TENANT_ID == "tenant-sg-001"
     assert DEFAULT_PROMPT_TEMPLATE_VERSION == "advisory-copilot-prompt-template.v1"
     assert DEFAULT_OUTPUT_SCHEMA_VERSION == "advisory-copilot-output-schema.v1"
     assert DEFAULT_EVALUATION_PACK_REF == "advisory-copilot-eval-pack.v1"
@@ -434,6 +472,7 @@ def test_advisory_copilot_persistence_results_have_focused_owner() -> None:
     service_source = Path("src/core/advisory_copilot/service.py").read_text(encoding="utf-8")
     run_result = _persist_run(InMemoryAdvisoryCopilotRepository())
     review_record = AdvisoryCopilotReviewRecord(
+        tenant_id="tenant-sg-001",
         review_id="review_001",
         run_id=run_result.run.run_id,
         action="APPROVE_FOR_INTERNAL_USE",
@@ -531,6 +570,7 @@ def test_source_projection_packet_refresh_policy_requires_same_source_and_identi
         "proposal_version_no": 1,
     }
     record = AdvisoryCopilotEvidencePacketRecord(
+        tenant_id="tenant-sg-001",
         evidence_packet_id="copilot_packet_source_projection_001",
         evidence_packet_hash="sha256:source-projection-001",
         action_family="PROPOSAL_EXPLANATION",
@@ -586,9 +626,10 @@ class _FakePostgresConnection:
     def __init__(self) -> None:
         self.evidence_packets: dict[str, dict[str, Any]] = {}
         self.runs: dict[str, dict[str, Any]] = {}
-        self.run_idempotency: dict[str, dict[str, Any]] = {}
+        self.run_idempotency: dict[tuple[str, str], dict[str, Any]] = {}
         self.reviews: dict[str, dict[str, Any]] = {}
         self.commits = 0
+        self.rollbacks = 0
         self._one: dict[str, Any] | None = None
         self._all: list[dict[str, Any]] = []
 
@@ -599,16 +640,26 @@ class _FakePostgresConnection:
         args = tuple(params)
         self._one = None
         self._all = []
+        self.rowcount = 0
 
         if sql.startswith("SELECT * FROM advisory_copilot_evidence_packets"):
-            self._one = self.evidence_packets.get(str(args[0]))
+            row = self.evidence_packets.get(str(args[0]))
+            self._one = row if row is not None and row["tenant_id"] == args[1] else None
+            if self._one is not None and len(args) == 4:
+                if self._one["portfolio_id"] != args[2] or (
+                    self._one["proposal_id"] is not None and self._one["proposal_id"] != args[3]
+                ):
+                    self._one = None
             return self
         if sql.startswith("INSERT INTO advisory_copilot_evidence_packets"):
             row = dict(zip(_EVIDENCE_PACKET_COLUMNS, args, strict=True))
-            self.evidence_packets.setdefault(str(row["evidence_packet_id"]), row)
+            evidence_packet_id = str(row["evidence_packet_id"])
+            if evidence_packet_id not in self.evidence_packets:
+                self.evidence_packets[evidence_packet_id] = row
+                self._one = {"evidence_packet_id": row["evidence_packet_id"]}
             return self
         if sql.startswith("UPDATE advisory_copilot_evidence_packets"):
-            evidence_packet_id = str(args[-1])
+            evidence_packet_id = str(args[-2])
             existing = self.evidence_packets[evidence_packet_id]
             existing.update(
                 {
@@ -617,39 +668,73 @@ class _FakePostgresConnection:
                     "audience": args[2],
                     "portfolio_id": args[3],
                     "proposal_id": args[4],
-                    "created_by": args[5],
-                    "created_at": args[6],
-                    "correlation_id": args[7],
-                    "packet_json": args[8],
-                    "reason_json": args[9],
+                    "tenant_id": args[5],
+                    "created_by": args[6],
+                    "created_at": args[7],
+                    "correlation_id": args[8],
+                    "packet_json": args[9],
+                    "reason_json": args[10],
                 }
             )
             return self
 
-        if sql.startswith("SELECT idempotency_key"):
-            self._one = self.run_idempotency.get(str(args[0]))
+        if sql.startswith("SELECT tenant_id, idempotency_key"):
+            self._one = self.run_idempotency.get((str(args[0]), str(args[1])))
             return self
         if sql.startswith("SELECT * FROM advisory_copilot_runs WHERE run_id"):
-            self._one = self.runs.get(str(args[0]))
+            row = self.runs.get(str(args[0]))
+            self._one = row if row is not None and row["admitted_tenant_id"] == args[1] else None
             return self
         if sql.startswith("INSERT INTO advisory_copilot_runs"):
             row = dict(zip(_RUN_COLUMNS, args, strict=True))
-            self.runs.setdefault(str(row["run_id"]), row)
+            run_id = str(row["run_id"])
+            if run_id not in self.runs:
+                self.runs[run_id] = row
+                self._one = {"run_id": row["run_id"]}
             return self
         if sql.startswith("INSERT INTO advisory_copilot_run_idempotency"):
             row = {
-                "idempotency_key": args[0],
-                "request_hash": args[1],
-                "run_id": args[2],
-                "created_at": args[3],
+                "tenant_id": args[0],
+                "idempotency_key": args[1],
+                "request_hash": args[2],
+                "run_id": args[3],
+                "created_at": args[4],
             }
-            self.run_idempotency.setdefault(str(row["idempotency_key"]), row)
+            key = (str(row["tenant_id"]), str(row["idempotency_key"]))
+            if key not in self.run_idempotency:
+                self.run_idempotency[key] = row
+                self._one = {"run_id": row["run_id"]}
             return self
         if sql.startswith("UPDATE advisory_copilot_runs SET"):
-            run_id = str(args[-1])
-            self.runs[run_id] = dict(zip(_RUN_COLUMNS, (run_id, *args[:-1]), strict=True))
+            if len(args) == 6:
+                (
+                    review_posture,
+                    updated_at,
+                    run_id,
+                    tenant_id,
+                    expected_posture,
+                    expected_updated_at,
+                ) = args
+                existing = self.runs.get(str(run_id))
+                if (
+                    existing is not None
+                    and existing["admitted_tenant_id"] == tenant_id
+                    and existing["review_posture"] == expected_posture
+                    and existing["updated_at"] == expected_updated_at
+                ):
+                    existing["review_posture"] = review_posture
+                    existing["updated_at"] = updated_at
+                    self.rowcount = 1
+                return self
+            run_id = str(args[-2])
+            existing = self.runs[run_id]
+            updated_columns = tuple(
+                column for column in _RUN_COLUMNS if column not in {"run_id", "admitted_tenant_id"}
+            )
+            existing.update(dict(zip(updated_columns, args[:-2], strict=True)))
+            self.rowcount = 1
             return self
-        if sql.startswith("SELECT * FROM advisory_copilot_runs WHERE proposal_id"):
+        if sql.startswith("SELECT * FROM advisory_copilot_runs WHERE admitted_tenant_id"):
             self._all = self._list_runs(sql=sql, args=args)
             return self
 
@@ -657,21 +742,29 @@ class _FakePostgresConnection:
             row = dict(zip(_REVIEW_COLUMNS, args, strict=True))
             self.reviews.setdefault(str(row["review_id"]), row)
             return self
-        if sql.startswith("SELECT * FROM advisory_copilot_reviews WHERE run_id = %s AND"):
-            run_id, idempotency_key = str(args[0]), str(args[1])
+        if sql.startswith(
+            "SELECT * FROM advisory_copilot_reviews WHERE tenant_id = %s AND run_id = %s AND"
+        ):
+            tenant_id, run_id, idempotency_key = str(args[0]), str(args[1]), str(args[2])
             self._one = next(
                 (
                     review
                     for review in self.reviews.values()
-                    if review["run_id"] == run_id and review["idempotency_key"] == idempotency_key
+                    if review["tenant_id"] == tenant_id
+                    and review["run_id"] == run_id
+                    and review["idempotency_key"] == idempotency_key
                 ),
                 None,
             )
             return self
-        if sql.startswith("SELECT * FROM advisory_copilot_reviews WHERE run_id"):
-            run_id = str(args[0])
+        if sql.startswith("SELECT * FROM advisory_copilot_reviews WHERE tenant_id"):
+            tenant_id, run_id = str(args[0]), str(args[1])
             self._all = sorted(
-                [review for review in self.reviews.values() if review["run_id"] == run_id],
+                [
+                    review
+                    for review in self.reviews.values()
+                    if review["tenant_id"] == tenant_id and review["run_id"] == run_id
+                ],
                 key=lambda review: (review["occurred_at"], review["review_id"]),
             )
             return self
@@ -687,13 +780,20 @@ class _FakePostgresConnection:
     def commit(self) -> None:
         self.commits += 1
 
+    def rollback(self) -> None:
+        self.rollbacks += 1
+
     def close(self) -> None:
         return None
 
     def _list_runs(self, *, sql: str, args: tuple[Any, ...]) -> list[dict[str, Any]]:
-        proposal_id = str(args[0])
-        rows = [row for row in self.runs.values() if row["proposal_id"] == proposal_id]
-        arg_index = 1
+        tenant_id, proposal_id = str(args[0]), str(args[1])
+        rows = [
+            row
+            for row in self.runs.values()
+            if row["admitted_tenant_id"] == tenant_id and row["proposal_id"] == proposal_id
+        ]
+        arg_index = 2
         if "proposal_version_id" in sql:
             proposal_version_id = args[arg_index]
             arg_index += 1
@@ -830,6 +930,7 @@ def _persist_run(
         review_guidance=("Review source evidence before internal use.",),
         guardrail_reasons=(),
         correlation_id="corr_rfc0027_copilot_001",
+        tenant_id="tenant-sg-001",
         idempotency_key=idempotency_key,
         requested_intents=("explain_policy_posture",),
         user_instruction=user_instruction,
@@ -948,6 +1049,7 @@ def test_persisted_copilot_run_stores_claim_grounding_audit_posture() -> None:
     assert "Summarize the advisory evidence" not in str(result.run.model_dump(mode="json"))
 
     runs, next_cursor = repository.list_runs_for_proposal_version(
+        tenant_id="tenant-sg-001",
         proposal_id="proposal_sg_structured_note_001",
         proposal_version_id=None,
         proposal_version_no=1,
@@ -1025,6 +1127,7 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
         repository=repository,
         evidence_packet=_packet(),
         audience="ADVISOR",
+        tenant_id="tenant-sg-001",
         created_by="advisor_123",
         reason={"business_reason": "Prepare advisor review."},
         correlation_id="corr_rfc0027_packet_001",
@@ -1058,6 +1161,7 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
         )
 
     idempotency = AdvisoryCopilotRunIdempotencyRecord(
+        tenant_id="tenant-sg-001",
         idempotency_key="  copilot-action-idem-trimmed  ",
         request_hash=result.run.request_hash,
         run_id=result.run.run_id,
@@ -1066,6 +1170,7 @@ def test_copilot_persistence_records_normalize_and_bound_audit_identifiers() -> 
     assert idempotency.idempotency_key == "copilot-action-idem-trimmed"
     with pytest.raises(ValidationError):
         AdvisoryCopilotRunIdempotencyRecord(
+            tenant_id="tenant-sg-001",
             idempotency_key="x" * 129,
             request_hash=result.run.request_hash,
             run_id="x" * (COPILOT_IDEMPOTENCY_RECORD_IDENTIFIER_MAX_LENGTH + 1),
@@ -1180,6 +1285,7 @@ def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:
     ).run
 
     page_one, next_cursor = repository.list_runs_for_proposal_version(
+        tenant_id="tenant-sg-001",
         proposal_id="proposal_sg_structured_note_001",
         proposal_version_id=None,
         proposal_version_no=1,
@@ -1187,6 +1293,7 @@ def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:
         cursor=None,
     )
     page_two, final_cursor = repository.list_runs_for_proposal_version(
+        tenant_id="tenant-sg-001",
         proposal_id="proposal_sg_structured_note_001",
         proposal_version_id=None,
         proposal_version_no=1,
@@ -1254,6 +1361,7 @@ def test_retrying_false_positive_output_guardrail_refreshes_same_idempotent_requ
         review_guidance=("The advisory copilot request was blocked.",),
         guardrail_reasons=("CLIENT_READY_PUBLICATION_FORBIDDEN",),
         correlation_id="corr_rfc0027_copilot_001",
+        tenant_id="tenant-sg-001",
         idempotency_key="copilot-action-idem-001",
         requested_intents=("explain_policy_posture",),
         user_instruction="Summarize the advisory evidence for internal review.",
@@ -1288,6 +1396,7 @@ def test_copilot_run_replay_policy_separates_replay_from_retryable_refresh() -> 
             repository=repository,
             idempotency_key="copilot-action-idem-001",
             request_hash=first.request_hash,
+            tenant_id="tenant-sg-001",
         )
         == first
     )
@@ -1296,10 +1405,12 @@ def test_copilot_run_replay_policy_separates_replay_from_retryable_refresh() -> 
             repository=repository,
             idempotency_key="copilot-action-idem-001",
             request_hash="sha256:different-request",
+            tenant_id="tenant-sg-001",
         )
 
-    repository._run_idempotency["copilot-action-idem-orphaned"] = (  # noqa: SLF001
+    repository._run_idempotency[("tenant-sg-001", "copilot-action-idem-orphaned")] = (  # noqa: SLF001
         AdvisoryCopilotRunIdempotencyRecord(
+            tenant_id="tenant-sg-001",
             idempotency_key="copilot-action-idem-orphaned",
             request_hash=first.request_hash,
             run_id="copilot-run-missing",
@@ -1311,6 +1422,7 @@ def test_copilot_run_replay_policy_separates_replay_from_retryable_refresh() -> 
             repository=repository,
             idempotency_key="copilot-action-idem-orphaned",
             request_hash=first.request_hash,
+            tenant_id="tenant-sg-001",
         )
 
     retryable_repository = InMemoryAdvisoryCopilotRepository()
@@ -1333,6 +1445,7 @@ def test_copilot_run_replay_policy_separates_replay_from_retryable_refresh() -> 
             repository=retryable_repository,
             idempotency_key="copilot-action-idem-001",
             request_hash=retryable.request_hash,
+            tenant_id="tenant-sg-001",
         )
         is None
     )
@@ -1356,6 +1469,7 @@ def test_copilot_run_idempotency_rejects_changed_request() -> None:
             review_guidance=(),
             guardrail_reasons=(),
             correlation_id="corr_rfc0027_copilot_001",
+            tenant_id="tenant-sg-001",
             idempotency_key="copilot-action-idem-001",
         )
 
@@ -1394,9 +1508,9 @@ def test_copilot_review_actions_are_idempotent_and_audited() -> None:
     assert review.review.actor_id == "supervisor_123"
     assert review.review.reason_json["trusted_principal"]["subject"] == "supervisor_123"
     assert review.review.reason_json["review_authorization"]["maker_checker_satisfied"] is True
-    assert list_advisory_copilot_reviews(repository=repository, run_id=run.run_id) == (
-        review.review,
-    )
+    assert list_advisory_copilot_reviews(
+        repository=repository, tenant_id="tenant-sg-001", run_id=run.run_id
+    ) == (review.review,)
 
     with pytest.raises(ValueError, match="COPILOT_RUN_REVIEW_POSTURE_TERMINAL"):
         record_advisory_copilot_review(
@@ -1460,6 +1574,32 @@ def test_copilot_review_rejects_wrong_scope_self_review_and_idempotency_actor_sw
         )
 
 
+def test_copilot_review_audit_metadata_stays_bounded_and_maps_missing_scope() -> None:
+    with pytest.raises(ValueError, match="COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE"):
+        replace(
+            _review_principal(),
+            capabilities=frozenset(f"capability_{index}" for index in range(65)),
+        ).audit_metadata()
+    with pytest.raises(ValueError, match="COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE"):
+        copilot_review_audit_reason(
+            {f"reason_{index}": "bounded" for index in range(63)},
+            principal=_review_principal(),
+            action="APPROVE_FOR_INTERNAL_USE",
+        )
+    repository = InMemoryAdvisoryCopilotRepository()
+    run = _persist_run(repository).run
+    with pytest.raises(ValueError, match="COPILOT_REVIEW_SCOPE_REQUIRED"):
+        record_advisory_copilot_review(
+            repository=repository,
+            run_id=run.run_id,
+            action="APPROVE_FOR_INTERNAL_USE",
+            principal=replace(_review_principal(), authorized_portfolio_id=None),
+            submitted_actor_id=None,
+            reason={"decision": "Scope must be admitted."},
+            correlation_id="corr_missing_scope",
+        )
+
+
 def test_copilot_persistence_rejects_raw_ai_payloads() -> None:
     repository = InMemoryAdvisoryCopilotRepository()
 
@@ -1477,6 +1617,7 @@ def test_copilot_persistence_rejects_raw_ai_payloads() -> None:
             review_guidance=(),
             guardrail_reasons=(),
             correlation_id="corr_rfc0027_copilot_001",
+            tenant_id="tenant-sg-001",
         )
 
     with pytest.raises(ValueError, match="COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED"):
@@ -1493,6 +1634,7 @@ def test_copilot_persistence_rejects_raw_ai_payloads() -> None:
             review_guidance=(),
             guardrail_reasons=(),
             correlation_id="corr_rfc0027_copilot_001",
+            tenant_id="tenant-sg-001",
         )
 
     with pytest.raises(ValueError, match="COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED"):
@@ -1509,6 +1651,7 @@ def test_copilot_persistence_rejects_raw_ai_payloads() -> None:
             review_guidance=(),
             guardrail_reasons=(),
             correlation_id="corr_rfc0027_copilot_001",
+            tenant_id="tenant-sg-001",
         )
 
     with pytest.raises(ValueError, match="COPILOT_STRUCTURED_PAYLOAD_TECHNICAL_DETAIL"):
@@ -1530,6 +1673,7 @@ def test_copilot_persistence_rejects_raw_ai_payloads() -> None:
             review_guidance=(),
             guardrail_reasons=(),
             correlation_id="corr_rfc0027_copilot_001",
+            tenant_id="tenant-sg-001",
         )
 
     with pytest.raises(ValueError, match="COPILOT_STRUCTURED_PAYLOAD_TECHNICAL_DETAIL"):
@@ -1551,6 +1695,7 @@ def test_copilot_persistence_rejects_raw_ai_payloads() -> None:
             review_guidance=(),
             guardrail_reasons=(),
             correlation_id="corr_rfc0027_copilot_001",
+            tenant_id="tenant-sg-001",
         )
 
 
@@ -1571,6 +1716,7 @@ def test_copilot_persistence_rejects_oversized_structured_payloads() -> None:
             review_guidance=(),
             guardrail_reasons=(),
             correlation_id="corr_rfc0027_copilot_001",
+            tenant_id="tenant-sg-001",
         )
 
     with pytest.raises(ValueError, match="COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE"):
@@ -1587,6 +1733,7 @@ def test_copilot_persistence_rejects_oversized_structured_payloads() -> None:
             review_guidance=(),
             guardrail_reasons=(),
             correlation_id="corr_rfc0027_copilot_001",
+            tenant_id="tenant-sg-001",
         )
 
 
@@ -1604,6 +1751,7 @@ def test_in_memory_repository_rejects_direct_conflicts_and_missing_updates() -> 
         repository.save_run_with_idempotency(
             run=run.model_copy(update={"run_id": "copilot_run_conflicting_replay"}),
             idempotency=AdvisoryCopilotRunIdempotencyRecord(
+                tenant_id="tenant-sg-001",
                 idempotency_key="copilot-action-idem-001",
                 request_hash=run.request_hash,
                 run_id="copilot_run_conflicting_replay",
@@ -1619,6 +1767,7 @@ def test_in_memory_repository_rejects_direct_conflicts_and_missing_updates() -> 
     repository.save_run_with_idempotency(
         run=run.model_copy(update={"run_id": "copilot_run_orphan_source"}),
         idempotency=AdvisoryCopilotRunIdempotencyRecord(
+            tenant_id="tenant-sg-001",
             idempotency_key=orphan_key,
             request_hash="sha256:orphan-request",
             run_id="copilot_run_orphan_source",
@@ -1631,6 +1780,7 @@ def test_in_memory_repository_rejects_direct_conflicts_and_missing_updates() -> 
         repository.save_run_with_idempotency(
             run=run.model_copy(update={"run_id": "copilot_run_orphan_source"}),
             idempotency=AdvisoryCopilotRunIdempotencyRecord(
+                tenant_id="tenant-sg-001",
                 idempotency_key=orphan_key,
                 request_hash="sha256:orphan-request",
                 run_id="copilot_run_orphan_source",
@@ -1647,6 +1797,7 @@ def test_in_memory_repository_refreshes_source_projection_packet_only_when_safe(
         "proposal_version_no": 1,
     }
     record = AdvisoryCopilotEvidencePacketRecord(
+        tenant_id="tenant-sg-001",
         evidence_packet_id="copilot_packet_source_projection_001",
         evidence_packet_hash="sha256:source-projection-001",
         action_family="PROPOSAL_EXPLANATION",
@@ -1680,44 +1831,90 @@ def test_in_memory_repository_refreshes_source_projection_packet_only_when_safe(
         )
 
 
-def test_in_memory_repository_rejects_review_idempotency_conflicts() -> None:
+def test_in_memory_review_transition_fences_conflicts_and_repairs_legacy_split() -> None:
     repository = InMemoryAdvisoryCopilotRepository()
     run = _persist_run(repository).run
     review = AdvisoryCopilotReviewRecord(
-        review_id="copilot_review_001",
+        tenant_id=run.tenant_id,
+        review_id="copilot_review_transition_001",
         run_id=run.run_id,
         action="APPROVE_FOR_INTERNAL_USE",
-        previous_posture="REVIEW_REQUIRED",
+        previous_posture=run.review_posture,
         new_posture="APPROVED_FOR_INTERNAL_USE",
         actor_id="supervisor_123",
         occurred_at=datetime(2026, 5, 28, 9, 5, tzinfo=timezone.utc),
         reason_json={"decision": "Reviewed against cited source evidence."},
-        request_hash="sha256:review-request-001",
-        idempotency_key="copilot-review-idem-direct",
-        correlation_id="corr_rfc0027_review_001",
+        request_hash="sha256:review-transition-001",
+        idempotency_key="copilot-review-transition-001",
+        correlation_id="corr_rfc0027_review_transition_001",
+    )
+    updated = run.model_copy(
+        update={
+            "review_posture": review.new_posture,
+            "updated_at": datetime(2026, 5, 28, 9, 5, tzinfo=timezone.utc),
+        }
     )
 
-    repository.append_review(review)
-    repository.append_review(review)
+    with pytest.raises(ValueError, match="COPILOT_RUN_NOT_FOUND"):
+        repository.transition_review(
+            expected_run=run,
+            updated_run=updated,
+            review=review.model_copy(update={"run_id": "copilot_run_missing"}),
+        )
+
+    persisted, _, replayed = repository.transition_review(
+        expected_run=run,
+        updated_run=updated,
+        review=review,
+    )
+    assert persisted.review_posture == "APPROVED_FOR_INTERNAL_USE"
+    assert replayed is False
 
     with pytest.raises(ValueError, match="COPILOT_REVIEW_IDEMPOTENCY_KEY_CONFLICT"):
-        repository.append_review(
-            review.model_copy(
-                update={
-                    "review_id": "copilot_review_002",
-                    "request_hash": "sha256:review-request-002",
-                }
-            )
+        repository.transition_review(
+            expected_run=run,
+            updated_run=updated,
+            review=review.model_copy(update={"request_hash": "sha256:review-transition-other"}),
         )
 
-    repository._review_idempotency[(run.run_id, "missing-review")] = "copilot_review_missing"  # noqa: SLF001
-    assert (
-        repository.get_review_by_idempotency(
-            run_id=run.run_id,
-            idempotency_key="missing-review",
-        )
-        is None
+    legacy_repository = InMemoryAdvisoryCopilotRepository()
+    legacy_run = _persist_run(legacy_repository).run
+    legacy_review = review.model_copy(update={"run_id": legacy_run.run_id})
+    legacy_updated = legacy_run.model_copy(
+        update={
+            "review_posture": legacy_review.new_posture,
+            "updated_at": updated.updated_at,
+        }
     )
+    assert legacy_review.idempotency_key is not None
+    legacy_repository._reviews[legacy_run.run_id] = [legacy_review]  # noqa: SLF001
+    legacy_repository._review_idempotency[
+        (  # noqa: SLF001
+            legacy_run.tenant_id,
+            legacy_run.run_id,
+            legacy_review.idempotency_key,
+        )
+    ] = legacy_review.review_id
+
+    reconciled, _, replayed = legacy_repository.transition_review(
+        expected_run=legacy_run,
+        updated_run=legacy_updated,
+        review=legacy_review,
+    )
+    assert reconciled.review_posture == legacy_review.new_posture
+    assert replayed is True
+
+    stale_repository = InMemoryAdvisoryCopilotRepository()
+    stale_run = _persist_run(stale_repository).run
+    stale_review = review.model_copy(update={"run_id": stale_run.run_id, "idempotency_key": None})
+    with pytest.raises(ValueError, match="COPILOT_REVIEW_TRANSITION_STALE"):
+        stale_repository.transition_review(
+            expected_run=stale_run.model_copy(
+                update={"updated_at": datetime(2026, 5, 28, 9, 1, tzinfo=timezone.utc)}
+            ),
+            updated_run=legacy_updated.model_copy(update={"run_id": stale_run.run_id}),
+            review=stale_review,
+        )
 
 
 def test_postgres_repository_round_trips_copilot_run_review_and_keyset_pages() -> None:
@@ -1728,6 +1925,7 @@ def test_postgres_repository_round_trips_copilot_run_review_and_keyset_pages() -
         repository=repository,
         evidence_packet=_packet(),
         audience="ADVISOR",
+        tenant_id="tenant-sg-001",
         created_by="advisor_123",
         reason={"business_reason": "Prepare advisor review."},
         correlation_id="corr_rfc0027_packet_001",
@@ -1735,7 +1933,26 @@ def test_postgres_repository_round_trips_copilot_run_review_and_keyset_pages() -
     )
     loaded_packet = load_advisory_copilot_evidence_packet(
         repository=repository,
+        tenant_id="tenant-sg-001",
         evidence_packet_id=saved_packet.evidence_packet_id,
+    )
+    assert (
+        repository.get_evidence_packet_for_authorized_scope(
+            tenant_id="tenant-sg-001",
+            evidence_packet_id=saved_packet.evidence_packet_id,
+            authorized_portfolio_id=saved_packet.portfolio_id,
+            authorized_proposal_id=saved_packet.proposal_id,
+        )
+        is not None
+    )
+    assert (
+        repository.get_evidence_packet_for_authorized_scope(
+            tenant_id="tenant-sg-001",
+            evidence_packet_id=saved_packet.evidence_packet_id,
+            authorized_portfolio_id=saved_packet.portfolio_id,
+            authorized_proposal_id="proposal-not-authorized",
+        )
+        is None
     )
     first = _persist_run(
         repository,
@@ -1761,8 +1978,10 @@ def test_postgres_repository_round_trips_copilot_run_review_and_keyset_pages() -
         user_instruction="Third internal review request.",
         created_at=datetime(2026, 5, 28, 9, 3, tzinfo=timezone.utc),
     ).run
+    repository.update_run(first.run)
 
     page_one, next_cursor = repository.list_runs_for_proposal_version(
+        tenant_id="tenant-sg-001",
         proposal_id="proposal_sg_structured_note_001",
         proposal_version_id=None,
         proposal_version_no=1,
@@ -1770,6 +1989,7 @@ def test_postgres_repository_round_trips_copilot_run_review_and_keyset_pages() -
         cursor=None,
     )
     page_two, final_cursor = repository.list_runs_for_proposal_version(
+        tenant_id="tenant-sg-001",
         proposal_id="proposal_sg_structured_note_001",
         proposal_version_id=None,
         proposal_version_no=1,
@@ -1808,12 +2028,13 @@ def test_postgres_repository_round_trips_copilot_run_review_and_keyset_pages() -
     assert final_cursor is None
     assert review.replayed is False
     assert replayed_review.replayed is True
-    assert repository.get_run(run_id=first.run.run_id).review_posture == (
-        "APPROVED_FOR_INTERNAL_USE"
-    )
-    assert [item.review_id for item in repository.list_reviews(run_id=first.run.run_id)] == [
-        review.review.review_id
-    ]
+    assert repository.get_run(
+        tenant_id="tenant-sg-001", run_id=first.run.run_id
+    ).review_posture == ("APPROVED_FOR_INTERNAL_USE")
+    assert [
+        item.review_id
+        for item in repository.list_reviews(tenant_id="tenant-sg-001", run_id=first.run.run_id)
+    ] == [review.review.review_id]
 
 
 def test_postgres_repository_rejects_idempotency_conflicts_and_orphans() -> None:
@@ -1835,6 +2056,7 @@ def test_postgres_repository_rejects_idempotency_conflicts_and_orphans() -> None
     repository.save_run_with_idempotency(
         run=run.model_copy(update={"run_id": "copilot_run_orphan_source"}),
         idempotency=AdvisoryCopilotRunIdempotencyRecord(
+            tenant_id="tenant-sg-001",
             idempotency_key=orphan_key,
             request_hash="sha256:orphan-request",
             run_id="copilot_run_orphan_source",
@@ -1847,10 +2069,115 @@ def test_postgres_repository_rejects_idempotency_conflicts_and_orphans() -> None
         repository.save_run_with_idempotency(
             run=run.model_copy(update={"run_id": "copilot_run_orphan_attempt"}),
             idempotency=AdvisoryCopilotRunIdempotencyRecord(
+                tenant_id="tenant-sg-001",
                 idempotency_key=orphan_key,
                 request_hash="sha256:orphan-request",
                 run_id="copilot_run_orphan_attempt",
                 created_at=datetime(2026, 5, 28, 9, 11, tzinfo=timezone.utc),
+            ),
+        )
+
+
+def test_postgres_review_transition_fences_conflicts_stale_writes_and_legacy_split() -> None:
+    connection = _FakePostgresConnection()
+    repository = _postgres_repository(connection)
+    run = _persist_run(repository).run
+    review = AdvisoryCopilotReviewRecord(
+        tenant_id=run.tenant_id,
+        review_id="copilot_review_postgres_transition_001",
+        run_id=run.run_id,
+        action="APPROVE_FOR_INTERNAL_USE",
+        previous_posture=run.review_posture,
+        new_posture="APPROVED_FOR_INTERNAL_USE",
+        actor_id="supervisor_123",
+        occurred_at=datetime(2026, 5, 28, 9, 5, tzinfo=timezone.utc),
+        reason_json={"decision": "Reviewed against cited source evidence."},
+        request_hash="sha256:postgres-review-transition-001",
+        idempotency_key="postgres-review-transition-001",
+        correlation_id="corr_rfc0027_postgres_review_transition_001",
+    )
+    updated = run.model_copy(
+        update={
+            "review_posture": review.new_posture,
+            "updated_at": datetime(2026, 5, 28, 9, 5, tzinfo=timezone.utc),
+        }
+    )
+
+    with pytest.raises(ValueError, match="COPILOT_RUN_NOT_FOUND"):
+        repository.transition_review(
+            expected_run=run,
+            updated_run=updated,
+            review=review.model_copy(
+                update={"run_id": "copilot_run_missing", "idempotency_key": None}
+            ),
+        )
+
+    repository.transition_review(expected_run=run, updated_run=updated, review=review)
+    with pytest.raises(ValueError, match="COPILOT_REVIEW_IDEMPOTENCY_KEY_CONFLICT"):
+        repository.transition_review(
+            expected_run=run,
+            updated_run=updated,
+            review=review.model_copy(update={"request_hash": "sha256:postgres-review-other"}),
+        )
+    with pytest.raises(ValueError, match="COPILOT_RUN_REVIEW_POSTURE_TERMINAL"):
+        repository.transition_review(
+            expected_run=updated,
+            updated_run=updated,
+            review=review.model_copy(
+                update={
+                    "review_id": "copilot_review_postgres_terminal_001",
+                    "idempotency_key": None,
+                }
+            ),
+        )
+
+    legacy_run = _persist_run(
+        repository,
+        idempotency_key="postgres-copilot-action-legacy-review",
+        user_instruction="Legacy split review repair.",
+    ).run
+    legacy_review = review.model_copy(
+        update={
+            "review_id": "copilot_review_postgres_legacy_001",
+            "run_id": legacy_run.run_id,
+            "idempotency_key": "postgres-review-legacy-001",
+        }
+    )
+    legacy_updated = legacy_run.model_copy(
+        update={"review_posture": legacy_review.new_posture, "updated_at": updated.updated_at}
+    )
+    repository.transition_review(
+        expected_run=legacy_run,
+        updated_run=legacy_updated,
+        review=legacy_review,
+    )
+    connection.runs[legacy_run.run_id].update(
+        review_posture=legacy_run.review_posture,
+        updated_at=legacy_run.updated_at.isoformat(),
+    )
+    repaired, _, replayed = repository.transition_review(
+        expected_run=legacy_run,
+        updated_run=legacy_updated,
+        review=legacy_review,
+    )
+    assert repaired.review_posture == legacy_review.new_posture
+    assert replayed is True
+
+    stale_run = _persist_run(
+        repository,
+        idempotency_key="postgres-copilot-action-stale-review",
+        user_instruction="Stale review fence.",
+    ).run
+    with pytest.raises(ValueError, match="COPILOT_REVIEW_TRANSITION_STALE"):
+        repository.transition_review(
+            expected_run=stale_run.model_copy(update={"updated_at": updated.updated_at}),
+            updated_run=legacy_updated.model_copy(update={"run_id": stale_run.run_id}),
+            review=legacy_review.model_copy(
+                update={
+                    "review_id": "copilot_review_postgres_stale_001",
+                    "run_id": stale_run.run_id,
+                    "idempotency_key": None,
+                }
             ),
         )
 
@@ -1864,6 +2191,7 @@ def test_postgres_repository_refreshes_source_projection_packet_only_when_safe()
         "proposal_version_no": 1,
     }
     record = AdvisoryCopilotEvidencePacketRecord(
+        tenant_id="tenant-sg-001",
         evidence_packet_id="copilot_packet_source_projection_001",
         evidence_packet_hash="sha256:source-projection-001",
         action_family="PROPOSAL_EXPLANATION",
@@ -1905,3 +2233,134 @@ def test_postgres_repository_constructor_reports_missing_dsn_and_driver(monkeypa
 
     with pytest.raises(RuntimeError, match="ADVISORY_COPILOT_POSTGRES_DRIVER_MISSING"):
         PostgresAdvisoryCopilotRepository(dsn="postgresql://missing-driver")
+
+
+def test_postgres_repository_handles_packet_insert_races_without_cross_tenant_fallback() -> None:
+    record = AdvisoryCopilotEvidencePacketRecord(
+        tenant_id="tenant-sg-001",
+        evidence_packet_id="copilot_packet_insert_race_001",
+        evidence_packet_hash="sha256:insert-race",
+        action_family="PROPOSAL_EXPLANATION",
+        audience="ADVISOR",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        proposal_id="proposal_sg_structured_note_001",
+        created_by="advisor_123",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
+        correlation_id="corr_copilot_packet_insert_race_001",
+        packet_json={"evidence_packet_id": "copilot_packet_insert_race_001"},
+        reason_json={"business_reason": "Prove durable conflict handling."},
+    )
+    seed_connection = _FakePostgresConnection()
+    _postgres_repository(seed_connection).save_evidence_packet(record)
+    persisted_row = seed_connection.evidence_packets[record.evidence_packet_id]
+
+    class _InsertRaceConnection:
+        def __init__(self, row: dict[str, Any] | None) -> None:
+            self._row = row
+            self._selects = 0
+            self._one: dict[str, Any] | None = None
+
+        def execute(self, query: str, _params: tuple[Any, ...]) -> "_InsertRaceConnection":
+            sql = " ".join(query.split())
+            if sql.startswith("SELECT * FROM advisory_copilot_evidence_packets"):
+                self._selects += 1
+                self._one = None if self._selects == 1 else self._row
+                return self
+            if sql.startswith("INSERT INTO advisory_copilot_evidence_packets"):
+                self._one = None
+                return self
+            raise AssertionError(f"Unexpected SQL in insert-race proof: {sql}")
+
+        def fetchone(self) -> dict[str, Any] | None:
+            return self._one
+
+        def close(self) -> None:
+            return None
+
+    for concurrent_row, expected_error in (
+        (None, "COPILOT_EVIDENCE_PACKET_NOT_FOUND"),
+        (
+            persisted_row | {"evidence_packet_hash": "sha256:concurrent-conflict"},
+            "COPILOT_EVIDENCE_PACKET_HASH_CONFLICT",
+        ),
+    ):
+        repository = _postgres_repository(_InsertRaceConnection(concurrent_row))
+        with pytest.raises(ValueError, match=expected_error):
+            repository.save_evidence_packet(record)
+
+    repository = _postgres_repository(_InsertRaceConnection(persisted_row))
+    assert repository.save_evidence_packet(record) == record
+
+
+def test_postgres_repository_replay_conflicts_are_tenant_scoped_and_rollback_before_replay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = _FakePostgresConnection()
+    repository = _postgres_repository(connection)
+    persisted = _persist_run(repository, idempotency_key="postgres-replay-coverage-001").run
+    idempotency = AdvisoryCopilotRunIdempotencyRecord(
+        tenant_id=persisted.tenant_id,
+        idempotency_key="postgres-replay-coverage-001",
+        request_hash=persisted.request_hash,
+        run_id=persisted.run_id,
+        created_at=persisted.created_at,
+    )
+
+    assert repository.save_run_with_idempotency(run=persisted, idempotency=idempotency) == persisted
+    assert repository._find_idempotent_run(connection=connection, idempotency=None) is None  # noqa: SLF001
+
+    additional_key = idempotency.model_copy(
+        update={"idempotency_key": "postgres-replay-coverage-002"}
+    )
+    assert (
+        repository.save_run_with_idempotency(run=persisted, idempotency=additional_key) == persisted
+    )
+    assert (
+        connection.run_idempotency[(persisted.tenant_id, additional_key.idempotency_key)]["run_id"]
+        == persisted.run_id
+    )
+
+    conflicting = idempotency.model_copy(update={"request_hash": "sha256:conflict"})
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT"):
+        repository.save_run_with_idempotency(run=persisted, idempotency=conflicting)
+
+    with pytest.raises(ValueError, match="COPILOT_RUN_NOT_FOUND"):
+        repository._require_idempotent_run(connection=connection, idempotency=None)  # noqa: SLF001
+
+    missing = idempotency.model_copy(update={"idempotency_key": "postgres-replay-missing-001"})
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED"):
+        repository._require_idempotent_run(connection=connection, idempotency=missing)  # noqa: SLF001
+
+    connection.run_idempotency[(missing.tenant_id, missing.idempotency_key)] = {
+        "tenant_id": missing.tenant_id,
+        "idempotency_key": missing.idempotency_key,
+        "request_hash": "sha256:other-request",
+        "run_id": persisted.run_id,
+        "created_at": missing.created_at.isoformat(),
+    }
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT"):
+        repository._require_idempotent_run(connection=connection, idempotency=missing)  # noqa: SLF001
+
+    connection.run_idempotency[(missing.tenant_id, missing.idempotency_key)]["request_hash"] = (
+        missing.request_hash
+    )
+    connection.run_idempotency[(missing.tenant_id, missing.idempotency_key)]["run_id"] = (
+        "copilot_run_missing_after_idempotency"
+    )
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED"):
+        repository._require_idempotent_run(connection=connection, idempotency=missing)  # noqa: SLF001
+
+    connection.run_idempotency[(missing.tenant_id, missing.idempotency_key)]["run_id"] = (
+        persisted.run_id
+    )
+    assert (
+        repository._require_idempotent_run(connection=connection, idempotency=missing) == persisted
+    )  # noqa: SLF001
+
+    monkeypatch.setattr(repository, "_find_idempotent_run", lambda **_: None)
+    monkeypatch.setattr(repository, "_insert_run", lambda **_: True)
+    monkeypatch.setattr(repository, "_insert_idempotency", lambda **_: False)
+    monkeypatch.setattr(repository, "_require_idempotent_run", lambda **_: persisted)
+
+    assert repository.save_run_with_idempotency(run=persisted, idempotency=idempotency) == persisted
+    assert connection.rollbacks == 1

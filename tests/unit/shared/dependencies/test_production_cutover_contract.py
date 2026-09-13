@@ -43,7 +43,7 @@ def test_cutover_contract_includes_persistence_migration_namespaces():
     assert "workspace" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
     assert production_cutover_contract.expected_migration_versions(
         namespace="advisory_copilot"
-    ) == ["0001", "0002", "0003"]
+    ) == ["0001", "0002", "0003", "0004"]
     assert production_cutover_contract.expected_migration_versions(namespace="policy_packs") == [
         "0001",
         "0002",

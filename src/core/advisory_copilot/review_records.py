@@ -41,6 +41,12 @@ class AdvisoryCopilotReviewRecord(BaseModel):
         min_length=1,
         max_length=COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH,
     )
+    tenant_id: str = Field(
+        description="Immutable tenant that owns the reviewed copilot run.",
+        examples=["tenant-sg-001"],
+        min_length=1,
+        max_length=COPILOT_REVIEW_RECORD_IDENTIFIER_MAX_LENGTH,
+    )
     action: CopilotReviewAction = Field(
         description="Human review action applied to the run.",
         examples=["APPROVE_FOR_INTERNAL_USE"],
@@ -90,7 +96,9 @@ class AdvisoryCopilotReviewRecord(BaseModel):
         max_length=MAX_CORRELATION_ID_LENGTH,
     )
 
-    @field_validator("review_id", "run_id", "actor_id", "request_hash", "correlation_id")
+    @field_validator(
+        "review_id", "run_id", "tenant_id", "actor_id", "request_hash", "correlation_id"
+    )
     @classmethod
     def _normalize_required_review_text(cls, value: str) -> str:
         return cast(

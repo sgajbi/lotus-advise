@@ -15,6 +15,7 @@ def save_advisory_copilot_evidence_packet(
     repository: AdvisoryCopilotRepository,
     evidence_packet: CopilotEvidencePacket,
     audience: CopilotAudience,
+    tenant_id: str,
     created_by: str,
     reason: dict[str, Any],
     correlation_id: str,
@@ -28,6 +29,7 @@ def save_advisory_copilot_evidence_packet(
         audience=audience,
         portfolio_id=evidence_packet.portfolio_id,
         proposal_id=evidence_packet.proposal_id,
+        tenant_id=tenant_id,
         created_by=created_by,
         created_at=created_at or datetime.now(timezone.utc),
         correlation_id=correlation_id,
@@ -38,9 +40,11 @@ def save_advisory_copilot_evidence_packet(
 
 
 def load_advisory_copilot_evidence_packet(
-    *, repository: AdvisoryCopilotRepository, evidence_packet_id: str
+    *, repository: AdvisoryCopilotRepository, tenant_id: str, evidence_packet_id: str
 ) -> CopilotEvidencePacket:
-    record = repository.get_evidence_packet(evidence_packet_id=evidence_packet_id)
+    record = repository.get_evidence_packet(
+        tenant_id=tenant_id, evidence_packet_id=evidence_packet_id
+    )
     if record is None:
         raise ValueError("COPILOT_EVIDENCE_PACKET_NOT_FOUND")
     return cast(CopilotEvidencePacket, CopilotEvidencePacket.model_validate(record.packet_json))
