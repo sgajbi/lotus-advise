@@ -1,6 +1,6 @@
 {
   "schema_version": "lotus.advise.quality-trend-policy.v1",
-  "policy_version": "lotus-advise-quality-trend.v1+9cbe5bbfc1fe",
+  "policy_version": "lotus-advise-quality-trend.v1+1a956fb88f26",
   "report_path": "quality/baseline_report.md",
   "metrics": [
     {
@@ -100,6 +100,15 @@
         "head_python_content_fingerprint": "94afa2fc230993a8aeb863f51953aee936c1fd0e22d9b8a527c21d1ceb0601cb",
         "allowed_delta": 929,
         "reason": "Reviewed Cycle 6 corrective follow-up for #632/#628/#590: +929 measured Python lines add principal-bound Copilot outbound tenant propagation and model-context receipt separation; pip-audit producer-schema fail-closed handling; executable CI parity semantics; and focused registered HTTP, adapter, dependency and mutation regressions. The parity evidence proves that comments, echoes, independent matrix expansion, Python -c/-m arguments, dry-run Make including MAKEFLAGS, pytest collection/filter modes, option-value paths, and changed-coverage skip receipts cannot masquerade as an executed control. The allowance is bound to this exact measured Python content and merge base, expires deliberately, and does not relax the 200-line steady-state threshold, security, typing, coverage, ownership, PostgreSQL or workflow controls.",
+        "approver": "sgajbi",
+        "expires_on": "2026-10-13"
+      },
+      {
+        "metric": "total_python_lines",
+        "base_sha": "919020f21ae4b31ac061646e440a06639288abd5",
+        "head_python_content_fingerprint": "8211a872842776678bc3939c4be4fd53b379445bfb7e3088809b7ff56f40b8eb",
+        "allowed_delta": 381,
+        "reason": "Reviewed Cycle 6 #590 executable-evidence correction: +381 measured Python lines replace workflow-text matching with typed job/step condition, inherited environment and effective job-local matrix context; refuse shell-control lists and ambiguous pytest options; require complete changed-coverage inputs; and register real shipped workflows/policy mutations for skip-reason equals form, false job/step conditions including literal-false conjunctions/disjunctions, short-circuit wrappers, MAKEFLAGS n/t/q, cache display, artifact-path contamination, and excluded matrix paths. The bounded parser adds no expensive lane and does not relax security, coverage, PostgreSQL ownership/replay, or the steady-state 200-line threshold.",
         "approver": "sgajbi",
         "expires_on": "2026-10-13"
       }

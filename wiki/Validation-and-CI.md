@@ -140,7 +140,10 @@ non-rebase merge method, or a range/count mismatch. The scheduled `Main Gate Cov
 separately treats missing, cancelled, pending, or unqueryable per-revision runs as unknown rather
 than green. `make ci-lane-parity-gate` verifies that the aggregate local controls remain represented
 by executable evidence in Feature, PR, and Main lanes; it checks wiring only and does not duplicate
-the expensive underlying gates.
+the expensive underlying gates. The checker preserves each candidate step's job/step condition,
+inherited environment, and owning matrix path, then accepts only bounded direct execution forms.
+Comments, `echo`, false conditions, shell short-circuit lists, non-executing `MAKEFLAGS`, pytest
+display/filter modes, and changed-coverage skip receipts are not evidence that the governed control ran.
 
 ## Lane Map
 
