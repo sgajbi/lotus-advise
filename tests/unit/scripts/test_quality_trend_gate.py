@@ -196,16 +196,10 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     policy = _policy()
     entries = policy["exceptions"]["entries"]
 
-    assert len(entries) == 8
+    assert len(entries) == 6
     exceptions_by_identity = {(entry["metric"], entry["base_sha"]): entry for entry in entries}
     tenant_admission_exception = exceptions_by_identity[
         ("total_python_lines", "b4bf26da45ed920868c9585c74697e2e3a6770c3")
-    ]
-    realization_exception = exceptions_by_identity[
-        ("total_python_lines", "4337fb939bc9d675a49e640678b01fbc40f9fd9d")
-    ]
-    proposal_outcome_exception = exceptions_by_identity[
-        ("total_python_lines", "8b4bb56e2657d0dfe26168e141e3632a66dc1f26")
     ]
     tenant_scope_exception = exceptions_by_identity[
         ("total_python_lines", "ff2ac4286c6ef032c5abc8ad1f86efb560679325")
@@ -222,23 +216,17 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     cycle_six_executable_evidence_exception = exceptions_by_identity[
         ("total_python_lines", "919020f21ae4b31ac061646e440a06639288abd5")
     ]
-    assert sum(entry["metric"] == "total_python_lines" for entry in entries) == 7
+    assert sum(entry["metric"] == "total_python_lines" for entry in entries) == 5
     assert all(len(entry["head_python_content_fingerprint"]) == 64 for entry in entries)
     assert all(entry["approver"] == "sgajbi" for entry in entries)
-    assert realization_exception["allowed_delta"] == 2024
-    assert "+993 net production lines" in realization_exception["reason"]
-    assert "+1031 net test lines" in realization_exception["reason"]
-    assert "atomic conflict rejection with corrected retry" in realization_exception["reason"]
-    assert "contradictory realization/outcome rejection" in realization_exception["reason"]
-    assert "expired-key reuse" in realization_exception["reason"]
-    assert "#607" in realization_exception["reason"]
-    assert proposal_outcome_exception["allowed_delta"] == 1951
     assert (
-        "source-authoritative Idea-to-Advise proposal linkage"
-        in proposal_outcome_exception["reason"]
-    )
-    assert "restores the B-ranked complexity inventory" in proposal_outcome_exception["reason"]
-    assert "#602" in proposal_outcome_exception["reason"]
+        "total_python_lines",
+        "4337fb939bc9d675a49e640678b01fbc40f9fd9d",
+    ) not in exceptions_by_identity
+    assert (
+        "total_python_lines",
+        "8b4bb56e2657d0dfe26168e141e3632a66dc1f26",
+    ) not in exceptions_by_identity
     # #621 tenant admission. The split is recorded because the test half is the larger
     # one, and an exception that does not say so invites the next reader to assume
     # shallow regression bulk -- which is the thing this metric exists to surface.

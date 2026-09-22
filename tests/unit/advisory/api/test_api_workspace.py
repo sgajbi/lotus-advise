@@ -1277,7 +1277,8 @@ def test_stateful_workspace_enriches_missing_trade_instruments_from_lotus_core(
         def __exit__(self, exc_type, exc, tb):
             return None
 
-        def request(self, method, url, json=None):
+        def request(self, method, url, json=None, headers=None):
+            del headers
             key = (method.upper(), url)
             if key not in self._responses:
                 raise AssertionError(f"unexpected request: {key}")

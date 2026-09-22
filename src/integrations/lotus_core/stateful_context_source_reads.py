@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -10,6 +11,7 @@ from src.integrations.lotus_core.classification import (
     parse_classification_taxonomy,
 )
 from src.integrations.lotus_core.context_resolution import LotusCoreContextResolutionError
+from src.integrations.lotus_core.portfolio_state_snapshot import core_snapshot_headers
 from src.integrations.lotus_core.stateful_context_cache import (
     CLASSIFICATION_TAXONOMY_CACHE,
     INSTRUMENT_ENRICHMENT_CACHE,
@@ -48,6 +50,14 @@ _FETCH_STAT_BY_ERROR_CODE = {
 }
 
 
+def _source_read_headers(headers: dict[str, str] | None) -> dict[str, str] | None:
+    """Preserve explicit caller authority or use Advise's configured Core source tenant."""
+    if headers is not None:
+        return headers
+    tenant_id = os.getenv("LOTUS_ADVISE_TENANT_ID", "").strip()
+    return core_snapshot_headers(tenant_id=tenant_id) if tenant_id else None
+
+
 def request_json(
     client: httpx.Client,
     *,
@@ -62,11 +72,14 @@ def request_json(
     if fetch_stat is not None:
         record_fetch_stat(fetch_stat)
     url = f"{base_url}{path}"
+    # Reference and market-data reads share the same admitted source tenant as
+    # the authoritative snapshot. Core rejects protected routes without it.
+    request_headers = _source_read_headers(headers)
     try:
-        if headers is None:
+        if request_headers is None:
             response = client.request(method, url, json=json_body)
         else:
-            response = client.request(method, url, json=json_body, headers=headers)
+            response = client.request(method, url, json=json_body, headers=request_headers)
         response.raise_for_status()
         payload = response.json()
     except (httpx.HTTPError, ValueError) as exc:

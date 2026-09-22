@@ -188,6 +188,10 @@ def test_external_adapter_contract_lane_is_repo_native_and_part_of_check() -> No
     assert "external-adapter-contracts:" in makefile
     assert "external-adapter-contracts" in _make_target_prerequisites(makefile, "check")
     assert "test_external_adapter_contract_fixtures.py" in makefile
+    assert (
+        "test_lotus_core_stateful_context.py::"
+        "test_core_reference_reads_carry_configured_source_tenant"
+    ) in makefile
 
 
 def _make_target_prerequisites(makefile: str, target: str) -> set[str]:
