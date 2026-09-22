@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
+import httpx
 import pytest
 
 from src.core.advisory_engine import run_proposal_simulation
@@ -398,8 +399,13 @@ def test_decimal_and_liquidity_helpers_cover_fallback_branches() -> None:
 def test_request_and_selector_helpers_reject_invalid_payload_shapes(monkeypatch) -> None:
     class _BadJsonClient:
         def request(
-            self, method: str, url: str, json: dict[str, Any] | None = None
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+            headers: dict[str, str] | None = None,
         ) -> _FakeResponse:
+            del method, url, json, headers
             return _FakeResponse(payload=["not-a-dict"])
 
     with pytest.raises(LotusCoreStatefulContextUnavailableError):
@@ -444,6 +450,72 @@ def test_instrument_enrichment_bulk_ignores_invalid_records(monkeypatch) -> None
     )
 
     assert payload == {"SEC_OK": {"security_id": "SEC_OK", "issuer_id": "ISSUER_OK"}}
+
+
+def test_core_reference_reads_carry_configured_source_tenant(monkeypatch) -> None:
+    observed: list[tuple[str, str | None]] = []
+
+    def core_route(request: httpx.Request) -> httpx.Response:
+        tenant_id = request.headers.get("X-Tenant-Id")
+        observed.append((request.url.path, tenant_id))
+        if tenant_id != "tenant-sg":
+            return httpx.Response(401, json={"error_code": "TENANT_CONTEXT_REQUIRED"})
+        if request.url.path.endswith("/enrichment-bulk"):
+            return httpx.Response(
+                200,
+                json={"records": [{"security_id": "SEC_AUTH", "issuer_id": "ISSUER_AUTH"}]},
+            )
+        return httpx.Response(200, json={"taxonomy_version": "v1", "records": []})
+
+    with httpx.Client(transport=httpx.MockTransport(core_route)) as client:
+        monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
+        with pytest.raises(LotusCoreStatefulContextUnavailableError):
+            _fetch_instrument_enrichment_bulk(
+                client,
+                base_url="http://core-control.dev.lotus",
+                security_ids=["SEC_AUTH"],
+                portfolio_id="PF_AUTH",
+                as_of="2026-04-10",
+            )
+
+        monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-sg")
+        enrichment = _fetch_instrument_enrichment_bulk(
+            client,
+            base_url="http://core-control.dev.lotus",
+            security_ids=["SEC_AUTH"],
+            portfolio_id="PF_AUTH",
+            as_of="2026-04-10",
+        )
+        _fetch_classification_taxonomy(
+            client,
+            base_url="http://core-control.dev.lotus",
+            as_of="2026-04-10",
+        )
+        _request_json(
+            client,
+            method="GET",
+            base_url="http://core-query.dev.lotus",
+            path="/instruments/SEC_AUTH/prices",
+            error_code="LOTUS_CORE_STATEFUL_PRICE_LOOKUP_UNAVAILABLE",
+        )
+        with pytest.raises(LotusCoreStatefulContextUnavailableError):
+            _request_json(
+                client,
+                method="GET",
+                base_url="http://core-query.dev.lotus",
+                path="/instruments/SEC_AUTH/prices",
+                error_code="LOTUS_CORE_STATEFUL_PRICE_LOOKUP_UNAVAILABLE",
+                headers={"X-Tenant-Id": "tenant-other"},
+            )
+
+    assert enrichment["SEC_AUTH"]["issuer_id"] == "ISSUER_AUTH"
+    assert observed == [
+        ("/integration/instruments/enrichment-bulk", None),
+        ("/integration/instruments/enrichment-bulk", "tenant-sg"),
+        ("/integration/reference/classification-taxonomy", "tenant-sg"),
+        ("/instruments/SEC_AUTH/prices", "tenant-sg"),
+        ("/instruments/SEC_AUTH/prices", "tenant-other"),
+    ]
 
 
 def test_classification_taxonomy_fetches_governed_instrument_labels() -> None:

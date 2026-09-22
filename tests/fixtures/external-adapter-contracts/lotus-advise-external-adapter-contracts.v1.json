@@ -114,7 +114,8 @@
           "case_id": "auth_failure",
           "expected_behavior": "maps upstream authorization or validation failure to unavailable with status evidence",
           "test_references": [
-            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_preserves_upstream_problem_status"
+            "tests/unit/advisory/api/test_lotus_core_simulation_client.py::test_simulate_with_lotus_core_preserves_upstream_problem_status",
+            "tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_core_reference_reads_carry_configured_source_tenant"
           ]
         },
         {

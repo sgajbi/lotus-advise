@@ -345,7 +345,9 @@ Boundary rules:
 6. The app-local Compose manifest supplies `LOTUS_ADVISE_TENANT_ID=tenant-sg-001` only as the
    canonical developer fixture for standalone and Workbench-orchestrated local startup. Production
    Compose must continue to require deployment-owned tenant configuration and must not inherit this
-   local fixture,
+   local fixture. The configured source tenant and service identity must accompany all Core
+   snapshot, portfolio, reference, taxonomy, price, and FX reads; a protected Core route's 401 is
+   a source refusal, never a reason to synthesize tenant authority or enrichment data,
 7. Lotus Core source provenance is part of advisory result lineage. Stateful context must consume
    `PortfolioStateSnapshot:v1` from Core's governed `core-snapshot` route and preserve its stable
    portfolio and market-data identities, source-owned effective date, source hashes, valuation
