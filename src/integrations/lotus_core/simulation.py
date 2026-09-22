@@ -17,6 +17,7 @@ from src.integrations.lotus_core.contracts import (
     ADVISORY_SIMULATION_CONTRACT_VERSION,
     ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER,
 )
+from src.integrations.lotus_core.portfolio_state_snapshot import core_snapshot_headers
 from src.integrations.lotus_core.runtime_config import resolve_lotus_core_timeout
 
 _EXECUTION_PATH = "/integration/advisory/proposals/simulate-execution"
@@ -131,11 +132,18 @@ def _simulation_headers(
     idempotency_key: str | None,
     correlation_id: str,
 ) -> dict[str, str]:
-    headers: dict[str, str] = {
-        "X-Correlation-Id": resolve_correlation_id(correlation_id),
-        "X-Request-Hash": request_hash,
-        ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION,
-    }
+    tenant_id = os.getenv("LOTUS_ADVISE_TENANT_ID", "").strip()
+    if not tenant_id:
+        raise LotusCoreSimulationUnavailableError("LOTUS_CORE_SIMULATION_TENANT_UNAVAILABLE")
+
+    headers: dict[str, str] = core_snapshot_headers(tenant_id=tenant_id)
+    headers.update(
+        {
+            "X-Correlation-Id": resolve_correlation_id(correlation_id),
+            "X-Request-Hash": request_hash,
+            ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION,
+        }
+    )
     outbound_idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     if outbound_idempotency_key is not None:
         headers["Idempotency-Key"] = outbound_idempotency_key
@@ -150,16 +158,17 @@ def _post_simulation_request(
     correlation_id: str,
 ) -> httpx.Response:
     url = f"{_resolve_base_url()}{_EXECUTION_PATH}"
+    headers = _simulation_headers(
+        request_hash=request_hash,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
             response = client.post(
                 url,
                 json=request.model_dump(mode="json"),
-                headers=_simulation_headers(
-                    request_hash=request_hash,
-                    idempotency_key=idempotency_key,
-                    correlation_id=correlation_id,
-                ),
+                headers=headers,
             )
             response.raise_for_status()
             return response
