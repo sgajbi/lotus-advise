@@ -170,9 +170,9 @@ def test_workspace_service_replace_options_and_stateful_handoff_guard(monkeypatc
     assert first_valuation.current_state.requested_reporting_currency == "EUR"
     assert first_valuation.simulated_state.requested_as_of_date == "2026-03-25"
     assert first_valuation.simulated_state.requested_reporting_currency == "EUR"
-    assert first_valuation.current_state.supportability == "PARTIAL"
+    assert first_valuation.current_state.supportability == "RESTRICTED"
     assert first_valuation.current_state.reason_code == ("REQUESTED_REPORTING_CURRENCY_NOT_HONORED")
-    assert first_valuation.simulated_state.supportability == "PARTIAL"
+    assert first_valuation.simulated_state.supportability == "RESTRICTED"
     assert first_valuation.simulated_state.reason_code == (
         "REQUESTED_REPORTING_CURRENCY_NOT_HONORED"
     )
@@ -189,11 +189,11 @@ def test_workspace_service_replace_options_and_stateful_handoff_guard(monkeypatc
     assert version_valuation.current_state.requested_reporting_currency == "EUR"
     assert version_valuation.simulated_state.requested_as_of_date == "2026-03-25"
     assert version_valuation.simulated_state.requested_reporting_currency == "EUR"
-    assert version_valuation.current_state.supportability == "PARTIAL"
+    assert version_valuation.current_state.supportability == "RESTRICTED"
     assert version_valuation.current_state.reason_code == (
         "REQUESTED_REPORTING_CURRENCY_NOT_HONORED"
     )
-    assert version_valuation.simulated_state.supportability == "PARTIAL"
+    assert version_valuation.simulated_state.supportability == "RESTRICTED"
     assert version_valuation.simulated_state.reason_code == (
         "REQUESTED_REPORTING_CURRENCY_NOT_HONORED"
     )

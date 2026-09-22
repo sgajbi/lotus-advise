@@ -60,8 +60,11 @@ tenant id. The production manifest must not contain `.dev.lotus`, `host-gateway`
 database passwords, local image builds, or mutable image tags.
 
 The app-local Compose manifest is different by design: it supplies
-`LOTUS_ADVISE_TENANT_ID=tenant-sg-001` as a developer fixture for standalone and canonical
-Workbench startup. That fixture is not production tenant-isolation or entitlement evidence.
+`LOTUS_ADVISE_TENANT_ID=tenant-sg-001` as a standalone developer fallback. The governed Workbench
+canonical launcher overrides that value from the platform demo-data contract. A targeted refresh of
+the Advise container must preserve the launcher-injected source tenant; otherwise protected Core
+reads correctly return no portfolio for the mismatched tenant. Neither local value is production
+tenant-isolation or entitlement evidence.
 
 Production container healthchecks use `/health/ready`. `/version` is release metadata for
 comparing runtime build identity with release evidence; it is not a readiness endpoint.

@@ -244,9 +244,9 @@ Boundary rule:
   generator and workflow-request builder. Its configured environment tenant cannot override that
   request, and the bounded principal audit receipt stays in Advise persistence/replay hashing rather
   than in the model context
-- app-local Compose supplies the canonical developer tenant fixture `tenant-sg-001` only for
-  standalone and Workbench-orchestrated local startup; production Compose requires deployment-owned
-  tenant configuration
+- app-local Compose supplies `tenant-sg-001` only as a standalone developer fallback; the governed
+  Workbench canonical launcher injects the platform contract's source tenant, and targeted refreshes
+  must preserve that value. Production Compose requires deployment-owned tenant configuration
 - proposal narrative and memo AI calls are selected through Advise-owned ports. Lotus AI adapter
   errors are translated into core unavailable outcomes before proposal narrative or memo
   orchestration handles fallback posture.

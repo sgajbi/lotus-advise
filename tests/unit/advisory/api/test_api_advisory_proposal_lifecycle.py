@@ -203,7 +203,7 @@ def _resolved_stateful_context(
     as_of: str,
 ) -> dict:
     payload = _base_create_payload(portfolio_id=portfolio_id)["simulate_request"]
-    return build_resolved_stateful_context(
+    resolved = build_resolved_stateful_context(
         portfolio_id,
         as_of,
         positions=payload["portfolio_snapshot"]["positions"],
@@ -211,6 +211,7 @@ def _resolved_stateful_context(
         prices=payload["market_data_snapshot"]["prices"],
         shelf_entries=payload["shelf_entries"],
     )
+    return resolved
 
 
 def setup_function() -> None:
@@ -233,12 +234,36 @@ def test_create_proposal_persists_immutable_version_and_created_event():
 
 
 def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
+    captured_job_request: dict[str, Any] = {}
+
+    def _request_proposal_report_with_lotus_report(*, request):
+        from src.integrations.lotus_report.request_mapping import (
+            build_portfolio_review_job_request,
+        )
+
+        captured_job_request.update(build_portfolio_review_job_request(request))
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "ACCEPTED",
+            "generated_at": "2026-03-25T10:00:00+00:00",
+            "report_reference_id": "report-stateful-provenance-001",
+            "explanation": {"ownership": "REPORTING_OWNED_BY_LOTUS_REPORT"},
+        }
+
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
         lambda stateful_input: _resolved_stateful_context(
             portfolio_id=stateful_input.portfolio_id,
             as_of=stateful_input.as_of,
         ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
         raising=False,
     )
     payload = {
@@ -262,7 +287,17 @@ def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
             json=payload,
             headers={"Idempotency-Key": "lifecycle-create-stateful-1"},
         )
-
+        proposal_id = response.json()["proposal"]["proposal_id"]
+        report = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "PORTFOLIO_REVIEW",
+                "requested_by": "advisor_1",
+                "related_version_no": 1,
+                "include_execution_summary": True,
+                "include_reviewed_narrative": False,
+            },
+        )
     assert response.status_code == 200
     body = response.json()
     assert body["proposal"]["portfolio_id"] == "pf_stateful_001"
@@ -273,6 +308,16 @@ def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
     assert context_resolution["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_stateful_001_2026-03-25"
     )
+    result = body["version"]["proposal_result"]
+    assert (
+        result["lineage"]["source_provenance"]
+        == context_resolution["resolved_context"]["source_provenance"]
+    )
+    assert result["valuation_context"]["current_state"]["effective_as_of_date"] == ("2026-03-25")
+    assert result["valuation_context"]["current_state"]["supportability"] == "READY"
+    assert report.status_code == 200
+    assert captured_job_request["as_of_date"] == "2026-03-25"
+    assert captured_job_request["reporting_currency"] == "USD"
 
 
 def test_stateful_create_can_request_advisor_review_narrative(monkeypatch):
@@ -331,6 +376,9 @@ def test_stateful_create_idempotency_replays_same_command_without_source_reresol
         volatile_snapshot_id = f"md_{stateful_input.as_of}_volatile_{len(resolver_calls)}"
         resolved["resolved_context"]["market_data_snapshot_id"] = volatile_snapshot_id
         resolved["simulate_request"]["market_data_snapshot"]["snapshot_id"] = volatile_snapshot_id
+        resolved["resolved_context"]["source_provenance"]["market_data"]["source_id"] = (
+            volatile_snapshot_id
+        )
         return resolved
 
     monkeypatch.setattr(
@@ -702,7 +750,6 @@ def test_create_version_supports_stateful_context_resolution(monkeypatch):
                 },
             },
         )
-
     assert response.status_code == 200
     body = response.json()
     assert body["proposal"]["current_version_no"] == 2
@@ -711,6 +758,12 @@ def test_create_version_supports_stateful_context_resolution(monkeypatch):
     assert context_resolution["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_lifecycle_1_2026-03-25"
     )
+    result = body["version"]["proposal_result"]
+    assert (
+        result["lineage"]["source_provenance"]
+        == context_resolution["resolved_context"]["source_provenance"]
+    )
+    assert result["valuation_context"]["simulated_state"]["effective_as_of_date"] == ("2026-03-25")
 
 
 def test_stateful_version_can_request_fresh_advisor_review_narrative(monkeypatch):

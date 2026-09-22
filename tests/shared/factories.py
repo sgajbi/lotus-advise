@@ -12,6 +12,7 @@ from src.core.models import (
     Price,
     ShelfEntry,
 )
+from src.core.source_provenance_models import SourceProvenanceEnvelope as Provenance
 
 
 def cash(currency: str, amount: str) -> CashBalance:
@@ -71,6 +72,23 @@ def market_data_snapshot(
     *, prices: Iterable[Price] | None = None, fx_rates: Iterable[FxRate] | None = None
 ) -> MarketDataSnapshot:
     return MarketDataSnapshot(prices=list(prices or []), fx_rates=list(fx_rates or []))
+
+
+def source_provenance(
+    source_id: str, *, market_id: str | None = None, as_of: str = "2026-05-21"
+) -> Provenance:
+    common = {
+        "source_system": "lotus-core",
+        "as_of": as_of,
+        "contract_version": "PortfolioStateSnapshot:v1",
+        "freshness_status": "CURRENT",
+    }
+    return Provenance(
+        source_system="lotus-core",
+        portfolio=common | {"source_kind": "PORTFOLIO", "source_id": source_id},
+        market_data=common
+        | {"source_kind": "MARKET_DATA", "source_id": market_id or f"{source_id}-market"},
+    )
 
 
 def model_portfolio(*, targets: Iterable[ModelTarget]) -> ModelPortfolio:

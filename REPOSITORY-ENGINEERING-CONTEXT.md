@@ -342,10 +342,12 @@ Boundary rules:
    advisory simulation contract version, portfolio, as-of, mandate, benchmark, reporting currency,
    look-through/allocation/risk dimensions, and lookup-specific identifiers; current unsupported
    dimensions remain explicit default dimensions rather than omitted key parts,
-6. The app-local Compose manifest supplies `LOTUS_ADVISE_TENANT_ID=tenant-sg-001` only as the
-   canonical developer fixture for standalone and Workbench-orchestrated local startup. Production
-   Compose must continue to require deployment-owned tenant configuration and must not inherit this
-   local fixture. The configured source tenant and service identity must accompany all Core
+6. The app-local Compose manifest supplies `LOTUS_ADVISE_TENANT_ID=tenant-sg-001` only as a
+   standalone developer fallback. The governed Workbench canonical launcher overrides it from
+   `canonical-front-office-demo-data-contract.json:portfolio.source_tenant_id`; targeted refreshes
+   must preserve that injected value rather than silently recreating Advise with the standalone
+   fallback. Production Compose must continue to require deployment-owned tenant configuration and
+   must not inherit either local fixture. The configured source tenant and service identity must accompany all Core
    snapshot, portfolio, reference, taxonomy, price, and FX reads; a protected Core route's 401 is
    a source refusal, never a reason to synthesize tenant authority or enrichment data,
 7. Lotus Core source provenance is part of advisory result lineage. Stateful context must consume
@@ -358,7 +360,11 @@ Boundary rules:
    requested business date, and identical authoritative provenance must fence those component
    reads before and after to prevent a mixed-revision proposal. Missing, stale, malformed, drifting,
    or conflicting source evidence fails closed before advisory snapshot construction, caching,
-   persistence, or replay; raw source payloads are not stored,
+   persistence, or replay. Proposal create and version commands must pass the resolved typed
+   provenance and completeness into orchestration before valuation so the durable proposal result,
+   replay, and downstream report request all use the same authoritative effective date and source
+   cut; a conflicting simulation lineage is rejected rather than overwritten. Raw source payloads
+   are not stored,
 8. Lotus Core source-derived FX rates must be finite, strictly positive, and as-of eligible before
    advisory valuation. Invalid explicit rates or source ratios fail closed with
    `LOTUS_CORE_STATEFUL_FX_INVALID`; missing eligible rates remain data-quality evidence rather

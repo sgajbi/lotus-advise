@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import partial
 from typing import cast
 
 from src.core.advisory.alternatives_projection import build_proposal_alternatives
@@ -22,6 +23,8 @@ from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposal_result_models import ProposalResult
+from src.core.source_completeness_models import SourceCompletenessReport
+from src.core.source_provenance_models import SourceProvenanceEnvelope
 
 _LOTUS_RISK_ENRICHMENT_UNAVAILABLE = "LOTUS_RISK_ENRICHMENT_UNAVAILABLE"
 _LOTUS_RISK_DEPENDENCY_UNAVAILABLE = "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
@@ -95,6 +98,8 @@ def evaluate_advisory_proposal(
     input_mode: str | None = None,
     requested_as_of_date: str | None = None,
     requested_reporting_currency: str | None = None,
+    source_provenance: SourceProvenanceEnvelope | None = None,
+    source_completeness: SourceCompletenessReport | None = None,
     policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
     idempotency_key = normalize_optional_idempotency_key(idempotency_key)
@@ -112,6 +117,11 @@ def evaluate_advisory_proposal(
         resolved_as_of=resolved_as_of,
         input_mode=input_mode,
         degraded_reasons=simulation.degraded_reasons,
+    )
+    _bind_resolved_source_context(
+        proposal_result=risk.proposal_result,
+        source_provenance=source_provenance,
+        source_completeness=source_completeness,
     )
     _attach_authority_explanation(
         proposal_result=risk.proposal_result,
@@ -139,6 +149,42 @@ def evaluate_advisory_proposal(
         valuation_context=risk.proposal_result.valuation_context,
     )
     return cast(ProposalResult, risk.proposal_result)
+
+
+def _bind_resolved_source_context(
+    *,
+    proposal_result: ProposalResult,
+    source_provenance: SourceProvenanceEnvelope | None,
+    source_completeness: SourceCompletenessReport | None,
+) -> None:
+    """Bind resolved Core evidence without overwriting contradictory simulation lineage."""
+    lineage = proposal_result.lineage
+    _assert_source_snapshot_identity(proposal_result, source_provenance)
+    for field_name, resolved, mismatch_code in (
+        ("source_provenance", source_provenance, "LOTUS_CORE_SOURCE_PROVENANCE_MISMATCH"),
+        ("source_completeness", source_completeness, "LOTUS_CORE_SOURCE_COMPLETENESS_MISMATCH"),
+    ):
+        if resolved is None:
+            continue
+        existing = getattr(lineage, field_name)
+        if existing is not None and existing != resolved:
+            raise AdvisorySimulationUnavailableError(mismatch_code)
+        setattr(lineage, field_name, resolved)
+
+
+def _assert_source_snapshot_identity(
+    proposal_result: ProposalResult,
+    source_provenance: SourceProvenanceEnvelope | None,
+) -> None:
+    """Require legacy snapshot identifiers to describe the same authoritative Core cut."""
+    if source_provenance is None:
+        return
+    for field_name, source_record in (
+        ("portfolio_snapshot_id", source_provenance.portfolio),
+        ("market_data_snapshot_id", source_provenance.market_data),
+    ):
+        if getattr(proposal_result.lineage, field_name) != source_record.source_id:
+            raise AdvisorySimulationUnavailableError("LOTUS_CORE_SOURCE_PROVENANCE_MISMATCH")
 
 
 def _resolve_simulation(
@@ -285,4 +331,9 @@ def _attach_proposal_outputs(
         correlation_id=correlation_id,
         resolved_as_of=resolved_as_of,
         policy_context=policy_context,
+        evaluator=partial(
+            evaluate_advisory_proposal,
+            source_provenance=proposal_result.lineage.source_provenance,
+            source_completeness=proposal_result.lineage.source_completeness,
+        ),
     )

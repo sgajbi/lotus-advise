@@ -113,6 +113,8 @@ def create_proposal_version(
         input_mode=resolved_request.input_mode,
         requested_as_of_date=resolved_request.resolved_context.requested_as_of,
         requested_reporting_currency=resolved_request.resolved_context.requested_reporting_currency,
+        source_provenance=resolved_request.resolved_context.source_provenance,
+        source_completeness=resolved_request.resolved_context.source_completeness,
         request_hash=request_hash,
         idempotency_key=None,
         correlation_id=correlation_id,
