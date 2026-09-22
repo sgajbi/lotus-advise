@@ -14,6 +14,11 @@ from src.integrations.lotus_core.simulation import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _configured_core_source_tenant(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", " tenant-sg ")
+
+
 def _request() -> ProposalSimulateRequest:
     return ProposalSimulateRequest.model_validate(
         {
@@ -263,6 +268,29 @@ def test_simulate_with_lotus_core_sends_contract_header_and_validates_response(m
         "http://lotus-core:8201/integration/advisory/proposals/simulate-execution"
     )
     assert headers["X-Correlation-Id"] == "corr-1"
+    assert headers["X-Tenant-Id"] == "tenant-sg"
+    assert headers["X-Service-Identity"] == "lotus-advise"
+    assert headers["X-Role"] == "service"
+
+
+def test_simulate_with_lotus_core_requires_tenant_before_opening_http_client(monkeypatch):
+    monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID")
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client",
+        lambda timeout: pytest.fail("Core client opened without admitted tenant authority"),
+    )
+
+    with pytest.raises(
+        LotusCoreSimulationUnavailableError,
+        match="LOTUS_CORE_SIMULATION_TENANT_UNAVAILABLE",
+    ):
+        simulate_with_lotus_core(
+            request=_request(),
+            request_hash="sha256:test-hash",
+            idempotency_key="idem-1",
+            correlation_id="corr-1",
+        )
 
 
 def test_simulate_with_lotus_core_normalizes_invalid_outbound_correlation_id(monkeypatch):

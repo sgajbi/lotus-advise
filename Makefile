@@ -232,7 +232,7 @@ advisory-copilot-safety-gate:
 # a tenant-header or supportability regression left this lane green while the manifest still
 # pointed at the test that would have caught it.
 external-adapter-contracts:
-	python -m pytest tests/unit/advisory/contracts/test_external_adapter_contract_fixtures.py tests/unit/advisory/api/test_lotus_core_benchmark_assignment.py tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_core_reference_reads_carry_configured_source_tenant -q
+	python -m pytest tests/unit/advisory/contracts/test_external_adapter_contract_fixtures.py tests/unit/advisory/api/test_lotus_core_benchmark_assignment.py tests/unit/advisory/api/test_lotus_core_simulation_client.py tests/unit/advisory/api/test_lotus_core_stateful_context.py::test_core_reference_reads_carry_configured_source_tenant -q
 
 demo-assurance-gate: openapi-gate no-alias-gate api-vocabulary-gate domain-data-products-gate observability-diagnostics advisory-domain-golden-regressions
 	@echo "Demo assurance gate passed"
