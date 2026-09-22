@@ -1,5 +1,6 @@
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
+from tests.shared.factories import source_provenance
 
 
 def _simulate_request() -> ProposalSimulateRequest:
@@ -40,9 +41,11 @@ def test_run_advisory_proposal_simulation_resolves_missing_correlation_id(monkey
         _evaluate_advisory_proposal,
     )
 
+    provenance = source_provenance("portfolio-cut-1", market_id="market-cut-1")
     result = run_advisory_proposal_simulation(
         request=_simulate_request(),
         resolved_as_of="2026-05-21",
+        source_provenance=provenance,
         request_hash="sha256:simulation-execution",
         idempotency_key="idem-simulation-execution",
         correlation_id=None,
@@ -54,6 +57,7 @@ def test_run_advisory_proposal_simulation_resolves_missing_correlation_id(monkey
     assert captured["idempotency_key"] == "idem-simulation-execution"
     assert captured["correlation_id"].startswith("corr_")
     assert captured["resolved_as_of"] == "2026-05-21"
+    assert captured["source_provenance"] == provenance
     assert captured["policy_context"] == {"jurisdiction": "SG"}
 
 

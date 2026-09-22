@@ -742,6 +742,7 @@ def test_workspace_evaluate_uses_stateful_context_resolution(monkeypatch) -> Non
     assert response.json()["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_advisory_01_2026-03-25"
     )
+    assert response.json()["latest_proposal_result"]["lineage"]["source_provenance"] is not None
 
 
 def test_workspace_evaluate_rejects_missing_resolved_context() -> None:
@@ -1189,7 +1190,7 @@ def test_stateful_workspace_evaluate_matches_direct_simulation_for_equivalent_in
     assert direct_valuation_context["current_state"]["requested_reporting_currency"] is None
     assert workspace_valuation_context["current_state"]["requested_reporting_currency"] is None
     assert direct_valuation_context["current_state"]["supportability"] == "PARTIAL"
-    assert workspace_valuation_context["current_state"]["supportability"] == "PARTIAL"
+    assert workspace_valuation_context["current_state"]["supportability"] == "READY"
 
 
 def test_stateful_workspace_handoff_uses_current_draft_state(monkeypatch) -> None:

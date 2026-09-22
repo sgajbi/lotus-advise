@@ -86,6 +86,11 @@ outbound request. Report requests also require a bounded
 control-character-containing values fail closed before `lotus-report` or `lotus-ai` HTTP
 submission.
 
+For the governed Workbench canonical runtime, the launcher reads the Core source tenant from the
+platform demo-data contract and injects it into Advise. A targeted container refresh must preserve
+that value; falling back to the standalone Compose fixture changes the authoritative source scope
+and Core correctly returns no matching portfolio.
+
 Report requests additionally require source-derived as-of date, reporting currency, and proposal
 jurisdiction metadata. The service does not manufacture current-date, USD, or SG fallbacks for
 production-like downstream report submissions.

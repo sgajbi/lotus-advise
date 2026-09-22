@@ -30,6 +30,8 @@ def evaluate_simulation_result(
             requested_reporting_currency=getattr(
                 resolved_request.resolved_context, "requested_reporting_currency", None
             ),
+            source_provenance=resolved_request.resolved_context.source_provenance,
+            source_completeness=resolved_request.resolved_context.source_completeness,
             policy_context=context_resolution["advisory_policy_context"],
         )
     except AlternativesRequestNormalizationError as exc:

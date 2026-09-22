@@ -16,7 +16,9 @@ class _ProposalResultStub:
 def _resolved_request_stub(as_of: str | None = "2026-06-01") -> SimpleNamespace:
     return SimpleNamespace(
         simulate_request=object(),
-        resolved_context=SimpleNamespace(as_of=as_of),
+        resolved_context=SimpleNamespace(
+            as_of=as_of, source_provenance="provenance", source_completeness="completeness"
+        ),
         input_mode="stateful",
     )
 
@@ -61,6 +63,8 @@ def test_evaluate_simulation_result_adds_context_resolution(monkeypatch) -> None
     assert captured["correlation_id"] == "resolved-corr-001"
     assert captured["resolved_as_of"] == "2026-06-01"
     assert captured["input_mode"] == "stateful"
+    assert captured["source_provenance"] == "provenance"
+    assert captured["source_completeness"] == "completeness"
     assert captured["policy_context"] == {"mandate_id": "mandate-001"}
 
 

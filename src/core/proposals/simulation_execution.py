@@ -4,6 +4,8 @@ from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.proposal_request_models import ProposalSimulateRequest
 from src.core.proposal_result_models import ProposalResult
 from src.core.proposals.correlation import resolve_correlation_id
+from src.core.source_completeness_models import SourceCompletenessReport
+from src.core.source_provenance_models import SourceProvenanceEnvelope
 
 
 def run_advisory_proposal_simulation(
@@ -13,6 +15,8 @@ def run_advisory_proposal_simulation(
     input_mode: str | None = None,
     requested_as_of_date: str | None = None,
     requested_reporting_currency: str | None = None,
+    source_provenance: SourceProvenanceEnvelope | None = None,
+    source_completeness: SourceCompletenessReport | None = None,
     request_hash: str,
     idempotency_key: str | None,
     correlation_id: str | None,
@@ -27,5 +31,7 @@ def run_advisory_proposal_simulation(
         input_mode=input_mode,
         requested_as_of_date=requested_as_of_date,
         requested_reporting_currency=requested_reporting_currency,
+        source_provenance=source_provenance,
+        source_completeness=source_completeness,
         policy_context=policy_context,
     )

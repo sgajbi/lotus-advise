@@ -19,6 +19,7 @@ from tests.shared.factories import (
     portfolio_snapshot,
     price,
     shelf_entry,
+    source_provenance,
 )
 
 
@@ -37,7 +38,7 @@ def _request() -> ProposalSimulateRequest:
         shelf_entries=[shelf_entry("EQ_1", status="APPROVED")],
         options=EngineOptions(enable_proposal_simulation=True),
         proposed_cash_flows=[],
-        proposed_trades=[{"side": "BUY", "instrument_id": "EQ_1", "quantity": "1"}],
+        proposed_trades=[{"side": "BUY", "instrument_id": "EQ_1", "quantity": "2"}],
     )
 
 
@@ -134,6 +135,55 @@ def test_evaluate_advisory_proposal_records_invalid_risk_configuration_reason(
     assert authority["degraded"] is True
     assert authority["degraded_reasons"] == ["LOTUS_RISK_DEPENDENCY_UNAVAILABLE"]
     assert result.proposal_decision_summary is not None
+
+
+@pytest.mark.parametrize(
+    "conflict", ["typed", "portfolio_snapshot_id", "market_data_snapshot_id", "alternative"]
+)
+def test_evaluate_advisory_proposal_rejects_conflicting_resolved_source_identity(
+    monkeypatch: pytest.MonkeyPatch,
+    conflict: str,
+) -> None:
+    request = _request()
+    if conflict == "alternative":
+        request = ProposalSimulateRequest.model_validate(
+            request.model_dump()
+            | {"alternatives_request": {"enabled": True, "objectives": ["LOWER_TURNOVER"]}}
+        )
+    simulated = _local_result(request)
+    resolved = source_provenance("core-cut-b")
+    simulated.lineage.portfolio_snapshot_id = resolved.portfolio.source_id
+    simulated.lineage.market_data_snapshot_id = resolved.market_data.source_id
+    if conflict == "typed":
+        simulated.lineage.source_provenance = source_provenance("core-cut-a")
+    elif conflict != "alternative":
+        setattr(simulated.lineage, conflict, "core-cut-a")
+
+    def _simulate_with_lotus_core(**kwargs: Any) -> ProposalResult:
+        if conflict != "alternative" or kwargs["request"].alternatives_request is not None:
+            return simulated
+        candidate = _local_result(kwargs["request"], request_hash=kwargs["request_hash"])
+        candidate.lineage.portfolio_snapshot_id = "core-cut-a"
+        candidate.lineage.market_data_snapshot_id = resolved.market_data.source_id
+        return candidate
+
+    monkeypatch.setattr(orchestration, "simulate_with_lotus_core", _simulate_with_lotus_core)
+    monkeypatch.setattr(
+        orchestration,
+        "build_lotus_risk_dependency_state",
+        lambda: SimpleNamespace(configured=False, degraded_reason=None),
+    )
+    with pytest.raises(
+        LotusCoreSimulationUnavailableError,
+        match="LOTUS_CORE_SOURCE_PROVENANCE_MISMATCH",
+    ):
+        orchestration.evaluate_advisory_proposal(
+            request=request,
+            request_hash="sha256:orch-conflicting-provenance",
+            idempotency_key="orch-idem",
+            correlation_id="corr-orch",
+            source_provenance=resolved,
+        )
 
 
 def test_evaluate_advisory_proposal_records_controlled_local_fallback_and_risk_degradation(

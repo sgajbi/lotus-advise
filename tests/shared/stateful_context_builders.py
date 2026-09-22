@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from tests.shared.factories import source_provenance
+
 
 def build_resolved_stateful_context(
     portfolio_id: str,
@@ -22,6 +24,9 @@ def build_resolved_stateful_context(
         "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
         "market_data_snapshot_id": f"md_{as_of}",
     }
+    resolved_context["source_provenance"] = source_provenance(
+        f"ps_{portfolio_id}_{as_of}", market_id=f"md_{as_of}", as_of=as_of
+    ).model_dump(mode="json")
     if include_context_ids:
         resolved_context["risk_context_id"] = "risk_ctx_001"
         resolved_context["reporting_context_id"] = "report_ctx_001"

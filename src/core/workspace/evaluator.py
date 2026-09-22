@@ -56,6 +56,8 @@ class CoreWorkspaceProposalEvaluator:
                 "requested_reporting_currency",
                 None,
             ),
+            source_provenance=evaluation_context.resolved_request.resolved_context.source_provenance,
+            source_completeness=evaluation_context.resolved_request.resolved_context.source_completeness,
             policy_context=evaluation_context.context_resolution["advisory_policy_context"],
         )
         proposal_result.explanation["context_resolution"] = evaluation_context.context_resolution
