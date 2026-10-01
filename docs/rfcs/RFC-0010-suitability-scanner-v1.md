@@ -60,6 +60,21 @@ RFC-0010 formalizes that scanner in a deterministic, testable way.
 - Tax/regulatory reporting
 - Portfolio risk model (VaR, stress) — separate RFC
 
+### Current Complex-Product Evidence Boundary
+
+The later proposal workflow also emits `MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE`
+for an increase or BUY attempt in a `HIGH` or `COMPLEX` product. This is a
+fail-closed evidence warning and `COMPLIANCE_REVIEW` gate, not a positive
+client-specific suitability decision. A household identifier establishes only
+context identity; it cannot satisfy knowledge-and-experience assessment.
+Advise does not currently consume a source-owned, versioned assessment bound to
+client/tenant, product category, effective date, jurisdiction and policy.
+Consequently even an identified client retains the missing-assessment issue.
+The source assessment contract, positive eligibility, correction/revocation
+handling and live producer-consumer proof remain open under #641. The original
+simulation, persisted version and replay preserve the contemporaneous
+missing-evidence result rather than inventing an assessment on read.
+
 ---
 
 ## 3. Key Design Decision: Suitability Scanner vs Rule Engine
@@ -366,4 +381,3 @@ Each golden asserts:
 2. Scanner output is advisory-focused and complements, rather than replaces, hard/soft rule-engine status decisions.
 3. Governance-related attempted violations are still surfaced as suitability issues even when execution guards block the trade.
 4. `recommended_gate` is derived from new-issue severity and consumed by shared workflow-gate policy.
-

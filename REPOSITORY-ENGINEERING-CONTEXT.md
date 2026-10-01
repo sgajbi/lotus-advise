@@ -450,6 +450,11 @@ Boundary rules:
     allocation lens, and source lineage are accepted after contract validation; Core-returned
     suitability, workflow gate, decision-summary, alternatives, consent, or next-step fields are
     compatibility evidence only and must not drive Advise advisory decisions.
+    For complex-product BUY or exposure increase, `household_id` resolves identity only. The
+    scanner retains `MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE` until a source-owned,
+    client/product/date/policy-scoped assessment contract is integrated and verified; a
+    selector-derived `client_context_status=AVAILABLE` is not that assessment. Persisted
+    proposal versions and replay keep the evaluated evidence posture unchanged.
 28. advisory copilot review routes must resolve `CopilotReviewPrincipal` at the API boundary before
     application commands run; do not pass caller-supplied actor strings into review persistence
     unless they have been checked as compatibility echoes against the trusted principal and

@@ -1,10 +1,7 @@
 from decimal import Decimal
 from typing import Any, Dict
 
-from src.core.advisory.policy_context import (
-    client_context_available,
-    mandate_context_available,
-)
+from src.core.advisory.policy_context import mandate_context_available
 from src.core.engine_options_models import EngineOptions
 from src.core.portfolio_models import ShelfEntry
 from src.core.simulation_state_models import SimulatedState
@@ -70,7 +67,7 @@ def append_product_complexity_issues(
         shelf_entry = shelf_by_instrument.get(instrument_id)
         if shelf_entry is None:
             continue
-        if not _requires_product_complexity_evidence(shelf_entry, policy_context):
+        if not _requires_product_complexity_evidence(shelf_entry):
             continue
         before_weight = before_weights.get(instrument_id, Decimal("0"))
         after_weight = after_weights.get(instrument_id, Decimal("0"))
@@ -221,11 +218,11 @@ def _governance_weight_details(
 
 def _requires_product_complexity_evidence(
     shelf_entry: ShelfEntry,
-    policy_context: dict[str, Any] | None,
 ) -> bool:
-    if _product_complexity(shelf_entry) not in {"HIGH", "COMPLEX"}:
-        return False
-    return not client_context_available(policy_context)
+    # A household selector resolves identity, not knowledge and experience. No
+    # source-owned, product-scoped assessment is currently available to this
+    # scanner, so an increase in complex exposure must remain unqualified.
+    return _product_complexity(shelf_entry) in {"HIGH", "COMPLEX"}
 
 
 def _product_complexity(shelf_entry: ShelfEntry) -> str:
