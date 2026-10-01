@@ -387,7 +387,7 @@ def test_suitability_detects_product_complexity_missing_client_evidence() -> Non
     assert result.issues[0].approval_implication == "CLIENT_CONTEXT_REQUIRED"
 
 
-def test_suitability_suppresses_complex_product_context_gap_when_client_context_available() -> None:
+def test_suitability_requires_complex_product_assessment_despite_resolved_client_identity() -> None:
     before = _state(instrument_weights={}, cash_weight="1.0")
     after = _state(instrument_weights={"STRUCT_NOTE_1": "0.10"}, cash_weight="0.90")
     options = EngineOptions(
@@ -416,9 +416,17 @@ def test_suitability_suppresses_complex_product_context_gap_when_client_context_
         portfolio_snapshot_id="pf_6",
         market_data_snapshot_id="md_6",
         proposed_trades=[{"side": "BUY", "instrument_id": "STRUCT_NOTE_1"}],
-        policy_context={"client_context_status": "AVAILABLE"},
+        policy_context={
+            "client_context_status": "AVAILABLE",
+            "household_id": "hh_identity_only",
+            "client_product_assessment_status": "AVAILABLE",
+            "client_product_assessment_id": "caller_claim_without_source",
+        },
     )
 
-    assert all(
-        issue.issue_id != "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE" for issue in result.issues
+    assert result.recommended_gate == "COMPLIANCE_REVIEW"
+    assert any(
+        issue.issue_id == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
+        and issue.classification == "UNKNOWN_DUE_TO_MISSING_EVIDENCE"
+        for issue in result.issues
     )

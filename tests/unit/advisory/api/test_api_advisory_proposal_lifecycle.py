@@ -320,6 +320,72 @@ def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
     assert captured_job_request["reporting_currency"] == "USD"
 
 
+def test_stateful_complex_product_missing_assessment_survives_version_and_replay(monkeypatch):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: build_resolved_stateful_context(
+            stateful_input.portfolio_id,
+            stateful_input.as_of,
+            prices=[{"instrument_id": "STRUCT_NOTE_1", "price": "100", "currency": "USD"}],
+            shelf_entries=[
+                {
+                    "instrument_id": "STRUCT_NOTE_1",
+                    "status": "APPROVED",
+                    "issuer_id": "ISS_STRUCTURED",
+                    "liquidity_tier": "L2",
+                    "attributes": {"product_complexity": "COMPLEX"},
+                }
+            ],
+            options={
+                "enable_proposal_simulation": True,
+                "enable_workflow_gates": True,
+                "enable_suitability_scanner": True,
+                "suitability_thresholds": {
+                    "single_position_max_weight": "1",
+                    "issuer_max_weight": "1",
+                    "cash_band_min_weight": "0",
+                    "cash_band_max_weight": "1",
+                },
+            },
+            proposed_trades=[{"side": "BUY", "instrument_id": "STRUCT_NOTE_1", "quantity": "1"}],
+        ),
+        raising=False,
+    )
+    payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_complex_assessment_001",
+            "as_of": "2026-03-25",
+            "household_id": "hh_identity_only",
+        },
+        "metadata": {"jurisdiction": "SG"},
+    }
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "complex-assessment-create-001"},
+        )
+        assert created.status_code == 200, created.text
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version = client.get(f"/advisory/proposals/{proposal_id}/versions/1")
+        replay = client.get(f"/advisory/proposals/{proposal_id}/versions/1/replay-evidence")
+
+    assert version.status_code == 200
+    assert replay.status_code == 200
+    assert version.json() == created.json()["version"]
+    assert version.json()["proposal_result"]["suitability"]["recommended_gate"] == (
+        "COMPLIANCE_REVIEW"
+    )
+    missing = replay.json()["evidence"]["proposal_decision_summary"]["missing_evidence"]
+    assert any(
+        item["reason_code"] == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE" for item in missing
+    )
+    assert replay.json()["hashes"]["request_hash"] == version.json()["request_hash"]
+
+
 def test_stateful_create_can_request_advisor_review_narrative(monkeypatch):
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",

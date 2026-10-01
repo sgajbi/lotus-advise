@@ -411,7 +411,7 @@ def test_advisory_proposal_simulate_rejects_oversized_alternatives_request_with_
     assert "ALTERNATIVES_MAX_LIMIT_EXCEEDED" in response.json()["detail"]
 
 
-def test_advisory_proposal_simulate_projects_available_policy_context_for_complex_product(
+def test_advisory_proposal_simulate_does_not_treat_household_as_complex_assessment(
     client, monkeypatch
 ):
     monkeypatch.setattr(
@@ -424,9 +424,23 @@ def test_advisory_proposal_simulate_projects_available_policy_context_for_comple
                 {
                     "instrument_id": "STRUCT_NOTE_1",
                     "status": "APPROVED",
+                    "issuer_id": "ISS_STRUCTURED",
+                    "liquidity_tier": "L2",
                     "attributes": {"product_complexity": "HIGH"},
                 }
             ],
+            options={
+                "enable_proposal_simulation": True,
+                "enable_workflow_gates": True,
+                "enable_suitability_scanner": True,
+                "suitability_thresholds": {
+                    "single_position_max_weight": "1",
+                    "issuer_max_weight": "1",
+                    "cash_band_min_weight": "0",
+                    "cash_band_max_weight": "1",
+                },
+            },
+            proposed_trades=[{"side": "BUY", "instrument_id": "STRUCT_NOTE_1", "quantity": "1"}],
         ),
         raising=False,
     )
@@ -454,10 +468,29 @@ def test_advisory_proposal_simulate_projects_available_policy_context_for_comple
         == "AVAILABLE"
     )
     assert body["proposal_decision_summary"]["client_and_mandate_posture"]["status"] == "AVAILABLE"
-    assert not any(
+    assert body["suitability"]["recommended_gate"] == "COMPLIANCE_REVIEW"
+    assert any(
         item["reason_code"] == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
         for item in body["proposal_decision_summary"]["missing_evidence"]
     )
+    without_household = client.post(
+        "/advisory/proposals/simulate",
+        json={
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": "pf_prop_api_context_ready",
+                "as_of": "2026-03-25",
+                "mandate_id": "mandate_growth_01",
+            },
+        },
+        headers={"Idempotency-Key": "prop-key-stateful-context-missing-household"},
+    )
+    assert without_household.status_code == 200
+    no_identity = without_household.json()
+    assert no_identity["suitability"]["recommended_gate"] == "COMPLIANCE_REVIEW"
+    assert [
+        item["reason_code"] for item in no_identity["proposal_decision_summary"]["missing_evidence"]
+    ] == [item["reason_code"] for item in body["proposal_decision_summary"]["missing_evidence"]]
 
 
 def test_advisory_proposal_simulate_requests_mandate_context_for_restricted_product_buy(
