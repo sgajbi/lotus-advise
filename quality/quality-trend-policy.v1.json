@@ -1,6 +1,6 @@
 {
   "schema_version": "lotus.advise.quality-trend-policy.v1",
-  "policy_version": "lotus-advise-quality-trend.v1+5d2694b2168f",
+  "policy_version": "lotus-advise-quality-trend.v1+db718199a3bb",
   "report_path": "quality/baseline_report.md",
   "metrics": [
     {
@@ -82,6 +82,24 @@
         "head_python_content_fingerprint": "8211a872842776678bc3939c4be4fd53b379445bfb7e3088809b7ff56f40b8eb",
         "allowed_delta": 381,
         "reason": "Reviewed Cycle 6 #590 executable-evidence correction: +381 measured Python lines replace workflow-text matching with typed job/step condition, inherited environment and effective job-local matrix context; refuse shell-control lists and ambiguous pytest options; require complete changed-coverage inputs; and register real shipped workflows/policy mutations for skip-reason equals form, false job/step conditions including literal-false conjunctions/disjunctions, short-circuit wrappers, MAKEFLAGS n/t/q, cache display, artifact-path contamination, and excluded matrix paths. The bounded parser adds no expensive lane and does not relax security, coverage, PostgreSQL ownership/replay, or the steady-state 200-line threshold.",
+        "approver": "sgajbi",
+        "expires_on": "2026-10-13"
+      },
+      {
+        "metric": "total_python_lines",
+        "base_sha": "0e1ee5fe776b804ec19903fb46d2973b5edef728",
+        "head_python_content_fingerprint": "a7b8a7152a732845046ceaacbbfd312d5bf4847e52197cf4ee0c93d5c08e642c",
+        "allowed_delta": 736,
+        "reason": "Reviewed #640 lifecycle-authority correction: +736 measured Python lines bind transitions, approvals, consent and execution handoff to immutable current-version evidence; preserve exact historical replay; and add API, handoff and real PostgreSQL race regressions. The exact-content allowance leaves steady-state thresholds, coverage, security, typing and transaction controls unchanged.",
+        "approver": "sgajbi",
+        "expires_on": "2026-10-13"
+      },
+      {
+        "metric": "radon_b_ranked_blocks",
+        "base_sha": "0e1ee5fe776b804ec19903fb46d2973b5edef728",
+        "head_python_content_fingerprint": "a7b8a7152a732845046ceaacbbfd312d5bf4847e52197cf4ee0c93d5c08e642c",
+        "allowed_delta": 3,
+        "reason": "Reviewed #640 bounded lifecycle policy and concurrency proof add three B-ranked blocks; the repository worst complexity remains B/10. The exact-content allowance expires and does not change the zero-growth steady-state threshold.",
         "approver": "sgajbi",
         "expires_on": "2026-10-13"
       }

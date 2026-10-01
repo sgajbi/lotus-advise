@@ -69,6 +69,16 @@ Approval and consent are structured workflow actions, not ad hoc annotations. Th
 - compliance approval
 - transition to executed
 
+Each new transition or approval applies to the current immutable proposal version. Callers may
+omit `related_version_no` for compatibility; Advise then binds it to the current version and
+records the version id and content hashes in audit evidence. An explicit old or nonexistent
+version is rejected with HTTP 409, without changing the proposal or appending an approval/event.
+Historical approvals remain readable and exact idempotent replay returns the original outcome;
+neither can authorize a later version. Approval and execution-request events cannot be submitted
+as generic transitions. Consent requires current-version risk or compliance approval, and an execution
+handoff checks both current-version approval and consent even when the aggregate says
+`EXECUTION_READY`. Advise records the handoff request only; it does not place an order.
+
 ## Delivery And Execution Posture
 
 `lotus-advise` tracks advisory-owned delivery posture without taking over reporting or execution ownership.

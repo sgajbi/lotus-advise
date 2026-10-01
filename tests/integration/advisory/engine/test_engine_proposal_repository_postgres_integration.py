@@ -5,7 +5,7 @@ from contextlib import closing
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from threading import Barrier
+from threading import Barrier, Event
 
 import pytest
 
@@ -33,8 +33,10 @@ from src.core.proposals.idea_review_realization import (
     IdeaProposalRealizationRecord,
 )
 from src.core.proposals.input_request_models import ProposalCreateRequest
+from src.core.proposals.lifecycle_command import record_proposal_approval
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
+    ProposalApprovalRequest,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalMemoEventRecord,
@@ -1131,6 +1133,101 @@ def test_live_postgres_transition_compare_and_set_allows_one_approval_winner(
     stored_approvals = repository.list_approvals(proposal_id=proposal_id)
     assert len(stored_approvals) == 1
     assert stored_approvals[0].actor_id == stored_events[0].actor_id
+
+
+@pytest.mark.skipif(
+    not _DSN,
+    reason="Live Postgres DSN required for version-create/approval race proof.",
+)
+def test_live_postgres_new_version_fences_inflight_approval(
+    repository: PostgresProposalRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    proposal_id = f"pp-{uuid.uuid4().hex}"
+    repository.create_proposal(
+        ProposalRecord(
+            proposal_id=proposal_id,
+            portfolio_id="pf-version-race",
+            mandate_id="mandate-version-race",
+            jurisdiction="SG",
+            created_by="advisor-version-race",
+            created_at=now,
+            last_event_at=now,
+            current_state="RISK_REVIEW",
+            current_version_no=1,
+            title="Version race proposal",
+            advisor_notes=None,
+        )
+    )
+    _create_version(repository=repository, proposal_id=proposal_id, version_no=1, now=now)
+    approval_repository = PostgresProposalRepository(dsn=_DSN)
+    approval_at_write = Event()
+    release_approval = Event()
+    real_transition = approval_repository.transition_proposal
+
+    def _held_approval_transition(**kwargs):  # noqa: ANN003
+        approval_at_write.set()
+        assert release_approval.wait(timeout=10)
+        return real_transition(**kwargs)
+
+    approval_repository.transition_proposal = _held_approval_transition  # type: ignore[method-assign]
+
+    def _approve() -> str:
+        try:
+            record_proposal_approval(
+                repository=approval_repository,
+                proposal_id=proposal_id,
+                payload=ProposalApprovalRequest(
+                    approval_type="RISK",
+                    approved=True,
+                    actor_id="risk-version-race",
+                    expected_state="RISK_REVIEW",
+                    related_version_no=1,
+                ),
+                idempotency_key="approval-version-race",
+                require_expected_state=True,
+                occurred_at=now + timedelta(seconds=1),
+            )
+        except ProposalStateConflictError:
+            return "conflict"
+        return "committed"
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        approval_future = executor.submit(_approve)
+        assert approval_at_write.wait(timeout=10)
+        _create_version(repository=repository, proposal_id=proposal_id, version_no=2, now=now)
+        updated = repository.get_proposal(proposal_id=proposal_id)
+        assert updated is not None
+        updated.current_state = "DRAFT"
+        updated.current_version_no = 2
+        updated.last_event_at = now + timedelta(seconds=2)
+        repository.transition_proposal(
+            proposal=updated,
+            event=ProposalWorkflowEventRecord(
+                event_id=f"pwe-{uuid.uuid4().hex}",
+                proposal_id=proposal_id,
+                event_type="NEW_VERSION_CREATED",
+                from_state="RISK_REVIEW",
+                to_state="DRAFT",
+                actor_id="advisor-version-race",
+                occurred_at=updated.last_event_at,
+                reason_json={},
+                related_version_no=2,
+            ),
+            approval=None,
+            expected_current_state="RISK_REVIEW",
+            expected_current_version_no=1,
+        )
+        release_approval.set()
+        assert approval_future.result(timeout=10) == "conflict"
+
+    stored = repository.get_proposal(proposal_id=proposal_id)
+    assert stored is not None
+    assert (stored.current_version_no, stored.current_state) == (2, "DRAFT")
+    assert repository.list_approvals(proposal_id=proposal_id) == []
+    assert [event.event_type for event in repository.list_events(proposal_id=proposal_id)] == [
+        "NEW_VERSION_CREATED"
+    ]
 
 
 def test_live_postgres_update_proposal_contract(

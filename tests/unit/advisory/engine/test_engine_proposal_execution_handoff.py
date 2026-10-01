@@ -16,6 +16,7 @@ from src.core.proposals.models import (
     ProposalRecord,
     ProposalWorkflowEventRecord,
 )
+from src.core.proposals.version_authority import ProposalVersionAuthority
 
 
 def _proposal() -> ProposalRecord:
@@ -49,22 +50,33 @@ def _payload(**overrides) -> ProposalExecutionHandoffRequest:
     return ProposalExecutionHandoffRequest(**values)
 
 
+def _version_authority() -> ProposalVersionAuthority:
+    return ProposalVersionAuthority(
+        version_no=3,
+        proposal_version_id="ppv_execution_handoff_3",
+        request_hash="sha256:version-request",
+        artifact_hash="sha256:version-artifact",
+        simulation_hash="sha256:version-simulation",
+    )
+
+
 def test_build_execution_handoff_requested_event_preserves_audit_payload():
     event = build_execution_handoff_requested_event(
         event_id="pwe_execution_handoff",
         proposal=_proposal(),
-        payload=_payload(external_request_id="oms_req_001", related_version_no=2),
+        payload=_payload(external_request_id="oms_req_001", related_version_no=3),
         occurred_at=datetime(2026, 5, 21, 9, 10, tzinfo=timezone.utc),
         execution_request_id="oms_req_001",
         idempotency_key="idem_execution_handoff",
         request_hash="sha256:handoff",
+        version_authority=_version_authority(),
     )
 
     assert event.event_type == "EXECUTION_REQUESTED"
     assert event.from_state == "EXECUTION_READY"
     assert event.to_state == "EXECUTION_READY"
     assert event.actor_id == "ops_execution"
-    assert event.related_version_no == 2
+    assert event.related_version_no == 3
     assert event.reason_json == {
         "execution_request_id": "oms_req_001",
         "execution_provider": "lotus-manage",
@@ -74,6 +86,7 @@ def test_build_execution_handoff_requested_event_preserves_audit_payload():
         "notes": {"priority": "STANDARD"},
         "idempotency_key": "idem_execution_handoff",
         "idempotency_request_hash": "sha256:handoff",
+        "proposal_version_authority": _version_authority().audit_payload(),
     }
 
 
@@ -88,6 +101,7 @@ def test_build_execution_handoff_requested_event_isolates_nested_notes():
         execution_request_id="pex_execution",
         idempotency_key="idem_execution_handoff",
         request_hash="sha256:handoff",
+        version_authority=_version_authority(),
     )
 
     payload.notes["routing"]["desk"] = "TAMPERED"
@@ -104,6 +118,7 @@ def test_build_execution_handoff_requested_event_defaults_to_current_version():
         execution_request_id="pex_execution",
         idempotency_key=None,
         request_hash="sha256:handoff",
+        version_authority=_version_authority(),
     )
 
     assert event.related_version_no == 3
@@ -112,6 +127,7 @@ def test_build_execution_handoff_requested_event_defaults_to_current_version():
         "execution_provider": "lotus-manage",
         "execution_ownership": execution_ownership_boundary(),
         "notes": {},
+        "proposal_version_authority": _version_authority().audit_payload(),
     }
 
 
@@ -154,6 +170,7 @@ def test_apply_execution_handoff_state_updates_last_event_timestamp():
         execution_request_id="pex_execution",
         idempotency_key=None,
         request_hash="sha256:handoff",
+        version_authority=_version_authority(),
     )
 
     apply_execution_handoff_state(proposal=proposal, event=event)
@@ -172,6 +189,7 @@ def test_build_execution_handoff_event_and_apply_state_returns_event_and_updates
         execution_request_id="pex_execution",
         idempotency_key="idem_execution_handoff",
         request_hash="sha256:handoff",
+        version_authority=_version_authority(),
     )
 
     assert event.event_type == "EXECUTION_REQUESTED"

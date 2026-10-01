@@ -188,7 +188,10 @@ def create_proposal_version(
     tags=["Advisory Proposal Lifecycle"],
     summary="Transition Proposal State",
     description=(
-        "Applies one validated workflow transition with optimistic state concurrency check."
+        "Applies one validated workflow transition to the current immutable proposal version "
+        "with optimistic state/version concurrency checks. An omitted related_version_no binds "
+        "to the current version; an explicit stale version returns 409. Approval events must use "
+        "the approval route, and execution requests must use the handoff route."
     ),
 )
 def transition_proposal_state(
@@ -216,7 +219,9 @@ def transition_proposal_state(
     description=(
         "Persists a structured approval/consent record and appends "
         "the corresponding workflow event "
-        "with deterministic state transition."
+        "with deterministic state transition. Omitted related_version_no binds to the current "
+        "immutable version; a stale explicit version returns 409. Client consent requires "
+        "current-version risk or compliance approval."
     ),
 )
 def record_proposal_approval(

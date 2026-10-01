@@ -145,7 +145,7 @@ Simulation results are ephemeral. Advisory workflows require:
 - `actor_id`
 - `occurred_at`
 - `reason` (structured JSON)
-- `related_version_no` (optional: which version is being reviewed/approved)
+- `related_version_no` (request may omit it; persisted events bind to the current immutable version)
 
 ### 4.4 Approval / Consent Records
 Store as structured entries linked to workflow events:
@@ -157,6 +157,27 @@ Store as structured entries linked to workflow events:
 - `occurred_at`
 - `details_json` (e.g., consent channel, doc refs, comments)
 - `related_version_no`
+
+Current lifecycle command rule: transitions and approvals resolve the current proposal version
+before writing. An explicit stale or nonexistent version returns HTTP 409
+`PROPOSAL_VERSION_CONFLICT`; omission binds to the current version for compatibility. Persisted
+events and approvals carry its version number plus `proposal_version_authority` (version id,
+request hash, artifact hash, simulation hash). The original request hash is retained for exact
+idempotent replay, including a historical approval after a newer version is created. Replay
+returns the old referents without advancing the aggregate. A missing current-version record is
+HTTP 404 `PROPOSAL_VERSION_NOT_FOUND`.
+
+Generic transitions cannot manufacture `RISK_APPROVED`, `COMPLIANCE_APPROVED`, or
+`CLIENT_CONSENT_RECORDED`; those events require the approval command (HTTP 422
+`APPROVAL_REQUIRES_APPROVAL_COMMAND`). `EXECUTION_REQUESTED` requires the execution-handoff
+command (HTTP 422 `EXECUTION_REQUEST_REQUIRES_HANDOFF_COMMAND`), and a generic `EXECUTED`
+transition still requires current-version approvals. Client consent requires a risk or compliance approval
+applicable to the current version. Execution handoff requires both such an approval and current-
+version client consent, even if a historical row already says `EXECUTION_READY`; otherwise it
+returns HTTP 409 `CURRENT_VERSION_APPROVALS_MISSING`. Existing approval records without an
+embedded authority snapshot remain applicable only if their recorded version number matches.
+Aggregate state and current version are compare-and-set in the same PostgreSQL transaction as
+the event and approval inserts. A concurrent new version cannot commit a stale approval.
 
 ---
 
@@ -575,5 +596,3 @@ Configuration is implementation-faithful and currently delivered via environment
 * Retention & archival policy per jurisdiction
 * PII encryption and key management enhancements
 * External consent providers and document signing
-
-

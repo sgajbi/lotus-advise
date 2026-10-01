@@ -29,7 +29,8 @@ class ProposalExecutionHandoffRequest(BaseModel):
         default=None,
         description=(
             "Optional immutable proposal version number being handed to execution. "
-            "Defaults to the current version when omitted."
+            "When omitted, the service atomically binds the handoff to the current version and "
+            "records its immutable evidence identity. A stale explicit version is rejected."
         ),
         examples=[1],
     )

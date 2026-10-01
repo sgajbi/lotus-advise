@@ -23,6 +23,7 @@ from src.core.proposals.models import (
     ProposalStateTransitionRequest,
     ProposalWorkflowEventRecord,
 )
+from src.core.proposals.version_authority import ProposalVersionAuthority
 
 
 def _proposal() -> ProposalRecord:
@@ -39,6 +40,16 @@ def _proposal() -> ProposalRecord:
         title="Lifecycle event test",
         lifecycle_origin="DIRECT_CREATE",
         source_workspace_id=None,
+    )
+
+
+def _version_authority() -> ProposalVersionAuthority:
+    return ProposalVersionAuthority(
+        version_no=2,
+        proposal_version_id="ppv_lifecycle_events_2",
+        request_hash="sha256:version-request",
+        artifact_hash="sha256:version-artifact",
+        simulation_hash="sha256:version-simulation",
     )
 
 
@@ -114,6 +125,7 @@ def test_build_state_transition_event_preserves_reason_and_idempotency_metadata(
         occurred_at=datetime(2026, 5, 21, 9, 10, tzinfo=timezone.utc),
         idempotency_key="idem_lifecycle",
         request_hash="sha256:lifecycle",
+        version_authority=_version_authority(),
     )
 
     assert event.event_type == "SUBMITTED_FOR_COMPLIANCE_REVIEW"
@@ -125,6 +137,7 @@ def test_build_state_transition_event_preserves_reason_and_idempotency_metadata(
         "comment": "Requires compliance review",
         "idempotency_key": "idem_lifecycle",
         "idempotency_request_hash": "sha256:lifecycle",
+        "proposal_version_authority": _version_authority().audit_payload(),
     }
 
 
@@ -144,6 +157,7 @@ def test_lifecycle_event_builders_isolate_nested_audit_payloads():
         occurred_at=datetime(2026, 5, 21, 9, 10, tzinfo=timezone.utc),
         idempotency_key="idem_lifecycle",
         request_hash="sha256:lifecycle",
+        version_authority=_version_authority(),
     )
     approval_record = build_approval_record(
         approval_id="pap_lifecycle_immutable",
@@ -152,6 +166,7 @@ def test_lifecycle_event_builders_isolate_nested_audit_payloads():
         occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
         idempotency_key="idem_approval",
         request_hash="sha256:approval",
+        version_authority=_version_authority(),
     )
     approval_event = build_approval_transition_event(
         event_id="pwe_approval_immutable",
@@ -162,6 +177,7 @@ def test_lifecycle_event_builders_isolate_nested_audit_payloads():
         occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
         idempotency_key="idem_approval",
         request_hash="sha256:approval",
+        version_authority=_version_authority(),
     )
 
     transition_payload.reason["evidence"]["document_refs"][0] = "transition_tampered"
@@ -277,6 +293,7 @@ def test_build_state_transition_event_and_apply_state_returns_event_and_updates_
         occurred_at=datetime(2026, 5, 21, 9, 11, tzinfo=timezone.utc),
         idempotency_key="idem_lifecycle",
         request_hash="sha256:lifecycle",
+        version_authority=_version_authority(),
     )
 
     assert event.event_type == "SUBMITTED_FOR_COMPLIANCE_REVIEW"
@@ -293,6 +310,7 @@ def test_build_approval_record_preserves_details_and_idempotency_metadata():
         occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
         idempotency_key="idem_approval",
         request_hash="sha256:approval",
+        version_authority=_version_authority(),
     )
 
     assert approval.approval_type == "CLIENT_CONSENT"
@@ -303,6 +321,7 @@ def test_build_approval_record_preserves_details_and_idempotency_metadata():
         "channel": "IN_PERSON",
         "idempotency_key": "idem_approval",
         "idempotency_request_hash": "sha256:approval",
+        "proposal_version_authority": _version_authority().audit_payload(),
     }
 
 
@@ -334,6 +353,7 @@ def test_build_approval_transition_event_matches_approval_audit_payload():
         occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
         idempotency_key="idem_approval",
         request_hash="sha256:approval",
+        version_authority=_version_authority(),
     )
 
     assert event.event_type == "CLIENT_CONSENT_RECORDED"
@@ -345,6 +365,7 @@ def test_build_approval_transition_event_matches_approval_audit_payload():
         "channel": "IN_PERSON",
         "idempotency_key": "idem_approval",
         "idempotency_request_hash": "sha256:approval",
+        "proposal_version_authority": _version_authority().audit_payload(),
     }
 
 
@@ -362,6 +383,7 @@ def test_build_approval_command_state_and_apply_transition_returns_referents():
         occurred_at=datetime(2026, 5, 21, 9, 13, tzinfo=timezone.utc),
         idempotency_key="idem_approval",
         request_hash="sha256:approval",
+        version_authority=_version_authority(),
     )
 
     assert command_state.approval.approval_id == "pap_lifecycle"
