@@ -56,7 +56,8 @@ def create_proposal_report_request(
     summary="Request Advisory Execution Handoff",
     description=(
         "Records an auditable execution handoff request while keeping execution ownership outside "
-        "lotus-advise."
+        "lotus-advise. The request binds to the current immutable proposal version and requires "
+        "applicable risk/compliance approval and client consent, not aggregate readiness alone."
     ),
 )
 def request_execution_handoff(

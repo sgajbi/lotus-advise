@@ -2669,6 +2669,386 @@ def test_new_version_requires_fresh_approvals_before_execution_handoff():
         assert "expected_state mismatch" in handoff.json()["detail"]
 
 
+def test_stale_approval_cannot_advance_current_proposal_version():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-stale-approval-create")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": {
+                    **_base_create_payload()["simulate_request"],
+                    "proposed_trades": [
+                        {"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "3"}
+                    ],
+                },
+            },
+        )
+        assert versioned.status_code == 200
+        assert versioned.json()["proposal"]["current_version_no"] == 2
+
+        stale_transition = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_2",
+                "expected_state": "DRAFT",
+                "related_version_no": 1,
+                "reason": {"comment": "review superseded trade"},
+            },
+            headers={"Idempotency-Key": "lifecycle-stale-transition-v1"},
+        )
+        assert stale_transition.status_code == 409
+        assert stale_transition.json()["detail"] == "PROPOSAL_VERSION_CONFLICT"
+
+        submitted = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_2",
+                "expected_state": "DRAFT",
+                "related_version_no": 2,
+                "reason": {"comment": "review changed trade"},
+            },
+            headers={"Idempotency-Key": "lifecycle-stale-approval-submit-v2"},
+        )
+        assert submitted.status_code == 200
+
+        nonexistent = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "RISK",
+                "approved": True,
+                "actor_id": "risk_user",
+                "expected_state": "RISK_REVIEW",
+                "related_version_no": 99,
+                "details": {"comment": "approval for nonexistent version"},
+            },
+            headers={"Idempotency-Key": "lifecycle-nonexistent-approval"},
+        )
+        assert nonexistent.status_code == 409
+        assert nonexistent.json()["detail"] == "PROPOSAL_VERSION_CONFLICT"
+
+        stale = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "RISK",
+                "approved": True,
+                "actor_id": "risk_user",
+                "expected_state": "RISK_REVIEW",
+                "related_version_no": 1,
+                "details": {"comment": "approval for superseded version"},
+            },
+            headers={"Idempotency-Key": "lifecycle-stale-approval-v1"},
+        )
+
+        assert stale.status_code == 409
+        assert stale.json()["detail"] == "PROPOSAL_VERSION_CONFLICT"
+
+        proposal = client.get(f"/advisory/proposals/{proposal_id}")
+        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+
+    assert proposal.status_code == 200
+    assert proposal.json()["proposal"]["current_state"] == "RISK_REVIEW"
+    assert approvals.status_code == 200
+    assert approvals.json()["approvals"] == []
+    assert timeline.status_code == 200
+    assert [event["event_type"] for event in timeline.json()["events"]] == [
+        "CREATED",
+        "NEW_VERSION_CREATED",
+        "SUBMITTED_FOR_RISK_REVIEW",
+    ]
+
+
+def test_current_version_handoff_rejects_stale_version_and_binds_omitted_version():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-stale-handoff-create")
+        proposal_id = created["proposal"]["proposal_id"]
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+        assert versioned.status_code == 200
+
+        _promote_to_execution_ready(client, proposal_id, related_version_no=2, route="risk")
+        stale_handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json={
+                "actor_id": "ops_001",
+                "execution_provider": "lotus-manage",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 1,
+                "external_request_id": "oms_stale_v1",
+                "notes": {"channel": "OMS"},
+            },
+            headers={"Idempotency-Key": "lifecycle-stale-handoff-v1"},
+        )
+        assert stale_handoff.status_code == 409
+        assert stale_handoff.json()["detail"] == "PROPOSAL_VERSION_CONFLICT"
+
+        bound_handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json={
+                "actor_id": "ops_001",
+                "execution_provider": "lotus-manage",
+                "expected_state": "EXECUTION_READY",
+                "external_request_id": "oms_bound_current",
+                "notes": {"channel": "OMS"},
+            },
+            headers={"Idempotency-Key": "lifecycle-bound-handoff-v2"},
+        )
+        assert bound_handoff.status_code == 200
+
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+
+    assert timeline.status_code == 200
+    handoffs = [
+        event for event in timeline.json()["events"] if event["event_type"] == "EXECUTION_REQUESTED"
+    ]
+    assert len(handoffs) == 1
+    assert handoffs[0]["related_version_no"] == 2
+    assert handoffs[0]["reason"]["proposal_version_authority"]["version_no"] == 2
+    assert handoffs[0]["reason"]["proposal_version_authority"]["artifact_hash"].startswith(
+        "sha256:"
+    )
+
+
+def test_historical_approval_replay_does_not_authorize_a_newer_version():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-historical-approval-replay-create")
+        proposal_id = created["proposal"]["proposal_id"]
+        submitted = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_1",
+                "expected_state": "DRAFT",
+                "related_version_no": 1,
+                "reason": {"comment": "initial review"},
+            },
+            headers={"Idempotency-Key": "lifecycle-historical-submit-v1"},
+        )
+        assert submitted.status_code == 200
+        approval_payload = {
+            "approval_type": "RISK",
+            "approved": True,
+            "actor_id": "risk_user",
+            "expected_state": "RISK_REVIEW",
+            "related_version_no": 1,
+            "details": {"comment": "approved original version"},
+        }
+        first = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json=approval_payload,
+            headers={"Idempotency-Key": "lifecycle-historical-approval-v1"},
+        )
+        assert first.status_code == 200
+
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+        assert versioned.status_code == 200
+        assert versioned.json()["proposal"]["current_state"] == "DRAFT"
+
+        replay = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json=approval_payload,
+            headers={"Idempotency-Key": "lifecycle-historical-approval-v1"},
+        )
+        assert replay.status_code == 200
+        assert replay.json()["latest_workflow_event"]["related_version_no"] == 1
+
+        proposal = client.get(f"/advisory/proposals/{proposal_id}")
+        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+
+    assert proposal.status_code == 200
+    assert proposal.json()["proposal"]["current_version_no"] == 2
+    assert proposal.json()["proposal"]["current_state"] == "DRAFT"
+    assert approvals.status_code == 200
+    assert [approval["related_version_no"] for approval in approvals.json()["approvals"]] == [1]
+    assert timeline.status_code == 200
+    assert [event["event_type"] for event in timeline.json()["events"]].count("RISK_APPROVED") == 1
+
+
+def test_generic_transition_cannot_mint_approval_without_an_approval_record():
+    with TestClient(app) as client:
+        proposal_id = _create(client, "lifecycle-generic-approval-bypass")["proposal"][
+            "proposal_id"
+        ]
+        submitted = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_1",
+                "expected_state": "DRAFT",
+            },
+            headers={"Idempotency-Key": "lifecycle-generic-submit"},
+        )
+        assert submitted.status_code == 200
+        bypass = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "RISK_APPROVED",
+                "actor_id": "risk_user",
+                "expected_state": "RISK_REVIEW",
+            },
+            headers={"Idempotency-Key": "lifecycle-generic-risk-bypass"},
+        )
+        assert bypass.status_code == 422
+        assert bypass.json()["detail"] == "APPROVAL_REQUIRES_APPROVAL_COMMAND"
+        assert (
+            client.get(f"/advisory/proposals/{proposal_id}").json()["proposal"]["current_state"]
+            == "RISK_REVIEW"
+        )
+        assert client.get(f"/advisory/proposals/{proposal_id}/approvals").json()["approvals"] == []
+
+
+def test_client_consent_cannot_skip_current_version_review_approval():
+    with TestClient(app) as client:
+        proposal_id = _create(client, "lifecycle-consent-without-review")["proposal"]["proposal_id"]
+        repository = proposals_router.get_proposal_repository()
+        proposal = repository.get_proposal(proposal_id=proposal_id)
+        assert proposal is not None
+        proposal.current_state = "AWAITING_CLIENT_CONSENT"
+        repository.update_proposal(proposal)
+        consent = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "CLIENT_CONSENT",
+                "approved": True,
+                "actor_id": "client_1",
+                "expected_state": "AWAITING_CLIENT_CONSENT",
+            },
+            headers={"Idempotency-Key": "lifecycle-consent-without-review"},
+        )
+        assert consent.status_code == 409
+        assert consent.json()["detail"] == "CURRENT_VERSION_APPROVALS_MISSING"
+        assert client.get(f"/advisory/proposals/{proposal_id}/approvals").json()["approvals"] == []
+        assert (
+            client.get(f"/advisory/proposals/{proposal_id}").json()["proposal"]["current_state"]
+            == "AWAITING_CLIENT_CONSENT"
+        )
+
+
+def test_handoff_does_not_trust_legacy_ready_state_with_stale_approvals():
+    from src.core.proposals.models import ProposalApprovalRecordData
+
+    with TestClient(app) as client:
+        proposal_id = _create(client, "lifecycle-legacy-stale-ready")["proposal"]["proposal_id"]
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+        assert versioned.status_code == 200
+        repository = proposals_router.get_proposal_repository()
+        proposal = repository.get_proposal(proposal_id=proposal_id)
+        assert proposal is not None
+        proposal.current_state = "EXECUTION_READY"
+        repository.update_proposal(proposal)
+        for approval_type in ("RISK", "CLIENT_CONSENT"):
+            repository.create_approval(
+                ProposalApprovalRecordData(
+                    approval_id=f"legacy-{approval_type.lower()}",
+                    proposal_id=proposal_id,
+                    approval_type=approval_type,
+                    approved=True,
+                    actor_id="legacy_actor",
+                    occurred_at=datetime.now(timezone.utc),
+                    details_json={},
+                    related_version_no=1,
+                )
+            )
+        handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json={
+                "actor_id": "ops_1",
+                "execution_provider": "lotus-manage",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 2,
+            },
+            headers={"Idempotency-Key": "lifecycle-legacy-stale-handoff"},
+        )
+        assert handoff.status_code == 409
+        assert handoff.json()["detail"] == "CURRENT_VERSION_APPROVALS_MISSING"
+        assert (
+            client.get(f"/advisory/proposals/{proposal_id}").json()["proposal"]["current_state"]
+            == "EXECUTION_READY"
+        )
+        assert all(
+            event["event_type"] != "EXECUTION_REQUESTED"
+            for event in client.get(f"/advisory/proposals/{proposal_id}/workflow-events").json()[
+                "events"
+            ]
+        )
+        for approval_type in ("RISK", "CLIENT_CONSENT"):
+            repository.create_approval(
+                ProposalApprovalRecordData(
+                    approval_id=f"wrong-hash-{approval_type.lower()}",
+                    proposal_id=proposal_id,
+                    approval_type=approval_type,
+                    approved=True,
+                    actor_id="wrong_hash_actor",
+                    occurred_at=datetime.now(timezone.utc),
+                    details_json={"proposal_version_authority": {"version_no": 2}},
+                    related_version_no=2,
+                )
+            )
+        wrong_hash_handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json={
+                "actor_id": "ops_1",
+                "execution_provider": "lotus-manage",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 2,
+            },
+            headers={"Idempotency-Key": "lifecycle-wrong-hash-handoff"},
+        )
+        assert wrong_hash_handoff.status_code == 409
+        assert wrong_hash_handoff.json()["detail"] == "CURRENT_VERSION_APPROVALS_MISSING"
+        direct_request = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "EXECUTION_REQUESTED",
+                "actor_id": "ops_1",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 2,
+            },
+            headers={"Idempotency-Key": "lifecycle-direct-execution-request"},
+        )
+        assert direct_request.status_code == 422
+        assert direct_request.json()["detail"] == "EXECUTION_REQUEST_REQUIRES_HANDOFF_COMMAND"
+        direct_executed = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "EXECUTED",
+                "actor_id": "ops_1",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 2,
+            },
+            headers={"Idempotency-Key": "lifecycle-direct-executed"},
+        )
+        assert direct_executed.status_code == 409
+        assert direct_executed.json()["detail"] == "CURRENT_VERSION_APPROVALS_MISSING"
+
+
 def test_mixed_approval_routes_remain_version_scoped():
     def _request_proposal_report_with_lotus_report(*, request):
         return {

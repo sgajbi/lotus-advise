@@ -14,6 +14,7 @@ from src.core.proposals.models import (
     ProposalWorkflowState,
 )
 from src.core.proposals.projections import to_approval_record, to_workflow_event
+from src.core.proposals.version_authority import ProposalVersionAuthority
 
 
 @dataclass(frozen=True)
@@ -83,8 +84,10 @@ def build_state_transition_event(
     occurred_at: datetime,
     idempotency_key: str | None,
     request_hash: str,
+    version_authority: ProposalVersionAuthority,
 ) -> ProposalWorkflowEventRecord:
     reason_json = deepcopy(payload.reason)
+    reason_json["proposal_version_authority"] = version_authority.audit_payload()
     if idempotency_key:
         reason_json["idempotency_key"] = idempotency_key
         reason_json["idempotency_request_hash"] = request_hash
@@ -97,7 +100,7 @@ def build_state_transition_event(
         actor_id=payload.actor_id,
         occurred_at=occurred_at,
         reason_json=reason_json,
-        related_version_no=payload.related_version_no,
+        related_version_no=version_authority.version_no,
     )
 
 
@@ -145,6 +148,7 @@ def build_state_transition_event_and_apply_state(
     occurred_at: datetime,
     idempotency_key: str | None,
     request_hash: str,
+    version_authority: ProposalVersionAuthority,
 ) -> ProposalWorkflowEventRecord:
     event = build_state_transition_event(
         event_id=event_id,
@@ -154,6 +158,7 @@ def build_state_transition_event_and_apply_state(
         occurred_at=occurred_at,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        version_authority=version_authority,
     )
     apply_lifecycle_transition_state(proposal=proposal, to_state=to_state, event=event)
     return event
@@ -167,8 +172,10 @@ def build_approval_record(
     occurred_at: datetime,
     idempotency_key: str | None,
     request_hash: str,
+    version_authority: ProposalVersionAuthority,
 ) -> ProposalApprovalRecordData:
     details_json = deepcopy(payload.details)
+    details_json["proposal_version_authority"] = version_authority.audit_payload()
     if idempotency_key:
         details_json["idempotency_key"] = idempotency_key
         details_json["idempotency_request_hash"] = request_hash
@@ -180,7 +187,7 @@ def build_approval_record(
         actor_id=payload.actor_id,
         occurred_at=occurred_at,
         details_json=details_json,
-        related_version_no=payload.related_version_no,
+        related_version_no=version_authority.version_no,
     )
 
 
@@ -194,8 +201,10 @@ def build_approval_transition_event(
     occurred_at: datetime,
     idempotency_key: str | None,
     request_hash: str,
+    version_authority: ProposalVersionAuthority,
 ) -> ProposalWorkflowEventRecord:
     reason_json = deepcopy(payload.details)
+    reason_json["proposal_version_authority"] = version_authority.audit_payload()
     if idempotency_key:
         reason_json["idempotency_key"] = idempotency_key
         reason_json["idempotency_request_hash"] = request_hash
@@ -208,7 +217,7 @@ def build_approval_transition_event(
         actor_id=payload.actor_id,
         occurred_at=occurred_at,
         reason_json=reason_json,
-        related_version_no=payload.related_version_no,
+        related_version_no=version_authority.version_no,
     )
 
 
@@ -223,6 +232,7 @@ def build_approval_command_state_and_apply_transition(
     occurred_at: datetime,
     idempotency_key: str | None,
     request_hash: str,
+    version_authority: ProposalVersionAuthority,
 ) -> ApprovalCommandState:
     approval = build_approval_record(
         approval_id=approval_id,
@@ -231,6 +241,7 @@ def build_approval_command_state_and_apply_transition(
         occurred_at=occurred_at,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        version_authority=version_authority,
     )
     event = build_approval_transition_event(
         event_id=event_id,
@@ -241,6 +252,7 @@ def build_approval_command_state_and_apply_transition(
         occurred_at=approval.occurred_at,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        version_authority=version_authority,
     )
     apply_lifecycle_transition_state(proposal=proposal, to_state=to_state, event=event)
     return ApprovalCommandState(approval=approval, event=event)

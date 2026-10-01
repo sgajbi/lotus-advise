@@ -11,6 +11,7 @@ from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalLifecycleError,
     ProposalNotFoundError,
+    ProposalTransitionError,
 )
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
@@ -39,6 +40,10 @@ from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.transition_persistence import (
     persist_proposal_approval_transition,
     persist_proposal_transition,
+)
+from src.core.proposals.version_authority import (
+    require_current_version_approvals,
+    resolve_current_proposal_version_authority,
 )
 
 
@@ -71,16 +76,32 @@ def transition_proposal_state(
             proposal_id=proposal_id,
             event=replay_event,
         )
+    version_authority = resolve_current_proposal_version_authority(
+        repository=repository,
+        proposal=proposal,
+        requested_version_no=payload.related_version_no,
+    )
+    payload = payload.model_copy(update={"related_version_no": version_authority.version_no})
     validate_proposal_expected_state(
         current_state=proposal.current_state,
         expected_state=payload.expected_state,
         require_expected_state=require_expected_state,
     )
-
     to_state = resolve_proposal_transition_state(
         current_state=proposal.current_state,
         event_type=payload.event_type,
     )
+    if payload.event_type in {"RISK_APPROVED", "COMPLIANCE_APPROVED", "CLIENT_CONSENT_RECORDED"}:
+        raise ProposalTransitionError("APPROVAL_REQUIRES_APPROVAL_COMMAND")
+    if payload.event_type == "EXECUTION_REQUESTED":
+        raise ProposalTransitionError("EXECUTION_REQUEST_REQUIRES_HANDOFF_COMMAND")
+    if payload.event_type == "EXECUTED":
+        require_current_version_approvals(
+            repository=repository,
+            proposal_id=proposal_id,
+            authority=version_authority,
+            require_consent=True,
+        )
     event = build_state_transition_event_and_apply_state(
         event_id=new_workflow_event_id(),
         proposal=proposal,
@@ -89,6 +110,7 @@ def transition_proposal_state(
         occurred_at=occurred_at,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        version_authority=version_authority,
     )
 
     result = persist_proposal_transition(
@@ -142,6 +164,12 @@ def record_proposal_approval(
         if replay_response is None:
             raise ProposalLifecycleError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
         return replay_response
+    version_authority = resolve_current_proposal_version_authority(
+        repository=repository,
+        proposal=proposal,
+        requested_version_no=payload.related_version_no,
+    )
+    payload = payload.model_copy(update={"related_version_no": version_authority.version_no})
     validate_proposal_expected_state(
         current_state=proposal.current_state,
         expected_state=payload.expected_state,
@@ -153,6 +181,13 @@ def record_proposal_approval(
         approval_type=payload.approval_type,
         approved=payload.approved,
     )
+    if payload.approval_type == "CLIENT_CONSENT" and payload.approved:
+        require_current_version_approvals(
+            repository=repository,
+            proposal_id=proposal_id,
+            authority=version_authority,
+            require_consent=False,
+        )
     command_state = build_approval_command_state_and_apply_transition(
         approval_id=new_approval_id(),
         event_id=new_workflow_event_id(),
@@ -163,6 +198,7 @@ def record_proposal_approval(
         occurred_at=occurred_at,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        version_authority=version_authority,
     )
 
     result = persist_proposal_approval_transition(

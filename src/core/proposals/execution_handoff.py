@@ -12,6 +12,7 @@ from src.core.proposals.models import (
     ProposalWorkflowState,
 )
 from src.core.proposals.projections import to_proposal_summary, to_workflow_event
+from src.core.proposals.version_authority import ProposalVersionAuthority
 
 
 class ProposalExecutionHandoffStateError(Exception):
@@ -53,6 +54,7 @@ def build_execution_handoff_requested_event(
     execution_request_id: str,
     idempotency_key: str | None,
     request_hash: str,
+    version_authority: ProposalVersionAuthority,
 ) -> ProposalWorkflowEventRecord:
     reason_json = {
         "execution_request_id": execution_request_id,
@@ -61,6 +63,7 @@ def build_execution_handoff_requested_event(
         "external_request_id": payload.external_request_id,
         "execution_ownership": execution_ownership_boundary(),
         "notes": deepcopy(payload.notes),
+        "proposal_version_authority": version_authority.audit_payload(),
     }
     if idempotency_key:
         reason_json["idempotency_key"] = idempotency_key
@@ -75,7 +78,7 @@ def build_execution_handoff_requested_event(
         actor_id=payload.actor_id,
         occurred_at=occurred_at,
         reason_json={key: value for key, value in reason_json.items() if value is not None},
-        related_version_no=payload.related_version_no or proposal.current_version_no,
+        related_version_no=version_authority.version_no,
     )
 
 
@@ -96,6 +99,7 @@ def build_execution_handoff_event_and_apply_state(
     execution_request_id: str,
     idempotency_key: str | None,
     request_hash: str,
+    version_authority: ProposalVersionAuthority,
 ) -> ProposalWorkflowEventRecord:
     event = build_execution_handoff_requested_event(
         event_id=event_id,
@@ -105,6 +109,7 @@ def build_execution_handoff_event_and_apply_state(
         execution_request_id=execution_request_id,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        version_authority=version_authority,
     )
     apply_execution_handoff_state(proposal=proposal, event=event)
     return event

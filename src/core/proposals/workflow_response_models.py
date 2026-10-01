@@ -142,7 +142,11 @@ class ProposalStateTransitionRequest(BaseModel):
     )
     related_version_no: Optional[int] = Field(
         default=None,
-        description="Optional version this transition applies to.",
+        description=(
+            "Optional immutable version this transition applies to. When omitted, the service "
+            "atomically binds the transition to the current version and records its immutable "
+            "evidence identity."
+        ),
         examples=[2],
     )
     reason: Dict[str, Any] = Field(
@@ -169,7 +173,11 @@ class ProposalApprovalRequest(BaseModel):
     )
     related_version_no: Optional[int] = Field(
         default=None,
-        description="Optional version number this approval applies to.",
+        description=(
+            "Optional immutable version number this approval applies to. When omitted, the "
+            "service atomically binds the approval to the current version and records its "
+            "immutable evidence identity. A stale explicit version is rejected."
+        ),
         examples=[1],
     )
     details: Dict[str, Any] = Field(

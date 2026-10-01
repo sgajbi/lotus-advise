@@ -391,6 +391,8 @@ Boundary rules:
    preserve source refs, and must not discover the global portfolio universe or open DPM campaigns,
 14. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
    records advisory posture while downstream providers remain execution systems of record,
+   and handoff must verify risk/compliance approval plus client consent for the current immutable
+   proposal version rather than trusting aggregate `EXECUTION_READY` alone,
 15. proposal-create persistence must use the repository port's atomic unit-of-work boundary for
    initial proposal aggregate, immutable version 1, `CREATED` workflow event, and proposal-create
    idempotency record writes; callers must not recreate the multi-write sequence in services,

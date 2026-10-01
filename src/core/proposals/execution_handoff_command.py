@@ -28,6 +28,10 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.transition_persistence import persist_proposal_transition
+from src.core.proposals.version_authority import (
+    require_current_version_approvals,
+    resolve_current_proposal_version_authority,
+)
 
 
 def request_proposal_execution_handoff(
@@ -59,6 +63,12 @@ def request_proposal_execution_handoff(
             proposal=proposal,
             replay_event=replay_event,
         )
+    version_authority = resolve_current_proposal_version_authority(
+        repository=repository,
+        proposal=proposal,
+        requested_version_no=payload.related_version_no,
+    )
+    payload = payload.model_copy(update={"related_version_no": version_authority.version_no})
     validate_proposal_expected_state(
         current_state=proposal.current_state,
         expected_state=payload.expected_state,
@@ -68,6 +78,12 @@ def request_proposal_execution_handoff(
         validate_execution_handoff_ready(current_state=proposal.current_state)
     except ProposalExecutionHandoffStateError as exc:
         raise ProposalStateConflictError(str(exc)) from exc
+    require_current_version_approvals(
+        repository=repository,
+        proposal_id=proposal_id,
+        authority=version_authority,
+        require_consent=True,
+    )
 
     execution_request_id = payload.external_request_id or new_execution_request_id()
     event = build_execution_handoff_event_and_apply_state(
@@ -78,6 +94,7 @@ def request_proposal_execution_handoff(
         execution_request_id=execution_request_id,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        version_authority=version_authority,
     )
     result = persist_proposal_transition(
         repository=repository,

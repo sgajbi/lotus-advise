@@ -2592,6 +2592,35 @@ def test_service_execution_handoff_normalizes_idempotency_key_for_replay():
         title="Execution handoff replay",
     )
     repo.create_proposal(proposal)
+    repo.create_version(
+        ProposalVersionRecord(
+            proposal_version_id="ppv_execution_handoff_replay_3",
+            proposal_id=proposal.proposal_id,
+            version_no=3,
+            created_at=occurred_at,
+            request_hash="sha256:request-replay-3",
+            artifact_hash="sha256:artifact-replay-3",
+            simulation_hash="sha256:simulation-replay-3",
+            status_at_creation="READY",
+            proposal_result_json={"status": "READY"},
+            artifact_json={"artifact_id": "artifact-replay-3"},
+            evidence_bundle_json={},
+            gate_decision_json=None,
+        )
+    )
+    for approval_type in ("RISK", "CLIENT_CONSENT"):
+        repo.create_approval(
+            ProposalApprovalRecordData(
+                approval_id=f"pap_execution_handoff_replay_{approval_type}",
+                proposal_id=proposal.proposal_id,
+                approval_type=approval_type,
+                approved=True,
+                actor_id="approval_actor",
+                occurred_at=occurred_at,
+                details_json={},
+                related_version_no=3,
+            )
+        )
     payload = ProposalExecutionHandoffRequest(
         actor_id="advisor_execution_handoff",
         execution_provider="lotus-manage",
