@@ -65,12 +65,9 @@ _DSN = os.getenv("PROPOSAL_POSTGRES_INTEGRATION_DSN", "").strip()
 @pytest.fixture
 def repository(monkeypatch: pytest.MonkeyPatch) -> PostgresProposalRepository:
     if _DSN:
-        try:
-            repo = PostgresProposalRepository(dsn=_DSN)
-            _reset_tables(repo)
-            return repo
-        except Exception:
-            pass
+        repo = PostgresProposalRepository(dsn=_DSN)
+        _reset_tables(repo)
+        return repo
     repo, _ = _build_fake_repository(monkeypatch)
     return repo
 
@@ -143,7 +140,15 @@ def test_live_postgres_proposal_repository_parity_contract(
         artifact_hash=f"sha256:{uuid.uuid4().hex}",
         simulation_hash=f"sha256:{uuid.uuid4().hex}",
         status_at_creation="READY",
-        proposal_result_json={"status": "READY"},
+        proposal_result_json={
+            "status": "READY",
+            "proposal_review_evidence": {
+                "benchmark_assignment": {
+                    "source_tenant_id": "tenant-sg",
+                    "benchmark_assignment_content_hash": "sha256:" + "a" * 64,
+                }
+            },
+        },
         artifact_json={"artifact_id": f"pa-{uuid.uuid4().hex}"},
         evidence_bundle_json={"hashes": {"request_hash": idempotency.request_hash}},
         gate_decision_json=None,
@@ -152,6 +157,7 @@ def test_live_postgres_proposal_repository_parity_contract(
     loaded_version = repository.get_current_version(proposal_id=proposal_id)
     assert loaded_version is not None
     assert loaded_version.proposal_version_id == version_id
+    assert loaded_version.proposal_result_json == version.proposal_result_json
 
     repository.save_idempotency(idempotency)
     loaded_idempotency = repository.get_idempotency(idempotency_key=idempotency_key)

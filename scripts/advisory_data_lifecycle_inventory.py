@@ -33,6 +33,7 @@ REQUIRED_FIELD_PATHS = frozenset(
         "advisory_copilot_reviews.reason_json",
         "proposals.portfolio_id",
         "proposals.advisor_notes",
+        "proposal_versions.proposal_result_json.proposal_review_evidence.benchmark_assignment",
         "workspace_sessions.session_json",
         "workspace_saved_versions.replay_evidence_json",
         "idea_proposal_intake_response.trusted_scope",

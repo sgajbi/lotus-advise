@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+import pytest
+
 from scripts.advisory_data_lifecycle_inventory import (
     REQUIRED_FIELD_PATHS,
     load_inventory,
@@ -18,17 +20,22 @@ def test_advisory_data_lifecycle_inventory_covers_required_fields() -> None:
     assert REQUIRED_FIELD_PATHS <= field_paths
 
 
-def test_advisory_data_lifecycle_inventory_blocks_missing_governance_entry() -> None:
+@pytest.mark.parametrize(
+    "field_path",
+    [
+        "advisory_copilot_runs.evidence_packet_json",
+        "proposal_versions.proposal_result_json.proposal_review_evidence.benchmark_assignment",
+    ],
+)
+def test_advisory_data_lifecycle_inventory_blocks_missing_governance_entry(
+    field_path: str,
+) -> None:
     inventory = load_inventory()
-    inventory["fields"] = [
-        item
-        for item in inventory["fields"]
-        if item["field_path"] != "advisory_copilot_runs.evidence_packet_json"
-    ]
+    inventory["fields"] = [item for item in inventory["fields"] if item["field_path"] != field_path]
 
     failures = validate_inventory(inventory)
 
-    assert any("advisory_copilot_runs.evidence_packet_json" in failure for failure in failures)
+    assert any(field_path in failure for failure in failures)
 
 
 def test_advisory_data_lifecycle_inventory_blocks_sensitive_metric_labels() -> None:

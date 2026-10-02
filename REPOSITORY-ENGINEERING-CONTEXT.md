@@ -348,7 +348,8 @@ Boundary rules:
    must preserve that injected value rather than silently recreating Advise with the standalone
    fallback. Production Compose must continue to require deployment-owned tenant configuration and
    must not inherit either local fixture. The configured source tenant and service identity must accompany all Core
-   snapshot, portfolio, reference, taxonomy, price, and FX reads; a protected Core route's 401 is
+   snapshot, portfolio, reference, taxonomy, price, FX, and benchmark-assignment reads; policy
+   context cannot establish or widen that tenant scope. A protected Core route's 401 is
    a source refusal, never a reason to synthesize tenant authority or enrichment data,
 7. Lotus Core source provenance is part of advisory result lineage. Stateful context must consume
    `PortfolioStateSnapshot:v1` from Core's governed `core-snapshot` route and preserve its stable

@@ -16,6 +16,7 @@ import src.core.proposals.service_operation_registry as proposal_service_operati
 import src.core.proposals.service_read_facade as proposal_service_read_facade_module
 import src.core.proposals.service_read_operations as proposal_service_read_module
 from src.core.advisory.narrative_review_models import ProposalNarrativeReviewRequest
+from src.core.advisory.proposal_review_evidence_models import BenchmarkAssignmentEvidence
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.command_validation import resolve_proposal_approval_transition
@@ -438,6 +439,45 @@ def test_service_version_payload_is_immutable_from_caller_mutation():
         proposal_id=proposal_id, version_no=1, include_evidence=True
     )
     assert version_again.evidence_bundle["hashes"]["artifact_hash"].startswith("sha256:")
+
+
+def test_proposal_version_replay_retains_submitted_benchmark_evidence_after_source_change(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    current_benchmark = ["BM_ORIGINAL"]
+
+    def _resolve(**_kwargs: object) -> BenchmarkAssignmentEvidence:
+        return BenchmarkAssignmentEvidence(
+            effective_benchmark_id=current_benchmark[0],
+            effective_as_of_date="2026-03-25",
+            assignment_version=7,
+            source_service="LOTUS_CORE",
+            source_references=["lotus-core://benchmark/original"],
+            supportability="READY",
+        )
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.resolve_advisory_benchmark_assignment_evidence",
+        _resolve,
+    )
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="benchmark-replay",
+        correlation_id="corr-benchmark-replay",
+    )
+    current_benchmark[0] = "BM_RESTATED"
+
+    replay = service.get_version(
+        proposal_id=created.proposal.proposal_id,
+        version_no=1,
+        include_evidence=True,
+    )
+    assignment = replay.proposal_result.proposal_review_evidence.benchmark_assignment
+
+    assert assignment.effective_benchmark_id == "BM_ORIGINAL"
+    assert assignment.assignment_version == 7
+    assert assignment.source_references == ["lotus-core://benchmark/original"]
 
 
 def test_service_create_proposal_normalizes_required_idempotency_key():

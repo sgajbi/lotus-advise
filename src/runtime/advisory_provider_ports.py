@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+from dataclasses import asdict
+
 from src.core.advisory.narrative_ai_ports import (
     ProposalNarrativeDraftResponse,
     ProposalNarrativeDraftUnavailableError,
@@ -8,10 +11,15 @@ from src.core.advisory.narrative_ai_ports import (
 from src.core.advisory.narrative_grounding_models import ProposalNarrativeGroundingPacket
 from src.core.advisory.narrative_policy_models import ProposalNarrativePolicy
 from src.core.advisory.narrative_types import ProposalNarrativeSectionKey
+from src.core.advisory.proposal_review_evidence_models import (
+    BenchmarkAssignmentEvidence,
+    BenchmarkAssignmentReasonCode,
+)
 from src.core.advisory.provider_ports import (
     AdvisoryProviderDependencyState,
     AdvisoryRiskEnrichmentUnavailableError,
     AdvisorySimulationUnavailableError,
+    configure_advisory_benchmark_assignment_evidence_provider,
     configure_advisory_risk_dependency_state_provider,
     configure_advisory_risk_enrichment_provider,
     configure_advisory_simulation_provider,
@@ -44,6 +52,11 @@ from src.integrations.lotus_core import (
     resolve_lotus_core_advisory_context,
     simulate_with_lotus_core,
 )
+from src.integrations.lotus_core.benchmark_assignment import (
+    LotusCoreBenchmarkAssignmentUnavailableError,
+    LotusCoreBenchmarkAssignmentUnavailableReason,
+    fetch_benchmark_assignment_with_lotus_core,
+)
 from src.integrations.lotus_report import (
     LotusReportUnavailableError,
     request_proposal_memo_report_package_with_lotus_report,
@@ -59,6 +72,9 @@ def configure_advisory_external_provider_ports() -> None:
     configure_advisory_simulation_provider(_simulate_with_lotus_core_port)
     configure_advisory_risk_enrichment_provider(_enrich_with_lotus_risk_port)
     configure_advisory_risk_dependency_state_provider(_lotus_risk_dependency_state_port)
+    configure_advisory_benchmark_assignment_evidence_provider(
+        _resolve_benchmark_assignment_evidence_with_lotus_core_port
+    )
     configure_advisory_stateful_context_provider_port()
     configure_proposal_narrative_draft_generator(_generate_narrative_draft_with_lotus_ai_port)
     configure_proposal_memo_ai_commentary_generator(_generate_memo_commentary_with_lotus_ai_port)
@@ -116,6 +132,51 @@ def _lotus_risk_dependency_state_port() -> AdvisoryProviderDependencyState:
         configured=bool(dependency_state.configured),
         degraded_reason=dependency_state.degraded_reason,
     )
+
+
+_BENCHMARK_REASON_MAP: dict[
+    LotusCoreBenchmarkAssignmentUnavailableReason,
+    BenchmarkAssignmentReasonCode,
+] = {
+    "CORE_BENCHMARK_ASSIGNMENT_SOURCE_UNAVAILABLE": "BENCHMARK_EVIDENCE_SOURCE_UNAVAILABLE",
+    "CORE_BENCHMARK_ASSIGNMENT_SOURCE_NOT_FOUND": "BENCHMARK_EVIDENCE_SOURCE_NOT_FOUND",
+    "CORE_BENCHMARK_ASSIGNMENT_SOURCE_INVALID": "BENCHMARK_EVIDENCE_SOURCE_INVALID",
+    "CORE_BENCHMARK_ASSIGNMENT_PORTFOLIO_MISMATCH": "BENCHMARK_EVIDENCE_PORTFOLIO_MISMATCH",
+    "CORE_BENCHMARK_ASSIGNMENT_AS_OF_MISMATCH": "BENCHMARK_EVIDENCE_AS_OF_MISMATCH",
+    "CORE_BENCHMARK_ASSIGNMENT_TENANT_MISMATCH": "BENCHMARK_EVIDENCE_TENANT_MISMATCH",
+    "CORE_BENCHMARK_ASSIGNMENT_TENANT_REQUIRED": "BENCHMARK_EVIDENCE_TENANT_REQUIRED",
+}
+
+
+def _resolve_benchmark_assignment_evidence_with_lotus_core_port(
+    portfolio_id: str,
+    requested_as_of_date: str,
+    requested_reporting_currency: str | None,
+    policy_context: dict[str, object] | None,
+    correlation_id: str,
+) -> BenchmarkAssignmentEvidence:
+    tenant_id = os.getenv("LOTUS_ADVISE_TENANT_ID", "").strip()
+    if not tenant_id:
+        return BenchmarkAssignmentEvidence(
+            supportability="UNAVAILABLE", reason_code="BENCHMARK_EVIDENCE_TENANT_REQUIRED"
+        )
+    try:
+        assignment = fetch_benchmark_assignment_with_lotus_core(
+            portfolio_id=portfolio_id,
+            as_of_date=requested_as_of_date,
+            reporting_currency=requested_reporting_currency,
+            policy_context=policy_context,
+            correlation_id=correlation_id,
+            tenant_id=tenant_id,
+        )
+    except LotusCoreBenchmarkAssignmentUnavailableError as exc:
+        return BenchmarkAssignmentEvidence(
+            supportability="UNAVAILABLE", reason_code=_BENCHMARK_REASON_MAP[exc.reason]
+        )
+    payload = asdict(assignment)
+    payload["benchmark_assignment_content_hash"] = payload.pop("source_content_hash")
+    payload["source_service"] = "LOTUS_CORE"
+    return BenchmarkAssignmentEvidence(**payload)
 
 
 def _resolve_stateful_context_with_lotus_core_port(

@@ -150,17 +150,18 @@ requested as-of context separate from effective source evidence:
 - `current_mandate_limits` and `simulated_mandate_limits` are separate state projections with typed
   observations, units, thresholds, outcomes, severity, and source references when an authoritative
   producer supplies them.
-- Advise does not currently consume Core's existing benchmark-assignment route, and no mapped
-  source-owned mandate-limit observation contract is available to this envelope. The contract
-  therefore returns `UNAVAILABLE`, null effective values, empty observations, and stable reason
-  codes rather than promoting a selector or interpreting generic `rule_results` as mandate evidence.
+- Advise consumes Core's effective-dated benchmark-assignment route under the configured admitted
+  tenant. The envelope retains the returned assignment version, effective range, content hash,
+  references, lineage, freshness, reconciliation, and data-quality posture. Missing authority,
+  refusal, malformed evidence, and requested/effective benchmark mismatch remain explicit non-ready
+  outcomes.
+- No mapped source-owned mandate-limit observation contract is available. Current and simulated
+  limit states therefore remain `UNAVAILABLE` with empty observations and a stable reason code.
 
 This is an explicit capability boundary, not a positive benchmark/limit claim. Advise does not
-calculate benchmark returns, limit breaches, materiality, or acceptability. A future adapter/producer
-mapping must supply source authority, effective dates, and stable references before the envelope can
-move beyond the unavailable posture. The existing Core route is a named revisit point; Advise must
-not silently leave the published unavailable posture in place after adding that route to its Core
-client.
+calculate benchmark returns, limit breaches, materiality, or acceptability. A future mandate-limit
+producer must supply source authority, effective dates, units, thresholds, and stable references
+before either limit state can move beyond the unavailable posture.
 
 ### Memo report-package source-date handoff
 
