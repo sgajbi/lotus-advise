@@ -1,6 +1,6 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-09-23T00:25:27.532136+00:00`
+- Generated At: `2026-10-02T13:36:38.451781+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `calibrated-regression`
@@ -10,13 +10,13 @@
 - Python files: `1124`
 - Packages: `42`
 - Modules: `1082`
-- Total Python lines: `211879`
+- Total Python lines: `211983`
 
 ## Largest Files
 
 | Rank | File | Lines |
 | ---: | --- | ---: |
-| 1 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 4102 |
+| 1 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 4168 |
 | 2 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 2835 |
 | 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2691 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2571 |
@@ -25,7 +25,7 @@
 | 7 | `scripts/validate_cross_service_parity_live.py` | 2180 |
 | 8 | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1989 |
 | 9 | `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` | 1881 |
-| 10 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1737 |
+| 10 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1770 |
 
 ## Largest Functions And Maintainability Hotspots
 
