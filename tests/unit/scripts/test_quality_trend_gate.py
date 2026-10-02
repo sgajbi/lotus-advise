@@ -196,13 +196,10 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     policy = _policy()
     entries = policy["exceptions"]["entries"]
 
-    assert len(entries) == 6
+    assert len(entries) == 5
     exceptions_by_identity = {(entry["metric"], entry["base_sha"]): entry for entry in entries}
     tenant_admission_exception = exceptions_by_identity[
         ("total_python_lines", "b4bf26da45ed920868c9585c74697e2e3a6770c3")
-    ]
-    tenant_scope_exception = exceptions_by_identity[
-        ("total_python_lines", "ff2ac4286c6ef032c5abc8ad1f86efb560679325")
     ]
     cycle_six_growth_exception = exceptions_by_identity[
         ("total_python_lines", "01cc655db1de2d2b07529a2f70d559d0abb8e287")
@@ -216,7 +213,7 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
     cycle_six_executable_evidence_exception = exceptions_by_identity[
         ("total_python_lines", "919020f21ae4b31ac061646e440a06639288abd5")
     ]
-    assert sum(entry["metric"] == "total_python_lines" for entry in entries) == 5
+    assert sum(entry["metric"] == "total_python_lines" for entry in entries) == 4
     assert all(len(entry["head_python_content_fingerprint"]) == 64 for entry in entries)
     assert all(entry["approver"] == "sgajbi" for entry in entries)
     assert (
@@ -227,16 +224,16 @@ def test_current_policy_has_only_revision_bound_python_growth_exceptions() -> No
         "total_python_lines",
         "8b4bb56e2657d0dfe26168e141e3632a66dc1f26",
     ) not in exceptions_by_identity
+    assert (
+        "total_python_lines",
+        "ff2ac4286c6ef032c5abc8ad1f86efb560679325",
+    ) not in exceptions_by_identity
     # #621 tenant admission. The split is recorded because the test half is the larger
     # one, and an exception that does not say so invites the next reader to assume
     # shallow regression bulk -- which is the thing this metric exists to surface.
     assert "production +107 lines" in tenant_admission_exception["reason"]
     assert "tests +487" in tenant_admission_exception["reason"]
     assert "declared coverage did not execute" in tenant_admission_exception["reason"]
-    assert tenant_scope_exception["allowed_delta"] == 853
-    assert "+157 production" in tenant_scope_exception["reason"]
-    assert "+696 tests" in tenant_scope_exception["reason"]
-    assert "#624" in tenant_scope_exception["reason"]
     assert cycle_six_growth_exception["allowed_delta"] == 2951
     assert "#632/#628/#601/#590" in cycle_six_growth_exception["reason"]
     assert cycle_six_complexity_exception["allowed_delta"] == 7
