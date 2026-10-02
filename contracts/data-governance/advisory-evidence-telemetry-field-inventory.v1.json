@@ -292,6 +292,21 @@
       "source_boundary": "trusted-advisor-input"
     },
     {
+      "field_path": "proposal_versions.proposal_result_json.proposal_review_evidence.benchmark_assignment",
+      "purpose": "Persist and project the source-owned benchmark assignment identity, admitted tenant, effective dates, version, timestamps, statuses, content hash, references, and lineage used for proposal review and exact replay.",
+      "classification": "COMPLIANCE_REVIEW_EVIDENCE",
+      "owner": "proposal-lifecycle",
+      "allowed_consumers": ["authorized-advisor", "supervisor", "compliance", "support-with-case"],
+      "retention_policy": "ADVISORY_PROPOSAL_RECORD",
+      "purge_policy": "purge_with_proposal_record_unless_legal_hold",
+      "masking": "bounded_source_evidence_only_omit_from_logs_and_metrics",
+      "stores": ["postgres", "api"],
+      "telemetry_label_allowed": false,
+      "api_projection_allowed": true,
+      "downstream_payload_allowed": false,
+      "source_boundary": "lotus-core"
+    },
+    {
       "field_path": "workspace_sessions.session_json",
       "purpose": "Persist advisory workspace draft state and source-context replay evidence.",
       "classification": "ADVISOR_USE_SUMMARY",

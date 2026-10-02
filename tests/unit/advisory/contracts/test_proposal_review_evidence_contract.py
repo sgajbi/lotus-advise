@@ -51,6 +51,50 @@ def test_projection_keeps_requested_context_without_claiming_effective_evidence(
     ) == (None, None)
 
 
+def _source_evidence() -> BenchmarkAssignmentEvidence:
+    return BenchmarkAssignmentEvidence(
+        effective_benchmark_id="BM_GLOBAL_BALANCED",
+        effective_as_of_date="2026-03-25",
+        assignment_version=3,
+        source_service="LOTUS_CORE",
+        source_tenant_id="tenant-sg",
+        benchmark_assignment_content_hash="sha256:" + "a" * 64,
+        source_references=("lotus-core://benchmark/PF_554/2026-03-25",),
+        supportability="READY",
+    )
+
+
+def test_requested_and_effective_benchmark_mismatch_is_not_ready() -> None:
+    evidence = build_proposal_review_evidence(
+        policy_context={"benchmark_id": "BM_REQUESTED"},
+        valuation_context=_valuation_context(),
+        benchmark_assignment_evidence=_source_evidence(),
+    )
+
+    assignment = evidence.benchmark_assignment
+    assert assignment.requested_benchmark_id == "BM_REQUESTED"
+    assert assignment.effective_benchmark_id == "BM_GLOBAL_BALANCED"
+    assert assignment.supportability == "RESTRICTED"
+    assert assignment.reason_code == "BENCHMARK_EVIDENCE_ASSIGNMENT_MISMATCH"
+
+
+def test_requested_benchmark_preserves_typed_source_unavailability() -> None:
+    evidence = build_proposal_review_evidence(
+        policy_context={"benchmark_id": "BM_REQUESTED"},
+        valuation_context=_valuation_context(),
+        benchmark_assignment_evidence=BenchmarkAssignmentEvidence(
+            supportability="UNAVAILABLE",
+            reason_code="BENCHMARK_EVIDENCE_SOURCE_NOT_FOUND",
+        ),
+    )
+
+    assignment = evidence.benchmark_assignment
+    assert assignment.requested_benchmark_id == "BM_REQUESTED"
+    assert assignment.effective_benchmark_id is None
+    assert assignment.supportability == "UNAVAILABLE"
+    assert assignment.reason_code == "BENCHMARK_EVIDENCE_SOURCE_NOT_FOUND"
+
+
 def test_mandate_limit_observation_preserves_typed_source_values() -> None:
     observation = MandateLimitObservation(
         limit_code="MAX_SINGLE_POSITION",
@@ -80,7 +124,7 @@ def test_evidence_models_reject_extensions_and_revisit_core_route() -> None:
     assert not any(
         isinstance(value, str) and "benchmark-assignment" in value
         for value in vars(stateful_context_routes).values()
-    ), "Map Core benchmark evidence before changing the published UNAVAILABLE posture."
+    ), "Benchmark assignment must remain isolated in its source adapter."
 
 
 def test_proposal_result_openapi_publishes_additive_review_evidence_contract() -> None:

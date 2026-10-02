@@ -1,5 +1,23 @@
 # Lotus Advise Codebase Review Ledger
 
+## LA-REV-956-SOURCE-BACKED-BENCHMARK-EVIDENCE
+
+- Scope: Issue #554 Core benchmark-assignment consumption and durable proposal-review evidence.
+- Pattern: The Core adapter existed, but orchestration published blanket unavailable evidence and
+  discarded effective assignment identity, dates, version, hash, lineage, and supportability.
+- Status: Implemented on the #554 delivery branch. Runtime resolution uses configured admitted
+  tenant authority; missing authority refuses before I/O. Requested/effective mismatch is
+  `RESTRICTED`; mandate-limit evidence remains `UNAVAILABLE` pending a producer contract.
+- Compatibility: Additive fields within the existing `ProposalReviewEvidence:v1` envelope. No
+  benchmark or limit calculation, migration, approval, consent, execution, Gateway, or Workbench
+  behavior changes.
+- Evidence: Focused adapter, port, mapping, OpenAPI, refusal, mismatch, and immutable replay tests;
+  full gates, PR CI, exact-main validation, and wiki parity remain required before closure.
+- Draft review: `review/lotus-advise/agent-context/` was reviewed and not adopted in this slice. It
+  proposes unrelated startup-context wording and remains a separate candidate, not superseded.
+- Follow-Up: Keep #554 open for source-owned current/simulated mandate-limit observations and live
+  producer-consumer acceptance.
+
 ## LA-REV-955-LIVE-SNAPSHOT-EXTRACTOR-SEAMS
 
 - Scope: the fixed-shape snapshot-extractor dependencies of the memo, policy-evaluation, and

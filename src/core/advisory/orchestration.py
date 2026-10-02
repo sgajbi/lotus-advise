@@ -15,6 +15,7 @@ from src.core.advisory.provider_ports import (
     AdvisorySimulationUnavailableError,
     build_advisory_risk_dependency_state,
     enrich_with_advisory_risk_provider,
+    resolve_advisory_benchmark_assignment_evidence,
     resolve_advisory_simulation_fallback_policy,
     simulate_with_advisory_simulation_provider,
 )
@@ -144,9 +145,21 @@ def evaluate_advisory_proposal(
         requested_as_of_date=requested_as_of_date,
         requested_reporting_currency=requested_reporting_currency,
     )
+    benchmark_assignment_evidence = resolve_advisory_benchmark_assignment_evidence(
+        portfolio_id=request.portfolio_snapshot.portfolio_id,
+        requested_as_of_date=(
+            risk.proposal_result.valuation_context.current_state.requested_as_of_date
+        ),
+        requested_reporting_currency=(
+            risk.proposal_result.valuation_context.current_state.requested_reporting_currency
+        ),
+        policy_context=policy_context,
+        correlation_id=correlation_id,
+    )
     risk.proposal_result.proposal_review_evidence = build_proposal_review_evidence(
         policy_context=policy_context,
         valuation_context=risk.proposal_result.valuation_context,
+        benchmark_assignment_evidence=benchmark_assignment_evidence,
     )
     return cast(ProposalResult, risk.proposal_result)
 

@@ -1,16 +1,16 @@
 # Lotus Advise Quality Baseline Report
 
-- Generated At: `2026-10-02T17:41:20.459813+00:00`
+- Generated At: `2026-10-02T22:50:50.955684+00:00`
 - Git Identity: omitted from committed Markdown; use Git history and GitHub Actions
   run metadata for exact branch/head evidence.
 - CI Phase: `calibrated-regression`
 
 ## Code Size
 
-- Python files: `1125`
+- Python files: `1126`
 - Packages: `42`
-- Modules: `1083`
-- Total Python lines: `212716`
+- Modules: `1084`
+- Total Python lines: `212916`
 
 ## Largest Files
 
@@ -18,12 +18,12 @@
 | ---: | --- | ---: |
 | 1 | `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` | 4548 |
 | 2 | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 2835 |
-| 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2720 |
+| 3 | `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` | 2760 |
 | 4 | `tests/unit/advisory/api/test_api_workspace.py` | 2571 |
 | 5 | `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` | 2366 |
 | 6 | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 2294 |
 | 7 | `scripts/validate_cross_service_parity_live.py` | 2180 |
-| 8 | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 2086 |
+| 8 | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 2092 |
 | 9 | `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` | 1881 |
 | 10 | `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py` | 1770 |
 
@@ -32,13 +32,13 @@
 | Rank | Function | File | Line | Lines |
 | ---: | --- | --- | ---: | ---: |
 | 1 | `test_lifecycle_async_and_support_schemas_have_descriptions_and_examples` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 62 | 405 |
-| 2 | `test_live_postgres_idea_intake_persists_portfolio_scope_for_recovery` | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1541 | 355 |
+| 2 | `test_live_postgres_idea_intake_persists_portfolio_scope_for_recovery` | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1547 | 355 |
 | 3 | `execute` | `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` | 197 | 326 |
 | 4 | `test_quality_baseline_report_captures_required_quality_sections` | `tests/unit/scripts/test_quality_baseline_report.py` | 120 | 311 |
 | 5 | `test_resolve_stateful_context_with_lotus_core_builds_simulation_request` | `tests/unit/advisory/api/test_lotus_core_stateful_context.py` | 1461 | 225 |
 | 6 | `test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` | 381 | 216 |
 | 7 | `_live_runtime_payload` | `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` | 26 | 187 |
-| 8 | `test_live_postgres_idea_intake_claim_is_restart_safe_and_conflict_detecting` | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1354 | 185 |
+| 8 | `test_live_postgres_idea_intake_claim_is_restart_safe_and_conflict_detecting` | `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py` | 1360 | 185 |
 | 9 | `test_lifecycle_endpoints_use_separate_request_and_response_objects` | `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` | 469 | 185 |
 | 10 | `assert_live_workspace_flow` | `scripts/live_workspace_flow.py` | 121 | 181 |
 
@@ -47,8 +47,8 @@
 - Current baseline uses largest-function and router-hotspot evidence as deterministic
   complexity proxies.
 - Radon config executable: `True`
-- Radon analyzed block inventory: `5223`
-- Radon complexity rank inventory: `A=5082, B=141`
+- Radon analyzed block inventory: `5229`
+- Radon complexity rank inventory: `A=5088, B=141`
 - Radon worst complexity: `rank=B, complexity=10`
 - Radon C/D/E/F-ranked block enforcement is repo-native through
   `make complexity-regression-gate` and the `lint` lane.
@@ -127,7 +127,7 @@
 - Requested docs present: `docs/architecture.md, docs/api-governance.md, docs/observability.md, docs/security.md, docs/operations-runbook.md, docs/supported-features.md`
 - Requested docs missing: `none`
 - Interrogate config executable: `True`
-- Interrogate docstring inventory: `total=6018, missing=5780, covered=238, coverage=4.0%`
+- Interrogate docstring inventory: `total=6024, missing=5785, covered=239, coverage=4.0%`
 - Interrogate documentation coverage trend is hard-gated by `make quality-trend-gate`;
   absolute public API and module-ownership thresholds remain report-only until
   classified.
