@@ -48,7 +48,7 @@ def test_rfc0025_slice2_pins_policy_context_boundary_cleanup() -> None:
         assert phrase in slice2
 
 
-def test_current_policy_context_is_not_reinterpreted_in_scanner_or_decision_summary() -> None:
+def test_policy_context_accessors_are_used_only_for_their_owned_meanings() -> None:
     suitability = _read(SUITABILITY_PATH)
     suitability_post_trade = _read(SUITABILITY_POST_TRADE_PATH)
     decision_summary = _read(DECISION_SUMMARY_PATH)
@@ -58,7 +58,7 @@ def test_current_policy_context_is_not_reinterpreted_in_scanner_or_decision_summ
     assert 'mandate_context_status") == "AVAILABLE"' not in suitability
     assert 'client_context_status") == "AVAILABLE"' not in suitability_post_trade
     assert 'mandate_context_status") == "AVAILABLE"' not in suitability_post_trade
-    assert "client_context_available(policy_context)" in suitability_post_trade
+    assert "client_context_available" not in suitability_post_trade
     assert "mandate_context_available(policy_context)" in suitability_post_trade
     assert 'client_context_status") == "AVAILABLE"' not in decision_summary
     assert 'mandate_context_status") == "AVAILABLE"' not in decision_summary
