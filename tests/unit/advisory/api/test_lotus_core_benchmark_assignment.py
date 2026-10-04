@@ -219,6 +219,43 @@ def test_fetch_maps_core_transport_failure_to_typed_unavailable_evidence(monkeyp
     assert exc_info.value.reason == "CORE_BENCHMARK_ASSIGNMENT_SOURCE_UNAVAILABLE"
 
 
+@pytest.mark.parametrize(
+    "revision_fields",
+    [
+        {},
+        {"contract_version": None},
+        {"contract_version": ""},
+        {"contract_version": " "},
+        {"contract_version": "rfc_062_v999"},
+        {"contract_version": "RFC_062_V1"},
+        {"contract_version": 1},
+        {"contract_version": {"revision": "rfc_062_v1"}},
+    ],
+)
+def test_fetch_refuses_unsupported_or_malformed_contract_revision(
+    monkeypatch: pytest.MonkeyPatch, revision_fields: dict[str, object]
+) -> None:
+    payload = _payload()
+    payload.pop("contract_version")
+    payload.update(revision_fields)
+    client = _FakeClient(_FakeResponse(status_code=200, payload=payload))
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.benchmark_assignment.httpx.Client", lambda timeout: client
+    )
+
+    with pytest.raises(LotusCoreBenchmarkAssignmentUnavailableError) as exc_info:
+        fetch_benchmark_assignment_with_lotus_core(
+            portfolio_id="PF_1",
+            as_of_date="2026-03-25",
+            reporting_currency="USD",
+            policy_context=None,
+            correlation_id="corr-554-version",
+            tenant_id="tenant_sg",
+        )
+
+    assert exc_info.value.reason == "CORE_BENCHMARK_ASSIGNMENT_SOURCE_INVALID"
+
+
 def test_fetch_omits_blank_optional_context_without_forwarding_unowned_fields(monkeypatch) -> None:
     client = _FakeClient(_FakeResponse(status_code=200, payload=_payload()))
     monkeypatch.setattr(
