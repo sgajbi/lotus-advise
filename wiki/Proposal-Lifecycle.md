@@ -151,7 +151,9 @@ requested as-of context separate from effective source evidence:
   observations, units, thresholds, outcomes, severity, and source references when an authoritative
   producer supplies them.
 - Advise consumes Core's effective-dated benchmark-assignment route under the configured admitted
-  tenant. The envelope retains the returned assignment version, effective range, content hash,
+  tenant. Only `BenchmarkAssignment:v1` with contract revision `rfc_062_v1` is admitted;
+  unknown, missing, or malformed revisions remain unavailable source evidence. The envelope
+  retains the returned assignment version, effective range, content hash,
   references, lineage, freshness, reconciliation, and data-quality posture. Missing authority,
   refusal, malformed evidence, and requested/effective benchmark mismatch remain explicit non-ready
   outcomes.

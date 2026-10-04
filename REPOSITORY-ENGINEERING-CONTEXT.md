@@ -350,7 +350,9 @@ Boundary rules:
    must not inherit either local fixture. The configured source tenant and service identity must accompany all Core
    snapshot, portfolio, reference, taxonomy, price, FX, and benchmark-assignment reads; policy
    context cannot establish or widen that tenant scope. A protected Core route's 401 is
-   a source refusal, never a reason to synthesize tenant authority or enrichment data,
+   a source refusal, never a reason to synthesize tenant authority or enrichment data.
+   Benchmark assignment admission requires `BenchmarkAssignment:v1` and `rfc_062_v1`;
+   unknown, missing, or malformed contract revisions map to unavailable source evidence,
 7. Lotus Core source provenance is part of advisory result lineage. Stateful context must consume
    `PortfolioStateSnapshot:v1` from Core's governed `core-snapshot` route and preserve its stable
    portfolio and market-data identities, source-owned effective date, source hashes, valuation

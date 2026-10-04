@@ -33,7 +33,7 @@ performance analytics, or risk analytics.
 | stateful context FX load | `GET /fx-rates/` | Operational Read | currency conversion support for advisory context | FX authority remains core-owned |
 | stateful context enrichment load | `POST /integration/instruments/enrichment-bulk` | Analytics Input watchlist | enrichment context for proposal construction | enrichment semantics remain upstream; local fallback labels are not authoritative analytics |
 | stateful context classification taxonomy load | `POST /integration/reference/classification-taxonomy` | Analytics Input watchlist | governed instrument classification labels for proposal shelf construction | use effective-dated core taxonomy labels where available; expose `UNKNOWN` plus supportability attributes when upstream labels are missing from the governed taxonomy |
-| benchmark assignment evidence | `POST /integration/portfolios/{portfolio_id}/benchmark-assignment` | Analytics Input | source-owned effective benchmark evidence for proposal review | query only under configured admitted tenant authority; retain effective dating, version, hash, references, lineage, and source supportability; never treat the requested selector as applied evidence |
+| benchmark assignment evidence | `POST /integration/portfolios/{portfolio_id}/benchmark-assignment` | Analytics Input | source-owned effective benchmark evidence for proposal review | admit only `BenchmarkAssignment:v1` / `rfc_062_v1`; unknown, missing, or malformed revisions are unavailable; query only under configured admitted tenant authority; retain effective dating, version, hash, references, lineage, and source supportability; never treat the requested selector as applied evidence |
 
 ### Source Effects And Advisory Decision Ownership
 

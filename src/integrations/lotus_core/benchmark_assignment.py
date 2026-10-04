@@ -96,7 +96,7 @@ class _CoreBenchmarkAssignmentResponse(BaseModel):
     assignment_version: int = Field(ge=1)
     policy_pack_id: str | None = None
     source_system: str | None = None
-    contract_version: str = Field(min_length=1)
+    contract_version: Literal["rfc_062_v1"]
     tenant_id: str | None = None
     generated_at: datetime
     restatement_version: str = Field(min_length=1)
